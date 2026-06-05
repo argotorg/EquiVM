@@ -1,0 +1,28 @@
+name = "EquiVM"
+version = "0.1.0"
+# defaultTargets = ["evmlean"] this currently does no correspond to anything
+defaultTargets = ["Act"]
+
+[[lean_lib]]
+name = "EquiVM"
+
+[[lean_lib]]
+name = "EVM"
+
+[[lean_lib]]
+name = "ABI"
+
+[[lean_lib]]
+name = "Act"
+
+[[lean_lib]]
+name = "Examples"
+
+# [[lean_exe]]
+# name = "equivm"
+# root = "EquiVM"
+
+[[require]]
+name = "evmlean"
+git = "https://github.com/lefterislazar/EVMLean.git"
+rev = "step_semantics"
