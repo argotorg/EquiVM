@@ -174,7 +174,6 @@ def lookupIndex? (container key : Value) : Option Value :=
           let idx <- intToNat? i
           lookupNth? elems idx
       | _ => none
-  | .mapping entries => lookupValueAssoc entries key
   | _ => none
 
 def updateIndex? (container key value : Value) : Option Value :=
@@ -186,8 +185,6 @@ def updateIndex? (container key value : Value) : Option Value :=
           let elems' <- updateNth? elems idx value
           pure (.array elems')
       | _ => none
-  | .mapping entries =>
-      some (.mapping (updateValueAssoc entries key value))
   | _ => none
 
 def castValue? (v : Value) (ty : StorageType) : Option Value :=
@@ -200,7 +197,6 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
       if expected = actual then some v else none
   | .array _ _, .array _ => some v
   | .dynamicArray _, .array _ => some v
-  | .mapping _ _, .mapping _ => some v
   | _, _ => none
 
 def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
@@ -272,7 +268,6 @@ mutual
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
     | .field base _ => exprEvalSize base + 1
-    | .mindex base idx => exprEvalSize base + exprEvalSize idx + 1
     | .aindex base idx => exprEvalSize base + exprEvalSize idx + 1
     | .cast expr _ => exprEvalSize expr + 1
     | .addrOf expr => exprEvalSize expr + 1
@@ -404,10 +399,6 @@ def evalExpr? (cfg : Config) (act : Frame) (evm : EVM.State) :
   | .field base name => do
       let baseValue <- evalExpr? cfg act evm base
       lookupField? baseValue name
-  | .mindex base idxExpr => do
-      let baseValue <- evalExpr? cfg act evm base
-      let idx <- evalExpr? cfg act evm idxExpr
-      lookupIndex? baseValue idx
   | .aindex base idxExpr => do
       let baseValue <- evalExpr? cfg act evm base
       let idx <- evalExpr? cfg act evm idxExpr
@@ -657,4 +648,3 @@ end
 def ExecContractBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State)
     (locals : Store) (body : Body) (result : ExecResult) : Prop :=
   ExecFuncBody cfg { contract := contract, locals := locals } evm body result
-

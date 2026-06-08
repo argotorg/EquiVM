@@ -13,10 +13,11 @@ inductive Value where
   | bool : Bool -> Value
   | address : EVM.Address -> Value
   | struct : Ident -> List (Ident × Value) -> Value
-  | array : List Value -> Value
-  | mapping : List (Value × Value) -> Value
+  | array : List Value -> Value /- arrays can be copied to memory, so we need array values -/
   | unit : Value
   deriving Inhabited
+
+/- Zoe: We need a way to represent references to mappings, arrays, and structs in storage -/
 
 mutual
   private def Value.decEq : (a b : Value) -> Decidable (a = b)
@@ -41,53 +42,37 @@ mutual
         match Value.decEqList xs ys with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
-    | .mapping xs, .mapping ys =>
-        match Value.decEqPairList xs ys with
-        | isTrue h => isTrue (by cases h; rfl)
-        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .unit, .unit => isTrue rfl
     | .int _, .bool _ => isFalse (by intro h; cases h)
     | .int _, .address _ => isFalse (by intro h; cases h)
     | .int _, .struct _ _ => isFalse (by intro h; cases h)
     | .int _, .array _ => isFalse (by intro h; cases h)
-    | .int _, .mapping _ => isFalse (by intro h; cases h)
     | .int _, .unit => isFalse (by intro h; cases h)
     | .bool _, .int _ => isFalse (by intro h; cases h)
     | .bool _, .address _ => isFalse (by intro h; cases h)
     | .bool _, .struct _ _ => isFalse (by intro h; cases h)
     | .bool _, .array _ => isFalse (by intro h; cases h)
-    | .bool _, .mapping _ => isFalse (by intro h; cases h)
     | .bool _, .unit => isFalse (by intro h; cases h)
     | .address _, .int _ => isFalse (by intro h; cases h)
     | .address _, .bool _ => isFalse (by intro h; cases h)
     | .address _, .struct _ _ => isFalse (by intro h; cases h)
     | .address _, .array _ => isFalse (by intro h; cases h)
-    | .address _, .mapping _ => isFalse (by intro h; cases h)
     | .address _, .unit => isFalse (by intro h; cases h)
     | .struct _ _, .int _ => isFalse (by intro h; cases h)
     | .struct _ _, .bool _ => isFalse (by intro h; cases h)
     | .struct _ _, .address _ => isFalse (by intro h; cases h)
     | .struct _ _, .array _ => isFalse (by intro h; cases h)
-    | .struct _ _, .mapping _ => isFalse (by intro h; cases h)
     | .struct _ _, .unit => isFalse (by intro h; cases h)
     | .array _, .int _ => isFalse (by intro h; cases h)
     | .array _, .bool _ => isFalse (by intro h; cases h)
     | .array _, .address _ => isFalse (by intro h; cases h)
     | .array _, .struct _ _ => isFalse (by intro h; cases h)
-    | .array _, .mapping _ => isFalse (by intro h; cases h)
     | .array _, .unit => isFalse (by intro h; cases h)
-    | .mapping _, .int _ => isFalse (by intro h; cases h)
-    | .mapping _, .bool _ => isFalse (by intro h; cases h)
-    | .mapping _, .address _ => isFalse (by intro h; cases h)
-    | .mapping _, .struct _ _ => isFalse (by intro h; cases h)
-    | .mapping _, .array _ => isFalse (by intro h; cases h)
-    | .mapping _, .unit => isFalse (by intro h; cases h)
     | .unit, .int _ => isFalse (by intro h; cases h)
     | .unit, .bool _ => isFalse (by intro h; cases h)
     | .unit, .address _ => isFalse (by intro h; cases h)
     | .unit, .struct _ _ => isFalse (by intro h; cases h)
     | .unit, .array _ => isFalse (by intro h; cases h)
-    | .unit, .mapping _ => isFalse (by intro h; cases h)
 
   private def Value.decEqList : (as bs : List Value) -> Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -150,12 +135,11 @@ def valueToWord : Value -> Option EVM.Word
   | .bool b => b.toUInt256
   | .address a => pure $ .ofNat $ a.toNat
   | .array _ => .none
-  | .mapping _ => .none
   | .struct _ _ => .none
 
 def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   match t with
-  | .int (.uint _) => .int (w.toNat) 
+  | .int (.uint _) => .int (w.toNat)
   | .int (.sint _) => .int (EVM.signed w)
   | .bool => if w.val == 0 then .bool false else .bool true
   | .address => .address (.ofNat $ w.toNat)
@@ -165,4 +149,3 @@ def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   | .fixed _ => panic! "TODO: wordToElem: implement fixed"
 
 abbrev Store := Std.HashMap Ident Value
-

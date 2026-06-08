@@ -155,8 +155,8 @@ inductive BinaryOp where
 
 mutual
 
-/- Expressions are intentionally lightweight for now; the redesign note leaves
-   them open-ended and the semantics work can refine them later. -/
+/- Expressions are intentionally lightweight for now. We are aiming for a meaningful
+   subset of Solidity. -/
 inductive Expr where
   | intLit : Int -> Expr
   | boolLit : Bool -> Expr
@@ -164,9 +164,8 @@ inductive Expr where
   | env : EnvVar -> Expr
   /- for struct fields -/
   | field : Expr -> Ident -> Expr
-  /- mapping index. Shall we differentiate between the two? -/
-  | mindex : Expr -> Expr -> Expr
   /- array index. Shall we differentiate between the two? -/
+  /- Zoe: do we really need aindex and field for memory arrays and structs? TODO investigate-/
   | aindex : Expr -> Expr -> Expr
   | storage : StorageRef -> Expr
   /- TODO what types allow casting? -/
@@ -184,6 +183,8 @@ inductive StorageRefStep where
 structure StorageRef where
   base : Ident
   steps : List StorageRefStep := []
+
+/- Zoe: Shall we use StorageRef at the Expr level too instead of having field, mindex, aindex? -/
 
 end
 
@@ -217,11 +218,6 @@ mutual
         | isTrue hx, isTrue hf => isTrue (by subst y; subst fy; rfl)
         | isFalse hx, _ => isFalse (by intro h'; cases h'; exact hx rfl)
         | _, isFalse hf => isFalse (by intro h'; cases h'; exact hf rfl)
-    | .mindex x ix, .mindex y iy =>
-        match Expr.decEq x y, Expr.decEq ix iy with
-        | isTrue hx, isTrue hi => isTrue (by cases hx; cases hi; rfl)
-        | isFalse hx, _ => isFalse (by intro h'; cases h'; exact hx rfl)
-        | _, isFalse hi => isFalse (by intro h'; cases h'; exact hi rfl)
     | .aindex x ix, .aindex y iy =>
         match Expr.decEq x y, Expr.decEq ix iy with
         | isTrue hx, isTrue hi => isTrue (by cases hx; cases hi; rfl)
@@ -261,7 +257,6 @@ mutual
     | .intLit _, .var _ => isFalse (by intro h; cases h)
     | .intLit _, .env _ => isFalse (by intro h; cases h)
     | .intLit _, .field _ _ => isFalse (by intro h; cases h)
-    | .intLit _, .mindex _ _ => isFalse (by intro h; cases h)
     | .intLit _, .aindex _ _ => isFalse (by intro h; cases h)
     | .intLit _, .storage _ => isFalse (by intro h; cases h)
     | .intLit _, .cast _ _ => isFalse (by intro h; cases h)
@@ -273,7 +268,6 @@ mutual
     | .boolLit _, .var _ => isFalse (by intro h; cases h)
     | .boolLit _, .env _ => isFalse (by intro h; cases h)
     | .boolLit _, .field _ _ => isFalse (by intro h; cases h)
-    | .boolLit _, .mindex _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .aindex _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .storage _ => isFalse (by intro h; cases h)
     | .boolLit _, .cast _ _ => isFalse (by intro h; cases h)
@@ -285,7 +279,6 @@ mutual
     | .var _, .boolLit _ => isFalse (by intro h; cases h)
     | .var _, .env _ => isFalse (by intro h; cases h)
     | .var _, .field _ _ => isFalse (by intro h; cases h)
-    | .var _, .mindex _ _ => isFalse (by intro h; cases h)
     | .var _, .aindex _ _ => isFalse (by intro h; cases h)
     | .var _, .storage _ => isFalse (by intro h; cases h)
     | .var _, .cast _ _ => isFalse (by intro h; cases h)
@@ -297,7 +290,6 @@ mutual
     | .env _, .boolLit _ => isFalse (by intro h; cases h)
     | .env _, .var _ => isFalse (by intro h; cases h)
     | .env _, .field _ _ => isFalse (by intro h; cases h)
-    | .env _, .mindex _ _ => isFalse (by intro h; cases h)
     | .env _, .aindex _ _ => isFalse (by intro h; cases h)
     | .env _, .storage _ => isFalse (by intro h; cases h)
     | .env _, .cast _ _ => isFalse (by intro h; cases h)
@@ -309,7 +301,6 @@ mutual
     | .field _ _, .boolLit _ => isFalse (by intro h; cases h)
     | .field _ _, .var _ => isFalse (by intro h; cases h)
     | .field _ _, .env _ => isFalse (by intro h; cases h)
-    | .field _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .field _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .field _ _, .storage _ => isFalse (by intro h; cases h)
     | .field _ _, .cast _ _ => isFalse (by intro h; cases h)
@@ -317,24 +308,11 @@ mutual
     | .field _ _, .unary _ _ => isFalse (by intro h; cases h)
     | .field _ _, .binary _ _ _ => isFalse (by intro h; cases h)
     | .field _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .intLit _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .boolLit _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .var _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .env _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .aindex _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .storage _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .cast _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .addrOf _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .unary _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .binary _ _ _ => isFalse (by intro h; cases h)
-    | .mindex _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .intLit _ => isFalse (by intro h; cases h)
     | .aindex _ _, .boolLit _ => isFalse (by intro h; cases h)
     | .aindex _ _, .var _ => isFalse (by intro h; cases h)
     | .aindex _ _, .env _ => isFalse (by intro h; cases h)
     | .aindex _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .aindex _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .storage _ => isFalse (by intro h; cases h)
     | .aindex _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .addrOf _ => isFalse (by intro h; cases h)
@@ -346,7 +324,6 @@ mutual
     | .storage _, .var _ => isFalse (by intro h; cases h)
     | .storage _, .env _ => isFalse (by intro h; cases h)
     | .storage _, .field _ _ => isFalse (by intro h; cases h)
-    | .storage _, .mindex _ _ => isFalse (by intro h; cases h)
     | .storage _, .aindex _ _ => isFalse (by intro h; cases h)
     | .storage _, .cast _ _ => isFalse (by intro h; cases h)
     | .storage _, .addrOf _ => isFalse (by intro h; cases h)
@@ -358,7 +335,6 @@ mutual
     | .cast _ _, .var _ => isFalse (by intro h; cases h)
     | .cast _ _, .env _ => isFalse (by intro h; cases h)
     | .cast _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .cast _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .storage _ => isFalse (by intro h; cases h)
     | .cast _ _, .addrOf _ => isFalse (by intro h; cases h)
@@ -370,7 +346,6 @@ mutual
     | .addrOf _, .var _ => isFalse (by intro h; cases h)
     | .addrOf _, .env _ => isFalse (by intro h; cases h)
     | .addrOf _, .field _ _ => isFalse (by intro h; cases h)
-    | .addrOf _, .mindex _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .aindex _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .storage _ => isFalse (by intro h; cases h)
     | .addrOf _, .cast _ _ => isFalse (by intro h; cases h)
@@ -382,7 +357,6 @@ mutual
     | .unary _ _, .var _ => isFalse (by intro h; cases h)
     | .unary _ _, .env _ => isFalse (by intro h; cases h)
     | .unary _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .unary _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .storage _ => isFalse (by intro h; cases h)
     | .unary _ _, .cast _ _ => isFalse (by intro h; cases h)
@@ -394,7 +368,6 @@ mutual
     | .binary _ _ _, .var _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .env _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .binary _ _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .storage _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .cast _ _ => isFalse (by intro h; cases h)
@@ -406,7 +379,6 @@ mutual
     | .ite _ _ _, .var _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .env _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .field _ _ => isFalse (by intro h; cases h)
-    | .ite _ _ _, .mindex _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .storage _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .cast _ _ => isFalse (by intro h; cases h)
@@ -475,12 +447,15 @@ inductive AssignRhs where
   deriving DecidableEq, Repr, Inhabited
 
 inductive Stmt where
+  /- local variable -/
   | letDecl : Ident -> Option ABIType -> Expr -> Stmt
+  /- storage variable assignment -/
   | assign : StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
   | while : Expr -> List Stmt -> Stmt
-  | internalCall : Ident -> List Expr -> Ident /- return value -/ -> Stmt
-  | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value -/ -> Stmt
+  /- internal and external call results are explicitly let-bound -/
+  | internalCall : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
+  | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ -> Stmt
   | return : Expr -> Stmt
   | break : Stmt
   | continue : Stmt
@@ -659,7 +634,7 @@ structure ContractDecl where
   name : Ident
   storage : List StorageDecl
   ctor : ConstructorDecl
-  structs : List StructDecl := [] -- Maybe these should not be per-contract
+  structs : List StructDecl := [] -- Maybe these should not be per-contract. Zoe: if we are inlining them anyway, do we still need this?
   functions : List FunctionDecl := []
   transitions : List TransitionDecl := []
   deriving DecidableEq, Repr, Inhabited
