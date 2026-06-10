@@ -17,6 +17,7 @@ inductive Value where
   | unit : Value
   deriving Inhabited
 
+
 /- Zoe: We need a way to represent references to mappings, arrays, and structs in storage -/
 
 mutual

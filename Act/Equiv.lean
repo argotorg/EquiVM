@@ -26,7 +26,7 @@ inductive execResultsEquiv
     actRes = .returned _ actState retVal →
     createdAccounts' = actState.createdAccounts →
     σ' = actState.accountMap →
-    A' = actState.substate →
+    -- A' = actState.substate → /- We ignore the substate -/
     returnEquiv o retVal t →
     execResultsEquiv evmRes actRes t
   | revert :

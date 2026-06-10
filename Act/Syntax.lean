@@ -169,7 +169,8 @@ inductive Expr where
   | aindex : Expr -> Expr -> Expr
   | storage : StorageRef -> Expr
   /- TODO what types allow casting? -/
-  | cast : Expr -> StorageType -> Expr
+  | inRange : IntType -> Expr -> Expr
+  | cast : Expr -> StorageType -> Expr /- TODO do we really need casting?-/
   | addrOf : Expr -> Expr
   | unary : UnaryOp -> Expr -> Expr
   | binary : BinaryOp -> Expr -> Expr -> Expr
@@ -227,6 +228,11 @@ mutual
         match StorageRef.decEq x y with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .inRange tx x, .inRange ty y =>
+        match (inferInstance : Decidable (tx = ty)), Expr.decEq x y with
+        | isTrue ht, isTrue hx => isTrue (by cases ht; cases hx; rfl)
+        | isFalse ht, _ => isFalse (by intro h'; cases h'; exact ht rfl)
+        | _, isFalse hx => isFalse (by intro h'; cases h'; exact hx rfl)
     | .cast x tx, .cast y ty =>
         match Expr.decEq x y, (inferInstance : Decidable (tx = ty)) with
         | isTrue hx, isTrue ht => isTrue (by cases hx; cases ht; rfl)
@@ -259,6 +265,7 @@ mutual
     | .intLit _, .field _ _ => isFalse (by intro h; cases h)
     | .intLit _, .aindex _ _ => isFalse (by intro h; cases h)
     | .intLit _, .storage _ => isFalse (by intro h; cases h)
+    | .intLit _, .inRange _ _ => isFalse (by intro h; cases h)
     | .intLit _, .cast _ _ => isFalse (by intro h; cases h)
     | .intLit _, .addrOf _ => isFalse (by intro h; cases h)
     | .intLit _, .unary _ _ => isFalse (by intro h; cases h)
@@ -270,6 +277,7 @@ mutual
     | .boolLit _, .field _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .aindex _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .storage _ => isFalse (by intro h; cases h)
+    | .boolLit _, .inRange _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .cast _ _ => isFalse (by intro h; cases h)
     | .boolLit _, .addrOf _ => isFalse (by intro h; cases h)
     | .boolLit _, .unary _ _ => isFalse (by intro h; cases h)
@@ -281,6 +289,7 @@ mutual
     | .var _, .field _ _ => isFalse (by intro h; cases h)
     | .var _, .aindex _ _ => isFalse (by intro h; cases h)
     | .var _, .storage _ => isFalse (by intro h; cases h)
+    | .var _, .inRange _ _ => isFalse (by intro h; cases h)
     | .var _, .cast _ _ => isFalse (by intro h; cases h)
     | .var _, .addrOf _ => isFalse (by intro h; cases h)
     | .var _, .unary _ _ => isFalse (by intro h; cases h)
@@ -292,6 +301,7 @@ mutual
     | .env _, .field _ _ => isFalse (by intro h; cases h)
     | .env _, .aindex _ _ => isFalse (by intro h; cases h)
     | .env _, .storage _ => isFalse (by intro h; cases h)
+    | .env _, .inRange _ _ => isFalse (by intro h; cases h)
     | .env _, .cast _ _ => isFalse (by intro h; cases h)
     | .env _, .addrOf _ => isFalse (by intro h; cases h)
     | .env _, .unary _ _ => isFalse (by intro h; cases h)
@@ -303,6 +313,7 @@ mutual
     | .field _ _, .env _ => isFalse (by intro h; cases h)
     | .field _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .field _ _, .storage _ => isFalse (by intro h; cases h)
+    | .field _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .field _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .field _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .field _ _, .unary _ _ => isFalse (by intro h; cases h)
@@ -314,6 +325,7 @@ mutual
     | .aindex _ _, .env _ => isFalse (by intro h; cases h)
     | .aindex _ _, .field _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .storage _ => isFalse (by intro h; cases h)
+    | .aindex _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .aindex _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .aindex _ _, .unary _ _ => isFalse (by intro h; cases h)
@@ -325,11 +337,24 @@ mutual
     | .storage _, .env _ => isFalse (by intro h; cases h)
     | .storage _, .field _ _ => isFalse (by intro h; cases h)
     | .storage _, .aindex _ _ => isFalse (by intro h; cases h)
+    | .storage _, .inRange _ _ => isFalse (by intro h; cases h)
     | .storage _, .cast _ _ => isFalse (by intro h; cases h)
     | .storage _, .addrOf _ => isFalse (by intro h; cases h)
     | .storage _, .unary _ _ => isFalse (by intro h; cases h)
     | .storage _, .binary _ _ _ => isFalse (by intro h; cases h)
     | .storage _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .var _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .env _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .aindex _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .storage _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .intLit _ => isFalse (by intro h; cases h)
     | .cast _ _, .boolLit _ => isFalse (by intro h; cases h)
     | .cast _ _, .var _ => isFalse (by intro h; cases h)
@@ -337,6 +362,7 @@ mutual
     | .cast _ _, .field _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .storage _ => isFalse (by intro h; cases h)
+    | .cast _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .cast _ _, .unary _ _ => isFalse (by intro h; cases h)
     | .cast _ _, .binary _ _ _ => isFalse (by intro h; cases h)
@@ -348,6 +374,7 @@ mutual
     | .addrOf _, .field _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .aindex _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .storage _ => isFalse (by intro h; cases h)
+    | .addrOf _, .inRange _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .cast _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .unary _ _ => isFalse (by intro h; cases h)
     | .addrOf _, .binary _ _ _ => isFalse (by intro h; cases h)
@@ -359,6 +386,7 @@ mutual
     | .unary _ _, .field _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .storage _ => isFalse (by intro h; cases h)
+    | .unary _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .unary _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .unary _ _, .binary _ _ _ => isFalse (by intro h; cases h)
@@ -370,6 +398,7 @@ mutual
     | .binary _ _ _, .field _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .storage _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .unary _ _ => isFalse (by intro h; cases h)
@@ -381,6 +410,7 @@ mutual
     | .ite _ _ _, .field _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .aindex _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .storage _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .inRange _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .cast _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .unary _ _ => isFalse (by intro h; cases h)

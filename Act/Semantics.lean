@@ -270,6 +270,7 @@ mutual
     | .field base _ => exprEvalSize base + 1
     | .aindex base idx => exprEvalSize base + exprEvalSize idx + 1
     | .cast expr _ => exprEvalSize expr + 1
+    | .inRange _ expr => exprEvalSize expr + 1
     | .addrOf expr => exprEvalSize expr + 1
     | .unary _ expr => exprEvalSize expr + 1
     | .binary _ lhs rhs => exprEvalSize lhs + exprEvalSize rhs + 1
@@ -424,6 +425,15 @@ def evalExpr? (cfg : Config) (act : Frame) (evm : EVM.State) :
       | .bool true => evalExpr? cfg act evm thenExpr
       | .bool false => evalExpr? cfg act evm elseExpr
       | _ => none
+  | .inRange intType expr => do
+      let value <- evalExpr? cfg act evm expr
+      match value, intType with
+      | .int i, .uint n =>
+          if i < 0 || i >= 2^(n.val) then none else some value
+      | .int i, .sint n =>
+          let bound : Int := 2^(n.val - 1)
+          if i < -bound || i >= bound then none else some value
+      | _, _ => none
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]

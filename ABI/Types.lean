@@ -154,4 +154,3 @@ decreasing_by
 
 def paddedSize (n : Nat) : Nat :=
   32 * ((n + 31) / 32)
-
