@@ -15,9 +15,6 @@ structure Config where
   /- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a
      `new` of the named contract. -/
   creationCode : Ident -> List Value -> Option EVM.Bytes := fun _ _ => none
-  evmFuel : Nat := 100000
-  callGas : EVM.Word := ⟨100000⟩
-  callValue : EVM.Word := ⟨0⟩
 
 structure ContractInstance where
   contract : Ident
@@ -740,18 +737,24 @@ inductive ExecStmt (cfg : Config) :
       evalExprs? cfg act evm args = .revert ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | newSuccess :
+      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->
-      newViaEVM cfg evm name (0 : ℤ) argVals (addr, evm', true) ->
-      ExecStmt cfg act evm (.new name args retVar)
+      newViaEVM cfg evm name sendVal argVals (addr, evm', true) ->
+      ExecStmt cfg act evm (.new name valExpr args retVar)
         (.ok { act with locals := act.locals.insert retVar (.address addr) } evm')
   | newRevert :
       -- A failed creation reverts the caller, unlike a low-level external call.
+      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->
-      newViaEVM cfg evm name (0 : ℤ) argVals (addr, evm', false) ->
-      ExecStmt cfg act evm (.new name args retVar) .reverted
+      newViaEVM cfg evm name sendVal argVals (addr, evm', false) ->
+      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
+  | newValueRevert :
+      evalExpr? cfg act evm valExpr = .revert ->
+      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
   | newArgsRevert :
+      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .revert ->
-      ExecStmt cfg act evm (.new name args retVar) .reverted
+      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
   | return :
       evalExpr? cfg act evm expr = .ok value ->
       ExecStmt cfg act evm (.return expr) (.returned act evm (some value))
