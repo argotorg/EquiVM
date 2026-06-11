@@ -483,6 +483,8 @@ inductive Stmt where
   | assign : StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
   | while : Expr -> List Stmt -> Stmt
+  /- constructor call -/
+  | new : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
   /- internal and external call results are explicitly let-bound -/
   | internalCall : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
   | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ -> Stmt
@@ -514,6 +516,12 @@ mutual
         | isTrue hc, isTrue hb => isTrue (by cases hc; cases hb; rfl)
         | isFalse hc, _ => isFalse (by intro h; cases h; exact hc rfl)
         | _, isFalse hb => isFalse (by intro h; cases h; exact hb rfl)
+    | .new nx ax rx, .new ny ay ry =>
+        match (inferInstance : Decidable (nx = ny)), (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)) with
+        | isTrue hn, isTrue ha, isTrue hr => isTrue (by cases hn; cases ha; cases hr; rfl)
+        | isFalse hn, _, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse ha, _ => isFalse (by intro h; cases h; exact ha rfl)
+        | _, _, isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
     | .internalCall nx ax rx, .internalCall ny ay ry =>
         match (inferInstance : Decidable (nx = ny)), (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)) with
         | isTrue hn, isTrue ha, isTrue hr => isTrue (by cases hn; cases ha; cases hr; rfl)
@@ -537,6 +545,7 @@ mutual
     | .letDecl _ _ _, .assign _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .require _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .new _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -545,6 +554,7 @@ mutual
     | .assign _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _, .require _ => isFalse (by intro h; cases h)
     | .assign _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .new _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _, .return _ => isFalse (by intro h; cases h)
@@ -553,6 +563,7 @@ mutual
     | .require _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .require _, .assign _ _ => isFalse (by intro h; cases h)
     | .require _, .while _ _ => isFalse (by intro h; cases h)
+    | .require _, .new _ _ _ => isFalse (by intro h; cases h)
     | .require _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .require _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .return _ => isFalse (by intro h; cases h)
@@ -561,15 +572,26 @@ mutual
     | .while _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .assign _ _ => isFalse (by intro h; cases h)
     | .while _ _, .require _ => isFalse (by intro h; cases h)
+    | .while _ _, .new _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .return _ => isFalse (by intro h; cases h)
     | .while _ _, .break => isFalse (by intro h; cases h)
     | .while _ _, .continue => isFalse (by intro h; cases h)
+    | .new _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .new _ _ _, .break => isFalse (by intro h; cases h)
+    | .new _ _ _, .continue => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .assign _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .require _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .new _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .return _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .break => isFalse (by intro h; cases h)
@@ -578,6 +600,7 @@ mutual
     | .externalCall _ _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .new _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .break => isFalse (by intro h; cases h)
@@ -586,6 +609,7 @@ mutual
     | .return _, .assign _ _ => isFalse (by intro h; cases h)
     | .return _, .require _ => isFalse (by intro h; cases h)
     | .return _, .while _ _ => isFalse (by intro h; cases h)
+    | .return _, .new _ _ _ => isFalse (by intro h; cases h)
     | .return _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .return _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .return _, .break => isFalse (by intro h; cases h)
@@ -594,6 +618,7 @@ mutual
     | .break, .assign _ _ => isFalse (by intro h; cases h)
     | .break, .require _ => isFalse (by intro h; cases h)
     | .break, .while _ _ => isFalse (by intro h; cases h)
+    | .break, .new _ _ _ => isFalse (by intro h; cases h)
     | .break, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .break, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .break, .return _ => isFalse (by intro h; cases h)
@@ -602,6 +627,7 @@ mutual
     | .continue, .assign _ _ => isFalse (by intro h; cases h)
     | .continue, .require _ => isFalse (by intro h; cases h)
     | .continue, .while _ _ => isFalse (by intro h; cases h)
+    | .continue, .new _ _ _ => isFalse (by intro h; cases h)
     | .continue, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .continue, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .return _ => isFalse (by intro h; cases h)
