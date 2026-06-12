@@ -20,11 +20,11 @@ name = "Examples"
 
 [[lean_lib]]
 name = "TruthClaude"
-srcDir = "Truth-claude"
+globs = ["TruthClaude.+"]
 
 [[lean_lib]]
 name = "TruthCodex"
-srcDir = "Truth-codex"
+globs = ["TruthCodex.+"]
 
 # [[lean_exe]]
 # name = "equivm"

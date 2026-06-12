@@ -1,4 +1,4 @@
-import Act.Equiv
+import TruthCodex.Theory
 
 /-!
 # Truth — a worked runtime-equivalence example
