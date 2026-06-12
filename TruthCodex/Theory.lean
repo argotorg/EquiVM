@@ -880,6 +880,87 @@ theorem Xstep_iszero_continue_of_decode {s : Ethereum.State}
   have hStep := step_iszero s hDecode
   simpa [iszeroNextState, hStack, hGas, hStackBound] using hStep
 
+def push0NextState (s : Ethereum.State) : Ethereum.State :=
+  {s with
+    machineState.stack := (⟨0⟩ : Ethereum.UInt256) :: s.machineState.stack
+    machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gbase
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+theorem Xstep_push0_oog_of_decode {s : Ethereum.State}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.PUSH0, .none))
+    (hGas : s.machineState.gasAvailable.toNat < GasConstants.Gbase) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .error .OutOfGass := by
+  have hStep := step_push0 s hDecode
+  simpa [hGas] using hStep
+
+theorem Xstep_push0_continue_of_decode {s : Ethereum.State}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.PUSH0, .none))
+    (hGas : ¬ s.machineState.gasAvailable.toNat < GasConstants.Gbase)
+    (hStack : s.machineState.stack.length < 1024) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .ok (push0NextState s, none) := by
+  have hStep := step_push0 s hDecode
+  have hNoOverflow : ¬ s.machineState.stack.length - 0 + 1 > 1024 := by
+    omega
+  have hNoOverflow' : ¬ 1024 < s.machineState.stack.length + 1 := by
+    omega
+  simpa [push0NextState, hGas, hNoOverflow, hNoOverflow'] using hStep
+
+def jumpiNextState (s : Ethereum.State) (dest cond : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) : Ethereum.State :=
+  {s with
+    machineState.stack := t
+    machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Ghigh
+    machineState.pc := if cond != (⟨0⟩ : Ethereum.UInt256) then dest else s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+theorem Xstep_jumpi_oog_of_decode {s : Ethereum.State}
+    {dest cond : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.JUMPI, .none))
+    (hStack : s.machineState.stack = dest :: cond :: t)
+    (hGas : s.machineState.gasAvailable.toNat < GasConstants.Ghigh) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .error .OutOfGass := by
+  have hStep := step_jumpi s hDecode
+  simpa [hStack, hGas] using hStep
+
+theorem Xstep_jumpi_bad_dest_of_decode {s : Ethereum.State}
+    {dest cond : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.JUMPI, .none))
+    (hStack : s.machineState.stack = dest :: cond :: t)
+    (hGas : ¬ s.machineState.gasAvailable.toNat < GasConstants.Ghigh)
+    (hCond : (cond != (⟨0⟩ : Ethereum.UInt256)) = true)
+    (hDest : ¬ (D_J s.executionEnv.code ⟨0⟩).contains dest = true) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .error .BadJumpDestination := by
+  have hStep := step_jumpi s hDecode
+  have hBad :
+      (cond != (⟨0⟩ : Ethereum.UInt256)) = true ∧
+        ¬ (D_J s.executionEnv.code ⟨0⟩).contains dest = true :=
+    ⟨hCond, hDest⟩
+  simpa [hStack, hGas, hBad] using hStep
+
+theorem Xstep_jumpi_continue_of_decode {s : Ethereum.State}
+    {dest cond : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.JUMPI, .none))
+    (hStack : s.machineState.stack = dest :: cond :: t)
+    (hGas : ¬ s.machineState.gasAvailable.toNat < GasConstants.Ghigh)
+    (hNoBad :
+      (cond != (⟨0⟩ : Ethereum.UInt256)) = true →
+        (D_J s.executionEnv.code ⟨0⟩).contains dest = true)
+    (hStackBound : ¬ 1024 < t.length) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s =
+      .ok (jumpiNextState s dest cond t, none) := by
+  have hStep := step_jumpi s hDecode
+  have hBadFalse :
+      ¬ ((cond != (⟨0⟩ : Ethereum.UInt256)) = true ∧
+        (D_J s.executionEnv.code ⟨0⟩).contains dest = false) := by
+    intro hBad
+    have hContains := hNoBad hBad.1
+    rw [hContains] at hBad
+    simp at hBad
+  have hNoOverflow : ¬ (dest :: cond :: t).length - 2 + 0 > 1024 := by
+    simpa using hStackBound
+  simpa [jumpiNextState, hStack, hGas, hBadFalse, hStackBound, hNoOverflow] using hStep
+
 /-- A finite prefix of non-halting EVM `Xstep`s. `ContinueTrace validJumps n s t`
 means `Xstep` runs from `s` to `t` in exactly `n` continuing steps. -/
 inductive ContinueTrace (validJumps : Array Ethereum.UInt256) :

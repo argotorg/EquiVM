@@ -145,8 +145,18 @@
 - `truthEVM_callvalue_stack`: computes the empty stack before `CALLVALUE`.
 - `truthEVM_callvalue_oog`: proves top-level `Ξ` out-of-gas on `CALLVALUE`.
 - `truthEVM_callvalue_continue`: proves the successful `CALLVALUE` step.
+- `truthEVM_callvalue_trace`: packages the prologue plus `CALLVALUE` as a `ContinueTrace`.
+- `truthEVM_dup1_decode`: proves the next pc decodes as `DUP1`.
+- `truthEVM_dup1_stack`: computes the stack before `DUP1`.
+- `truthEVM_dup1_oog`: proves top-level `Ξ` out-of-gas on `DUP1`.
+- `truthEVM_dup1_continue`: proves the successful `DUP1` step.
+- `truthEVM_dup1_trace`: packages the prologue plus `CALLVALUE; DUP1` as a `ContinueTrace`.
+- `truthEVM_iszero_decode`: proves the next pc decodes as `ISZERO`.
+- `truthEVM_iszero_stack`: computes the stack before `ISZERO`.
+- `truthEVM_iszero_oog`: proves top-level `Ξ` out-of-gas on `ISZERO`.
+- `truthEVM_iszero_continue`: proves the successful `ISZERO` step.
 
 # Open gaps
 
-- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after the initial memory prologue and successful `CALLVALUE`.
+- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after the initial memory prologue and successful `CALLVALUE; DUP1; ISZERO`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
