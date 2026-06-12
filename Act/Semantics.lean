@@ -712,7 +712,7 @@ inductive ExecStmt (cfg : Config) :
       ExecStmt cfg act evm (.internalCall name args retVar) .reverted
   | externalCallSuccess :
       evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm send = .ok (.int sendVal) ->
+      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->
       externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
       cfg.externalABI.decode? name out = some value ->
@@ -720,20 +720,20 @@ inductive ExecStmt (cfg : Config) :
         (.ok { act with locals := act.locals.insert retVar value } evm')
   | externalCallFailure :
       evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm send = .ok (.int sendVal) ->
+      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->
-      externalCallViaEVM cfg evm (EVM.address target) name senVal argVals (false, evm', out) ->
-      ExecStmt cfg act evm (.externalCall receiver name value args retVar) .reverted
+      externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
+      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReceiverRevert :
       evalExpr? cfg act evm receiver = .revert ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallSendRevert :
       evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm send = .revert ->
+      evalExpr? cfg act evm eth = .revert ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallArgsRevert :
       evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm send = .ok (.int sendVal) ->
+      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .revert ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | newSuccess :
