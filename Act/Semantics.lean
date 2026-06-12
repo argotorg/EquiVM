@@ -584,11 +584,22 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
 -- and whether creation succeeded. Mirrors `externalCallViaEVM`, but `Λ` runs the
 -- initialisation code instead of a message call and returns the new address.
 -- TODO Lefteris check
+
+-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
+-- mirroring the guards the opcode checks before calling `Lambda`.
+def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :=
+  let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
+  EVM.wordOfInt value ≤ creator.balance        -- creator can afford the endowment
+    ∧ evm.executionEnv.depth ≠ 1024            -- call-depth limit not reached
+    ∧ creator.nonce.toNat < 2 ^ 64 - 1         -- creator nonce below the cap (EIP-2681)
+    ∧ initCode.size ≤ 49152                     -- init code within the limit (EIP-3860)
+
 inductive newViaEVM (cfg : Config) (evm : EVM.State)
     (name : Ident) (value : ℤ) (args : List Value) :
     (EVM.Address × EVM.State × Bool) → Prop where
   | created :
       cfg.creationCode name args = .some initCode
+      → newCanCreate evm value initCode
       → valueWord = EVM.wordOfInt value
       → (∃ createGas refunds accessedStorageKeys,
           -- As in `externalCallViaEVM`, existentially quantify over substate fields
@@ -598,8 +609,7 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
                       accessedStorageKeys := accessedStorageKeys }
           -- Mirror the CREATE opcode: bump the creator's nonce before calling `Lambda`,
           -- which derives the new address from `sender.nonce - 1` and so expects the
-          -- already-incremented nonce. Passing the raw map would be off by one (and
-          -- underflow when the creator's nonce is 0).
+          -- already-incremented nonce.
           let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
           let σStar := evm.accountMap.insert evm.executionEnv.codeOwner
                         { creator with nonce := creator.nonce + ⟨1⟩ }
@@ -623,16 +633,11 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
             evm.executionEnv.header
             true)                       -- permission to modify state
       → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
-      → valueWord ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
-      → evm.executionEnv.depth ≠ 1024
       → newViaEVM cfg evm name value args (addr, evm', z)
-
   | notCreated :
-      A' = evm.substate
-      → evm' = { evm with substate := A' }
-      → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
-         ∧ evm.executionEnv.depth ≠ 1024))
-      → newViaEVM cfg evm name value args (EVM.address 0, evm', false)
+      cfg.creationCode name args = .some initCode
+      → ¬ newCanCreate evm value initCode
+      → newViaEVM cfg evm name value args (EVM.address 0, evm, false)
 
 
 def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option Value) :
