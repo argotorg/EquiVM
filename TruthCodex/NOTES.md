@@ -9,8 +9,14 @@
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
 - `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
+- `Ethereum.UInt256.eq_of_toNat_eq`: recovers a `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
+- `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
 - `Ethereum.UInt256.add_le_toNat_of_not_sub_ofNat_lt`: packages gas arithmetic after a checked subtraction.
+- `Ethereum.UInt256.isZero_eq_one_of_eq_zero`: computes `ISZERO`'s word result for a zero input.
+- `Ethereum.UInt256.isZero_eq_zero_of_ne_zero`: computes `ISZERO`'s word result for a nonzero input.
+- `Ethereum.UInt256.isZero_bne_zero_eq_true_of_eq_zero`: turns a zero input into a nonzero `JUMPI` condition after `ISZERO`.
+- `Ethereum.UInt256.isZero_bne_zero_eq_false_of_ne_zero`: turns a nonzero input into a zero `JUMPI` condition after `ISZERO`.
 - `Ethereum_toBytes'_one`: computes the one-byte big/little-endian core representation of `1`.
 - `ABI.decodeCalldata_no_params_of_not_lt`: decodes zero ABI parameters when calldata has at least a 4-byte selector.
 - `ABI.decodeCalldata_no_params_of_lt`: zero-parameter calldata decoding fails before the 4-byte selector.
@@ -39,6 +45,10 @@
 - `initialEVMState_pc`: projection fact for initial program counter.
 - `initialEVMState_stack`: projection fact for the initially empty stack.
 - `initialEVMState_execLength`: projection fact for initial execution length.
+- `initialEVMState_activeWords`: projection fact for initially zero active memory words.
+- `initialEVMState_memory`: projection fact for initially empty/default memory.
+- `initialEVMState_returnData`: projection fact for initially empty/default return data.
+- `initialEVMState_H_return`: projection fact for initially empty/default halt return data.
 - `actExec_of_dispatch_decode_exec`: packages dispatch, decode, initial Act/EVM state, and body execution into `actExec`.
 - `actExec_of_dispatch_decode_initial`: `actExec` helper specialized to `initialEVMState`.
 - `runtimeEquivalenceFor_success_initial`: runtime-equivalence success case from an EVM success equation and Act execution in `initialEVMState`.
@@ -65,6 +75,33 @@
 - `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
 - `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
 - `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
+- `Ethereum.EVM.push0NextState`: names the concrete next state for a successful `PUSH0`.
+- `Ethereum.EVM.push0NextState_stack`: projection fact for the stack after `PUSH0`.
+- `Ethereum.EVM.push0NextState_gasAvailable`: projection fact for gas after `PUSH0`.
+- `Ethereum.EVM.push0NextState_pc`: projection fact for pc after `PUSH0`.
+- `Ethereum.EVM.Xstep_push0_oog_of_decode`: proves the `PUSH0` gas-underflow case.
+- `Ethereum.EVM.Xstep_push0_continue_of_decode`: proves the successful `PUSH0` step.
+- `Ethereum.EVM.jumpiNextState`: names the concrete next state for a successful `JUMPI`.
+- `Ethereum.EVM.jumpiNextState_stack`: projection fact for the stack after `JUMPI`.
+- `Ethereum.EVM.jumpiNextState_gasAvailable`: projection fact for gas after `JUMPI`.
+- `Ethereum.EVM.jumpiNextState_pc_of_cond_bne_true`: computes taken-branch `JUMPI` pc.
+- `Ethereum.EVM.jumpiNextState_pc_of_cond_bne_false`: computes fallthrough `JUMPI` pc.
+- `Ethereum.EVM.jumpiNextState_pc_of_isZero_eq_zero`: computes `ISZERO`-guard taken branch.
+- `Ethereum.EVM.jumpiNextState_pc_of_isZero_ne_zero`: computes `ISZERO`-guard fallthrough branch.
+- `Ethereum.EVM.Xstep_jumpi_oog_of_decode`: proves the `JUMPI` gas-underflow case.
+- `Ethereum.EVM.Xstep_jumpi_bad_dest_of_decode`: proves the `JUMPI` bad-destination case.
+- `Ethereum.EVM.Xstep_jumpi_continue_of_decode`: proves the successful `JUMPI` step.
+- `Ethereum.EVM.Xstep_jumpi_fallthrough_continue_of_decode`: proves successful `JUMPI` fallthrough from a false condition, without a valid-jump premise.
+- `Ethereum.EVM.jumpdestNextState`: names the concrete next state for a successful `JUMPDEST`.
+- `Ethereum.EVM.Xstep_jumpdest_oog_of_decode`: proves the `JUMPDEST` gas-underflow case.
+- `Ethereum.EVM.Xstep_jumpdest_continue_of_decode`: proves the successful `JUMPDEST` step.
+- `Ethereum.EVM.popNextState`: names the concrete next state for a successful `POP`.
+- `Ethereum.EVM.Xstep_pop_oog_of_decode`: proves the `POP` gas-underflow case.
+- `Ethereum.EVM.Xstep_pop_continue_of_decode`: proves the successful `POP` step.
+- `Ethereum.EVM.revertOutput`: names the memory slice returned by `REVERT`.
+- `Ethereum.EVM.revertNextState`: names the concrete next state for a successful `REVERT`.
+- `Ethereum.EVM.Xstep_revert_memory_oog_of_decode`: proves the `REVERT` memory-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_revert_continue_of_decode`: proves the successful halting `REVERT` step.
 - `Ethereum.EVM.ContinueTrace`: contract-agnostic finite prefix of continuing `Xstep`s.
 - `Ethereum.EVM.ContinueTrace.one`: builds a one-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.two`: builds a two-step continuing trace.
@@ -79,6 +116,9 @@
 - `EVM_Xi_of_initial_continue_trace_success`: lifts an initial continuing trace plus success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_revert`: lifts an initial continuing trace plus revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_error`: lifts an initial continuing trace plus EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_trace_success_of_le`: lifts a continuing trace plus success halt to `Ξ` from `n ≤ g.toNat`.
+- `EVM_Xi_of_initial_continue_trace_revert_of_le`: lifts a continuing trace plus revert halt to `Ξ` from `n ≤ g.toNat`.
+- `EVM_Xi_of_initial_continue_trace_error_of_le`: lifts a continuing trace plus EVM error to `Ξ` from `n ≤ g.toNat`.
 - `Act.ExecStmt.require_true_of_eval`: proves a successful `require` from a true condition evaluation.
 - `Act.ExecStmt.require_false_of_eval`: proves a reverting `require` from a false condition evaluation.
 - `Act.ExecStmt.require_revert_of_eval`: proves a reverting `require` from a reverting condition evaluation.
@@ -113,6 +153,11 @@
 - `truthBytecode_decode_7`: decodes the next opcode as `ISZERO`.
 - `truthBytecode_decode_8`: decodes the next opcode as `PUSH1 0x0e`.
 - `truthBytecode_decode_10`: decodes the next opcode as `JUMPI`.
+- `truthBytecode_decode_11`: decodes the non-payable fallthrough path as `PUSH0`.
+- `truthBytecode_decode_12`: decodes the next fallthrough opcode as `PUSH0`.
+- `truthBytecode_decode_13`: decodes the fallthrough halt as `REVERT`.
+- `truthBytecode_decode_14`: decodes the zero-callvalue branch target as `JUMPDEST`.
+- `truthBytecode_decode_15`: decodes the next zero-callvalue opcode as `POP`.
 - `trustedKeccak_truthTransition`: adapts the trusted `truth()` Keccak pair to `transitionSigStr truthTransition`.
 - `truthDispatch_some_of_selector`: dispatches to `truthTransition` when calldata has the trusted selector.
 - `truthDispatch_none_of_selector_ne`: dispatch fails when calldata does not have the trusted selector.
@@ -137,6 +182,8 @@
 - `truthEVM_two_push_trace`: packages the two initial `PUSH1` steps as a `ContinueTrace`.
 - `truthEVM_mstore_decode`: proves the third prologue pc decodes as `MSTORE`.
 - `truthEVM_mstore_stack`: computes the stack at the `MSTORE` point.
+- `truthEVM_mstore_memory_cost`: computes the initial free-memory-pointer `MSTORE` expansion cost as `9`.
+- `truthGas_ge_fifteen_of_mstore_memory_continue`: derives `15 ≤ g.toNat` after the two pushes and successful `MSTORE` memory-gas check.
 - `truthEVM_mstore_memory_oog`: proves top-level `Ξ` out-of-gas on `MSTORE` memory expansion.
 - `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
 - `truthEVM_mstore_continue`: proves the successful `MSTORE` step.
@@ -155,8 +202,36 @@
 - `truthEVM_iszero_stack`: computes the stack before `ISZERO`.
 - `truthEVM_iszero_oog`: proves top-level `Ξ` out-of-gas on `ISZERO`.
 - `truthEVM_iszero_continue`: proves the successful `ISZERO` step.
+- `truthEVM_iszero_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO` as a `ContinueTrace`.
+- `truthEVM_push_dest_decode`: proves the next pc decodes as `PUSH1 0x0e`.
+- `truthEVM_push_dest_stack`: computes the stack before `PUSH1 0x0e`.
+- `truthEVM_push_dest_oog`: proves top-level `Ξ` out-of-gas on `PUSH1 0x0e`.
+- `truthEVM_push_dest_continue`: proves the successful `PUSH1 0x0e` step.
+- `truthEVM_push_dest_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO; PUSH1 0x0e` as a `ContinueTrace`.
+- `truthEVM_jumpi_decode`: proves the next pc decodes as `JUMPI`.
+- `truthEVM_jumpi_stack`: computes the stack before `JUMPI`.
+- `truthEVM_jumpi_oog_step`: proves the local `JUMPI` gas-underflow `Xstep`.
+- `truthEVM_jumpi_oog`: proves top-level `Ξ` out-of-gas on `JUMPI`.
+- `truthEVM_jumpi_continue`: proves the successful local `JUMPI` step from an explicit valid-jump-table premise and gas facts.
+- `truthEVM_jumpi_trace`: packages the prologue plus successful non-payable-guard `JUMPI` as a `ContinueTrace`, given the valid-jump-table premise.
+- `truthEVM_jumpi_fallthrough_continue`: proves successful local `JUMPI` fallthrough for nonzero callvalue without a valid-jump premise.
+- `truthEVM_jumpi_fallthrough_trace`: packages the nonzero-callvalue fallthrough through `JUMPI` as a `ContinueTrace`.
+- `truthEVM_jumpdest_decode_of_callvalue_zero`: decodes the taken zero-callvalue `JUMPI` target as `JUMPDEST`.
+- `truthEVM_push0_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue `JUMPI` fallthrough as `PUSH0`.
+- `truthEVM_fallthrough_first_push0_oog`: proves top-level `Ξ` out-of-gas at the first fallthrough `PUSH0`.
+- `truthEVM_fallthrough_first_push0_continue`: proves the successful first fallthrough `PUSH0` step.
+- `truthEVM_fallthrough_first_push0_trace`: packages the nonzero-callvalue fallthrough through the first `PUSH0`.
+- `truthEVM_second_push0_decode_of_callvalue_nonzero`: decodes the second nonzero-callvalue fallthrough opcode as `PUSH0`.
+- `truthEVM_fallthrough_second_push0_oog`: proves top-level `Ξ` out-of-gas at the second fallthrough `PUSH0`.
+- `truthEVM_fallthrough_second_push0_continue`: proves the successful second fallthrough `PUSH0` step.
+- `truthEVM_fallthrough_second_push0_trace`: packages the nonzero-callvalue fallthrough through both `PUSH0` steps.
+- `truthEVM_revert_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue fallthrough halt as `REVERT`.
+- `truthEVM_revert_stack_of_callvalue_nonzero`: computes the stack before the fallthrough `REVERT`.
 
 # Open gaps
 
-- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after the initial memory prologue and successful `CALLVALUE; DUP1; ISZERO`.
+- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after a successful non-payable-guard `JUMPI`.
+- The nonzero-callvalue branch now has local/top-level lemmas through both fallthrough `PUSH0` gas checks plus the successful second `PUSH0` trace and `REVERT` decode/stack facts; the next nonzero step is the successful/halting `REVERT` characterization.
+- The zero-callvalue branch starts at `JUMPDEST 0x0e`.
+- The zero-callvalue branch needs a kernel-checked proof that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `D_J_aux` is currently opaque, so this is logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
