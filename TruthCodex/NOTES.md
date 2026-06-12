@@ -1,0 +1,152 @@
+# TruthCodex lemma index
+
+- `ReflBEq ByteArray`: local lawful-reflexive `BEq` support for byte arrays.
+- `LawfulBEq ByteArray`: local equality-from-`BEq` support for byte arrays.
+- `ByteArray.beq_false_of_ne`: turns byte-array inequality into a false `BEq` comparison.
+- `ByteArray.toList_loop_length`: computes the length of the internal `ByteArray.toList` loop.
+- `ByteArray.length_toList`: bridges `ByteArray.toList.length` and `ByteArray.size`.
+- `ByteArray.not_toList_length_lt_of_extract_eq_size`: proves selector extraction implies calldata is long enough.
+- `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
+- `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
+- `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
+- `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
+- `Ethereum.UInt256.add_le_toNat_of_not_sub_ofNat_lt`: packages gas arithmetic after a checked subtraction.
+- `Ethereum_toBytes'_one`: computes the one-byte big/little-endian core representation of `1`.
+- `ABI.decodeCalldata_no_params_of_not_lt`: decodes zero ABI parameters when calldata has at least a 4-byte selector.
+- `ABI.decodeCalldata_no_params_of_lt`: zero-parameter calldata decoding fails before the 4-byte selector.
+- `dispatchMsg_singleton_some_of_selector`: dispatch helper for one-transition contracts and a trusted selector.
+- `dispatchMsg_singleton_none_of_selector_ne`: no-dispatch helper for one-transition contracts and selector mismatch.
+- `runtimeEquivalence_intro`: packages the universal state obligation into `runtimeEquivalence!?!`.
+- `runtimeEquivalenceFor_execution`: constructor helper for the execution case.
+- `runtimeEquivalenceFor_noDispatch`: constructor helper for the no-dispatch/revert case.
+- `runtimeEquivalenceFor_decodingFailed`: constructor helper for the decoding-failed/revert case.
+- `runtimeEquivalenceFor_outOfGas`: constructor helper for the EVM out-of-gas case.
+- `returnEquiv.returned_of_encode`: builds return equivalence from an ABI return encoder fact.
+- `returnEquiv.void_of_null`: builds void return equivalence for empty EVM output.
+- `returnEquiv.fallthrough_of_default`: builds fallthrough return equivalence from a default ABI value.
+- `abiBoolTrueReturn`: canonical ABI bytes for a single returned `bool true`.
+- `encodeReturnValue_bool_true`: encoder fact for `bool true`.
+- `returnEquiv_bool_true`: return-equivalence fact for `bool true`.
+- `execResultsEquiv.success_of_returnEquiv`: constructor helper for successful EVM/Act results.
+- `execResultsEquiv.success_rfl`: success-result equivalence when Act and EVM state fields already align.
+- `execResultsEquiv.revert_rfl`: revert-result equivalence helper.
+- `execResultsEquiv.error_rfl`: EVM-error/Act-revert equivalence helper.
+- `initialEVMState`: names the initial EVM state shared by `Ξ` and `actExec`.
+- `initialEVMState_accountMap`: projection fact for the named initial state.
+- `initialEVMState_createdAccounts`: projection fact for the named initial state.
+- `initialEVMState_executionEnv`: projection fact for the named initial state.
+- `initialEVMState_gasAvailable`: projection fact for initial gas.
+- `initialEVMState_pc`: projection fact for initial program counter.
+- `initialEVMState_stack`: projection fact for the initially empty stack.
+- `initialEVMState_execLength`: projection fact for initial execution length.
+- `actExec_of_dispatch_decode_exec`: packages dispatch, decode, initial Act/EVM state, and body execution into `actExec`.
+- `actExec_of_dispatch_decode_initial`: `actExec` helper specialized to `initialEVMState`.
+- `runtimeEquivalenceFor_success_initial`: runtime-equivalence success case from an EVM success equation and Act execution in `initialEVMState`.
+- `runtimeEquivalenceFor_revert_of_act_reverted`: runtime-equivalence revert case from an EVM revert equation and Act revert.
+- `EVM_Xi_of_X_success`: lifts an `EVM.X` success trace to a top-level `Ξ` success result.
+- `EVM_Xi_of_X_revert`: lifts an `EVM.X` revert trace to a top-level `Ξ` revert result.
+- `EVM_Xi_of_X_error`: lifts an `EVM.X` error trace to a top-level `Ξ` error result.
+- `EVM_Xi_of_initial_Xstep_success`: lifts a one-step initial success halt to `Ξ`.
+- `EVM_Xi_of_initial_Xstep_revert`: lifts a one-step initial revert halt to `Ξ`.
+- `EVM_Xi_of_initial_Xstep_error`: lifts a one-step initial EVM error to `Ξ`.
+- `Ethereum.EVM.push1NextState`: names the concrete next state for a successful `PUSH1`.
+- `Ethereum.EVM.Xstep_push1_oog_of_decode`: proves the `PUSH1` gas-underflow case from a decode fact.
+- `Ethereum.EVM.Xstep_push1_continue_of_decode`: proves the successful `PUSH1` step from decode/gas/stack facts.
+- `Ethereum.EVM.mstoreNextState`: names the concrete next state for a successful `MSTORE`.
+- `Ethereum.EVM.Xstep_mstore_memory_oog_of_decode`: proves the `MSTORE` memory-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_mstore_verylow_oog_of_decode`: proves the `MSTORE` post-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_mstore_continue_of_decode`: proves the successful `MSTORE` step.
+- `Ethereum.EVM.callvalueNextState`: names the concrete next state for a successful `CALLVALUE`.
+- `Ethereum.EVM.Xstep_callvalue_oog_of_decode`: proves the `CALLVALUE` gas-underflow case.
+- `Ethereum.EVM.Xstep_callvalue_continue_of_decode`: proves the successful `CALLVALUE` step.
+- `Ethereum.EVM.dup1NextState`: names the concrete next state for a successful `DUP1`.
+- `Ethereum.EVM.Xstep_dup1_oog_of_decode`: proves the `DUP1` gas-underflow case.
+- `Ethereum.EVM.Xstep_dup1_continue_of_decode`: proves the successful `DUP1` step.
+- `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
+- `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
+- `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
+- `Ethereum.EVM.ContinueTrace`: contract-agnostic finite prefix of continuing `Xstep`s.
+- `Ethereum.EVM.ContinueTrace.one`: builds a one-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.two`: builds a two-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.three`: builds a three-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.snoc`: appends a continuing step to an existing trace.
+- `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
+- `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
+- `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
+- `Ethereum.EVM.ContinueTrace.X_halt_success_with_fuel`: runs a success halt with leftover interpreter fuel.
+- `Ethereum.EVM.ContinueTrace.X_halt_revert_with_fuel`: runs a revert halt with leftover interpreter fuel.
+- `Ethereum.EVM.ContinueTrace.X_error_with_fuel`: runs an error with leftover interpreter fuel.
+- `EVM_Xi_of_initial_continue_trace_success`: lifts an initial continuing trace plus success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_trace_revert`: lifts an initial continuing trace plus revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_trace_error`: lifts an initial continuing trace plus EVM error to `Ξ`.
+- `Act.ExecStmt.require_true_of_eval`: proves a successful `require` from a true condition evaluation.
+- `Act.ExecStmt.require_false_of_eval`: proves a reverting `require` from a false condition evaluation.
+- `Act.ExecStmt.require_revert_of_eval`: proves a reverting `require` from a reverting condition evaluation.
+- `Act.ExecStmt.return_of_eval`: proves a return statement from expression evaluation.
+- `Act.ExecBlock.cons_ok`: compositional block helper for normal statement completion.
+- `Act.ExecBlock.cons_return`: compositional block helper for early return.
+- `Act.ExecBlock.cons_revert`: compositional block helper for early revert.
+- `Act.ExecBlock.require_true_then_return`: runs the common two-statement pattern `require; return`.
+- `Act.ExecBlock.require_false_then_revert`: runs the common two-statement reverting `require; return` pattern.
+- `Act.ExecFuncBody.returned_of_block`: lifts a returned block to a returned function body.
+- `Act.ExecFuncBody.reverted_of_block`: lifts a reverted block to a reverted function body.
+- `Act.ExecFuncBody.fallthrough_of_block_ok`: lifts a normally completed block to fallthrough return.
+- `Act.ExecFuncBody.require_true_then_return`: function-body helper for `require; return`.
+- `Act.ExecFuncBody.require_false_then_revert`: function-body helper for a failing `require; return`.
+- `Act.ExecContractBody.require_true_then_return`: contract-body helper for `require; return`.
+- `Act.ExecContractBody.require_false_then_revert`: contract-body helper for a failing `require; return`.
+- `Act.evalExpr_boolLit`: evaluates boolean literals.
+- `Act.evalExpr_intLit`: evaluates integer literals.
+- `Act.evalExpr_callvalue`: evaluates the `callvalue` environment expression.
+- `Act.evalExpr_callvalue_eq_zero_of_weiValue_zero`: evaluates `callvalue == 0` to true.
+- `Act.evalExpr_callvalue_eq_zero_of_weiValue_ne_zero`: evaluates `callvalue == 0` to false.
+- `trustedTruthSelector`: trusted selector bytes for `truth()`.
+- `trustedKeccak_truth`: trusted Keccak key-value axiom for `keccak256("truth()")[0:4]`.
+
+# Truth-specific facts
+
+- `truthBytecode_decode_0`: decodes the first opcode as `PUSH1 0x80`.
+- `truthBytecode_decode_2`: decodes the second opcode as `PUSH1 0x40`.
+- `truthBytecode_decode_4`: decodes the third opcode as `MSTORE`.
+- `truthBytecode_decode_5`: decodes the next opcode as `CALLVALUE`.
+- `truthBytecode_decode_6`: decodes the next opcode as `DUP1`.
+- `truthBytecode_decode_7`: decodes the next opcode as `ISZERO`.
+- `truthBytecode_decode_8`: decodes the next opcode as `PUSH1 0x0e`.
+- `truthBytecode_decode_10`: decodes the next opcode as `JUMPI`.
+- `trustedKeccak_truthTransition`: adapts the trusted `truth()` Keccak pair to `transitionSigStr truthTransition`.
+- `truthDispatch_some_of_selector`: dispatches to `truthTransition` when calldata has the trusted selector.
+- `truthDispatch_none_of_selector_ne`: dispatch fails when calldata does not have the trusted selector.
+- `truthTransition_signature`: computes the Truth transition signature.
+- `truthDecodeCalldata_no_params`: decodes Truth's empty parameter list when the 4-byte selector is present.
+- `trustedTruthSelector_size`: computes the trusted selector length.
+- `truthDecodeCalldata_no_params_of_selector`: decodes Truth's empty parameter list from selector equality alone.
+- `truthExecContractBody_true`: Act body for `truth()` returns `true` when callvalue is zero.
+- `truthExecContractBody_revert`: Act body for `truth()` reverts when callvalue is nonzero.
+- `truthExecResultsEquiv_success`: relates a successful EVM result returning `bool true` to the Act result.
+- `truthActExec_true`: packages Truth dispatch/decode/body execution for the successful Act path.
+- `truthActExec_revert`: packages Truth dispatch/decode/body execution for the nonzero-callvalue Act revert path.
+- `truthRuntime_success_of_evm`: proves runtime equivalence for the successful selector/callvalue-zero path from a supplied EVM success equation.
+- `truthRuntime_revert_of_evm`: proves runtime equivalence for the selector/nonzero-callvalue path from a supplied EVM revert equation.
+- `truthRuntime_noDispatch_revert_of_evm`: proves runtime equivalence for selector mismatch from a supplied EVM revert equation.
+- `truthRuntime_outOfGas_of_evm`: proves runtime equivalence from a supplied EVM out-of-gas equation.
+- `truthEVM_first_push_oog`: proves top-level `Ξ` out-of-gas on the first `PUSH1`.
+- `truthEVM_first_push_continue`: proves the first `PUSH1` continuing step.
+- `truthEVM_second_push_oog`: proves top-level `Ξ` out-of-gas on the second `PUSH1`.
+- `truthEVM_second_push_continue`: proves the second `PUSH1` continuing step.
+- `truthGas_ge_six_of_second_push_continue`: derives initial gas lower bound after the two-push gas checks.
+- `truthEVM_two_push_trace`: packages the two initial `PUSH1` steps as a `ContinueTrace`.
+- `truthEVM_mstore_decode`: proves the third prologue pc decodes as `MSTORE`.
+- `truthEVM_mstore_stack`: computes the stack at the `MSTORE` point.
+- `truthEVM_mstore_memory_oog`: proves top-level `Ξ` out-of-gas on `MSTORE` memory expansion.
+- `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
+- `truthEVM_mstore_continue`: proves the successful `MSTORE` step.
+- `truthEVM_memory_prologue_trace`: packages `PUSH1; PUSH1; MSTORE` as a `ContinueTrace`.
+- `truthEVM_callvalue_decode`: proves the next pc decodes as `CALLVALUE`.
+- `truthEVM_callvalue_stack`: computes the empty stack before `CALLVALUE`.
+- `truthEVM_callvalue_oog`: proves top-level `Ξ` out-of-gas on `CALLVALUE`.
+- `truthEVM_callvalue_continue`: proves the successful `CALLVALUE` step.
+
+# Open gaps
+
+- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after the initial memory prologue and successful `CALLVALUE`.
+- The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
