@@ -538,7 +538,7 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
           let A_exist := { ((evm.addAccessedAccount target) |>.substate ) with
                       refundBalance := refunds
                       accessedStorageKeys := accessedStorageKeys }
-          (_, σ', _, A', z, o)
+          (cA', σ', _, A', z, o)
             = Ethereum.EVM.Θ
             evm.executionEnv.blobVersionedHashes
             evm.createdAccounts
