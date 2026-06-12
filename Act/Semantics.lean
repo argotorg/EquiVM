@@ -199,30 +199,73 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .dynamicArray _, .array _ => some v
   | _, _ => none
 
+/-- Act evaluation errors. Should never happen in well-formed programs -/
+inductive EvalError where
+  | unboundVariable
+  | typeError
+  | storageError
+  deriving DecidableEq, Repr, Inhabited
+
+/-- Result of evaluating an Act expression:
+    - a value (`ok`)
+    - a `revert`
+    - or an error, which indicates an ill-formed program
+-/
+inductive EvalResult (α : Type) where
+  | ok : α -> EvalResult α
+  | revert : EvalResult α
+  | error : EvalError -> EvalResult α
+  deriving Repr
+
+namespace EvalResult
+
+@[inline] def bind : EvalResult α -> (α -> EvalResult β) -> EvalResult β
+  | .ok a,    f => f a
+  | .revert,  _ => .revert
+  | .error e, _ => .error e
+
+instance : Monad EvalResult where
+  pure := .ok
+  bind := bind
+
+/-- Lift an `Option`, mapping `none` to the model-level `error e`. -/
+@[inline] def ofOption (e : EvalError) : Option α -> EvalResult α
+  | some a => .ok a
+  | none   => .error e
+
+/-- Sequence a list of results, short-circuiting on the first `revert`/`error`. -/
+def seqList : List (EvalResult α) -> EvalResult (List α)
+  | [] => .ok []
+  | x :: xs => do
+      let a <- x
+      let as <- seqList xs
+      .ok (a :: as)
+
+end EvalResult
+
 def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   match op, v with
   | .not, .bool b => some (.bool (!b))
   | .neg, .int i => some (.int (-i))
   | _, _ => none
 
-def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : Option Value :=
+def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   match op, v₁, v₂ with
-  | .add, .int x, .int y => some (.int (x + y))
-  | .sub, .int x, .int y => some (.int (x - y))
-  | .mul, .int x, .int y => some (.int (x * y))
-  | .div, .int x, .int y =>
-      some (.int (if y = 0 then 0 else x / y))
-  | .mod, .int x, .int y =>
-      some (.int (if y = 0 then 0 else x % y))
-  | .eq, x, y => some (.bool (x == y))
-  | .ne, x, y => some (.bool (!(x == y)))
-  | .lt, .int x, .int y => some (.bool (x < y))
-  | .le, .int x, .int y => some (.bool (x <= y))
-  | .gt, .int x, .int y => some (.bool (x > y))
-  | .ge, .int x, .int y => some (.bool (x >= y))
-  | .and, .bool x, .bool y => some (.bool (x && y))
-  | .or, .bool x, .bool y => some (.bool (x || y))
-  | _, _, _ => none
+  | .add, .int x, .int y => .ok (.int (x + y))
+  | .sub, .int x, .int y => .ok (.int (x - y))
+  | .mul, .int x, .int y => .ok (.int (x * y))
+  -- division/modulo by zero reverts (Solidity Panic 0x12)
+  | .div, .int x, .int y => if y = 0 then .revert else .ok (.int (x / y))
+  | .mod, .int x, .int y => if y = 0 then .revert else .ok (.int (x % y))
+  | .eq, x, y => .ok (.bool (x == y))
+  | .ne, x, y => .ok (.bool (!(x == y)))
+  | .lt, .int x, .int y => .ok (.bool (x < y))
+  | .le, .int x, .int y => .ok (.bool (x <= y))
+  | .gt, .int x, .int y => .ok (.bool (x > y))
+  | .ge, .int x, .int y => .ok (.bool (x >= y))
+  | .and, .bool x, .bool y => .ok (.bool (x && y))
+  | .or, .bool x, .bool y => .ok (.bool (x || y))
+  | _, _, _ => .error .typeError
 
 def bindParams? (params : List Param) (args : List Value) : Option Store :=
   match params, args with
@@ -318,50 +361,6 @@ lemma stepSize_lt_stepsSize : ∀ (slot : StorageRef) step,
       · rename_i hin
         simp [slotStepsEvalSize]
         apply lt_trans (b:= slotStepsEvalSize tail) (tail_ih hin); omega
-
-/-- Act evaluation errors. Should never happen in well-formed programs -/
-inductive EvalError where
-  | unboundVariable
-  | typeError
-  | storageError
-  deriving DecidableEq, Repr, Inhabited
-
-/-- Result of evaluating an Act expression:
-    - a value (`ok`)
-    - a `revert`
-    - or an error, which indicates an ill-formed program
--/
-inductive EvalResult (α : Type) where
-  | ok : α -> EvalResult α
-  | revert : EvalResult α
-  | error : EvalError -> EvalResult α
-  deriving Repr
-
-namespace EvalResult
-
-@[inline] def bind : EvalResult α -> (α -> EvalResult β) -> EvalResult β
-  | .ok a,    f => f a
-  | .revert,  _ => .revert
-  | .error e, _ => .error e
-
-instance : Monad EvalResult where
-  pure := .ok
-  bind := bind
-
-/-- Lift an `Option`, mapping `none` to the model-level `error e`. -/
-@[inline] def ofOption (e : EvalError) : Option α -> EvalResult α
-  | some a => .ok a
-  | none   => .error e
-
-/-- Sequence a list of results, short-circuiting on the first `revert`/`error`. -/
-def seqList : List (EvalResult α) -> EvalResult (List α)
-  | [] => .ok []
-  | x :: xs => do
-      let a <- x
-      let as <- seqList xs
-      .ok (a :: as)
-
-end EvalResult
 
 mutual
 
@@ -464,7 +463,7 @@ def evalExpr? (cfg : Config) (act : Frame) (evm : EVM.State) :
   | .binary op lhs rhs => do
       let lhsValue <- evalExpr? cfg act evm lhs
       let rhsValue <- evalExpr? cfg act evm rhs
-      EvalResult.ofOption .typeError (evalBinaryOp? op lhsValue rhsValue)
+      evalBinaryOp? op lhsValue rhsValue
   | .ite cond thenExpr elseExpr => do
       let condValue <- evalExpr? cfg act evm cond
       match condValue with
@@ -798,6 +797,13 @@ inductive ExecFuncBody (cfg : Config) :
   | execBlockRevert :
       ExecBlock cfg act evm body .reverted ->
       ExecFuncBody cfg act evm body .reverted
+  -- A `break`/`continue` that occurs outside a loop is malformed. We have to handle it so that ExecFuncBody is never stuck.
+  | execBlockBreak :
+      ExecBlock cfg act evm body (.break act' evm') ->
+      ExecFuncBody cfg act evm body (.returned act' evm' none)
+  | execBlockContinue :
+      ExecBlock cfg act evm body (.continue act' evm') ->
+      ExecFuncBody cfg act evm body (.returned act' evm' none)
 
 end
 
