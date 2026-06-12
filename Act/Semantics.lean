@@ -547,8 +547,8 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
             evm.accountMap
             evm.σ₀
             A_exist
-            evm.executionEnv.source
-            evm.executionEnv.sender
+            evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as a CALL does
+            evm.executionEnv.sender      -- original transactor (tx.origin)
             target
             (Ethereum.toExecute evm.accountMap target) -- this is the code
             callGas
@@ -596,17 +596,24 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
           let A_exist := { evm.substate with
                       refundBalance := refunds
                       accessedStorageKeys := accessedStorageKeys }
+          -- Mirror the CREATE opcode: bump the creator's nonce before calling `Lambda`,
+          -- which derives the new address from `sender.nonce - 1` and so expects the
+          -- already-incremented nonce. Passing the raw map would be off by one (and
+          -- underflow when the creator's nonce is 0).
+          let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
+          let σStar := evm.accountMap.insert evm.executionEnv.codeOwner
+                        { creator with nonce := creator.nonce + ⟨1⟩ }
           (addr, cA', σ', _, A', z, _)
             = Ethereum.EVM.Lambda
             evm.executionEnv.blobVersionedHashes
             evm.createdAccounts
             evm.genesisBlockHeader
             evm.blocks
-            evm.accountMap
+            σStar
             evm.σ₀
             A_exist
-            evm.executionEnv.source     -- sender
-            evm.executionEnv.sender     -- original transactor
+            evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as CREATE does
+            evm.executionEnv.sender     -- original transactor (tx.origin)
             createGas
             (.ofNat evm.executionEnv.gasPrice)
             valueWord                   -- endowment
