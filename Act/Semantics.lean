@@ -735,6 +735,7 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg act evm eth = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .revert ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      /- do we want to express a low-level .call? -/
   | newSuccess :
       evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->

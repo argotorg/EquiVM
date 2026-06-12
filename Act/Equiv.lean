@@ -5,18 +5,37 @@ import Act.Dispatch
 open Act
 open ABI
 
+/-- Default (zero-initialized) value for an ABI return type. Used when a function
+    with a declared return type falls through without an explicit `return`: the EVM
+    then returns the ABI encoding of this value (e.g. 32 zero bytes for `uint`), not
+    empty output. Only the elementary types the model supports are covered. -/
+def defaultAbiValue : ABIType -> Option Value
+  | .elem .bool    => some (.bool false)
+  | .elem .address => some (.address (.ofNat 0))
+  | .elem (.int _) => some (.int 0)
+  | _              => none
+
 inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : Prop where
   | returned :
     r = .some rv →
     t = .some abit →
     encodeReturnValue? abit rv = .some o →
     returnEquiv o r t
-  | null :
+  | void :
+    /- No declared return type and no value: the EVM returns empty output. -/
     r = .none →
+    t = .none →
     o = null →
     returnEquiv o r t
+  | fallthrough :
+    /- Declared return type but no explicit `return`: the EVM returns the ABI
+       encoding of the type's default (zero-initialized) value. -/
+    r = .none →
+    t = .some abit →
+    defaultAbiValue abit = .some dv →
+    encodeReturnValue? abit dv = .some o →
+    returnEquiv o r t
 
-/- Zoe: do we really need the type here? Can decode figure out the type from the return value constructor? -/
 
 inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
