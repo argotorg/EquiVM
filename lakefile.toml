@@ -18,6 +18,14 @@ name = "Act"
 [[lean_lib]]
 name = "Examples"
 
+[[lean_lib]]
+name = "TruthClaude"
+srcDir = "Truth-claude"
+
+[[lean_lib]]
+name = "TruthCodex"
+srcDir = "Truth-codex"
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"
