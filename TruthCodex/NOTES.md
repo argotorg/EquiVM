@@ -75,6 +75,8 @@
 - `EVM_Xi_of_initial_Xstep_error`: lifts a one-step initial EVM error to `Ξ`.
 - `Ethereum.EVM.decode_of_code_eq`: rewrites an opcode decode across an endpoint/initial code equality.
 - `Ethereum.EVM.Xstep_of_code_eq`: rewrites an `Xstep` valid-jump table across an endpoint/initial code equality.
+- `Ethereum.EVM.executionEnv_eq_of_Xstep`: extracts execution-environment preservation from any successful `Xstep`.
+- `Ethereum.EVM.code_eq_of_Xstep`: propagates bytecode equality across any successful `Xstep`.
 - `Ethereum.EVM.push1NextState`: names the concrete next state for a successful `PUSH1`.
 - `Ethereum.EVM.push1NextState_stack`: projection fact for the stack after `PUSH1`.
 - `Ethereum.EVM.push1NextState_gasAvailable`: projection fact for gas after `PUSH1`.
@@ -388,6 +390,10 @@
 - `Ethereum.EVM.ContinueTrace.append_four`: composes four continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_five`: composes five continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_ten`: composes ten continuing traces as two groups of five.
+- `Ethereum.EVM.ContinueTrace.relation`: folds a transitive step relation across an entire continuing trace.
+- `Ethereum.EVM.ContinueTrace.executionEnv_eq`: lifts `Xstep_env_unchanged` to show a continuing trace preserves the execution environment.
+- `Ethereum.EVM.ContinueTrace.code_eq_of_start`: derives endpoint bytecode equality from start bytecode equality over a continuing trace.
+- `Ethereum.EVM.ContinueTrace.code_eq_of_initial`: specializes endpoint bytecode equality to traces from `initialEVMState`.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
 - `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
@@ -398,23 +404,33 @@
 - `EVM_Xi_of_initial_continue_trace_revert`: lifts an initial continuing trace plus revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_error`: lifts an initial continuing trace plus EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_success_of_le`: lifts a continuing trace plus success halt to `Ξ` from `n ≤ g.toNat`.
+- `EVM_Xi_of_initial_continue_trace_return_of_le_of_decode`: lifts a trace ending at a decoded `RETURN` with stack/memory-gas facts to a `Ξ` success.
 - `EVM_Xi_of_initial_continue_trace_revert_of_le`: lifts a continuing trace plus revert halt to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_revert_zero_of_le`: lifts a continuing trace plus zero-length `REVERT` halt to `Ξ` from `n ≤ g.toNat`.
+- `EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode`: zero-length `REVERT` lifter that derives endpoint bytecode equality from the trace and accepts a decode fact over `I.code`.
 - `EVM_Xi_of_initial_continue_trace_error_of_le`: lifts a continuing trace plus EVM error to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_traces_success_of_le`: composes two continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_return_of_le_of_decode`: composes two traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_revert_zero_of_le`: composes two continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode`: composes two traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_traces_error_of_le`: composes two continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_success_of_le`: composes three continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_return_of_le_of_decode`: composes three traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_three_traces_revert_of_le`: composes three continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le`: composes three continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le_of_decode`: composes three traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_three_traces_error_of_le`: composes three continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_four_traces_success_of_le`: composes four continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_return_of_le_of_decode`: composes four traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_four_traces_revert_of_le`: composes four continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le`: composes four continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le_of_decode`: composes four traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_four_traces_error_of_le`: composes four continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_success_of_le`: composes five continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_return_of_le_of_decode`: composes five traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_ten_traces_success_of_le`: composes ten continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_return_of_le_of_decode`: composes ten traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_ten_traces_revert_of_le`: composes ten continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_ten_traces_revert_zero_of_le`: composes ten continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_ten_traces_error_of_le`: composes ten continuing traces before lifting an EVM error to `Ξ`.
@@ -688,7 +704,6 @@
 - `truthEVM_bool_writer_full_trace`: composes the boolean writer entry, normalizer, and store-return chunks from pc `0x57` back to the caller-provided writer return label.
 - `truthEVM_abi_encoder_return_to_continuation_trace`: packages the ABI encoder cleanup at pc `0x75` back to the caller-provided return continuation.
 - `truthEVM_final_return_prefix_trace`: packages the final return continuation `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1` up to the local `RETURN` halt.
-- `truthEVM_final_return_step`: proves the local successful `RETURN` halt from the final return stack shape and memory gas premise.
 - `truthEVM_final_return_success_of_prefix_trace`: lifts any already-proven prefix to the final return continuation through the final return prefix and `RETURN` halt to a top-level `Ξ` success.
 - `truthEVM_selector_match_success_of_trace_segments`: lifts the selector-match execution path segments through ABI encoding and the final `RETURN` to a top-level `Ξ` success.
 - `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.

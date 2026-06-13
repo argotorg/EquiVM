@@ -7461,16 +7461,11 @@ lemma truthEVM_short_calldata_revert_of_traces
       Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 3 s15 s18 := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18] using hSuffix
-  have hHalt :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s18 =
-        .ok (Ethereum.EVM.revertNextState s18
-              (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [],
-            some (false,
-              Ethereum.EVM.revertOutput s18
-                (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) := by
+  have hDecode :
+      Ethereum.EVM.decode I.code s18.machineState.pc = some (.REVERT, .none) := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18] using
-      truthEVM_short_calldata_revert_step
+      truthEVM_short_calldata_revert_decode
         (createdAccounts := createdAccounts)
         (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks)
@@ -7480,19 +7475,32 @@ lemma truthEVM_short_calldata_revert_of_traces
         (A := A)
         (I := I)
         hCode hValue hCalldataSize hShortCalldata
-  exact EVM_Xi_of_initial_continue_traces_revert_of_le
+  have hStack :
+      s18.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: [] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
+      s15, s16, s17, s18] using
+      truthEVM_short_calldata_revert_stack
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  exact EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode
     (m := 15)
     (n := 3)
     (mid := s15)
     (t := s18)
-    (evmState := Ethereum.EVM.revertNextState s18
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [])
-    (o := Ethereum.EVM.revertOutput s18
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))
+    (tail := [])
     (by simpa using hFuel)
     (by simpa [s0] using hPrefix')
     hSuffix'
-    hHalt
+    hDecode
+    hStack
+    (by simp)
 
 set_option maxRecDepth 10000 in
 lemma truthEVM_short_calldata_revert_of_trace_segments
@@ -7620,16 +7628,11 @@ lemma truthEVM_short_calldata_revert_of_trace_segments
       Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 3 s15 s18 := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18] using hSuffix
-  have hHalt :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s18 =
-        .ok (Ethereum.EVM.revertNextState s18
-              (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [],
-            some (false,
-              Ethereum.EVM.revertOutput s18
-                (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) := by
+  have hDecode :
+      Ethereum.EVM.decode I.code s18.machineState.pc = some (.REVERT, .none) := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18] using
-      truthEVM_short_calldata_revert_step
+      truthEVM_short_calldata_revert_decode
         (createdAccounts := createdAccounts)
         (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks)
@@ -7639,22 +7642,35 @@ lemma truthEVM_short_calldata_revert_of_trace_segments
         (A := A)
         (I := I)
         hCode hValue hCalldataSize hShortCalldata
-  exact EVM_Xi_of_initial_continue_three_traces_revert_of_le
+  have hStack :
+      s18.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: [] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
+      s15, s16, s17, s18] using
+      truthEVM_short_calldata_revert_stack
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  exact EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le_of_decode
     (m := 14)
     (n := 1)
     (k := 3)
     (s₁ := s14)
     (s₂ := s15)
     (t := s18)
-    (evmState := Ethereum.EVM.revertNextState s18
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [])
-    (o := Ethereum.EVM.revertOutput s18
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))
+    (tail := [])
     (by simpa using hFuel)
     (by simpa [s0] using hPrefix')
     hShortJumpi'
     hSuffix'
-    hHalt
+    hDecode
+    hStack
+    (by simp)
 
 set_option maxRecDepth 10000 in
 lemma truthEVM_long_calldata_first_push0_decode_of_callvalue_zero
@@ -13738,7 +13754,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp [hStack85]; omega)
     simpa [s86] using Ethereum.EVM.Xstep_of_code_eq hEndpoint85 hStep
   have hEndpoint86 : s86.executionEnv.code = I.code := by
-    simp [s86, hEndpoint85, Ethereum.EVM.jumpdestNextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep85 hEndpoint85
   have hPc86 : s86.machineState.pc = (⟨0x3c⟩ : Ethereum.UInt256) := by
     simp [s86, hPc85, Ethereum.EVM.jumpdestNextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13755,7 +13771,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp [s86, hStack85]; omega)
     simpa [s87] using Ethereum.EVM.Xstep_of_code_eq hEndpoint86 hStep
   have hEndpoint87 : s87.executionEnv.code = I.code := by
-    simp [s87, hEndpoint86, Ethereum.EVM.push1NextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep86 hEndpoint86
   have hPc87 : s87.machineState.pc = (⟨0x3e⟩ : Ethereum.UInt256) := by
     simp [s87, hPc86, Ethereum.EVM.push1NextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13776,7 +13792,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp; omega)
     simpa [s88] using Ethereum.EVM.Xstep_of_code_eq hEndpoint87 hStep
   have hEndpoint88 : s88.executionEnv.code = I.code := by
-    simp [s88, hEndpoint87, Ethereum.EVM.mloadNextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep87 hEndpoint87
   have hPc88 : s88.machineState.pc = (⟨0x3f⟩ : Ethereum.UInt256) := by
     simp [s88, hPc87, Ethereum.EVM.mloadNextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13796,7 +13812,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp; omega)
     simpa [s89] using Ethereum.EVM.Xstep_of_code_eq hEndpoint88 hStep
   have hEndpoint89 : s89.executionEnv.code = I.code := by
-    simp [s89, hEndpoint88, Ethereum.EVM.dup1NextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep88 hEndpoint88
   have hPc89 : s89.machineState.pc = (⟨0x40⟩ : Ethereum.UInt256) := by
     simp [s89, hPc88, Ethereum.EVM.dup1NextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13818,7 +13834,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp; omega)
     simpa [s90] using Ethereum.EVM.Xstep_of_code_eq hEndpoint89 hStep
   have hEndpoint90 : s90.executionEnv.code = I.code := by
-    simp [s90, hEndpoint89, Ethereum.EVM.swap2NextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep89 hEndpoint89
   have hPc90 : s90.machineState.pc = (⟨0x41⟩ : Ethereum.UInt256) := by
     simp [s90, hPc89, Ethereum.EVM.swap2NextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13839,7 +13855,7 @@ lemma truthEVM_final_return_prefix_trace
       (by simp; omega)
     simpa [s91] using Ethereum.EVM.Xstep_of_code_eq hEndpoint90 hStep
   have hEndpoint91 : s91.executionEnv.code = I.code := by
-    simp [s91, hEndpoint90, Ethereum.EVM.subNextState]
+    exact Ethereum.EVM.code_eq_of_Xstep hStep90 hEndpoint90
   have hPc91 : s91.machineState.pc = (⟨0x42⟩ : Ethereum.UInt256) := by
     simp [s91, hPc90, Ethereum.EVM.subNextState, Ethereum.UInt256.ofNat, Id.run]
     decide
@@ -13862,37 +13878,6 @@ lemma truthEVM_final_return_prefix_trace
     simpa [s92] using Ethereum.EVM.Xstep_of_code_eq hEndpoint91 hStep
   exact Ethereum.EVM.ContinueTrace.seven
     hStep85 hStep86 hStep87 hStep88 hStep89 hStep90 hStep91
-
-set_option maxRecDepth 10000 in
-lemma truthEVM_final_return_step
-    {I : Ethereum.ExecutionEnv}
-    {s92 : Ethereum.State}
-    {returnBase returnSize : Ethereum.UInt256}
-    {tail : Ethereum.Stack Ethereum.UInt256}
-    (hStateCode : s92.executionEnv.code = I.code)
-    (hCode : I.code = truthBytecode)
-    (hPc92 : s92.machineState.pc = (⟨0x43⟩ : Ethereum.UInt256))
-    (hStack92 : s92.machineState.stack = returnBase :: returnSize :: tail)
-    (hFinalReturnMemGas :
-      ¬ s92.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s92 .RETURN)
-    (hTailBound : ¬ 1024 < tail.length) :
-    Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s92 =
-      .ok (Ethereum.EVM.returnNextState s92 returnBase returnSize tail,
-        some (true, Ethereum.EVM.returnOutput s92 returnBase returnSize)) := by
-  have hDecode92I :
-      Ethereum.EVM.decode I.code s92.machineState.pc = some (.RETURN, .none) := by
-    rw [hCode, hPc92]
-    exact truthBytecode_decode_67
-  have hStep := Ethereum.EVM.Xstep_return_continue_of_decode
-    (s := s92)
-    (offset := returnBase)
-    (size := returnSize)
-    (t := tail)
-    (Ethereum.EVM.decode_of_code_eq hStateCode hDecode92I)
-    hStack92
-    hFinalReturnMemGas
-    hTailBound
-  exact Ethereum.EVM.Xstep_of_code_eq hStateCode hStep
 
 set_option maxRecDepth 10000 in
 lemma truthEVM_final_return_success_of_prefix_trace
@@ -14006,35 +13991,32 @@ lemma truthEVM_final_return_success_of_prefix_trace
         hStateCode hCode hPc85 hStack85 hTailBound
         hFinalJumpdestGas hFinalPushFreePtrGas hFinalMloadMemGas hFinalMloadVerylowGas
         hFinalDupBaseGas hFinalSwapEndGas hFinalSubLengthGas hFinalSwapReturnGas
-  have hEndpoint92 : s92.executionEnv.code = I.code := by
-    simpa [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86] using hStateCode
   have hPc92 : s92.machineState.pc = (⟨0x43⟩ : Ethereum.UInt256) := by
     simp [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86, hPc85,
       Ethereum.UInt256.ofNat, Id.run]
     decide
+  have hDecode92I :
+      Ethereum.EVM.decode I.code s92.machineState.pc = some (.RETURN, .none) := by
+    rw [hCode, hPc92]
+    exact truthBytecode_decode_67
   have hStack92 : s92.machineState.stack = returnBase :: returnSize :: tail := by
     simp [s92]
-  have hHalt :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s92 =
-        .ok (Ethereum.EVM.returnNextState s92 returnBase returnSize tail,
-          some (true, Ethereum.EVM.returnOutput s92 returnBase returnSize)) := by
-    exact truthEVM_final_return_step
-      (I := I)
-      (s92 := s92)
-      (returnBase := returnBase)
-      (returnSize := returnSize)
-      (tail := tail)
-      hEndpoint92 hCode hPc92 hStack92
-      (by simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
-        hFinalReturnMemGas)
-      (by omega)
-  exact EVM_Xi_of_initial_continue_traces_success_of_le
+  exact EVM_Xi_of_initial_continue_traces_return_of_le_of_decode
     (m := m)
     (n := 7)
+    (mid := s85)
+    (t := s92)
+    (offset := returnBase)
+    (size := returnSize)
+    (tail := tail)
     hFuel
     hPrefix
     hSuffix
-    hHalt
+    hDecode92I
+    hStack92
+    (by simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
+      hFinalReturnMemGas)
+    (by omega)
 
 set_option maxRecDepth 10000 in
 lemma truthEVM_selector_match_success_of_trace_segments
@@ -14168,29 +14150,17 @@ lemma truthEVM_selector_match_success_of_trace_segments
   have hEncoderAndFinal :
       Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (6 + 7) s79 s92 :=
     Ethereum.EVM.ContinueTrace.append hEncoderReturn hFinalTrace
-  have hEndpoint92 : s92.executionEnv.code = I.code := by
-    simpa [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86] using hStateCode
   have hPc92 : s92.machineState.pc = (⟨0x43⟩ : Ethereum.UInt256) := by
     simp [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86, hPc85,
       Ethereum.UInt256.ofNat, Id.run]
     decide
+  have hDecode92I :
+      Ethereum.EVM.decode I.code s92.machineState.pc = some (.RETURN, .none) := by
+    rw [hCode, hPc92]
+    exact truthBytecode_decode_67
   have hStack92 : s92.machineState.stack = returnBase :: returnSize :: tail := by
     simp [s92]
-  have hHalt :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s92 =
-        .ok (Ethereum.EVM.returnNextState s92 returnBase returnSize tail,
-          some (true, Ethereum.EVM.returnOutput s92 returnBase returnSize)) := by
-    exact truthEVM_final_return_step
-      (I := I)
-      (s92 := s92)
-      (returnBase := returnBase)
-      (returnSize := returnSize)
-      (tail := tail)
-      hEndpoint92 hCode hPc92 hStack92
-      (by simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
-        hFinalReturnMemGas)
-      (by omega)
-  exact EVM_Xi_of_initial_continue_ten_traces_success_of_le
+  exact EVM_Xi_of_initial_continue_ten_traces_return_of_le_of_decode
     (m₁ := 15)
     (m₂ := 8)
     (m₃ := 1)
@@ -14211,8 +14181,9 @@ lemma truthEVM_selector_match_success_of_trace_segments
     (s₈ := s57)
     (s₉ := s79)
     (t := s92)
-    (evmState := Ethereum.EVM.returnNextState s92 returnBase returnSize tail)
-    (o := Ethereum.EVM.returnOutput s92 returnBase returnSize)
+    (offset := returnBase)
+    (size := returnSize)
+    (tail := tail)
     (by
       norm_num
       exact hFuel)
@@ -14226,7 +14197,11 @@ lemma truthEVM_selector_match_success_of_trace_segments
     hAbiToWriter
     hBoolWriter
     hEncoderAndFinal
-    hHalt
+    hDecode92I
+    hStack92
+    (by simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
+      hFinalReturnMemGas)
+    (by omega)
 
 lemma truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -15733,35 +15708,21 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_traces
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
       s27] using hSuffix
-  have hEndpointCode : s27.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
-      s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
-      s27, Ethereum.EVM.push1NextState, Ethereum.EVM.push4NextState,
-      Ethereum.EVM.eqNextState, Ethereum.EVM.push0NextState,
-      Ethereum.EVM.calldataloadNextState, Ethereum.EVM.shrNextState,
-      Ethereum.EVM.calldatasizeNextState, Ethereum.EVM.ltNextState,
-      Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
-      Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
-      Ethereum.EVM.iszeroNextState]
   have hDecode :
-      Ethereum.EVM.decode s27.executionEnv.code s27.machineState.pc =
-        some (.REVERT, .none) := by
-    have hDecodeI :
-        Ethereum.EVM.decode I.code s27.machineState.pc = some (.REVERT, .none) := by
-      simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
-        s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
-        s27] using
-        truthEVM_long_calldata_selector_fallback_revert_decode
-          (createdAccounts := createdAccounts)
-          (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks)
-          (σ := σ)
-          (σ₀ := σ₀)
-          (g := g)
-          (A := A)
-          (I := I)
-          hCode hValue hCalldataSize hLongCalldata hSelectorNe
-    simpa [hEndpointCode] using hDecodeI
+      Ethereum.EVM.decode I.code s27.machineState.pc = some (.REVERT, .none) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
+      s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
+      s27] using
+      truthEVM_long_calldata_selector_fallback_revert_decode
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata hSelectorNe
   have hStack :
       s27.machineState.stack =
         (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: [selectorWord] := by
@@ -15777,7 +15738,7 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_traces
         (g := g)
         (A := A)
         (I := I)
-  exact EVM_Xi_of_initial_continue_traces_revert_zero_of_le
+  exact EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode
     (m := 15)
     (n := 12)
     (mid := s15)
@@ -15786,7 +15747,6 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_traces
     (by simpa using hFuel)
     (by simpa [s0] using hPrefix')
     hSuffix'
-    hEndpointCode
     hDecode
     hStack
     (by simp)
@@ -16021,17 +15981,12 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_trace_segments
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
       s27] using hFallbackSuffix
-  have hHalt :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s27 =
-        .ok (Ethereum.EVM.revertNextState s27
-              (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [selectorWord],
-            some (false,
-              Ethereum.EVM.revertOutput s27
-                (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) := by
+  have hDecode :
+      Ethereum.EVM.decode I.code s27.machineState.pc = some (.REVERT, .none) := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
       s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
       s27] using
-      truthEVM_long_calldata_selector_fallback_revert_step
+      truthEVM_long_calldata_selector_fallback_revert_decode
         (createdAccounts := createdAccounts)
         (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks)
@@ -16041,7 +15996,22 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_trace_segments
         (A := A)
         (I := I)
         hCode hValue hCalldataSize hLongCalldata hSelectorNe
-  exact EVM_Xi_of_initial_continue_four_traces_revert_of_le
+  have hStack :
+      s27.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: [selectorWord] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14,
+      s15, s16, s17, s18, s19, selectorWord, s20, s21, s22, s23, s24, s25, s26,
+      s27] using
+      truthEVM_long_calldata_selector_fallback_revert_stack
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  exact EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le_of_decode
     (m := 15)
     (n := 8)
     (k := 1)
@@ -16050,16 +16020,15 @@ lemma truthEVM_long_calldata_selector_fallback_revert_of_trace_segments
     (s₂ := s23)
     (s₃ := s24)
     (t := s27)
-    (evmState := Ethereum.EVM.revertNextState s27
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) [selectorWord])
-    (o := Ethereum.EVM.revertOutput s27
-      (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))
+    (tail := [selectorWord])
     (by simpa using hFuel)
     (by simpa [s0] using hPrefix')
     hSelectorPrefix'
     hSelectorJumpi'
     hFallbackSuffix'
-    hHalt
+    hDecode
+    hStack
+    (by simp)
 
 lemma truthEVM_push0_decode_of_callvalue_nonzero
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -17013,14 +16982,6 @@ lemma truthEVM_fallthrough_revert
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s10.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
-      Ethereum.EVM.jumpiNextState, Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState,
-      Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState,
-      Ethereum.EVM.push0NextState]
-  have hDecodeEndpoint :
-      Ethereum.EVM.decode s10.executionEnv.code s10.machineState.pc = some (.REVERT, .none) := by
-    simpa [hEndpointCode] using hDecode
   have hStack :
       s10.machineState.stack =
         (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: [I.weiValue] := by
@@ -17047,13 +17008,12 @@ lemma truthEVM_fallthrough_revert
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+  exact EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
     (n := 10)
     (tail := [I.weiValue])
     hFuel
     (by simpa [s0] using hTrace)
-    hEndpointCode
-    hDecodeEndpoint
+    hDecode
     hStack
     (by simp)
 
