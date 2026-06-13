@@ -1793,6 +1793,17 @@ theorem three {validJumps : Array Ethereum.UInt256} {s t u v : Ethereum.State}
     (ContinueTrace.cons hStep₁
       (ContinueTrace.cons hStep₂ (ContinueTrace.cons hStep₃ ContinueTrace.nil)))
 
+theorem four {validJumps : Array Ethereum.UInt256} {s t u v w : Ethereum.State}
+    (hStep₁ : Xstep validJumps s = .ok (t, none))
+    (hStep₂ : Xstep validJumps t = .ok (u, none))
+    (hStep₃ : Xstep validJumps u = .ok (v, none))
+    (hStep₄ : Xstep validJumps v = .ok (w, none)) :
+    ContinueTrace validJumps 4 s w := by
+  simpa using
+    (ContinueTrace.cons hStep₁
+      (ContinueTrace.cons hStep₂
+        (ContinueTrace.cons hStep₃ (ContinueTrace.cons hStep₄ ContinueTrace.nil))))
+
 theorem snoc {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State}
     (hTrace : ContinueTrace validJumps n s t)
@@ -1804,6 +1815,19 @@ theorem snoc {validJumps : Array Ethereum.UInt256}
   | cons hHead _ ih =>
       have hRest := ih hStep
       simpa [Nat.add_assoc] using (ContinueTrace.cons hHead hRest)
+
+theorem append {validJumps : Array Ethereum.UInt256}
+    {m n : Nat} {s t u : Ethereum.State}
+    (hLeft : ContinueTrace validJumps m s t)
+    (hRight : ContinueTrace validJumps n t u) :
+    ContinueTrace validJumps (m + n) s u := by
+  induction hLeft with
+  | nil =>
+      simpa using hRight
+  | cons hHead _ ih =>
+      have hRest := ih hRight
+      simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+        (ContinueTrace.cons hHead hRest)
 
 theorem X_halt_success {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State} {o : ByteArray}

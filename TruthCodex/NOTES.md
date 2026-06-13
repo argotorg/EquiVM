@@ -180,7 +180,9 @@
 - `Ethereum.EVM.ContinueTrace.one`: builds a one-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.two`: builds a two-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.three`: builds a three-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.four`: builds a four-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.snoc`: appends a continuing step to an existing trace.
+- `Ethereum.EVM.ContinueTrace.append`: composes two continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
 - `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
@@ -372,10 +374,13 @@
 - `truthEVM_long_calldata_push_truth_dest_decode_of_callvalue_zero`: decodes the truth-function branch target push as `PUSH1 0x2a`.
 - `truthEVM_long_calldata_push_truth_dest_stack_of_callvalue_zero`: computes the stack after selector comparison.
 - `truthEVM_long_calldata_push_truth_dest_continue`: proves the successful truth-function branch-target `PUSH1` step.
+- `truthEVM_long_calldata_selector_prefix_suffix_trace`: packages the eight long-calldata selector-decoding steps after the calldata-length branch.
 - `truthEVM_long_calldata_selector_jumpi_decode_of_callvalue_zero`: decodes the selector-match branch as `JUMPI`.
 - `truthEVM_long_calldata_selector_jumpi_stack_of_callvalue_zero`: computes the stack before the selector-match `JUMPI`.
 - `truthEVM_long_calldata_selector_jumpi_continue_taken`: proves the taken selector-match `JUMPI` step from selector equality and explicit destination validity.
 - `truthEVM_long_calldata_selector_jumpi_continue_fallthrough`: proves the selector-mismatch `JUMPI` fallthrough without a destination-validity premise.
+- `truthEVM_long_calldata_selector_jumpi_trace_taken_of_prefix`: appends the taken selector `JUMPI` to an already-built selector-prefix trace.
+- `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_decode`: decodes selector-mismatch fallthrough as the shared fallback `JUMPDEST`.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_stack`: computes the selector word tail after selector-mismatch fallthrough.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_continue`: proves the successful selector-mismatch fallback `JUMPDEST` step.
@@ -383,9 +388,12 @@
 - `truthEVM_long_calldata_selector_fallback_first_push0_continue`: proves the successful first fallback `PUSH0` after selector mismatch.
 - `truthEVM_long_calldata_selector_fallback_second_push0_decode`: decodes the second fallback `PUSH0` after selector mismatch.
 - `truthEVM_long_calldata_selector_fallback_second_push0_continue`: proves the successful second fallback `PUSH0` after selector mismatch.
+- `truthEVM_long_calldata_selector_fallback_suffix_trace`: packages the selector-mismatch fallback `JUMPDEST; PUSH0; PUSH0` suffix as a reusable trace segment.
 - `truthEVM_long_calldata_selector_fallback_revert_decode`: decodes the selector-mismatch fallback halt as `REVERT`.
 - `truthEVM_long_calldata_selector_fallback_revert_stack`: computes the zero-offset/zero-size stack with selector-word tail before fallback `REVERT`.
 - `truthEVM_long_calldata_selector_fallback_revert_step`: proves the local zero-length fallback `REVERT` step after selector mismatch.
+- `truthEVM_long_calldata_jumpi_continue_fallthrough`: proves the long-calldata fallthrough at the `calldatasize < 4` `JUMPI` without a destination-validity premise.
+- `truthEVM_long_calldata_jumpi_trace_fallthrough`: packages the common zero-callvalue prefix through that long-calldata `JUMPI` fallthrough.
 - `truthEVM_push0_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue `JUMPI` fallthrough as `PUSH0`.
 - `truthEVM_fallthrough_first_push0_oog`: proves top-level `Ξ` out-of-gas at the first fallthrough `PUSH0`.
 - `truthEVM_fallthrough_first_push0_continue`: proves the successful first fallthrough `PUSH0` step.
