@@ -46,3 +46,32 @@ Minimal scenario: in the zero-callvalue branch of the Truth runtime, bytecode pc
 Current local handling: `truthCorrect` does not depend on a native-decide valid-jump axiom. `TruthCodex/TruthCorrect.lean` names the valid-jump memberships as explicit proof blockers, `truthBytecode_validJump_0e`, `truthBytecode_validJump_26`, `truthBytecode_validJump_2a`, `truthBytecode_validJump_30`, `truthBytecode_validJump_3b`, `truthBytecode_validJump_44`, `truthBytecode_validJump_4c`, `truthBytecode_validJump_64`, `truthBytecode_validJump_57`, `truthBytecode_validJump_5e`, and `truthBytecode_validJump_75`, and transports them with small local lemmas. The main proof frontier now reaches the zero-callvalue, long-calldata selector-match equality path after ABI encoder cleanup and delegates the final return continuation at pc `0x3b` to a checked coverage helper; endpoint account-field preservation is discharged, and the remaining local frontier is the final ABI byte-output equality.
 
 Suggested long-term fix: make `D_J_aux` structurally recursive over a fuel/remaining-code bound, or provide trusted-base lemmas connecting `decode code pc = some (.JUMPDEST, .none)` and the scanner result for concrete bytecode. Either path should allow contract proofs to establish valid jump destinations without native-code axioms.
+
+# Misspec / proof blocker: opaque zero-byte padding
+
+Definition: `ffi.ByteArray.zeroes`, `.lake/packages/evmlean/Ethereum/FFI/ffi.lean:18`, is an opaque byte-array constructor. The only exposed logical fact found in the trusted base is `ByteArray_zeroes_size`, `.lake/packages/evmlean/Ethereum/Wheels.lean:30`, which states its length.
+
+Root cause: EVM word serialization uses `ffi.ByteArray.zeroes` in `Ethereum.UInt256.toByteArray`, `.lake/packages/evmlean/Ethereum/Wheels.lean:36-38`. `MSTORE` writes `b.toByteArray` into memory (`TruthCodex/Theory.lean` mirrors the EVM semantics in `mstoreNextState`). ABI return equivalence, however, requires equality with `encodeReturnValue?`, which reduces to concrete zero bytes for `bool true`. With only the size axiom, Lean can prove that `UInt256.toByteArray 1` has length 32, but cannot prove its first 31 bytes are zero.
+
+Minimal scenario:
+
+```lean
+example :
+    (⟨1⟩ : Ethereum.UInt256).toByteArray = abiBoolTrueReturn := by
+  simp [abiBoolTrueReturn, Ethereum.UInt256.toByteArray, BE,
+    Ethereum.toBytesBigEndian, Ethereum.UInt256.toNat,
+    Ethereum.UInt256.size, Ethereum_toBytes'_one]
+```
+
+After simplification, the remaining goal is essentially:
+
+```text
+(ffi.ByteArray.zeroes (OfNat.ofNat 32 - OfNat.ofNat 1)).push 1 =
+  ByteArray.mk #[0, ..., 0, 1]
+```
+
+There is no trusted-base theorem saying the bytes produced by `ffi.ByteArray.zeroes n` are actually zero. A model satisfying only `ByteArray_zeroes_size` could assign arbitrary byte contents of the right length, making the final `RETURN` output fail `returnEquiv` even though the bytecode path writes and reads back the serialized word correctly.
+
+Current local handling: `TruthCodex/Theory.lean` now proves reusable byte/memory lemmas up to the strongest fact available without a contents axiom: `ByteArray.readWithPadding_write_self_of_size` and `Ethereum.EVM.mstoreNextState_readWithPadding_word` show that reading back a just-written EVM word returns `UInt256.toByteArray` for that word. The remaining `truthCorrect` output gap is the equality between `UInt256.toByteArray 1` and the concrete ABI encoding `abiBoolTrueReturn`.
+
+Suggested long-term fix: make `ffi.ByteArray.zeroes` a pure Lean definition, or add trusted-base content lemmas such as `ffi.ByteArray.zeroes n = ByteArray.mk (Array.replicate n.toNat 0)` / indexed read theorems. A size-only axiom is insufficient for byte-level EVM/ABI equivalence proofs.

@@ -219,9 +219,128 @@ lemma readWithPadding_eq_of_extract
   simp [hLenDecimal, hAddrLt, hMin, hExtract, hSourceSize]
   exact append_zeroes_of_toNat_eq_zero source rfl
 
+lemma extract_append_middle (pre mid post : ByteArray) :
+    (pre ++ mid ++ post).extract pre.size (pre.size + mid.size) = mid := by
+  apply ByteArray.ext
+  rw [ByteArray.data_extract, ByteArray.data_append, ByteArray.data_append]
+  rw [Array.extract_append]
+  have hSuffixEmpty :
+      post.data.extract (pre.size - (pre.data ++ mid.data).size)
+        (pre.size + mid.size - (pre.data ++ mid.data).size) = #[] := by
+    rw [Array.extract_eq_empty_iff]
+    simp [ByteArray.size_data]
+  rw [hSuffixEmpty, Array.append_empty]
+  rw [Array.extract_append]
+  have hPrefixEmpty :
+      pre.data.extract pre.size (pre.size + mid.size) = #[] := by
+    rw [Array.extract_eq_empty_iff]
+    simp [ByteArray.size_data]
+  have hMiddle :
+      mid.data.extract 0 mid.size = mid.data := by
+    rw [Array.extract_eq_self_iff]
+    exact Or.inr ⟨rfl, by rfl⟩
+  rw [hPrefixEmpty, Array.empty_append]
+  simpa [ByteArray.size_data] using hMiddle
+
+lemma extract_append_middle_of_size
+    {pre mid post : ByteArray} {start len : Nat}
+    (hPre : pre.size = start)
+    (hMid : mid.size = len) :
+    (pre ++ mid ++ post).extract start (start + len) = mid := by
+  simpa [hPre, hMid] using extract_append_middle pre mid post
+
+lemma extract_zero_to_size_eq_self {source : ByteArray} {len : Nat}
+    (hLen : source.size = len) :
+    source.extract 0 len = source := by
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  rw [Array.extract_eq_self_iff]
+  refine Or.inr ⟨rfl, ?_⟩
+  rw [ByteArray.size_data, hLen]
+
+lemma write_extract_self_of_size
+    {source dest : ByteArray} {destAddr len : Nat}
+    (hLen : source.size = len)
+    (hDestPad : destAddr - dest.size < USize.size) :
+    (source.write 0 dest destAddr len).extract destAddr (destAddr + len) =
+      source := by
+  by_cases hZero : len = 0
+  · have hSource : source = ByteArray.empty :=
+      eq_empty_of_size_eq_zero (by omega)
+    simp [ByteArray.write, hZero, hSource]
+  · unfold ByteArray.write
+    simp [hZero, hLen]
+    have hSourcePad :
+        source ++ ffi.ByteArray.zeroes (OfNat.ofNat 0) = source := by
+      exact append_zeroes_of_toNat_eq_zero source rfl
+    rw [hSourcePad]
+    rw [ByteArray.copySlice_eq_append]
+    let destPadded :=
+      dest ++ ffi.ByteArray.zeroes (OfNat.ofNat (destAddr - dest.size))
+    let pre := destPadded.extract 0 destAddr
+    let mid := source.extract 0 len
+    let post := destPadded.extract (destAddr + len) destPadded.data.size
+    have hPre : pre.size = destAddr := by
+      dsimp [pre, destPadded]
+      rw [ByteArray.size_extract, ByteArray.size_append, ByteArray_zeroes_size,
+        USize.toNat_ofNat_of_lt hDestPad]
+      omega
+    have hMidEq : mid = source := by
+      dsimp [mid]
+      exact extract_zero_to_size_eq_self hLen
+    have hMid : mid.size = len := by
+      rw [hMidEq, hLen]
+    have hExtract := extract_append_middle_of_size
+      (pre := pre) (mid := mid) (post := post)
+      (start := destAddr) (len := len) hPre hMid
+    simpa [pre, mid, post, destPadded, hMidEq, hLen,
+      ByteArray.size_data] using hExtract
+
+lemma write_size_ge_of_size
+    {source dest : ByteArray} {destAddr len : Nat}
+    (hLenPos : 0 < len)
+    (hLen : source.size = len)
+    (hDestPad : destAddr - dest.size < USize.size) :
+    destAddr + len ≤ (source.write 0 dest destAddr len).size := by
+  have hExtract := write_extract_self_of_size
+    (source := source) (dest := dest) (destAddr := destAddr)
+    (len := len) hLen hDestPad
+  have hSize := congrArg ByteArray.size hExtract
+  rw [ByteArray.size_extract, hLen] at hSize
+  by_contra hBounds
+  have hLt : (source.write 0 dest destAddr len).size < destAddr + len := by
+    omega
+  have hMin :
+      min (destAddr + len) (source.write 0 dest destAddr len).size =
+        (source.write 0 dest destAddr len).size :=
+    Nat.min_eq_right (by omega)
+  rw [hMin] at hSize
+  omega
+
+lemma readWithPadding_write_self_of_size
+    {source dest : ByteArray} {destAddr len : Nat}
+    (hReadLen : len < 2^64)
+    (hLenPos : 0 < len)
+    (hSourceSize : source.size = len)
+    (hDestPad : destAddr - dest.size < USize.size) :
+    (source.write 0 dest destAddr len).readWithPadding destAddr len =
+      source :=
+  readWithPadding_eq_of_extract
+    hReadLen
+    hLenPos
+    (write_size_ge_of_size hLenPos hSourceSize hDestPad)
+    hSourceSize
+    (write_extract_self_of_size hSourceSize hDestPad)
+
 end ByteArray
 
 namespace Ethereum.UInt256
+
+@[simp] lemma toByteArray_size (v : Ethereum.UInt256) :
+    v.toByteArray.size = 32 := by
+  simpa [Ethereum.UInt256.toByteArrayWithSizeProof,
+    Ethereum.UInt256.toByteArray] using
+    (Ethereum.UInt256.toByteArrayWithSizeProof v).property
 
 lemma eq_zero_of_val_val_eq_zero {x : Ethereum.UInt256} (h : x.val.val = 0) :
     x = (⟨0⟩ : Ethereum.UInt256) := by
@@ -2014,6 +2133,38 @@ def mstoreNextState (s : Ethereum.State) (a b : Ethereum.UInt256)
     (mstoreNextState s a b t).machineState.memory =
       b.toByteArray.write 0 s.machineState.memory a.toNat 32 :=
   rfl
+
+theorem mstoreNextState_extract_word
+    (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256)
+    (hDestPad : a.toNat - s.machineState.memory.size < USize.size) :
+    (mstoreNextState s a b t).machineState.memory.extract a.toNat (a.toNat + 32) =
+      b.toByteArray := by
+  simpa [mstoreNextState] using
+    ByteArray.write_extract_self_of_size
+      (source := b.toByteArray)
+      (dest := s.machineState.memory)
+      (destAddr := a.toNat)
+      (len := 32)
+      (by simp)
+      hDestPad
+
+theorem mstoreNextState_readWithPadding_word
+    (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256)
+    (hDestPad : a.toNat - s.machineState.memory.size < USize.size) :
+    (mstoreNextState s a b t).machineState.memory.readWithPadding a.toNat 32 =
+      b.toByteArray := by
+  simpa [mstoreNextState] using
+    ByteArray.readWithPadding_write_self_of_size
+      (source := b.toByteArray)
+      (dest := s.machineState.memory)
+      (destAddr := a.toNat)
+      (len := 32)
+      (by norm_num)
+      (by norm_num)
+      (by simp)
+      hDestPad
 
 @[simp] theorem mstoreNextState_gasAvailable (s : Ethereum.State)
     (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
@@ -3817,6 +3968,34 @@ theorem Xstep_return_continue_of_decode {s : Ethereum.State}
     (popNextState s a t).substate = s.substate :=
   rfl
 
+/-- Equality of the EVM memory field. This is useful for trace suffixes after a
+single memory-writing opcode, where the remaining steps are stack/control-flow
+bookkeeping. -/
+def MachineMemoryEq (s t : Ethereum.State) : Prop :=
+  t.machineState.memory = s.machineState.memory
+
+namespace MachineMemoryEq
+
+theorem refl (s : Ethereum.State) : MachineMemoryEq s s := by
+  simp [MachineMemoryEq]
+
+theorem trans {s t u : Ethereum.State}
+    (h₁ : MachineMemoryEq s t) (h₂ : MachineMemoryEq t u) :
+    MachineMemoryEq s u := by
+  exact Eq.trans h₂ h₁
+
+theorem memory_eq {s t : Ethereum.State}
+    (h : MachineMemoryEq s t) :
+    t.machineState.memory = s.machineState.memory :=
+  h
+
+theorem of_eq {s t : Ethereum.State}
+    (h : t.machineState.memory = s.machineState.memory) :
+    MachineMemoryEq s t :=
+  h
+
+end MachineMemoryEq
+
 /-- Equality of the EVM world-state fields exposed by successful `Ξ` results.
 This deliberately excludes machine state and execution environment, so it is
 stable under ordinary stack/memory/control-flow bookkeeping. -/
@@ -4090,6 +4269,30 @@ theorem code_eq_of_start {validJumps : Array Ethereum.UInt256}
     t.executionEnv.code = code := by
   have hEnv := executionEnv_eq hTrace
   exact (congrArg (fun env => env.code) hEnv.symm).trans hCode
+
+theorem machineMemoryEq_of_step {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStepPreserves :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → MachineMemoryEq u v)
+    (hTrace : ContinueTrace validJumps n s t) :
+    MachineMemoryEq s t :=
+  relation
+    (R := MachineMemoryEq)
+    MachineMemoryEq.refl
+    (fun hStep => hStepPreserves hStep)
+    MachineMemoryEq.trans
+    hTrace
+
+theorem memory_eq_of_step {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStepPreserves :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → MachineMemoryEq u v)
+    (hTrace : ContinueTrace validJumps n s t) :
+    t.machineState.memory = s.machineState.memory :=
+  MachineMemoryEq.memory_eq
+    (machineMemoryEq_of_step hStepPreserves hTrace)
 
 theorem worldStateEq_of_step {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t : Ethereum.State}
