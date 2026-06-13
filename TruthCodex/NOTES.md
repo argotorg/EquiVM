@@ -6,6 +6,7 @@
 - `ByteArray.toList_loop_length`: computes the length of the internal `ByteArray.toList` loop.
 - `ByteArray.length_toList`: bridges `ByteArray.toList.length` and `ByteArray.size`.
 - `ByteArray.not_toList_length_lt_of_extract_eq_size`: proves selector extraction implies calldata is long enough.
+- `ByteArray.extract_ne_of_size_lt`: proves calldata shorter than `n` cannot extract to a selector of size `n`.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
 - `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
@@ -414,6 +415,7 @@
 - `EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode`: zero-length `REVERT` lifter that derives endpoint bytecode equality from the trace and accepts a decode fact over `I.code`.
 - `EVM_Xi_of_initial_continue_trace_error_of_le`: lifts a continuing trace plus EVM error to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_error_of_le_of_decode`: lifts a trace ending at a decoded endpoint error to `Ξ`, transporting endpoint code equality automatically.
+- `EVM_Xi_of_initial_continue_trace_jumpi_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `JUMPI`.
 - `EVM_Xi_of_initial_continue_traces_success_of_le`: composes two continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_return_of_le_of_decode`: composes two traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
@@ -602,6 +604,7 @@
 - `truthEVM_mstore_stack`: computes the stack at the `MSTORE` point.
 - `truthEVM_mstore_memory_cost`: computes the initial free-memory-pointer `MSTORE` expansion cost as `9`.
 - `truthGas_ge_fifteen_of_mstore_memory_continue`: derives `15 ≤ g.toNat` after the two pushes and successful `MSTORE` memory-gas check.
+- `truthGas_ge_eighteen_of_mstore_continue`: derives `18 ≤ g.toNat` after both `MSTORE` gas checks succeed.
 - `truthEVM_mstore_memory_oog`: proves top-level `Ξ` out-of-gas on `MSTORE` memory expansion.
 - `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
 - `truthEVM_mstore_continue`: proves the successful `MSTORE` step.
@@ -662,6 +665,7 @@
 - `truthEVM_push_short_revert_dest_trace`: packages the zero-callvalue dispatcher path through `PUSH1 0x26`, assuming the valid-jump-table premise.
 - `truthEVM_short_calldata_jumpi_decode_of_callvalue_zero`: decodes the short-calldata branch `JUMPI`.
 - `truthEVM_short_calldata_jumpi_stack_of_callvalue_zero`: computes the stack before the short-calldata branch `JUMPI`.
+- `truthEVM_calldata_length_jumpi_oog_of_prefix`: lifts the common zero-callvalue prefix to top-level out-of-gas at the calldata-length `JUMPI`.
 - `truthEVM_short_calldata_jumpi_continue_taken`: proves the taken short-calldata `JUMPI` step from explicit destination validity.
 - `truthEVM_short_calldata_jumpi_trace_taken`: packages the zero-callvalue short-calldata path through the taken second `JUMPI`.
 - `truthEVM_short_calldata_jumpdest_decode_of_callvalue_zero`: decodes the taken short-calldata branch target as `JUMPDEST`.
@@ -751,11 +755,13 @@
 
 - `truthBytecode_validJump_0e`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `#eval` computes `true`, but kernel reduction is blocked by opaque `D_J_aux`.
 - `truthValidJump_0e_of_code`: transports `truthBytecode_validJump_0e` to any execution environment whose code is `truthBytecode`.
+- `truthBytecode_validJump_26`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
+- `truthValidJump_26_of_code`: transports `truthBytecode_validJump_26` to any execution environment whose code is `truthBytecode`.
 
 # Open gaps
 
-- `truthCorrect` still has one `sorry`: the remaining zero-callvalue coverage after the successful dispatcher `PUSH1 0x26`.
+- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue coverage after the non-OOG calldata-length `JUMPI`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
-- The zero-callvalue branch needs a kernel-checked proof that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `D_J_aux` is currently opaque, so this is logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
+- The zero-callvalue branch needs kernel-checked proofs that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true` and `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`; `D_J_aux` is currently opaque, so these are logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.

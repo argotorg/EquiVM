@@ -27,16 +27,17 @@ Suggested long-term fix: remove opaque FFI from logical dispatch, either by usin
 
 Definition: `Ethereum.EVM.D_J_aux`, `.lake/packages/evmlean/Ethereum/Semantics.lean:100-106`, computes the valid jump-destination table used by `JUMP`/`JUMPI`.
 
-Root cause: because `D_J_aux` is a `partial def`, Lean exposes it as opaque. Consequently, the concrete fact
+Root cause: because `D_J_aux` is a `partial def`, Lean exposes it as opaque. Consequently, concrete facts such as
 
 ```lean
 (Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains (⟨0x0e⟩ : Ethereum.UInt256) = true
+(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains (⟨0x26⟩ : Ethereum.UInt256) = true
 ```
 
-does not kernel-reduce with `decide`. It can be evaluated with `native_decide`, but that introduces a generated native-decide axiom into `#print axioms`, which is not acceptable for the final correctness theorem.
+do not kernel-reduce with `decide`. They can be evaluated with `native_decide`, but that introduces a generated native-decide axiom into `#print axioms`, which is not acceptable for the final correctness theorem.
 
-Minimal scenario: in the zero-callvalue branch of the Truth runtime, bytecode pc `10` executes `JUMPI` to destination `0x0e`. The byte at offset `0x0e` is `0x5b` (`JUMPDEST`), so the EVM should continue at that destination. The opcode wrapper `Ethereum.EVM.Xstep_jumpi_continue_of_decode` correctly requires a valid-jump-table proof, but the trusted-base scanner does not provide a reducible or theorem-backed way to prove that the concrete destination is in `D_J truthBytecode ⟨0⟩`.
+Minimal scenario: in the zero-callvalue branch of the Truth runtime, bytecode pc `10` executes `JUMPI` to destination `0x0e`. Later, the calldata-length branch executes a `JUMPI` to destination `0x26`. The bytes at offsets `0x0e` and `0x26` are both `0x5b` (`JUMPDEST`), so the EVM should continue at those destinations. The opcode wrapper `Ethereum.EVM.Xstep_jumpi_continue_of_decode` correctly requires a valid-jump-table proof, but the trusted-base scanner does not provide a reducible or theorem-backed way to prove that these concrete destinations are in `D_J truthBytecode ⟨0⟩`.
 
-Current local handling: `truthCorrect` does not depend on a native-decide valid-jump axiom. The successful `JUMPI` continuation helper in `TruthCodex/TruthCorrect.lean` takes the valid-jump-table fact as an explicit premise, and the main proof frontier stops before relying on that premise.
+Current local handling: `truthCorrect` does not depend on a native-decide valid-jump axiom. `TruthCodex/TruthCorrect.lean` names the two valid-jump memberships as explicit proof blockers, `truthBytecode_validJump_0e` and `truthBytecode_validJump_26`, and transports them with small local lemmas. The main proof frontier now reaches the branch after the non-OOG calldata-length `JUMPI`.
 
 Suggested long-term fix: make `D_J_aux` structurally recursive over a fuel/remaining-code bound, or provide trusted-base lemmas connecting `decode code pc = some (.JUMPDEST, .none)` and the scanner result for concrete bytecode. Either path should allow contract proofs to establish valid jump destinations without native-code axioms.

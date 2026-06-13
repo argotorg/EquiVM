@@ -75,6 +75,16 @@ lemma not_toList_length_lt_of_extract_eq_size {bytes selector : ByteArray} {n : 
   rw [length_toList]
   omega
 
+lemma extract_ne_of_size_lt {bytes selector : ByteArray} {n : Nat}
+    (hBytesSize : bytes.size < n)
+    (hSelectorSize : selector.size = n) :
+    bytes.extract 0 n ≠ selector := by
+  intro hExtract
+  have hExtractSize : (bytes.extract 0 n).size = n := by
+    rw [hExtract, hSelectorSize]
+  rw [ByteArray.size_extract] at hExtractSize
+  omega
+
 end ByteArray
 
 namespace Ethereum.UInt256
@@ -3673,6 +3683,37 @@ lemma EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     hFuel
     hTrace
     (Ethereum.EVM.Xstep_of_code_eq_of_decode hCode hDecode hErr)
+
+lemma EVM_Xi_of_initial_continue_trace_jumpi_oog_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {dest cond : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.JUMPI, .none))
+    (hStack : t.machineState.stack = dest :: cond :: tail)
+    (hGas : t.machineState.gasAvailable.toNat < GasConstants.Ghigh) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := n)
+    (decoded := some (.JUMPI, .none))
+    (e := .OutOfGass)
+    hFuel
+    hTrace
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_jumpi_oog_of_decode hDecode' hStack hGas)
 
 lemma EVM_Xi_of_initial_continue_traces_success_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
