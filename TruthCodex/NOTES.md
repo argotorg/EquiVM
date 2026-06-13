@@ -463,6 +463,8 @@
 - `EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode`: composes two traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_traces_error_of_le`: composes two continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_error_of_le_of_decode`: composes two traces before the decoded endpoint-error lifter.
+- `EVM_Xi_of_initial_continue_traces_jumpdest_oog_of_le_of_decode`: composes a prefix and suffix trace before lifting decoded `JUMPDEST` out-of-gas to top-level `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_push0_oog_of_le_of_decode`: composes a prefix and suffix trace before lifting decoded `PUSH0` out-of-gas to top-level `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_success_of_le`: composes three continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_return_of_le_of_decode`: composes three traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_three_traces_revert_of_le`: composes three continuing traces before lifting a revert halt to `Ξ`.
@@ -813,8 +815,8 @@
 
 # Open gaps
 
-- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-match `JUMPI`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is to use it while splitting the post-selector `JUMPI` success/fallback gas coverage.
+- `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-match success side remains a body `sorry`; the selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` with explicit fuel holes at total trace lengths 24, 25, 26, and 27.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is to prove post-selector fuel lower bounds and finish the selector-match success/OOG coverage.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
