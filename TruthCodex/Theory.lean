@@ -982,6 +982,17 @@ theorem Xstep_of_code_eq {code : ByteArray} {s : Ethereum.State}
     Xstep (D_J code ⟨0⟩) s = result := by
   simpa [hCode] using hStep
 
+theorem Xstep_of_code_eq_of_decode {code : ByteArray} {s : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {result : Except ExecutionException (Ethereum.State × Option (Bool × ByteArray))}
+    (hCode : s.executionEnv.code = code)
+    (hDecode : decode code s.machineState.pc = decoded)
+    (hStep :
+      decode s.executionEnv.code s.machineState.pc = decoded →
+        Xstep (D_J s.executionEnv.code ⟨0⟩) s = result) :
+    Xstep (D_J code ⟨0⟩) s = result :=
+  Xstep_of_code_eq hCode (hStep (decode_of_code_eq hCode hDecode))
+
 theorem executionEnv_eq_of_Xstep {validJumps : Array Ethereum.UInt256}
     {s t : Ethereum.State} {o : Option (Bool × ByteArray)}
     (hStep : Xstep validJumps s = .ok (t, o)) :
@@ -3456,6 +3467,78 @@ lemma EVM_Xi_of_initial_continue_trace_revert_of_le
     hTrace
     hHalt
 
+lemma EVM_Xi_of_initial_continue_trace_revert_of_le_of_endpoint_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {offset size : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack : t.machineState.stack = offset :: size :: tail)
+    (hMemGas :
+      ¬ t.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost t .REVERT)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t offset size tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t offset size)) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := n)
+    hFuel
+    hTrace
+    (by
+      have hStep :=
+        Ethereum.EVM.Xstep_revert_continue_of_decode hDecode hStack hMemGas hStackBound
+      simpa [hCode] using hStep)
+
+lemma EVM_Xi_of_initial_continue_trace_revert_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {offset size : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.REVERT, .none))
+    (hStack : t.machineState.stack = offset :: size :: tail)
+    (hMemGas :
+      ¬ t.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost t .REVERT)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t offset size tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t offset size)) := by
+  have hCode := Ethereum.EVM.ContinueTrace.code_eq_of_initial hTrace
+  exact EVM_Xi_of_initial_continue_trace_revert_of_le_of_endpoint_decode
+    hFuel
+    hTrace
+    hCode
+    (by simpa [hCode] using hDecode)
+    hStack
+    hMemGas
+    hStackBound
+
 lemma EVM_Xi_of_initial_continue_trace_revert_zero_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -3484,14 +3567,16 @@ lemma EVM_Xi_of_initial_continue_trace_revert_zero_of_le
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
         (Ethereum.EVM.revertOutput t
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
-  EVM_Xi_of_initial_continue_trace_revert_of_le
-    (n := n)
+  EVM_Xi_of_initial_continue_trace_revert_of_le_of_endpoint_decode
     hFuel
     hTrace
+    hCode
+    hDecode
+    hStack
     (by
-      have hStep :=
-        Ethereum.EVM.Xstep_revert_zero_continue_of_decode hDecode hStack hStackBound
-      simpa [hCode] using hStep)
+      have hCost := Ethereum.EVM.memoryExpansionCost_revert_zero_stack hStack
+      simp [hCost])
+    hStackBound
 
 lemma EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -3520,13 +3605,14 @@ lemma EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
         (Ethereum.EVM.revertOutput t
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) := by
-  have hCode := Ethereum.EVM.ContinueTrace.code_eq_of_initial hTrace
-  exact EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+  exact EVM_Xi_of_initial_continue_trace_revert_of_le_of_decode
     hFuel
     hTrace
-    hCode
-    (by simpa [hCode] using hDecode)
+    hDecode
     hStack
+    (by
+      have hCost := Ethereum.EVM.memoryExpansionCost_revert_zero_stack hStack
+      simp [hCost])
     hStackBound
 
 lemma EVM_Xi_of_initial_continue_trace_error_of_le
@@ -3552,6 +3638,35 @@ lemma EVM_Xi_of_initial_continue_trace_error_of_le
     (by omega)
     hTrace
     hErr
+
+lemma EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e := by
+  have hCode := Ethereum.EVM.ContinueTrace.code_eq_of_initial hTrace
+  exact EVM_Xi_of_initial_continue_trace_error_of_le
+    (n := n)
+    hFuel
+    hTrace
+    (Ethereum.EVM.Xstep_of_code_eq_of_decode hCode hDecode hErr)
 
 lemma EVM_Xi_of_initial_continue_traces_success_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -3651,6 +3766,43 @@ lemma EVM_Xi_of_initial_continue_traces_revert_of_le
     (Ethereum.EVM.ContinueTrace.append hPrefix hSuffix)
     hHalt
 
+lemma EVM_Xi_of_initial_continue_traces_revert_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n : Nat}
+    {mid t : Ethereum.State}
+    {offset size : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n ≤ g.toNat)
+    (hPrefix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) mid)
+    (hSuffix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n mid t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.REVERT, .none))
+    (hStack : t.machineState.stack = offset :: size :: tail)
+    (hMemGas :
+      ¬ t.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost t .REVERT)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t offset size tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t offset size)) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le_of_decode
+    (n := m + n)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append hPrefix hSuffix)
+    hDecode
+    hStack
+    hMemGas
+    hStackBound
+
 lemma EVM_Xi_of_initial_continue_traces_revert_zero_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -3719,12 +3871,15 @@ lemma EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
         (Ethereum.EVM.revertOutput t
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
-  EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
-    (n := m + n)
+  EVM_Xi_of_initial_continue_traces_revert_of_le_of_decode
     hFuel
-    (Ethereum.EVM.ContinueTrace.append hPrefix hSuffix)
+    hPrefix
+    hSuffix
     hDecode
     hStack
+    (by
+      have hCost := Ethereum.EVM.memoryExpansionCost_revert_zero_stack hStack
+      simp [hCost])
     hStackBound
 
 lemma EVM_Xi_of_initial_continue_traces_error_of_le
@@ -3857,6 +4012,45 @@ lemma EVM_Xi_of_initial_continue_three_traces_revert_of_le
     (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
     hHalt
 
+lemma EVM_Xi_of_initial_continue_three_traces_revert_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t : Ethereum.State}
+    {offset size : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.REVERT, .none))
+    (hStack : t.machineState.stack = offset :: size :: tail)
+    (hMemGas :
+      ¬ t.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost t .REVERT)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t offset size tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t offset size)) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le_of_decode
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hDecode
+    hStack
+    hMemGas
+    hStackBound
+
 lemma EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -3929,12 +4123,16 @@ lemma EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le_of_decode
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
         (Ethereum.EVM.revertOutput t
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
-  EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
-    (n := m + n + k)
+  EVM_Xi_of_initial_continue_three_traces_revert_of_le_of_decode
     hFuel
-    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    h₁
+    h₂
+    h₃
     hDecode
     hStack
+    (by
+      have hCost := Ethereum.EVM.memoryExpansionCost_revert_zero_stack hStack
+      simp [hCost])
     hStackBound
 
 lemma EVM_Xi_of_initial_continue_three_traces_error_of_le
@@ -4075,6 +4273,47 @@ lemma EVM_Xi_of_initial_continue_four_traces_revert_of_le
     (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
     hHalt
 
+lemma EVM_Xi_of_initial_continue_four_traces_revert_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t : Ethereum.State}
+    {offset size : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.REVERT, .none))
+    (hStack : t.machineState.stack = offset :: size :: tail)
+    (hMemGas :
+      ¬ t.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost t .REVERT)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t offset size tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t offset size)) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le_of_decode
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hDecode
+    hStack
+    hMemGas
+    hStackBound
+
 lemma EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -4151,12 +4390,17 @@ lemma EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le_of_decode
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
         (Ethereum.EVM.revertOutput t
           (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
-  EVM_Xi_of_initial_continue_trace_revert_zero_of_le_of_decode
-    (n := m + n + k + l)
+  EVM_Xi_of_initial_continue_four_traces_revert_of_le_of_decode
     hFuel
-    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    h₁
+    h₂
+    h₃
+    h₄
     hDecode
     hStack
+    (by
+      have hCost := Ethereum.EVM.memoryExpansionCost_revert_zero_stack hStack
+      simp [hCost])
     hStackBound
 
 lemma EVM_Xi_of_initial_continue_four_traces_error_of_le

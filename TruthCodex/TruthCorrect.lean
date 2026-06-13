@@ -2534,66 +2534,6 @@ lemma truthEVM_jumpi_stack
     Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
     Ethereum.EVM.iszeroNextState]
 
-lemma truthEVM_jumpi_oog_step
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader}
-    {blocks : Ethereum.ProcessedBlocks}
-    {σ σ₀ : Ethereum.AccountMap}
-    {g : Ethereum.UInt256}
-    {A : Ethereum.Substate}
-    {I : Ethereum.ExecutionEnv}
-    (hCode : I.code = truthBytecode)
-    (hJumpiGas :
-      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
-       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
-       let s3 := Ethereum.EVM.mstoreNextState s2
-        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
-       let s4 := Ethereum.EVM.callvalueNextState s3
-       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
-       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
-       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
-       s7.machineState.gasAvailable.toNat < GasConstants.Ghigh)) :
-    let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-    let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
-    let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
-    let s3 := Ethereum.EVM.mstoreNextState s2
-      (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
-    let s4 := Ethereum.EVM.callvalueNextState s3
-    let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
-    let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
-    let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
-    Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s7 = .error .OutOfGass := by
-  intro s0 s1 s2 s3 s4 s5 s6 s7
-  have hDecode :
-      Ethereum.EVM.decode I.code s7.machineState.pc = some (.JUMPI, .none) := by
-    simpa [s0, s1, s2, s3, s4, s5, s6, s7] using
-      truthEVM_jumpi_decode
-        (createdAccounts := createdAccounts)
-        (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks)
-        (σ := σ)
-        (σ₀ := σ₀)
-        (g := g)
-        (A := A)
-        (I := I)
-        hCode
-  have hStack :
-      s7.machineState.stack =
-        (⟨0x0e⟩ : Ethereum.UInt256) :: Ethereum.UInt256.isZero I.weiValue :: I.weiValue :: [] := by
-    simpa [s0, s1, s2, s3, s4, s5, s6, s7] using
-      (truthEVM_jumpi_stack
-        (createdAccounts := createdAccounts)
-        (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks)
-        (σ := σ)
-        (σ₀ := σ₀)
-        (g := g)
-        (A := A)
-        (I := I))
-  exact Ethereum.EVM.Xstep_jumpi_oog_of_decode hDecode hStack
-    (by simpa [s0, s1, s2, s3, s4, s5, s6, s7] using hJumpiGas)
-
 lemma truthEVM_jumpi_oog
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -2688,10 +2628,10 @@ lemma truthEVM_jumpi_oog
         (I := I)
         hCode hFirstGas hSecondGas hMemGas hVerylowGas hCallvalueGas hDupGas
         hIszeroGas hPushDestGas
-  have hJumpiStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s7 = .error .OutOfGass := by
+  have hDecode :
+      Ethereum.EVM.decode I.code s7.machineState.pc = some (.JUMPI, .none) := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7] using
-      truthEVM_jumpi_oog_step
+      truthEVM_jumpi_decode
         (createdAccounts := createdAccounts)
         (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks)
@@ -2700,7 +2640,22 @@ lemma truthEVM_jumpi_oog
         (g := g)
         (A := A)
         (I := I)
-        hCode hJumpiGas
+        hCode
+  have hStack :
+      s7.machineState.stack =
+        (⟨0x0e⟩ : Ethereum.UInt256) :: Ethereum.UInt256.isZero I.weiValue :: I.weiValue :: [] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7] using
+      (truthEVM_jumpi_stack
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hJumpiGas' : s7.machineState.gasAvailable.toNat < GasConstants.Ghigh := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7] using hJumpiGas
   have hFuel : 7 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -2714,11 +2669,12 @@ lemma truthEVM_jumpi_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 7)
     hFuel
     (by simpa [s0] using hTrace)
-    hJumpiStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_jumpi_oog_of_decode hDecode' hStack hJumpiGas')
 
 lemma truthEVM_jumpi_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -3232,19 +3188,8 @@ lemma truthEVM_jumpdest_oog
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s8.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8,
-      Ethereum.EVM.jumpiNextState, Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState,
-      Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]
-  have hDecodeEndpoint :
-      Ethereum.EVM.decode s8.executionEnv.code s8.machineState.pc = some (.JUMPDEST, .none) := by
-    simpa [hEndpointCode] using hDecode
   have hJumpdestGas' : s8.machineState.gasAvailable.toNat < GasConstants.Gjumpdest := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8] using hJumpdestGas
-  have hJumpdestStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s8 = .error .OutOfGass := by
-    have hStep := Ethereum.EVM.Xstep_jumpdest_oog_of_decode hDecodeEndpoint hJumpdestGas'
-    simpa [hEndpointCode] using hStep
   have hFuel : 8 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -3258,11 +3203,12 @@ lemma truthEVM_jumpdest_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 8)
     hFuel
     (by simpa [s0] using hTrace)
-    hJumpdestStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_jumpdest_oog_of_decode hDecode' hJumpdestGas')
 
 lemma truthEVM_jumpdest_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -3656,14 +3602,6 @@ lemma truthEVM_pop_oog
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s9.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
-      Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState, Ethereum.EVM.push1NextState,
-      Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
-      Ethereum.EVM.iszeroNextState]
-  have hDecodeEndpoint :
-      Ethereum.EVM.decode s9.executionEnv.code s9.machineState.pc = some (.POP, .none) := by
-    simpa [hEndpointCode] using hDecode
   have hStack : s9.machineState.stack = I.weiValue :: [] := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] using
       truthEVM_pop_stack_of_callvalue_zero
@@ -3677,10 +3615,6 @@ lemma truthEVM_pop_oog
         (I := I)
   have hPopGas' : s9.machineState.gasAvailable.toNat < GasConstants.Gbase := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] using hPopGas
-  have hPopStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s9 = .error .OutOfGass := by
-    have hStep := Ethereum.EVM.Xstep_pop_oog_of_decode hDecodeEndpoint hStack hPopGas'
-    simpa [hEndpointCode] using hStep
   have hFuel : 9 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -3694,11 +3628,12 @@ lemma truthEVM_pop_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 9)
     hFuel
     (by simpa [s0] using hTrace)
-    hPopStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_pop_oog_of_decode hDecode' hStack hPopGas')
 
 lemma truthEVM_pop_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -4111,19 +4046,8 @@ lemma truthEVM_push_calldata_min_oog
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s10.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
-      Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
-      Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
-      Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]
   have hPushCalldataMinGas' : s10.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10] using hPushCalldataMinGas
-  have hPushStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s10 = .error .OutOfGass := by
-    have hStep := Ethereum.EVM.Xstep_push1_oog_of_decode
-      (Ethereum.EVM.decode_of_code_eq hEndpointCode hDecode)
-      hPushCalldataMinGas'
-    exact Ethereum.EVM.Xstep_of_code_eq hEndpointCode hStep
   have hFuel : 10 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -4137,11 +4061,12 @@ lemma truthEVM_push_calldata_min_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 10)
     hFuel
     (by simpa [s0] using hTrace)
-    hPushStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_push1_oog_of_decode hDecode' hPushCalldataMinGas')
 
 lemma truthEVM_push_calldata_min_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -4203,14 +4128,16 @@ lemma truthEVM_push_calldata_min_continue
       Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
       Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
       Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]
-  have hStep := Ethereum.EVM.Xstep_push1_continue_of_decode
-    (Ethereum.EVM.decode_of_code_eq hEndpointCode hDecode)
-    (by simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10] using hPushCalldataMinGas)
-    (by simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
-      Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
-      Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
-      Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState])
-  simpa [s11] using Ethereum.EVM.Xstep_of_code_eq hEndpointCode hStep
+  simpa [s11] using
+    Ethereum.EVM.Xstep_of_code_eq_of_decode hEndpointCode hDecode (fun hDecode' =>
+      Ethereum.EVM.Xstep_push1_continue_of_decode hDecode'
+        (by simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10] using
+          hPushCalldataMinGas)
+        (by simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
+          Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
+          Ethereum.EVM.push1NextState, Ethereum.EVM.mstoreNextState,
+          Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
+          Ethereum.EVM.iszeroNextState]))
 
 lemma truthEVM_push_calldata_min_trace
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -4607,19 +4534,8 @@ lemma truthEVM_calldatasize_oog
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s11.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11,
-      Ethereum.EVM.push1NextState, Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState,
-      Ethereum.EVM.jumpiNextState, Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
-      Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]
   have hCalldatasizeGas' : s11.machineState.gasAvailable.toNat < GasConstants.Gbase := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11] using hCalldatasizeGas
-  have hCallDataSizeStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s11 = .error .OutOfGass := by
-    have hStep := Ethereum.EVM.Xstep_calldatasize_oog_of_decode
-      (Ethereum.EVM.decode_of_code_eq hEndpointCode hDecode)
-      hCalldatasizeGas'
-    exact Ethereum.EVM.Xstep_of_code_eq hEndpointCode hStep
   have hFuel : 11 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -4633,11 +4549,12 @@ lemma truthEVM_calldatasize_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 11)
     hFuel
     (by simpa [s0] using hTrace)
-    hCallDataSizeStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_calldatasize_oog_of_decode hDecode' hCalldatasizeGas')
 
 lemma truthEVM_calldatasize_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -4700,16 +4617,17 @@ lemma truthEVM_calldatasize_continue
       Ethereum.EVM.push1NextState, Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState,
       Ethereum.EVM.jumpiNextState, Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
       Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]
-  have hStep := Ethereum.EVM.Xstep_calldatasize_continue_of_decode
-    (Ethereum.EVM.decode_of_code_eq hEndpointCode hDecode)
-    (by simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11] using hCalldatasizeGas)
-    (by
-      simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11,
-        Ethereum.EVM.push1NextState, Ethereum.EVM.popNextState,
-        Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
-        Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
-        Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState])
-  simpa [s12] using Ethereum.EVM.Xstep_of_code_eq hEndpointCode hStep
+  simpa [s12] using
+    Ethereum.EVM.Xstep_of_code_eq_of_decode hEndpointCode hDecode (fun hDecode' =>
+      Ethereum.EVM.Xstep_calldatasize_continue_of_decode hDecode'
+        (by simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11] using
+          hCalldatasizeGas)
+        (by
+          simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11,
+            Ethereum.EVM.push1NextState, Ethereum.EVM.popNextState,
+            Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
+            Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
+            Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState]))
 
 lemma truthEVM_calldatasize_trace
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -5146,12 +5064,6 @@ lemma truthEVM_lt_oog
         (A := A)
         (I := I)
         hCode hValue
-  have hEndpointCode : s12.executionEnv.code = I.code := by
-    simp [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12,
-      Ethereum.EVM.calldatasizeNextState, Ethereum.EVM.push1NextState,
-      Ethereum.EVM.popNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.jumpiNextState,
-      Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
-      Ethereum.EVM.iszeroNextState]
   have hStack :
       s12.machineState.stack =
         Ethereum.UInt256.ofNat I.calldata.size :: (⟨0x04⟩ : Ethereum.UInt256) :: [] := by
@@ -5167,13 +5079,6 @@ lemma truthEVM_lt_oog
         (I := I)
   have hLtGas' : s12.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12] using hLtGas
-  have hLtStep :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s12 = .error .OutOfGass := by
-    have hStep := Ethereum.EVM.Xstep_lt_oog_of_decode
-      (Ethereum.EVM.decode_of_code_eq hEndpointCode hDecode)
-      hStack
-      hLtGas'
-    exact Ethereum.EVM.Xstep_of_code_eq hEndpointCode hStep
   have hFuel : 12 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -5187,11 +5092,12 @@ lemma truthEVM_lt_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 12)
     hFuel
     (by simpa [s0] using hTrace)
-    hLtStep
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_lt_oog_of_decode hDecode' hStack hLtGas')
 
 lemma truthEVM_lt_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -16183,9 +16089,6 @@ lemma truthEVM_fallthrough_first_push0_oog
         hCode hValue
   have hPush0Gas' : s8.machineState.gasAvailable.toNat < GasConstants.Gbase := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8] using hPush0Gas
-  have hPush0Step :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s8 = .error .OutOfGass :=
-    Ethereum.EVM.Xstep_push0_oog_of_decode hDecode hPush0Gas'
   have hFuel : 8 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -16199,11 +16102,12 @@ lemma truthEVM_fallthrough_first_push0_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 8)
     hFuel
     (by simpa [s0] using hTrace)
-    hPush0Step
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_push0_oog_of_decode hDecode' hPush0Gas')
 
 lemma truthEVM_fallthrough_first_push0_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -16557,9 +16461,6 @@ lemma truthEVM_fallthrough_second_push0_oog
         hCode hValue
   have hSecondPush0Gas' : s9.machineState.gasAvailable.toNat < GasConstants.Gbase := by
     simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] using hSecondPush0Gas
-  have hPush0Step :
-      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s9 = .error .OutOfGass :=
-    Ethereum.EVM.Xstep_push0_oog_of_decode hDecode hSecondPush0Gas'
   have hFuel : 9 ≤ g.toNat := by
     have hg15 : 15 ≤ g.toNat :=
       truthGas_ge_fifteen_of_mstore_memory_continue
@@ -16573,11 +16474,12 @@ lemma truthEVM_fallthrough_second_push0_oog
         (I := I)
         hFirstGas hSecondGas hMemGas
     omega
-  exact EVM_Xi_of_initial_continue_trace_error_of_le
+  exact EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
     (n := 9)
     hFuel
     (by simpa [s0] using hTrace)
-    hPush0Step
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_push0_oog_of_decode hDecode' hSecondPush0Gas')
 
 lemma truthEVM_fallthrough_second_push0_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
