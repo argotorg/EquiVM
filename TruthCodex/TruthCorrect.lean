@@ -1179,6 +1179,259 @@ lemma truthGas_ge_eighteen_of_mstore_continue
   unfold GasConstants.Gverylow at hEnoughAfterMem
   omega
 
+lemma truthGas_ge_twenty_of_callvalue_continue
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hFirstGas : ¬ g.toNat < GasConstants.Gverylow)
+    (hSecondGas :
+      ¬ (g - Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gverylow)
+    (hMemGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE))
+    (hVerylowGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         (s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+            GasConstants.Gverylow))
+    (hCallvalueGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         s3.machineState.gasAvailable.toNat < GasConstants.Gbase)) :
+    20 ≤ g.toNat := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  have hg6 : 6 ≤ g.toNat := truthGas_ge_six_of_second_push_continue hFirstGas hSecondGas
+  have hSub :
+      ((g - Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat =
+          g.toNat - GasConstants.Gverylow - GasConstants.Gverylow :=
+    Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le
+      (x := g) (a := GasConstants.Gverylow) (b := GasConstants.Gverylow)
+      (by decide) (by decide) (by simpa [GasConstants.Gverylow] using hg6)
+  have hGas2 :
+      s2.machineState.gasAvailable.toNat = g.toNat - 3 - 3 := by
+    simpa [s0, s1, s2, Ethereum.EVM.push1NextState, GasConstants.Gverylow] using hSub
+  have hCost :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE = 9 := by
+    simpa [s0, s1, s2] using
+      (truthEVM_mstore_memory_cost
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hMemGas' :
+      ¬ s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE := by
+    simpa [s0, s1, s2] using hMemGas
+  have hCostLe :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE ≤ s2.machineState.gasAvailable.toNat := by
+    omega
+  have hVerylowGas' :
+      ¬ (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+        GasConstants.Gverylow := by
+    simpa [s0, s1, s2] using hVerylowGas
+  have hAfterMem :
+      (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat =
+        s2.machineState.gasAvailable.toNat - Ethereum.EVM.memoryExpansionCost s2 .MSTORE :=
+    Ethereum.UInt256.toNat_sub_ofNat_of_le
+      (x := s2.machineState.gasAvailable)
+      (n := Ethereum.EVM.memoryExpansionCost s2 .MSTORE)
+      (by rw [hCost]; decide)
+      hCostLe
+  have hVerylowLe :
+      GasConstants.Gverylow ≤
+        (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat := by
+    rw [hAfterMem, hCost]
+    omega
+  have hCallvalueGas' :
+      ¬ ((s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gbase := by
+    simpa [s0, s1, s2, s3, Ethereum.EVM.mstoreNextState] using hCallvalueGas
+  have hEnough :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE +
+          GasConstants.Gverylow + GasConstants.Gbase ≤
+        s2.machineState.gasAvailable.toNat :=
+    Ethereum.UInt256.add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_lt
+      (x := s2.machineState.gasAvailable)
+      (cost₁ := Ethereum.EVM.memoryExpansionCost s2 .MSTORE)
+      (cost₂ := GasConstants.Gverylow)
+      (remaining := GasConstants.Gbase)
+      (by rw [hCost]; decide)
+      (by decide)
+      hCostLe
+      hVerylowLe
+      hCallvalueGas'
+  rw [hCost, hGas2] at hEnough
+  unfold GasConstants.Gverylow GasConstants.Gbase at hEnough
+  omega
+
+lemma truthGas_ge_twenty_three_of_dup_continue
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hFirstGas : ¬ g.toNat < GasConstants.Gverylow)
+    (hSecondGas :
+      ¬ (g - Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gverylow)
+    (hMemGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE))
+    (hVerylowGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         (s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+            GasConstants.Gverylow))
+    (hCallvalueGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         s3.machineState.gasAvailable.toNat < GasConstants.Gbase))
+    (hDupGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         let s4 := Ethereum.EVM.callvalueNextState s3
+         s4.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    23 ≤ g.toNat := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  have hg6 : 6 ≤ g.toNat := truthGas_ge_six_of_second_push_continue hFirstGas hSecondGas
+  have hSub :
+      ((g - Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat =
+          g.toNat - GasConstants.Gverylow - GasConstants.Gverylow :=
+    Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le
+      (x := g) (a := GasConstants.Gverylow) (b := GasConstants.Gverylow)
+      (by decide) (by decide) (by simpa [GasConstants.Gverylow] using hg6)
+  have hGas2 :
+      s2.machineState.gasAvailable.toNat = g.toNat - 3 - 3 := by
+    simpa [s0, s1, s2, Ethereum.EVM.push1NextState, GasConstants.Gverylow] using hSub
+  have hCost :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE = 9 := by
+    simpa [s0, s1, s2] using
+      (truthEVM_mstore_memory_cost
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hMemGas' :
+      ¬ s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE := by
+    simpa [s0, s1, s2] using hMemGas
+  have hCostLe :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE ≤ s2.machineState.gasAvailable.toNat := by
+    omega
+  have hAfterMem :
+      (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat =
+        s2.machineState.gasAvailable.toNat - Ethereum.EVM.memoryExpansionCost s2 .MSTORE :=
+    Ethereum.UInt256.toNat_sub_ofNat_of_le
+      (x := s2.machineState.gasAvailable)
+      (n := Ethereum.EVM.memoryExpansionCost s2 .MSTORE)
+      (by rw [hCost]; decide)
+      hCostLe
+  have hVerylowLe :
+      GasConstants.Gverylow ≤
+        (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat := by
+    have hVerylowGas' :
+        ¬ (s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+          GasConstants.Gverylow := by
+      simpa [s0, s1, s2] using hVerylowGas
+    omega
+  have hAfterMstoreVerylow :
+      ((s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat =
+          (s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat -
+            GasConstants.Gverylow :=
+    Ethereum.UInt256.toNat_sub_ofNat_of_le
+      (x := s2.machineState.gasAvailable -
+        Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE))
+      (n := GasConstants.Gverylow)
+      (by decide)
+      hVerylowLe
+  have hCallvalueGas' :
+      ¬ ((s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gbase := by
+    simpa [s0, s1, s2, s3, Ethereum.EVM.mstoreNextState] using hCallvalueGas
+  have hBaseLe :
+      GasConstants.Gbase ≤
+        ((s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat := by
+    omega
+  have hDupGas' :
+      ¬ (((s2.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+            Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+          Ethereum.UInt256.ofNat GasConstants.Gbase).toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, Ethereum.EVM.mstoreNextState,
+      Ethereum.EVM.callvalueNextState] using hDupGas
+  have hEnough :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE +
+          GasConstants.Gverylow + GasConstants.Gbase + GasConstants.Gverylow ≤
+        s2.machineState.gasAvailable.toNat :=
+    Ethereum.UInt256.add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_lt
+      (x := s2.machineState.gasAvailable)
+      (cost₁ := Ethereum.EVM.memoryExpansionCost s2 .MSTORE)
+      (cost₂ := GasConstants.Gverylow)
+      (cost₃ := GasConstants.Gbase)
+      (remaining := GasConstants.Gverylow)
+      (by rw [hCost]; decide)
+      (by decide)
+      (by decide)
+      hCostLe
+      hVerylowLe
+      hBaseLe
+      hDupGas'
+  rw [hCost, hGas2] at hEnough
+  unfold GasConstants.Gverylow GasConstants.Gbase at hEnough
+  omega
+
 lemma truthEVM_mstore_memory_oog
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -9433,6 +9686,146 @@ lemma truthEVM_long_calldata_shr_stack_of_callvalue_zero
     Ethereum.EVM.calldatasizeNextState, Ethereum.EVM.ltNextState, Ethereum.EVM.push0NextState,
     Ethereum.EVM.calldataloadNextState, Ethereum.UInt256.toNat]
 
+set_option maxRecDepth 10000 in
+lemma truthEVM_long_calldata_shr_oog_of_prefix
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hPrefix :
+      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+      let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+      let s4 := Ethereum.EVM.callvalueNextState s3
+      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+      let s9 := Ethereum.EVM.jumpdestNextState s8
+      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+      let s12 := Ethereum.EVM.calldatasizeNextState s11
+      let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+      let s16 := Ethereum.EVM.push0NextState s15
+      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 18 s0 s18)
+    (hCode : I.code = truthBytecode)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hCalldataSize : I.calldata.size < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hFuel : 18 ≤ g.toNat)
+    (hLongShrGas :
+      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+       let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+       let s4 := Ethereum.EVM.callvalueNextState s3
+       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+       let s9 := Ethereum.EVM.jumpdestNextState s8
+       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+       let s12 := Ethereum.EVM.calldatasizeNextState s11
+       let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+       let s16 := Ethereum.EVM.push0NextState s15
+       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+       s18.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+  let s12 := Ethereum.EVM.calldatasizeNextState s11
+  let s13 := Ethereum.EVM.ltNextState s12
+    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.lt
+      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+  let s16 := Ethereum.EVM.push0NextState s15
+  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+  have hPrefix' :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 18 s0 s18 := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18] using hPrefix
+  have hDecode :
+      Ethereum.EVM.decode I.code s18.machineState.pc = some (.SHR, .none) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18] using
+      truthEVM_long_calldata_shr_decode_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata
+  have hStack :
+      s18.machineState.stack =
+        (⟨0xe0⟩ : Ethereum.UInt256) ::
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) :: [] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18] using
+      truthEVM_long_calldata_shr_stack_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  have hGas : s18.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18] using hLongShrGas
+  exact EVM_Xi_of_initial_continue_trace_shr_oog_of_le_of_decode
+    (n := 18)
+    (t := s18)
+    (a := (⟨0xe0⟩ : Ethereum.UInt256))
+    (b := (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32))
+    (tail := [])
+    hFuel
+    (by simpa [s0] using hPrefix')
+    hDecode
+    hStack
+    hGas
+
 lemma truthEVM_long_calldata_shr_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -9647,6 +10040,152 @@ lemma truthEVM_long_calldata_dup1_stack_of_callvalue_zero
     Ethereum.EVM.iszeroNextState, Ethereum.EVM.jumpdestNextState, Ethereum.EVM.popNextState,
     Ethereum.EVM.calldatasizeNextState, Ethereum.EVM.ltNextState, Ethereum.EVM.push0NextState,
     Ethereum.EVM.calldataloadNextState, Ethereum.EVM.shrNextState, Ethereum.UInt256.toNat]
+
+set_option maxRecDepth 10000 in
+lemma truthEVM_long_calldata_dup1_oog_of_prefix
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hPrefix :
+      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+      let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+      let s4 := Ethereum.EVM.callvalueNextState s3
+      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+      let s9 := Ethereum.EVM.jumpdestNextState s8
+      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+      let s12 := Ethereum.EVM.calldatasizeNextState s11
+      let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+      let s16 := Ethereum.EVM.push0NextState s15
+      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+      let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 19 s0 s19)
+    (hCode : I.code = truthBytecode)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hCalldataSize : I.calldata.size < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hFuel : 19 ≤ g.toNat)
+    (hLongDupGas :
+      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+       let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+       let s4 := Ethereum.EVM.callvalueNextState s3
+       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+       let s9 := Ethereum.EVM.jumpdestNextState s8
+       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+       let s12 := Ethereum.EVM.calldatasizeNextState s11
+       let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+       let s16 := Ethereum.EVM.push0NextState s15
+       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+       let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+       s19.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+  let s12 := Ethereum.EVM.calldatasizeNextState s11
+  let s13 := Ethereum.EVM.ltNextState s12
+    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.lt
+      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+  let s16 := Ethereum.EVM.push0NextState s15
+  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+  let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+  let selectorWord :=
+    Ethereum.UInt256.shiftRight
+      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+      (⟨0xe0⟩ : Ethereum.UInt256)
+  have hPrefix' :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 19 s0 s19 := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19] using hPrefix
+  have hDecode :
+      Ethereum.EVM.decode I.code s19.machineState.pc = some (.DUP1, .none) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19] using
+      truthEVM_long_calldata_dup1_decode_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata
+  have hStack : s19.machineState.stack = [selectorWord] := by
+    simpa [selectorWord, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
+      s11, s12, s13, s14, s15, s16, s17, s18, s19] using
+      truthEVM_long_calldata_dup1_stack_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  have hGas : s19.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19] using hLongDupGas
+  exact EVM_Xi_of_initial_continue_trace_dup1_oog_of_le_of_decode
+    (n := 19)
+    (t := s19)
+    (a := selectorWord)
+    (tail := [])
+    hFuel
+    (by simpa [s0] using hPrefix')
+    hDecode
+    hStack
+    hGas
 
 lemma truthEVM_long_calldata_dup1_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -9873,6 +10412,150 @@ lemma truthEVM_long_calldata_push_selector_stack_of_callvalue_zero
   intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19
     selectorWord s20
   simp [s20]
+
+set_option maxRecDepth 10000 in
+lemma truthEVM_long_calldata_push_selector_oog_of_prefix
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hPrefix :
+      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+      let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+      let s4 := Ethereum.EVM.callvalueNextState s3
+      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+      let s9 := Ethereum.EVM.jumpdestNextState s8
+      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+      let s12 := Ethereum.EVM.calldatasizeNextState s11
+      let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+      let s16 := Ethereum.EVM.push0NextState s15
+      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+      let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+      let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+      let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 20 s0 s20)
+    (hCode : I.code = truthBytecode)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hCalldataSize : I.calldata.size < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hFuel : 20 ≤ g.toNat)
+    (hLongPushSelectorGas :
+      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+       let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+       let s4 := Ethereum.EVM.callvalueNextState s3
+       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+       let s9 := Ethereum.EVM.jumpdestNextState s8
+       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+       let s12 := Ethereum.EVM.calldatasizeNextState s11
+       let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+       let s16 := Ethereum.EVM.push0NextState s15
+       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+       let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+       let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+       let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+       s20.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+  let s12 := Ethereum.EVM.calldatasizeNextState s11
+  let s13 := Ethereum.EVM.ltNextState s12
+    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.lt
+      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+  let s16 := Ethereum.EVM.push0NextState s15
+  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+  let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+  let selectorWord :=
+    Ethereum.UInt256.shiftRight
+      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+      (⟨0xe0⟩ : Ethereum.UInt256)
+  let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+  have hPrefix' :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 20 s0 s20 := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20] using hPrefix
+  have hDecode :
+      Ethereum.EVM.decode I.code s20.machineState.pc =
+        some (.PUSH4, .some (⟨0x9e9f51d2⟩, 4)) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20] using
+      truthEVM_long_calldata_push_selector_decode_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata
+  have hGas : s20.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20] using hLongPushSelectorGas
+  exact EVM_Xi_of_initial_continue_trace_push4_oog_of_le_of_decode
+    (n := 20)
+    (t := s20)
+    (arg := (⟨0x9e9f51d2⟩ : Ethereum.UInt256))
+    hFuel
+    (by simpa [s0] using hPrefix')
+    hDecode
+    hGas
 
 lemma truthEVM_long_calldata_push_selector_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -10109,6 +10792,169 @@ lemma truthEVM_long_calldata_eq_stack_of_callvalue_zero
   intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19
     selectorWord s20 s21
   simp [s21, s20]
+
+set_option maxRecDepth 10000 in
+lemma truthEVM_long_calldata_eq_oog_of_prefix
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hPrefix :
+      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+      let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+      let s4 := Ethereum.EVM.callvalueNextState s3
+      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+      let s9 := Ethereum.EVM.jumpdestNextState s8
+      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+      let s12 := Ethereum.EVM.calldatasizeNextState s11
+      let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+      let s16 := Ethereum.EVM.push0NextState s15
+      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+      let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+      let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+      let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+      let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 21 s0 s21)
+    (hCode : I.code = truthBytecode)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hCalldataSize : I.calldata.size < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hFuel : 21 ≤ g.toNat)
+    (hLongEqGas :
+      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+       let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+       let s4 := Ethereum.EVM.callvalueNextState s3
+       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+       let s9 := Ethereum.EVM.jumpdestNextState s8
+       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+       let s12 := Ethereum.EVM.calldatasizeNextState s11
+       let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+       let s16 := Ethereum.EVM.push0NextState s15
+       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+       let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+       let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+       let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+       let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+       s21.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+  let s12 := Ethereum.EVM.calldatasizeNextState s11
+  let s13 := Ethereum.EVM.ltNextState s12
+    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.lt
+      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+  let s16 := Ethereum.EVM.push0NextState s15
+  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+  let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+  let selectorWord :=
+    Ethereum.UInt256.shiftRight
+      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+      (⟨0xe0⟩ : Ethereum.UInt256)
+  let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+  let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+  have hPrefix' :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 21 s0 s21 := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21] using hPrefix
+  have hDecode :
+      Ethereum.EVM.decode I.code s21.machineState.pc = some (.EQ, .none) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21] using
+      truthEVM_long_calldata_eq_decode_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata
+  have hStack :
+      s21.machineState.stack =
+        (⟨0x9e9f51d2⟩ : Ethereum.UInt256) :: selectorWord :: selectorWord :: [] := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21] using
+      truthEVM_long_calldata_eq_stack_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+  have hGas : s21.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21] using hLongEqGas
+  exact EVM_Xi_of_initial_continue_trace_eq_oog_of_le_of_decode
+    (n := 21)
+    (t := s21)
+    (a := (⟨0x9e9f51d2⟩ : Ethereum.UInt256))
+    (b := selectorWord)
+    (tail := [selectorWord])
+    hFuel
+    (by simpa [s0] using hPrefix')
+    hDecode
+    hStack
+    hGas
 
 lemma truthEVM_long_calldata_eq_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -10356,6 +11202,160 @@ lemma truthEVM_long_calldata_push_truth_dest_stack_of_callvalue_zero
   intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19
     selectorWord s20 s21 s22
   simp [s22]
+
+set_option maxRecDepth 10000 in
+lemma truthEVM_long_calldata_push_truth_dest_oog_of_prefix
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hPrefix :
+      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+      let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+      let s4 := Ethereum.EVM.callvalueNextState s3
+      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+      let s9 := Ethereum.EVM.jumpdestNextState s8
+      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+      let s12 := Ethereum.EVM.calldatasizeNextState s11
+      let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+      let s16 := Ethereum.EVM.push0NextState s15
+      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+      let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+      let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+      let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+      let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+      let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+        selectorWord [selectorWord]
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 22 s0 s22)
+    (hCode : I.code = truthBytecode)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hCalldataSize : I.calldata.size < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hFuel : 22 ≤ g.toNat)
+    (hLongPushTruthDestGas :
+      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+       let s3 := Ethereum.EVM.mstoreNextState s2
+        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+       let s4 := Ethereum.EVM.callvalueNextState s3
+       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+       let s9 := Ethereum.EVM.jumpdestNextState s8
+       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+       let s12 := Ethereum.EVM.calldatasizeNextState s11
+       let s13 := Ethereum.EVM.ltNextState s12
+        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+        (Ethereum.UInt256.lt
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+       let s16 := Ethereum.EVM.push0NextState s15
+       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+       let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+       let selectorWord :=
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)
+       let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+       let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+       let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+        selectorWord [selectorWord]
+       s22.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+  let s12 := Ethereum.EVM.calldatasizeNextState s11
+  let s13 := Ethereum.EVM.ltNextState s12
+    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.lt
+      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+  let s16 := Ethereum.EVM.push0NextState s15
+  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+  let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+  let selectorWord :=
+    Ethereum.UInt256.shiftRight
+      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+      (⟨0xe0⟩ : Ethereum.UInt256)
+  let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+  let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+  let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+    selectorWord [selectorWord]
+  have hPrefix' :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 22 s0 s22 := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21, s22] using hPrefix
+  have hDecode :
+      Ethereum.EVM.decode I.code s22.machineState.pc =
+        some (.PUSH1, .some (⟨0x2a⟩, 1)) := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21, s22] using
+      truthEVM_long_calldata_push_truth_dest_decode_of_callvalue_zero
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I)
+        hCode hValue hCalldataSize hLongCalldata
+  have hGas : s22.machineState.gasAvailable.toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13,
+      s14, s15, s16, s17, s18, s19, selectorWord, s20, s21, s22] using
+      hLongPushTruthDestGas
+  exact EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode
+    (n := 22)
+    (t := s22)
+    (arg := (⟨0x2a⟩ : Ethereum.UInt256))
+    hFuel
+    (by simpa [s0] using hPrefix')
+    hDecode
+    hGas
 
 lemma truthEVM_long_calldata_push_truth_dest_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -19048,9 +20048,553 @@ theorem truthCorrect :
                                                 (I := I)
                                                 hPrefix17 hCode hValue hCalldataSize hShortCalldata
                                                 hFuel17 hLongPushShiftGas)
-                                          · -- Remaining zero-callvalue, long-calldata coverage:
-                                            -- after the non-OOG selector-shift `PUSH1`.
-                                            sorry
+                                          · have hPrefix18 :
+                                              let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                              let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                              let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                              let s3 := Ethereum.EVM.mstoreNextState s2
+                                                (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                              let s4 := Ethereum.EVM.callvalueNextState s3
+                                              let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                              let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                              let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                              let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                              let s9 := Ethereum.EVM.jumpdestNextState s8
+                                              let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                              let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                              let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                              let s13 := Ethereum.EVM.ltNextState s12
+                                                (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                              let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                              let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                (Ethereum.UInt256.lt
+                                                  (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                              let s16 := Ethereum.EVM.push0NextState s15
+                                              let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                              let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 18 s0 s18 := by
+                                              intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18
+                                              have hPrefix17' :
+                                                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 17 s0 s17 := by
+                                                simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                  s10, s11, s12, s13, s14, s15, s16, s17] using hPrefix17
+                                              have hStep :
+                                                  Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s17 =
+                                                    .ok (s18, none) := by
+                                                simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                  s10, s11, s12, s13, s14, s15, s16, s17, s18] using
+                                                  truthEVM_long_calldata_push_shift_continue
+                                                    (createdAccounts := createdAccounts)
+                                                    (genesisBlockHeader := genesisBlockHeader)
+                                                    (blocks := blocks)
+                                                    (σ := σ)
+                                                    (σ₀ := σ₀)
+                                                    (g := g)
+                                                    (A := A)
+                                                    (I := I)
+                                                    hCode hValue hCalldataSize hShortCalldata
+                                                    hLongPushShiftGas
+                                              simpa using Ethereum.EVM.ContinueTrace.snoc hPrefix17' hStep
+                                            by_cases hLongShrGas :
+                                              (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                               let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                               let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                               let s3 := Ethereum.EVM.mstoreNextState s2
+                                                (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                               let s4 := Ethereum.EVM.callvalueNextState s3
+                                               let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                               let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                               let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                               let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                               let s9 := Ethereum.EVM.jumpdestNextState s8
+                                               let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                               let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                               let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                               let s13 := Ethereum.EVM.ltNextState s12
+                                                (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                               let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                               let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                (Ethereum.UInt256.lt
+                                                  (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                               let s16 := Ethereum.EVM.push0NextState s15
+                                               let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                               let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                               s18.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+                                            · have hFuel18 : 18 ≤ g.toNat := by omega
+                                              exact truthRuntime_outOfGas_of_evm
+                                                (truthEVM_long_calldata_shr_oog_of_prefix
+                                                  (createdAccounts := createdAccounts)
+                                                  (genesisBlockHeader := genesisBlockHeader)
+                                                  (blocks := blocks)
+                                                  (σ := σ)
+                                                  (σ₀ := σ₀)
+                                                  (g := g)
+                                                  (A := A)
+                                                  (I := I)
+                                                  hPrefix18 hCode hValue hCalldataSize hShortCalldata
+                                                  hFuel18 hLongShrGas)
+                                            · have hPrefix19 :
+                                                let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                let s3 := Ethereum.EVM.mstoreNextState s2
+                                                  (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                let s4 := Ethereum.EVM.callvalueNextState s3
+                                                let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                  (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                let s13 := Ethereum.EVM.ltNextState s12
+                                                  (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                  (Ethereum.UInt256.lt
+                                                    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                let s16 := Ethereum.EVM.push0NextState s15
+                                                let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                  (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 19 s0 s19 := by
+                                                intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19
+                                                have hPrefix18' :
+                                                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 18 s0 s18 := by
+                                                  simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                    s10, s11, s12, s13, s14, s15, s16, s17, s18] using hPrefix18
+                                                have hStep :
+                                                    Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s18 =
+                                                      .ok (s19, none) := by
+                                                  simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                    s10, s11, s12, s13, s14, s15, s16, s17, s18, s19] using
+                                                    truthEVM_long_calldata_shr_continue
+                                                      (createdAccounts := createdAccounts)
+                                                      (genesisBlockHeader := genesisBlockHeader)
+                                                      (blocks := blocks)
+                                                      (σ := σ)
+                                                      (σ₀ := σ₀)
+                                                      (g := g)
+                                                      (A := A)
+                                                      (I := I)
+                                                      hCode hValue hCalldataSize hShortCalldata
+                                                      hLongShrGas
+                                                simpa using Ethereum.EVM.ContinueTrace.snoc hPrefix18' hStep
+                                              by_cases hLongDupGas :
+                                                (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                 let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                 let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                 let s3 := Ethereum.EVM.mstoreNextState s2
+                                                  (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                 let s4 := Ethereum.EVM.callvalueNextState s3
+                                                 let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                 let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                 let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                 let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                  (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                 let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                 let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                 let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                 let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                 let s13 := Ethereum.EVM.ltNextState s12
+                                                  (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                 let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                 let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                  (Ethereum.UInt256.lt
+                                                    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                 let s16 := Ethereum.EVM.push0NextState s15
+                                                 let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                 let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                 let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                  (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                 s19.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+                                              · have hFuel19 : 19 ≤ g.toNat := by
+                                                  have hFuel20 : 20 ≤ g.toNat :=
+                                                    truthGas_ge_twenty_of_callvalue_continue
+                                                      (createdAccounts := createdAccounts)
+                                                      (genesisBlockHeader := genesisBlockHeader)
+                                                      (blocks := blocks)
+                                                      (σ := σ)
+                                                      (σ₀ := σ₀)
+                                                      (g := g)
+                                                      (A := A)
+                                                      (I := I)
+                                                      hFirstGas hSecondGas hMstoreMemGas
+                                                      hMstoreVerylowGas hCallvalueGas
+                                                  omega
+                                                exact truthRuntime_outOfGas_of_evm
+                                                  (truthEVM_long_calldata_dup1_oog_of_prefix
+                                                    (createdAccounts := createdAccounts)
+                                                    (genesisBlockHeader := genesisBlockHeader)
+                                                    (blocks := blocks)
+                                                    (σ := σ)
+                                                    (σ₀ := σ₀)
+                                                    (g := g)
+                                                    (A := A)
+                                                    (I := I)
+                                                    hPrefix19 hCode hValue hCalldataSize hShortCalldata
+                                                    hFuel19 hLongDupGas)
+                                              · have hPrefix20 :
+                                                  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                  let s3 := Ethereum.EVM.mstoreNextState s2
+                                                    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                  let s4 := Ethereum.EVM.callvalueNextState s3
+                                                  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                  let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                  let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                  let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                  let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                  let s13 := Ethereum.EVM.ltNextState s12
+                                                    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                  let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                  let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                    (Ethereum.UInt256.lt
+                                                      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                  let s16 := Ethereum.EVM.push0NextState s15
+                                                  let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                  let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                  let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                  let selectorWord :=
+                                                    Ethereum.UInt256.shiftRight
+                                                      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                      (⟨0xe0⟩ : Ethereum.UInt256)
+                                                  let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 20 s0 s20 := by
+                                                  intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 selectorWord s20
+                                                  have hPrefix19' :
+                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 19 s0 s19 := by
+                                                    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                      s10, s11, s12, s13, s14, s15, s16, s17, s18, s19] using hPrefix19
+                                                  have hStep :
+                                                      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s19 =
+                                                        .ok (s20, none) := by
+                                                    simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                      s10, s11, s12, s13, s14, s15, s16, s17, s18,
+                                                      s19, selectorWord, s20] using
+                                                      truthEVM_long_calldata_dup1_continue
+                                                        (createdAccounts := createdAccounts)
+                                                        (genesisBlockHeader := genesisBlockHeader)
+                                                        (blocks := blocks)
+                                                        (σ := σ)
+                                                        (σ₀ := σ₀)
+                                                        (g := g)
+                                                        (A := A)
+                                                        (I := I)
+                                                        hCode hValue hCalldataSize hShortCalldata
+                                                        hLongDupGas
+                                                  simpa using Ethereum.EVM.ContinueTrace.snoc hPrefix19' hStep
+                                                by_cases hLongPushSelectorGas :
+                                                  (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                   let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                   let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                   let s3 := Ethereum.EVM.mstoreNextState s2
+                                                    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                   let s4 := Ethereum.EVM.callvalueNextState s3
+                                                   let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                   let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                   let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                   let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                   let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                   let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                   let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                   let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                   let s13 := Ethereum.EVM.ltNextState s12
+                                                    (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                   let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                   let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                    (Ethereum.UInt256.lt
+                                                      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                   let s16 := Ethereum.EVM.push0NextState s15
+                                                   let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                   let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                   let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                    (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                   let selectorWord :=
+                                                    Ethereum.UInt256.shiftRight
+                                                      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                      (⟨0xe0⟩ : Ethereum.UInt256)
+                                                   let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                   s20.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+                                                · have hFuel20 : 20 ≤ g.toNat :=
+                                                    truthGas_ge_twenty_of_callvalue_continue
+                                                      (createdAccounts := createdAccounts)
+                                                      (genesisBlockHeader := genesisBlockHeader)
+                                                      (blocks := blocks)
+                                                      (σ := σ)
+                                                      (σ₀ := σ₀)
+                                                      (g := g)
+                                                      (A := A)
+                                                      (I := I)
+                                                      hFirstGas hSecondGas hMstoreMemGas
+                                                      hMstoreVerylowGas hCallvalueGas
+                                                  exact truthRuntime_outOfGas_of_evm
+                                                    (truthEVM_long_calldata_push_selector_oog_of_prefix
+                                                      (createdAccounts := createdAccounts)
+                                                      (genesisBlockHeader := genesisBlockHeader)
+                                                      (blocks := blocks)
+                                                      (σ := σ)
+                                                      (σ₀ := σ₀)
+                                                      (g := g)
+                                                      (A := A)
+                                                      (I := I)
+                                                      hPrefix20 hCode hValue hCalldataSize hShortCalldata
+                                                      hFuel20 hLongPushSelectorGas)
+                                                · have hPrefix21 :
+                                                    let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                    let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                    let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                    let s3 := Ethereum.EVM.mstoreNextState s2
+                                                      (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                    let s4 := Ethereum.EVM.callvalueNextState s3
+                                                    let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                    let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                    let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                    let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                      (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                    let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                    let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                    let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                    let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                    let s13 := Ethereum.EVM.ltNextState s12
+                                                      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                    let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                    let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                      (Ethereum.UInt256.lt
+                                                        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                    let s16 := Ethereum.EVM.push0NextState s15
+                                                    let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                    let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                    let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                    let selectorWord :=
+                                                      Ethereum.UInt256.shiftRight
+                                                        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                        (⟨0xe0⟩ : Ethereum.UInt256)
+                                                    let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                    let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 21 s0 s21 := by
+                                                    intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 selectorWord s20 s21
+                                                    have hPrefix20' :
+                                                        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 20 s0 s20 := by
+                                                      simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                        s10, s11, s12, s13, s14, s15, s16, s17, s18,
+                                                        s19, selectorWord, s20] using hPrefix20
+                                                    have hStep :
+                                                        Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s20 =
+                                                          .ok (s21, none) := by
+                                                      simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                        s10, s11, s12, s13, s14, s15, s16, s17, s18,
+                                                        s19, selectorWord, s20, s21] using
+                                                        truthEVM_long_calldata_push_selector_continue
+                                                          (createdAccounts := createdAccounts)
+                                                          (genesisBlockHeader := genesisBlockHeader)
+                                                          (blocks := blocks)
+                                                          (σ := σ)
+                                                          (σ₀ := σ₀)
+                                                          (g := g)
+                                                          (A := A)
+                                                          (I := I)
+                                                          hCode hValue hCalldataSize hShortCalldata
+                                                          hLongPushSelectorGas
+                                                    simpa using Ethereum.EVM.ContinueTrace.snoc hPrefix20' hStep
+                                                  by_cases hLongEqGas :
+                                                    (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                     let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                     let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                     let s3 := Ethereum.EVM.mstoreNextState s2
+                                                      (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                     let s4 := Ethereum.EVM.callvalueNextState s3
+                                                     let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                     let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                     let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                     let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                      (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                     let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                     let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                     let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                     let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                     let s13 := Ethereum.EVM.ltNextState s12
+                                                      (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                     let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                     let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                      (Ethereum.UInt256.lt
+                                                        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                     let s16 := Ethereum.EVM.push0NextState s15
+                                                     let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                     let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                     let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                      (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                     let selectorWord :=
+                                                      Ethereum.UInt256.shiftRight
+                                                        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                        (⟨0xe0⟩ : Ethereum.UInt256)
+                                                     let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                     let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                     s21.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+                                                  · have hFuel21 : 21 ≤ g.toNat := by
+                                                      have hFuel23 : 23 ≤ g.toNat :=
+                                                        truthGas_ge_twenty_three_of_dup_continue
+                                                          (createdAccounts := createdAccounts)
+                                                          (genesisBlockHeader := genesisBlockHeader)
+                                                          (blocks := blocks)
+                                                          (σ := σ)
+                                                          (σ₀ := σ₀)
+                                                          (g := g)
+                                                          (A := A)
+                                                          (I := I)
+                                                          hFirstGas hSecondGas hMstoreMemGas
+                                                          hMstoreVerylowGas hCallvalueGas hDupGas
+                                                      omega
+                                                    exact truthRuntime_outOfGas_of_evm
+                                                      (truthEVM_long_calldata_eq_oog_of_prefix
+                                                        (createdAccounts := createdAccounts)
+                                                        (genesisBlockHeader := genesisBlockHeader)
+                                                        (blocks := blocks)
+                                                        (σ := σ)
+                                                        (σ₀ := σ₀)
+                                                        (g := g)
+                                                        (A := A)
+                                                        (I := I)
+                                                        hPrefix21 hCode hValue hCalldataSize hShortCalldata
+                                                        hFuel21 hLongEqGas)
+                                                  · have hPrefix22 :
+                                                      let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                      let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                      let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                      let s3 := Ethereum.EVM.mstoreNextState s2
+                                                        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                      let s4 := Ethereum.EVM.callvalueNextState s3
+                                                      let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                      let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                      let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                      let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                      let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                      let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                      let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                      let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                      let s13 := Ethereum.EVM.ltNextState s12
+                                                        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                      let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                      let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                        (Ethereum.UInt256.lt
+                                                          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                      let s16 := Ethereum.EVM.push0NextState s15
+                                                      let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                      let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                      let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                      let selectorWord :=
+                                                        Ethereum.UInt256.shiftRight
+                                                          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                          (⟨0xe0⟩ : Ethereum.UInt256)
+                                                      let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                      let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                      let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                        selectorWord [selectorWord]
+                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 22 s0 s22 := by
+                                                      intro s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 selectorWord s20 s21 s22
+                                                      have hPrefix21' :
+                                                          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 21 s0 s21 := by
+                                                        simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                          s10, s11, s12, s13, s14, s15, s16, s17, s18,
+                                                          s19, selectorWord, s20, s21] using hPrefix21
+                                                      have hStep :
+                                                          Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s21 =
+                                                            .ok (s22, none) := by
+                                                        simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9,
+                                                          s10, s11, s12, s13, s14, s15, s16, s17, s18,
+                                                          s19, selectorWord, s20, s21, s22] using
+                                                          truthEVM_long_calldata_eq_continue
+                                                            (createdAccounts := createdAccounts)
+                                                            (genesisBlockHeader := genesisBlockHeader)
+                                                            (blocks := blocks)
+                                                            (σ := σ)
+                                                            (σ₀ := σ₀)
+                                                            (g := g)
+                                                            (A := A)
+                                                            (I := I)
+                                                            hCode hValue hCalldataSize hShortCalldata
+                                                            hLongEqGas
+                                                      simpa using Ethereum.EVM.ContinueTrace.snoc hPrefix21' hStep
+                                                    by_cases hLongPushTruthDestGas :
+                                                      (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+                                                       let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+                                                       let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+                                                       let s3 := Ethereum.EVM.mstoreNextState s2
+                                                        (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+                                                       let s4 := Ethereum.EVM.callvalueNextState s3
+                                                       let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+                                                       let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+                                                       let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                       let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+                                                        (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+                                                       let s9 := Ethereum.EVM.jumpdestNextState s8
+                                                       let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+                                                       let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+                                                       let s12 := Ethereum.EVM.calldatasizeNextState s11
+                                                       let s13 := Ethereum.EVM.ltNextState s12
+                                                        (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+                                                       let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+                                                       let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+                                                        (Ethereum.UInt256.lt
+                                                          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+                                                       let s16 := Ethereum.EVM.push0NextState s15
+                                                       let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+                                                       let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                       let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+                                                        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+                                                       let selectorWord :=
+                                                        Ethereum.UInt256.shiftRight
+                                                          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+                                                          (⟨0xe0⟩ : Ethereum.UInt256)
+                                                       let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+                                                       let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                       let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+                                                        selectorWord [selectorWord]
+                                                       s22.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+                                                    · have hFuel22 : 22 ≤ g.toNat := by
+                                                        have hFuel23 : 23 ≤ g.toNat :=
+                                                          truthGas_ge_twenty_three_of_dup_continue
+                                                            (createdAccounts := createdAccounts)
+                                                            (genesisBlockHeader := genesisBlockHeader)
+                                                            (blocks := blocks)
+                                                            (σ := σ)
+                                                            (σ₀ := σ₀)
+                                                            (g := g)
+                                                            (A := A)
+                                                            (I := I)
+                                                            hFirstGas hSecondGas hMstoreMemGas
+                                                            hMstoreVerylowGas hCallvalueGas hDupGas
+                                                        omega
+                                                      exact truthRuntime_outOfGas_of_evm
+                                                        (truthEVM_long_calldata_push_truth_dest_oog_of_prefix
+                                                          (createdAccounts := createdAccounts)
+                                                          (genesisBlockHeader := genesisBlockHeader)
+                                                          (blocks := blocks)
+                                                          (σ := σ)
+                                                          (σ₀ := σ₀)
+                                                          (g := g)
+                                                          (A := A)
+                                                          (I := I)
+                                                          hPrefix22 hCode hValue hCalldataSize hShortCalldata
+                                                          hFuel22 hLongPushTruthDestGas)
+                                                    · -- Remaining zero-callvalue, long-calldata coverage:
+                                                      -- after the non-OOG truth branch target `PUSH1`.
+                                                      sorry
                     · by_cases hPush0Gas :
                         (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
                          let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)

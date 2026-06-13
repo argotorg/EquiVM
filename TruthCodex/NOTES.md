@@ -15,6 +15,8 @@
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
 - `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
 - `Ethereum.UInt256.add_le_toNat_of_not_sub_ofNat_lt`: packages gas arithmetic after a checked subtraction.
+- `Ethereum.UInt256.add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across two checked `UInt256` subtractions.
+- `Ethereum.UInt256.add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across three checked `UInt256` subtractions.
 - `Ethereum.UInt256.isZero_eq_one_of_eq_zero`: computes `ISZERO`'s word result for a zero input.
 - `Ethereum.UInt256.isZero_eq_zero_of_ne_zero`: computes `ISZERO`'s word result for a nonzero input.
 - `Ethereum.UInt256.isZero_bne_zero_eq_true_of_eq_zero`: turns a zero input into a nonzero `JUMPI` condition after `ISZERO`.
@@ -422,6 +424,8 @@
 - `EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH1`.
 - `EVM_Xi_of_initial_continue_trace_shr_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `SHR`.
 - `EVM_Xi_of_initial_continue_trace_dup1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `DUP1`.
+- `EVM_Xi_of_initial_continue_trace_push4_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH4`.
+- `EVM_Xi_of_initial_continue_trace_eq_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `EQ`.
 - `EVM_Xi_of_initial_continue_traces_success_of_le`: composes two continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_return_of_le_of_decode`: composes two traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
@@ -611,6 +615,8 @@
 - `truthEVM_mstore_memory_cost`: computes the initial free-memory-pointer `MSTORE` expansion cost as `9`.
 - `truthGas_ge_fifteen_of_mstore_memory_continue`: derives `15 ≤ g.toNat` after the two pushes and successful `MSTORE` memory-gas check.
 - `truthGas_ge_eighteen_of_mstore_continue`: derives `18 ≤ g.toNat` after both `MSTORE` gas checks succeed.
+- `truthGas_ge_twenty_of_callvalue_continue`: derives `20 ≤ g.toNat` after the memory prologue and successful `CALLVALUE` gas check.
+- `truthGas_ge_twenty_three_of_dup_continue`: derives `23 ≤ g.toNat` after the memory prologue plus successful `CALLVALUE` and `DUP1` gas checks.
 - `truthEVM_mstore_memory_oog`: proves top-level `Ξ` out-of-gas on `MSTORE` memory expansion.
 - `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
 - `truthEVM_mstore_continue`: proves the successful `MSTORE` step.
@@ -703,18 +709,23 @@
 - `truthEVM_long_calldata_push_shift_continue`: proves the successful selector-shift-amount `PUSH1` step.
 - `truthEVM_long_calldata_shr_decode_of_callvalue_zero`: decodes selector extraction as `SHR`.
 - `truthEVM_long_calldata_shr_stack_of_callvalue_zero`: computes the stack before selector extraction.
+- `truthEVM_long_calldata_shr_oog_of_prefix`: lifts the long-calldata prefix through selector-shift `PUSH1` to top-level out-of-gas at selector-extraction `SHR`.
 - `truthEVM_long_calldata_shr_continue`: proves the successful selector extraction `SHR` step.
 - `truthEVM_long_calldata_dup1_decode_of_callvalue_zero`: decodes selector duplication as `DUP1`.
 - `truthEVM_long_calldata_dup1_stack_of_callvalue_zero`: computes the stack after selector extraction.
+- `truthEVM_long_calldata_dup1_oog_of_prefix`: lifts the long-calldata prefix through selector-extraction `SHR` to top-level out-of-gas at selector-duplication `DUP1`.
 - `truthEVM_long_calldata_dup1_continue`: proves the successful selector duplication `DUP1` step.
 - `truthEVM_long_calldata_push_selector_decode_of_callvalue_zero`: decodes the pushed Truth selector as `PUSH4 0x9e9f51d2`.
 - `truthEVM_long_calldata_push_selector_stack_of_callvalue_zero`: computes the duplicated selector stack before `PUSH4`.
+- `truthEVM_long_calldata_push_selector_oog_of_prefix`: lifts the long-calldata prefix through selector `DUP1` to top-level out-of-gas at selector literal `PUSH4`.
 - `truthEVM_long_calldata_push_selector_continue`: proves the successful selector literal `PUSH4` step.
 - `truthEVM_long_calldata_eq_decode_of_callvalue_zero`: decodes selector comparison as `EQ`.
 - `truthEVM_long_calldata_eq_stack_of_callvalue_zero`: computes the stack before selector comparison.
+- `truthEVM_long_calldata_eq_oog_of_prefix`: lifts the long-calldata prefix through selector literal `PUSH4` to top-level out-of-gas at selector comparison `EQ`.
 - `truthEVM_long_calldata_eq_continue`: proves the successful selector comparison `EQ` step.
 - `truthEVM_long_calldata_push_truth_dest_decode_of_callvalue_zero`: decodes the truth-function branch target push as `PUSH1 0x2a`.
 - `truthEVM_long_calldata_push_truth_dest_stack_of_callvalue_zero`: computes the stack after selector comparison.
+- `truthEVM_long_calldata_push_truth_dest_oog_of_prefix`: lifts the long-calldata prefix through selector comparison `EQ` to top-level out-of-gas at truth branch target `PUSH1 0x2a`.
 - `truthEVM_long_calldata_push_truth_dest_continue`: proves the successful truth-function branch-target `PUSH1` step.
 - `truthEVM_long_calldata_selector_prefix_suffix_trace`: packages the eight long-calldata selector-decoding steps after the calldata-length branch.
 - `truthEVM_long_calldata_selector_jumpi_decode_of_callvalue_zero`: decodes the selector-match branch as `JUMPI`.
@@ -772,7 +783,7 @@
 
 # Open gaps
 
-- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-shift `PUSH1`.
+- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG truth branch target `PUSH1`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.

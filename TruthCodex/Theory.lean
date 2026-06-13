@@ -171,6 +171,62 @@ lemma add_le_toNat_of_not_sub_ofNat_lt {x : Ethereum.UInt256} {cost remaining : 
   rw [hSub] at hRemaining
   omega
 
+lemma add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_lt
+    {x : Ethereum.UInt256} {cost₁ cost₂ remaining : Nat}
+    (hCost₁Size : cost₁ < Ethereum.UInt256.size)
+    (hCost₂Size : cost₂ < Ethereum.UInt256.size)
+    (hCost₁ : cost₁ ≤ x.toNat)
+    (hCost₂ : cost₂ ≤ (x - Ethereum.UInt256.ofNat cost₁).toNat)
+    (hRemaining :
+      ¬ ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂).toNat < remaining) :
+    cost₁ + cost₂ + remaining ≤ x.toNat := by
+  have hTail :=
+    add_le_toNat_of_not_sub_ofNat_lt
+      (x := x - Ethereum.UInt256.ofNat cost₁)
+      (cost := cost₂)
+      (remaining := remaining)
+      hCost₂Size
+      hCost₂
+      hRemaining
+  have hSub := toNat_sub_ofNat_of_le (x := x) (n := cost₁) hCost₁Size hCost₁
+  rw [hSub] at hTail
+  omega
+
+lemma add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_lt
+    {x : Ethereum.UInt256} {cost₁ cost₂ cost₃ remaining : Nat}
+    (hCost₁Size : cost₁ < Ethereum.UInt256.size)
+    (hCost₂Size : cost₂ < Ethereum.UInt256.size)
+    (hCost₃Size : cost₃ < Ethereum.UInt256.size)
+    (hCost₁ : cost₁ ≤ x.toNat)
+    (hCost₂ : cost₂ ≤ (x - Ethereum.UInt256.ofNat cost₁).toNat)
+    (hCost₃ :
+      cost₃ ≤
+        ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂).toNat)
+    (hRemaining :
+      ¬ (((x - Ethereum.UInt256.ofNat cost₁) -
+            Ethereum.UInt256.ofNat cost₂) -
+          Ethereum.UInt256.ofNat cost₃).toNat < remaining) :
+    cost₁ + cost₂ + cost₃ + remaining ≤ x.toNat := by
+  have hTail :=
+    add_le_toNat_of_not_sub_ofNat_lt
+      (x := (x - Ethereum.UInt256.ofNat cost₁) - Ethereum.UInt256.ofNat cost₂)
+      (cost := cost₃)
+      (remaining := remaining)
+      hCost₃Size
+      hCost₃
+      hRemaining
+  have hSub₂ :=
+    toNat_sub_ofNat_of_le
+      (x := x - Ethereum.UInt256.ofNat cost₁)
+      (n := cost₂)
+      hCost₂Size
+      hCost₂
+  have hSub₁ := toNat_sub_ofNat_of_le (x := x) (n := cost₁) hCost₁Size hCost₁
+  rw [hSub₂, hSub₁] at hTail
+  omega
+
 lemma isZero_eq_one_of_eq_zero {x : Ethereum.UInt256}
     (h : x = (⟨0⟩ : Ethereum.UInt256)) :
     Ethereum.UInt256.isZero x = (⟨1⟩ : Ethereum.UInt256) := by
@@ -3892,6 +3948,66 @@ lemma EVM_Xi_of_initial_continue_trace_dup1_oog_of_le_of_decode
     hTrace
     hDecode
     (fun hDecode' => Ethereum.EVM.Xstep_dup1_oog_of_decode hDecode' hStack hGas)
+
+lemma EVM_Xi_of_initial_continue_trace_push4_oog_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {arg : Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.PUSH4, .some (arg, 4)))
+    (hGas : t.machineState.gasAvailable.toNat < GasConstants.Gverylow) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := n)
+    (decoded := some (.PUSH4, .some (arg, 4)))
+    (e := .OutOfGass)
+    hFuel
+    hTrace
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_push4_oog_of_decode hDecode' hGas)
+
+lemma EVM_Xi_of_initial_continue_trace_eq_oog_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {a b : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.EQ, .none))
+    (hStack : t.machineState.stack = a :: b :: tail)
+    (hGas : t.machineState.gasAvailable.toNat < GasConstants.Gverylow) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := n)
+    (decoded := some (.EQ, .none))
+    (e := .OutOfGass)
+    hFuel
+    hTrace
+    hDecode
+    (fun hDecode' => Ethereum.EVM.Xstep_eq_oog_of_decode hDecode' hStack hGas)
 
 lemma EVM_Xi_of_initial_continue_traces_success_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
