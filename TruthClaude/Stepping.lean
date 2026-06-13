@@ -263,6 +263,68 @@ theorem revert_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : Lis
     simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gzero, stRevert]
 
+/-! ### RETURN (halt *success*, output `mem[a .. a+b]`, single memory-gas guard) -/
+
+def stReturn (s : State) (a b : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      H_return := s.machineState.memory.readWithPadding a.toNat b.toNat,
+      activeWords :=
+        UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable - UInt256.ofNat (memoryExpansionCost s .RETURN))
+          - UInt256.ofNat 0 } }
+
+theorem return_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.RETURN, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .RETURN
+         then .error .OutOfGass
+         else .ok (stReturn s a b t,
+                   .some (true, s.machineState.memory.readWithPadding a.toNat b.toNat))) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.RETURN, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_return s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 0 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gzero, stReturn]
+
+/-! ### MLOAD (pop 1, push `mem`-word, two-stage gas `memCost + 3`) -/
+
+def stMLoad (s : State) (a : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack :=
+        (if a.toNat ≥ s.machineState.memory.size ∨ a ≥ s.machineState.activeWords * ⟨32⟩ then ⟨0⟩
+         else UInt256.ofNat
+                (fromByteArrayBigEndian (s.machineState.memory.readWithPadding a.toNat 32))) :: t,
+      activeWords :=
+        UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat 32),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable - UInt256.ofNat (memoryExpansionCost s .MLOAD))
+          - UInt256.ofNat 3 } }
+
+theorem mload_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.MLOAD, .none))
+    (hstk : s.machineState.stack = a :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .MLOAD + 3
+         then .error .OutOfGass else .ok (stMLoad s a t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.MLOAD, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_mload s hd, hstk]
+  have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov']
+  rw [collapse_two_stage]
+  simp only [GasConstants.Gverylow, stMLoad]
+
 /-! ### Binary ops (`a :: b :: t ↦ res :: t`, cost 3, pc += 1) -/
 
 def stBinop (s : State) (res : UInt256) (t : List UInt256) : State :=
