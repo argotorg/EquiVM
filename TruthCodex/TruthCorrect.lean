@@ -636,6 +636,61 @@ lemma trustedTruthSelector_size :
     trustedTruthSelector.size = 4 := by
   rfl
 
+lemma trustedTruthSelector_fromBytes'_reverse :
+    Ethereum.fromBytes' trustedTruthSelector.data.toList.reverse = 0x9e9f51d2 := by
+  native_decide
+
+lemma truthSelectorWord_eq_of_selector {I : Ethereum.ExecutionEnv}
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hSelector : I.calldata.extract 0 4 = trustedTruthSelector) :
+    (⟨0x9e9f51d2⟩ : Ethereum.UInt256) =
+      Ethereum.UInt256.shiftRight
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+        (⟨0xe0⟩ : Ethereum.UInt256) := by
+  exact Ethereum.selectorWord_eq_of_extract_eq
+    (source := I.calldata)
+    (selector := trustedTruthSelector)
+    (selectorNat := 0x9e9f51d2)
+    trustedTruthSelector_fromBytes'_reverse
+    (by norm_num [Ethereum.UInt256.size])
+    hLongCalldata
+    hSelector
+
+lemma truthSelector_eq_of_selectorWord_eq {I : Ethereum.ExecutionEnv}
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hSelectorWordEq :
+      (⟨0x9e9f51d2⟩ : Ethereum.UInt256) =
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)) :
+    I.calldata.extract 0 4 = trustedTruthSelector := by
+  exact Ethereum.extract_eq_of_selectorWord_eq
+    (source := I.calldata)
+    (selector := trustedTruthSelector)
+    (selectorNat := 0x9e9f51d2)
+    trustedTruthSelector_size
+    trustedTruthSelector_fromBytes'_reverse
+    (by norm_num [Ethereum.UInt256.size])
+    hLongCalldata
+    hSelectorWordEq
+
+lemma truthSelectorWord_ne_of_selector_ne {I : Ethereum.ExecutionEnv}
+    (hLongCalldata : ¬ I.calldata.size < 4)
+    (hSelector : I.calldata.extract 0 4 ≠ trustedTruthSelector) :
+    (⟨0x9e9f51d2⟩ : Ethereum.UInt256) ≠
+      Ethereum.UInt256.shiftRight
+        (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32)
+        (⟨0xe0⟩ : Ethereum.UInt256) := by
+  exact Ethereum.selectorWord_ne_of_extract_ne
+    (source := I.calldata)
+    (selector := trustedTruthSelector)
+    (selectorNat := 0x9e9f51d2)
+    trustedTruthSelector_size
+    trustedTruthSelector_fromBytes'_reverse
+    (by norm_num [Ethereum.UInt256.size])
+    hLongCalldata
+    hSelector
+
 lemma truthDecodeCalldata_no_params_of_selector {calldata : ByteArray}
     (hSelector : calldata.extract 0 4 = trustedTruthSelector) :
     decodeCalldata (truthTransition.params.map Param.name)

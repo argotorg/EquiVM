@@ -106,6 +106,47 @@ lemma extract_zero_four_eq_toByteArray_getElem {bytes : ByteArray}
       [bytes[0], bytes[1], bytes[2], bytes[3]].toByteArray := by
   simpa using ByteArray.extract_add_four (a := bytes) (i := 0) (by simpa using hSize)
 
+lemma extract_append_of_stop_le_size_left {a b : ByteArray} {i j : Nat}
+    (h : j ≤ a.size) :
+    (a ++ b).extract i j = a.extract i j := by
+  apply ByteArray.ext
+  rw [ByteArray.data_extract, ByteArray.data_extract, ByteArray.data_append]
+  exact Array.extract_append_of_stop_le_size_left
+    (a := a.data) (b := b.data) (i := i) (j := j)
+    (by simpa [ByteArray.size_data] using h)
+
+lemma copySlice_zero_empty_eq_extract (source : ByteArray) (size : Nat) :
+    source.copySlice 0 ByteArray.empty 0 size = source.extract 0 size := by
+  rw [ByteArray.copySlice_eq_append]
+  simp [ByteArray.extract_same, ByteArray.size_data]
+  have hEmpty : ByteArray.empty.extract (min size source.size) 0 = ByteArray.empty := by
+    rw [ByteArray.extract_eq_empty_iff]
+    simp
+  rw [hEmpty, ByteArray.append_empty]
+
+lemma readBytes_zero_extract_eq_extract {source : ByteArray} {readSize len : Nat}
+    (hReadSize : readSize < 2^64)
+    (hLenRead : len ≤ readSize)
+    (hLenSource : len ≤ source.size) :
+    (source.readBytes 0 readSize).extract 0 len = source.extract 0 len := by
+  have hReadSizeDecimal : readSize < 18446744073709551616 := by
+    norm_num at hReadSize ⊢
+    exact hReadSize
+  unfold ByteArray.readBytes
+  simp [hReadSizeDecimal]
+  rw [ByteArray.copySlice_zero_empty_eq_extract]
+  rw [ByteArray.extract_append_of_stop_le_size_left]
+  · rw [ByteArray.extract_extract]
+    simp [Nat.min_eq_left hLenRead]
+  · rw [ByteArray.size_extract]
+    omega
+
+lemma readBytes_zero_extract_zero_four {source : ByteArray}
+    (hSize : 4 ≤ source.size) :
+    (source.readBytes 0 32).extract 0 4 = source.extract 0 4 :=
+  readBytes_zero_extract_eq_extract (source := source)
+    (readSize := 32) (len := 4) (by norm_num) (by norm_num) hSize
+
 lemma readBytes_size_of_lt (source : ByteArray) (start size : Nat)
     (hSize : size < USize.size) :
     (source.readBytes start size).size = size := by
@@ -188,6 +229,22 @@ lemma toNat_shiftRight_eq_div_pow_of_lt {a b : Ethereum.UInt256}
     (Ethereum.UInt256.shiftRight a b).toNat = a.toNat / 2 ^ b.toNat := by
   rw [toNat_shiftRight_of_lt hb, Nat.shiftRight_eq_div_pow]
 
+lemma toNat_fin_ofNat_of_lt {n : Nat} (hn : n < Ethereum.UInt256.size) :
+    (⟨(OfNat.ofNat n : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256).toNat = n := by
+  unfold Ethereum.UInt256.toNat
+  simp
+  change n % Ethereum.UInt256.size = n
+  rw [Nat.mod_eq_of_lt hn]
+
+lemma ofNat_eq_fin (n : Nat) :
+    Ethereum.UInt256.ofNat n =
+      (⟨(OfNat.ofNat n : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256) := by
+  unfold Ethereum.UInt256.ofNat
+  simp [Id.run]
+  apply Fin.ext
+  simp
+  rfl
+
 lemma eq_of_toNat_eq {x : Ethereum.UInt256} {n : Nat}
     (hn : n < Ethereum.UInt256.size)
     (h : x.toNat = n) :
@@ -202,6 +259,13 @@ lemma eq_of_toNat_eq {x : Ethereum.UInt256} {n : Nat}
           apply congrArg Ethereum.UInt256.mk
           apply Fin.ext
           simp [Nat.mod_eq_of_lt hn]
+
+lemma eq_fin_of_toNat_eq {x : Ethereum.UInt256} {n : Nat}
+    (hn : n < Ethereum.UInt256.size)
+    (h : x.toNat = n) :
+    x = (⟨(OfNat.ofNat n : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256) := by
+  rw [Ethereum.UInt256.eq_of_toNat_eq hn h]
+  exact ofNat_eq_fin n
 
 lemma toNat_sub_ofNat_of_le {x : Ethereum.UInt256} {n : Nat}
     (hn : n < Ethereum.UInt256.size)
@@ -431,6 +495,77 @@ end Ethereum.UInt256
 
 namespace Ethereum
 
+lemma fromBytes'_append (xs ys : List UInt8) :
+    fromBytes' (xs ++ ys) = fromBytes' xs + 2 ^ (8 * xs.length) * fromBytes' ys := by
+  induction xs with
+  | nil => simp [fromBytes']
+  | cons x xs ih =>
+      simp only [List.cons_append, fromBytes', List.length_cons, ih]
+      rw [Nat.mul_succ, Nat.pow_add]
+      ring
+
+lemma fromBytes'_append_div_pow_length (xs ys : List UInt8) :
+    fromBytes' (xs ++ ys) / 2 ^ (8 * xs.length) = fromBytes' ys := by
+  rw [fromBytes'_append]
+  rw [Nat.add_mul_div_left]
+  · rw [Nat.div_eq_of_lt]
+    · simp
+    · exact fromBytes'_le
+  · exact Nat.pow_pos (a := 2) (n := 8 * xs.length) (by decide)
+
+lemma fromBytes'_cons_mod (b : UInt8) (bs : List UInt8) :
+    fromBytes' (b :: bs) % 256 = b.toNat := by
+  unfold fromBytes'
+  rw [show 2 ^ 8 = 256 by norm_num]
+  rw [Nat.mul_comm 256 (fromBytes' bs)]
+  rw [Nat.add_mul_mod_self_right]
+  rw [Nat.mod_eq_of_lt]
+  · rfl
+  · exact b.toFin.isLt
+
+lemma fromBytes'_cons_div (b : UInt8) (bs : List UInt8) :
+    fromBytes' (b :: bs) / 256 = fromBytes' bs := by
+  change (b.toFin.val + 2 ^ 8 * fromBytes' bs) / 256 = fromBytes' bs
+  rw [show 2 ^ 8 = 256 by norm_num]
+  rw [Nat.mul_comm 256 (fromBytes' bs)]
+  rw [Nat.add_mul_div_right]
+  · rw [Nat.div_eq_of_lt]
+    · simp
+    · exact b.toFin.isLt
+  · norm_num
+
+lemma fromBytes'_inj_of_length_eq : ∀ {xs ys : List UInt8},
+    xs.length = ys.length → fromBytes' xs = fromBytes' ys → xs = ys
+  | [], [], _, _ => rfl
+  | [], _ :: _, hLen, _ => by simp at hLen
+  | _ :: _, [], hLen, _ => by simp at hLen
+  | x :: xs, y :: ys, hLen, hVal => by
+      have hHeadVal : x.toNat = y.toNat := by
+        have hMod := congrArg (fun n => n % 256) hVal
+        simpa [fromBytes'_cons_mod] using hMod
+      have hHead : x = y := UInt8.ext hHeadVal
+      subst y
+      have hTailLen : xs.length = ys.length := by simpa using hLen
+      have hTailVal : fromBytes' xs = fromBytes' ys := by
+        have hDiv := congrArg (fun n => n / 256) hVal
+        simpa [fromBytes'_cons_div] using hDiv
+      exact congrArg (List.cons x) (fromBytes'_inj_of_length_eq hTailLen hTailVal)
+
+lemma fromBytes'_reverse_div_pow_224_eq_take_four_reverse {bs : List UInt8}
+    (hLen : bs.length = 32) :
+    fromBytes' bs.reverse / 2 ^ 224 = fromBytes' (bs.take 4).reverse := by
+  have hSplit : bs.reverse = (bs.drop 4).reverse ++ (bs.take 4).reverse := by
+    calc
+      bs.reverse = (bs.take 4 ++ bs.drop 4).reverse := by rw [List.take_append_drop]
+      _ = (bs.drop 4).reverse ++ (bs.take 4).reverse := by rw [List.reverse_append]
+  rw [hSplit]
+  have hDropLen : (bs.drop 4).reverse.length = 28 := by
+    rw [List.length_reverse, List.length_drop, hLen]
+  have hPow : 2 ^ 224 = 2 ^ (8 * (bs.drop 4).reverse.length) := by
+    rw [hDropLen]
+  rw [hPow]
+  exact fromBytes'_append_div_pow_length (bs.drop 4).reverse (bs.take 4).reverse
+
 lemma fromBytes'_lt_uint256_size_of_length_le {bs : List UInt8}
     (hLen : bs.length ≤ 32) :
     fromBytes' bs < Ethereum.UInt256.size := by
@@ -457,6 +592,119 @@ lemma uInt256OfByteArray_readBytes_toNat_32 (source : ByteArray) (start : Nat) :
       Ethereum.fromBytes' (source.readBytes start 32).data.toList.reverse := by
   apply Ethereum.uInt256OfByteArray_toNat_of_size_le
   rw [ByteArray.readBytes_size_32]
+
+lemma uInt256OfByteArray_shiftRight_224_toNat_eq_extract_zero_four (arr : ByteArray)
+    (hSize : arr.size = 32) :
+    (Ethereum.UInt256.shiftRight (Ethereum.uInt256OfByteArray arr)
+      (⟨0xe0⟩ : Ethereum.UInt256)).toNat =
+      Ethereum.fromBytes' (arr.extract 0 4).data.toList.reverse := by
+  rw [Ethereum.UInt256.toNat_shiftRight_eq_div_pow_of_lt]
+  · rw [Ethereum.UInt256.toNat_fin_ofNat_of_lt (n := 0xe0)
+      (by norm_num [Ethereum.UInt256.size])]
+    rw [Ethereum.uInt256OfByteArray_toNat_of_size_le]
+    · have hLen : arr.data.toList.length = 32 := by
+        rw [Array.length_toList, ByteArray.size_data, hSize]
+      rw [fromBytes'_reverse_div_pow_224_eq_take_four_reverse hLen]
+      congr 1
+      rw [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop]
+      simp
+    · omega
+  · rw [Ethereum.UInt256.toNat_fin_ofNat_of_lt (n := 0xe0)
+      (by norm_num [Ethereum.UInt256.size])]
+    norm_num
+
+lemma uInt256OfByteArray_readBytes_zero_shiftRight_224_toNat_eq_extract_zero_four
+    {source : ByteArray}
+    (hSize : 4 ≤ source.size) :
+    (Ethereum.UInt256.shiftRight
+      (Ethereum.uInt256OfByteArray (source.readBytes 0 32))
+      (⟨0xe0⟩ : Ethereum.UInt256)).toNat =
+      Ethereum.fromBytes' (source.extract 0 4).data.toList.reverse := by
+  rw [uInt256OfByteArray_shiftRight_224_toNat_eq_extract_zero_four]
+  · rw [ByteArray.readBytes_zero_extract_zero_four hSize]
+  · rw [ByteArray.readBytes_size_32]
+
+lemma selectorWord_eq_of_extract_eq {source selector : ByteArray} {selectorNat : Nat}
+    (hSelectorNat :
+      Ethereum.fromBytes' selector.data.toList.reverse = selectorNat)
+    (hSelectorNatBound : selectorNat < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ source.size < 4)
+    (hSelector : source.extract 0 4 = selector) :
+    (⟨(OfNat.ofNat selectorNat : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256) =
+      Ethereum.UInt256.shiftRight
+        (Ethereum.uInt256OfByteArray <| source.readBytes 0 32)
+        (⟨0xe0⟩ : Ethereum.UInt256) := by
+  have hLong : 4 ≤ source.size := by omega
+  symm
+  apply Ethereum.UInt256.eq_fin_of_toNat_eq hSelectorNatBound
+  rw [Ethereum.uInt256OfByteArray_readBytes_zero_shiftRight_224_toNat_eq_extract_zero_four hLong]
+  rw [hSelector]
+  exact hSelectorNat
+
+lemma extract_eq_of_selectorWord_eq {source selector : ByteArray} {selectorNat : Nat}
+    (hSelectorSize : selector.size = 4)
+    (hSelectorNat :
+      Ethereum.fromBytes' selector.data.toList.reverse = selectorNat)
+    (hSelectorNatBound : selectorNat < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ source.size < 4)
+    (hSelectorWordEq :
+      (⟨(OfNat.ofNat selectorNat : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256) =
+        Ethereum.UInt256.shiftRight
+          (Ethereum.uInt256OfByteArray <| source.readBytes 0 32)
+          (⟨0xe0⟩ : Ethereum.UInt256)) :
+    source.extract 0 4 = selector := by
+  have hLong : 4 ≤ source.size := by omega
+  have hWordNat :=
+    Ethereum.uInt256OfByteArray_readBytes_zero_shiftRight_224_toNat_eq_extract_zero_four
+      (source := source) hLong
+  have hConstNat :
+      (⟨(OfNat.ofNat selectorNat : Fin Ethereum.UInt256.size)⟩ :
+        Ethereum.UInt256).toNat = selectorNat :=
+    Ethereum.UInt256.toNat_fin_ofNat_of_lt hSelectorNatBound
+  have hNat :
+      Ethereum.fromBytes' (source.extract 0 4).data.toList.reverse =
+        Ethereum.fromBytes' selector.data.toList.reverse := by
+    calc
+      Ethereum.fromBytes' (source.extract 0 4).data.toList.reverse =
+          (Ethereum.UInt256.shiftRight
+            (Ethereum.uInt256OfByteArray <| source.readBytes 0 32)
+            (⟨0xe0⟩ : Ethereum.UInt256)).toNat := hWordNat.symm
+      _ = (⟨(OfNat.ofNat selectorNat : Fin Ethereum.UInt256.size)⟩ :
+            Ethereum.UInt256).toNat :=
+          (congrArg Ethereum.UInt256.toNat hSelectorWordEq).symm
+      _ = selectorNat := hConstNat
+      _ = Ethereum.fromBytes' selector.data.toList.reverse := hSelectorNat.symm
+  have hExtractSize : (source.extract 0 4).size = 4 := by
+    rw [ByteArray.size_extract]
+    omega
+  have hLen :
+      (source.extract 0 4).data.toList.reverse.length =
+        selector.data.toList.reverse.length := by
+    rw [List.length_reverse, List.length_reverse, Array.length_toList, Array.length_toList,
+      ByteArray.size_data, ByteArray.size_data, hExtractSize, hSelectorSize]
+  have hRevList :
+      (source.extract 0 4).data.toList.reverse =
+        selector.data.toList.reverse :=
+    Ethereum.fromBytes'_inj_of_length_eq hLen hNat
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  exact List.reverse_injective hRevList
+
+lemma selectorWord_ne_of_extract_ne {source selector : ByteArray} {selectorNat : Nat}
+    (hSelectorSize : selector.size = 4)
+    (hSelectorNat :
+      Ethereum.fromBytes' selector.data.toList.reverse = selectorNat)
+    (hSelectorNatBound : selectorNat < Ethereum.UInt256.size)
+    (hLongCalldata : ¬ source.size < 4)
+    (hSelector : source.extract 0 4 ≠ selector) :
+    (⟨(OfNat.ofNat selectorNat : Fin Ethereum.UInt256.size)⟩ : Ethereum.UInt256) ≠
+      Ethereum.UInt256.shiftRight
+        (Ethereum.uInt256OfByteArray <| source.readBytes 0 32)
+        (⟨0xe0⟩ : Ethereum.UInt256) := by
+  intro hEq
+  exact hSelector
+    (extract_eq_of_selectorWord_eq hSelectorSize hSelectorNat hSelectorNatBound
+      hLongCalldata hEq)
 
 end Ethereum
 

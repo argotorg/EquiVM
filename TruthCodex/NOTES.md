@@ -8,6 +8,10 @@
 - `ByteArray.not_toList_length_lt_of_extract_eq_size`: proves selector extraction implies calldata is long enough.
 - `ByteArray.extract_ne_of_size_lt`: proves calldata shorter than `n` cannot extract to a selector of size `n`.
 - `ByteArray.extract_zero_four_eq_toByteArray_getElem`: normalizes a long calldata's first four-byte selector to four indexed bytes.
+- `ByteArray.extract_append_of_stop_le_size_left`: lifts Array's left-append extraction law to ByteArray.
+- `ByteArray.copySlice_zero_empty_eq_extract`: normalizes copying from offset zero into an empty ByteArray as plain extraction.
+- `ByteArray.readBytes_zero_extract_eq_extract`: proves prefixes of padded offset-zero reads agree with the source when the source is long enough.
+- `ByteArray.readBytes_zero_extract_zero_four`: specializes padded offset-zero reads to the four-byte EVM selector prefix.
 - `ByteArray.readBytes_size_of_lt`: proves padded `readBytes` returns exactly the requested byte count below the `USize` bound.
 - `ByteArray.readBytes_size_32`: specializes padded `readBytes` sizing to 32-byte EVM word reads.
 - `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
@@ -17,6 +21,9 @@
 - `Ethereum.UInt256.toNat_zero`: normalizes the natural payload of the zero word.
 - `Ethereum.UInt256.toNat_shiftRight_of_lt`: computes bounded logical right shift as natural `>>>`.
 - `Ethereum.UInt256.toNat_shiftRight_eq_div_pow_of_lt`: computes bounded logical right shift as division by a power of two.
+- `Ethereum.UInt256.toNat_fin_ofNat_of_lt`: computes constructor-literal `UInt256` payloads under the 256-bit bound.
+- `Ethereum.UInt256.ofNat_eq_fin`: relates `UInt256.ofNat n` to the constructor-literal representation.
+- `Ethereum.UInt256.eq_fin_of_toNat_eq`: recovers a constructor-literal `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.eq_of_toNat_eq`: recovers a `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
 - `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
@@ -40,8 +47,19 @@
 - `Ethereum.UInt256.eq_bne_zero_eq_true_of_eq`: turns a true `EQ` result into a nonzero `JUMPI` condition.
 - `Ethereum.UInt256.eq_bne_zero_eq_false_of_ne`: turns a false `EQ` result into a zero `JUMPI` condition.
 - `Ethereum.fromBytes'_lt_uint256_size_of_length_le`: bounds a byte-folded natural by `2^256` when the byte list has at most 32 bytes.
+- `Ethereum.fromBytes'_append`: decomposes little-endian byte folding across list append.
+- `Ethereum.fromBytes'_append_div_pow_length`: drops the low-byte prefix of a folded little-endian list by division.
+- `Ethereum.fromBytes'_cons_mod`: recovers the low byte of a folded little-endian list by `mod 256`.
+- `Ethereum.fromBytes'_cons_div`: drops the low byte of a folded little-endian list by division by `256`.
+- `Ethereum.fromBytes'_inj_of_length_eq`: proves fixed-width little-endian byte folding is injective.
+- `Ethereum.fromBytes'_reverse_div_pow_224_eq_take_four_reverse`: extracts the high four bytes of a 32-byte big-endian word via division by `2^224`.
 - `Ethereum.uInt256OfByteArray_toNat_of_size_le`: computes `uInt256OfByteArray.toNat` for byte arrays of size at most 32.
 - `Ethereum.uInt256OfByteArray_readBytes_toNat_32`: computes `uInt256OfByteArray.toNat` for padded 32-byte reads.
+- `Ethereum.uInt256OfByteArray_shiftRight_224_toNat_eq_extract_zero_four`: computes the selector word of any 32-byte word as its first four bytes.
+- `Ethereum.uInt256OfByteArray_readBytes_zero_shiftRight_224_toNat_eq_extract_zero_four`: computes `CALLDATALOAD 0; SHR 224` from calldata's first four bytes.
+- `Ethereum.selectorWord_eq_of_extract_eq`: derives shifted `CALLDATALOAD 0` selector-word equality from a four-byte selector extraction fact.
+- `Ethereum.extract_eq_of_selectorWord_eq`: recovers four-byte selector extraction equality from shifted selector-word equality.
+- `Ethereum.selectorWord_ne_of_extract_ne`: derives shifted selector-word inequality from selector extraction mismatch.
 - `Ethereum_toBytes'_one`: computes the one-byte big/little-endian core representation of `1`.
 - `ABI.decodeCalldata_no_params_of_not_lt`: decodes zero ABI parameters when calldata has at least a 4-byte selector.
 - `ABI.decodeCalldata_no_params_of_lt`: zero-parameter calldata decoding fails before the 4-byte selector.
@@ -796,7 +814,7 @@
 # Open gaps
 
 - `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-match `JUMPI`.
-- The next reusable selector lemma should connect `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; this turn added the smaller building blocks for selector extraction, bounded `UInt256` right shift, and `uInt256OfByteArray.toNat`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is to use it while splitting the post-selector `JUMPI` success/fallback gas coverage.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
