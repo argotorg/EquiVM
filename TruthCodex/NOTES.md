@@ -416,6 +416,12 @@
 - `EVM_Xi_of_initial_continue_trace_error_of_le`: lifts a continuing trace plus EVM error to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_error_of_le_of_decode`: lifts a trace ending at a decoded endpoint error to `Ξ`, transporting endpoint code equality automatically.
 - `EVM_Xi_of_initial_continue_trace_jumpi_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `JUMPI`.
+- `EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `JUMPDEST`.
+- `EVM_Xi_of_initial_continue_trace_push0_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH0`.
+- `EVM_Xi_of_initial_continue_trace_calldataload_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `CALLDATALOAD`.
+- `EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH1`.
+- `EVM_Xi_of_initial_continue_trace_shr_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `SHR`.
+- `EVM_Xi_of_initial_continue_trace_dup1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `DUP1`.
 - `EVM_Xi_of_initial_continue_traces_success_of_le`: composes two continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_return_of_le_of_decode`: composes two traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
@@ -669,10 +675,13 @@
 - `truthEVM_short_calldata_jumpi_continue_taken`: proves the taken short-calldata `JUMPI` step from explicit destination validity.
 - `truthEVM_short_calldata_jumpi_trace_taken`: packages the zero-callvalue short-calldata path through the taken second `JUMPI`.
 - `truthEVM_short_calldata_jumpdest_decode_of_callvalue_zero`: decodes the taken short-calldata branch target as `JUMPDEST`.
+- `truthEVM_short_calldata_jumpdest_oog_of_prefix`: lifts the short-calldata prefix to top-level out-of-gas at the branch target `JUMPDEST`.
 - `truthEVM_short_calldata_jumpdest_continue`: proves the successful short-calldata branch `JUMPDEST` step.
 - `truthEVM_short_calldata_first_push0_decode`: decodes the first short-calldata revert `PUSH0`.
+- `truthEVM_short_calldata_first_push0_oog_of_prefix`: lifts the short-calldata prefix through `JUMPDEST` to top-level out-of-gas at the first revert `PUSH0`.
 - `truthEVM_short_calldata_first_push0_continue`: proves the successful first short-calldata revert `PUSH0` step.
 - `truthEVM_short_calldata_second_push0_decode`: decodes the second short-calldata revert `PUSH0`.
+- `truthEVM_short_calldata_second_push0_oog_of_prefix`: lifts the short-calldata prefix through the first `PUSH0` to top-level out-of-gas at the second revert `PUSH0`.
 - `truthEVM_short_calldata_second_push0_continue`: proves the successful second short-calldata revert `PUSH0` step.
 - `truthEVM_short_calldata_revert_suffix_trace`: packages the short-calldata `JUMPDEST; PUSH0; PUSH0` revert suffix as a trace segment.
 - `truthEVM_short_calldata_revert_decode`: decodes the short-calldata/fallback halt as `REVERT`.
@@ -682,12 +691,15 @@
 - `truthEVM_short_calldata_revert_of_trace_segments`: lifts three independent trace segments (`14 + 1 + 3`) for the short-calldata fallback to a top-level `Ξ` revert.
 - `truthEVM_long_calldata_first_push0_decode_of_callvalue_zero`: decodes the long-calldata fallthrough entry as `PUSH0`.
 - `truthEVM_long_calldata_first_push0_stack_of_callvalue_zero`: computes the empty stack at the long-calldata fallthrough entry.
+- `truthEVM_long_calldata_first_push0_oog_of_prefix`: lifts the long-calldata prefix to top-level out-of-gas at selector-prefix `PUSH0`.
 - `truthEVM_long_calldata_first_push0_continue`: proves the successful long-calldata fallthrough `PUSH0` step.
 - `truthEVM_long_calldata_calldataload_decode_of_callvalue_zero`: decodes the selector word load as `CALLDATALOAD`.
 - `truthEVM_long_calldata_calldataload_stack_of_callvalue_zero`: computes the `CALLDATALOAD` offset stack as `[0]`.
+- `truthEVM_long_calldata_calldataload_oog_of_prefix`: lifts the long-calldata prefix through `PUSH0` to top-level out-of-gas at selector `CALLDATALOAD`.
 - `truthEVM_long_calldata_calldataload_continue`: proves the successful selector word `CALLDATALOAD` step.
 - `truthEVM_long_calldata_push_shift_decode_of_callvalue_zero`: decodes the selector shift amount as `PUSH1 0xe0`.
 - `truthEVM_long_calldata_push_shift_stack_of_callvalue_zero`: computes the stack after loading the calldata selector word.
+- `truthEVM_long_calldata_push_shift_oog_of_prefix`: lifts the long-calldata prefix through `CALLDATALOAD` to top-level out-of-gas at selector-shift `PUSH1`.
 - `truthEVM_long_calldata_push_shift_continue`: proves the successful selector-shift-amount `PUSH1` step.
 - `truthEVM_long_calldata_shr_decode_of_callvalue_zero`: decodes selector extraction as `SHR`.
 - `truthEVM_long_calldata_shr_stack_of_callvalue_zero`: computes the stack before selector extraction.
@@ -760,8 +772,9 @@
 
 # Open gaps
 
-- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue coverage after the non-OOG calldata-length `JUMPI`.
+- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-shift `PUSH1`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
+- The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
 - The zero-callvalue branch needs kernel-checked proofs that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true` and `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`; `D_J_aux` is currently opaque, so these are logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
