@@ -560,6 +560,12 @@ lemma ofNat_toNat_of_lt {n : Nat} (hn : n < Ethereum.UInt256.size) :
     (⟨0⟩ : Ethereum.UInt256).toNat = 0 := by
   rfl
 
+lemma toNat_lt_size (x : Ethereum.UInt256) :
+    x.toNat < Ethereum.UInt256.size := by
+  cases x with
+  | mk xv =>
+      exact xv.isLt
+
 lemma toNat_add_of_lt {x y : Ethereum.UInt256}
     (h : x.toNat + y.toNat < Ethereum.UInt256.size) :
     (x + y).toNat = x.toNat + y.toNat := by
@@ -732,6 +738,14 @@ lemma toNat_sub_ofNat_of_le {x : Ethereum.UInt256} {n : Nat}
       change (xv - Fin.ofNat Ethereum.UInt256.size n).val = xv.val - n
       rw [Fin.sub_val_of_le hLe]
       rw [hVal]
+
+lemma toNat_sub_ofNat_add_one_le_of_pos {x : Ethereum.UInt256} {n : Nat}
+    (hn : n < Ethereum.UInt256.size)
+    (hPos : 0 < n)
+    (h : n ≤ x.toNat) :
+    (x - Ethereum.UInt256.ofNat n).toNat + 1 ≤ x.toNat := by
+  rw [toNat_sub_ofNat_of_le hn h]
+  omega
 
 lemma toNat_sub_ofNat_sub_ofNat_of_le {x : Ethereum.UInt256} {a b : Nat}
     (ha : a < Ethereum.UInt256.size)
@@ -2042,6 +2056,25 @@ lemma UInt256.toByteArray_one_eq_abiBoolTrueReturn_of_zeroes31
   rw [Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one, hZeroes31]
   rfl
 
+lemma UInt256.fromByteArrayBigEndian_toByteArray_128_eq_128_of_zeroes31
+    (hZeroes31 :
+      ffi.ByteArray.zeroes (⟨31⟩ : USize) = abiBoolTruePrefix31) :
+    Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) =
+      128 := by
+  rw [Ethereum.UInt256.toByteArray_128_eq_zeroes_append_128, hZeroes31]
+  simp [Ethereum.fromByteArrayBigEndian, Ethereum.fromBytesBigEndian,
+    Ethereum.fromBytes', abiBoolTruePrefix31, ByteArray.toList_eq_data_toList]
+
+lemma UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_toNat_eq_128_of_zeroes31
+    (hZeroes31 :
+      ffi.ByteArray.zeroes (⟨31⟩ : USize) = abiBoolTruePrefix31) :
+    (Ethereum.UInt256.ofNat
+        (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat =
+      128 := by
+  rw [UInt256.fromByteArrayBigEndian_toByteArray_128_eq_128_of_zeroes31 hZeroes31]
+  exact Ethereum.UInt256.ofNat_toNat_of_lt
+    (by norm_num [Ethereum.UInt256.size])
+
 namespace execResultsEquiv
 
 lemma success_of_returnEquiv
@@ -2477,6 +2510,48 @@ theorem code_eq_of_Xstep {validJumps : Array Ethereum.UInt256}
   have hEnv := executionEnv_eq_of_Xstep hStep
   exact (congrArg (fun env => env.code) hEnv.symm).trans hCode
 
+theorem gasAvailable_toNat_add_one_le_of_eq_sub_cost {s t : Ethereum.State} {cost : Nat}
+    (hGas :
+      t.machineState.gasAvailable =
+        s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost)
+    (hCost : ¬ s.machineState.gasAvailable.toNat < cost)
+    (hCostSize : cost < Ethereum.UInt256.size)
+    (hCostPos : 0 < cost) :
+    t.machineState.gasAvailable.toNat + 1 ≤
+      s.machineState.gasAvailable.toNat := by
+  rw [hGas]
+  exact Ethereum.UInt256.toNat_sub_ofNat_add_one_le_of_pos
+    hCostSize hCostPos (by omega)
+
+theorem gasAvailable_toNat_add_one_le_of_eq_sub_costs {s t : Ethereum.State}
+    {cost₁ cost₂ : Nat}
+    (hGas :
+      t.machineState.gasAvailable =
+        (s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂)
+    (hCost₁ : ¬ s.machineState.gasAvailable.toNat < cost₁)
+    (hCost₂ :
+      ¬ (s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost₁).toNat <
+        cost₂)
+    (hCost₁Size : cost₁ < Ethereum.UInt256.size)
+    (hCost₂Size : cost₂ < Ethereum.UInt256.size)
+    (hCost₂Pos : 0 < cost₂) :
+    t.machineState.gasAvailable.toNat + 1 ≤
+      s.machineState.gasAvailable.toNat := by
+  rw [hGas]
+  have hSecond :
+      ((s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂).toNat + 1 ≤
+        (s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost₁).toNat :=
+    Ethereum.UInt256.toNat_sub_ofNat_add_one_le_of_pos
+      hCost₂Size hCost₂Pos (by omega)
+  have hFirst :
+      (s.machineState.gasAvailable - Ethereum.UInt256.ofNat cost₁).toNat ≤
+        s.machineState.gasAvailable.toNat := by
+    rw [Ethereum.UInt256.toNat_sub_ofNat_of_le hCost₁Size (by omega)]
+    omega
+  exact le_trans hSecond hFirst
+
 def push1NextState (s : Ethereum.State) (arg : Ethereum.UInt256) : Ethereum.State :=
   {s with
     machineState.stack := arg :: s.machineState.stack
@@ -2614,6 +2689,29 @@ def mloadNextState (s : Ethereum.State) (a : Ethereum.UInt256)
       (s.machineState.gasAvailable - Ethereum.UInt256.ofNat (memoryExpansionCost s .MLOAD)) -
         Ethereum.UInt256.ofNat GasConstants.Gverylow :=
   rfl
+
+theorem mloadNextState_gasAvailable_decreases
+    {s : Ethereum.State} {a : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hMemGas : ¬ s.machineState.gasAvailable.toNat < memoryExpansionCost s .MLOAD)
+    (hVerylowGas :
+      ¬ (s.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (memoryExpansionCost s .MLOAD)).toNat <
+        GasConstants.Gverylow) :
+    (mloadNextState s a t).machineState.gasAvailable.toNat + 1 ≤
+      s.machineState.gasAvailable.toNat :=
+  gasAvailable_toNat_add_one_le_of_eq_sub_costs
+    (s := s)
+    (t := mloadNextState s a t)
+    (cost₁ := memoryExpansionCost s .MLOAD)
+    (cost₂ := GasConstants.Gverylow)
+    (by rfl)
+    hMemGas
+    hVerylowGas
+    (by
+      have hGasLt := Ethereum.UInt256.toNat_lt_size s.machineState.gasAvailable
+      omega)
+    (by norm_num [Ethereum.UInt256.size, GasConstants.Gverylow])
+    (by norm_num [GasConstants.Gverylow])
 
 @[simp] theorem mloadNextState_pc (s : Ethereum.State) (a : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256) :
@@ -2881,6 +2979,29 @@ theorem mloadValue_mstoreNextState_before_eq_of_bounds
       (s.machineState.gasAvailable - Ethereum.UInt256.ofNat (memoryExpansionCost s .MSTORE)) -
         Ethereum.UInt256.ofNat GasConstants.Gverylow :=
   rfl
+
+theorem mstoreNextState_gasAvailable_decreases
+    {s : Ethereum.State} {a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hMemGas : ¬ s.machineState.gasAvailable.toNat < memoryExpansionCost s .MSTORE)
+    (hVerylowGas :
+      ¬ (s.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (memoryExpansionCost s .MSTORE)).toNat <
+        GasConstants.Gverylow) :
+    (mstoreNextState s a b t).machineState.gasAvailable.toNat + 1 ≤
+      s.machineState.gasAvailable.toNat :=
+  gasAvailable_toNat_add_one_le_of_eq_sub_costs
+    (s := s)
+    (t := mstoreNextState s a b t)
+    (cost₁ := memoryExpansionCost s .MSTORE)
+    (cost₂ := GasConstants.Gverylow)
+    (by rfl)
+    hMemGas
+    hVerylowGas
+    (by
+      have hGasLt := Ethereum.UInt256.toNat_lt_size s.machineState.gasAvailable
+      omega)
+    (by norm_num [Ethereum.UInt256.size, GasConstants.Gverylow])
+    (by norm_num [GasConstants.Gverylow])
 
 @[simp] theorem mstoreNextState_pc (s : Ethereum.State)
     (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
@@ -5226,6 +5347,55 @@ theorem relation {validJumps : Array Ethereum.UInt256}
   | cons hHead hTail ih =>
       exact hTrans (hStep hHead) ih
 
+theorem length_le_measure_of_step_decreases {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State} {measure : Ethereum.State → Nat}
+    (hStep :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → measure v + 1 ≤ measure u)
+    (hTrace : ContinueTrace validJumps n s t) :
+    n ≤ measure s := by
+  induction hTrace with
+  | nil =>
+      simp
+  | cons hHead _ ih =>
+      have hDec := hStep hHead
+      omega
+
+theorem length_le_gasAvailable_of_step_decreases
+    {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStep :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) →
+          v.machineState.gasAvailable.toNat + 1 ≤
+            u.machineState.gasAvailable.toNat)
+    (hTrace : ContinueTrace validJumps n s t) :
+    n ≤ s.machineState.gasAvailable.toNat :=
+  length_le_measure_of_step_decreases
+    (measure := fun s => s.machineState.gasAvailable.toNat)
+    hStep hTrace
+
+theorem length_le_initial_gas_of_step_decreases
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat} {t : Ethereum.State}
+    (hStep :
+      ∀ {u v : Ethereum.State},
+        Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) u = .ok (v, none) →
+          v.machineState.gasAvailable.toNat + 1 ≤
+            u.machineState.gasAvailable.toNat)
+    (hTrace :
+      ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t) :
+    n ≤ g.toNat := by
+  simpa [initialEVMState] using
+    length_le_gasAvailable_of_step_decreases hStep hTrace
+
 theorem executionEnv_eq {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t : Ethereum.State}
     (hTrace : ContinueTrace validJumps n s t) :
@@ -5331,9 +5501,10 @@ theorem length_le_initial_gas
       ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
         (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t) :
     n ≤ g.toNat := by
-  -- Every non-halting `Xstep` in a `ContinueTrace` consumes positive gas and
-  -- refuses to continue when that gas is unavailable. The remaining reusable
-  -- kernel work is a generic `Xstep` gas-decrease lemma, then induction here.
+  apply length_le_initial_gas_of_step_decreases (hTrace := hTrace)
+  -- Remaining reusable kernel work: prove this one-step gas-decrease theorem
+  -- for every successful non-halting `Xstep`, including the call/create cases.
+  intro u v hStep
   sorry
 
 theorem X_halt_success {validJumps : Array Ethereum.UInt256}

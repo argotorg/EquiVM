@@ -43,6 +43,7 @@
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
 - `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
 - `Ethereum.UInt256.toNat_zero`: normalizes the natural payload of the zero word.
+- `Ethereum.UInt256.toNat_lt_size`: bounds every `UInt256.toNat` by `2^256`.
 - `Ethereum.UInt256.toNat_add_of_lt`: computes `UInt256` addition on naturals under a no-overflow premise.
 - `Ethereum.UInt256.toNat_sub_of_le`: computes `UInt256` subtraction on naturals under a no-underflow premise.
 - `Ethereum.UInt256.toNat_mul_of_lt`: computes `UInt256` multiplication on naturals under a no-overflow premise.
@@ -55,6 +56,7 @@
 - `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`: canonicalizes double-`ISZERO` on a nonzero word to the EVM true word.
 - `Ethereum.UInt256.eq_of_toNat_eq`: recovers a `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
+- `Ethereum.UInt256.toNat_sub_ofNat_add_one_le_of_pos`: turns a checked positive `UInt256` subtraction into a one-step natural gas decrease.
 - `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
 - `Ethereum.UInt256.add_le_toNat_of_not_sub_ofNat_lt`: packages gas arithmetic after a checked subtraction.
 - `Ethereum.UInt256.add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across two checked `UInt256` subtractions.
@@ -98,6 +100,8 @@
 - `Ethereum.UInt256.fromByteArrayBigEndian_toByteArray_128_add_63_lt_size`: specializes the word-alignment no-overflow bound to serialized word `0x80`.
 - `Ethereum.UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_add_63_lt_size`: word-alignment no-overflow bound after wrapping the serialized `0x80` value as `UInt256.ofNat`.
 - `Ethereum.UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_ge_128`: lower bound showing serialized word `0x80` remains at least `128` even with an opaque 31-byte prefix.
+- `UInt256.fromByteArrayBigEndian_toByteArray_128_eq_128_of_zeroes31`: exact serialized-`0x80` decode, assuming the missing 31-byte zero-prefix contents fact.
+- `UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_toNat_eq_128_of_zeroes31`: exact `UInt256.ofNat` payload for the serialized free-memory pointer, under the same zero-prefix assumption.
 - `Ethereum.UInt256.activeWords_mul_32_gt_64_of_M_3_32`: proves a post-`MSTORE` active-word count still covers the allocator slot at `0x40`.
 - `Ethereum.UInt256.three_mul_32_gt_64`: proves that three active words cover the allocator slot at `0x40`.
 - `Ethereum.fromBytes'_lt_uint256_size_of_length_le`: bounds a byte-folded natural by `2^256` when the byte list has at most 32 bytes.
@@ -169,6 +173,8 @@
 - `Ethereum.EVM.D_J_contains_of_code_eq`: transports valid-jump-table membership across bytecode equality.
 - `Ethereum.EVM.executionEnv_eq_of_Xstep`: extracts execution-environment preservation from any successful `Xstep`.
 - `Ethereum.EVM.code_eq_of_Xstep`: propagates bytecode equality across any successful `Xstep`.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_cost`: derives one-step natural gas decrease from a fixed-cost next-state gas equation and non-OOG guard.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_costs`: derives one-step natural gas decrease across a memory-expansion debit followed by an opcode debit.
 - `Ethereum.EVM.push1NextState`: names the concrete next state for a successful `PUSH1`.
 - `Ethereum.EVM.push1NextState_stack`: projection fact for the stack after `PUSH1`.
 - `Ethereum.EVM.push1NextState_gasAvailable`: projection fact for gas after `PUSH1`.
@@ -194,7 +200,9 @@
 - `Ethereum.EVM.mloadValue_mstoreNextState_before_eq`: proves an `MLOAD` value is unchanged by a later non-overlapping `MSTORE`, assuming both `MLOAD` guards take the read branch.
 - `Ethereum.EVM.mstoreNextState_memory_size_ge_before`: proves a later `MSTORE` preserves the size bound needed to read an earlier memory window.
 - `Ethereum.EVM.mloadValue_mstoreNextState_before_eq_of_bounds`: non-overlapping `MSTORE`/`MLOAD` preservation packaged with explicit memory and active-word guards.
+- `Ethereum.EVM.mloadNextState_gasAvailable_decreases`: proves successful `MLOAD` decreases available gas by at least one after memory and verylow guards.
 - `Ethereum.EVM.mstoreNextState_gasAvailable`: projection fact for gas after `MSTORE`.
+- `Ethereum.EVM.mstoreNextState_gasAvailable_decreases`: proves successful `MSTORE` decreases available gas by at least one after memory and verylow guards.
 - `Ethereum.EVM.mstoreNextState_pc`: projection fact for pc after `MSTORE`.
 - `Ethereum.EVM.Xstep_mstore_memory_oog_of_decode`: proves the `MSTORE` memory-expansion gas-underflow case.
 - `Ethereum.EVM.Xstep_mstore_verylow_oog_of_decode`: proves the `MSTORE` post-expansion gas-underflow case.
@@ -549,6 +557,9 @@
 - `Ethereum.EVM.ContinueTrace.append_five`: composes five continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_ten`: composes ten continuing traces as two groups of five.
 - `Ethereum.EVM.ContinueTrace.relation`: folds a transitive step relation across an entire continuing trace.
+- `Ethereum.EVM.ContinueTrace.length_le_measure_of_step_decreases`: proves trace length is bounded by any natural measure that decreases by at least one on each continuing step.
+- `Ethereum.EVM.ContinueTrace.length_le_gasAvailable_of_step_decreases`: gas-specialized trace-length bound from a per-step gas-decrease theorem.
+- `Ethereum.EVM.ContinueTrace.length_le_initial_gas_of_step_decreases`: initial-state specialization of the gas trace-length bound.
 - `Ethereum.EVM.ContinueTrace.executionEnv_eq`: lifts `Xstep_env_unchanged` to show a continuing trace preserves the execution environment.
 - `Ethereum.EVM.ContinueTrace.code_eq_of_start`: derives endpoint bytecode equality from start bytecode equality over a continuing trace.
 - `Ethereum.EVM.MachineMemoryEq`: relation bundling equality of the EVM machine memory field.
@@ -1022,12 +1033,12 @@
 - `truthValidJump_5e_of_code`: transports `truthBytecode_validJump_5e` to any execution environment whose code is `truthBytecode`.
 - `truthBytecode_validJump_75`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x75 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
 - `truthValidJump_75_of_code`: transports `truthBytecode_validJump_75` to any execution environment whose code is `truthBytecode`.
-- `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: current reusable `sorry` for deriving interpreter fuel lower bounds compositionally from successful non-halting traces; proof requires a general theorem that every successful non-halting `Xstep` consumes at least one gas unit.
+- `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: current reusable `sorry` now reduced to the one-step theorem that every successful non-halting `Xstep` decreases available gas by at least one; the trace induction is factored into `length_le_initial_gas_of_step_decreases`.
 
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The final output proof now delegates memory readback to `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`, discharges the non-writing suffix memory equality with reusable memory projection lemmas, proves `writePtr = freePtr` via `Ethereum.UInt256.add_zero`, normalizes the stored bool word with `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`, and proves the final `MLOAD 0x40` reload fact `returnBase = freePtr` using reusable active-word and non-overlapping-write preservation lemmas. The library now has byte-array and EVM lemmas showing that a later non-overlapping `MSTORE` preserves earlier padded reads and `MLOAD` values, plus `UInt256` pointer-length arithmetic for `returnSize`. The initial allocator readback `hFreePtrSerialized80`, final-return no-overflow arithmetic, and final free-pointer reload are now discharged through reusable allocator/readback lemmas; the remaining local output frontiers are the write padding bound for `MSTORE` and the trusted-base opacity of `ffi.ByteArray.zeroes 31` logged in `MISSPEC.md`. The padding bound still needs a kernel fact that the initial `MSTORE 0x40 0x80` reads back as a small `0x80` word, which is blocked by the opaque contents of `ffi.ByteArray.zeroes`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The final output proof now delegates memory readback to `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`, discharges the non-writing suffix memory equality with reusable memory projection lemmas, proves `writePtr = freePtr` via `Ethereum.UInt256.add_zero`, normalizes the stored bool word with `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`, proves the final `MLOAD 0x40` reload fact `returnBase = freePtr` using reusable active-word and non-overlapping-write preservation lemmas, and discharges the final write padding bound from the exact serialized-`0x80` bridge. The library now has byte-array and EVM lemmas showing that a later non-overlapping `MSTORE` preserves earlier padded reads and `MLOAD` values, plus `UInt256` pointer-length arithmetic for `returnSize`. The initial allocator readback `hFreePtrSerialized80`, final-return no-overflow arithmetic, final free-pointer reload, and write padding bound are now discharged through reusable allocator/readback lemmas; the remaining local output frontier is the trusted-base opacity of `ffi.ByteArray.zeroes 31` logged in `MISSPEC.md`.
 - The former `truthGas_ge_fifty_of_return_cont_jump_continue` local gap was eliminated; the ABI encoder-entry OOG cases now use trace-based no-explicit-fuel wrappers, with the shared fuel argument concentrated in `Ethereum.EVM.ContinueTrace.length_le_initial_gas`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
