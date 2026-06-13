@@ -80,7 +80,9 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
           X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
         ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ⟨142⟩
         ∧ s'.machineState.stack = (n :: UInt256.ofNat (2 ^ n.toNat) :: slot :: n :: REST)
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat := by
+        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
+        ∧ s'.machineState.memory = s.machineState.memory
+        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
   intro var
   induction var with
   | zero =>
@@ -158,13 +160,17 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
                 · exact Or.inl (hX6.trans (stepOOG (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega) (by omega)))
                 · set s7 := stJumpiT s6 ⟨142⟩ (i :: r :: slot :: n :: REST) with hs7
                   have hX7 := hX6.trans (stepContinue (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega))
-                  refine Or.inr ⟨k+7, C+26, s7, ?_, ?_, ?_, ?_, ?_, by omega, by omega⟩
+                  refine Or.inr ⟨k+7, C+26, s7, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
                   · have he : g.toNat + 1 - (k + 6 + 1) = g.toNat + 1 - (k+7) := by omega
                     rw [← he]; exact hX7
                   · rw [hs7]; simp only [stJumpiT]; exact hc6
                   · rw [hs7]; simp only [stJumpiT]
                   · rw [hs7]; simp only [stJumpiT]; rw [hieqn, hreq]
                   · rw [hs7]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
+                  · rw [hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                    simp only [stJumpiT, stPush2, stIsZero, stBinop, stSwap, stJumpdest]
+                  · rw [hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                    simp only [stJumpiT, stPush2, stIsZero, stBinop, stSwap, stJumpdest]
   | succ var ih =>
     intro i r k C s hvar hinv hile hcode hpc hstk hgas hkC hCg hX
     have hilt : i.toNat < n.toNat := by omega
@@ -374,11 +380,22 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
                                           have hr2 : (UInt256.mul r ⟨2⟩).toNat = 2 * r.toNat := mul2_toNat hr2size
                                           have he : g.toNat + 1 - (k + 18 + 1) = g.toNat + 1 - (k + 19) := by omega
                                           rw [he] at hX19
-                                          exact ih (i + ⟨1⟩) (UInt256.mul r ⟨2⟩) (k+19) (C+67) s19
+                                          rcases ih (i + ⟨1⟩) (UInt256.mul r ⟨2⟩) (k+19) (C+67) s19
                                             (by rw [hi1]; omega)
                                             (by rw [hr2, hi1, hinv, pow_succ]; ring)
                                             (by rw [hi1]; omega)
-                                            hc19 hp19 hk19 hg19 (by omega) (by omega) hX19
+                                            hc19 hp19 hk19 hg19 (by omega) (by omega) hX19 with
+                                            h | ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', hmem', haw'⟩
+                                          · exact Or.inl h
+                                          · refine Or.inr ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', ?_, ?_⟩
+                                            · rw [hmem', hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10,
+                                                hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                              simp only [stJump, stPush2, stPush1, stMul, stPop, stSwap, stBinop,
+                                                stIsZero, stJumpiNT, stJumpdest]
+                                            · rw [haw', hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10,
+                                                hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                              simp only [stJump, stPush2, stPush1, stMul, stPop, stSwap, stBinop,
+                                                stIsZero, stJumpiNT, stJumpdest]
 
 /-! ## The dispatcher (success path) — reaches the function body at `0x2d`
 
