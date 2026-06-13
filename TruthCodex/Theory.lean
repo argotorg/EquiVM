@@ -4009,6 +4009,24 @@ theorem code_eq_of_initial
     t.executionEnv.code = I.code :=
   code_eq_of_start hTrace (by simp [initialEVMState])
 
+theorem length_le_initial_gas
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat} {t : Ethereum.State}
+    (hTrace :
+      ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t) :
+    n ≤ g.toNat := by
+  -- Every non-halting `Xstep` in a `ContinueTrace` consumes positive gas and
+  -- refuses to continue when that gas is unavailable. The remaining reusable
+  -- kernel work is a generic `Xstep` gas-decrease lemma, then induction here.
+  sorry
+
 theorem X_halt_success {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State} {o : ByteArray}
     (hTrace : ContinueTrace validJumps n s t)
