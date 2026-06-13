@@ -5977,6 +5977,170 @@ theorem one {validJumps : Array Ethereum.UInt256} {s t : Ethereum.State}
     GasTrace validJumps 1 s t := by
   simpa using (GasTrace.cons hStep hGas GasTrace.nil)
 
+theorem two {validJumps : Array Ethereum.UInt256} {s t u : Ethereum.State}
+    (hStep1 : Xstep validJumps s = .ok (t, none))
+    (hGas1 :
+      t.machineState.gasAvailable.toNat + 1 ≤
+        s.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps t = .ok (u, none))
+    (hGas2 :
+      u.machineState.gasAvailable.toNat + 1 ≤
+        t.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 2 s u := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2 GasTrace.nil))
+
+theorem three {validJumps : Array Ethereum.UInt256}
+    {s0 s1 s2 s3 : Ethereum.State}
+    (hStep1 : Xstep validJumps s0 = .ok (s1, none))
+    (hGas1 :
+      s1.machineState.gasAvailable.toNat + 1 ≤
+        s0.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps s1 = .ok (s2, none))
+    (hGas2 :
+      s2.machineState.gasAvailable.toNat + 1 ≤
+        s1.machineState.gasAvailable.toNat)
+    (hStep3 : Xstep validJumps s2 = .ok (s3, none))
+    (hGas3 :
+      s3.machineState.gasAvailable.toNat + 1 ≤
+        s2.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 3 s0 s3 := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2
+        (GasTrace.cons hStep3 hGas3 GasTrace.nil)))
+
+theorem four {validJumps : Array Ethereum.UInt256}
+    {s0 s1 s2 s3 s4 : Ethereum.State}
+    (hStep1 : Xstep validJumps s0 = .ok (s1, none))
+    (hGas1 :
+      s1.machineState.gasAvailable.toNat + 1 ≤
+        s0.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps s1 = .ok (s2, none))
+    (hGas2 :
+      s2.machineState.gasAvailable.toNat + 1 ≤
+        s1.machineState.gasAvailable.toNat)
+    (hStep3 : Xstep validJumps s2 = .ok (s3, none))
+    (hGas3 :
+      s3.machineState.gasAvailable.toNat + 1 ≤
+        s2.machineState.gasAvailable.toNat)
+    (hStep4 : Xstep validJumps s3 = .ok (s4, none))
+    (hGas4 :
+      s4.machineState.gasAvailable.toNat + 1 ≤
+        s3.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 4 s0 s4 := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2
+        (GasTrace.cons hStep3 hGas3
+          (GasTrace.cons hStep4 hGas4 GasTrace.nil))))
+
+theorem five {validJumps : Array Ethereum.UInt256}
+    {s0 s1 s2 s3 s4 s5 : Ethereum.State}
+    (hStep1 : Xstep validJumps s0 = .ok (s1, none))
+    (hGas1 :
+      s1.machineState.gasAvailable.toNat + 1 ≤
+        s0.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps s1 = .ok (s2, none))
+    (hGas2 :
+      s2.machineState.gasAvailable.toNat + 1 ≤
+        s1.machineState.gasAvailable.toNat)
+    (hStep3 : Xstep validJumps s2 = .ok (s3, none))
+    (hGas3 :
+      s3.machineState.gasAvailable.toNat + 1 ≤
+        s2.machineState.gasAvailable.toNat)
+    (hStep4 : Xstep validJumps s3 = .ok (s4, none))
+    (hGas4 :
+      s4.machineState.gasAvailable.toNat + 1 ≤
+        s3.machineState.gasAvailable.toNat)
+    (hStep5 : Xstep validJumps s4 = .ok (s5, none))
+    (hGas5 :
+      s5.machineState.gasAvailable.toNat + 1 ≤
+        s4.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 5 s0 s5 := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2
+        (GasTrace.cons hStep3 hGas3
+          (GasTrace.cons hStep4 hGas4
+            (GasTrace.cons hStep5 hGas5 GasTrace.nil)))))
+
+theorem six {validJumps : Array Ethereum.UInt256}
+    {s0 s1 s2 s3 s4 s5 s6 : Ethereum.State}
+    (hStep1 : Xstep validJumps s0 = .ok (s1, none))
+    (hGas1 :
+      s1.machineState.gasAvailable.toNat + 1 ≤
+        s0.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps s1 = .ok (s2, none))
+    (hGas2 :
+      s2.machineState.gasAvailable.toNat + 1 ≤
+        s1.machineState.gasAvailable.toNat)
+    (hStep3 : Xstep validJumps s2 = .ok (s3, none))
+    (hGas3 :
+      s3.machineState.gasAvailable.toNat + 1 ≤
+        s2.machineState.gasAvailable.toNat)
+    (hStep4 : Xstep validJumps s3 = .ok (s4, none))
+    (hGas4 :
+      s4.machineState.gasAvailable.toNat + 1 ≤
+        s3.machineState.gasAvailable.toNat)
+    (hStep5 : Xstep validJumps s4 = .ok (s5, none))
+    (hGas5 :
+      s5.machineState.gasAvailable.toNat + 1 ≤
+        s4.machineState.gasAvailable.toNat)
+    (hStep6 : Xstep validJumps s5 = .ok (s6, none))
+    (hGas6 :
+      s6.machineState.gasAvailable.toNat + 1 ≤
+        s5.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 6 s0 s6 := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2
+        (GasTrace.cons hStep3 hGas3
+          (GasTrace.cons hStep4 hGas4
+            (GasTrace.cons hStep5 hGas5
+              (GasTrace.cons hStep6 hGas6 GasTrace.nil))))))
+
+theorem seven {validJumps : Array Ethereum.UInt256}
+    {s0 s1 s2 s3 s4 s5 s6 s7 : Ethereum.State}
+    (hStep1 : Xstep validJumps s0 = .ok (s1, none))
+    (hGas1 :
+      s1.machineState.gasAvailable.toNat + 1 ≤
+        s0.machineState.gasAvailable.toNat)
+    (hStep2 : Xstep validJumps s1 = .ok (s2, none))
+    (hGas2 :
+      s2.machineState.gasAvailable.toNat + 1 ≤
+        s1.machineState.gasAvailable.toNat)
+    (hStep3 : Xstep validJumps s2 = .ok (s3, none))
+    (hGas3 :
+      s3.machineState.gasAvailable.toNat + 1 ≤
+        s2.machineState.gasAvailable.toNat)
+    (hStep4 : Xstep validJumps s3 = .ok (s4, none))
+    (hGas4 :
+      s4.machineState.gasAvailable.toNat + 1 ≤
+        s3.machineState.gasAvailable.toNat)
+    (hStep5 : Xstep validJumps s4 = .ok (s5, none))
+    (hGas5 :
+      s5.machineState.gasAvailable.toNat + 1 ≤
+        s4.machineState.gasAvailable.toNat)
+    (hStep6 : Xstep validJumps s5 = .ok (s6, none))
+    (hGas6 :
+      s6.machineState.gasAvailable.toNat + 1 ≤
+        s5.machineState.gasAvailable.toNat)
+    (hStep7 : Xstep validJumps s6 = .ok (s7, none))
+    (hGas7 :
+      s7.machineState.gasAvailable.toNat + 1 ≤
+        s6.machineState.gasAvailable.toNat) :
+    GasTrace validJumps 7 s0 s7 := by
+  simpa using
+    (GasTrace.cons hStep1 hGas1
+      (GasTrace.cons hStep2 hGas2
+        (GasTrace.cons hStep3 hGas3
+          (GasTrace.cons hStep4 hGas4
+            (GasTrace.cons hStep5 hGas5
+              (GasTrace.cons hStep6 hGas6
+                (GasTrace.cons hStep7 hGas7 GasTrace.nil)))))))
+
 theorem append {validJumps : Array Ethereum.UInt256}
     {m n : Nat} {s t u : Ethereum.State}
     (hLeft : GasTrace validJumps m s t)

@@ -621,6 +621,7 @@
 - `Ethereum.EVM.GasTrace.toContinueTrace`: forgets gas evidence and recovers an ordinary `ContinueTrace`.
 - `Ethereum.EVM.GasTrace.ofContinueTrace`: rebuilds a gas-bounded trace from an ordinary continuing trace plus a local per-step gas-decrease theorem.
 - `Ethereum.EVM.GasTrace.one` / `snoc` / `append`: builders for gas-bounded traces from local step and gas-decrease facts.
+- `Ethereum.EVM.GasTrace.two` / `three` / `four` / `five` / `six` / `seven`: fixed-width gas-trace builders mirroring the existing `ContinueTrace` arity helpers.
 - `Ethereum.EVM.GasTrace.length_add_end_gasAvailable_le_start`: proves trace length plus endpoint gas is bounded by start gas for a gas-bounded trace.
 - `Ethereum.EVM.GasTrace.length_le_start_gasAvailable`: extracts the start-gas fuel bound from a gas-bounded trace.
 - `Ethereum.EVM.GasTrace.end_gasAvailable_le_start`: endpoint gas monotonicity for gas-bounded traces.
@@ -888,6 +889,7 @@
 - `truthEVM_second_push_continue`: proves the second `PUSH1` continuing step.
 - `truthGas_ge_six_of_second_push_continue`: derives initial gas lower bound after the two-push gas checks.
 - `truthEVM_two_push_trace`: packages the two initial `PUSH1` steps as a `ContinueTrace`.
+- `truthEVM_two_push_gas_trace`: packages the two initial `PUSH1` steps as a `GasTrace`, carrying local gas-decrease witnesses.
 - `truthEVM_mstore_decode`: proves the third prologue pc decodes as `MSTORE`.
 - `truthEVM_mstore_stack`: computes the stack at the `MSTORE` point.
 - `truthEVM_mstore_memory_cost`: computes the initial free-memory-pointer `MSTORE` expansion cost as `9`.
@@ -903,42 +905,51 @@
 - `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
 - `truthEVM_mstore_continue`: proves the successful `MSTORE` step.
 - `truthEVM_memory_prologue_trace`: packages `PUSH1; PUSH1; MSTORE` as a `ContinueTrace`.
+- `truthEVM_memory_prologue_gas_trace`: packages `PUSH1; PUSH1; MSTORE` as a `GasTrace`.
 - `truthEVM_callvalue_decode`: proves the next pc decodes as `CALLVALUE`.
 - `truthEVM_callvalue_stack`: computes the empty stack before `CALLVALUE`.
 - `truthEVM_callvalue_oog`: proves top-level `Ξ` out-of-gas on `CALLVALUE`.
 - `truthEVM_callvalue_continue`: proves the successful `CALLVALUE` step.
 - `truthEVM_callvalue_trace`: packages the prologue plus `CALLVALUE` as a `ContinueTrace`.
+- `truthEVM_callvalue_gas_trace`: packages the prologue plus `CALLVALUE` as a `GasTrace`.
 - `truthEVM_dup1_decode`: proves the next pc decodes as `DUP1`.
 - `truthEVM_dup1_stack`: computes the stack before `DUP1`.
 - `truthEVM_dup1_oog`: proves top-level `Ξ` out-of-gas on `DUP1`.
 - `truthEVM_dup1_continue`: proves the successful `DUP1` step.
 - `truthEVM_dup1_trace`: packages the prologue plus `CALLVALUE; DUP1` as a `ContinueTrace`.
+- `truthEVM_dup1_gas_trace`: packages the prologue plus `CALLVALUE; DUP1` as a `GasTrace`.
 - `truthEVM_iszero_decode`: proves the next pc decodes as `ISZERO`.
 - `truthEVM_iszero_stack`: computes the stack before `ISZERO`.
 - `truthEVM_iszero_oog`: proves top-level `Ξ` out-of-gas on `ISZERO`.
 - `truthEVM_iszero_continue`: proves the successful `ISZERO` step.
 - `truthEVM_iszero_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO` as a `ContinueTrace`.
+- `truthEVM_iszero_gas_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO` as a `GasTrace`.
 - `truthEVM_push_dest_decode`: proves the next pc decodes as `PUSH1 0x0e`.
 - `truthEVM_push_dest_stack`: computes the stack before `PUSH1 0x0e`.
 - `truthEVM_push_dest_oog`: proves top-level `Ξ` out-of-gas on `PUSH1 0x0e`.
 - `truthEVM_push_dest_continue`: proves the successful `PUSH1 0x0e` step.
 - `truthEVM_push_dest_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO; PUSH1 0x0e` as a `ContinueTrace`.
+- `truthEVM_push_dest_gas_trace`: packages the prologue plus `CALLVALUE; DUP1; ISZERO; PUSH1 0x0e` as a `GasTrace`.
 - `truthEVM_jumpi_decode`: proves the next pc decodes as `JUMPI`.
 - `truthEVM_jumpi_stack`: computes the stack before `JUMPI`.
 - `truthEVM_jumpi_oog`: proves top-level `Ξ` out-of-gas on `JUMPI`.
 - `truthEVM_jumpi_continue`: proves the successful local `JUMPI` step from an explicit valid-jump-table premise and gas facts.
 - `truthEVM_jumpi_trace`: packages the prologue plus successful non-payable-guard `JUMPI` as a `ContinueTrace`, given the valid-jump-table premise.
+- `truthEVM_jumpi_gas_trace`: packages the prologue plus successful taken non-payable-guard `JUMPI` as a `GasTrace`.
 - `truthEVM_jumpi_fallthrough_continue`: proves successful local `JUMPI` fallthrough for nonzero callvalue without a valid-jump premise.
 - `truthEVM_jumpi_fallthrough_trace`: packages the nonzero-callvalue fallthrough through `JUMPI` as a `ContinueTrace`.
+- `truthEVM_jumpi_fallthrough_gas_trace`: packages the nonzero-callvalue fallthrough through `JUMPI` as a `GasTrace`.
 - `truthEVM_jumpdest_decode_of_callvalue_zero`: decodes the taken zero-callvalue `JUMPI` target as `JUMPDEST`.
 - `truthEVM_jumpdest_oog`: proves top-level `Ξ` out-of-gas at the taken zero-callvalue `JUMPDEST`, assuming the valid-jump-table premise.
 - `truthEVM_jumpdest_continue`: proves the successful taken zero-callvalue `JUMPDEST` step.
 - `truthEVM_jumpdest_trace`: packages the zero-callvalue path through `JUMPI; JUMPDEST`, assuming the valid-jump-table premise.
+- `truthEVM_jumpdest_gas_trace`: packages the zero-callvalue path through `JUMPI; JUMPDEST` as a `GasTrace`.
 - `truthEVM_pop_decode_of_callvalue_zero`: decodes the next zero-callvalue opcode as `POP`.
 - `truthEVM_pop_stack_of_callvalue_zero`: computes the stack before the zero-callvalue `POP`.
 - `truthEVM_pop_oog`: proves top-level `Ξ` out-of-gas at the zero-callvalue `POP`, assuming the valid-jump-table premise.
 - `truthEVM_pop_continue`: proves the successful zero-callvalue `POP` step.
 - `truthEVM_pop_trace`: packages the zero-callvalue path through `JUMPI; JUMPDEST; POP`, assuming the valid-jump-table premise.
+- `truthEVM_pop_gas_trace`: packages the zero-callvalue path through `JUMPI; JUMPDEST; POP` as a `GasTrace`.
 - `truthEVM_push_calldata_min_decode_of_callvalue_zero`: decodes the first dispatcher step after `POP` as `PUSH1 0x04`.
 - `truthEVM_push_calldata_min_oog`: proves top-level `Ξ` out-of-gas at dispatcher `PUSH1 0x04`, assuming the valid-jump-table premise.
 - `truthEVM_push_calldata_min_continue`: proves the successful dispatcher `PUSH1 0x04` step.
@@ -1054,10 +1065,12 @@
 - `truthEVM_fallthrough_first_push0_oog`: proves top-level `Ξ` out-of-gas at the first fallthrough `PUSH0`.
 - `truthEVM_fallthrough_first_push0_continue`: proves the successful first fallthrough `PUSH0` step.
 - `truthEVM_fallthrough_first_push0_trace`: packages the nonzero-callvalue fallthrough through the first `PUSH0`.
+- `truthEVM_fallthrough_first_push0_gas_trace`: packages the nonzero-callvalue fallthrough through the first `PUSH0` as a `GasTrace`.
 - `truthEVM_second_push0_decode_of_callvalue_nonzero`: decodes the second nonzero-callvalue fallthrough opcode as `PUSH0`.
 - `truthEVM_fallthrough_second_push0_oog`: proves top-level `Ξ` out-of-gas at the second fallthrough `PUSH0`.
 - `truthEVM_fallthrough_second_push0_continue`: proves the successful second fallthrough `PUSH0` step.
 - `truthEVM_fallthrough_second_push0_trace`: packages the nonzero-callvalue fallthrough through both `PUSH0` steps.
+- `truthEVM_fallthrough_second_push0_gas_trace`: packages the nonzero-callvalue fallthrough through both `PUSH0` steps as a `GasTrace`.
 - `truthEVM_revert_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue fallthrough halt as `REVERT`.
 - `truthEVM_revert_stack_of_callvalue_nonzero`: computes the stack before the fallthrough `REVERT`.
 - `truthEVM_fallthrough_revert`: proves top-level `Ξ` revert for the nonzero-callvalue fallthrough path.
