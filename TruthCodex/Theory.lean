@@ -1204,6 +1204,22 @@ def dup1NextState (s : Ethereum.State) (a : Ethereum.UInt256)
     machineState.pc := s.machineState.pc + ⟨1⟩
     machineState.execLength := s.machineState.execLength + 1}
 
+@[simp] theorem dup1NextState_stack (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).machineState.stack = a :: a :: t :=
+  rfl
+
+@[simp] theorem dup1NextState_gasAvailable (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gverylow :=
+  rfl
+
+@[simp] theorem dup1NextState_pc (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
+
 theorem Xstep_dup1_oog_of_decode {s : Ethereum.State}
     {a : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
     (hDecode : decode s.executionEnv.code s.machineState.pc = some (.DUP1, .none))
@@ -1480,6 +1496,21 @@ theorem jumpiNextState_pc_of_not_lt {s : Ethereum.State}
   jumpiNextState_pc_of_cond_bne_false
     (Ethereum.UInt256.lt_bne_zero_eq_false_of_not_lt h)
 
+theorem jumpiNextState_pc_of_eq {s : Ethereum.State}
+    {dest a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (h : a = b) :
+    (jumpiNextState s dest (Ethereum.UInt256.eq a b) t).machineState.pc = dest :=
+  jumpiNextState_pc_of_cond_bne_true
+    (Ethereum.UInt256.eq_bne_zero_eq_true_of_eq h)
+
+theorem jumpiNextState_pc_of_ne {s : Ethereum.State}
+    {dest a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (h : a ≠ b) :
+    (jumpiNextState s dest (Ethereum.UInt256.eq a b) t).machineState.pc =
+      s.machineState.pc + ⟨1⟩ :=
+  jumpiNextState_pc_of_cond_bne_false
+    (Ethereum.UInt256.eq_bne_zero_eq_false_of_ne h)
+
 theorem Xstep_jumpi_oog_of_decode {s : Ethereum.State}
     {dest cond : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
     (hDecode : decode s.executionEnv.code s.machineState.pc = some (.JUMPI, .none))
@@ -1569,6 +1600,15 @@ def jumpdestNextState (s : Ethereum.State) : Ethereum.State :=
     (jumpdestNextState s).machineState.stack = s.machineState.stack :=
   rfl
 
+@[simp] theorem jumpdestNextState_gasAvailable (s : Ethereum.State) :
+    (jumpdestNextState s).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gjumpdest :=
+  rfl
+
+@[simp] theorem jumpdestNextState_pc (s : Ethereum.State) :
+    (jumpdestNextState s).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
+
 theorem Xstep_jumpdest_oog_of_decode {s : Ethereum.State}
     (hDecode : decode s.executionEnv.code s.machineState.pc = some (.JUMPDEST, .none))
     (hGas : s.machineState.gasAvailable.toNat < GasConstants.Gjumpdest) :
@@ -1593,6 +1633,22 @@ def popNextState (s : Ethereum.State) (_a : Ethereum.UInt256)
     machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gbase
     machineState.pc := s.machineState.pc + ⟨1⟩
     machineState.execLength := s.machineState.execLength + 1}
+
+@[simp] theorem popNextState_stack (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).machineState.stack = t :=
+  rfl
+
+@[simp] theorem popNextState_gasAvailable (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gbase :=
+  rfl
+
+@[simp] theorem popNextState_pc (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
 
 theorem Xstep_pop_oog_of_decode {s : Ethereum.State}
     {a : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
@@ -1631,6 +1687,29 @@ def revertNextState (s : Ethereum.State) (offset size : Ethereum.UInt256)
         Ethereum.UInt256.ofNat GasConstants.Gzero
     machineState.pc := s.machineState.pc + ⟨1⟩
     machineState.execLength := s.machineState.execLength + 1}
+
+@[simp] theorem revertNextState_stack (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).machineState.stack = t :=
+  rfl
+
+@[simp] theorem revertNextState_H_return (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).machineState.H_return =
+      revertOutput s offset size :=
+  rfl
+
+@[simp] theorem revertNextState_gasAvailable (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).machineState.gasAvailable =
+      (s.machineState.gasAvailable - Ethereum.UInt256.ofNat (memoryExpansionCost s .REVERT)) -
+        Ethereum.UInt256.ofNat GasConstants.Gzero :=
+  rfl
+
+@[simp] theorem revertNextState_pc (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
 
 theorem Xstep_revert_memory_oog_of_decode {s : Ethereum.State}
     {offset size : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
