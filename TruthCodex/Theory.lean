@@ -993,6 +993,12 @@ theorem Xstep_of_code_eq_of_decode {code : ByteArray} {s : Ethereum.State}
     Xstep (D_J code ⟨0⟩) s = result :=
   Xstep_of_code_eq hCode (hStep (decode_of_code_eq hCode hDecode))
 
+theorem D_J_contains_of_code_eq {code code' : ByteArray} {start dest : Ethereum.UInt256}
+    (hCode : code = code')
+    (hContains : (D_J code' start).contains dest = true) :
+    (D_J code start).contains dest = true := by
+  simpa [hCode] using hContains
+
 theorem executionEnv_eq_of_Xstep {validJumps : Array Ethereum.UInt256}
     {s t : Ethereum.State} {o : Option (Bool × ByteArray)}
     (hStep : Xstep validJumps s = .ok (t, o)) :
@@ -4872,6 +4878,190 @@ lemma EVM_Xi_of_initial_continue_five_traces_error_of_le
     (n := m + n + k + l + p)
     hFuel
     (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hErr
+
+lemma EVM_Xi_of_initial_continue_traces_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n : Nat}
+    {mid t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n ≤ g.toNat)
+    (hPrefix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) mid)
+    (hSuffix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n mid t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := m + n)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append hPrefix hSuffix)
+    hDecode
+    hErr
+
+lemma EVM_Xi_of_initial_continue_three_traces_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hDecode
+    hErr
+
+lemma EVM_Xi_of_initial_continue_four_traces_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hDecode
+    hErr
+
+lemma EVM_Xi_of_initial_continue_five_traces_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l p : Nat}
+    {s₁ s₂ s₃ s₄ t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k + l + p ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) p s₄ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := m + n + k + l + p)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hDecode
+    hErr
+
+lemma EVM_Xi_of_initial_continue_ten_traces_error_of_le_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ t : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel :
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₂ s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₃ s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₄ s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₅ s₄ s₅)
+    (h₆ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₆ s₅ s₆)
+    (h₇ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₇ s₆ s₇)
+    (h₈ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₈ s₇ s₈)
+    (h₉ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₉ s₈ s₉)
+    (h₁₀ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁₀ s₉ t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = decoded)
+    (hErr :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = decoded →
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J t.executionEnv.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le_of_decode
+    (n := (m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀))
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
+    hDecode
     hErr
 
 namespace Act

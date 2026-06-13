@@ -76,6 +76,7 @@
 - `Ethereum.EVM.decode_of_code_eq`: rewrites an opcode decode across an endpoint/initial code equality.
 - `Ethereum.EVM.Xstep_of_code_eq`: rewrites an `Xstep` valid-jump table across an endpoint/initial code equality.
 - `Ethereum.EVM.Xstep_of_code_eq_of_decode`: transports both an opcode decode fact and the valid-jump table across endpoint/initial code equality.
+- `Ethereum.EVM.D_J_contains_of_code_eq`: transports valid-jump-table membership across bytecode equality.
 - `Ethereum.EVM.executionEnv_eq_of_Xstep`: extracts execution-environment preservation from any successful `Xstep`.
 - `Ethereum.EVM.code_eq_of_Xstep`: propagates bytecode equality across any successful `Xstep`.
 - `Ethereum.EVM.push1NextState`: names the concrete next state for a successful `PUSH1`.
@@ -420,6 +421,7 @@
 - `EVM_Xi_of_initial_continue_traces_revert_zero_of_le`: composes two continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_revert_zero_of_le_of_decode`: composes two traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_traces_error_of_le`: composes two continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_error_of_le_of_decode`: composes two traces before the decoded endpoint-error lifter.
 - `EVM_Xi_of_initial_continue_three_traces_success_of_le`: composes three continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_return_of_le_of_decode`: composes three traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_three_traces_revert_of_le`: composes three continuing traces before lifting a revert halt to `Ξ`.
@@ -427,6 +429,7 @@
 - `EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le`: composes three continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le_of_decode`: composes three traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_three_traces_error_of_le`: composes three continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_error_of_le_of_decode`: composes three traces before the decoded endpoint-error lifter.
 - `EVM_Xi_of_initial_continue_four_traces_success_of_le`: composes four continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_four_traces_return_of_le_of_decode`: composes four traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_four_traces_revert_of_le`: composes four continuing traces before lifting a revert halt to `Ξ`.
@@ -434,6 +437,7 @@
 - `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le`: composes four continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le_of_decode`: composes four traces before the zero-length `REVERT` decode-over-`I.code` lifter.
 - `EVM_Xi_of_initial_continue_four_traces_error_of_le`: composes four continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_error_of_le_of_decode`: composes four traces before the decoded endpoint-error lifter.
 - `EVM_Xi_of_initial_continue_five_traces_success_of_le`: composes five continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_return_of_le_of_decode`: composes five traces before the decoded `RETURN` lifter.
 - `EVM_Xi_of_initial_continue_ten_traces_success_of_le`: composes ten continuing traces before lifting a success halt to `Ξ`.
@@ -441,9 +445,11 @@
 - `EVM_Xi_of_initial_continue_ten_traces_revert_of_le`: composes ten continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_ten_traces_revert_zero_of_le`: composes ten continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_ten_traces_error_of_le`: composes ten continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_error_of_le_of_decode`: composes ten traces before the decoded endpoint-error lifter.
 - `EVM_Xi_of_initial_continue_five_traces_revert_of_le`: composes five continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_revert_zero_of_le`: composes five continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_error_of_le`: composes five continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_error_of_le_of_decode`: composes five traces before the decoded endpoint-error lifter.
 - `Act.ExecStmt.require_true_of_eval`: proves a successful `require` from a true condition evaluation.
 - `Act.ExecStmt.require_false_of_eval`: proves a reverting `require` from a false condition evaluation.
 - `Act.ExecStmt.require_revert_of_eval`: proves a reverting `require` from a reverting condition evaluation.
@@ -651,6 +657,7 @@
 - `truthEVM_lt_continue`: proves the successful dispatcher `LT` step.
 - `truthEVM_lt_trace`: packages the zero-callvalue path through dispatcher `LT`, assuming the valid-jump-table premise.
 - `truthEVM_push_short_revert_dest_decode_of_callvalue_zero`: decodes dispatcher `PUSH1 0x26` after `CALLDATASIZE < 4`.
+- `truthEVM_push_short_revert_dest_oog`: proves top-level `Ξ` out-of-gas at dispatcher `PUSH1 0x26`, assuming the valid-jump-table premise.
 - `truthEVM_push_short_revert_dest_continue`: proves the successful dispatcher `PUSH1 0x26` step.
 - `truthEVM_push_short_revert_dest_trace`: packages the zero-callvalue dispatcher path through `PUSH1 0x26`, assuming the valid-jump-table premise.
 - `truthEVM_short_calldata_jumpi_decode_of_callvalue_zero`: decodes the short-calldata branch `JUMPI`.
@@ -740,9 +747,14 @@
 - `truthEVM_revert_stack_of_callvalue_nonzero`: computes the stack before the fallthrough `REVERT`.
 - `truthEVM_fallthrough_revert`: proves top-level `Ξ` revert for the nonzero-callvalue fallthrough path.
 
+# Local Truth-specific blockers
+
+- `truthBytecode_validJump_0e`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `#eval` computes `true`, but kernel reduction is blocked by opaque `D_J_aux`.
+- `truthValidJump_0e_of_code`: transports `truthBytecode_validJump_0e` to any execution environment whose code is `truthBytecode`.
+
 # Open gaps
 
-- `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after a successful non-payable-guard `JUMPI`.
+- `truthCorrect` still has one `sorry`: the remaining zero-callvalue coverage after the successful dispatcher `PUSH1 0x26`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
 - The zero-callvalue branch needs a kernel-checked proof that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `D_J_aux` is currently opaque, so this is logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
