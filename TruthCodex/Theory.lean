@@ -220,6 +220,29 @@ lemma write_extract_before_of_stop_le
         omega
       · exact hStopDestAddr
 
+lemma write_size_ge_before_of_stop_le
+    {source dest : ByteArray} {sourceAddr destAddr len start stop : Nat}
+    (hStartStop : start < stop)
+    (hStopDest : stop ≤ dest.size)
+    (hStopDestAddr : stop ≤ destAddr) :
+    stop ≤ (source.write sourceAddr dest destAddr len).size := by
+  let written := source.write sourceAddr dest destAddr len
+  change stop ≤ written.size
+  have hExtract :
+      written.extract start stop = dest.extract start stop := by
+    dsimp [written]
+    exact write_extract_before_of_stop_le hStopDest hStopDestAddr
+  have hSize := congrArg ByteArray.size hExtract
+  rw [ByteArray.size_extract, ByteArray.size_extract] at hSize
+  by_contra hStopWritten
+  have hWrittenLt : written.size < stop := by omega
+  have hMinWritten : min stop written.size = written.size :=
+    Nat.min_eq_right (by omega)
+  have hMinDest : min stop dest.size = stop :=
+    Nat.min_eq_left hStopDest
+  rw [hMinWritten, hMinDest] at hSize
+  omega
+
 lemma copySlice_zero_empty_eq_extract (source : ByteArray) (size : Nat) :
     source.copySlice 0 ByteArray.empty 0 size = source.extract 0 size := by
   rw [ByteArray.copySlice_eq_append]
@@ -478,6 +501,24 @@ lemma readWithPadding_write_before_of_stop_le
 
 end ByteArray
 
+namespace Ethereum.MachineState
+
+lemma M_32_mul_32_le_add_63_of_active_mul_le
+    {activeWords start : Nat}
+    (hActive : activeWords * 32 ≤ start + 63) :
+    M activeWords start 32 * 32 ≤ start + 63 := by
+  simp [M]
+  by_cases hMax : activeWords ≤ (start + 32 + 31) / 32
+  · rw [max_eq_right hMax]
+    have hDiv := Nat.div_mul_le_self (start + 32 + 31) 32
+    omega
+  · have hDivLe : (start + 32 + 31) / 32 ≤ activeWords :=
+      le_of_not_ge hMax
+    rw [max_eq_left hDivLe]
+    exact hActive
+
+end Ethereum.MachineState
+
 namespace Ethereum.UInt256
 
 @[simp] lemma add_zero (x : Ethereum.UInt256) :
@@ -564,6 +605,56 @@ lemma toNat_add_sub_left_of_lt {x y : Ethereum.UInt256}
     omega
   rw [toNat_sub_of_le hLe, hAdd]
   omega
+
+lemma activeWords_mul_32_gt_64_of_M_3_32
+    {ptr : Ethereum.UInt256}
+    (hPtrGe : 128 ≤ ptr.toNat)
+    (hPtrAdd63 : ptr.toNat + 63 < Ethereum.UInt256.size) :
+    64 <
+      ((Ethereum.UInt256.ofNat (Ethereum.MachineState.M 3 ptr.toNat 32)) *
+        (⟨32⟩ : Ethereum.UInt256)).toNat := by
+  let m := Ethereum.MachineState.M 3 ptr.toNat 32
+  have hActiveLe : 3 * 32 ≤ ptr.toNat + 63 := by
+    omega
+  have hMLe : m * 32 ≤ ptr.toNat + 63 := by
+    dsimp [m]
+    exact Ethereum.MachineState.M_32_mul_32_le_add_63_of_active_mul_le hActiveLe
+  have hMGe : 3 ≤ m := by
+    dsimp [m]
+    simp [Ethereum.MachineState.M]
+  have hMLt : m * 32 < Ethereum.UInt256.size := by
+    omega
+  have hMlt : m < Ethereum.UInt256.size := by
+    omega
+  have hMNat :
+      (Ethereum.UInt256.ofNat m).toNat = m :=
+    Ethereum.UInt256.ofNat_toNat_of_lt hMlt
+  have h32 :
+      (⟨32⟩ : Ethereum.UInt256).toNat = 32 := by
+    rfl
+  have hMulLt :
+      (Ethereum.UInt256.ofNat m).toNat *
+        (⟨32⟩ : Ethereum.UInt256).toNat < Ethereum.UInt256.size := by
+    rw [hMNat, h32]
+    exact hMLt
+  rw [Ethereum.UInt256.toNat_mul_of_lt hMulLt, hMNat, h32]
+  omega
+
+lemma three_mul_32_gt_64 :
+    64 <
+      ((⟨3⟩ : Ethereum.UInt256) *
+        (⟨32⟩ : Ethereum.UInt256)).toNat := by
+  have h3 : (⟨3⟩ : Ethereum.UInt256).toNat = 3 := by
+    rfl
+  have h32 : (⟨32⟩ : Ethereum.UInt256).toNat = 32 := by
+    rfl
+  have hMulLt :
+      (⟨3⟩ : Ethereum.UInt256).toNat *
+        (⟨32⟩ : Ethereum.UInt256).toNat < Ethereum.UInt256.size := by
+    rw [h3, h32]
+    norm_num [Ethereum.UInt256.size]
+  rw [Ethereum.UInt256.toNat_mul_of_lt hMulLt, h3, h32]
+  norm_num
 
 lemma toNat_shiftRight_of_lt {a b : Ethereum.UInt256}
     (hb : b.toNat < 256) :
@@ -2672,6 +2763,24 @@ theorem mloadValue_mstoreNextState_at_64_of_empty
       decide
   · exact hDestPad
 
+theorem mstoreNextState_at_64_of_empty_activeWords_eq_three
+    {s : Ethereum.State} {b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hActiveWords : s.machineState.activeWords = (⟨0⟩ : Ethereum.UInt256)) :
+    (mstoreNextState s (⟨0x40⟩ : Ethereum.UInt256) b t).machineState.activeWords =
+      (⟨3⟩ : Ethereum.UInt256) := by
+  simp [mstoreNextState, hActiveWords, Ethereum.MachineState.M,
+    Ethereum.UInt256.ofNat, Ethereum.UInt256.toNat, Id.run]
+  rfl
+
+theorem mloadNextState_at_64_of_activeWords_eq_three
+    {s : Ethereum.State} {t : Ethereum.Stack Ethereum.UInt256}
+    (hActiveWords : s.machineState.activeWords = (⟨3⟩ : Ethereum.UInt256)) :
+    (mloadNextState s (⟨0x40⟩ : Ethereum.UInt256) t).machineState.activeWords =
+      (⟨3⟩ : Ethereum.UInt256) := by
+  simp [mloadNextState, hActiveWords, Ethereum.MachineState.M,
+    Ethereum.UInt256.ofNat, Ethereum.UInt256.toNat, Id.run]
+  rfl
+
 theorem mstoreNextState_readWithPadding_before
     (s : Ethereum.State) (a b : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256) {addr len : Nat}
@@ -2692,6 +2801,26 @@ theorem mstoreNextState_readWithPadding_before
       (readLen := len)
       hReadLen hLenPos hInBounds hBefore
 
+theorem mstoreNextState_memory_size_ge_before
+    (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) {addr len : Nat}
+    (hLenPos : 0 < len)
+    (hInBounds : addr + len ≤ s.machineState.memory.size)
+    (hBefore : addr + len ≤ a.toNat) :
+    addr + len ≤ (mstoreNextState s a b t).machineState.memory.size := by
+  simpa [mstoreNextState] using
+    ByteArray.write_size_ge_before_of_stop_le
+      (source := b.toByteArray)
+      (dest := s.machineState.memory)
+      (sourceAddr := 0)
+      (destAddr := a.toNat)
+      (len := 32)
+      (start := addr)
+      (stop := addr + len)
+      (by omega)
+      hInBounds
+      hBefore
+
 theorem mloadValue_mstoreNextState_before_eq
     (s : Ethereum.State) (ptr word a : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256)
@@ -2711,6 +2840,40 @@ theorem mloadValue_mstoreNextState_before_eq
   exact mstoreNextState_readWithPadding_before
     s ptr word t (addr := a.toNat) (len := 32)
     (by norm_num) (by norm_num) hInBounds hBefore
+
+theorem mloadValue_mstoreNextState_before_eq_of_bounds
+    (s : Ethereum.State) (ptr word a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256)
+    (hBaseMemory : a.toNat + 32 ≤ s.machineState.memory.size)
+    (hBaseActive :
+      a.toNat < (s.machineState.activeWords * (⟨32⟩ : Ethereum.UInt256)).toNat)
+    (hStoreMemory :
+      a.toNat + 32 ≤ (mstoreNextState s ptr word t).machineState.memory.size)
+    (hStoreActive :
+      a.toNat <
+        ((mstoreNextState s ptr word t).machineState.activeWords *
+          (⟨32⟩ : Ethereum.UInt256)).toNat)
+    (hBefore : a.toNat + 32 ≤ ptr.toNat) :
+    mloadValue (mstoreNextState s ptr word t) a = mloadValue s a := by
+  apply mloadValue_mstoreNextState_before_eq
+  · apply not_or.mpr
+    constructor
+    · omega
+    · intro hLe
+      have hNat :
+          (s.machineState.activeWords * (⟨32⟩ : Ethereum.UInt256)).toNat ≤
+            a.toNat := hLe
+      omega
+  · apply not_or.mpr
+    constructor
+    · omega
+    · intro hLe
+      have hNat :
+          ((mstoreNextState s ptr word t).machineState.activeWords *
+            (⟨32⟩ : Ethereum.UInt256)).toNat ≤ a.toNat := hLe
+      omega
+  · exact hBaseMemory
+  · exact hBefore
 
 @[simp] theorem mstoreNextState_gasAvailable (s : Ethereum.State)
     (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :

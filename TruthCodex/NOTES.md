@@ -30,10 +30,12 @@
 - `ByteArray.extract_zero_to_size_eq_self`: extracts the full byte array from offset zero using a known size.
 - `ByteArray.write_extract_self_of_size`: proves an exact in-bounds slice after `ByteArray.write 0 ...`, under the `USize` padding bound.
 - `ByteArray.write_size_ge_of_size`: derives the post-write size lower bound needed for padded reads.
+- `ByteArray.write_size_ge_before_of_stop_le`: proves a later write keeps an already-covered earlier read window in bounds.
 - `ByteArray.readWithPadding_write_self_of_size`: proves reading back an exact written slice returns the source bytes.
 - `ByteArray.readWithPadding_write_before_of_stop_le`: proves a padded read is unchanged by a later non-overlapping write.
 - `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
 - `USize.ofNat_sub_ofNat_eq_of_le`: lifts non-underflowing natural subtraction into equality of `USize` literals.
+- `Ethereum.MachineState.M_32_mul_32_le_add_63_of_active_mul_le`: bounds memory-expansion active-word byte coverage for a 32-byte write window.
 - `Ethereum.UInt256.add_zero`: simplifies addition of the zero word on the right.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.toByteArray_size`: proves every serialized EVM word is 32 bytes.
@@ -96,6 +98,8 @@
 - `Ethereum.UInt256.fromByteArrayBigEndian_toByteArray_128_add_63_lt_size`: specializes the word-alignment no-overflow bound to serialized word `0x80`.
 - `Ethereum.UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_add_63_lt_size`: word-alignment no-overflow bound after wrapping the serialized `0x80` value as `UInt256.ofNat`.
 - `Ethereum.UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_ge_128`: lower bound showing serialized word `0x80` remains at least `128` even with an opaque 31-byte prefix.
+- `Ethereum.UInt256.activeWords_mul_32_gt_64_of_M_3_32`: proves a post-`MSTORE` active-word count still covers the allocator slot at `0x40`.
+- `Ethereum.UInt256.three_mul_32_gt_64`: proves that three active words cover the allocator slot at `0x40`.
 - `Ethereum.fromBytes'_lt_uint256_size_of_length_le`: bounds a byte-folded natural by `2^256` when the byte list has at most 32 bytes.
 - `Ethereum.fromBytes'_append`: decomposes little-endian byte folding across list append.
 - `Ethereum.fromBytes'_append_div_pow_length`: drops the low-byte prefix of a folded little-endian list by division.
@@ -184,8 +188,12 @@
 - `Ethereum.EVM.mstoreNextState_readWithPadding_word`: padded read-back of the word just written by `MSTORE`.
 - `Ethereum.EVM.mloadValue_mstoreNextState_same_eq`: packages same-slot `MSTORE`/`MLOAD` readback under the normal `MLOAD` guard.
 - `Ethereum.EVM.mloadValue_mstoreNextState_at_64_of_empty`: standard allocator-prologue readback lemma for `MSTORE 0x40 w; MLOAD 0x40` from empty memory/active words.
+- `Ethereum.EVM.mstoreNextState_at_64_of_empty_activeWords_eq_three`: computes allocator-prologue active words after `MSTORE 0x40`.
+- `Ethereum.EVM.mloadNextState_at_64_of_activeWords_eq_three`: shows `MLOAD 0x40` preserves the already-expanded three-word memory frontier.
 - `Ethereum.EVM.mstoreNextState_readWithPadding_before`: lifts non-overlapping padded-read preservation through `MSTORE`.
 - `Ethereum.EVM.mloadValue_mstoreNextState_before_eq`: proves an `MLOAD` value is unchanged by a later non-overlapping `MSTORE`, assuming both `MLOAD` guards take the read branch.
+- `Ethereum.EVM.mstoreNextState_memory_size_ge_before`: proves a later `MSTORE` preserves the size bound needed to read an earlier memory window.
+- `Ethereum.EVM.mloadValue_mstoreNextState_before_eq_of_bounds`: non-overlapping `MSTORE`/`MLOAD` preservation packaged with explicit memory and active-word guards.
 - `Ethereum.EVM.mstoreNextState_gasAvailable`: projection fact for gas after `MSTORE`.
 - `Ethereum.EVM.mstoreNextState_pc`: projection fact for pc after `MSTORE`.
 - `Ethereum.EVM.Xstep_mstore_memory_oog_of_decode`: proves the `MSTORE` memory-expansion gas-underflow case.
@@ -1019,7 +1027,7 @@
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The final output proof now delegates memory readback to `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`, discharges the non-writing suffix memory equality with reusable memory projection lemmas, proves `writePtr = freePtr` via `Ethereum.UInt256.add_zero`, and normalizes the stored bool word with `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`. The library now has byte-array and EVM lemmas showing that a later non-overlapping `MSTORE` preserves earlier padded reads and `MLOAD` values, plus `UInt256` pointer-length arithmetic for `returnSize`. The initial allocator readback `hFreePtrSerialized80` and final-return no-overflow arithmetic are now discharged through `Ethereum.EVM.mloadValue_mstoreNextState_at_64_of_empty` and `Ethereum.UInt256.ofNat_fromByteArrayBigEndian_toByteArray_128_add_32_lt_size`; the remaining local output frontiers are the final `MLOAD 0x40` reload fact `returnBase = freePtr`, the write padding bound for `MSTORE`, and the trusted-base opacity of `ffi.ByteArray.zeroes 31` logged in `MISSPEC.md`. The `returnBase` proof can use the new serialized-`0x80` lower bound, but the padding bound still needs a kernel fact that the initial `MSTORE 0x40 0x80` reads back as a small `0x80` word, which is blocked by the opaque contents of `ffi.ByteArray.zeroes`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The final output proof now delegates memory readback to `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`, discharges the non-writing suffix memory equality with reusable memory projection lemmas, proves `writePtr = freePtr` via `Ethereum.UInt256.add_zero`, normalizes the stored bool word with `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`, and proves the final `MLOAD 0x40` reload fact `returnBase = freePtr` using reusable active-word and non-overlapping-write preservation lemmas. The library now has byte-array and EVM lemmas showing that a later non-overlapping `MSTORE` preserves earlier padded reads and `MLOAD` values, plus `UInt256` pointer-length arithmetic for `returnSize`. The initial allocator readback `hFreePtrSerialized80`, final-return no-overflow arithmetic, and final free-pointer reload are now discharged through reusable allocator/readback lemmas; the remaining local output frontiers are the write padding bound for `MSTORE` and the trusted-base opacity of `ffi.ByteArray.zeroes 31` logged in `MISSPEC.md`. The padding bound still needs a kernel fact that the initial `MSTORE 0x40 0x80` reads back as a small `0x80` word, which is blocked by the opaque contents of `ffi.ByteArray.zeroes`.
 - The former `truthGas_ge_fifty_of_return_cont_jump_continue` local gap was eliminated; the ABI encoder-entry OOG cases now use trace-based no-explicit-fuel wrappers, with the shared fuel argument concentrated in `Ethereum.EVM.ContinueTrace.length_le_initial_gas`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
