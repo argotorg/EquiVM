@@ -17396,6 +17396,416 @@ lemma truthEVM_final_return_success_of_prefix_trace
     (by omega)
 
 set_option maxRecDepth 10000 in
+lemma truthRuntime_final_return_coverage_of_prefix_trace
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m : Nat}
+    {s85 : Ethereum.State}
+    {wordEnd : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hSelector : I.calldata.extract 0 4 = trustedTruthSelector)
+    (hValue : I.weiValue = (⟨0⟩ : Ethereum.UInt256))
+    (hPrefix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s85)
+    (hStateCode : s85.executionEnv.code = I.code)
+    (hStateCreated : s85.createdAccounts = createdAccounts)
+    (hStateAccounts : s85.accountMap = σ)
+    (hCode : I.code = truthBytecode)
+    (hPc85 : s85.machineState.pc = (⟨0x3b⟩ : Ethereum.UInt256))
+    (hStack85 : s85.machineState.stack = wordEnd :: tail)
+    (hTailBound : tail.length + 3 < 1024)
+    (hOutput :
+      let s86 := Ethereum.EVM.jumpdestNextState s85
+      let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+      let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+      let s88 := Ethereum.EVM.mloadNextState s87
+        (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+      let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+      let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+      let returnSize := Ethereum.UInt256.sub wordEnd returnBase
+      let s91 := Ethereum.EVM.subNextState s90 wordEnd returnBase (returnBase :: tail)
+      let s92 := Ethereum.EVM.swap1NextState s91 returnSize returnBase tail
+      Ethereum.EVM.returnOutput s92 returnBase returnSize = abiBoolTrueReturn) :
+    runtimeEquivalenceFor truthConfig truthContract createdAccounts genesisBlockHeader blocks
+      σ σ₀ g A I := by
+  have hDecode85I :
+      Ethereum.EVM.decode I.code s85.machineState.pc = some (.JUMPDEST, .none) := by
+    rw [hCode, hPc85]
+    exact truthBytecode_decode_59
+  by_cases hFinalJumpdestGas :
+      s85.machineState.gasAvailable.toNat < GasConstants.Gjumpdest
+  · exact truthRuntime_outOfGas_of_evm
+      (EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_decode
+        (n := m)
+        (t := s85)
+        hPrefix
+        hDecode85I
+        hFinalJumpdestGas)
+  · let s86 := Ethereum.EVM.jumpdestNextState s85
+    have hStep85 :
+        Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s85 = .ok (s86, none) := by
+      have hStep := Ethereum.EVM.Xstep_jumpdest_continue_of_decode
+        (Ethereum.EVM.decode_of_code_eq hStateCode hDecode85I)
+        hFinalJumpdestGas
+        (by simp [hStack85]; omega)
+      simpa [s86] using Ethereum.EVM.Xstep_of_code_eq hStateCode hStep
+    have hTrace85 :
+        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s85 s86 :=
+      Ethereum.EVM.ContinueTrace.one hStep85
+    have hPrefix86 :
+        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (m + 1)
+          (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s86 :=
+      Ethereum.EVM.ContinueTrace.append hPrefix hTrace85
+    have hEndpoint86 : s86.executionEnv.code = I.code := by
+      exact Ethereum.EVM.code_eq_of_Xstep hStep85 hStateCode
+    have hPc86 : s86.machineState.pc = (⟨0x3c⟩ : Ethereum.UInt256) := by
+      simp [s86, hPc85, Ethereum.EVM.jumpdestNextState, Ethereum.UInt256.ofNat, Id.run]
+      decide
+    have hStack86 : s86.machineState.stack = wordEnd :: tail := by
+      simp [s86, hStack85]
+    have hDecode86I :
+        Ethereum.EVM.decode I.code s86.machineState.pc =
+          some (.PUSH1, .some (⟨0x40⟩, 1)) := by
+      rw [hCode, hPc86]
+      exact truthBytecode_decode_60
+    by_cases hFinalPushFreePtrGas :
+        s86.machineState.gasAvailable.toNat < GasConstants.Gverylow
+    · exact truthRuntime_outOfGas_of_evm
+        (EVM_Xi_of_initial_continue_trace_push1_oog_of_decode
+          (n := m + 1)
+          (t := s86)
+          (arg := (⟨0x40⟩ : Ethereum.UInt256))
+          hPrefix86
+          hDecode86I
+          hFinalPushFreePtrGas)
+    · let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+      have hStep86 :
+          Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s86 = .ok (s87, none) := by
+        have hStep := Ethereum.EVM.Xstep_push1_continue_of_decode
+          (Ethereum.EVM.decode_of_code_eq hEndpoint86 hDecode86I)
+          hFinalPushFreePtrGas
+          (by simp [hStack86]; omega)
+        simpa [s87] using Ethereum.EVM.Xstep_of_code_eq hEndpoint86 hStep
+      have hTrace86 :
+          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s86 s87 :=
+        Ethereum.EVM.ContinueTrace.one hStep86
+      have hPrefix87 :
+          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) ((m + 1) + 1)
+            (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s87 :=
+        Ethereum.EVM.ContinueTrace.append hPrefix86 hTrace86
+      have hEndpoint87 : s87.executionEnv.code = I.code := by
+        exact Ethereum.EVM.code_eq_of_Xstep hStep86 hEndpoint86
+      have hPc87 : s87.machineState.pc = (⟨0x3e⟩ : Ethereum.UInt256) := by
+        simp [s87, hPc86, Ethereum.EVM.push1NextState, Ethereum.UInt256.ofNat, Id.run]
+        decide
+      have hStack87 :
+          s87.machineState.stack = (⟨0x40⟩ : Ethereum.UInt256) :: wordEnd :: tail := by
+        simp [s87, hStack86]
+      have hDecode87I :
+          Ethereum.EVM.decode I.code s87.machineState.pc = some (.MLOAD, .none) := by
+        rw [hCode, hPc87]
+        exact truthBytecode_decode_62
+      by_cases hFinalMloadMemGas :
+          s87.machineState.gasAvailable.toNat <
+            Ethereum.EVM.memoryExpansionCost s87 .MLOAD
+      · exact truthRuntime_outOfGas_of_evm
+          (EVM_Xi_of_initial_continue_trace_mload_memory_oog_of_decode
+            (n := (m + 1) + 1)
+            (t := s87)
+            (offset := (⟨0x40⟩ : Ethereum.UInt256))
+            (tail := wordEnd :: tail)
+            hPrefix87
+            hDecode87I
+            hStack87
+            hFinalMloadMemGas)
+      · by_cases hFinalMloadVerylowGas :
+            (s87.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s87 .MLOAD)).toNat <
+              GasConstants.Gverylow
+        · exact truthRuntime_outOfGas_of_evm
+            (EVM_Xi_of_initial_continue_trace_mload_verylow_oog_of_decode
+              (n := (m + 1) + 1)
+              (t := s87)
+              (offset := (⟨0x40⟩ : Ethereum.UInt256))
+              (tail := wordEnd :: tail)
+              hPrefix87
+              hDecode87I
+              hStack87
+              hFinalMloadMemGas
+              hFinalMloadVerylowGas)
+        · let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+          let s88 := Ethereum.EVM.mloadNextState s87
+            (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+          have hStep87 :
+              Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s87 =
+                .ok (s88, none) := by
+            have hStep := Ethereum.EVM.Xstep_mload_continue_of_decode
+              (s := s87)
+              (a := (⟨0x40⟩ : Ethereum.UInt256))
+              (t := wordEnd :: tail)
+              (Ethereum.EVM.decode_of_code_eq hEndpoint87 hDecode87I)
+              hStack87
+              hFinalMloadMemGas
+              hFinalMloadVerylowGas
+              (by simp [hTailBound]; omega)
+            simpa [s88] using Ethereum.EVM.Xstep_of_code_eq hEndpoint87 hStep
+          have hTrace87 :
+              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s87 s88 :=
+            Ethereum.EVM.ContinueTrace.one hStep87
+          have hPrefix88 :
+              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (((m + 1) + 1) + 1)
+                (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s88 :=
+            Ethereum.EVM.ContinueTrace.append hPrefix87 hTrace87
+          have hEndpoint88 : s88.executionEnv.code = I.code := by
+            exact Ethereum.EVM.code_eq_of_Xstep hStep87 hEndpoint87
+          have hPc88 : s88.machineState.pc = (⟨0x3f⟩ : Ethereum.UInt256) := by
+            simp [s88, hPc87, Ethereum.EVM.mloadNextState, Ethereum.UInt256.ofNat, Id.run]
+            decide
+          have hStack88 : s88.machineState.stack = returnBase :: wordEnd :: tail := by
+            simp [s88, returnBase]
+          have hDecode88I :
+              Ethereum.EVM.decode I.code s88.machineState.pc = some (.DUP1, .none) := by
+            rw [hCode, hPc88]
+            exact truthBytecode_decode_63
+          by_cases hFinalDupBaseGas :
+              s88.machineState.gasAvailable.toNat < GasConstants.Gverylow
+          · exact truthRuntime_outOfGas_of_evm
+              (EVM_Xi_of_initial_continue_trace_dup1_oog_of_decode
+                (n := ((m + 1) + 1) + 1)
+                (t := s88)
+                (a := returnBase)
+                (tail := wordEnd :: tail)
+                hPrefix88
+                hDecode88I
+                hStack88
+                hFinalDupBaseGas)
+          · let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+            have hStep88 :
+                Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s88 =
+                  .ok (s89, none) := by
+              have hStep := Ethereum.EVM.Xstep_dup1_continue_of_decode
+                (s := s88)
+                (a := returnBase)
+                (t := wordEnd :: tail)
+                (Ethereum.EVM.decode_of_code_eq hEndpoint88 hDecode88I)
+                hStack88
+                hFinalDupBaseGas
+                (by simp [hTailBound]; omega)
+              simpa [s89] using Ethereum.EVM.Xstep_of_code_eq hEndpoint88 hStep
+            have hTrace88 :
+                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s88 s89 :=
+              Ethereum.EVM.ContinueTrace.one hStep88
+            have hPrefix89 :
+                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩)
+                  ((((m + 1) + 1) + 1) + 1)
+                  (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s89 :=
+              Ethereum.EVM.ContinueTrace.append hPrefix88 hTrace88
+            have hEndpoint89 : s89.executionEnv.code = I.code := by
+              exact Ethereum.EVM.code_eq_of_Xstep hStep88 hEndpoint88
+            have hPc89 : s89.machineState.pc = (⟨0x40⟩ : Ethereum.UInt256) := by
+              simp [s89, hPc88, Ethereum.EVM.dup1NextState, Ethereum.UInt256.ofNat, Id.run]
+              decide
+            have hStack89 :
+                s89.machineState.stack = returnBase :: returnBase :: wordEnd :: tail := by
+              simp [s89, hStack88]
+            have hDecode89I :
+                Ethereum.EVM.decode I.code s89.machineState.pc = some (.SWAP2, .none) := by
+              rw [hCode, hPc89]
+              exact truthBytecode_decode_64
+            by_cases hFinalSwapEndGas :
+                s89.machineState.gasAvailable.toNat < GasConstants.Gverylow
+            · exact truthRuntime_outOfGas_of_evm
+                (EVM_Xi_of_initial_continue_trace_swap2_oog_of_decode
+                  (n := (((m + 1) + 1) + 1) + 1)
+                  (t := s89)
+                  (a := returnBase)
+                  (b := returnBase)
+                  (c := wordEnd)
+                  (tail := tail)
+                  hPrefix89
+                  hDecode89I
+                  hStack89
+                  hFinalSwapEndGas)
+            · let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+              have hStep89 :
+                  Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s89 =
+                    .ok (s90, none) := by
+                have hStep := Ethereum.EVM.Xstep_swap2_continue_of_decode
+                  (s := s89)
+                  (a := returnBase)
+                  (b := returnBase)
+                  (c := wordEnd)
+                  (t := tail)
+                  (Ethereum.EVM.decode_of_code_eq hEndpoint89 hDecode89I)
+                  hStack89
+                  hFinalSwapEndGas
+                  (by simp [hTailBound]; omega)
+                simpa [s90] using Ethereum.EVM.Xstep_of_code_eq hEndpoint89 hStep
+              have hTrace89 :
+                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s89 s90 :=
+                Ethereum.EVM.ContinueTrace.one hStep89
+              have hPrefix90 :
+                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩)
+                    (((((m + 1) + 1) + 1) + 1) + 1)
+                    (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s90 :=
+                Ethereum.EVM.ContinueTrace.append hPrefix89 hTrace89
+              have hEndpoint90 : s90.executionEnv.code = I.code := by
+                exact Ethereum.EVM.code_eq_of_Xstep hStep89 hEndpoint89
+              have hPc90 : s90.machineState.pc = (⟨0x41⟩ : Ethereum.UInt256) := by
+                simp [s90, hPc89, Ethereum.EVM.swap2NextState, Ethereum.UInt256.ofNat, Id.run]
+                decide
+              have hStack90 :
+                  s90.machineState.stack = wordEnd :: returnBase :: returnBase :: tail := by
+                simp [s90, hStack89]
+              have hDecode90I :
+                  Ethereum.EVM.decode I.code s90.machineState.pc = some (.SUB, .none) := by
+                rw [hCode, hPc90]
+                exact truthBytecode_decode_65
+              by_cases hFinalSubLengthGas :
+                  s90.machineState.gasAvailable.toNat < GasConstants.Gverylow
+              · exact truthRuntime_outOfGas_of_evm
+                  (EVM_Xi_of_initial_continue_trace_sub_oog_of_decode
+                    (n := ((((m + 1) + 1) + 1) + 1) + 1)
+                    (t := s90)
+                    (a := wordEnd)
+                    (b := returnBase)
+                    (tail := returnBase :: tail)
+                    hPrefix90
+                    hDecode90I
+                    hStack90
+                    hFinalSubLengthGas)
+              · let returnSize := Ethereum.UInt256.sub wordEnd returnBase
+                let s91 := Ethereum.EVM.subNextState s90 wordEnd returnBase (returnBase :: tail)
+                have hStep90 :
+                    Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s90 =
+                      .ok (s91, none) := by
+                  have hStep := Ethereum.EVM.Xstep_sub_continue_of_decode
+                    (s := s90)
+                    (a := wordEnd)
+                    (b := returnBase)
+                    (t := returnBase :: tail)
+                    (Ethereum.EVM.decode_of_code_eq hEndpoint90 hDecode90I)
+                    hStack90
+                    hFinalSubLengthGas
+                    (by simp [hTailBound]; omega)
+                  simpa [s91] using Ethereum.EVM.Xstep_of_code_eq hEndpoint90 hStep
+                have hTrace90 :
+                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s90 s91 :=
+                  Ethereum.EVM.ContinueTrace.one hStep90
+                have hPrefix91 :
+                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩)
+                      ((((((m + 1) + 1) + 1) + 1) + 1) + 1)
+                      (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s91 :=
+                  Ethereum.EVM.ContinueTrace.append hPrefix90 hTrace90
+                have hEndpoint91 : s91.executionEnv.code = I.code := by
+                  exact Ethereum.EVM.code_eq_of_Xstep hStep90 hEndpoint90
+                have hPc91 : s91.machineState.pc = (⟨0x42⟩ : Ethereum.UInt256) := by
+                  simp [s91, hPc90, Ethereum.EVM.subNextState, Ethereum.UInt256.ofNat, Id.run]
+                  decide
+                have hStack91 : s91.machineState.stack = returnSize :: returnBase :: tail := by
+                  simp [s91, returnSize]
+                have hDecode91I :
+                    Ethereum.EVM.decode I.code s91.machineState.pc = some (.SWAP1, .none) := by
+                  rw [hCode, hPc91]
+                  exact truthBytecode_decode_66
+                by_cases hFinalSwapReturnGas :
+                    s91.machineState.gasAvailable.toNat < GasConstants.Gverylow
+                · exact truthRuntime_outOfGas_of_evm
+                    (EVM_Xi_of_initial_continue_trace_swap1_oog_of_decode
+                      (n := (((((m + 1) + 1) + 1) + 1) + 1) + 1)
+                      (t := s91)
+                      (a := returnSize)
+                      (b := returnBase)
+                      (tail := tail)
+                      hPrefix91
+                      hDecode91I
+                      hStack91
+                      hFinalSwapReturnGas)
+                · let s92 := Ethereum.EVM.swap1NextState s91 returnSize returnBase tail
+                  have hStep91 :
+                      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s91 =
+                        .ok (s92, none) := by
+                    have hStep := Ethereum.EVM.Xstep_swap1_continue_of_decode
+                      (s := s91)
+                      (a := returnSize)
+                      (b := returnBase)
+                      (t := tail)
+                      (Ethereum.EVM.decode_of_code_eq hEndpoint91 hDecode91I)
+                      hStack91
+                      hFinalSwapReturnGas
+                      (by simp [hTailBound]; omega)
+                    simpa [s92] using Ethereum.EVM.Xstep_of_code_eq hEndpoint91 hStep
+                  have hTrace91 :
+                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s91 s92 :=
+                    Ethereum.EVM.ContinueTrace.one hStep91
+                  have hPrefix92 :
+                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩)
+                        (((((((m + 1) + 1) + 1) + 1) + 1) + 1) + 1)
+                        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s92 :=
+                    Ethereum.EVM.ContinueTrace.append hPrefix91 hTrace91
+                  have hEndpoint92 : s92.executionEnv.code = I.code := by
+                    exact Ethereum.EVM.code_eq_of_Xstep hStep91 hEndpoint91
+                  have hPc92 : s92.machineState.pc = (⟨0x43⟩ : Ethereum.UInt256) := by
+                    simp [s92, hPc91, Ethereum.EVM.swap1NextState, Ethereum.UInt256.ofNat, Id.run]
+                    decide
+                  have hStack92 : s92.machineState.stack = returnBase :: returnSize :: tail := by
+                    simp [s92, hStack91]
+                  have hDecode92I :
+                      Ethereum.EVM.decode I.code s92.machineState.pc = some (.RETURN, .none) := by
+                    rw [hCode, hPc92]
+                    exact truthBytecode_decode_67
+                  by_cases hFinalReturnMemGas :
+                      s92.machineState.gasAvailable.toNat <
+                        Ethereum.EVM.memoryExpansionCost s92 .RETURN
+                  · exact truthRuntime_outOfGas_of_evm
+                      (EVM_Xi_of_initial_continue_trace_return_memory_oog_of_decode
+                        (n := ((((((m + 1) + 1) + 1) + 1) + 1) + 1) + 1)
+                        (t := s92)
+                        (offset := returnBase)
+                        (size := returnSize)
+                        (tail := tail)
+                        hPrefix92
+                        hDecode92I
+                        hStack92
+                        hFinalReturnMemGas)
+                  · have hΞ :
+                        Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+                          .ok (.success
+                            ((Ethereum.EVM.returnNextState s92 returnBase returnSize tail).createdAccounts,
+                              (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).accountMap,
+                              (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).machineState.gasAvailable,
+                              (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).substate)
+                            (Ethereum.EVM.returnOutput s92 returnBase returnSize)) :=
+                      EVM_Xi_of_initial_continue_trace_return_of_decode
+                        (n := ((((((m + 1) + 1) + 1) + 1) + 1) + 1) + 1)
+                        (t := s92)
+                        (offset := returnBase)
+                        (size := returnSize)
+                        (tail := tail)
+                        hPrefix92
+                        hDecode92I
+                        hStack92
+                        hFinalReturnMemGas
+                        (by omega)
+                    exact truthRuntime_success_of_returnNextState
+                      hSelector
+                      hValue
+                      hΞ
+                      (by simpa [s92, s91, returnSize, s90, s89, s88, returnBase, s87,
+                        s86] using hStateCreated)
+                      (by simpa [s92, s91, returnSize, s90, s89, s88, returnBase, s87,
+                        s86] using hStateAccounts)
+                      (by
+                        simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91,
+                          s92] using hOutput)
+
+set_option maxRecDepth 10000 in
 lemma truthEVM_selector_match_success_of_trace_segments
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -26441,9 +26851,41 @@ theorem truthCorrect :
                                                                                                                                                                                             s85.machineState.stack =
                                                                                                                                                                                               [wordEnd, selectorWord] := by
                                                                                                                                                                                           simp [s85]
-                                                                                                                                                                                        -- Remaining selector-match coverage after the
-                                                                                                                                                                                        -- ABI encoder cleanup returns to the final continuation.
-                                                                                                                                                                                        sorry
+                                                                                                                                                                                        have hEndpoint85 :
+                                                                                                                                                                                            s85.executionEnv.code = I.code :=
+                                                                                                                                                                                          Ethereum.EVM.ContinueTrace.code_eq_of_initial
+                                                                                                                                                                                            hPrefix85Nat
+                                                                                                                                                                                        have hCreated85 :
+                                                                                                                                                                                            s85.createdAccounts = createdAccounts := by
+                                                                                                                                                                                          -- Endpoint account-field preservation for the assembled
+                                                                                                                                                                                          -- pure trace; factor as a small trace-field lemma next.
+                                                                                                                                                                                          sorry
+                                                                                                                                                                                        have hAccounts85 :
+                                                                                                                                                                                            s85.accountMap = σ := by
+                                                                                                                                                                                          -- Endpoint account-map preservation for the assembled
+                                                                                                                                                                                          -- pure trace; factor as a small trace-field lemma next.
+                                                                                                                                                                                          sorry
+                                                                                                                                                                                        exact
+                                                                                                                                                                                          truthRuntime_final_return_coverage_of_prefix_trace
+                                                                                                                                                                                            (m := 85)
+                                                                                                                                                                                            (s85 := s85)
+                                                                                                                                                                                            (wordEnd := wordEnd)
+                                                                                                                                                                                            (tail := [selectorWord])
+                                                                                                                                                                                            hSelector
+                                                                                                                                                                                            hValue
+                                                                                                                                                                                            hPrefix85Nat
+                                                                                                                                                                                            hEndpoint85
+                                                                                                                                                                                            hCreated85
+                                                                                                                                                                                            hAccounts85
+                                                                                                                                                                                            hCode
+                                                                                                                                                                                            hPc85
+                                                                                                                                                                                            (by simpa using hStack85)
+                                                                                                                                                                                            (by simp)
+                                                                                                                                                                                            (by
+                                                                                                                                                                                              -- Remaining byte-level fact: the ABI encoder writes
+                                                                                                                                                                                              -- the canonical `true` word at the free-memory pointer
+                                                                                                                                                                                              -- and the final `RETURN` reads exactly that slice.
+                                                                                                                                                                                              sorry)
                                                         · have hSelectorNe := truthSelectorWord_ne_of_selector_ne hShortCalldata hSelector
                                                           let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
                                                           let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
