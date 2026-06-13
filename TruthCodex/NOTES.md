@@ -14,6 +14,10 @@
 - `ByteArray.readBytes_zero_extract_zero_four`: specializes padded offset-zero reads to the four-byte EVM selector prefix.
 - `ByteArray.readBytes_size_of_lt`: proves padded `readBytes` returns exactly the requested byte count below the `USize` bound.
 - `ByteArray.readBytes_size_32`: specializes padded `readBytes` sizing to 32-byte EVM word reads.
+- `ByteArray.eq_empty_of_size_eq_zero`: identifies a zero-length byte array with `ByteArray.empty`.
+- `ByteArray.append_zeroes_of_toNat_eq_zero`: removes an appended zero-length padding array.
+- `ByteArray.append_zeroes_zero`: specializes zero-padding removal to literal zero.
+- `ByteArray.readWithPadding_eq_of_extract`: reduces a padded memory read to an exact in-bounds `extract` fact.
 - `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
@@ -299,6 +303,7 @@
 - `Ethereum.EVM.memoryExpansionCost_revert_zero_stack`: computes zero memory-expansion cost for `REVERT` with offset and size both zero.
 - `Ethereum.EVM.Xstep_revert_zero_continue_of_decode`: proves the successful zero-length `REVERT` step without a separate memory-gas premise.
 - `Ethereum.EVM.returnOutput`: names the returned memory slice for `RETURN`.
+- `Ethereum.EVM.returnOutput_eq_of_extract`: proves a `RETURN` output equality from exact memory-slice bounds and extraction.
 - `Ethereum.EVM.returnNextState`: names the concrete halt state for a successful `RETURN`.
 - `Ethereum.EVM.returnNextState_stack`: projection fact for the stack after `RETURN`.
 - `Ethereum.EVM.returnNextState_H_return`: projection fact for halt return data after `RETURN`.
@@ -433,6 +438,13 @@
 - `Ethereum.EVM.ContinueTrace.relation`: folds a transitive step relation across an entire continuing trace.
 - `Ethereum.EVM.ContinueTrace.executionEnv_eq`: lifts `Xstep_env_unchanged` to show a continuing trace preserves the execution environment.
 - `Ethereum.EVM.ContinueTrace.code_eq_of_start`: derives endpoint bytecode equality from start bytecode equality over a continuing trace.
+- `Ethereum.EVM.WorldStateEq`: bundles preservation of created accounts, account map, and substate across EVM states.
+- `Ethereum.EVM.WorldStateEq.refl` / `trans`: reflexive and transitive structure for reusable trace folding.
+- `Ethereum.EVM.WorldStateEq.createdAccounts_eq` / `accountMap_eq` / `substate_eq`: projection eliminators for world-state equality.
+- `Ethereum.EVM.WorldStateEq.of_eqs`: builds world-state equality from the three projected field equalities.
+- `Ethereum.EVM.ContinueTrace.worldStateEq_of_step`: folds any per-step world-state preservation theorem over a continuing trace.
+- `Ethereum.EVM.ContinueTrace.createdAccounts_eq_of_step`: projection of trace-level created-account preservation.
+- `Ethereum.EVM.ContinueTrace.accountMap_eq_of_step`: projection of trace-level account-map preservation.
 - `Ethereum.EVM.ContinueTrace.code_eq_of_initial`: specializes endpoint bytecode equality to traces from `initialEVMState`.
 - `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: reusable frontier lemma, currently a `sorry`, stating that a continuing trace of length `n` from `initialEVMState ... g ...` implies `n ≤ g.toNat`; intended to replace contract-specific fuel-bound arithmetic once a generic `Xstep` positive-gas-decrease lemma is proved.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
@@ -897,7 +909,7 @@
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is narrowed to endpoint account-field preservation for the assembled pure trace and the byte-level ABI output equality showing the final `RETURN` slice is `abiBoolTrueReturn`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged, and the remaining main-proof work is narrowed to the byte-level ABI output equality showing the final `RETURN` slice is `abiBoolTrueReturn`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.

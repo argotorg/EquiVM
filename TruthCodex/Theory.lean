@@ -179,6 +179,46 @@ lemma readBytes_size_32 (source : ByteArray) (start : Nat) :
     (source.readBytes start 32).size = 32 :=
   readBytes_size_of_lt source start 32 (by cases USize.size_eq <;> omega)
 
+lemma eq_empty_of_size_eq_zero {bytes : ByteArray} (hSize : bytes.size = 0) :
+    bytes = ByteArray.empty := by
+  apply ByteArray.ext
+  rw [ByteArray.data_empty]
+  apply Array.ext
+  · simpa [ByteArray.size_data] using hSize
+  · intro i hLeft hRight
+    exact False.elim (by simp at hRight)
+
+lemma append_zeroes_of_toNat_eq_zero (bytes : ByteArray) {n : USize}
+    (hn : n.toNat = 0) :
+    bytes ++ ffi.ByteArray.zeroes n = bytes := by
+  have hZeroes : ffi.ByteArray.zeroes n = ByteArray.empty :=
+    eq_empty_of_size_eq_zero (by rw [ByteArray_zeroes_size, hn])
+  rw [hZeroes, ByteArray.append_empty]
+
+lemma append_zeroes_zero (bytes : ByteArray) :
+    bytes ++ ffi.ByteArray.zeroes ⟨0⟩ = bytes :=
+  append_zeroes_of_toNat_eq_zero bytes rfl
+
+lemma readWithPadding_eq_of_extract
+    {memory source : ByteArray} {addr len : Nat}
+    (hLen : len < 2^64)
+    (hLenPos : 0 < len)
+    (hInBounds : addr + len ≤ memory.size)
+    (hSourceSize : source.size = len)
+    (hExtract : memory.extract addr (addr + len) = source) :
+    memory.readWithPadding addr len = source := by
+  have hLenDecimal : ¬ 18446744073709551616 ≤ len := by
+    norm_num
+    exact hLen
+  have hAddrLt : ¬ memory.size ≤ addr := by
+    omega
+  have hMin : min len memory.size = len := by
+    apply Nat.min_eq_left
+    omega
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  simp [hLenDecimal, hAddrLt, hMin, hExtract, hSourceSize]
+  exact append_zeroes_of_toNat_eq_zero source rfl
+
 end ByteArray
 
 namespace Ethereum.UInt256
@@ -3181,6 +3221,18 @@ theorem Xstep_revert_zero_continue_of_decode {s : Ethereum.State}
 def returnOutput (s : Ethereum.State) (offset size : Ethereum.UInt256) : ByteArray :=
   s.machineState.memory.readWithPadding offset.toNat size.toNat
 
+theorem returnOutput_eq_of_extract
+    {s : Ethereum.State} {offset size : Ethereum.UInt256} {out : ByteArray}
+    (hLen : size.toNat < 2^64)
+    (hLenPos : 0 < size.toNat)
+    (hInBounds : offset.toNat + size.toNat ≤ s.machineState.memory.size)
+    (hOutSize : out.size = size.toNat)
+    (hExtract :
+      s.machineState.memory.extract offset.toNat (offset.toNat + size.toNat) = out) :
+    returnOutput s offset size = out :=
+  ByteArray.readWithPadding_eq_of_extract
+    hLen hLenPos hInBounds hOutSize hExtract
+
 def returnNextState (s : Ethereum.State) (offset size : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256) : Ethereum.State :=
   {s with
@@ -3765,6 +3817,51 @@ theorem Xstep_return_continue_of_decode {s : Ethereum.State}
     (popNextState s a t).substate = s.substate :=
   rfl
 
+/-- Equality of the EVM world-state fields exposed by successful `Ξ` results.
+This deliberately excludes machine state and execution environment, so it is
+stable under ordinary stack/memory/control-flow bookkeeping. -/
+def WorldStateEq (s t : Ethereum.State) : Prop :=
+  t.createdAccounts = s.createdAccounts ∧
+    t.accountMap = s.accountMap ∧
+    t.substate = s.substate
+
+namespace WorldStateEq
+
+theorem refl (s : Ethereum.State) : WorldStateEq s s := by
+  simp [WorldStateEq]
+
+theorem trans {s t u : Ethereum.State}
+    (h₁ : WorldStateEq s t) (h₂ : WorldStateEq t u) :
+    WorldStateEq s u := by
+  rcases h₁ with ⟨hCreated₁, hAccounts₁, hSubstate₁⟩
+  rcases h₂ with ⟨hCreated₂, hAccounts₂, hSubstate₂⟩
+  exact ⟨hCreated₂.trans hCreated₁, hAccounts₂.trans hAccounts₁,
+    hSubstate₂.trans hSubstate₁⟩
+
+theorem createdAccounts_eq {s t : Ethereum.State}
+    (h : WorldStateEq s t) :
+    t.createdAccounts = s.createdAccounts :=
+  h.1
+
+theorem accountMap_eq {s t : Ethereum.State}
+    (h : WorldStateEq s t) :
+    t.accountMap = s.accountMap :=
+  h.2.1
+
+theorem substate_eq {s t : Ethereum.State}
+    (h : WorldStateEq s t) :
+    t.substate = s.substate :=
+  h.2.2
+
+theorem of_eqs {s t : Ethereum.State}
+    (hCreated : t.createdAccounts = s.createdAccounts)
+    (hAccounts : t.accountMap = s.accountMap)
+    (hSubstate : t.substate = s.substate) :
+    WorldStateEq s t :=
+  ⟨hCreated, hAccounts, hSubstate⟩
+
+end WorldStateEq
+
 /-- A finite prefix of non-halting EVM `Xstep`s. `ContinueTrace validJumps n s t`
 means `Xstep` runs from `s` to `t` in exactly `n` continuing steps. -/
 inductive ContinueTrace (validJumps : Array Ethereum.UInt256) :
@@ -3993,6 +4090,40 @@ theorem code_eq_of_start {validJumps : Array Ethereum.UInt256}
     t.executionEnv.code = code := by
   have hEnv := executionEnv_eq hTrace
   exact (congrArg (fun env => env.code) hEnv.symm).trans hCode
+
+theorem worldStateEq_of_step {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStepPreserves :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → WorldStateEq u v)
+    (hTrace : ContinueTrace validJumps n s t) :
+    WorldStateEq s t :=
+  relation
+    (R := WorldStateEq)
+    WorldStateEq.refl
+    (fun hStep => hStepPreserves hStep)
+    WorldStateEq.trans
+    hTrace
+
+theorem createdAccounts_eq_of_step {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStepPreserves :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → WorldStateEq u v)
+    (hTrace : ContinueTrace validJumps n s t) :
+    t.createdAccounts = s.createdAccounts :=
+  WorldStateEq.createdAccounts_eq
+    (worldStateEq_of_step hStepPreserves hTrace)
+
+theorem accountMap_eq_of_step {validJumps : Array Ethereum.UInt256}
+    {n : Nat} {s t : Ethereum.State}
+    (hStepPreserves :
+      ∀ {u v : Ethereum.State},
+        Xstep validJumps u = .ok (v, none) → WorldStateEq u v)
+    (hTrace : ContinueTrace validJumps n s t) :
+    t.accountMap = s.accountMap :=
+  WorldStateEq.accountMap_eq
+    (worldStateEq_of_step hStepPreserves hTrace)
 
 theorem code_eq_of_initial
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
