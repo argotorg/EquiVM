@@ -175,15 +175,22 @@
 - `Ethereum.EVM.code_eq_of_Xstep`: propagates bytecode equality across any successful `Xstep`.
 - `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_cost`: derives one-step natural gas decrease from a fixed-cost next-state gas equation and non-OOG guard.
 - `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_costs`: derives one-step natural gas decrease across a memory-expansion debit followed by an opcode debit.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_Gjumpdest`: specializes fixed-cost gas decrease to `JUMPDEST` gas.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_Gbase`: specializes fixed-cost gas decrease to base gas.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_Gverylow`: specializes fixed-cost gas decrease to very-low gas.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_Gmid`: specializes fixed-cost gas decrease to mid gas.
+- `Ethereum.EVM.gasAvailable_toNat_add_one_le_of_eq_sub_Ghigh`: specializes fixed-cost gas decrease to high gas.
 - `Ethereum.EVM.push1NextState`: names the concrete next state for a successful `PUSH1`.
 - `Ethereum.EVM.push1NextState_stack`: projection fact for the stack after `PUSH1`.
 - `Ethereum.EVM.push1NextState_gasAvailable`: projection fact for gas after `PUSH1`.
+- `Ethereum.EVM.push1NextState_gasAvailable_decreases`: proves successful `PUSH1` decreases available gas by at least one.
 - `Ethereum.EVM.push1NextState_pc`: projection fact for pc after `PUSH1`.
 - `Ethereum.EVM.Xstep_push1_oog_of_decode`: proves the `PUSH1` gas-underflow case from a decode fact.
 - `Ethereum.EVM.Xstep_push1_continue_of_decode`: proves the successful `PUSH1` step from decode/gas/stack facts.
 - `Ethereum.EVM.push4NextState`: names the concrete next state for a successful `PUSH4`.
 - `Ethereum.EVM.push4NextState_stack`: projection fact for the stack after `PUSH4`.
 - `Ethereum.EVM.push4NextState_gasAvailable`: projection fact for gas after `PUSH4`.
+- `Ethereum.EVM.push4NextState_gasAvailable_decreases`: proves successful `PUSH4` decreases available gas by at least one.
 - `Ethereum.EVM.push4NextState_pc`: projection fact for pc after `PUSH4`.
 - `Ethereum.EVM.Xstep_push4_oog_of_decode`: proves the `PUSH4` gas-underflow case from a decode fact.
 - `Ethereum.EVM.Xstep_push4_continue_of_decode`: proves the successful `PUSH4` step from decode/gas/stack facts.
@@ -208,107 +215,125 @@
 - `Ethereum.EVM.Xstep_mstore_verylow_oog_of_decode`: proves the `MSTORE` post-expansion gas-underflow case.
 - `Ethereum.EVM.Xstep_mstore_continue_of_decode`: proves the successful `MSTORE` step.
 - `Ethereum.EVM.callvalueNextState`: names the concrete next state for a successful `CALLVALUE`.
+- `Ethereum.EVM.callvalueNextState_gasAvailable_decreases`: proves successful `CALLVALUE` decreases available gas by at least one.
 - `Ethereum.EVM.Xstep_callvalue_oog_of_decode`: proves the `CALLVALUE` gas-underflow case.
 - `Ethereum.EVM.Xstep_callvalue_continue_of_decode`: proves the successful `CALLVALUE` step.
 - `Ethereum.EVM.calldatasizeNextState`: names the concrete next state for a successful `CALLDATASIZE`.
 - `Ethereum.EVM.calldatasizeNextState_stack`: projection fact for the stack after `CALLDATASIZE`.
 - `Ethereum.EVM.calldatasizeNextState_gasAvailable`: projection fact for gas after `CALLDATASIZE`.
+- `Ethereum.EVM.calldatasizeNextState_gasAvailable_decreases`: proves successful `CALLDATASIZE` decreases available gas by at least one.
 - `Ethereum.EVM.calldatasizeNextState_pc`: projection fact for pc after `CALLDATASIZE`.
 - `Ethereum.EVM.Xstep_calldatasize_oog_of_decode`: proves the `CALLDATASIZE` gas-underflow case.
 - `Ethereum.EVM.Xstep_calldatasize_continue_of_decode`: proves the successful `CALLDATASIZE` step.
 - `Ethereum.EVM.calldataloadNextState`: names the concrete next state for a successful `CALLDATALOAD`.
 - `Ethereum.EVM.calldataloadNextState_stack`: projection fact for the stack after `CALLDATALOAD`.
 - `Ethereum.EVM.calldataloadNextState_gasAvailable`: projection fact for gas after `CALLDATALOAD`.
+- `Ethereum.EVM.calldataloadNextState_gasAvailable_decreases`: proves successful `CALLDATALOAD` decreases available gas by at least one.
 - `Ethereum.EVM.calldataloadNextState_pc`: projection fact for pc after `CALLDATALOAD`.
 - `Ethereum.EVM.Xstep_calldataload_oog_of_decode`: proves the `CALLDATALOAD` gas-underflow case.
 - `Ethereum.EVM.Xstep_calldataload_continue_of_decode`: proves the successful `CALLDATALOAD` step.
 - `Ethereum.EVM.dup1NextState`: names the concrete next state for a successful `DUP1`.
 - `Ethereum.EVM.dup1NextState_stack`: projection fact for the stack after `DUP1`.
 - `Ethereum.EVM.dup1NextState_gasAvailable`: projection fact for gas after `DUP1`.
+- `Ethereum.EVM.dup1NextState_gasAvailable_decreases`: proves successful `DUP1` decreases available gas by at least one.
 - `Ethereum.EVM.dup1NextState_pc`: projection fact for pc after `DUP1`.
 - `Ethereum.EVM.Xstep_dup1_oog_of_decode`: proves the `DUP1` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup1_continue_of_decode`: proves the successful `DUP1` step.
 - `Ethereum.EVM.dup2NextState`: names the concrete next state for a successful `DUP2`.
 - `Ethereum.EVM.dup2NextState_stack`: projection fact for the stack after `DUP2`.
 - `Ethereum.EVM.dup2NextState_gasAvailable`: projection fact for gas after `DUP2`.
+- `Ethereum.EVM.dup2NextState_gasAvailable_decreases`: proves successful `DUP2` decreases available gas by at least one.
 - `Ethereum.EVM.dup2NextState_pc`: projection fact for pc after `DUP2`.
 - `Ethereum.EVM.Xstep_dup2_oog_of_decode`: proves the `DUP2` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup2_continue_of_decode`: proves the successful `DUP2` step.
 - `Ethereum.EVM.dup3NextState`: names the concrete next state for a successful `DUP3`.
 - `Ethereum.EVM.dup3NextState_stack`: projection fact for the stack after `DUP3`.
 - `Ethereum.EVM.dup3NextState_gasAvailable`: projection fact for gas after `DUP3`.
+- `Ethereum.EVM.dup3NextState_gasAvailable_decreases`: proves successful `DUP3` decreases available gas by at least one.
 - `Ethereum.EVM.dup3NextState_pc`: projection fact for pc after `DUP3`.
 - `Ethereum.EVM.Xstep_dup3_oog_of_decode`: proves the `DUP3` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup3_continue_of_decode`: proves the successful `DUP3` step.
 - `Ethereum.EVM.dup4NextState`: names the concrete next state for a successful `DUP4`.
 - `Ethereum.EVM.dup4NextState_stack`: projection fact for the stack after `DUP4`.
 - `Ethereum.EVM.dup4NextState_gasAvailable`: projection fact for gas after `DUP4`.
+- `Ethereum.EVM.dup4NextState_gasAvailable_decreases`: proves successful `DUP4` decreases available gas by at least one.
 - `Ethereum.EVM.dup4NextState_pc`: projection fact for pc after `DUP4`.
 - `Ethereum.EVM.Xstep_dup4_oog_of_decode`: proves the `DUP4` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup4_continue_of_decode`: proves the successful `DUP4` step.
 - `Ethereum.EVM.dup5NextState`: names the concrete next state for a successful `DUP5`.
 - `Ethereum.EVM.dup5NextState_stack`: projection fact for the stack after `DUP5`.
 - `Ethereum.EVM.dup5NextState_gasAvailable`: projection fact for gas after `DUP5`.
+- `Ethereum.EVM.dup5NextState_gasAvailable_decreases`: proves successful `DUP5` decreases available gas by at least one.
 - `Ethereum.EVM.dup5NextState_pc`: projection fact for pc after `DUP5`.
 - `Ethereum.EVM.Xstep_dup5_oog_of_decode`: proves the `DUP5` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup5_continue_of_decode`: proves the successful `DUP5` step.
 - `Ethereum.EVM.swap1NextState`: names the concrete next state for a successful `SWAP1`.
 - `Ethereum.EVM.swap1NextState_stack`: projection fact for the stack after `SWAP1`.
 - `Ethereum.EVM.swap1NextState_gasAvailable`: projection fact for gas after `SWAP1`.
+- `Ethereum.EVM.swap1NextState_gasAvailable_decreases`: proves successful `SWAP1` decreases available gas by at least one.
 - `Ethereum.EVM.swap1NextState_pc`: projection fact for pc after `SWAP1`.
 - `Ethereum.EVM.Xstep_swap1_oog_of_decode`: proves the `SWAP1` gas-underflow case.
 - `Ethereum.EVM.Xstep_swap1_continue_of_decode`: proves the successful `SWAP1` step.
 - `Ethereum.EVM.swap2NextState`: names the concrete next state for a successful `SWAP2`.
 - `Ethereum.EVM.swap2NextState_stack`: projection fact for the stack after `SWAP2`.
 - `Ethereum.EVM.swap2NextState_gasAvailable`: projection fact for gas after `SWAP2`.
+- `Ethereum.EVM.swap2NextState_gasAvailable_decreases`: proves successful `SWAP2` decreases available gas by at least one.
 - `Ethereum.EVM.swap2NextState_pc`: projection fact for pc after `SWAP2`.
 - `Ethereum.EVM.Xstep_swap2_oog_of_decode`: proves the `SWAP2` gas-underflow case.
 - `Ethereum.EVM.Xstep_swap2_continue_of_decode`: proves the successful `SWAP2` step.
 - `Ethereum.EVM.swap3NextState`: names the concrete next state for a successful `SWAP3`.
 - `Ethereum.EVM.swap3NextState_stack`: projection fact for the stack after `SWAP3`.
 - `Ethereum.EVM.swap3NextState_gasAvailable`: projection fact for gas after `SWAP3`.
+- `Ethereum.EVM.swap3NextState_gasAvailable_decreases`: proves successful `SWAP3` decreases available gas by at least one.
 - `Ethereum.EVM.swap3NextState_pc`: projection fact for pc after `SWAP3`.
 - `Ethereum.EVM.Xstep_swap3_oog_of_decode`: proves the `SWAP3` gas-underflow case.
 - `Ethereum.EVM.Xstep_swap3_continue_of_decode`: proves the successful `SWAP3` step.
 - `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
 - `Ethereum.EVM.iszeroNextState_stack`: projection fact for the stack after `ISZERO`.
 - `Ethereum.EVM.iszeroNextState_gasAvailable`: projection fact for gas after `ISZERO`.
+- `Ethereum.EVM.iszeroNextState_gasAvailable_decreases`: proves successful `ISZERO` decreases available gas by at least one.
 - `Ethereum.EVM.iszeroNextState_pc`: projection fact for pc after `ISZERO`.
 - `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
 - `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
 - `Ethereum.EVM.addNextState`: names the concrete next state for a successful `ADD`.
 - `Ethereum.EVM.addNextState_stack`: projection fact for the stack after `ADD`.
 - `Ethereum.EVM.addNextState_gasAvailable`: projection fact for gas after `ADD`.
+- `Ethereum.EVM.addNextState_gasAvailable_decreases`: proves successful `ADD` decreases available gas by at least one.
 - `Ethereum.EVM.addNextState_pc`: projection fact for pc after `ADD`.
 - `Ethereum.EVM.Xstep_add_oog_of_decode`: proves the `ADD` gas-underflow case.
 - `Ethereum.EVM.Xstep_add_continue_of_decode`: proves the successful `ADD` step.
 - `Ethereum.EVM.subNextState`: names the concrete next state for a successful `SUB`.
 - `Ethereum.EVM.subNextState_stack`: projection fact for the stack after `SUB`.
 - `Ethereum.EVM.subNextState_gasAvailable`: projection fact for gas after `SUB`.
+- `Ethereum.EVM.subNextState_gasAvailable_decreases`: proves successful `SUB` decreases available gas by at least one.
 - `Ethereum.EVM.subNextState_pc`: projection fact for pc after `SUB`.
 - `Ethereum.EVM.Xstep_sub_oog_of_decode`: proves the `SUB` gas-underflow case.
 - `Ethereum.EVM.Xstep_sub_continue_of_decode`: proves the successful `SUB` step.
 - `Ethereum.EVM.ltNextState`: names the concrete next state for a successful `LT`.
 - `Ethereum.EVM.ltNextState_stack`: projection fact for the stack after `LT`.
 - `Ethereum.EVM.ltNextState_gasAvailable`: projection fact for gas after `LT`.
+- `Ethereum.EVM.ltNextState_gasAvailable_decreases`: proves successful `LT` decreases available gas by at least one.
 - `Ethereum.EVM.ltNextState_pc`: projection fact for pc after `LT`.
 - `Ethereum.EVM.Xstep_lt_oog_of_decode`: proves the `LT` gas-underflow case.
 - `Ethereum.EVM.Xstep_lt_continue_of_decode`: proves the successful `LT` step.
 - `Ethereum.EVM.shrNextState`: names the concrete next state for a successful `SHR`.
 - `Ethereum.EVM.shrNextState_stack`: projection fact for the stack after `SHR`.
 - `Ethereum.EVM.shrNextState_gasAvailable`: projection fact for gas after `SHR`.
+- `Ethereum.EVM.shrNextState_gasAvailable_decreases`: proves successful `SHR` decreases available gas by at least one.
 - `Ethereum.EVM.shrNextState_pc`: projection fact for pc after `SHR`.
 - `Ethereum.EVM.Xstep_shr_oog_of_decode`: proves the `SHR` gas-underflow case.
 - `Ethereum.EVM.Xstep_shr_continue_of_decode`: proves the successful `SHR` step.
 - `Ethereum.EVM.eqNextState`: names the concrete next state for a successful `EQ`.
 - `Ethereum.EVM.eqNextState_stack`: projection fact for the stack after `EQ`.
 - `Ethereum.EVM.eqNextState_gasAvailable`: projection fact for gas after `EQ`.
+- `Ethereum.EVM.eqNextState_gasAvailable_decreases`: proves successful `EQ` decreases available gas by at least one.
 - `Ethereum.EVM.eqNextState_pc`: projection fact for pc after `EQ`.
 - `Ethereum.EVM.Xstep_eq_oog_of_decode`: proves the `EQ` gas-underflow case.
 - `Ethereum.EVM.Xstep_eq_continue_of_decode`: proves the successful `EQ` step.
 - `Ethereum.EVM.push0NextState`: names the concrete next state for a successful `PUSH0`.
 - `Ethereum.EVM.push0NextState_stack`: projection fact for the stack after `PUSH0`.
 - `Ethereum.EVM.push0NextState_gasAvailable`: projection fact for gas after `PUSH0`.
+- `Ethereum.EVM.push0NextState_gasAvailable_decreases`: proves successful `PUSH0` decreases available gas by at least one.
 - `Ethereum.EVM.push0NextState_pc`: projection fact for pc after `PUSH0`.
 - `Ethereum.EVM.Xstep_push0_oog_of_decode`: proves the `PUSH0` gas-underflow case.
 - `Ethereum.EVM.Xstep_push0_continue_of_decode`: proves the successful `PUSH0` step.
@@ -325,6 +350,7 @@
 - `Ethereum.EVM.jumpNextState`: names the concrete next state for a successful `JUMP`.
 - `Ethereum.EVM.jumpNextState_stack`: projection fact for the stack after `JUMP`.
 - `Ethereum.EVM.jumpNextState_gasAvailable`: projection fact for gas after `JUMP`.
+- `Ethereum.EVM.jumpNextState_gasAvailable_decreases`: proves successful `JUMP` decreases available gas by at least one.
 - `Ethereum.EVM.jumpNextState_pc`: projection fact for pc after `JUMP`.
 - `Ethereum.EVM.Xstep_jump_oog_of_decode`: proves the `JUMP` gas-underflow case.
 - `Ethereum.EVM.Xstep_jump_bad_dest_of_decode`: proves the `JUMP` bad-destination case.
@@ -332,6 +358,7 @@
 - `Ethereum.EVM.jumpiNextState`: names the concrete next state for a successful `JUMPI`.
 - `Ethereum.EVM.jumpiNextState_stack`: projection fact for the stack after `JUMPI`.
 - `Ethereum.EVM.jumpiNextState_gasAvailable`: projection fact for gas after `JUMPI`.
+- `Ethereum.EVM.jumpiNextState_gasAvailable_decreases`: proves successful `JUMPI` decreases available gas by at least one.
 - `Ethereum.EVM.jumpiNextState_pc_of_cond_bne_true`: computes taken-branch `JUMPI` pc.
 - `Ethereum.EVM.jumpiNextState_pc_of_cond_bne_false`: computes fallthrough `JUMPI` pc.
 - `Ethereum.EVM.jumpiNextState_pc_of_isZero_eq_zero`: computes `ISZERO`-guard taken branch.
@@ -348,12 +375,14 @@
 - `Ethereum.EVM.jumpdestNextState`: names the concrete next state for a successful `JUMPDEST`.
 - `Ethereum.EVM.jumpdestNextState_stack`: projection fact showing `JUMPDEST` preserves the stack.
 - `Ethereum.EVM.jumpdestNextState_gasAvailable`: projection fact for gas after `JUMPDEST`.
+- `Ethereum.EVM.jumpdestNextState_gasAvailable_decreases`: proves successful `JUMPDEST` decreases available gas by at least one.
 - `Ethereum.EVM.jumpdestNextState_pc`: projection fact for pc after `JUMPDEST`.
 - `Ethereum.EVM.Xstep_jumpdest_oog_of_decode`: proves the `JUMPDEST` gas-underflow case.
 - `Ethereum.EVM.Xstep_jumpdest_continue_of_decode`: proves the successful `JUMPDEST` step.
 - `Ethereum.EVM.popNextState`: names the concrete next state for a successful `POP`.
 - `Ethereum.EVM.popNextState_stack`: projection fact for the stack after `POP`.
 - `Ethereum.EVM.popNextState_gasAvailable`: projection fact for gas after `POP`.
+- `Ethereum.EVM.popNextState_gasAvailable_decreases`: proves successful `POP` decreases available gas by at least one.
 - `Ethereum.EVM.popNextState_pc`: projection fact for pc after `POP`.
 - `Ethereum.EVM.Xstep_pop_oog_of_decode`: proves the `POP` gas-underflow case.
 - `Ethereum.EVM.Xstep_pop_continue_of_decode`: proves the successful `POP` step.
@@ -557,9 +586,15 @@
 - `Ethereum.EVM.ContinueTrace.append_five`: composes five continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_ten`: composes ten continuing traces as two groups of five.
 - `Ethereum.EVM.ContinueTrace.relation`: folds a transitive step relation across an entire continuing trace.
+- `Ethereum.EVM.ContinueTrace.length_add_end_measure_le_start_of_step_decreases`: proves trace length plus endpoint measure is bounded by the start measure when each continuing step decreases the measure by at least one.
 - `Ethereum.EVM.ContinueTrace.length_le_measure_of_step_decreases`: proves trace length is bounded by any natural measure that decreases by at least one on each continuing step.
+- `Ethereum.EVM.ContinueTrace.end_measure_le_start_of_step_decreases`: proves endpoint measure monotonicity from the same per-step decrease hypothesis.
 - `Ethereum.EVM.ContinueTrace.length_le_gasAvailable_of_step_decreases`: gas-specialized trace-length bound from a per-step gas-decrease theorem.
+- `Ethereum.EVM.ContinueTrace.length_add_end_gasAvailable_le_start_of_step_decreases`: gas-specialized bound for trace length plus endpoint gas.
+- `Ethereum.EVM.ContinueTrace.end_gasAvailable_le_start_of_step_decreases`: gas-specialized endpoint monotonicity over a continuing trace.
 - `Ethereum.EVM.ContinueTrace.length_le_initial_gas_of_step_decreases`: initial-state specialization of the gas trace-length bound.
+- `Ethereum.EVM.ContinueTrace.length_add_end_gasAvailable_le_initial_gas_of_step_decreases`: initial-state specialization bounding trace length plus endpoint gas by initial gas.
+- `Ethereum.EVM.ContinueTrace.end_gasAvailable_le_initial_gas_of_step_decreases`: initial-state endpoint gas bound under a per-step gas-decrease theorem.
 - `Ethereum.EVM.ContinueTrace.executionEnv_eq`: lifts `Xstep_env_unchanged` to show a continuing trace preserves the execution environment.
 - `Ethereum.EVM.ContinueTrace.code_eq_of_start`: derives endpoint bytecode equality from start bytecode equality over a continuing trace.
 - `Ethereum.EVM.MachineMemoryEq`: relation bundling equality of the EVM machine memory field.
@@ -582,6 +617,17 @@
 - `Ethereum.EVM.ContinueTrace.X_halt_success_with_fuel`: runs a success halt with leftover interpreter fuel.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert_with_fuel`: runs a revert halt with leftover interpreter fuel.
 - `Ethereum.EVM.ContinueTrace.X_error_with_fuel`: runs an error with leftover interpreter fuel.
+- `Ethereum.EVM.GasTrace`: continuing trace variant carrying per-step proof that available gas decreases by at least one; useful when only a concrete opcode family has gas-decrease lemmas.
+- `Ethereum.EVM.GasTrace.toContinueTrace`: forgets gas evidence and recovers an ordinary `ContinueTrace`.
+- `Ethereum.EVM.GasTrace.ofContinueTrace`: rebuilds a gas-bounded trace from an ordinary continuing trace plus a local per-step gas-decrease theorem.
+- `Ethereum.EVM.GasTrace.one` / `snoc` / `append`: builders for gas-bounded traces from local step and gas-decrease facts.
+- `Ethereum.EVM.GasTrace.length_add_end_gasAvailable_le_start`: proves trace length plus endpoint gas is bounded by start gas for a gas-bounded trace.
+- `Ethereum.EVM.GasTrace.length_le_start_gasAvailable`: extracts the start-gas fuel bound from a gas-bounded trace.
+- `Ethereum.EVM.GasTrace.end_gasAvailable_le_start`: endpoint gas monotonicity for gas-bounded traces.
+- `Ethereum.EVM.GasTrace.length_add_end_gasAvailable_le_initial_gas`: initial-state specialization of the gas-bounded trace length-plus-endpoint bound.
+- `Ethereum.EVM.GasTrace.length_le_initial_gas`: initial-state fuel bound for a gas-bounded trace, avoiding the global `Xstep` gas-decrease `sorry`.
+- `Ethereum.EVM.GasTrace.end_gasAvailable_le_initial_gas`: initial-state endpoint gas bound for a gas-bounded trace.
+- `Ethereum.EVM.GasTrace.X_halt_success` / `X_halt_revert` / `X_error`: exact-fuel execution of gas-bounded traces by forgetting to `ContinueTrace`.
 - `EVM_Xi_of_initial_continue_trace_success`: lifts an initial continuing trace plus success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_revert`: lifts an initial continuing trace plus revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_error`: lifts an initial continuing trace plus EVM error to `Ξ`.
@@ -589,6 +635,13 @@
 - `EVM_Xi_of_initial_continue_trace_return_of_le_of_decode`: lifts a trace ending at a decoded `RETURN` with stack/memory-gas facts to a `Ξ` success.
 - `EVM_Xi_of_initial_continue_trace_revert_of_le`: lifts a continuing trace plus revert halt to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_revert_of_le_of_endpoint_decode`: lifts a trace ending at a decoded `REVERT` over the endpoint code with stack/memory-gas facts to a `Ξ` revert.
+- `EVM_Xi_of_initial_gas_trace_success`: lifts an initial gas-bounded trace plus success halt directly to `Ξ`, deriving `n ≤ g.toNat` from the trace.
+- `EVM_Xi_of_initial_gas_trace_revert`: lifts an initial gas-bounded trace plus revert halt directly to `Ξ`.
+- `EVM_Xi_of_initial_gas_trace_error`: lifts an initial gas-bounded trace plus endpoint EVM error directly to `Ξ`.
+- `EVM_Xi_of_initial_gas_trace_error_of_decode`: decoded endpoint-error bridge for gas-bounded traces.
+- `EVM_Xi_of_initial_gas_trace_return_of_decode`: decoded `RETURN` success bridge for gas-bounded traces.
+- `EVM_Xi_of_initial_gas_trace_revert_of_decode`: decoded `REVERT` bridge for gas-bounded traces.
+- `EVM_Xi_of_initial_gas_trace_revert_zero_of_decode`: decoded zero-length `REVERT` bridge for gas-bounded traces.
 - `EVM_Xi_of_initial_continue_trace_error_of_decode`: reusable endpoint-error bridge that derives the fuel bound from the initial `ContinueTrace`, avoiding repeated explicit `length_le_initial_gas` plumbing in OOG branches.
 - `EVM_Xi_of_initial_continue_trace_return_of_decode`: no-explicit-fuel success lift for a decoded `RETURN` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `JUMPDEST` at the end of an initial continuing trace.
@@ -1033,7 +1086,7 @@
 - `truthValidJump_5e_of_code`: transports `truthBytecode_validJump_5e` to any execution environment whose code is `truthBytecode`.
 - `truthBytecode_validJump_75`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x75 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
 - `truthValidJump_75_of_code`: transports `truthBytecode_validJump_75` to any execution environment whose code is `truthBytecode`.
-- `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: current reusable `sorry` now reduced to the one-step theorem that every successful non-halting `Xstep` decreases available gas by at least one; the trace induction is factored into `length_le_initial_gas_of_step_decreases`.
+- `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: current reusable `sorry` now reduced to the one-step theorem that every successful non-halting `Xstep` decreases available gas by at least one; the trace induction is factored through the stronger `length_add_end_gasAvailable_le_initial_gas_of_step_decreases`, and the fixed-cost Truth-runtime opcode next states now have reusable gas-decrease lemmas. `Ethereum.EVM.GasTrace` is the sound local alternative for traces assembled from concrete opcode gas-decrease facts while call/create-specific arithmetic remains open.
 
 # Open gaps
 
