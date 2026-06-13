@@ -302,6 +302,7 @@
 - `Ethereum.EVM.ContinueTrace.append_three`: composes three continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_four`: composes four continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_five`: composes five continuing traces end-to-end.
+- `Ethereum.EVM.ContinueTrace.append_ten`: composes ten continuing traces as two groups of five.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
 - `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
@@ -328,6 +329,7 @@
 - `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le`: composes four continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_four_traces_error_of_le`: composes four continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_success_of_le`: composes five continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_success_of_le`: composes ten continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_revert_of_le`: composes five continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_revert_zero_of_le`: composes five continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_error_of_le`: composes five continuing traces before lifting an EVM error to `Ξ`.
@@ -599,6 +601,7 @@
 - `truthEVM_final_return_prefix_trace`: packages the final return continuation `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1` up to the local `RETURN` halt.
 - `truthEVM_final_return_step`: proves the local successful `RETURN` halt from the final return stack shape and memory gas premise.
 - `truthEVM_final_return_success_of_prefix_trace`: lifts any already-proven prefix to the final return continuation through the final return prefix and `RETURN` halt to a top-level `Ξ` success.
+- `truthEVM_selector_match_success_of_trace_segments`: lifts the selector-match execution path segments through ABI encoding and the final `RETURN` to a top-level `Ξ` success.
 - `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_decode`: decodes selector-mismatch fallthrough as the shared fallback `JUMPDEST`.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_stack`: computes the selector word tail after selector-mismatch fallthrough.

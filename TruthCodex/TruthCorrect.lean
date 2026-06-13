@@ -13872,6 +13872,198 @@ lemma truthEVM_final_return_success_of_prefix_trace
     hSuffix
     hHalt
 
+set_option maxRecDepth 10000 in
+lemma truthEVM_selector_match_success_of_trace_segments
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {s15 s23 s24 s28 s35 s43 s50 s57 s79 s85 : Ethereum.State}
+    {wordEnd : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : 92 ≤ g.toNat)
+    (hDispatcher :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 15
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s15)
+    (hSelectorPrefix :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 8 s15 s23)
+    (hSelectorJumpi :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s23 s24)
+    (hEntry :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 4 s24 s28)
+    (hBody :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 7 s28 s35)
+    (hReturnCont :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 8 s35 s43)
+    (hAbiOffset :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 7 s43 s50)
+    (hAbiToWriter :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 7 s50 s57)
+    (hBoolWriter :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 22 s57 s79)
+    (hEncoderReturn :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 6 s79 s85)
+    (hStateCode : s85.executionEnv.code = I.code)
+    (hCode : I.code = truthBytecode)
+    (hPc85 : s85.machineState.pc = (⟨0x3b⟩ : Ethereum.UInt256))
+    (hStack85 : s85.machineState.stack = wordEnd :: tail)
+    (hTailBound : tail.length + 3 < 1024)
+    (hFinalJumpdestGas :
+      ¬ s85.machineState.gasAvailable.toNat < GasConstants.Gjumpdest)
+    (hFinalPushFreePtrGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         s86.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hFinalMloadMemGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         s87.machineState.gasAvailable.toNat <
+          Ethereum.EVM.memoryExpansionCost s87 .MLOAD))
+    (hFinalMloadVerylowGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         (s87.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s87 .MLOAD)).toNat <
+          GasConstants.Gverylow))
+    (hFinalDupBaseGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         let s88 := Ethereum.EVM.mloadNextState s87
+          (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+         s88.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hFinalSwapEndGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+         let s88 := Ethereum.EVM.mloadNextState s87
+          (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+         let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+         s89.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hFinalSubLengthGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+         let s88 := Ethereum.EVM.mloadNextState s87
+          (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+         let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+         let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+         s90.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hFinalSwapReturnGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+         let s88 := Ethereum.EVM.mloadNextState s87
+          (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+         let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+         let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+         let s91 := Ethereum.EVM.subNextState s90 wordEnd returnBase (returnBase :: tail)
+         s91.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hFinalReturnMemGas :
+      ¬ (let s86 := Ethereum.EVM.jumpdestNextState s85
+         let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+         let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+         let s88 := Ethereum.EVM.mloadNextState s87
+          (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+         let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+         let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+         let returnSize := Ethereum.UInt256.sub wordEnd returnBase
+         let s91 := Ethereum.EVM.subNextState s90 wordEnd returnBase (returnBase :: tail)
+         let s92 := Ethereum.EVM.swap1NextState s91 returnSize returnBase tail
+         s92.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s92 .RETURN)) :
+    let s86 := Ethereum.EVM.jumpdestNextState s85
+    let s87 := Ethereum.EVM.push1NextState s86 (⟨0x40⟩ : Ethereum.UInt256)
+    let returnBase := Ethereum.EVM.mloadValue s87 (⟨0x40⟩ : Ethereum.UInt256)
+    let s88 := Ethereum.EVM.mloadNextState s87
+      (⟨0x40⟩ : Ethereum.UInt256) (wordEnd :: tail)
+    let s89 := Ethereum.EVM.dup1NextState s88 returnBase (wordEnd :: tail)
+    let s90 := Ethereum.EVM.swap2NextState s89 returnBase returnBase wordEnd tail
+    let returnSize := Ethereum.UInt256.sub wordEnd returnBase
+    let s91 := Ethereum.EVM.subNextState s90 wordEnd returnBase (returnBase :: tail)
+    let s92 := Ethereum.EVM.swap1NextState s91 returnSize returnBase tail
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.success
+        ((Ethereum.EVM.returnNextState s92 returnBase returnSize tail).createdAccounts,
+          (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).accountMap,
+          (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).machineState.gasAvailable,
+          (Ethereum.EVM.returnNextState s92 returnBase returnSize tail).substate)
+        (Ethereum.EVM.returnOutput s92 returnBase returnSize)) := by
+  intro s86 s87 returnBase s88 s89 s90 returnSize s91 s92
+  have hFinalTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 7 s85 s92 := by
+    simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
+      truthEVM_final_return_prefix_trace
+        (I := I)
+        (s85 := s85)
+        (wordEnd := wordEnd)
+        (tail := tail)
+        hStateCode hCode hPc85 hStack85 hTailBound
+        hFinalJumpdestGas hFinalPushFreePtrGas hFinalMloadMemGas hFinalMloadVerylowGas
+        hFinalDupBaseGas hFinalSwapEndGas hFinalSubLengthGas hFinalSwapReturnGas
+  have hEncoderAndFinal :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (6 + 7) s79 s92 :=
+    Ethereum.EVM.ContinueTrace.append hEncoderReturn hFinalTrace
+  have hEndpoint92 : s92.executionEnv.code = I.code := by
+    simpa [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86] using hStateCode
+  have hPc92 : s92.machineState.pc = (⟨0x43⟩ : Ethereum.UInt256) := by
+    simp [s92, s91, returnSize, s90, s89, s88, returnBase, s87, s86, hPc85,
+      Ethereum.UInt256.ofNat, Id.run]
+    decide
+  have hStack92 : s92.machineState.stack = returnBase :: returnSize :: tail := by
+    simp [s92]
+  have hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s92 =
+        .ok (Ethereum.EVM.returnNextState s92 returnBase returnSize tail,
+          some (true, Ethereum.EVM.returnOutput s92 returnBase returnSize)) := by
+    exact truthEVM_final_return_step
+      (I := I)
+      (s92 := s92)
+      (returnBase := returnBase)
+      (returnSize := returnSize)
+      (tail := tail)
+      hEndpoint92 hCode hPc92 hStack92
+      (by simpa [s86, s87, returnBase, s88, s89, s90, returnSize, s91, s92] using
+        hFinalReturnMemGas)
+      (by omega)
+  exact EVM_Xi_of_initial_continue_ten_traces_success_of_le
+    (m₁ := 15)
+    (m₂ := 8)
+    (m₃ := 1)
+    (m₄ := 4)
+    (m₅ := 7)
+    (m₆ := 8)
+    (m₇ := 7)
+    (m₈ := 7)
+    (m₉ := 22)
+    (m₁₀ := 6 + 7)
+    (s₁ := s15)
+    (s₂ := s23)
+    (s₃ := s24)
+    (s₄ := s28)
+    (s₅ := s35)
+    (s₆ := s43)
+    (s₇ := s50)
+    (s₈ := s57)
+    (s₉ := s79)
+    (t := s92)
+    (evmState := Ethereum.EVM.returnNextState s92 returnBase returnSize tail)
+    (o := Ethereum.EVM.returnOutput s92 returnBase returnSize)
+    (by
+      norm_num
+      exact hFuel)
+    hDispatcher
+    hSelectorPrefix
+    hSelectorJumpi
+    hEntry
+    hBody
+    hReturnCont
+    hAbiOffset
+    hAbiToWriter
+    hBoolWriter
+    hEncoderAndFinal
+    hHalt
+
 lemma truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}

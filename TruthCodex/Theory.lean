@@ -2692,6 +2692,27 @@ theorem append_five {validJumps : Array Ethereum.UInt256}
     ContinueTrace.append_four h₁ h₂ h₃ h₄
   exact ContinueTrace.append h₁₂₃₄ h₅
 
+theorem append_ten {validJumps : Array Ethereum.UInt256}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₀ s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ s₁₀ : Ethereum.State}
+    (h₁ : ContinueTrace validJumps m₁ s₀ s₁)
+    (h₂ : ContinueTrace validJumps m₂ s₁ s₂)
+    (h₃ : ContinueTrace validJumps m₃ s₂ s₃)
+    (h₄ : ContinueTrace validJumps m₄ s₃ s₄)
+    (h₅ : ContinueTrace validJumps m₅ s₄ s₅)
+    (h₆ : ContinueTrace validJumps m₆ s₅ s₆)
+    (h₇ : ContinueTrace validJumps m₇ s₆ s₇)
+    (h₈ : ContinueTrace validJumps m₈ s₇ s₈)
+    (h₉ : ContinueTrace validJumps m₉ s₈ s₉)
+    (h₁₀ : ContinueTrace validJumps m₁₀ s₉ s₁₀) :
+    ContinueTrace validJumps
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) s₀ s₁₀ := by
+  have hLeft : ContinueTrace validJumps (m₁ + m₂ + m₃ + m₄ + m₅) s₀ s₅ :=
+    ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅
+  have hRight : ContinueTrace validJumps (m₆ + m₇ + m₈ + m₉ + m₁₀) s₅ s₁₀ :=
+    ContinueTrace.append_five h₆ h₇ h₈ h₉ h₁₀
+  exact ContinueTrace.append hLeft hRight
+
 theorem X_halt_success {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State} {o : ByteArray}
     (hTrace : ContinueTrace validJumps n s t)
@@ -3382,6 +3403,53 @@ lemma EVM_Xi_of_initial_continue_five_traces_success_of_le
     (n := m + n + k + l + p)
     hFuel
     (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_ten_traces_success_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel :
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₂ s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₃ s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₄ s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₅ s₄ s₅)
+    (h₆ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₆ s₅ s₆)
+    (h₇ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₇ s₆ s₇)
+    (h₈ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₈ s₇ s₈)
+    (h₉ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₉ s₈ s₉)
+    (h₁₀ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁₀ s₉ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (true, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.success
+        (evmState.createdAccounts, evmState.accountMap, evmState.machineState.gasAvailable,
+          evmState.substate) o) :=
+  EVM_Xi_of_initial_continue_trace_success_of_le
+    (n := (m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀))
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
     hHalt
 
 lemma EVM_Xi_of_initial_continue_five_traces_revert_of_le
