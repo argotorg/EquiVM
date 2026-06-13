@@ -114,6 +114,18 @@
 - `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
 - `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
 - `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
+- `Ethereum.EVM.addNextState`: names the concrete next state for a successful `ADD`.
+- `Ethereum.EVM.addNextState_stack`: projection fact for the stack after `ADD`.
+- `Ethereum.EVM.addNextState_gasAvailable`: projection fact for gas after `ADD`.
+- `Ethereum.EVM.addNextState_pc`: projection fact for pc after `ADD`.
+- `Ethereum.EVM.Xstep_add_oog_of_decode`: proves the `ADD` gas-underflow case.
+- `Ethereum.EVM.Xstep_add_continue_of_decode`: proves the successful `ADD` step.
+- `Ethereum.EVM.subNextState`: names the concrete next state for a successful `SUB`.
+- `Ethereum.EVM.subNextState_stack`: projection fact for the stack after `SUB`.
+- `Ethereum.EVM.subNextState_gasAvailable`: projection fact for gas after `SUB`.
+- `Ethereum.EVM.subNextState_pc`: projection fact for pc after `SUB`.
+- `Ethereum.EVM.Xstep_sub_oog_of_decode`: proves the `SUB` gas-underflow case.
+- `Ethereum.EVM.Xstep_sub_continue_of_decode`: proves the successful `SUB` step.
 - `Ethereum.EVM.ltNextState`: names the concrete next state for a successful `LT`.
 - `Ethereum.EVM.ltNextState_stack`: projection fact for the stack after `LT`.
 - `Ethereum.EVM.ltNextState_gasAvailable`: projection fact for gas after `LT`.
@@ -138,6 +150,13 @@
 - `Ethereum.EVM.push0NextState_pc`: projection fact for pc after `PUSH0`.
 - `Ethereum.EVM.Xstep_push0_oog_of_decode`: proves the `PUSH0` gas-underflow case.
 - `Ethereum.EVM.Xstep_push0_continue_of_decode`: proves the successful `PUSH0` step.
+- `Ethereum.EVM.jumpNextState`: names the concrete next state for a successful `JUMP`.
+- `Ethereum.EVM.jumpNextState_stack`: projection fact for the stack after `JUMP`.
+- `Ethereum.EVM.jumpNextState_gasAvailable`: projection fact for gas after `JUMP`.
+- `Ethereum.EVM.jumpNextState_pc`: projection fact for pc after `JUMP`.
+- `Ethereum.EVM.Xstep_jump_oog_of_decode`: proves the `JUMP` gas-underflow case.
+- `Ethereum.EVM.Xstep_jump_bad_dest_of_decode`: proves the `JUMP` bad-destination case.
+- `Ethereum.EVM.Xstep_jump_continue_of_decode`: proves the successful `JUMP` step from decode/gas/destination facts.
 - `Ethereum.EVM.jumpiNextState`: names the concrete next state for a successful `JUMPI`.
 - `Ethereum.EVM.jumpiNextState_stack`: projection fact for the stack after `JUMPI`.
 - `Ethereum.EVM.jumpiNextState_gasAvailable`: projection fact for gas after `JUMPI`.
@@ -183,6 +202,7 @@
 - `Ethereum.EVM.ContinueTrace.four`: builds a four-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.snoc`: appends a continuing step to an existing trace.
 - `Ethereum.EVM.ContinueTrace.append`: composes two continuing traces end-to-end.
+- `Ethereum.EVM.ContinueTrace.append_three`: composes three continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
 - `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
@@ -196,6 +216,10 @@
 - `EVM_Xi_of_initial_continue_trace_revert_of_le`: lifts a continuing trace plus revert halt to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_revert_zero_of_le`: lifts a continuing trace plus zero-length `REVERT` halt to `Ξ` from `n ≤ g.toNat`.
 - `EVM_Xi_of_initial_continue_trace_error_of_le`: lifts a continuing trace plus EVM error to `Ξ` from `n ≤ g.toNat`.
+- `EVM_Xi_of_initial_continue_traces_success_of_le`: composes two continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_revert_zero_of_le`: composes two continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_traces_error_of_le`: composes two continuing traces before lifting an EVM error to `Ξ`.
 - `Act.ExecStmt.require_true_of_eval`: proves a successful `require` from a true condition evaluation.
 - `Act.ExecStmt.require_false_of_eval`: proves a reverting `require` from a false condition evaluation.
 - `Act.ExecStmt.require_revert_of_eval`: proves a reverting `require` from a reverting condition evaluation.
@@ -253,6 +277,75 @@
 - `truthBytecode_decode_39`: decodes the first short-calldata revert opcode as `PUSH0`.
 - `truthBytecode_decode_40`: decodes the second short-calldata revert opcode as `PUSH0`.
 - `truthBytecode_decode_41`: decodes the short-calldata/fallback halt as `REVERT`.
+- `truthBytecode_decode_42`: decodes the selector-match function entry as `JUMPDEST`.
+- `truthBytecode_decode_43`: decodes the function-entry return label push as `PUSH1 0x30`.
+- `truthBytecode_decode_45`: decodes the function-entry implementation label push as `PUSH1 0x44`.
+- `truthBytecode_decode_47`: decodes the function-entry transfer as `JUMP`.
+- `truthBytecode_decode_48`: decodes the post-call continuation as `JUMPDEST`.
+- `truthBytecode_decode_49`: decodes the free-memory-pointer address push as `PUSH1 0x40`.
+- `truthBytecode_decode_51`: decodes the free-memory-pointer load as `MLOAD`.
+- `truthBytecode_decode_52`: decodes the ABI-return continuation label push as `PUSH1 0x3b`.
+- `truthBytecode_decode_54`: decodes the ABI-return setup as `SWAP2`.
+- `truthBytecode_decode_55`: decodes the ABI-return setup as `SWAP1`.
+- `truthBytecode_decode_56`: decodes the ABI encoder label push as `PUSH1 0x64`.
+- `truthBytecode_decode_58`: decodes the ABI encoder transfer as `JUMP`.
+- `truthBytecode_decode_59`: decodes the ABI-return continuation as `JUMPDEST`.
+- `truthBytecode_decode_60`: decodes the free-memory-pointer address push before `RETURN` as `PUSH1 0x40`.
+- `truthBytecode_decode_62`: decodes the free-memory-pointer reload before `RETURN` as `MLOAD`.
+- `truthBytecode_decode_63`: decodes the return-size setup as `DUP1`.
+- `truthBytecode_decode_64`: decodes the return-size setup as `SWAP2`.
+- `truthBytecode_decode_65`: decodes the return-size computation as `SUB`.
+- `truthBytecode_decode_66`: decodes the return-offset setup as `SWAP1`.
+- `truthBytecode_decode_67`: decodes the successful halt as `RETURN`.
+- `truthBytecode_decode_68`: decodes the pure body entry as `JUMPDEST`.
+- `truthBytecode_decode_69`: decodes the initial return value slot as `PUSH0`.
+- `truthBytecode_decode_70`: decodes the boolean literal as `PUSH1 0x01`.
+- `truthBytecode_decode_72`: decodes the body stack shuffle as `SWAP1`.
+- `truthBytecode_decode_73`: decodes the body cleanup as `POP`.
+- `truthBytecode_decode_74`: decodes the body return-target shuffle as `SWAP1`.
+- `truthBytecode_decode_75`: decodes the body return transfer as `JUMP`.
+- `truthBytecode_decode_76`: decodes the bool-cleanup helper entry as `JUMPDEST`.
+- `truthBytecode_decode_77`: decodes the bool-cleanup initial zero as `PUSH0`.
+- `truthBytecode_decode_78`: decodes the bool-cleanup input duplication as `DUP2`.
+- `truthBytecode_decode_79`: decodes the first bool normalization `ISZERO`.
+- `truthBytecode_decode_80`: decodes the second bool normalization `ISZERO`.
+- `truthBytecode_decode_81`: decodes the bool-cleanup stack shuffle as `SWAP1`.
+- `truthBytecode_decode_82`: decodes the bool-cleanup temporary pop as `POP`.
+- `truthBytecode_decode_83`: decodes the bool-cleanup return-target shuffle as `SWAP2`.
+- `truthBytecode_decode_84`: decodes the bool-cleanup result shuffle as `SWAP1`.
+- `truthBytecode_decode_85`: decodes the bool-cleanup input pop as `POP`.
+- `truthBytecode_decode_86`: decodes the bool-cleanup return transfer as `JUMP`.
+- `truthBytecode_decode_87`: decodes the word-store helper entry as `JUMPDEST`.
+- `truthBytecode_decode_88`: decodes the word-store continuation label push as `PUSH1 0x5e`.
+- `truthBytecode_decode_90`: decodes the word-store value duplication as `DUP2`.
+- `truthBytecode_decode_91`: decodes the bool-cleanup helper label push as `PUSH1 0x4c`.
+- `truthBytecode_decode_93`: decodes the bool-cleanup helper transfer as `JUMP`.
+- `truthBytecode_decode_94`: decodes the word-store continuation as `JUMPDEST`.
+- `truthBytecode_decode_95`: decodes the word-store offset duplication as `DUP3`.
+- `truthBytecode_decode_96`: decodes the ABI word write as `MSTORE`.
+- `truthBytecode_decode_97`: decodes the word-store value cleanup as `POP`.
+- `truthBytecode_decode_98`: decodes the word-store offset cleanup as `POP`.
+- `truthBytecode_decode_99`: decodes the word-store return transfer as `JUMP`.
+- `truthBytecode_decode_100`: decodes the ABI encoder entry as `JUMPDEST`.
+- `truthBytecode_decode_101`: decodes the ABI encoder initial offset as `PUSH0`.
+- `truthBytecode_decode_102`: decodes the ABI word size as `PUSH1 0x20`.
+- `truthBytecode_decode_104`: decodes the ABI base pointer duplication as `DUP3`.
+- `truthBytecode_decode_105`: decodes the ABI end pointer computation as `ADD`.
+- `truthBytecode_decode_106`: decodes the ABI end pointer shuffle as `SWAP1`.
+- `truthBytecode_decode_107`: decodes the ABI offset cleanup as `POP`.
+- `truthBytecode_decode_108`: decodes the ABI encoder continuation label push as `PUSH1 0x75`.
+- `truthBytecode_decode_110`: decodes the ABI element offset as `PUSH0`.
+- `truthBytecode_decode_111`: decodes the ABI base pointer duplication as `DUP4`.
+- `truthBytecode_decode_112`: decodes the ABI element pointer computation as `ADD`.
+- `truthBytecode_decode_113`: decodes the ABI bool value duplication as `DUP5`.
+- `truthBytecode_decode_114`: decodes the word-store helper label push as `PUSH1 0x57`.
+- `truthBytecode_decode_116`: decodes the word-store helper transfer as `JUMP`.
+- `truthBytecode_decode_117`: decodes the ABI encoder continuation as `JUMPDEST`.
+- `truthBytecode_decode_118`: decodes the ABI encoder stack shuffle as `SWAP3`.
+- `truthBytecode_decode_119`: decodes the ABI encoder stack shuffle as `SWAP2`.
+- `truthBytecode_decode_120`: decodes the ABI encoder cleanup as `POP`.
+- `truthBytecode_decode_121`: decodes the ABI encoder cleanup as `POP`.
+- `truthBytecode_decode_122`: decodes the ABI encoder return transfer as `JUMP`.
 - `trustedKeccak_truthTransition`: adapts the trusted `truth()` Keccak pair to `transitionSigStr truthTransition`.
 - `truthDispatch_some_of_selector`: dispatches to `truthTransition` when calldata has the trusted selector.
 - `truthDispatch_none_of_selector_ne`: dispatch fails when calldata does not have the trusted selector.
@@ -347,9 +440,11 @@
 - `truthEVM_short_calldata_first_push0_continue`: proves the successful first short-calldata revert `PUSH0` step.
 - `truthEVM_short_calldata_second_push0_decode`: decodes the second short-calldata revert `PUSH0`.
 - `truthEVM_short_calldata_second_push0_continue`: proves the successful second short-calldata revert `PUSH0` step.
+- `truthEVM_short_calldata_revert_suffix_trace`: packages the short-calldata `JUMPDEST; PUSH0; PUSH0` revert suffix as a trace segment.
 - `truthEVM_short_calldata_revert_decode`: decodes the short-calldata/fallback halt as `REVERT`.
 - `truthEVM_short_calldata_revert_stack`: computes the zero-offset/zero-size stack before short-calldata `REVERT`.
 - `truthEVM_short_calldata_revert_step`: proves the local zero-length `REVERT` halting step for short calldata.
+- `truthEVM_short_calldata_revert_of_traces`: lifts the short-calldata prefix plus revert suffix traces to a top-level `Ξ` revert.
 - `truthEVM_long_calldata_first_push0_decode_of_callvalue_zero`: decodes the long-calldata fallthrough entry as `PUSH0`.
 - `truthEVM_long_calldata_first_push0_stack_of_callvalue_zero`: computes the empty stack at the long-calldata fallthrough entry.
 - `truthEVM_long_calldata_first_push0_continue`: proves the successful long-calldata fallthrough `PUSH0` step.
@@ -392,6 +487,7 @@
 - `truthEVM_long_calldata_selector_fallback_revert_decode`: decodes the selector-mismatch fallback halt as `REVERT`.
 - `truthEVM_long_calldata_selector_fallback_revert_stack`: computes the zero-offset/zero-size stack with selector-word tail before fallback `REVERT`.
 - `truthEVM_long_calldata_selector_fallback_revert_step`: proves the local zero-length fallback `REVERT` step after selector mismatch.
+- `truthEVM_long_calldata_selector_fallback_revert_of_traces`: lifts the long-calldata prefix plus selector-mismatch fallback suffix traces to a top-level `Ξ` revert.
 - `truthEVM_long_calldata_jumpi_continue_fallthrough`: proves the long-calldata fallthrough at the `calldatasize < 4` `JUMPI` without a destination-validity premise.
 - `truthEVM_long_calldata_jumpi_trace_fallthrough`: packages the common zero-callvalue prefix through that long-calldata `JUMPI` fallthrough.
 - `truthEVM_push0_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue `JUMPI` fallthrough as `PUSH0`.
