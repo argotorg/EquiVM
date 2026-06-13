@@ -697,13 +697,14 @@ lemma truthActExec_true
         (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
         (some (.bool true)))
       truthTransition.returnType := by
-  exact actExec_of_dispatch_decode_initial
+  exact actExec_singleton_no_params_initial
     (transition := truthTransition)
-    (transitionSig := transitionSignature truthTransition)
-    (callargs := (∅ : Store))
-    (truthDispatch_some_of_selector hSelector)
-    rfl
-    (truthDecodeCalldata_no_params_of_selector hSelector)
+    (selector := trustedTruthSelector)
+    (by rfl)
+    trustedKeccak_truthTransition
+    trustedTruthSelector_size
+    (by rfl)
+    hSelector
     (truthExecContractBody_true (by simpa [initialEVMState] using hValue))
 
 lemma truthActExec_revert
@@ -718,13 +719,14 @@ lemma truthActExec_revert
     (hValue : I.weiValue ≠ (⟨0⟩ : Ethereum.UInt256)) :
     actExec truthConfig truthContract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
       .reverted truthTransition.returnType := by
-  exact actExec_of_dispatch_decode_initial
+  exact actExec_singleton_no_params_initial
     (transition := truthTransition)
-    (transitionSig := transitionSignature truthTransition)
-    (callargs := (∅ : Store))
-    (truthDispatch_some_of_selector hSelector)
-    rfl
-    (truthDecodeCalldata_no_params_of_selector hSelector)
+    (selector := trustedTruthSelector)
+    (by rfl)
+    trustedKeccak_truthTransition
+    trustedTruthSelector_size
+    (by rfl)
+    hSelector
     (truthExecContractBody_revert (by simpa [initialEVMState] using hValue))
 
 lemma truthRuntime_success_of_evm
@@ -800,8 +802,10 @@ lemma truthRuntime_noDispatch_revert_of_evm
         .ok (.revert g' o)) :
     runtimeEquivalenceFor truthConfig truthContract createdAccounts genesisBlockHeader blocks
       σ σ₀ g A I :=
-  runtimeEquivalenceFor_noDispatch
-    (truthDispatch_none_of_selector_ne hSelector)
+  runtimeEquivalenceFor_noDispatch_singleton_revert
+    (by rfl)
+    trustedKeccak_truthTransition
+    hSelector
     hΞ
 
 lemma truthRuntime_outOfGas_of_evm

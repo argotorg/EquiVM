@@ -7,10 +7,16 @@
 - `ByteArray.length_toList`: bridges `ByteArray.toList.length` and `ByteArray.size`.
 - `ByteArray.not_toList_length_lt_of_extract_eq_size`: proves selector extraction implies calldata is long enough.
 - `ByteArray.extract_ne_of_size_lt`: proves calldata shorter than `n` cannot extract to a selector of size `n`.
+- `ByteArray.extract_zero_four_eq_toByteArray_getElem`: normalizes a long calldata's first four-byte selector to four indexed bytes.
+- `ByteArray.readBytes_size_of_lt`: proves padded `readBytes` returns exactly the requested byte count below the `USize` bound.
+- `ByteArray.readBytes_size_32`: specializes padded `readBytes` sizing to 32-byte EVM word reads.
+- `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
 - `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
 - `Ethereum.UInt256.toNat_zero`: normalizes the natural payload of the zero word.
+- `Ethereum.UInt256.toNat_shiftRight_of_lt`: computes bounded logical right shift as natural `>>>`.
+- `Ethereum.UInt256.toNat_shiftRight_eq_div_pow_of_lt`: computes bounded logical right shift as division by a power of two.
 - `Ethereum.UInt256.eq_of_toNat_eq`: recovers a `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
 - `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
@@ -33,6 +39,9 @@
 - `Ethereum.UInt256.eq_eq_zero_of_ne`: computes `EQ`'s word result for unequal words.
 - `Ethereum.UInt256.eq_bne_zero_eq_true_of_eq`: turns a true `EQ` result into a nonzero `JUMPI` condition.
 - `Ethereum.UInt256.eq_bne_zero_eq_false_of_ne`: turns a false `EQ` result into a zero `JUMPI` condition.
+- `Ethereum.fromBytes'_lt_uint256_size_of_length_le`: bounds a byte-folded natural by `2^256` when the byte list has at most 32 bytes.
+- `Ethereum.uInt256OfByteArray_toNat_of_size_le`: computes `uInt256OfByteArray.toNat` for byte arrays of size at most 32.
+- `Ethereum.uInt256OfByteArray_readBytes_toNat_32`: computes `uInt256OfByteArray.toNat` for padded 32-byte reads.
 - `Ethereum_toBytes'_one`: computes the one-byte big/little-endian core representation of `1`.
 - `ABI.decodeCalldata_no_params_of_not_lt`: decodes zero ABI parameters when calldata has at least a 4-byte selector.
 - `ABI.decodeCalldata_no_params_of_lt`: zero-parameter calldata decoding fails before the 4-byte selector.
@@ -41,6 +50,7 @@
 - `runtimeEquivalence_intro`: packages the universal state obligation into `runtimeEquivalence!?!`.
 - `runtimeEquivalenceFor_execution`: constructor helper for the execution case.
 - `runtimeEquivalenceFor_noDispatch`: constructor helper for the no-dispatch/revert case.
+- `runtimeEquivalenceFor_noDispatch_singleton_revert`: packages one-transition selector mismatch plus EVM revert into the no-dispatch equivalence case.
 - `runtimeEquivalenceFor_decodingFailed`: constructor helper for the decoding-failed/revert case.
 - `runtimeEquivalenceFor_outOfGas`: constructor helper for the EVM out-of-gas case.
 - `returnEquiv.returned_of_encode`: builds return equivalence from an ABI return encoder fact.
@@ -67,6 +77,7 @@
 - `initialEVMState_H_return`: projection fact for initially empty/default halt return data.
 - `actExec_of_dispatch_decode_exec`: packages dispatch, decode, initial Act/EVM state, and body execution into `actExec`.
 - `actExec_of_dispatch_decode_initial`: `actExec` helper specialized to `initialEVMState`.
+- `actExec_singleton_no_params_initial`: packages one-transition dispatch, zero-parameter calldata decoding, and initial-state body execution into `actExec`.
 - `runtimeEquivalenceFor_success_initial`: runtime-equivalence success case from an EVM success equation and Act execution in `initialEVMState`.
 - `runtimeEquivalenceFor_success_initial_of_eq`: runtime-equivalence success case when the EVM result preserves initial created accounts/account map by equality proofs.
 - `runtimeEquivalenceFor_revert_of_act_reverted`: runtime-equivalence revert case from an EVM revert equation and Act revert.
@@ -785,6 +796,7 @@
 # Open gaps
 
 - `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-match `JUMPI`.
+- The next reusable selector lemma should connect `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; this turn added the smaller building blocks for selector extraction, bounded `UInt256` right shift, and `uInt256OfByteArray.toNat`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.

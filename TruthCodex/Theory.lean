@@ -45,6 +45,21 @@ lemma ByteArray.beq_false_of_ne {a b : ByteArray} (h : a ≠ b) :
   · rfl
   · exact False.elim (h (LawfulBEq.eq_of_beq hbeq))
 
+namespace USize
+
+lemma toNat_ofNat_sub_ofNat_of_le {a b : Nat}
+    (ha : a < USize.size) (hb : b ≤ a) :
+    (((OfNat.ofNat a : USize) - (OfNat.ofNat b : USize))).toNat = a - b := by
+  have hbSize : b < USize.size := Nat.lt_of_le_of_lt hb ha
+  have hle : (OfNat.ofNat b : USize) ≤ (OfNat.ofNat a : USize) := by
+    rw [USize.le_iff_toNat_le, USize.toNat_ofNat_of_lt hbSize,
+      USize.toNat_ofNat_of_lt ha]
+    exact hb
+  rw [USize.toNat_sub_of_le _ _ hle, USize.toNat_ofNat_of_lt ha,
+    USize.toNat_ofNat_of_lt hbSize]
+
+end USize
+
 namespace ByteArray
 
 lemma toList_loop_length (bs : ByteArray) (i : Nat) (r : List UInt8) :
@@ -85,6 +100,44 @@ lemma extract_ne_of_size_lt {bytes selector : ByteArray} {n : Nat}
   rw [ByteArray.size_extract] at hExtractSize
   omega
 
+lemma extract_zero_four_eq_toByteArray_getElem {bytes : ByteArray}
+    (hSize : 4 ≤ bytes.size) :
+    bytes.extract 0 4 =
+      [bytes[0], bytes[1], bytes[2], bytes[3]].toByteArray := by
+  simpa using ByteArray.extract_add_four (a := bytes) (i := 0) (by simpa using hSize)
+
+lemma readBytes_size_of_lt (source : ByteArray) (start size : Nat)
+    (hSize : size < USize.size) :
+    (source.readBytes start size).size = size := by
+  unfold ByteArray.readBytes
+  let read : ByteArray :=
+    if start < 2^64 && size < 2^64 then
+      source.copySlice start ByteArray.empty 0 size
+    else
+      ⟨⟨source.toList.drop start |>.take size⟩⟩
+  have hReadSizeLe : read.size ≤ size := by
+    dsimp [read]
+    by_cases hCond : start < 18446744073709551616 ∧ size < 18446744073709551616
+    · simp [hCond]
+      rw [ByteArray.copySlice_eq_append, ByteArray.size_append, ByteArray.size_append,
+        ByteArray.size_extract, ByteArray.size_extract, ByteArray.size_extract]
+      simp [ByteArray.size_data]
+      omega
+    · simp [hCond]
+      change (List.take size (List.drop start source.toList)).toArray.size ≤ size
+      simp
+  change (read ++ ffi.ByteArray.zeroes ((OfNat.ofNat size : USize) - OfNat.ofNat read.size)).size =
+    size
+  rw [ByteArray.size_append, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_sub_ofNat_of_le]
+  · omega
+  · exact hSize
+  · exact hReadSizeLe
+
+lemma readBytes_size_32 (source : ByteArray) (start : Nat) :
+    (source.readBytes start 32).size = 32 :=
+  readBytes_size_of_lt source start 32 (by cases USize.size_eq <;> omega)
+
 end ByteArray
 
 namespace Ethereum.UInt256
@@ -112,6 +165,28 @@ lemma ofNat_toNat_of_lt {n : Nat} (hn : n < Ethereum.UInt256.size) :
 @[simp] lemma toNat_zero :
     (⟨0⟩ : Ethereum.UInt256).toNat = 0 := by
   rfl
+
+lemma toNat_shiftRight_of_lt {a b : Ethereum.UInt256}
+    (hb : b.toNat < 256) :
+    (Ethereum.UInt256.shiftRight a b).toNat = a.toNat >>> b.toNat := by
+  cases a with
+  | mk av =>
+      cases b with
+      | mk bv =>
+          unfold Ethereum.UInt256.toNat at hb
+          unfold Ethereum.UInt256.shiftRight Ethereum.UInt256.toNat
+          simp at hb ⊢
+          have hBranch : ¬ (256 : Fin Ethereum.UInt256.size) ≤ bv := by
+            rw [Fin.le_iff_val_le_val]
+            simp [Ethereum.UInt256.size, Nat.mod_eq_of_lt]
+            omega
+          rw [if_neg hBranch]
+          simp
+
+lemma toNat_shiftRight_eq_div_pow_of_lt {a b : Ethereum.UInt256}
+    (hb : b.toNat < 256) :
+    (Ethereum.UInt256.shiftRight a b).toNat = a.toNat / 2 ^ b.toNat := by
+  rw [toNat_shiftRight_of_lt hb, Nat.shiftRight_eq_div_pow]
 
 lemma eq_of_toNat_eq {x : Ethereum.UInt256} {n : Nat}
     (hn : n < Ethereum.UInt256.size)
@@ -354,6 +429,37 @@ lemma eq_bne_zero_eq_false_of_ne {a b : Ethereum.UInt256}
 
 end Ethereum.UInt256
 
+namespace Ethereum
+
+lemma fromBytes'_lt_uint256_size_of_length_le {bs : List UInt8}
+    (hLen : bs.length ≤ 32) :
+    fromBytes' bs < Ethereum.UInt256.size := by
+  have h := @fromBytes'_le bs
+  unfold Ethereum.UInt256.size
+  refine lt_of_lt_of_le h ?_
+  have hPow : 8 * bs.length ≤ 256 := by omega
+  exact Nat.pow_le_pow_right (by decide : 0 < 2) hPow
+
+lemma uInt256OfByteArray_toNat_of_size_le {arr : ByteArray}
+    (hSize : arr.size ≤ 32) :
+    (Ethereum.uInt256OfByteArray arr).toNat =
+      Ethereum.fromBytes' arr.data.toList.reverse := by
+  have hLen : arr.data.toList.reverse.length ≤ 32 := by
+    rw [List.length_reverse, Array.length_toList, ByteArray.size_data]
+    exact hSize
+  have hLt : Ethereum.fromBytes' arr.data.toList.reverse < Ethereum.UInt256.size :=
+    fromBytes'_lt_uint256_size_of_length_le hLen
+  unfold Ethereum.uInt256OfByteArray
+  exact Ethereum.UInt256.ofNat_toNat_of_lt hLt
+
+lemma uInt256OfByteArray_readBytes_toNat_32 (source : ByteArray) (start : Nat) :
+    (Ethereum.uInt256OfByteArray (source.readBytes start 32)).toNat =
+      Ethereum.fromBytes' (source.readBytes start 32).data.toList.reverse := by
+  apply Ethereum.uInt256OfByteArray_toNat_of_size_le
+  rw [ByteArray.readBytes_size_32]
+
+end Ethereum
+
 lemma Ethereum_toBytes'_one : Ethereum.toBytes' 1 = [1] := by
   unfold Ethereum.toBytes'
   simp
@@ -451,6 +557,29 @@ lemma runtimeEquivalenceFor_noDispatch
         .ok (.revert g' o)) :
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I :=
   runtimeEquivalenceFor.noDispatch hDispatch hΞ
+
+lemma runtimeEquivalenceFor_noDispatch_singleton_revert
+    {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
+    {selector : ByteArray}
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g g' : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {o : ByteArray}
+    (hTransitions : contract.transitions = [transition])
+    (hHash :
+      (ffi.KEC (String.toByteArray (transitionSigStr transition))).extract 0 4 = selector)
+    (hSelector : I.calldata.extract 0 4 ≠ selector)
+    (hΞ :
+      Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+        .ok (.revert g' o)) :
+    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I :=
+  runtimeEquivalenceFor_noDispatch
+    (dispatchMsg_singleton_none_of_selector_ne hTransitions hHash hSelector)
+    hΞ
 
 lemma runtimeEquivalenceFor_decodingFailed
     {cfg : Config} {contract : ContractDecl}
@@ -800,6 +929,50 @@ lemma actExec_of_dispatch_decode_initial
   actExec_of_dispatch_decode_exec
     (evmState := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
     hDispatch hSig hDecode rfl hExec
+
+lemma actExec_singleton_no_params_initial
+    {conf : Config}
+    {contract : ContractDecl}
+    {transition : TransitionDecl}
+    {selector : ByteArray}
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {actRes : ExecResult}
+    (hTransitions : contract.transitions = [transition])
+    (hHash :
+      (ffi.KEC (String.toByteArray (transitionSigStr transition))).extract 0 4 = selector)
+    (hSelectorSize : selector.size = 4)
+    (hParams : transition.params = [])
+    (hSelector : I.calldata.extract 0 4 = selector)
+    (hExec :
+      ExecContractBody conf contract
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+        (∅ : Store) transition.body actRes) :
+    actExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I actRes
+      transition.returnType := by
+  have hDispatch : dispatchMsg contract I.calldata = some transition :=
+    dispatchMsg_singleton_some_of_selector hTransitions hHash hSelector
+  have hEnoughCalldata : ¬ I.calldata.toList.length < 4 :=
+    ByteArray.not_toList_length_lt_of_extract_eq_size hSelectorSize hSelector
+  have hDecode :
+      decodeCalldata (transition.params.map Param.name)
+        (transitionSignature transition).paramTypes I.calldata =
+        some (∅ : Store) := by
+    simpa [transitionSignature, hParams] using
+      ABI.decodeCalldata_no_params_of_not_lt (calldata := I.calldata) hEnoughCalldata
+  exact actExec_of_dispatch_decode_initial
+    (transition := transition)
+    (transitionSig := transitionSignature transition)
+    (callargs := (∅ : Store))
+    hDispatch
+    rfl
+    hDecode
+    hExec
 
 lemma runtimeEquivalenceFor_success_initial
     {cfg : Config} {contract : ContractDecl}
