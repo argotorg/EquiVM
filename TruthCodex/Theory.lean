@@ -186,6 +186,74 @@ lemma isZero_bne_zero_eq_false_of_ne_zero {x : Ethereum.UInt256}
   rw [isZero_eq_zero_of_ne_zero h]
   decide
 
+lemma ofNat_lt_of_lt {a b : Nat}
+    (ha : a < Ethereum.UInt256.size)
+    (hb : b < Ethereum.UInt256.size)
+    (h : a < b) :
+    Ethereum.UInt256.ofNat a < Ethereum.UInt256.ofNat b := by
+  unfold Ethereum.UInt256.ofNat
+  simp [Id.run]
+  change (Fin.ofNat Ethereum.UInt256.size a) < (Fin.ofNat Ethereum.UInt256.size b)
+  rw [Fin.lt_def]
+  simp [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb]
+  exact h
+
+lemma not_ofNat_lt_of_not_lt {a b : Nat}
+    (ha : a < Ethereum.UInt256.size)
+    (hb : b < Ethereum.UInt256.size)
+    (h : ¬ a < b) :
+    ¬ Ethereum.UInt256.ofNat a < Ethereum.UInt256.ofNat b := by
+  unfold Ethereum.UInt256.ofNat
+  simp [Id.run]
+  change ¬ (Fin.ofNat Ethereum.UInt256.size a) < (Fin.ofNat Ethereum.UInt256.size b)
+  rw [Fin.lt_def]
+  simp [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb]
+  omega
+
+lemma lt_eq_one_of_lt {a b : Ethereum.UInt256}
+    (h : a < b) :
+    Ethereum.UInt256.lt a b = (⟨1⟩ : Ethereum.UInt256) := by
+  unfold Ethereum.UInt256.lt Ethereum.UInt256.fromBool Bool.toUInt256
+  have hdec : decide (a < b) = true := by simp [h]
+  rw [hdec]
+  decide
+
+lemma lt_eq_zero_of_not_lt {a b : Ethereum.UInt256}
+    (h : ¬ a < b) :
+    Ethereum.UInt256.lt a b = (⟨0⟩ : Ethereum.UInt256) := by
+  unfold Ethereum.UInt256.lt Ethereum.UInt256.fromBool Bool.toUInt256
+  have hdec : decide (a < b) = false := by simp [h]
+  rw [hdec]
+  decide
+
+lemma lt_bne_zero_eq_true_of_lt {a b : Ethereum.UInt256}
+    (h : a < b) :
+    (Ethereum.UInt256.lt a b != (⟨0⟩ : Ethereum.UInt256)) = true := by
+  rw [lt_eq_one_of_lt h]
+  decide
+
+lemma lt_bne_zero_eq_false_of_not_lt {a b : Ethereum.UInt256}
+    (h : ¬ a < b) :
+    (Ethereum.UInt256.lt a b != (⟨0⟩ : Ethereum.UInt256)) = false := by
+  rw [lt_eq_zero_of_not_lt h]
+  decide
+
+lemma lt_ofNat_bne_zero_eq_true_of_lt {a b : Nat}
+    (ha : a < Ethereum.UInt256.size)
+    (hb : b < Ethereum.UInt256.size)
+    (h : a < b) :
+    (Ethereum.UInt256.lt (Ethereum.UInt256.ofNat a) (Ethereum.UInt256.ofNat b) !=
+      (⟨0⟩ : Ethereum.UInt256)) = true :=
+  lt_bne_zero_eq_true_of_lt (ofNat_lt_of_lt ha hb h)
+
+lemma lt_ofNat_bne_zero_eq_false_of_not_lt {a b : Nat}
+    (ha : a < Ethereum.UInt256.size)
+    (hb : b < Ethereum.UInt256.size)
+    (h : ¬ a < b) :
+    (Ethereum.UInt256.lt (Ethereum.UInt256.ofNat a) (Ethereum.UInt256.ofNat b) !=
+      (⟨0⟩ : Ethereum.UInt256)) = false :=
+  lt_bne_zero_eq_false_of_not_lt (not_ofNat_lt_of_not_lt ha hb h)
+
 end Ethereum.UInt256
 
 lemma Ethereum_toBytes'_one : Ethereum.toBytes' 1 = [1] := by
@@ -836,6 +904,20 @@ namespace Ethereum.EVM
 
 /-! ### Small opcode-step wrappers -/
 
+theorem decode_of_code_eq {code : ByteArray} {s : Ethereum.State}
+    {decoded : Option (Ethereum.Operation × Option (Ethereum.UInt256 × Nat))}
+    (hCode : s.executionEnv.code = code)
+    (hDecode : decode code s.machineState.pc = decoded) :
+    decode s.executionEnv.code s.machineState.pc = decoded := by
+  simpa [hCode] using hDecode
+
+theorem Xstep_of_code_eq {code : ByteArray} {s : Ethereum.State}
+    {result : Except ExecutionException (Ethereum.State × Option (Bool × ByteArray))}
+    (hCode : s.executionEnv.code = code)
+    (hStep : Xstep (D_J s.executionEnv.code ⟨0⟩) s = result) :
+    Xstep (D_J code ⟨0⟩) s = result := by
+  simpa [hCode] using hStep
+
 def push1NextState (s : Ethereum.State) (arg : Ethereum.UInt256) : Ethereum.State :=
   {s with
     machineState.stack := arg :: s.machineState.stack
@@ -938,6 +1020,46 @@ theorem Xstep_callvalue_continue_of_decode {s : Ethereum.State}
     omega
   simpa [callvalueNextState, hGas, hNoOverflow, hNoOverflow'] using hStep
 
+def calldatasizeNextState (s : Ethereum.State) : Ethereum.State :=
+  {s with
+    machineState.stack := Ethereum.UInt256.ofNat s.executionEnv.calldata.size :: s.machineState.stack
+    machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gbase
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+@[simp] theorem calldatasizeNextState_stack (s : Ethereum.State) :
+    (calldatasizeNextState s).machineState.stack =
+      Ethereum.UInt256.ofNat s.executionEnv.calldata.size :: s.machineState.stack :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_gasAvailable (s : Ethereum.State) :
+    (calldatasizeNextState s).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gbase :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_pc (s : Ethereum.State) :
+    (calldatasizeNextState s).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
+
+theorem Xstep_calldatasize_oog_of_decode {s : Ethereum.State}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.CALLDATASIZE, .none))
+    (hGas : s.machineState.gasAvailable.toNat < GasConstants.Gbase) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .error .OutOfGass := by
+  have hStep := step_calldatasize s hDecode
+  simpa [hGas] using hStep
+
+theorem Xstep_calldatasize_continue_of_decode {s : Ethereum.State}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.CALLDATASIZE, .none))
+    (hGas : ¬ s.machineState.gasAvailable.toNat < GasConstants.Gbase)
+    (hStack : s.machineState.stack.length < 1024) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .ok (calldatasizeNextState s, none) := by
+  have hStep := step_calldatasize s hDecode
+  have hNoOverflow : ¬ s.machineState.stack.length - 0 + 1 > 1024 := by
+    omega
+  have hNoOverflow' : ¬ 1024 < s.machineState.stack.length + 1 := by
+    omega
+  simpa [calldatasizeNextState, hGas, hNoOverflow, hNoOverflow'] using hStep
+
 def dup1NextState (s : Ethereum.State) (a : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256) : Ethereum.State :=
   {s with
@@ -991,6 +1113,49 @@ theorem Xstep_iszero_continue_of_decode {s : Ethereum.State}
     Xstep (D_J s.executionEnv.code ⟨0⟩) s = .ok (iszeroNextState s a t, none) := by
   have hStep := step_iszero s hDecode
   simpa [iszeroNextState, hStack, hGas, hStackBound] using hStep
+
+def ltNextState (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) : Ethereum.State :=
+  {s with
+    machineState.stack := Ethereum.UInt256.lt a b :: t
+    machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gverylow
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+@[simp] theorem ltNextState_stack (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).machineState.stack = Ethereum.UInt256.lt a b :: t :=
+  rfl
+
+@[simp] theorem ltNextState_gasAvailable (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gverylow :=
+  rfl
+
+@[simp] theorem ltNextState_pc (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
+
+theorem Xstep_lt_oog_of_decode {s : Ethereum.State}
+    {a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.LT, .none))
+    (hStack : s.machineState.stack = a :: b :: t)
+    (hGas : s.machineState.gasAvailable.toNat < GasConstants.Gverylow) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .error .OutOfGass := by
+  have hStep := step_lt s hDecode
+  simpa [hStack, hGas] using hStep
+
+theorem Xstep_lt_continue_of_decode {s : Ethereum.State}
+    {a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.LT, .none))
+    (hStack : s.machineState.stack = a :: b :: t)
+    (hGas : ¬ s.machineState.gasAvailable.toNat < GasConstants.Gverylow)
+    (hStackBound : ¬ 1024 < t.length + 1) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s = .ok (ltNextState s a b t, none) := by
+  have hStep := step_lt s hDecode
+  simpa [ltNextState, hStack, hGas, hStackBound] using hStep
 
 def push0NextState (s : Ethereum.State) : Ethereum.State :=
   {s with
@@ -1231,6 +1396,33 @@ theorem Xstep_revert_continue_of_decode {s : Ethereum.State}
   have hNoOverflow : ¬ (offset :: size :: t).length - 2 + 0 > 1024 := by
     simpa using hStackBound
   simpa [revertNextState, revertOutput, hStack, hMemGas, hStackBound, hNoOverflow] using hStep
+
+theorem memoryExpansionCost_revert_zero_stack {s : Ethereum.State}
+    {t : Ethereum.Stack Ethereum.UInt256}
+    (hStack :
+      s.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: t) :
+    memoryExpansionCost s .REVERT = 0 := by
+  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, hStack,
+    Ethereum.MachineState.M, Ethereum.UInt256.ofNat, Ethereum.UInt256.toNat, Id.run]
+
+theorem Xstep_revert_zero_continue_of_decode {s : Ethereum.State}
+    {t : Ethereum.Stack Ethereum.UInt256}
+    (hDecode : decode s.executionEnv.code s.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      s.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: t)
+    (hStackBound : ¬ 1024 < t.length) :
+    Xstep (D_J s.executionEnv.code ⟨0⟩) s =
+      .ok (revertNextState s (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) t,
+        some (false, revertOutput s (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) := by
+  exact Xstep_revert_continue_of_decode
+    hDecode
+    hStack
+    (by
+      rw [memoryExpansionCost_revert_zero_stack hStack]
+      simp)
+    hStackBound
 
 /-- A finite prefix of non-halting EVM `Xstep`s. `ContinueTrace validJumps n s t`
 means `Xstep` runs from `s` to `t` in exactly `n` continuing steps. -/
@@ -1478,6 +1670,43 @@ lemma EVM_Xi_of_initial_continue_trace_revert_of_le
     (by omega)
     hTrace
     hHalt
+
+lemma EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : n ≤ g.toNat)
+    (hTrace :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      t.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: tail)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := n)
+    hFuel
+    hTrace
+    (by
+      have hStep :=
+        Ethereum.EVM.Xstep_revert_zero_continue_of_decode hDecode hStack hStackBound
+      simpa [hCode] using hStep)
 
 lemma EVM_Xi_of_initial_continue_trace_error_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
