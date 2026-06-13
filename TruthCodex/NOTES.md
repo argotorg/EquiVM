@@ -45,6 +45,9 @@
 - `Ethereum.UInt256.add_add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across five checked `UInt256` subtractions.
 - `Ethereum.UInt256.add_add_add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across six checked `UInt256` subtractions.
 - `Ethereum.UInt256.add_add_add_add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt`: packages lower-bound gas arithmetic across seven checked `UInt256` subtractions.
+- `Ethereum.UInt256.subCosts`: folds a list of natural gas costs into repeated `UInt256` subtraction, avoiding one-off arity-specific debit expressions.
+- `Ethereum.UInt256.toNat_subCosts_of_sum_le`: evaluates a whole `subCosts` chain as natural subtraction when the total listed cost is available.
+- `Ethereum.UInt256.sum_le_toNat_of_subCosts_not_lt`: derives an initial gas lower bound from a checked `subCosts` prefix plus a final non-OOG check; reusable replacement for hand-unrolled gas arithmetic.
 - `Ethereum.UInt256.isZero_eq_one_of_eq_zero`: computes `ISZERO`'s word result for a zero input.
 - `Ethereum.UInt256.isZero_eq_zero_of_ne_zero`: computes `ISZERO`'s word result for a nonzero input.
 - `Ethereum.UInt256.isZero_bne_zero_eq_true_of_eq_zero`: turns a zero input into a nonzero `JUMPI` condition after `ISZERO`.
@@ -487,6 +490,7 @@
 - `EVM_Xi_of_initial_continue_trace_iszero_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `ISZERO` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_swap1_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `SWAP1` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_pop_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `POP` at the end of an initial continuing trace.
+- `EVM_Xi_of_initial_continue_trace_add_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `ADD` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_swap2_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `SWAP2` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_swap3_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `SWAP3` at the end of an initial continuing trace.
 - `EVM_Xi_of_initial_continue_trace_jump_oog_of_decode`: no-explicit-fuel OOG lift for a decoded `JUMP` at the end of an initial continuing trace.
@@ -727,6 +731,8 @@
 - `truthGas_ge_twenty_of_callvalue_continue`: derives `20 ≤ g.toNat` after the memory prologue and successful `CALLVALUE` gas check.
 - `truthGas_ge_twenty_three_of_dup_continue`: derives `23 ≤ g.toNat` after the memory prologue plus successful `CALLVALUE` and `DUP1` gas checks.
 - `truthGas_ge_twenty_nine_of_push_dest_continue`: derives `29 ≤ g.toNat` after the memory prologue plus successful `CALLVALUE; DUP1; ISZERO; PUSH1 0x0e` gas checks, closing the selector-mismatch fallback fuel bounds.
+- `truthGas_ge_forty_of_jumpdest_continue`: derives `40 ≤ g.toNat` after the taken zero-callvalue `JUMPDEST` gas check, using `Ethereum.UInt256.subCosts`.
+- `truthGas_ge_forty_two_of_pop_continue`: derives `42 ≤ g.toNat` after the following zero-callvalue `POP` gas check, using `Ethereum.UInt256.subCosts`.
 - `truthGas_ge_thirty_nine_of_jumpi_continue`: derives `39 ≤ g.toNat` after the successful non-payable-guard `JUMPI`, giving enough interpreter fuel for the pure-body OOG split.
 - `truthEVM_mstore_memory_oog`: proves top-level `Ξ` out-of-gas on `MSTORE` memory expansion.
 - `truthEVM_mstore_verylow_oog`: proves top-level `Ξ` out-of-gas on `MSTORE`'s second gas check.
@@ -915,15 +921,13 @@
 - `truthValidJump_5e_of_code`: transports `truthBytecode_validJump_5e` to any execution environment whose code is `truthBytecode`.
 - `truthBytecode_validJump_75`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x75 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
 - `truthValidJump_75_of_code`: transports `truthBytecode_validJump_75` to any execution environment whose code is `truthBytecode`.
-- `truthGas_ge_forty_of_jumpdest_continue`: current Truth-specific `sorry` for extending the dispatcher gas lower bound through the taken zero-callvalue `JUMPDEST` check.
-- `truthGas_ge_forty_two_of_pop_continue`: current Truth-specific `sorry` for extending the dispatcher gas lower bound through the following `POP` check.
-- `truthGas_ge_fifty_of_return_cont_jump_continue`: current Truth-specific `sorry` for extending the fuel lower bound through the return-continuation `JUMP` into the ABI encoder entry.
 - `Ethereum.EVM.ContinueTrace.length_le_initial_gas`: current reusable `sorry` for deriving interpreter fuel lower bounds compositionally from successful non-halting traces; proof requires a general theorem that every successful non-halting `Xstep` consumes at least one gas unit.
 
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
 - The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The reusable memory lemmas now prove read-back through `MSTORE` up to `UInt256.toByteArray`; the remaining byte-level ABI output equality is blocked by the trusted-base opacity of `ffi.ByteArray.zeroes`, logged in `MISSPEC.md`.
+- The former `truthGas_ge_fifty_of_return_cont_jump_continue` local gap was eliminated; the ABI encoder-entry OOG cases now use trace-based no-explicit-fuel wrappers, with the shared fuel argument concentrated in `Ethereum.EVM.ContinueTrace.length_le_initial_gas`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.

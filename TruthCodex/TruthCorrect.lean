@@ -2059,9 +2059,67 @@ lemma truthGas_ge_forty_of_jumpdest_continue
           (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
          s8.machineState.gasAvailable.toNat < GasConstants.Gjumpdest)) :
     40 ≤ g.toNat := by
-  -- Extends `truthGas_ge_thirty_nine_of_jumpi_continue` by the taken-branch
-  -- `JUMPDEST` check. The remaining work is routine `UInt256` debit threading.
-  sorry
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let prefixCosts : List Nat :=
+    [GasConstants.Gverylow, GasConstants.Gverylow, 9,
+      GasConstants.Gverylow, GasConstants.Gbase, GasConstants.Gverylow,
+      GasConstants.Gverylow, GasConstants.Gverylow, GasConstants.Ghigh]
+  have hCost :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE = 9 := by
+    simpa [s0, s1, s2] using
+      (truthEVM_mstore_memory_cost
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hCostExpanded := hCost
+  simp [s0, s1, s2, initialEVMState, Ethereum.EVM.push1NextState] at hCostExpanded
+  have hPrefixSum : prefixCosts.sum = 39 := by
+    simp [prefixCosts, GasConstants.Gverylow, GasConstants.Gbase,
+      GasConstants.Ghigh]
+  have hPrefixSize :
+      ∀ cost ∈ prefixCosts, cost < Ethereum.UInt256.size := by
+    intro cost hMem
+    simp [prefixCosts, GasConstants.Gverylow, GasConstants.Gbase,
+      GasConstants.Ghigh] at hMem
+    rcases hMem with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals decide
+  have hPrefixLe : prefixCosts.sum ≤ g.toNat := by
+    rw [hPrefixSum]
+    exact hFuel39
+  have hJumpdestGas' :
+      ¬ (Ethereum.UInt256.subCosts g prefixCosts).toNat <
+        GasConstants.Gjumpdest := by
+    simpa [prefixCosts, Ethereum.UInt256.subCosts, s0, s1, s2, s3, s4,
+      s5, s6, s7, s8, initialEVMState, Ethereum.EVM.push1NextState,
+      Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
+      Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState,
+      Ethereum.EVM.jumpiNextState, hCost, hCostExpanded] using hJumpdestGas
+  have hEnough :=
+    Ethereum.UInt256.sum_le_toNat_of_subCosts_not_lt
+      (x := g)
+      (costs := prefixCosts)
+      (remaining := GasConstants.Gjumpdest)
+      hPrefixSize
+      hPrefixLe
+      hJumpdestGas'
+  rw [hPrefixSum] at hEnough
+  unfold GasConstants.Gjumpdest at hEnough
+  omega
 
 lemma truthGas_ge_forty_two_of_pop_continue
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -2087,89 +2145,71 @@ lemma truthGas_ge_forty_two_of_pop_continue
          let s9 := Ethereum.EVM.jumpdestNextState s8
          s9.machineState.gasAvailable.toNat < GasConstants.Gbase)) :
     42 ≤ g.toNat := by
-  -- Extends the dispatcher bound through the `POP` check at pc `0x0f`.
-  -- This is Truth-specific; the reusable subtraction chain lives in `Theory`.
-  sorry
-
-lemma truthGas_ge_fifty_of_return_cont_jump_continue
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader}
-    {blocks : Ethereum.ProcessedBlocks}
-    {σ σ₀ : Ethereum.AccountMap}
-    {g : Ethereum.UInt256}
-    {A : Ethereum.Substate}
-    {I : Ethereum.ExecutionEnv}
-    {selectorWord freePtr : Ethereum.UInt256}
-    (hFuel42 : 42 ≤ g.toNat)
-    (hReturnContJumpGas :
-      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
-         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
-         let s3 := Ethereum.EVM.mstoreNextState s2
-          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
-         let s4 := Ethereum.EVM.callvalueNextState s3
-         let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
-         let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
-         let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
-         let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
-          (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
-         let s9 := Ethereum.EVM.jumpdestNextState s8
-         let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
-         let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
-         let s12 := Ethereum.EVM.calldatasizeNextState s11
-         let s13 := Ethereum.EVM.ltNextState s12
-          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
-         let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
-         let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
-          (Ethereum.UInt256.lt
-            (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
-         let s16 := Ethereum.EVM.push0NextState s15
-         let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
-         let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
-         let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
-          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
-         let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
-         let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
-         let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
-          selectorWord [selectorWord]
-         let s23 := Ethereum.EVM.push1NextState s22 (⟨0x2a⟩ : Ethereum.UInt256)
-         let s24 := Ethereum.EVM.jumpiNextState s23 (⟨0x2a⟩ : Ethereum.UInt256)
-          (Ethereum.UInt256.eq (⟨0x9e9f51d2⟩ : Ethereum.UInt256) selectorWord)
-          [selectorWord]
-         let s25 := Ethereum.EVM.jumpdestNextState s24
-         let s26 := Ethereum.EVM.push1NextState s25 (⟨0x30⟩ : Ethereum.UInt256)
-         let s27 := Ethereum.EVM.push1NextState s26 (⟨0x44⟩ : Ethereum.UInt256)
-         let s28 := Ethereum.EVM.jumpNextState s27 (⟨0x44⟩ : Ethereum.UInt256)
-          [(⟨0x30⟩ : Ethereum.UInt256), selectorWord]
-         let s29 := Ethereum.EVM.jumpdestNextState s28
-         let s30 := Ethereum.EVM.push0NextState s29
-         let s31 := Ethereum.EVM.push1NextState s30 (⟨0x01⟩ : Ethereum.UInt256)
-         let s32 := Ethereum.EVM.swap1NextState s31
-          (⟨0x01⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256)
-          [(⟨0x30⟩ : Ethereum.UInt256), selectorWord]
-         let s33 := Ethereum.EVM.popNextState s32 (⟨0⟩ : Ethereum.UInt256)
-          [(⟨0x01⟩ : Ethereum.UInt256), (⟨0x30⟩ : Ethereum.UInt256), selectorWord]
-         let s34 := Ethereum.EVM.swap1NextState s33
-          (⟨0x01⟩ : Ethereum.UInt256) (⟨0x30⟩ : Ethereum.UInt256) [selectorWord]
-         let s35 := Ethereum.EVM.jumpNextState s34 (⟨0x30⟩ : Ethereum.UInt256)
-          [(⟨0x01⟩ : Ethereum.UInt256), selectorWord]
-         let s36 := Ethereum.EVM.jumpdestNextState s35
-         let s37 := Ethereum.EVM.push1NextState s36 (⟨0x40⟩ : Ethereum.UInt256)
-         let s38 := Ethereum.EVM.mloadNextState s37
-          (⟨0x40⟩ : Ethereum.UInt256) [(⟨0x01⟩ : Ethereum.UInt256), selectorWord]
-         let s39 := Ethereum.EVM.push1NextState s38 (⟨0x3b⟩ : Ethereum.UInt256)
-         let s40 := Ethereum.EVM.swap2NextState s39
-          (⟨0x3b⟩ : Ethereum.UInt256) freePtr (⟨0x01⟩ : Ethereum.UInt256)
-          [selectorWord]
-         let s41 := Ethereum.EVM.swap1NextState s40
-          (⟨0x01⟩ : Ethereum.UInt256) freePtr
-          [(⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
-         let s42 := Ethereum.EVM.push1NextState s41 (⟨0x64⟩ : Ethereum.UInt256)
-         s42.machineState.gasAvailable.toNat < GasConstants.Gmid)) :
-    50 ≤ g.toNat := by
-  -- The return-continuation `JUMP` at pc `0x3a` costs `Gmid` after the
-  -- 42-step prefix. The remaining work is exact symbolic gas threading.
-  sorry
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+  let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+    (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+  let s9 := Ethereum.EVM.jumpdestNextState s8
+  let prefixCosts : List Nat :=
+    [GasConstants.Gverylow, GasConstants.Gverylow, 9,
+      GasConstants.Gverylow, GasConstants.Gbase, GasConstants.Gverylow,
+      GasConstants.Gverylow, GasConstants.Gverylow, GasConstants.Ghigh,
+      GasConstants.Gjumpdest]
+  have hCost :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE = 9 := by
+    simpa [s0, s1, s2] using
+      (truthEVM_mstore_memory_cost
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hCostExpanded := hCost
+  simp [s0, s1, s2, initialEVMState, Ethereum.EVM.push1NextState] at hCostExpanded
+  have hPrefixSum : prefixCosts.sum = 40 := by
+    simp [prefixCosts, GasConstants.Gverylow, GasConstants.Gbase,
+      GasConstants.Ghigh, GasConstants.Gjumpdest]
+  have hPrefixSize :
+      ∀ cost ∈ prefixCosts, cost < Ethereum.UInt256.size := by
+    intro cost hMem
+    simp [prefixCosts, GasConstants.Gverylow, GasConstants.Gbase,
+      GasConstants.Ghigh, GasConstants.Gjumpdest] at hMem
+    rcases hMem with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals decide
+  have hPrefixLe : prefixCosts.sum ≤ g.toNat := by
+    rw [hPrefixSum]
+    exact hFuel40
+  have hPopGas' :
+      ¬ (Ethereum.UInt256.subCosts g prefixCosts).toNat <
+        GasConstants.Gbase := by
+    simpa [prefixCosts, Ethereum.UInt256.subCosts, s0, s1, s2, s3, s4,
+      s5, s6, s7, s8, s9, initialEVMState, Ethereum.EVM.push1NextState,
+      Ethereum.EVM.mstoreNextState, Ethereum.EVM.callvalueNextState,
+      Ethereum.EVM.dup1NextState, Ethereum.EVM.iszeroNextState,
+      Ethereum.EVM.jumpiNextState, Ethereum.EVM.jumpdestNextState, hCost,
+      hCostExpanded] using
+      hPopGas
+  have hEnough :=
+    Ethereum.UInt256.sum_le_toNat_of_subCosts_not_lt
+      (x := g)
+      (costs := prefixCosts)
+      (remaining := GasConstants.Gbase)
+      hPrefixSize
+      hPrefixLe
+      hPopGas'
+  rw [hPrefixSum] at hEnough
+  unfold GasConstants.Gbase at hEnough
+  omega
 
 lemma truthEVM_mstore_memory_oog
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -23651,27 +23691,6 @@ theorem truthCorrect :
                                                                                                   have hPrefix43Nat :
                                                                                                       Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 43 s0 s43 := by
                                                                                                     simpa using hPrefix43
-                                                                                                  have hFuel50Base : 50 ≤ g.toNat :=
-                                                                                                    truthGas_ge_fifty_of_return_cont_jump_continue
-                                                                                                      (createdAccounts := createdAccounts)
-                                                                                                      (genesisBlockHeader := genesisBlockHeader)
-                                                                                                      (blocks := blocks)
-                                                                                                      (σ := σ)
-                                                                                                      (σ₀ := σ₀)
-                                                                                                      (g := g)
-                                                                                                      (A := A)
-                                                                                                      (I := I)
-                                                                                                      (selectorWord := selectorWord)
-                                                                                                      (freePtr := freePtr)
-                                                                                                      hFuel42Base
-                                                                                                      (by
-                                                                                                        simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8,
-                                                                                                          s9, s10, s11, s12, s13, s14, s15, s16,
-                                                                                                          s17, s18, s19, selectorWord, s20, s21,
-                                                                                                          s22, s23, s24, s25, s26, s27, s28, s29,
-                                                                                                          s30, s31, s32, s33, s34, s35, s36, s37,
-                                                                                                          freePtr, s38, s39, s40, s41, s42] using
-                                                                                                          hReturnContJumpGas)
                                                                                                   let s44 := Ethereum.EVM.jumpdestNextState s43
                                                                                                   let s45 := Ethereum.EVM.push0NextState s44
                                                                                                   let s46 := Ethereum.EVM.push1NextState s45
@@ -23713,13 +23732,9 @@ theorem truthCorrect :
                                                                                                   by_cases hAbiEntryJumpdestGas :
                                                                                                       s43.machineState.gasAvailable.toNat <
                                                                                                         GasConstants.Gjumpdest
-                                                                                                  · have hFuel43 : 43 ≤ g.toNat := by
-                                                                                                      omega
-                                                                                                    exact truthRuntime_outOfGas_of_evm
-                                                                                                      (EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_le_of_decode
-                                                                                                        (n := 43)
-                                                                                                        hFuel43 hPrefix43Nat hDecode43
-                                                                                                        hAbiEntryJumpdestGas)
+                                                                                                  · exact truthRuntime_outOfGas_of_evm
+                                                                                                      (EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_decode
+                                                                                                        hPrefix43Nat hDecode43 hAbiEntryJumpdestGas)
                                                                                                   · have hAbiEntryJumpdestStep :
                                                                                                         Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s43 =
                                                                                                           .ok (s44, none) := by
@@ -23754,13 +23769,9 @@ theorem truthCorrect :
                                                                                                     by_cases hAbiEntryPushZeroGas :
                                                                                                         s44.machineState.gasAvailable.toNat <
                                                                                                           GasConstants.Gbase
-                                                                                                    · have hFuel44 : 44 ≤ g.toNat := by
-                                                                                                        omega
-                                                                                                      exact truthRuntime_outOfGas_of_evm
-                                                                                                        (EVM_Xi_of_initial_continue_trace_push0_oog_of_le_of_decode
-                                                                                                          (n := 44)
-                                                                                                          hFuel44 hPrefix44Nat hDecode44
-                                                                                                          hAbiEntryPushZeroGas)
+                                                                                                    · exact truthRuntime_outOfGas_of_evm
+                                                                                                        (EVM_Xi_of_initial_continue_trace_push0_oog_of_decode
+                                                                                                          hPrefix44Nat hDecode44 hAbiEntryPushZeroGas)
                                                                                                     · have hAbiEntryPushZeroStep :
                                                                                                           Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s44 =
                                                                                                             .ok (s45, none) := by
@@ -23796,13 +23807,10 @@ theorem truthCorrect :
                                                                                                       by_cases hAbiEntryPushWordGas :
                                                                                                           s45.machineState.gasAvailable.toNat <
                                                                                                             GasConstants.Gverylow
-                                                                                                      · have hFuel45 : 45 ≤ g.toNat := by
-                                                                                                          omega
-                                                                                                        exact truthRuntime_outOfGas_of_evm
-                                                                                                          (EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode
-                                                                                                            (n := 45)
+                                                                                                      · exact truthRuntime_outOfGas_of_evm
+                                                                                                          (EVM_Xi_of_initial_continue_trace_push1_oog_of_decode
                                                                                                             (arg := (⟨0x20⟩ : Ethereum.UInt256))
-                                                                                                            hFuel45 hPrefix45Nat hDecode45
+                                                                                                            hPrefix45Nat hDecode45
                                                                                                             hAbiEntryPushWordGas)
                                                                                                       · have hAbiEntryPushWordStep :
                                                                                                             Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s45 =
@@ -23847,17 +23855,14 @@ theorem truthCorrect :
                                                                                                         by_cases hAbiEntryDupFreePtrGas :
                                                                                                             s46.machineState.gasAvailable.toNat <
                                                                                                               GasConstants.Gverylow
-                                                                                                        · have hFuel46 : 46 ≤ g.toNat := by
-                                                                                                            omega
-                                                                                                          exact truthRuntime_outOfGas_of_evm
-                                                                                                            (EVM_Xi_of_initial_continue_trace_dup3_oog_of_le_of_decode
-                                                                                                              (n := 46)
+                                                                                                        · exact truthRuntime_outOfGas_of_evm
+                                                                                                            (EVM_Xi_of_initial_continue_trace_dup3_oog_of_decode
                                                                                                               (a := (⟨0x20⟩ : Ethereum.UInt256))
                                                                                                               (b := (⟨0⟩ : Ethereum.UInt256))
                                                                                                               (c := freePtr)
                                                                                                               (tail := [(⟨0x01⟩ : Ethereum.UInt256),
                                                                                                                 (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
-                                                                                                              hFuel46 hPrefix46Nat hDecode46 hStack46
+                                                                                                              hPrefix46Nat hDecode46 hStack46
                                                                                                               hAbiEntryDupFreePtrGas)
                                                                                                         · have hAbiEntryDupFreePtrStep :
                                                                                                               Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s46 =
@@ -23910,17 +23915,14 @@ theorem truthCorrect :
                                                                                                           by_cases hAbiEntryAddWordGas :
                                                                                                               s47.machineState.gasAvailable.toNat <
                                                                                                                 GasConstants.Gverylow
-                                                                                                          · have hFuel47 : 47 ≤ g.toNat := by
-                                                                                                              omega
-                                                                                                            exact truthRuntime_outOfGas_of_evm
-                                                                                                              (EVM_Xi_of_initial_continue_trace_add_oog_of_le_of_decode
-                                                                                                                (n := 47)
+                                                                                                          · exact truthRuntime_outOfGas_of_evm
+                                                                                                              (EVM_Xi_of_initial_continue_trace_add_oog_of_decode
                                                                                                                 (a := freePtr)
                                                                                                                 (b := (⟨0x20⟩ : Ethereum.UInt256))
                                                                                                                 (tail := [(⟨0⟩ : Ethereum.UInt256), freePtr,
                                                                                                                   (⟨0x01⟩ : Ethereum.UInt256),
                                                                                                                   (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
-                                                                                                                hFuel47 hPrefix47Nat hDecode47 hStack47
+                                                                                                                hPrefix47Nat hDecode47 hStack47
                                                                                                                 hAbiEntryAddWordGas)
                                                                                                           · have hAbiEntryAddWordStep :
                                                                                                                 Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s47 =
@@ -23972,17 +23974,14 @@ theorem truthCorrect :
                                                                                                             by_cases hAbiEntrySwapEndGas :
                                                                                                                 s48.machineState.gasAvailable.toNat <
                                                                                                                   GasConstants.Gverylow
-                                                                                                            · have hFuel48 : 48 ≤ g.toNat := by
-                                                                                                                omega
-                                                                                                              exact truthRuntime_outOfGas_of_evm
-                                                                                                                (EVM_Xi_of_initial_continue_trace_swap1_oog_of_le_of_decode
-                                                                                                                  (n := 48)
+                                                                                                            · exact truthRuntime_outOfGas_of_evm
+                                                                                                                (EVM_Xi_of_initial_continue_trace_swap1_oog_of_decode
                                                                                                                   (a := wordEnd)
                                                                                                                   (b := (⟨0⟩ : Ethereum.UInt256))
                                                                                                                   (tail := [freePtr,
                                                                                                                     (⟨0x01⟩ : Ethereum.UInt256),
                                                                                                                     (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
-                                                                                                                  hFuel48 hPrefix48Nat hDecode48 hStack48
+                                                                                                                  hPrefix48Nat hDecode48 hStack48
                                                                                                                   hAbiEntrySwapEndGas)
                                                                                                             · have hAbiEntrySwapEndStep :
                                                                                                                   Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s48 =
@@ -24034,16 +24033,13 @@ theorem truthCorrect :
                                                                                                               by_cases hAbiEntryPopZeroGas :
                                                                                                                   s49.machineState.gasAvailable.toNat <
                                                                                                                     GasConstants.Gbase
-                                                                                                              · have hFuel49 : 49 ≤ g.toNat := by
-                                                                                                                  omega
-                                                                                                                exact truthRuntime_outOfGas_of_evm
-                                                                                                                  (EVM_Xi_of_initial_continue_trace_pop_oog_of_le_of_decode
-                                                                                                                    (n := 49)
+                                                                                                              · exact truthRuntime_outOfGas_of_evm
+                                                                                                                  (EVM_Xi_of_initial_continue_trace_pop_oog_of_decode
                                                                                                                     (a := (⟨0⟩ : Ethereum.UInt256))
                                                                                                                     (tail := [wordEnd, freePtr,
                                                                                                                       (⟨0x01⟩ : Ethereum.UInt256),
                                                                                                                       (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
-                                                                                                                    hFuel49 hPrefix49Nat hDecode49 hStack49
+                                                                                                                    hPrefix49Nat hDecode49 hStack49
                                                                                                                     hAbiEntryPopZeroGas)
                                                                                                               · have hAbiEntryPopZeroStep :
                                                                                                                     Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s49 =
@@ -24096,10 +24092,9 @@ theorem truthCorrect :
                                                                                                                     s50.machineState.gasAvailable.toNat <
                                                                                                                       GasConstants.Gverylow
                                                                                                                 · exact truthRuntime_outOfGas_of_evm
-                                                                                                                    (EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode
-                                                                                                                      (n := 50)
+                                                                                                                    (EVM_Xi_of_initial_continue_trace_push1_oog_of_decode
                                                                                                                       (arg := (⟨0x75⟩ : Ethereum.UInt256))
-                                                                                                                      hFuel50Base hPrefix50Nat hDecode50
+                                                                                                                      hPrefix50Nat hDecode50
                                                                                                                       hAbiEntryPushWriterReturnGas)
                                                                                                                 · have hAbiEntryPushWriterReturnStep :
                                                                                                                       Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s50 =
