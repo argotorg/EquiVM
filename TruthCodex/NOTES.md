@@ -258,6 +258,34 @@
 - `Ethereum.EVM.returnNextState_H_return`: projection fact for halt return data after `RETURN`.
 - `Ethereum.EVM.returnNextState_gasAvailable`: projection fact for gas after `RETURN`.
 - `Ethereum.EVM.returnNextState_pc`: projection fact for pc after `RETURN`.
+- `Ethereum.EVM.push1NextState_executionEnv`: projection fact showing `PUSH1` preserves the execution environment.
+- `Ethereum.EVM.push4NextState_executionEnv`: projection fact showing `PUSH4` preserves the execution environment.
+- `Ethereum.EVM.mloadNextState_executionEnv`: projection fact showing `MLOAD` preserves the execution environment.
+- `Ethereum.EVM.mstoreNextState_executionEnv`: projection fact showing `MSTORE` preserves the execution environment.
+- `Ethereum.EVM.callvalueNextState_executionEnv`: projection fact showing `CALLVALUE` preserves the execution environment.
+- `Ethereum.EVM.calldatasizeNextState_executionEnv`: projection fact showing `CALLDATASIZE` preserves the execution environment.
+- `Ethereum.EVM.calldataloadNextState_executionEnv`: projection fact showing `CALLDATALOAD` preserves the execution environment.
+- `Ethereum.EVM.dup1NextState_executionEnv`: projection fact showing `DUP1` preserves the execution environment.
+- `Ethereum.EVM.dup2NextState_executionEnv`: projection fact showing `DUP2` preserves the execution environment.
+- `Ethereum.EVM.dup3NextState_executionEnv`: projection fact showing `DUP3` preserves the execution environment.
+- `Ethereum.EVM.dup4NextState_executionEnv`: projection fact showing `DUP4` preserves the execution environment.
+- `Ethereum.EVM.dup5NextState_executionEnv`: projection fact showing `DUP5` preserves the execution environment.
+- `Ethereum.EVM.swap1NextState_executionEnv`: projection fact showing `SWAP1` preserves the execution environment.
+- `Ethereum.EVM.swap2NextState_executionEnv`: projection fact showing `SWAP2` preserves the execution environment.
+- `Ethereum.EVM.swap3NextState_executionEnv`: projection fact showing `SWAP3` preserves the execution environment.
+- `Ethereum.EVM.iszeroNextState_executionEnv`: projection fact showing `ISZERO` preserves the execution environment.
+- `Ethereum.EVM.addNextState_executionEnv`: projection fact showing `ADD` preserves the execution environment.
+- `Ethereum.EVM.subNextState_executionEnv`: projection fact showing `SUB` preserves the execution environment.
+- `Ethereum.EVM.ltNextState_executionEnv`: projection fact showing `LT` preserves the execution environment.
+- `Ethereum.EVM.shrNextState_executionEnv`: projection fact showing `SHR` preserves the execution environment.
+- `Ethereum.EVM.eqNextState_executionEnv`: projection fact showing `EQ` preserves the execution environment.
+- `Ethereum.EVM.push0NextState_executionEnv`: projection fact showing `PUSH0` preserves the execution environment.
+- `Ethereum.EVM.jumpNextState_executionEnv`: projection fact showing `JUMP` preserves the execution environment.
+- `Ethereum.EVM.jumpiNextState_executionEnv`: projection fact showing `JUMPI` preserves the execution environment.
+- `Ethereum.EVM.jumpdestNextState_executionEnv`: projection fact showing `JUMPDEST` preserves the execution environment.
+- `Ethereum.EVM.popNextState_executionEnv`: projection fact showing `POP` preserves the execution environment.
+- `Ethereum.EVM.revertNextState_executionEnv`: projection fact showing `REVERT` preserves the execution environment.
+- `Ethereum.EVM.returnNextState_executionEnv`: projection fact showing `RETURN` preserves the execution environment.
 - `Ethereum.EVM.Xstep_return_memory_oog_of_decode`: proves the `RETURN` memory-expansion gas-underflow case.
 - `Ethereum.EVM.Xstep_return_continue_of_decode`: proves the successful `RETURN` halt.
 - `Ethereum.EVM.ContinueTrace`: contract-agnostic finite prefix of continuing `Xstep`s.
@@ -272,6 +300,8 @@
 - `Ethereum.EVM.ContinueTrace.snoc`: appends a continuing step to an existing trace.
 - `Ethereum.EVM.ContinueTrace.append`: composes two continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_three`: composes three continuing traces end-to-end.
+- `Ethereum.EVM.ContinueTrace.append_four`: composes four continuing traces end-to-end.
+- `Ethereum.EVM.ContinueTrace.append_five`: composes five continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.X_halt_success`: runs an exact-fuel trace to a success halt.
 - `Ethereum.EVM.ContinueTrace.X_halt_revert`: runs an exact-fuel trace to a revert halt.
 - `Ethereum.EVM.ContinueTrace.X_error`: runs an exact-fuel trace to an EVM error.
@@ -289,6 +319,18 @@
 - `EVM_Xi_of_initial_continue_traces_revert_of_le`: composes two continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_revert_zero_of_le`: composes two continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_traces_error_of_le`: composes two continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_success_of_le`: composes three continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_revert_of_le`: composes three continuing traces before lifting a revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le`: composes three continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_three_traces_error_of_le`: composes three continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_success_of_le`: composes four continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_revert_of_le`: composes four continuing traces before lifting a revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le`: composes four continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_four_traces_error_of_le`: composes four continuing traces before lifting an EVM error to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_success_of_le`: composes five continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_revert_of_le`: composes five continuing traces before lifting a revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_revert_zero_of_le`: composes five continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_five_traces_error_of_le`: composes five continuing traces before lifting an EVM error to `Ξ`.
 - `Act.ExecStmt.require_true_of_eval`: proves a successful `require` from a true condition evaluation.
 - `Act.ExecStmt.require_false_of_eval`: proves a reverting `require` from a false condition evaluation.
 - `Act.ExecStmt.require_revert_of_eval`: proves a reverting `require` from a reverting condition evaluation.
@@ -552,9 +594,11 @@
 - `truthEVM_bool_writer_to_normalizer_trace`: packages the shared ABI boolean writer entry through its jump to the boolean normalizer at pc `0x4c`, with a generic stack tail.
 - `truthEVM_bool_normalizer_trace`: packages the boolean normalizer `JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP`, with a generic stack tail and return label.
 - `truthEVM_bool_writer_store_trace`: packages the post-normalization boolean write `JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, with a generic stack tail.
+- `truthEVM_bool_writer_full_trace`: composes the boolean writer entry, normalizer, and store-return chunks from pc `0x57` back to the caller-provided writer return label.
 - `truthEVM_abi_encoder_return_to_continuation_trace`: packages the ABI encoder cleanup at pc `0x75` back to the caller-provided return continuation.
 - `truthEVM_final_return_prefix_trace`: packages the final return continuation `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1` up to the local `RETURN` halt.
 - `truthEVM_final_return_step`: proves the local successful `RETURN` halt from the final return stack shape and memory gas premise.
+- `truthEVM_final_return_success_of_prefix_trace`: lifts any already-proven prefix to the final return continuation through the final return prefix and `RETURN` halt to a top-level `Ξ` success.
 - `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_decode`: decodes selector-mismatch fallthrough as the shared fallback `JUMPDEST`.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_stack`: computes the selector word tail after selector-mismatch fallthrough.
@@ -568,6 +612,7 @@
 - `truthEVM_long_calldata_selector_fallback_revert_stack`: computes the zero-offset/zero-size stack with selector-word tail before fallback `REVERT`.
 - `truthEVM_long_calldata_selector_fallback_revert_step`: proves the local zero-length fallback `REVERT` step after selector mismatch.
 - `truthEVM_long_calldata_selector_fallback_revert_of_traces`: lifts the long-calldata prefix plus selector-mismatch fallback suffix traces to a top-level `Ξ` revert.
+- `truthEVM_long_calldata_selector_fallback_revert_of_trace_segments`: lifts four independent trace segments (`15 + 8 + 1 + 3`) for the selector-mismatch fallback to a top-level `Ξ` revert.
 - `truthEVM_long_calldata_jumpi_continue_fallthrough`: proves the long-calldata fallthrough at the `calldatasize < 4` `JUMPI` without a destination-validity premise.
 - `truthEVM_long_calldata_jumpi_trace_fallthrough`: packages the common zero-callvalue prefix through that long-calldata `JUMPI` fallthrough.
 - `truthEVM_push0_decode_of_callvalue_nonzero`: decodes the nonzero-callvalue `JUMPI` fallthrough as `PUSH0`.

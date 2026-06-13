@@ -2382,6 +2382,142 @@ theorem Xstep_return_continue_of_decode {s : Ethereum.State}
     simpa using hStackBound
   simpa [returnNextState, returnOutput, hStack, hMemGas, hStackBound, hNoOverflow] using hStep
 
+/-! Execution-environment projections for opcode next-state helpers. -/
+
+@[simp] theorem push1NextState_executionEnv (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem push4NextState_executionEnv (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem mloadNextState_executionEnv (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mloadNextState s a t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem mstoreNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem callvalueNextState_executionEnv (s : Ethereum.State) :
+    (callvalueNextState s).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_executionEnv (s : Ethereum.State) :
+    (calldatasizeNextState s).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem calldataloadNextState_executionEnv (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem dup1NextState_executionEnv (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem dup2NextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem dup3NextState_executionEnv (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem dup4NextState_executionEnv (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem dup5NextState_executionEnv (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem swap1NextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem swap2NextState_executionEnv (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem swap3NextState_executionEnv (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem iszeroNextState_executionEnv (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem addNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem subNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem ltNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem shrNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem eqNextState_executionEnv (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem push0NextState_executionEnv (s : Ethereum.State) :
+    (push0NextState s).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem jumpNextState_executionEnv (s : Ethereum.State)
+    (dest : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem jumpiNextState_executionEnv (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem jumpdestNextState_executionEnv (s : Ethereum.State) :
+    (jumpdestNextState s).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem popNextState_executionEnv (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem revertNextState_executionEnv (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).executionEnv = s.executionEnv :=
+  rfl
+
+@[simp] theorem returnNextState_executionEnv (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (returnNextState s offset size t).executionEnv = s.executionEnv :=
+  rfl
+
 /-- A finite prefix of non-halting EVM `Xstep`s. `ContinueTrace validJumps n s t`
 means `Xstep` runs from `s` to `t` in exactly `n` continuing steps. -/
 inductive ContinueTrace (validJumps : Array Ethereum.UInt256) :
@@ -2532,6 +2668,29 @@ theorem append_three {validJumps : Array Ethereum.UInt256}
   have h₁₂ : ContinueTrace validJumps (m + n) s u :=
     ContinueTrace.append h₁ h₂
   exact ContinueTrace.append h₁₂ h₃
+
+theorem append_four {validJumps : Array Ethereum.UInt256}
+    {m n k l : Nat} {s t u v w : Ethereum.State}
+    (h₁ : ContinueTrace validJumps m s t)
+    (h₂ : ContinueTrace validJumps n t u)
+    (h₃ : ContinueTrace validJumps k u v)
+    (h₄ : ContinueTrace validJumps l v w) :
+    ContinueTrace validJumps (m + n + k + l) s w := by
+  have h₁₂₃ : ContinueTrace validJumps (m + n + k) s v :=
+    ContinueTrace.append_three h₁ h₂ h₃
+  exact ContinueTrace.append h₁₂₃ h₄
+
+theorem append_five {validJumps : Array Ethereum.UInt256}
+    {m n k l p : Nat} {s t u v w x : Ethereum.State}
+    (h₁ : ContinueTrace validJumps m s t)
+    (h₂ : ContinueTrace validJumps n t u)
+    (h₃ : ContinueTrace validJumps k u v)
+    (h₄ : ContinueTrace validJumps l v w)
+    (h₅ : ContinueTrace validJumps p w x) :
+    ContinueTrace validJumps (m + n + k + l + p) s x := by
+  have h₁₂₃₄ : ContinueTrace validJumps (m + n + k + l) s w :=
+    ContinueTrace.append_four h₁ h₂ h₃ h₄
+  exact ContinueTrace.append h₁₂₃₄ h₅
 
 theorem X_halt_success {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State} {o : ByteArray}
@@ -2917,6 +3076,423 @@ lemma EVM_Xi_of_initial_continue_traces_error_of_le
     (n := m + n)
     hFuel
     (Ethereum.EVM.ContinueTrace.append hPrefix hSuffix)
+    hErr
+
+lemma EVM_Xi_of_initial_continue_three_traces_success_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (true, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.success
+        (evmState.createdAccounts, evmState.accountMap, evmState.machineState.gasAvailable,
+          evmState.substate) o) :=
+  EVM_Xi_of_initial_continue_trace_success_of_le
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_three_traces_revert_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (false, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert evmState.machineState.gasAvailable o) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_three_traces_revert_zero_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t : Ethereum.State}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      t.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: tail)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
+  EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hCode
+    hDecode
+    hStack
+    hStackBound
+
+lemma EVM_Xi_of_initial_continue_three_traces_error_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k : Nat}
+    {s₁ s₂ t : Ethereum.State}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ t)
+    (hErr :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le
+    (n := m + n + k)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_three h₁ h₂ h₃)
+    hErr
+
+lemma EVM_Xi_of_initial_continue_four_traces_success_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (true, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.success
+        (evmState.createdAccounts, evmState.accountMap, evmState.machineState.gasAvailable,
+          evmState.substate) o) :=
+  EVM_Xi_of_initial_continue_trace_success_of_le
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_four_traces_revert_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (false, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert evmState.machineState.gasAvailable o) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_four_traces_revert_zero_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t : Ethereum.State}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      t.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: tail)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
+  EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hCode
+    hDecode
+    hStack
+    hStackBound
+
+lemma EVM_Xi_of_initial_continue_four_traces_error_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l : Nat}
+    {s₁ s₂ s₃ t : Ethereum.State}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k + l ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ t)
+    (hErr :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le
+    (n := m + n + k + l)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_four h₁ h₂ h₃ h₄)
+    hErr
+
+lemma EVM_Xi_of_initial_continue_five_traces_success_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l p : Nat}
+    {s₁ s₂ s₃ s₄ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k + l + p ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) p s₄ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (true, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.success
+        (evmState.createdAccounts, evmState.accountMap, evmState.machineState.gasAvailable,
+          evmState.substate) o) :=
+  EVM_Xi_of_initial_continue_trace_success_of_le
+    (n := m + n + k + l + p)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_five_traces_revert_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l p : Nat}
+    {s₁ s₂ s₃ s₄ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel : m + n + k + l + p ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) p s₄ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (false, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert evmState.machineState.gasAvailable o) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := m + n + k + l + p)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_five_traces_revert_zero_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l p : Nat}
+    {s₁ s₂ s₃ s₄ t : Ethereum.State}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel : m + n + k + l + p ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) p s₄ t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      t.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: tail)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
+  EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+    (n := m + n + k + l + p)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
+    hCode
+    hDecode
+    hStack
+    hStackBound
+
+lemma EVM_Xi_of_initial_continue_five_traces_error_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m n k l p : Nat}
+    {s₁ s₂ s₃ s₄ t : Ethereum.State}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel : m + n + k + l + p ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) k s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) l s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) p s₄ t)
+    (hErr :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le
+    (n := m + n + k + l + p)
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_five h₁ h₂ h₃ h₄ h₅)
     hErr
 
 namespace Act
