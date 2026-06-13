@@ -67,18 +67,19 @@ is the 19-step body (guard not taken → `r*=2; i+=1` → back-jump) followed by
 is carried *symbolically* (it grows by 67 per iteration); the OOG-absorbing disjunction means we
 never need a closed-form total — confirming the symbolic-gas-under-induction story. -/
 
-theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.toNat < 256) :
+theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List UInt256} (hn : n.toNat < 256)
+    (hRov : REST.length + 7 ≤ 1024) :
     ∀ (var : ℕ) (i r : UInt256) (k C : ℕ) (s : State),
       n.toNat - i.toNat = var → r.toNat = 2 ^ i.toNat → i.toNat ≤ n.toNat →
       s.executionEnv.code = powBytecode → s.machineState.pc = ⟨117⟩ →
-      s.machineState.stack = [i, r, slot, n, ret] →
+      s.machineState.stack = [i, r, slot, n] ++ REST →
       s.machineState.gasAvailable.toNat = g.toNat - C → k ≤ C → C ≤ g.toNat →
       X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s →
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
       ∨ ∃ (k' C' : ℕ) (s' : State),
           X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
         ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ⟨142⟩
-        ∧ s'.machineState.stack = [n, UInt256.ofNat (2 ^ n.toNat), slot, n, ret]
+        ∧ s'.machineState.stack = [n, UInt256.ofNat (2 ^ n.toNat), slot, n] ++ REST
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat := by
   intro var
   induction var with
@@ -88,7 +89,7 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
     have hieqn : i = n := u256_inj hin
     have hreq : r = UInt256.ofNat (2 ^ n.toNat) :=
       u256_inj (by rw [hinv, hin, ofNat_pow_toNat hn])
-    have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp)
+    have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     by_cases g0 : g.toNat < C + 1
     · exact Or.inl (hX.trans (stepOOG (cost:=1) hgas st0 hkC hCg (by omega)))
     · set s1 := stJumpdest s with hs1
@@ -97,50 +98,50 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
       have hp1 : s1.machineState.pc = ⟨118⟩ := by rw [hs1]; simp only [stJumpdest]; rw [hpc]; rfl
       have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - (C+1) := by
         rw [hs1]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hk1 : s1.machineState.stack = [i,r,slot,n,ret] := by rw [hs1]; simp only [stJumpdest]; exact hstk
-      have st1 := dup4_xstep hc1 hp1 (by decide) hk1 (by norm_num)
+      have hk1 : s1.machineState.stack = [i,r,slot,n] ++ REST := by rw [hs1]; simp only [stJumpdest]; exact hstk
+      have st1 := dup4_xstep hc1 hp1 (by decide) hk1 (by first | omega | (simp only [List.length_cons]; omega))
       by_cases g1 : g.toNat < C + 4
       · exact Or.inl (hX1.trans (stepOOG (k:=k+1) (C:=C+1) (cost:=3) hg1 st1 (by omega) (by omega) (by omega)))
-      · set s2 := stSwap s1 [n,i,r,slot,n,ret] with hs2
+      · set s2 := stSwap s1 [n,i,r,slot,n] ++ REST with hs2
         have hX2 := hX1.trans (stepContinue (k:=k+1) (C:=C+1) (cost:=3) hg1 st1 (by omega) (by omega))
         have hc2 : s2.executionEnv.code = powBytecode := by rw [hs2]; simp only [stSwap]; exact hc1
         have hp2 : s2.machineState.pc = ⟨119⟩ := by rw [hs2]; simp only [stSwap]; rw [hp1]; rfl
         have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - (C+4) := by
           rw [hs2]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-        have hk2 : s2.machineState.stack = [n,i,r,slot,n,ret] := by rw [hs2]; simp only [stSwap]
-        have st2 := dup2_xstep hc2 hp2 (by decide) hk2 (by norm_num)
+        have hk2 : s2.machineState.stack = [n,i,r,slot,n] ++ REST := by rw [hs2]; simp only [stSwap]
+        have st2 := dup2_xstep hc2 hp2 (by decide) hk2 (by first | omega | (simp only [List.length_cons]; omega))
         by_cases g2 : g.toNat < C + 7
         · exact Or.inl (hX2.trans (stepOOG (k:=k+2) (C:=C+4) (cost:=3) hg2 st2 (by omega) (by omega) (by omega)))
-        · set s3 := stSwap s2 [i,n,i,r,slot,n,ret] with hs3
+        · set s3 := stSwap s2 [i,n,i,r,slot,n] ++ REST with hs3
           have hX3 := hX2.trans (stepContinue (k:=k+2) (C:=C+4) (cost:=3) hg2 st2 (by omega) (by omega))
           have hc3 : s3.executionEnv.code = powBytecode := by rw [hs3]; simp only [stSwap]; exact hc2
           have hp3 : s3.machineState.pc = ⟨120⟩ := by rw [hs3]; simp only [stSwap]; rw [hp2]; rfl
           have hg3 : s3.machineState.gasAvailable.toNat = g.toNat - (C+7) := by
             rw [hs3]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-          have hk3 : s3.machineState.stack = [i,n,i,r,slot,n,ret] := by rw [hs3]; simp only [stSwap]
-          have st3 := lt_xstep hc3 hp3 (by decide) hk3 (by norm_num)
+          have hk3 : s3.machineState.stack = [i,n,i,r,slot,n] ++ REST := by rw [hs3]; simp only [stSwap]
+          have st3 := lt_xstep hc3 hp3 (by decide) hk3 (by first | omega | (simp only [List.length_cons]; omega))
           by_cases g3 : g.toNat < C + 10
           · exact Or.inl (hX3.trans (stepOOG (k:=k+3) (C:=C+7) (cost:=3) hg3 st3 (by omega) (by omega) (by omega)))
-          · set s4 := stBinop s3 (UInt256.lt i n) [i,r,slot,n,ret] with hs4
+          · set s4 := stBinop s3 (UInt256.lt i n) [i,r,slot,n] ++ REST with hs4
             have hX4 := hX3.trans (stepContinue (k:=k+3) (C:=C+7) (cost:=3) hg3 st3 (by omega) (by omega))
             have hc4 : s4.executionEnv.code = powBytecode := by rw [hs4]; simp only [stBinop]; exact hc3
             have hp4 : s4.machineState.pc = ⟨121⟩ := by rw [hs4]; simp only [stBinop]; rw [hp3]; rfl
             have hg4 : s4.machineState.gasAvailable.toNat = g.toNat - (C+10) := by
               rw [hs4]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-            have hk4 : s4.machineState.stack = [⟨0⟩,i,r,slot,n,ret] := by
+            have hk4 : s4.machineState.stack = [⟨0⟩,i,r,slot,n] ++ REST := by
               rw [hs4]; simp only [stBinop]; rw [ult_zero (by omega)]
-            have st4 := iszero_xstep hc4 hp4 (by decide) hk4 (by norm_num)
+            have st4 := iszero_xstep hc4 hp4 (by decide) hk4 (by first | omega | (simp only [List.length_cons]; omega))
             by_cases g4 : g.toNat < C + 13
             · exact Or.inl (hX4.trans (stepOOG (k:=k+4) (C:=C+10) (cost:=3) hg4 st4 (by omega) (by omega) (by omega)))
-            · set s5 := stIsZero s4 ⟨0⟩ [i,r,slot,n,ret] with hs5
+            · set s5 := stIsZero s4 ⟨0⟩ [i,r,slot,n] ++ REST with hs5
               have hX5 := hX4.trans (stepContinue (k:=k+4) (C:=C+10) (cost:=3) hg4 st4 (by omega) (by omega))
               have hc5 : s5.executionEnv.code = powBytecode := by rw [hs5]; simp only [stIsZero]; exact hc4
               have hp5 : s5.machineState.pc = ⟨122⟩ := by rw [hs5]; simp only [stIsZero]; rw [hp4]; rfl
               have hg5 : s5.machineState.gasAvailable.toNat = g.toNat - (C+13) := by
                 rw [hs5]; simp only [stIsZero]; rw [toNat_sub_ofNat (by omega)]; omega
-              have hk5 : s5.machineState.stack = [⟨1⟩,i,r,slot,n,ret] := by
+              have hk5 : s5.machineState.stack = [⟨1⟩,i,r,slot,n] ++ REST := by
                 rw [hs5]; simp only [stIsZero]; rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ from by decide]
-              have st5 := push2_xstep (argv:=⟨142⟩) hc5 hp5 (by decide) hk5 (by norm_num)
+              have st5 := push2_xstep (argv:=⟨142⟩) hc5 hp5 (by decide) hk5 (by first | omega | (simp only [List.length_cons]; omega))
               by_cases g5 : g.toNat < C + 16
               · exact Or.inl (hX5.trans (stepOOG (k:=k+5) (C:=C+13) (cost:=3) hg5 st5 (by omega) (by omega) (by omega)))
               · set s6 := stPush2 s5 ⟨142⟩ with hs6
@@ -149,13 +150,13 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
                 have hp6 : s6.machineState.pc = ⟨125⟩ := by rw [hs6]; simp only [stPush2]; rw [hp5]; rfl
                 have hg6 : s6.machineState.gasAvailable.toNat = g.toNat - (C+16) := by
                   rw [hs6]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-                have hk6 : s6.machineState.stack = [⟨142⟩,⟨1⟩,i,r,slot,n,ret] := by
+                have hk6 : s6.machineState.stack = [⟨142⟩,⟨1⟩,i,r,slot,n] ++ REST := by
                   rw [hs6]; simp only [stPush2, hk5]
                 have st6 := jumpi_t_xstep hc6 hp6 (by decide) hk6 (by decide)
-                  (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
+                  (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by first | omega | (simp only [List.length_cons]; omega))
                 by_cases g6 : g.toNat < C + 26
                 · exact Or.inl (hX6.trans (stepOOG (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega) (by omega)))
-                · set s7 := stJumpiT s6 ⟨142⟩ [i,r,slot,n,ret] with hs7
+                · set s7 := stJumpiT s6 ⟨142⟩ [i,r,slot,n] ++ REST with hs7
                   have hX7 := hX6.trans (stepContinue (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega))
                   refine Or.inr ⟨k+7, C+26, s7, ?_, ?_, ?_, ?_, ?_, by omega, by omega⟩
                   · have he : g.toNat + 1 - (k + 6 + 1) = g.toNat + 1 - (k+7) := by omega
@@ -168,7 +169,7 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
     intro i r k C s hvar hinv hile hcode hpc hstk hgas hkC hCg hX
     have hilt : i.toNat < n.toNat := by omega
     -- guard (7 steps), JUMPI NOT taken (i < n) → body
-    have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp)
+    have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     by_cases g0 : g.toNat < C + 1
     · exact Or.inl (hX.trans (stepOOG (cost:=1) hgas st0 hkC hCg (by omega)))
     · set s1 := stJumpdest s with hs1
@@ -177,50 +178,50 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
       have hp1 : s1.machineState.pc = ⟨118⟩ := by rw [hs1]; simp only [stJumpdest]; rw [hpc]; rfl
       have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - (C+1) := by
         rw [hs1]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hk1 : s1.machineState.stack = [i,r,slot,n,ret] := by rw [hs1]; simp only [stJumpdest]; exact hstk
-      have st1 := dup4_xstep hc1 hp1 (by decide) hk1 (by norm_num)
+      have hk1 : s1.machineState.stack = [i,r,slot,n] ++ REST := by rw [hs1]; simp only [stJumpdest]; exact hstk
+      have st1 := dup4_xstep hc1 hp1 (by decide) hk1 (by first | omega | (simp only [List.length_cons]; omega))
       by_cases g1 : g.toNat < C + 4
       · exact Or.inl (hX1.trans (stepOOG (k:=k+1) (C:=C+1) (cost:=3) hg1 st1 (by omega) (by omega) (by omega)))
-      · set s2 := stSwap s1 [n,i,r,slot,n,ret] with hs2
+      · set s2 := stSwap s1 [n,i,r,slot,n] ++ REST with hs2
         have hX2 := hX1.trans (stepContinue (k:=k+1) (C:=C+1) (cost:=3) hg1 st1 (by omega) (by omega))
         have hc2 : s2.executionEnv.code = powBytecode := by rw [hs2]; simp only [stSwap]; exact hc1
         have hp2 : s2.machineState.pc = ⟨119⟩ := by rw [hs2]; simp only [stSwap]; rw [hp1]; rfl
         have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - (C+4) := by
           rw [hs2]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-        have hk2 : s2.machineState.stack = [n,i,r,slot,n,ret] := by rw [hs2]; simp only [stSwap]
-        have st2 := dup2_xstep hc2 hp2 (by decide) hk2 (by norm_num)
+        have hk2 : s2.machineState.stack = [n,i,r,slot,n] ++ REST := by rw [hs2]; simp only [stSwap]
+        have st2 := dup2_xstep hc2 hp2 (by decide) hk2 (by first | omega | (simp only [List.length_cons]; omega))
         by_cases g2 : g.toNat < C + 7
         · exact Or.inl (hX2.trans (stepOOG (k:=k+2) (C:=C+4) (cost:=3) hg2 st2 (by omega) (by omega) (by omega)))
-        · set s3 := stSwap s2 [i,n,i,r,slot,n,ret] with hs3
+        · set s3 := stSwap s2 [i,n,i,r,slot,n] ++ REST with hs3
           have hX3 := hX2.trans (stepContinue (k:=k+2) (C:=C+4) (cost:=3) hg2 st2 (by omega) (by omega))
           have hc3 : s3.executionEnv.code = powBytecode := by rw [hs3]; simp only [stSwap]; exact hc2
           have hp3 : s3.machineState.pc = ⟨120⟩ := by rw [hs3]; simp only [stSwap]; rw [hp2]; rfl
           have hg3 : s3.machineState.gasAvailable.toNat = g.toNat - (C+7) := by
             rw [hs3]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-          have hk3 : s3.machineState.stack = [i,n,i,r,slot,n,ret] := by rw [hs3]; simp only [stSwap]
-          have st3 := lt_xstep hc3 hp3 (by decide) hk3 (by norm_num)
+          have hk3 : s3.machineState.stack = [i,n,i,r,slot,n] ++ REST := by rw [hs3]; simp only [stSwap]
+          have st3 := lt_xstep hc3 hp3 (by decide) hk3 (by first | omega | (simp only [List.length_cons]; omega))
           by_cases g3 : g.toNat < C + 10
           · exact Or.inl (hX3.trans (stepOOG (k:=k+3) (C:=C+7) (cost:=3) hg3 st3 (by omega) (by omega) (by omega)))
-          · set s4 := stBinop s3 (UInt256.lt i n) [i,r,slot,n,ret] with hs4
+          · set s4 := stBinop s3 (UInt256.lt i n) [i,r,slot,n] ++ REST with hs4
             have hX4 := hX3.trans (stepContinue (k:=k+3) (C:=C+7) (cost:=3) hg3 st3 (by omega) (by omega))
             have hc4 : s4.executionEnv.code = powBytecode := by rw [hs4]; simp only [stBinop]; exact hc3
             have hp4 : s4.machineState.pc = ⟨121⟩ := by rw [hs4]; simp only [stBinop]; rw [hp3]; rfl
             have hg4 : s4.machineState.gasAvailable.toNat = g.toNat - (C+10) := by
               rw [hs4]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-            have hk4 : s4.machineState.stack = [⟨1⟩,i,r,slot,n,ret] := by
+            have hk4 : s4.machineState.stack = [⟨1⟩,i,r,slot,n] ++ REST := by
               rw [hs4]; simp only [stBinop]; rw [ult_one hilt]
-            have st4 := iszero_xstep hc4 hp4 (by decide) hk4 (by norm_num)
+            have st4 := iszero_xstep hc4 hp4 (by decide) hk4 (by first | omega | (simp only [List.length_cons]; omega))
             by_cases g4 : g.toNat < C + 13
             · exact Or.inl (hX4.trans (stepOOG (k:=k+4) (C:=C+10) (cost:=3) hg4 st4 (by omega) (by omega) (by omega)))
-            · set s5 := stIsZero s4 ⟨1⟩ [i,r,slot,n,ret] with hs5
+            · set s5 := stIsZero s4 ⟨1⟩ [i,r,slot,n] ++ REST with hs5
               have hX5 := hX4.trans (stepContinue (k:=k+4) (C:=C+10) (cost:=3) hg4 st4 (by omega) (by omega))
               have hc5 : s5.executionEnv.code = powBytecode := by rw [hs5]; simp only [stIsZero]; exact hc4
               have hp5 : s5.machineState.pc = ⟨122⟩ := by rw [hs5]; simp only [stIsZero]; rw [hp4]; rfl
               have hg5 : s5.machineState.gasAvailable.toNat = g.toNat - (C+13) := by
                 rw [hs5]; simp only [stIsZero]; rw [toNat_sub_ofNat (by omega)]; omega
-              have hk5 : s5.machineState.stack = [⟨0⟩,i,r,slot,n,ret] := by
+              have hk5 : s5.machineState.stack = [⟨0⟩,i,r,slot,n] ++ REST := by
                 rw [hs5]; simp only [stIsZero]; rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ from by decide]
-              have st5 := push2_xstep (argv:=⟨142⟩) hc5 hp5 (by decide) hk5 (by norm_num)
+              have st5 := push2_xstep (argv:=⟨142⟩) hc5 hp5 (by decide) hk5 (by first | omega | (simp only [List.length_cons]; omega))
               by_cases g5 : g.toNat < C + 16
               · exact Or.inl (hX5.trans (stepOOG (k:=k+5) (C:=C+13) (cost:=3) hg5 st5 (by omega) (by omega) (by omega)))
               · set s6 := stPush2 s5 ⟨142⟩ with hs6
@@ -229,19 +230,19 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
                 have hp6 : s6.machineState.pc = ⟨125⟩ := by rw [hs6]; simp only [stPush2]; rw [hp5]; rfl
                 have hg6 : s6.machineState.gasAvailable.toNat = g.toNat - (C+16) := by
                   rw [hs6]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-                have hk6 : s6.machineState.stack = [⟨142⟩,⟨0⟩,i,r,slot,n,ret] := by
+                have hk6 : s6.machineState.stack = [⟨142⟩,⟨0⟩,i,r,slot,n] ++ REST := by
                   rw [hs6]; simp only [stPush2, hk5]
-                have st6 := jumpi_nt_xstep hc6 hp6 (by decide) hk6 (by norm_num)
+                have st6 := jumpi_nt_xstep hc6 hp6 (by decide) hk6 (by first | omega | (simp only [List.length_cons]; omega))
                 by_cases g6 : g.toNat < C + 26
                 · exact Or.inl (hX6.trans (stepOOG (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega) (by omega)))
-                · set s7 := stJumpiNT s6 [i,r,slot,n,ret] with hs7
+                · set s7 := stJumpiNT s6 [i,r,slot,n] ++ REST with hs7
                   have hX7 := hX6.trans (stepContinue (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega))
                   have hc7 : s7.executionEnv.code = powBytecode := by rw [hs7]; simp only [stJumpiNT]; exact hc6
                   have hp7 : s7.machineState.pc = ⟨126⟩ := by rw [hs7]; simp only [stJumpiNT]; rw [hp6]; rfl
                   have hg7 : s7.machineState.gasAvailable.toNat = g.toNat - (C+26) := by
                     rw [hs7]; simp only [stJumpiNT]; rw [toNat_sub_ofNat (by omega)]; omega
-                  have hk7 : s7.machineState.stack = [i,r,slot,n,ret] := by rw [hs7]; simp only [stJumpiNT]
-                  have st7 := push1_xstep (argv:=⟨2⟩) hc7 hp7 (by decide) hk7 (by norm_num)
+                  have hk7 : s7.machineState.stack = [i,r,slot,n] ++ REST := by rw [hs7]; simp only [stJumpiNT]
+                  have st7 := push1_xstep (argv:=⟨2⟩) hc7 hp7 (by decide) hk7 (by first | omega | (simp only [List.length_cons]; omega))
                   by_cases g7 : g.toNat < C + 29
                   · exact Or.inl (hX7.trans (stepOOG (k:=k+7) (C:=C+26) (cost:=3) hg7 st7 (by omega) (by omega) (by omega)))
                   · set s8 := stPush1 s7 ⟨2⟩ with hs8
@@ -250,49 +251,49 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
                     have hp8 : s8.machineState.pc = ⟨128⟩ := by rw [hs8]; simp only [stPush1]; rw [hp7]; rfl
                     have hg8 : s8.machineState.gasAvailable.toNat = g.toNat - (C+29) := by
                       rw [hs8]; simp only [stPush1]; rw [toNat_sub_ofNat (by omega)]; omega
-                    have hk8 : s8.machineState.stack = [⟨2⟩,i,r,slot,n,ret] := by rw [hs8]; simp only [stPush1, hk7]
-                    have st8 := dup3_xstep hc8 hp8 (by decide) hk8 (by norm_num)
+                    have hk8 : s8.machineState.stack = [⟨2⟩,i,r,slot,n] ++ REST := by rw [hs8]; simp only [stPush1, hk7]
+                    have st8 := dup3_xstep hc8 hp8 (by decide) hk8 (by first | omega | (simp only [List.length_cons]; omega))
                     by_cases g8 : g.toNat < C + 32
                     · exact Or.inl (hX8.trans (stepOOG (k:=k+8) (C:=C+29) (cost:=3) hg8 st8 (by omega) (by omega) (by omega)))
-                    · set s9 := stSwap s8 [r,⟨2⟩,i,r,slot,n,ret] with hs9
+                    · set s9 := stSwap s8 [r,⟨2⟩,i,r,slot,n] ++ REST with hs9
                       have hX9 := hX8.trans (stepContinue (k:=k+8) (C:=C+29) (cost:=3) hg8 st8 (by omega) (by omega))
                       have hc9 : s9.executionEnv.code = powBytecode := by rw [hs9]; simp only [stSwap]; exact hc8
                       have hp9 : s9.machineState.pc = ⟨129⟩ := by rw [hs9]; simp only [stSwap]; rw [hp8]; rfl
                       have hg9 : s9.machineState.gasAvailable.toNat = g.toNat - (C+32) := by
                         rw [hs9]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-                      have hk9 : s9.machineState.stack = [r,⟨2⟩,i,r,slot,n,ret] := by rw [hs9]; simp only [stSwap]
-                      have st9 := mul_xstep hc9 hp9 (by decide) hk9 (by norm_num)
+                      have hk9 : s9.machineState.stack = [r,⟨2⟩,i,r,slot,n] ++ REST := by rw [hs9]; simp only [stSwap]
+                      have st9 := mul_xstep hc9 hp9 (by decide) hk9 (by first | omega | (simp only [List.length_cons]; omega))
                       by_cases g9 : g.toNat < C + 37
                       · exact Or.inl (hX9.trans (stepOOG (k:=k+9) (C:=C+32) (cost:=5) hg9 st9 (by omega) (by omega) (by omega)))
-                      · set s10 := stMul s9 (UInt256.mul r ⟨2⟩) [i,r,slot,n,ret] with hs10
+                      · set s10 := stMul s9 (UInt256.mul r ⟨2⟩) [i,r,slot,n] ++ REST with hs10
                         have hX10 := hX9.trans (stepContinue (k:=k+9) (C:=C+32) (cost:=5) hg9 st9 (by omega) (by omega))
                         have hc10 : s10.executionEnv.code = powBytecode := by rw [hs10]; simp only [stMul]; exact hc9
                         have hp10 : s10.machineState.pc = ⟨130⟩ := by rw [hs10]; simp only [stMul]; rw [hp9]; rfl
                         have hg10 : s10.machineState.gasAvailable.toNat = g.toNat - (C+37) := by
                           rw [hs10]; simp only [stMul]; rw [toNat_sub_ofNat (by omega)]; omega
-                        have hk10 : s10.machineState.stack = [UInt256.mul r ⟨2⟩,i,r,slot,n,ret] := by
+                        have hk10 : s10.machineState.stack = [UInt256.mul r ⟨2⟩,i,r,slot,n] ++ REST := by
                           rw [hs10]; simp only [stMul]
-                        have st10 := swap2_xstep hc10 hp10 (by decide) hk10 (by norm_num)
+                        have st10 := swap2_xstep hc10 hp10 (by decide) hk10 (by first | omega | (simp only [List.length_cons]; omega))
                         by_cases g10 : g.toNat < C + 40
                         · exact Or.inl (hX10.trans (stepOOG (k:=k+10) (C:=C+37) (cost:=3) hg10 st10 (by omega) (by omega) (by omega)))
-                        · set s11 := stSwap s10 [r,i,UInt256.mul r ⟨2⟩,slot,n,ret] with hs11
+                        · set s11 := stSwap s10 [r,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs11
                           have hX11 := hX10.trans (stepContinue (k:=k+10) (C:=C+37) (cost:=3) hg10 st10 (by omega) (by omega))
                           have hc11 : s11.executionEnv.code = powBytecode := by rw [hs11]; simp only [stSwap]; exact hc10
                           have hp11 : s11.machineState.pc = ⟨131⟩ := by rw [hs11]; simp only [stSwap]; rw [hp10]; rfl
                           have hg11 : s11.machineState.gasAvailable.toNat = g.toNat - (C+40) := by
                             rw [hs11]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-                          have hk11 : s11.machineState.stack = [r,i,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs11]; simp only [stSwap]
-                          have st11 := pop_xstep hc11 hp11 (by decide) hk11 (by norm_num)
+                          have hk11 : s11.machineState.stack = [r,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs11]; simp only [stSwap]
+                          have st11 := pop_xstep hc11 hp11 (by decide) hk11 (by first | omega | (simp only [List.length_cons]; omega))
                           by_cases g11 : g.toNat < C + 42
                           · exact Or.inl (hX11.trans (stepOOG (k:=k+11) (C:=C+40) (cost:=2) hg11 st11 (by omega) (by omega) (by omega)))
-                          · set s12 := stPop s11 [i,UInt256.mul r ⟨2⟩,slot,n,ret] with hs12
+                          · set s12 := stPop s11 [i,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs12
                             have hX12 := hX11.trans (stepContinue (k:=k+11) (C:=C+40) (cost:=2) hg11 st11 (by omega) (by omega))
                             have hc12 : s12.executionEnv.code = powBytecode := by rw [hs12]; simp only [stPop]; exact hc11
                             have hp12 : s12.machineState.pc = ⟨132⟩ := by rw [hs12]; simp only [stPop]; rw [hp11]; rfl
                             have hg12 : s12.machineState.gasAvailable.toNat = g.toNat - (C+42) := by
                               rw [hs12]; simp only [stPop]; rw [toNat_sub_ofNat (by omega)]; omega
-                            have hk12 : s12.machineState.stack = [i,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs12]; simp only [stPop]
-                            have st12 := push1_xstep (argv:=⟨1⟩) hc12 hp12 (by decide) hk12 (by norm_num)
+                            have hk12 : s12.machineState.stack = [i,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs12]; simp only [stPop]
+                            have st12 := push1_xstep (argv:=⟨1⟩) hc12 hp12 (by decide) hk12 (by first | omega | (simp only [List.length_cons]; omega))
                             by_cases g12 : g.toNat < C + 45
                             · exact Or.inl (hX12.trans (stepOOG (k:=k+12) (C:=C+42) (cost:=3) hg12 st12 (by omega) (by omega) (by omega)))
                             · set s13 := stPush1 s12 ⟨1⟩ with hs13
@@ -301,48 +302,48 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
                               have hp13 : s13.machineState.pc = ⟨134⟩ := by rw [hs13]; simp only [stPush1]; rw [hp12]; rfl
                               have hg13 : s13.machineState.gasAvailable.toNat = g.toNat - (C+45) := by
                                 rw [hs13]; simp only [stPush1]; rw [toNat_sub_ofNat (by omega)]; omega
-                              have hk13 : s13.machineState.stack = [⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs13]; simp only [stPush1, hk12]
-                              have st13 := dup2_xstep hc13 hp13 (by decide) hk13 (by norm_num)
+                              have hk13 : s13.machineState.stack = [⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs13]; simp only [stPush1, hk12]
+                              have st13 := dup2_xstep hc13 hp13 (by decide) hk13 (by first | omega | (simp only [List.length_cons]; omega))
                               by_cases g13 : g.toNat < C + 48
                               · exact Or.inl (hX13.trans (stepOOG (k:=k+13) (C:=C+45) (cost:=3) hg13 st13 (by omega) (by omega) (by omega)))
-                              · set s14 := stSwap s13 [i,⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n,ret] with hs14
+                              · set s14 := stSwap s13 [i,⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs14
                                 have hX14 := hX13.trans (stepContinue (k:=k+13) (C:=C+45) (cost:=3) hg13 st13 (by omega) (by omega))
                                 have hc14 : s14.executionEnv.code = powBytecode := by rw [hs14]; simp only [stSwap]; exact hc13
                                 have hp14 : s14.machineState.pc = ⟨135⟩ := by rw [hs14]; simp only [stSwap]; rw [hp13]; rfl
                                 have hg14 : s14.machineState.gasAvailable.toNat = g.toNat - (C+48) := by
                                   rw [hs14]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-                                have hk14 : s14.machineState.stack = [i,⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs14]; simp only [stSwap]
-                                have st14 := add_xstep hc14 hp14 (by decide) hk14 (by norm_num)
+                                have hk14 : s14.machineState.stack = [i,⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs14]; simp only [stSwap]
+                                have st14 := add_xstep hc14 hp14 (by decide) hk14 (by first | omega | (simp only [List.length_cons]; omega))
                                 by_cases g14 : g.toNat < C + 51
                                 · exact Or.inl (hX14.trans (stepOOG (k:=k+14) (C:=C+48) (cost:=3) hg14 st14 (by omega) (by omega) (by omega)))
-                                · set s15 := stBinop s14 (i + ⟨1⟩) [i,UInt256.mul r ⟨2⟩,slot,n,ret] with hs15
+                                · set s15 := stBinop s14 (i + ⟨1⟩) [i,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs15
                                   have hX15 := hX14.trans (stepContinue (k:=k+14) (C:=C+48) (cost:=3) hg14 st14 (by omega) (by omega))
                                   have hc15 : s15.executionEnv.code = powBytecode := by rw [hs15]; simp only [stBinop]; exact hc14
                                   have hp15 : s15.machineState.pc = ⟨136⟩ := by rw [hs15]; simp only [stBinop]; rw [hp14]; rfl
                                   have hg15 : s15.machineState.gasAvailable.toNat = g.toNat - (C+51) := by
                                     rw [hs15]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-                                  have hk15 : s15.machineState.stack = [i + ⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs15]; simp only [stBinop]
-                                  have st15 := swap1_xstep hc15 hp15 (by decide) hk15 (by norm_num)
+                                  have hk15 : s15.machineState.stack = [i + ⟨1⟩,i,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs15]; simp only [stBinop]
+                                  have st15 := swap1_xstep hc15 hp15 (by decide) hk15 (by first | omega | (simp only [List.length_cons]; omega))
                                   by_cases g15 : g.toNat < C + 54
                                   · exact Or.inl (hX15.trans (stepOOG (k:=k+15) (C:=C+51) (cost:=3) hg15 st15 (by omega) (by omega) (by omega)))
-                                  · set s16 := stSwap s15 [i,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] with hs16
+                                  · set s16 := stSwap s15 [i,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs16
                                     have hX16 := hX15.trans (stepContinue (k:=k+15) (C:=C+51) (cost:=3) hg15 st15 (by omega) (by omega))
                                     have hc16 : s16.executionEnv.code = powBytecode := by rw [hs16]; simp only [stSwap]; exact hc15
                                     have hp16 : s16.machineState.pc = ⟨137⟩ := by rw [hs16]; simp only [stSwap]; rw [hp15]; rfl
                                     have hg16 : s16.machineState.gasAvailable.toNat = g.toNat - (C+54) := by
                                       rw [hs16]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
-                                    have hk16 : s16.machineState.stack = [i,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs16]; simp only [stSwap]
-                                    have st16 := pop_xstep hc16 hp16 (by decide) hk16 (by norm_num)
+                                    have hk16 : s16.machineState.stack = [i,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs16]; simp only [stSwap]
+                                    have st16 := pop_xstep hc16 hp16 (by decide) hk16 (by first | omega | (simp only [List.length_cons]; omega))
                                     by_cases g16 : g.toNat < C + 56
                                     · exact Or.inl (hX16.trans (stepOOG (k:=k+16) (C:=C+54) (cost:=2) hg16 st16 (by omega) (by omega) (by omega)))
-                                    · set s17 := stPop s16 [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] with hs17
+                                    · set s17 := stPop s16 [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs17
                                       have hX17 := hX16.trans (stepContinue (k:=k+16) (C:=C+54) (cost:=2) hg16 st16 (by omega) (by omega))
                                       have hc17 : s17.executionEnv.code = powBytecode := by rw [hs17]; simp only [stPop]; exact hc16
                                       have hp17 : s17.machineState.pc = ⟨138⟩ := by rw [hs17]; simp only [stPop]; rw [hp16]; rfl
                                       have hg17 : s17.machineState.gasAvailable.toNat = g.toNat - (C+56) := by
                                         rw [hs17]; simp only [stPop]; rw [toNat_sub_ofNat (by omega)]; omega
-                                      have hk17 : s17.machineState.stack = [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] := by rw [hs17]; simp only [stPop]
-                                      have st17 := push2_xstep (argv:=⟨117⟩) hc17 hp17 (by decide) hk17 (by norm_num)
+                                      have hk17 : s17.machineState.stack = [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by rw [hs17]; simp only [stPop]
+                                      have st17 := push2_xstep (argv:=⟨117⟩) hc17 hp17 (by decide) hk17 (by first | omega | (simp only [List.length_cons]; omega))
                                       by_cases g17 : g.toNat < C + 59
                                       · exact Or.inl (hX17.trans (stepOOG (k:=k+17) (C:=C+56) (cost:=3) hg17 st17 (by omega) (by omega) (by omega)))
                                       · set s18 := stPush2 s17 ⟨117⟩ with hs18
@@ -351,19 +352,19 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n ret : UInt256} (hn : n.to
                                         have hp18 : s18.machineState.pc = ⟨141⟩ := by rw [hs18]; simp only [stPush2]; rw [hp17]; rfl
                                         have hg18 : s18.machineState.gasAvailable.toNat = g.toNat - (C+59) := by
                                           rw [hs18]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-                                        have hk18 : s18.machineState.stack = [⟨117⟩,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] := by
+                                        have hk18 : s18.machineState.stack = [⟨117⟩,i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by
                                           rw [hs18]; simp only [stPush2, hk17]
                                         have st18 := jump_xstep hc18 hp18 (by decide) hk18
-                                          (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
+                                          (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by first | omega | (simp only [List.length_cons]; omega))
                                         by_cases g18 : g.toNat < C + 67
                                         · exact Or.inl (hX18.trans (stepOOG (k:=k+18) (C:=C+59) (cost:=8) hg18 st18 (by omega) (by omega) (by omega)))
-                                        · set s19 := stJump s18 ⟨117⟩ [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] with hs19
+                                        · set s19 := stJump s18 ⟨117⟩ [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST with hs19
                                           have hX19 := hX18.trans (stepContinue (k:=k+18) (C:=C+59) (cost:=8) hg18 st18 (by omega) (by omega))
                                           have hc19 : s19.executionEnv.code = powBytecode := by rw [hs19]; simp only [stJump]; exact hc18
                                           have hp19 : s19.machineState.pc = ⟨117⟩ := by rw [hs19]; simp only [stJump]
                                           have hg19 : s19.machineState.gasAvailable.toNat = g.toNat - (C+67) := by
                                             rw [hs19]; simp only [stJump]; rw [toNat_sub_ofNat (by omega)]; omega
-                                          have hk19 : s19.machineState.stack = [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n,ret] := by
+                                          have hk19 : s19.machineState.stack = [i + ⟨1⟩,UInt256.mul r ⟨2⟩,slot,n] ++ REST := by
                                             rw [hs19]; simp only [stJump]
                                           have hi1size : i.toNat + 1 < UInt256.size := lt_size_of_lt256 (by omega)
                                           have hi1 : (i + ⟨1⟩).toNat = i.toNat + 1 := add1_toNat hi1size
