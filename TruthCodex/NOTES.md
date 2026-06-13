@@ -111,6 +111,48 @@
 - `Ethereum.EVM.dup1NextState_pc`: projection fact for pc after `DUP1`.
 - `Ethereum.EVM.Xstep_dup1_oog_of_decode`: proves the `DUP1` gas-underflow case.
 - `Ethereum.EVM.Xstep_dup1_continue_of_decode`: proves the successful `DUP1` step.
+- `Ethereum.EVM.dup2NextState`: names the concrete next state for a successful `DUP2`.
+- `Ethereum.EVM.dup2NextState_stack`: projection fact for the stack after `DUP2`.
+- `Ethereum.EVM.dup2NextState_gasAvailable`: projection fact for gas after `DUP2`.
+- `Ethereum.EVM.dup2NextState_pc`: projection fact for pc after `DUP2`.
+- `Ethereum.EVM.Xstep_dup2_oog_of_decode`: proves the `DUP2` gas-underflow case.
+- `Ethereum.EVM.Xstep_dup2_continue_of_decode`: proves the successful `DUP2` step.
+- `Ethereum.EVM.dup3NextState`: names the concrete next state for a successful `DUP3`.
+- `Ethereum.EVM.dup3NextState_stack`: projection fact for the stack after `DUP3`.
+- `Ethereum.EVM.dup3NextState_gasAvailable`: projection fact for gas after `DUP3`.
+- `Ethereum.EVM.dup3NextState_pc`: projection fact for pc after `DUP3`.
+- `Ethereum.EVM.Xstep_dup3_oog_of_decode`: proves the `DUP3` gas-underflow case.
+- `Ethereum.EVM.Xstep_dup3_continue_of_decode`: proves the successful `DUP3` step.
+- `Ethereum.EVM.dup4NextState`: names the concrete next state for a successful `DUP4`.
+- `Ethereum.EVM.dup4NextState_stack`: projection fact for the stack after `DUP4`.
+- `Ethereum.EVM.dup4NextState_gasAvailable`: projection fact for gas after `DUP4`.
+- `Ethereum.EVM.dup4NextState_pc`: projection fact for pc after `DUP4`.
+- `Ethereum.EVM.Xstep_dup4_oog_of_decode`: proves the `DUP4` gas-underflow case.
+- `Ethereum.EVM.Xstep_dup4_continue_of_decode`: proves the successful `DUP4` step.
+- `Ethereum.EVM.dup5NextState`: names the concrete next state for a successful `DUP5`.
+- `Ethereum.EVM.dup5NextState_stack`: projection fact for the stack after `DUP5`.
+- `Ethereum.EVM.dup5NextState_gasAvailable`: projection fact for gas after `DUP5`.
+- `Ethereum.EVM.dup5NextState_pc`: projection fact for pc after `DUP5`.
+- `Ethereum.EVM.Xstep_dup5_oog_of_decode`: proves the `DUP5` gas-underflow case.
+- `Ethereum.EVM.Xstep_dup5_continue_of_decode`: proves the successful `DUP5` step.
+- `Ethereum.EVM.swap1NextState`: names the concrete next state for a successful `SWAP1`.
+- `Ethereum.EVM.swap1NextState_stack`: projection fact for the stack after `SWAP1`.
+- `Ethereum.EVM.swap1NextState_gasAvailable`: projection fact for gas after `SWAP1`.
+- `Ethereum.EVM.swap1NextState_pc`: projection fact for pc after `SWAP1`.
+- `Ethereum.EVM.Xstep_swap1_oog_of_decode`: proves the `SWAP1` gas-underflow case.
+- `Ethereum.EVM.Xstep_swap1_continue_of_decode`: proves the successful `SWAP1` step.
+- `Ethereum.EVM.swap2NextState`: names the concrete next state for a successful `SWAP2`.
+- `Ethereum.EVM.swap2NextState_stack`: projection fact for the stack after `SWAP2`.
+- `Ethereum.EVM.swap2NextState_gasAvailable`: projection fact for gas after `SWAP2`.
+- `Ethereum.EVM.swap2NextState_pc`: projection fact for pc after `SWAP2`.
+- `Ethereum.EVM.Xstep_swap2_oog_of_decode`: proves the `SWAP2` gas-underflow case.
+- `Ethereum.EVM.Xstep_swap2_continue_of_decode`: proves the successful `SWAP2` step.
+- `Ethereum.EVM.swap3NextState`: names the concrete next state for a successful `SWAP3`.
+- `Ethereum.EVM.swap3NextState_stack`: projection fact for the stack after `SWAP3`.
+- `Ethereum.EVM.swap3NextState_gasAvailable`: projection fact for gas after `SWAP3`.
+- `Ethereum.EVM.swap3NextState_pc`: projection fact for pc after `SWAP3`.
+- `Ethereum.EVM.Xstep_swap3_oog_of_decode`: proves the `SWAP3` gas-underflow case.
+- `Ethereum.EVM.Xstep_swap3_continue_of_decode`: proves the successful `SWAP3` step.
 - `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
 - `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
 - `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
@@ -150,6 +192,14 @@
 - `Ethereum.EVM.push0NextState_pc`: projection fact for pc after `PUSH0`.
 - `Ethereum.EVM.Xstep_push0_oog_of_decode`: proves the `PUSH0` gas-underflow case.
 - `Ethereum.EVM.Xstep_push0_continue_of_decode`: proves the successful `PUSH0` step.
+- `Ethereum.EVM.mloadValue`: names the word read by a successful `MLOAD`.
+- `Ethereum.EVM.mloadNextState`: names the concrete next state for a successful `MLOAD`.
+- `Ethereum.EVM.mloadNextState_stack`: projection fact for the stack after `MLOAD`.
+- `Ethereum.EVM.mloadNextState_gasAvailable`: projection fact for gas after `MLOAD`.
+- `Ethereum.EVM.mloadNextState_pc`: projection fact for pc after `MLOAD`.
+- `Ethereum.EVM.Xstep_mload_memory_oog_of_decode`: proves the `MLOAD` memory-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_mload_verylow_oog_of_decode`: proves the `MLOAD` post-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_mload_continue_of_decode`: proves the successful `MLOAD` step.
 - `Ethereum.EVM.jumpNextState`: names the concrete next state for a successful `JUMP`.
 - `Ethereum.EVM.jumpNextState_stack`: projection fact for the stack after `JUMP`.
 - `Ethereum.EVM.jumpNextState_gasAvailable`: projection fact for gas after `JUMP`.
@@ -195,6 +245,14 @@
 - `Ethereum.EVM.Xstep_revert_continue_of_decode`: proves the successful halting `REVERT` step.
 - `Ethereum.EVM.memoryExpansionCost_revert_zero_stack`: computes zero memory-expansion cost for `REVERT` with offset and size both zero.
 - `Ethereum.EVM.Xstep_revert_zero_continue_of_decode`: proves the successful zero-length `REVERT` step without a separate memory-gas premise.
+- `Ethereum.EVM.returnOutput`: names the returned memory slice for `RETURN`.
+- `Ethereum.EVM.returnNextState`: names the concrete halt state for a successful `RETURN`.
+- `Ethereum.EVM.returnNextState_stack`: projection fact for the stack after `RETURN`.
+- `Ethereum.EVM.returnNextState_H_return`: projection fact for halt return data after `RETURN`.
+- `Ethereum.EVM.returnNextState_gasAvailable`: projection fact for gas after `RETURN`.
+- `Ethereum.EVM.returnNextState_pc`: projection fact for pc after `RETURN`.
+- `Ethereum.EVM.Xstep_return_memory_oog_of_decode`: proves the `RETURN` memory-expansion gas-underflow case.
+- `Ethereum.EVM.Xstep_return_continue_of_decode`: proves the successful `RETURN` halt.
 - `Ethereum.EVM.ContinueTrace`: contract-agnostic finite prefix of continuing `Xstep`s.
 - `Ethereum.EVM.ContinueTrace.one`: builds a one-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.two`: builds a two-step continuing trace.
@@ -475,6 +533,8 @@
 - `truthEVM_long_calldata_selector_jumpi_continue_taken`: proves the taken selector-match `JUMPI` step from selector equality and explicit destination validity.
 - `truthEVM_long_calldata_selector_jumpi_continue_fallthrough`: proves the selector-mismatch `JUMPI` fallthrough without a destination-validity premise.
 - `truthEVM_long_calldata_selector_jumpi_trace_taken_of_prefix`: appends the taken selector `JUMPI` to an already-built selector-prefix trace.
+- `truthEVM_long_calldata_selector_match_entry_suffix_trace`: packages the taken selector branch through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP` to the pure body entry.
+- `truthEVM_long_calldata_selector_match_body_suffix_trace`: packages the pure `truth()` body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP` back to the return continuation.
 - `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_decode`: decodes selector-mismatch fallthrough as the shared fallback `JUMPDEST`.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_stack`: computes the selector word tail after selector-mismatch fallthrough.
@@ -506,6 +566,6 @@
 
 - `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after a successful non-payable-guard `JUMPI`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
-- The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
+- The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
 - The zero-callvalue branch needs a kernel-checked proof that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `D_J_aux` is currently opaque, so this is logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
