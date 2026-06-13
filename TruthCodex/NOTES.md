@@ -65,6 +65,7 @@
 - `actExec_of_dispatch_decode_exec`: packages dispatch, decode, initial Act/EVM state, and body execution into `actExec`.
 - `actExec_of_dispatch_decode_initial`: `actExec` helper specialized to `initialEVMState`.
 - `runtimeEquivalenceFor_success_initial`: runtime-equivalence success case from an EVM success equation and Act execution in `initialEVMState`.
+- `runtimeEquivalenceFor_success_initial_of_eq`: runtime-equivalence success case when the EVM result preserves initial created accounts/account map by equality proofs.
 - `runtimeEquivalenceFor_revert_of_act_reverted`: runtime-equivalence revert case from an EVM revert equation and Act revert.
 - `EVM_Xi_of_X_success`: lifts an `EVM.X` success trace to a top-level `Ξ` success result.
 - `EVM_Xi_of_X_revert`: lifts an `EVM.X` revert trace to a top-level `Ξ` revert result.
@@ -246,6 +247,9 @@
 - `Ethereum.EVM.revertNextState`: names the concrete next state for a successful `REVERT`.
 - `Ethereum.EVM.revertNextState_stack`: projection fact for the stack after `REVERT`.
 - `Ethereum.EVM.revertNextState_H_return`: projection fact for halt return data after `REVERT`.
+- `Ethereum.EVM.revertNextState_createdAccounts`: projection fact showing `REVERT` preserves created accounts.
+- `Ethereum.EVM.revertNextState_accountMap`: projection fact showing `REVERT` preserves the account map.
+- `Ethereum.EVM.revertNextState_substate`: projection fact showing `REVERT` preserves the substate.
 - `Ethereum.EVM.revertNextState_gasAvailable`: projection fact for gas after `REVERT`.
 - `Ethereum.EVM.revertNextState_pc`: projection fact for pc after `REVERT`.
 - `Ethereum.EVM.Xstep_revert_memory_oog_of_decode`: proves the `REVERT` memory-expansion gas-underflow case.
@@ -256,6 +260,9 @@
 - `Ethereum.EVM.returnNextState`: names the concrete halt state for a successful `RETURN`.
 - `Ethereum.EVM.returnNextState_stack`: projection fact for the stack after `RETURN`.
 - `Ethereum.EVM.returnNextState_H_return`: projection fact for halt return data after `RETURN`.
+- `Ethereum.EVM.returnNextState_createdAccounts`: projection fact showing `RETURN` preserves created accounts.
+- `Ethereum.EVM.returnNextState_accountMap`: projection fact showing `RETURN` preserves the account map.
+- `Ethereum.EVM.returnNextState_substate`: projection fact showing `RETURN` preserves the substate.
 - `Ethereum.EVM.returnNextState_gasAvailable`: projection fact for gas after `RETURN`.
 - `Ethereum.EVM.returnNextState_pc`: projection fact for pc after `RETURN`.
 - `Ethereum.EVM.push1NextState_executionEnv`: projection fact showing `PUSH1` preserves the execution environment.
@@ -284,6 +291,84 @@
 - `Ethereum.EVM.jumpiNextState_executionEnv`: projection fact showing `JUMPI` preserves the execution environment.
 - `Ethereum.EVM.jumpdestNextState_executionEnv`: projection fact showing `JUMPDEST` preserves the execution environment.
 - `Ethereum.EVM.popNextState_executionEnv`: projection fact showing `POP` preserves the execution environment.
+- `Ethereum.EVM.push1NextState_createdAccounts`: projection fact showing `PUSH1` preserves created accounts.
+- `Ethereum.EVM.push1NextState_accountMap`: projection fact showing `PUSH1` preserves the account map.
+- `Ethereum.EVM.push1NextState_substate`: projection fact showing `PUSH1` preserves the substate.
+- `Ethereum.EVM.push4NextState_createdAccounts`: projection fact showing `PUSH4` preserves created accounts.
+- `Ethereum.EVM.push4NextState_accountMap`: projection fact showing `PUSH4` preserves the account map.
+- `Ethereum.EVM.push4NextState_substate`: projection fact showing `PUSH4` preserves the substate.
+- `Ethereum.EVM.mloadNextState_createdAccounts`: projection fact showing `MLOAD` preserves created accounts.
+- `Ethereum.EVM.mloadNextState_accountMap`: projection fact showing `MLOAD` preserves the account map.
+- `Ethereum.EVM.mloadNextState_substate`: projection fact showing `MLOAD` preserves the substate.
+- `Ethereum.EVM.mstoreNextState_createdAccounts`: projection fact showing `MSTORE` preserves created accounts.
+- `Ethereum.EVM.mstoreNextState_accountMap`: projection fact showing `MSTORE` preserves the account map.
+- `Ethereum.EVM.mstoreNextState_substate`: projection fact showing `MSTORE` preserves the substate.
+- `Ethereum.EVM.callvalueNextState_createdAccounts`: projection fact showing `CALLVALUE` preserves created accounts.
+- `Ethereum.EVM.callvalueNextState_accountMap`: projection fact showing `CALLVALUE` preserves the account map.
+- `Ethereum.EVM.callvalueNextState_substate`: projection fact showing `CALLVALUE` preserves the substate.
+- `Ethereum.EVM.calldatasizeNextState_createdAccounts`: projection fact showing `CALLDATASIZE` preserves created accounts.
+- `Ethereum.EVM.calldatasizeNextState_accountMap`: projection fact showing `CALLDATASIZE` preserves the account map.
+- `Ethereum.EVM.calldatasizeNextState_substate`: projection fact showing `CALLDATASIZE` preserves the substate.
+- `Ethereum.EVM.calldataloadNextState_createdAccounts`: projection fact showing `CALLDATALOAD` preserves created accounts.
+- `Ethereum.EVM.calldataloadNextState_accountMap`: projection fact showing `CALLDATALOAD` preserves the account map.
+- `Ethereum.EVM.calldataloadNextState_substate`: projection fact showing `CALLDATALOAD` preserves the substate.
+- `Ethereum.EVM.dup1NextState_createdAccounts`: projection fact showing `DUP1` preserves created accounts.
+- `Ethereum.EVM.dup1NextState_accountMap`: projection fact showing `DUP1` preserves the account map.
+- `Ethereum.EVM.dup1NextState_substate`: projection fact showing `DUP1` preserves the substate.
+- `Ethereum.EVM.dup2NextState_createdAccounts`: projection fact showing `DUP2` preserves created accounts.
+- `Ethereum.EVM.dup2NextState_accountMap`: projection fact showing `DUP2` preserves the account map.
+- `Ethereum.EVM.dup2NextState_substate`: projection fact showing `DUP2` preserves the substate.
+- `Ethereum.EVM.dup3NextState_createdAccounts`: projection fact showing `DUP3` preserves created accounts.
+- `Ethereum.EVM.dup3NextState_accountMap`: projection fact showing `DUP3` preserves the account map.
+- `Ethereum.EVM.dup3NextState_substate`: projection fact showing `DUP3` preserves the substate.
+- `Ethereum.EVM.dup4NextState_createdAccounts`: projection fact showing `DUP4` preserves created accounts.
+- `Ethereum.EVM.dup4NextState_accountMap`: projection fact showing `DUP4` preserves the account map.
+- `Ethereum.EVM.dup4NextState_substate`: projection fact showing `DUP4` preserves the substate.
+- `Ethereum.EVM.dup5NextState_createdAccounts`: projection fact showing `DUP5` preserves created accounts.
+- `Ethereum.EVM.dup5NextState_accountMap`: projection fact showing `DUP5` preserves the account map.
+- `Ethereum.EVM.dup5NextState_substate`: projection fact showing `DUP5` preserves the substate.
+- `Ethereum.EVM.swap1NextState_createdAccounts`: projection fact showing `SWAP1` preserves created accounts.
+- `Ethereum.EVM.swap1NextState_accountMap`: projection fact showing `SWAP1` preserves the account map.
+- `Ethereum.EVM.swap1NextState_substate`: projection fact showing `SWAP1` preserves the substate.
+- `Ethereum.EVM.swap2NextState_createdAccounts`: projection fact showing `SWAP2` preserves created accounts.
+- `Ethereum.EVM.swap2NextState_accountMap`: projection fact showing `SWAP2` preserves the account map.
+- `Ethereum.EVM.swap2NextState_substate`: projection fact showing `SWAP2` preserves the substate.
+- `Ethereum.EVM.swap3NextState_createdAccounts`: projection fact showing `SWAP3` preserves created accounts.
+- `Ethereum.EVM.swap3NextState_accountMap`: projection fact showing `SWAP3` preserves the account map.
+- `Ethereum.EVM.swap3NextState_substate`: projection fact showing `SWAP3` preserves the substate.
+- `Ethereum.EVM.iszeroNextState_createdAccounts`: projection fact showing `ISZERO` preserves created accounts.
+- `Ethereum.EVM.iszeroNextState_accountMap`: projection fact showing `ISZERO` preserves the account map.
+- `Ethereum.EVM.iszeroNextState_substate`: projection fact showing `ISZERO` preserves the substate.
+- `Ethereum.EVM.addNextState_createdAccounts`: projection fact showing `ADD` preserves created accounts.
+- `Ethereum.EVM.addNextState_accountMap`: projection fact showing `ADD` preserves the account map.
+- `Ethereum.EVM.addNextState_substate`: projection fact showing `ADD` preserves the substate.
+- `Ethereum.EVM.subNextState_createdAccounts`: projection fact showing `SUB` preserves created accounts.
+- `Ethereum.EVM.subNextState_accountMap`: projection fact showing `SUB` preserves the account map.
+- `Ethereum.EVM.subNextState_substate`: projection fact showing `SUB` preserves the substate.
+- `Ethereum.EVM.ltNextState_createdAccounts`: projection fact showing `LT` preserves created accounts.
+- `Ethereum.EVM.ltNextState_accountMap`: projection fact showing `LT` preserves the account map.
+- `Ethereum.EVM.ltNextState_substate`: projection fact showing `LT` preserves the substate.
+- `Ethereum.EVM.shrNextState_createdAccounts`: projection fact showing `SHR` preserves created accounts.
+- `Ethereum.EVM.shrNextState_accountMap`: projection fact showing `SHR` preserves the account map.
+- `Ethereum.EVM.shrNextState_substate`: projection fact showing `SHR` preserves the substate.
+- `Ethereum.EVM.eqNextState_createdAccounts`: projection fact showing `EQ` preserves created accounts.
+- `Ethereum.EVM.eqNextState_accountMap`: projection fact showing `EQ` preserves the account map.
+- `Ethereum.EVM.eqNextState_substate`: projection fact showing `EQ` preserves the substate.
+- `Ethereum.EVM.push0NextState_createdAccounts`: projection fact showing `PUSH0` preserves created accounts.
+- `Ethereum.EVM.push0NextState_accountMap`: projection fact showing `PUSH0` preserves the account map.
+- `Ethereum.EVM.push0NextState_substate`: projection fact showing `PUSH0` preserves the substate.
+- `Ethereum.EVM.jumpNextState_createdAccounts`: projection fact showing `JUMP` preserves created accounts.
+- `Ethereum.EVM.jumpNextState_accountMap`: projection fact showing `JUMP` preserves the account map.
+- `Ethereum.EVM.jumpNextState_substate`: projection fact showing `JUMP` preserves the substate.
+- `Ethereum.EVM.jumpiNextState_createdAccounts`: projection fact showing `JUMPI` preserves created accounts.
+- `Ethereum.EVM.jumpiNextState_accountMap`: projection fact showing `JUMPI` preserves the account map.
+- `Ethereum.EVM.jumpiNextState_substate`: projection fact showing `JUMPI` preserves the substate.
+- `Ethereum.EVM.jumpdestNextState_createdAccounts`: projection fact showing `JUMPDEST` preserves created accounts.
+- `Ethereum.EVM.jumpdestNextState_accountMap`: projection fact showing `JUMPDEST` preserves the account map.
+- `Ethereum.EVM.jumpdestNextState_substate`: projection fact showing `JUMPDEST` preserves the substate.
+- `Ethereum.EVM.popNextState_createdAccounts`: projection fact showing `POP` preserves created accounts.
+- `Ethereum.EVM.popNextState_accountMap`: projection fact showing `POP` preserves the account map.
+- `Ethereum.EVM.popNextState_substate`: projection fact showing `POP` preserves the substate.
 - `Ethereum.EVM.revertNextState_executionEnv`: projection fact showing `REVERT` preserves the execution environment.
 - `Ethereum.EVM.returnNextState_executionEnv`: projection fact showing `RETURN` preserves the execution environment.
 - `Ethereum.EVM.Xstep_return_memory_oog_of_decode`: proves the `RETURN` memory-expansion gas-underflow case.
@@ -330,6 +415,9 @@
 - `EVM_Xi_of_initial_continue_four_traces_error_of_le`: composes four continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_success_of_le`: composes five continuing traces before lifting a success halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_ten_traces_success_of_le`: composes ten continuing traces before lifting a success halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_revert_of_le`: composes ten continuing traces before lifting a revert halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_revert_zero_of_le`: composes ten continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
+- `EVM_Xi_of_initial_continue_ten_traces_error_of_le`: composes ten continuing traces before lifting an EVM error to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_revert_of_le`: composes five continuing traces before lifting a revert halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_revert_zero_of_le`: composes five continuing traces before lifting a zero-length `REVERT` halt to `Ξ`.
 - `EVM_Xi_of_initial_continue_five_traces_error_of_le`: composes five continuing traces before lifting an EVM error to `Ξ`.
@@ -558,6 +646,7 @@
 - `truthEVM_short_calldata_revert_stack`: computes the zero-offset/zero-size stack before short-calldata `REVERT`.
 - `truthEVM_short_calldata_revert_step`: proves the local zero-length `REVERT` halting step for short calldata.
 - `truthEVM_short_calldata_revert_of_traces`: lifts the short-calldata prefix plus revert suffix traces to a top-level `Ξ` revert.
+- `truthEVM_short_calldata_revert_of_trace_segments`: lifts three independent trace segments (`14 + 1 + 3`) for the short-calldata fallback to a top-level `Ξ` revert.
 - `truthEVM_long_calldata_first_push0_decode_of_callvalue_zero`: decodes the long-calldata fallthrough entry as `PUSH0`.
 - `truthEVM_long_calldata_first_push0_stack_of_callvalue_zero`: computes the empty stack at the long-calldata fallthrough entry.
 - `truthEVM_long_calldata_first_push0_continue`: proves the successful long-calldata fallthrough `PUSH0` step.

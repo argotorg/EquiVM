@@ -762,6 +762,38 @@ lemma runtimeEquivalenceFor_success_initial
   runtimeEquivalenceFor_execution hΞ hAct
     (execResultsEquiv.success rfl rfl rfl rfl hReturn)
 
+lemma runtimeEquivalenceFor_success_initial_of_eq
+    {cfg : Config} {contract : ContractDecl}
+    {createdAccounts createdAccounts' : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ σ' : Ethereum.AccountMap}
+    {g g' : Ethereum.UInt256}
+    {A A' : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {frame : Frame}
+    {retVal : Option Value}
+    {returnType : Option ABIType}
+    {o : ByteArray}
+    (hΞ :
+      Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+        .ok (.success (createdAccounts', σ', g', A') o))
+    (hCreated : createdAccounts' = createdAccounts)
+    (hAccounts : σ' = σ)
+    (hAct :
+      actExec cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+        (.returned frame
+          (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+          retVal)
+        returnType)
+    (hReturn : returnEquiv o retVal returnType) :
+    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I :=
+  runtimeEquivalenceFor_execution hΞ hAct
+    (execResultsEquiv.success rfl rfl
+      (by simpa [initialEVMState] using hCreated)
+      (by simpa [initialEVMState] using hAccounts)
+      hReturn)
+
 lemma runtimeEquivalenceFor_revert_of_act_reverted
     {cfg : Config} {contract : ContractDecl}
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -2259,6 +2291,21 @@ def revertNextState (s : Ethereum.State) (offset size : Ethereum.UInt256)
       revertOutput s offset size :=
   rfl
 
+@[simp] theorem revertNextState_createdAccounts (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem revertNextState_accountMap (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem revertNextState_substate (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).substate = s.substate :=
+  rfl
+
 @[simp] theorem revertNextState_gasAvailable (s : Ethereum.State)
     (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
     (revertNextState s offset size t).machineState.gasAvailable =
@@ -2346,6 +2393,21 @@ def returnNextState (s : Ethereum.State) (offset size : Ethereum.UInt256)
     (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
     (returnNextState s offset size t).machineState.H_return =
       returnOutput s offset size :=
+  rfl
+
+@[simp] theorem returnNextState_createdAccounts (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (returnNextState s offset size t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem returnNextState_accountMap (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (returnNextState s offset size t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem returnNextState_substate (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (returnNextState s offset size t).substate = s.substate :=
   rfl
 
 @[simp] theorem returnNextState_gasAvailable (s : Ethereum.State)
@@ -2516,6 +2578,380 @@ theorem Xstep_return_continue_of_decode {s : Ethereum.State}
 @[simp] theorem returnNextState_executionEnv (s : Ethereum.State)
     (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
     (returnNextState s offset size t).executionEnv = s.executionEnv :=
+  rfl
+
+/-! World-state projections for opcode next-state helpers. -/
+
+@[simp] theorem push1NextState_createdAccounts (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem push1NextState_accountMap (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem push1NextState_substate (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).substate = s.substate :=
+  rfl
+
+@[simp] theorem push4NextState_createdAccounts (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem push4NextState_accountMap (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem push4NextState_substate (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).substate = s.substate :=
+  rfl
+
+@[simp] theorem mloadNextState_createdAccounts (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mloadNextState s a t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem mloadNextState_accountMap (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mloadNextState s a t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem mloadNextState_substate (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mloadNextState s a t).substate = s.substate :=
+  rfl
+
+@[simp] theorem mstoreNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem mstoreNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem mstoreNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem callvalueNextState_createdAccounts (s : Ethereum.State) :
+    (callvalueNextState s).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem callvalueNextState_accountMap (s : Ethereum.State) :
+    (callvalueNextState s).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem callvalueNextState_substate (s : Ethereum.State) :
+    (callvalueNextState s).substate = s.substate :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_createdAccounts (s : Ethereum.State) :
+    (calldatasizeNextState s).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_accountMap (s : Ethereum.State) :
+    (calldatasizeNextState s).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_substate (s : Ethereum.State) :
+    (calldatasizeNextState s).substate = s.substate :=
+  rfl
+
+@[simp] theorem calldataloadNextState_createdAccounts (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem calldataloadNextState_accountMap (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem calldataloadNextState_substate (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).substate = s.substate :=
+  rfl
+
+@[simp] theorem dup1NextState_createdAccounts (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem dup1NextState_accountMap (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem dup1NextState_substate (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).substate = s.substate :=
+  rfl
+
+@[simp] theorem dup2NextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem dup2NextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem dup2NextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem dup3NextState_createdAccounts (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem dup3NextState_accountMap (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem dup3NextState_substate (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).substate = s.substate :=
+  rfl
+
+@[simp] theorem dup4NextState_createdAccounts (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem dup4NextState_accountMap (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem dup4NextState_substate (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).substate = s.substate :=
+  rfl
+
+@[simp] theorem dup5NextState_createdAccounts (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem dup5NextState_accountMap (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem dup5NextState_substate (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).substate = s.substate :=
+  rfl
+
+@[simp] theorem swap1NextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem swap1NextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem swap1NextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem swap2NextState_createdAccounts (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem swap2NextState_accountMap (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem swap2NextState_substate (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).substate = s.substate :=
+  rfl
+
+@[simp] theorem swap3NextState_createdAccounts (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem swap3NextState_accountMap (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem swap3NextState_substate (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).substate = s.substate :=
+  rfl
+
+@[simp] theorem iszeroNextState_createdAccounts (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem iszeroNextState_accountMap (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem iszeroNextState_substate (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).substate = s.substate :=
+  rfl
+
+@[simp] theorem addNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem addNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem addNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem subNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem subNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem subNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem ltNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem ltNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem ltNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem shrNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem shrNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem shrNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem eqNextState_createdAccounts (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem eqNextState_accountMap (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem eqNextState_substate (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).substate = s.substate :=
+  rfl
+
+@[simp] theorem push0NextState_createdAccounts (s : Ethereum.State) :
+    (push0NextState s).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem push0NextState_accountMap (s : Ethereum.State) :
+    (push0NextState s).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem push0NextState_substate (s : Ethereum.State) :
+    (push0NextState s).substate = s.substate :=
+  rfl
+
+@[simp] theorem jumpNextState_createdAccounts (s : Ethereum.State)
+    (dest : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem jumpNextState_accountMap (s : Ethereum.State)
+    (dest : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem jumpNextState_substate (s : Ethereum.State)
+    (dest : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).substate = s.substate :=
+  rfl
+
+@[simp] theorem jumpiNextState_createdAccounts (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem jumpiNextState_accountMap (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem jumpiNextState_substate (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).substate = s.substate :=
+  rfl
+
+@[simp] theorem jumpdestNextState_createdAccounts (s : Ethereum.State) :
+    (jumpdestNextState s).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem jumpdestNextState_accountMap (s : Ethereum.State) :
+    (jumpdestNextState s).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem jumpdestNextState_substate (s : Ethereum.State) :
+    (jumpdestNextState s).substate = s.substate :=
+  rfl
+
+@[simp] theorem popNextState_createdAccounts (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).createdAccounts = s.createdAccounts :=
+  rfl
+
+@[simp] theorem popNextState_accountMap (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).accountMap = s.accountMap :=
+  rfl
+
+@[simp] theorem popNextState_substate (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).substate = s.substate :=
   rfl
 
 /-- A finite prefix of non-halting EVM `Xstep`s. `ContinueTrace validJumps n s t`
@@ -3451,6 +3887,150 @@ lemma EVM_Xi_of_initial_continue_ten_traces_success_of_le
     hFuel
     (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
     hHalt
+
+lemma EVM_Xi_of_initial_continue_ten_traces_revert_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ t evmState : Ethereum.State}
+    {o : ByteArray}
+    (hFuel :
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₂ s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₃ s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₄ s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₅ s₄ s₅)
+    (h₆ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₆ s₅ s₆)
+    (h₇ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₇ s₆ s₇)
+    (h₈ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₈ s₇ s₈)
+    (h₉ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₉ s₈ s₉)
+    (h₁₀ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁₀ s₉ t)
+    (hHalt :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t =
+        .ok (evmState, some (false, o))) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert evmState.machineState.gasAvailable o) :=
+  EVM_Xi_of_initial_continue_trace_revert_of_le
+    (n := (m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀))
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
+    hHalt
+
+lemma EVM_Xi_of_initial_continue_ten_traces_revert_zero_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ t : Ethereum.State}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hFuel :
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₂ s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₃ s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₄ s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₅ s₄ s₅)
+    (h₆ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₆ s₅ s₆)
+    (h₇ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₇ s₆ s₇)
+    (h₈ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₈ s₇ s₈)
+    (h₉ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₉ s₈ s₉)
+    (h₁₀ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁₀ s₉ t)
+    (hCode : t.executionEnv.code = I.code)
+    (hDecode :
+      Ethereum.EVM.decode t.executionEnv.code t.machineState.pc = some (.REVERT, .none))
+    (hStack :
+      t.machineState.stack =
+        (⟨0⟩ : Ethereum.UInt256) :: (⟨0⟩ : Ethereum.UInt256) :: tail)
+    (hStackBound : ¬ 1024 < tail.length) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .ok (.revert
+        (Ethereum.EVM.revertNextState t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256) tail).machineState.gasAvailable
+        (Ethereum.EVM.revertOutput t
+          (⟨0⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256))) :=
+  EVM_Xi_of_initial_continue_trace_revert_zero_of_le
+    (n := (m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀))
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
+    hCode
+    hDecode
+    hStack
+    hStackBound
+
+lemma EVM_Xi_of_initial_continue_ten_traces_error_of_le
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {m₁ m₂ m₃ m₄ m₅ m₆ m₇ m₈ m₉ m₁₀ : Nat}
+    {s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ s₉ t : Ethereum.State}
+    {e : Ethereum.EVM.ExecutionException}
+    (hFuel :
+      ((m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀)) ≤ g.toNat)
+    (h₁ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) s₁)
+    (h₂ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₂ s₁ s₂)
+    (h₃ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₃ s₂ s₃)
+    (h₄ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₄ s₃ s₄)
+    (h₅ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₅ s₄ s₅)
+    (h₆ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₆ s₅ s₆)
+    (h₇ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₇ s₆ s₇)
+    (h₈ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₈ s₇ s₈)
+    (h₉ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₉ s₈ s₉)
+    (h₁₀ :
+      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) m₁₀ s₉ t)
+    (hErr :
+      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) t = .error e) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e :=
+  EVM_Xi_of_initial_continue_trace_error_of_le
+    (n := (m₁ + m₂ + m₃ + m₄ + m₅) + (m₆ + m₇ + m₈ + m₉ + m₁₀))
+    hFuel
+    (Ethereum.EVM.ContinueTrace.append_ten h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀)
+    hErr
 
 lemma EVM_Xi_of_initial_continue_five_traces_revert_of_le
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
