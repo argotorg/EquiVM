@@ -2036,6 +2036,86 @@ lemma truthGas_ge_forty_two_of_pop_continue
   -- This is Truth-specific; the reusable subtraction chain lives in `Theory`.
   sorry
 
+lemma truthGas_ge_fifty_of_return_cont_jump_continue
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {selectorWord freePtr : Ethereum.UInt256}
+    (hFuel42 : 42 ≤ g.toNat)
+    (hReturnContJumpGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         let s4 := Ethereum.EVM.callvalueNextState s3
+         let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+         let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+         let s7 := Ethereum.EVM.push1NextState s6 (⟨0x0e⟩ : Ethereum.UInt256)
+         let s8 := Ethereum.EVM.jumpiNextState s7 (⟨0x0e⟩ : Ethereum.UInt256)
+          (Ethereum.UInt256.isZero I.weiValue) [I.weiValue]
+         let s9 := Ethereum.EVM.jumpdestNextState s8
+         let s10 := Ethereum.EVM.popNextState s9 I.weiValue []
+         let s11 := Ethereum.EVM.push1NextState s10 (⟨0x04⟩ : Ethereum.UInt256)
+         let s12 := Ethereum.EVM.calldatasizeNextState s11
+         let s13 := Ethereum.EVM.ltNextState s12
+          (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256) []
+         let s14 := Ethereum.EVM.push1NextState s13 (⟨0x26⟩ : Ethereum.UInt256)
+         let s15 := Ethereum.EVM.jumpiNextState s14 (⟨0x26⟩ : Ethereum.UInt256)
+          (Ethereum.UInt256.lt
+            (Ethereum.UInt256.ofNat I.calldata.size) (⟨0x04⟩ : Ethereum.UInt256)) []
+         let s16 := Ethereum.EVM.push0NextState s15
+         let s17 := Ethereum.EVM.calldataloadNextState s16 (⟨0⟩ : Ethereum.UInt256) []
+         let s18 := Ethereum.EVM.push1NextState s17 (⟨0xe0⟩ : Ethereum.UInt256)
+         let s19 := Ethereum.EVM.shrNextState s18 (⟨0xe0⟩ : Ethereum.UInt256)
+          (Ethereum.uInt256OfByteArray <| I.calldata.readBytes 0 32) []
+         let s20 := Ethereum.EVM.dup1NextState s19 selectorWord []
+         let s21 := Ethereum.EVM.push4NextState s20 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+         let s22 := Ethereum.EVM.eqNextState s21 (⟨0x9e9f51d2⟩ : Ethereum.UInt256)
+          selectorWord [selectorWord]
+         let s23 := Ethereum.EVM.push1NextState s22 (⟨0x2a⟩ : Ethereum.UInt256)
+         let s24 := Ethereum.EVM.jumpiNextState s23 (⟨0x2a⟩ : Ethereum.UInt256)
+          (Ethereum.UInt256.eq (⟨0x9e9f51d2⟩ : Ethereum.UInt256) selectorWord)
+          [selectorWord]
+         let s25 := Ethereum.EVM.jumpdestNextState s24
+         let s26 := Ethereum.EVM.push1NextState s25 (⟨0x30⟩ : Ethereum.UInt256)
+         let s27 := Ethereum.EVM.push1NextState s26 (⟨0x44⟩ : Ethereum.UInt256)
+         let s28 := Ethereum.EVM.jumpNextState s27 (⟨0x44⟩ : Ethereum.UInt256)
+          [(⟨0x30⟩ : Ethereum.UInt256), selectorWord]
+         let s29 := Ethereum.EVM.jumpdestNextState s28
+         let s30 := Ethereum.EVM.push0NextState s29
+         let s31 := Ethereum.EVM.push1NextState s30 (⟨0x01⟩ : Ethereum.UInt256)
+         let s32 := Ethereum.EVM.swap1NextState s31
+          (⟨0x01⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256)
+          [(⟨0x30⟩ : Ethereum.UInt256), selectorWord]
+         let s33 := Ethereum.EVM.popNextState s32 (⟨0⟩ : Ethereum.UInt256)
+          [(⟨0x01⟩ : Ethereum.UInt256), (⟨0x30⟩ : Ethereum.UInt256), selectorWord]
+         let s34 := Ethereum.EVM.swap1NextState s33
+          (⟨0x01⟩ : Ethereum.UInt256) (⟨0x30⟩ : Ethereum.UInt256) [selectorWord]
+         let s35 := Ethereum.EVM.jumpNextState s34 (⟨0x30⟩ : Ethereum.UInt256)
+          [(⟨0x01⟩ : Ethereum.UInt256), selectorWord]
+         let s36 := Ethereum.EVM.jumpdestNextState s35
+         let s37 := Ethereum.EVM.push1NextState s36 (⟨0x40⟩ : Ethereum.UInt256)
+         let s38 := Ethereum.EVM.mloadNextState s37
+          (⟨0x40⟩ : Ethereum.UInt256) [(⟨0x01⟩ : Ethereum.UInt256), selectorWord]
+         let s39 := Ethereum.EVM.push1NextState s38 (⟨0x3b⟩ : Ethereum.UInt256)
+         let s40 := Ethereum.EVM.swap2NextState s39
+          (⟨0x3b⟩ : Ethereum.UInt256) freePtr (⟨0x01⟩ : Ethereum.UInt256)
+          [selectorWord]
+         let s41 := Ethereum.EVM.swap1NextState s40
+          (⟨0x01⟩ : Ethereum.UInt256) freePtr
+          [(⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
+         let s42 := Ethereum.EVM.push1NextState s41 (⟨0x64⟩ : Ethereum.UInt256)
+         s42.machineState.gasAvailable.toNat < GasConstants.Gmid)) :
+    50 ≤ g.toNat := by
+  -- The return-continuation `JUMP` at pc `0x3a` costs `Gmid` after the
+  -- 42-step prefix. The remaining work is exact symbolic gas threading.
+  sorry
+
 lemma truthEVM_mstore_memory_oog
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -23103,9 +23183,480 @@ theorem truthCorrect :
                                                                                                       Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩)
                                                                                                         ((((((((((15 + 9) + (4 + 7)) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) s0 s43 :=
                                                                                                     Ethereum.EVM.ContinueTrace.append hPrefix42 hReturnContJumpTrace
-                                                                                                  -- Remaining selector-match coverage after reaching
-                                                                                                  -- the ABI encoder entry at pc `0x64`.
-                                                                                                  sorry
+                                                                                                  have hPrefix43Nat :
+                                                                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 43 s0 s43 := by
+                                                                                                    simpa using hPrefix43
+                                                                                                  have hFuel50Base : 50 ≤ g.toNat :=
+                                                                                                    truthGas_ge_fifty_of_return_cont_jump_continue
+                                                                                                      (createdAccounts := createdAccounts)
+                                                                                                      (genesisBlockHeader := genesisBlockHeader)
+                                                                                                      (blocks := blocks)
+                                                                                                      (σ := σ)
+                                                                                                      (σ₀ := σ₀)
+                                                                                                      (g := g)
+                                                                                                      (A := A)
+                                                                                                      (I := I)
+                                                                                                      (selectorWord := selectorWord)
+                                                                                                      (freePtr := freePtr)
+                                                                                                      hFuel42Base
+                                                                                                      (by
+                                                                                                        simpa [s0, s1, s2, s3, s4, s5, s6, s7, s8,
+                                                                                                          s9, s10, s11, s12, s13, s14, s15, s16,
+                                                                                                          s17, s18, s19, selectorWord, s20, s21,
+                                                                                                          s22, s23, s24, s25, s26, s27, s28, s29,
+                                                                                                          s30, s31, s32, s33, s34, s35, s36, s37,
+                                                                                                          freePtr, s38, s39, s40, s41, s42] using
+                                                                                                          hReturnContJumpGas)
+                                                                                                  let s44 := Ethereum.EVM.jumpdestNextState s43
+                                                                                                  let s45 := Ethereum.EVM.push0NextState s44
+                                                                                                  let s46 := Ethereum.EVM.push1NextState s45
+                                                                                                    (⟨0x20⟩ : Ethereum.UInt256)
+                                                                                                  let s47 := Ethereum.EVM.dup3NextState s46
+                                                                                                    (⟨0x20⟩ : Ethereum.UInt256) (⟨0⟩ : Ethereum.UInt256)
+                                                                                                    freePtr [(⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
+                                                                                                  let wordEnd := freePtr + (⟨0x20⟩ : Ethereum.UInt256)
+                                                                                                  let s48 := Ethereum.EVM.addNextState s47 freePtr
+                                                                                                    (⟨0x20⟩ : Ethereum.UInt256)
+                                                                                                    [(⟨0⟩ : Ethereum.UInt256), freePtr,
+                                                                                                      (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
+                                                                                                  let s49 := Ethereum.EVM.swap1NextState s48 wordEnd
+                                                                                                    (⟨0⟩ : Ethereum.UInt256)
+                                                                                                    [freePtr, (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
+                                                                                                  let s50 := Ethereum.EVM.popNextState s49
+                                                                                                    (⟨0⟩ : Ethereum.UInt256)
+                                                                                                    [wordEnd, freePtr, (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord]
+                                                                                                  have hEndpoint43 : s43.executionEnv.code = I.code :=
+                                                                                                    Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix43Nat
+                                                                                                  have hPc43 :
+                                                                                                      s43.machineState.pc =
+                                                                                                        (⟨0x64⟩ : Ethereum.UInt256) := by
+                                                                                                    simp [s43]
+                                                                                                  have hDecode43 :
+                                                                                                      Ethereum.EVM.decode I.code s43.machineState.pc =
+                                                                                                        some (.JUMPDEST, .none) := by
+                                                                                                    rw [hCode, hPc43]
+                                                                                                    exact truthBytecode_decode_100
+                                                                                                  have hStack43 :
+                                                                                                      s43.machineState.stack =
+                                                                                                        [freePtr, (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                          (⟨0x3b⟩ : Ethereum.UInt256), selectorWord] := by
+                                                                                                    simp [s43]
+                                                                                                  by_cases hAbiEntryJumpdestGas :
+                                                                                                      s43.machineState.gasAvailable.toNat <
+                                                                                                        GasConstants.Gjumpdest
+                                                                                                  · have hFuel43 : 43 ≤ g.toNat := by
+                                                                                                      omega
+                                                                                                    exact truthRuntime_outOfGas_of_evm
+                                                                                                      (EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_le_of_decode
+                                                                                                        (n := 43)
+                                                                                                        hFuel43 hPrefix43Nat hDecode43
+                                                                                                        hAbiEntryJumpdestGas)
+                                                                                                  · have hAbiEntryJumpdestStep :
+                                                                                                        Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s43 =
+                                                                                                          .ok (s44, none) := by
+                                                                                                      have hStep := Ethereum.EVM.Xstep_jumpdest_continue_of_decode
+                                                                                                        (Ethereum.EVM.decode_of_code_eq hEndpoint43 hDecode43)
+                                                                                                        hAbiEntryJumpdestGas
+                                                                                                        (by simp [hStack43])
+                                                                                                      simpa [s44] using
+                                                                                                        Ethereum.EVM.Xstep_of_code_eq hEndpoint43 hStep
+                                                                                                    have hAbiEntryJumpdestTrace :
+                                                                                                        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s43 s44 :=
+                                                                                                      Ethereum.EVM.ContinueTrace.one hAbiEntryJumpdestStep
+                                                                                                    have hPrefix44 :
+                                                                                                        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (43 + 1) s0 s44 :=
+                                                                                                      Ethereum.EVM.ContinueTrace.append hPrefix43Nat hAbiEntryJumpdestTrace
+                                                                                                    have hPrefix44Nat :
+                                                                                                        Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 44 s0 s44 := by
+                                                                                                      simpa using hPrefix44
+                                                                                                    have hEndpoint44 : s44.executionEnv.code = I.code :=
+                                                                                                      Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix44Nat
+                                                                                                    have hPc44 :
+                                                                                                        s44.machineState.pc =
+                                                                                                          (⟨0x65⟩ : Ethereum.UInt256) := by
+                                                                                                      simp [s44, hPc43, Ethereum.EVM.jumpdestNextState,
+                                                                                                        Ethereum.UInt256.ofNat, Id.run]
+                                                                                                      decide
+                                                                                                    have hDecode44 :
+                                                                                                        Ethereum.EVM.decode I.code s44.machineState.pc =
+                                                                                                          some (.PUSH0, .none) := by
+                                                                                                      rw [hCode, hPc44]
+                                                                                                      exact truthBytecode_decode_101
+                                                                                                    by_cases hAbiEntryPushZeroGas :
+                                                                                                        s44.machineState.gasAvailable.toNat <
+                                                                                                          GasConstants.Gbase
+                                                                                                    · have hFuel44 : 44 ≤ g.toNat := by
+                                                                                                        omega
+                                                                                                      exact truthRuntime_outOfGas_of_evm
+                                                                                                        (EVM_Xi_of_initial_continue_trace_push0_oog_of_le_of_decode
+                                                                                                          (n := 44)
+                                                                                                          hFuel44 hPrefix44Nat hDecode44
+                                                                                                          hAbiEntryPushZeroGas)
+                                                                                                    · have hAbiEntryPushZeroStep :
+                                                                                                          Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s44 =
+                                                                                                            .ok (s45, none) := by
+                                                                                                        have hStep := Ethereum.EVM.Xstep_push0_continue_of_decode
+                                                                                                          (Ethereum.EVM.decode_of_code_eq hEndpoint44 hDecode44)
+                                                                                                          hAbiEntryPushZeroGas
+                                                                                                          (by simp [s44, hStack43])
+                                                                                                        simpa [s45] using
+                                                                                                          Ethereum.EVM.Xstep_of_code_eq hEndpoint44 hStep
+                                                                                                      have hAbiEntryPushZeroTrace :
+                                                                                                          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s44 s45 :=
+                                                                                                        Ethereum.EVM.ContinueTrace.one hAbiEntryPushZeroStep
+                                                                                                      have hPrefix45 :
+                                                                                                          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (44 + 1) s0 s45 :=
+                                                                                                        Ethereum.EVM.ContinueTrace.append hPrefix44Nat hAbiEntryPushZeroTrace
+                                                                                                      have hPrefix45Nat :
+                                                                                                          Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 45 s0 s45 := by
+                                                                                                        simpa using hPrefix45
+                                                                                                      have hEndpoint45 : s45.executionEnv.code = I.code :=
+                                                                                                        Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix45Nat
+                                                                                                      have hPc45 :
+                                                                                                          s45.machineState.pc =
+                                                                                                            (⟨0x66⟩ : Ethereum.UInt256) := by
+                                                                                                        simp [s45, hPc44, Ethereum.EVM.push0NextState,
+                                                                                                          Ethereum.UInt256.ofNat, Id.run]
+                                                                                                        decide
+                                                                                                      have hDecode45 :
+                                                                                                          Ethereum.EVM.decode I.code s45.machineState.pc =
+                                                                                                            some (.PUSH1,
+                                                                                                              .some ((⟨0x20⟩ : Ethereum.UInt256), 1)) := by
+                                                                                                        rw [hCode, hPc45]
+                                                                                                        exact truthBytecode_decode_102
+                                                                                                      by_cases hAbiEntryPushWordGas :
+                                                                                                          s45.machineState.gasAvailable.toNat <
+                                                                                                            GasConstants.Gverylow
+                                                                                                      · have hFuel45 : 45 ≤ g.toNat := by
+                                                                                                          omega
+                                                                                                        exact truthRuntime_outOfGas_of_evm
+                                                                                                          (EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode
+                                                                                                            (n := 45)
+                                                                                                            (arg := (⟨0x20⟩ : Ethereum.UInt256))
+                                                                                                            hFuel45 hPrefix45Nat hDecode45
+                                                                                                            hAbiEntryPushWordGas)
+                                                                                                      · have hAbiEntryPushWordStep :
+                                                                                                            Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s45 =
+                                                                                                              .ok (s46, none) := by
+                                                                                                          have hStep := Ethereum.EVM.Xstep_push1_continue_of_decode
+                                                                                                            (Ethereum.EVM.decode_of_code_eq hEndpoint45 hDecode45)
+                                                                                                            hAbiEntryPushWordGas
+                                                                                                            (by simp [s45, s44, hStack43])
+                                                                                                          simpa [s46] using
+                                                                                                            Ethereum.EVM.Xstep_of_code_eq hEndpoint45 hStep
+                                                                                                        have hAbiEntryPushWordTrace :
+                                                                                                            Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s45 s46 :=
+                                                                                                          Ethereum.EVM.ContinueTrace.one hAbiEntryPushWordStep
+                                                                                                        have hPrefix46 :
+                                                                                                            Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (45 + 1) s0 s46 :=
+                                                                                                          Ethereum.EVM.ContinueTrace.append hPrefix45Nat hAbiEntryPushWordTrace
+                                                                                                        have hPrefix46Nat :
+                                                                                                            Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 46 s0 s46 := by
+                                                                                                          simpa using hPrefix46
+                                                                                                        have hEndpoint46 : s46.executionEnv.code = I.code :=
+                                                                                                          Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix46Nat
+                                                                                                        have hPc46 :
+                                                                                                            s46.machineState.pc =
+                                                                                                              (⟨0x68⟩ : Ethereum.UInt256) := by
+                                                                                                          simp [s46, hPc45, Ethereum.EVM.push1NextState,
+                                                                                                            Ethereum.UInt256.ofNat, Id.run]
+                                                                                                          decide
+                                                                                                        have hDecode46 :
+                                                                                                            Ethereum.EVM.decode I.code s46.machineState.pc =
+                                                                                                              some (.DUP3, .none) := by
+                                                                                                          rw [hCode, hPc46]
+                                                                                                          exact truthBytecode_decode_104
+                                                                                                        have hStack46 :
+                                                                                                            s46.machineState.stack =
+                                                                                                              (⟨0x20⟩ : Ethereum.UInt256) ::
+                                                                                                                (⟨0⟩ : Ethereum.UInt256) ::
+                                                                                                                  freePtr ::
+                                                                                                                    (⟨0x01⟩ : Ethereum.UInt256) ::
+                                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256) ::
+                                                                                                                        selectorWord :: [] := by
+                                                                                                          simp [s46, s45, s44, hStack43]
+                                                                                                        by_cases hAbiEntryDupFreePtrGas :
+                                                                                                            s46.machineState.gasAvailable.toNat <
+                                                                                                              GasConstants.Gverylow
+                                                                                                        · have hFuel46 : 46 ≤ g.toNat := by
+                                                                                                            omega
+                                                                                                          exact truthRuntime_outOfGas_of_evm
+                                                                                                            (EVM_Xi_of_initial_continue_trace_dup3_oog_of_le_of_decode
+                                                                                                              (n := 46)
+                                                                                                              (a := (⟨0x20⟩ : Ethereum.UInt256))
+                                                                                                              (b := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                              (c := freePtr)
+                                                                                                              (tail := [(⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                              hFuel46 hPrefix46Nat hDecode46 hStack46
+                                                                                                              hAbiEntryDupFreePtrGas)
+                                                                                                        · have hAbiEntryDupFreePtrStep :
+                                                                                                              Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s46 =
+                                                                                                                .ok (s47, none) := by
+                                                                                                            have hStep := Ethereum.EVM.Xstep_dup3_continue_of_decode
+                                                                                                              (s := s46)
+                                                                                                              (a := (⟨0x20⟩ : Ethereum.UInt256))
+                                                                                                              (b := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                              (c := freePtr)
+                                                                                                              (t := [(⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                              (Ethereum.EVM.decode_of_code_eq hEndpoint46 hDecode46)
+                                                                                                              hStack46
+                                                                                                              hAbiEntryDupFreePtrGas
+                                                                                                              (by simp)
+                                                                                                            simpa [s47] using
+                                                                                                              Ethereum.EVM.Xstep_of_code_eq hEndpoint46 hStep
+                                                                                                          have hAbiEntryDupFreePtrTrace :
+                                                                                                              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s46 s47 :=
+                                                                                                            Ethereum.EVM.ContinueTrace.one hAbiEntryDupFreePtrStep
+                                                                                                          have hPrefix47 :
+                                                                                                              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (46 + 1) s0 s47 :=
+                                                                                                            Ethereum.EVM.ContinueTrace.append hPrefix46Nat hAbiEntryDupFreePtrTrace
+                                                                                                          have hPrefix47Nat :
+                                                                                                              Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 47 s0 s47 := by
+                                                                                                            simpa using hPrefix47
+                                                                                                          have hEndpoint47 : s47.executionEnv.code = I.code :=
+                                                                                                            Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix47Nat
+                                                                                                          have hPc47 :
+                                                                                                              s47.machineState.pc =
+                                                                                                                (⟨0x69⟩ : Ethereum.UInt256) := by
+                                                                                                            simp [s47, hPc46, Ethereum.EVM.dup3NextState,
+                                                                                                              Ethereum.UInt256.ofNat, Id.run]
+                                                                                                            decide
+                                                                                                          have hDecode47 :
+                                                                                                              Ethereum.EVM.decode I.code s47.machineState.pc =
+                                                                                                                some (.ADD, .none) := by
+                                                                                                            rw [hCode, hPc47]
+                                                                                                            exact truthBytecode_decode_105
+                                                                                                          have hStack47 :
+                                                                                                              s47.machineState.stack =
+                                                                                                                freePtr ::
+                                                                                                                  (⟨0x20⟩ : Ethereum.UInt256) ::
+                                                                                                                    (⟨0⟩ : Ethereum.UInt256) ::
+                                                                                                                      freePtr ::
+                                                                                                                        (⟨0x01⟩ : Ethereum.UInt256) ::
+                                                                                                                          (⟨0x3b⟩ : Ethereum.UInt256) ::
+                                                                                                                            selectorWord :: [] := by
+                                                                                                            simp [s47]
+                                                                                                          by_cases hAbiEntryAddWordGas :
+                                                                                                              s47.machineState.gasAvailable.toNat <
+                                                                                                                GasConstants.Gverylow
+                                                                                                          · have hFuel47 : 47 ≤ g.toNat := by
+                                                                                                              omega
+                                                                                                            exact truthRuntime_outOfGas_of_evm
+                                                                                                              (EVM_Xi_of_initial_continue_trace_add_oog_of_le_of_decode
+                                                                                                                (n := 47)
+                                                                                                                (a := freePtr)
+                                                                                                                (b := (⟨0x20⟩ : Ethereum.UInt256))
+                                                                                                                (tail := [(⟨0⟩ : Ethereum.UInt256), freePtr,
+                                                                                                                  (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                  (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                hFuel47 hPrefix47Nat hDecode47 hStack47
+                                                                                                                hAbiEntryAddWordGas)
+                                                                                                          · have hAbiEntryAddWordStep :
+                                                                                                                Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s47 =
+                                                                                                                  .ok (s48, none) := by
+                                                                                                              have hStep := Ethereum.EVM.Xstep_add_continue_of_decode
+                                                                                                                (s := s47)
+                                                                                                                (a := freePtr)
+                                                                                                                (b := (⟨0x20⟩ : Ethereum.UInt256))
+                                                                                                                (t := [(⟨0⟩ : Ethereum.UInt256), freePtr,
+                                                                                                                  (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                  (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                (Ethereum.EVM.decode_of_code_eq hEndpoint47 hDecode47)
+                                                                                                                hStack47
+                                                                                                                hAbiEntryAddWordGas
+                                                                                                                (by simp)
+                                                                                                              simpa [s48] using
+                                                                                                                Ethereum.EVM.Xstep_of_code_eq hEndpoint47 hStep
+                                                                                                            have hAbiEntryAddWordTrace :
+                                                                                                                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s47 s48 :=
+                                                                                                              Ethereum.EVM.ContinueTrace.one hAbiEntryAddWordStep
+                                                                                                            have hPrefix48 :
+                                                                                                                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (47 + 1) s0 s48 :=
+                                                                                                              Ethereum.EVM.ContinueTrace.append hPrefix47Nat hAbiEntryAddWordTrace
+                                                                                                            have hPrefix48Nat :
+                                                                                                                Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 48 s0 s48 := by
+                                                                                                              simpa using hPrefix48
+                                                                                                            have hEndpoint48 : s48.executionEnv.code = I.code :=
+                                                                                                              Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix48Nat
+                                                                                                            have hPc48 :
+                                                                                                                s48.machineState.pc =
+                                                                                                                  (⟨0x6a⟩ : Ethereum.UInt256) := by
+                                                                                                              simp [s48, hPc47, Ethereum.EVM.addNextState,
+                                                                                                                Ethereum.UInt256.ofNat, Id.run]
+                                                                                                              decide
+                                                                                                            have hDecode48 :
+                                                                                                                Ethereum.EVM.decode I.code s48.machineState.pc =
+                                                                                                                  some (.SWAP1, .none) := by
+                                                                                                              rw [hCode, hPc48]
+                                                                                                              exact truthBytecode_decode_106
+                                                                                                            have hStack48 :
+                                                                                                                s48.machineState.stack =
+                                                                                                                  wordEnd ::
+                                                                                                                    (⟨0⟩ : Ethereum.UInt256) ::
+                                                                                                                      freePtr ::
+                                                                                                                        (⟨0x01⟩ : Ethereum.UInt256) ::
+                                                                                                                          (⟨0x3b⟩ : Ethereum.UInt256) ::
+                                                                                                                            selectorWord :: [] := by
+                                                                                                              simp [s48, wordEnd]
+                                                                                                            by_cases hAbiEntrySwapEndGas :
+                                                                                                                s48.machineState.gasAvailable.toNat <
+                                                                                                                  GasConstants.Gverylow
+                                                                                                            · have hFuel48 : 48 ≤ g.toNat := by
+                                                                                                                omega
+                                                                                                              exact truthRuntime_outOfGas_of_evm
+                                                                                                                (EVM_Xi_of_initial_continue_trace_swap1_oog_of_le_of_decode
+                                                                                                                  (n := 48)
+                                                                                                                  (a := wordEnd)
+                                                                                                                  (b := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                                  (tail := [freePtr,
+                                                                                                                    (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                    (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                  hFuel48 hPrefix48Nat hDecode48 hStack48
+                                                                                                                  hAbiEntrySwapEndGas)
+                                                                                                            · have hAbiEntrySwapEndStep :
+                                                                                                                  Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s48 =
+                                                                                                                    .ok (s49, none) := by
+                                                                                                                have hStep := Ethereum.EVM.Xstep_swap1_continue_of_decode
+                                                                                                                  (s := s48)
+                                                                                                                  (a := wordEnd)
+                                                                                                                  (b := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                                  (t := [freePtr,
+                                                                                                                    (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                    (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                  (Ethereum.EVM.decode_of_code_eq hEndpoint48 hDecode48)
+                                                                                                                  hStack48
+                                                                                                                  hAbiEntrySwapEndGas
+                                                                                                                  (by simp)
+                                                                                                                simpa [s49] using
+                                                                                                                  Ethereum.EVM.Xstep_of_code_eq hEndpoint48 hStep
+                                                                                                              have hAbiEntrySwapEndTrace :
+                                                                                                                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s48 s49 :=
+                                                                                                                Ethereum.EVM.ContinueTrace.one hAbiEntrySwapEndStep
+                                                                                                              have hPrefix49 :
+                                                                                                                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (48 + 1) s0 s49 :=
+                                                                                                                Ethereum.EVM.ContinueTrace.append hPrefix48Nat hAbiEntrySwapEndTrace
+                                                                                                              have hPrefix49Nat :
+                                                                                                                  Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 49 s0 s49 := by
+                                                                                                                simpa using hPrefix49
+                                                                                                              have hEndpoint49 : s49.executionEnv.code = I.code :=
+                                                                                                                Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix49Nat
+                                                                                                              have hPc49 :
+                                                                                                                  s49.machineState.pc =
+                                                                                                                    (⟨0x6b⟩ : Ethereum.UInt256) := by
+                                                                                                                simp [s49, hPc48, Ethereum.EVM.swap1NextState,
+                                                                                                                  Ethereum.UInt256.ofNat, Id.run]
+                                                                                                                decide
+                                                                                                              have hDecode49 :
+                                                                                                                  Ethereum.EVM.decode I.code s49.machineState.pc =
+                                                                                                                    some (.POP, .none) := by
+                                                                                                                rw [hCode, hPc49]
+                                                                                                                exact truthBytecode_decode_107
+                                                                                                              have hStack49 :
+                                                                                                                  s49.machineState.stack =
+                                                                                                                    (⟨0⟩ : Ethereum.UInt256) ::
+                                                                                                                      wordEnd ::
+                                                                                                                        freePtr ::
+                                                                                                                          (⟨0x01⟩ : Ethereum.UInt256) ::
+                                                                                                                            (⟨0x3b⟩ : Ethereum.UInt256) ::
+                                                                                                                              selectorWord :: [] := by
+                                                                                                                simp [s49]
+                                                                                                              by_cases hAbiEntryPopZeroGas :
+                                                                                                                  s49.machineState.gasAvailable.toNat <
+                                                                                                                    GasConstants.Gbase
+                                                                                                              · have hFuel49 : 49 ≤ g.toNat := by
+                                                                                                                  omega
+                                                                                                                exact truthRuntime_outOfGas_of_evm
+                                                                                                                  (EVM_Xi_of_initial_continue_trace_pop_oog_of_le_of_decode
+                                                                                                                    (n := 49)
+                                                                                                                    (a := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                                    (tail := [wordEnd, freePtr,
+                                                                                                                      (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                    hFuel49 hPrefix49Nat hDecode49 hStack49
+                                                                                                                    hAbiEntryPopZeroGas)
+                                                                                                              · have hAbiEntryPopZeroStep :
+                                                                                                                    Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s49 =
+                                                                                                                      .ok (s50, none) := by
+                                                                                                                  have hStep := Ethereum.EVM.Xstep_pop_continue_of_decode
+                                                                                                                    (s := s49)
+                                                                                                                    (a := (⟨0⟩ : Ethereum.UInt256))
+                                                                                                                    (t := [wordEnd, freePtr,
+                                                                                                                      (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                      (⟨0x3b⟩ : Ethereum.UInt256), selectorWord])
+                                                                                                                    (Ethereum.EVM.decode_of_code_eq hEndpoint49 hDecode49)
+                                                                                                                    hStack49
+                                                                                                                    hAbiEntryPopZeroGas
+                                                                                                                    (by simp)
+                                                                                                                  simpa [s50] using
+                                                                                                                    Ethereum.EVM.Xstep_of_code_eq hEndpoint49 hStep
+                                                                                                                have hAbiEntryPopZeroTrace :
+                                                                                                                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s49 s50 :=
+                                                                                                                  Ethereum.EVM.ContinueTrace.one hAbiEntryPopZeroStep
+                                                                                                                have hPrefix50 :
+                                                                                                                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (49 + 1) s0 s50 :=
+                                                                                                                  Ethereum.EVM.ContinueTrace.append hPrefix49Nat hAbiEntryPopZeroTrace
+                                                                                                                have hPrefix50Nat :
+                                                                                                                    Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 50 s0 s50 := by
+                                                                                                                  simpa using hPrefix50
+                                                                                                                let s51 := Ethereum.EVM.push1NextState s50
+                                                                                                                  (⟨0x75⟩ : Ethereum.UInt256)
+                                                                                                                have hEndpoint50 : s50.executionEnv.code = I.code :=
+                                                                                                                  Ethereum.EVM.ContinueTrace.code_eq_of_initial hPrefix50Nat
+                                                                                                                have hPc50 :
+                                                                                                                    s50.machineState.pc =
+                                                                                                                      (⟨0x6c⟩ : Ethereum.UInt256) := by
+                                                                                                                  simp [s50, hPc49, Ethereum.EVM.popNextState,
+                                                                                                                    Ethereum.UInt256.ofNat, Id.run]
+                                                                                                                  decide
+                                                                                                                have hDecode50 :
+                                                                                                                    Ethereum.EVM.decode I.code s50.machineState.pc =
+                                                                                                                      some (.PUSH1,
+                                                                                                                        .some ((⟨0x75⟩ : Ethereum.UInt256), 1)) := by
+                                                                                                                  rw [hCode, hPc50]
+                                                                                                                  exact truthBytecode_decode_108
+                                                                                                                have hStack50 :
+                                                                                                                    s50.machineState.stack =
+                                                                                                                      [wordEnd, freePtr,
+                                                                                                                        (⟨0x01⟩ : Ethereum.UInt256),
+                                                                                                                        (⟨0x3b⟩ : Ethereum.UInt256),
+                                                                                                                        selectorWord] := by
+                                                                                                                  simp [s50]
+                                                                                                                by_cases hAbiEntryPushWriterReturnGas :
+                                                                                                                    s50.machineState.gasAvailable.toNat <
+                                                                                                                      GasConstants.Gverylow
+                                                                                                                · exact truthRuntime_outOfGas_of_evm
+                                                                                                                    (EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode
+                                                                                                                      (n := 50)
+                                                                                                                      (arg := (⟨0x75⟩ : Ethereum.UInt256))
+                                                                                                                      hFuel50Base hPrefix50Nat hDecode50
+                                                                                                                      hAbiEntryPushWriterReturnGas)
+                                                                                                                · have hAbiEntryPushWriterReturnStep :
+                                                                                                                      Ethereum.EVM.Xstep (Ethereum.EVM.D_J I.code ⟨0⟩) s50 =
+                                                                                                                        .ok (s51, none) := by
+                                                                                                                    have hStep := Ethereum.EVM.Xstep_push1_continue_of_decode
+                                                                                                                      (Ethereum.EVM.decode_of_code_eq hEndpoint50 hDecode50)
+                                                                                                                      hAbiEntryPushWriterReturnGas
+                                                                                                                      (by simp [hStack50])
+                                                                                                                    simpa [s51] using
+                                                                                                                      Ethereum.EVM.Xstep_of_code_eq hEndpoint50 hStep
+                                                                                                                  have hAbiEntryPushWriterReturnTrace :
+                                                                                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 1 s50 s51 :=
+                                                                                                                    Ethereum.EVM.ContinueTrace.one hAbiEntryPushWriterReturnStep
+                                                                                                                  have hPrefix51 :
+                                                                                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) (50 + 1) s0 s51 :=
+                                                                                                                    Ethereum.EVM.ContinueTrace.append hPrefix50Nat hAbiEntryPushWriterReturnTrace
+                                                                                                                  have hPrefix51Nat :
+                                                                                                                      Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 51 s0 s51 := by
+                                                                                                                    simpa using hPrefix51
+                                                                                                                  -- Remaining selector-match coverage after the ABI
+                                                                                                                  -- encoder writer-return push reaches pc `0x6e`.
+                                                                                                                  sorry
                                                         · have hSelectorNe := truthSelectorWord_ne_of_selector_ne hShortCalldata hSelector
                                                           let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
                                                           let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
