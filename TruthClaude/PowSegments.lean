@@ -1341,6 +1341,129 @@ theorem powX_require {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256} 
                                           rw [hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                           simp only [stPop, stSwap, stPush0, stPush1, stPush2, stBinop, stJumpiT, stJumpdest, stJump]
 
+/-- **`require(n < 256)` fails (`n ≥ 256`)**: same prefix as `powX_require`, but `LT n 256 = 0`,
+    so the `JUMPI` is not taken and execution reverts at `0x68`.  Reused (in the assembly) after
+    the already-proved `powX_disp` + `powX_decode`. -/
+theorem powX_require_revert {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256}
+    {R : List UInt256}
+    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨66⟩)
+    (hstk : s.machineState.stack = n :: ⟨71⟩ :: sel :: R) (hn : 256 ≤ n.toNat)
+    (hov : R.length + 10 ≤ 1024)
+    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
+    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
+    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
+      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .ok (.revert g' o) := by
+  have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
+    show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
+    have : (256:ℕ) < UInt256.size := by
+      have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this
+    exact Nat.mod_eq_of_lt this
+  have hltval : UInt256.lt n ⟨256⟩ = ⟨0⟩ := ult_zero (by rw [h256]; exact hn)
+  have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
+  by_cases g0 : g.toNat < C + 1
+  · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
+  · set s1 := stJumpdest s with hs1
+    have hX1 := hX.trans (stepContinue (k := k) (C := C) hgas st0 hk (by omega))
+    have hc1 : s1.executionEnv.code = powBytecode := by rw [hs1]; simp only [stJumpdest]; exact hcode
+    have hp1 : s1.machineState.pc = ⟨67⟩ := by rw [hs1]; simp only [stJumpdest]; rw [hpc]; rfl
+    have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - (C + 1) := by
+      rw [hs1]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
+    have hk1 : s1.machineState.stack = n :: ⟨71⟩ :: sel :: R := by rw [hs1]; simp only [stJumpdest]; exact hstk
+    have st1 := push2_xstep (argv := ⟨93⟩) hc1 hp1 (by decide) hk1 (by simp only [List.length_cons]; omega)
+    by_cases g1 : g.toNat < C + 4
+    · exact Or.inl (hX1.trans (stepOOG (k := k+1) (C := C+1) hg1 st1 (by omega) (by omega) (by omega)))
+    · set s2 := stPush2 s1 ⟨93⟩ with hs2
+      have hX2 := hX1.trans (stepContinue (k := k+1) (C := C+1) hg1 st1 (by omega) (by omega))
+      have hc2 : s2.executionEnv.code = powBytecode := by rw [hs2]; simp only [stPush2]; exact hc1
+      have hp2 : s2.machineState.pc = ⟨70⟩ := by rw [hs2]; simp only [stPush2]; rw [hp1]; rfl
+      have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - (C + 4) := by
+        rw [hs2]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
+      have hk2 : s2.machineState.stack = ⟨93⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs2]; simp only [stPush2, hk1]
+      have st2 := jump_xstep hc2 hp2 (by decide) hk2
+        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by simp only [List.length_cons]; omega)
+      by_cases g2 : g.toNat < C + 12
+      · exact Or.inl (hX2.trans (stepOOG (k := k+2) (C := C+4) (cost := 8) hg2 st2 (by omega) (by omega) (by omega)))
+      · set s3 := stJump s2 ⟨93⟩ (n :: ⟨71⟩ :: sel :: R) with hs3
+        have hX3 := hX2.trans (stepContinue (k := k+2) (C := C+4) (cost := 8) hg2 st2 (by omega) (by omega))
+        have hc3 : s3.executionEnv.code = powBytecode := by rw [hs3]; simp only [stJump]; exact hc2
+        have hp3 : s3.machineState.pc = ⟨93⟩ := by rw [hs3]; simp only [stJump]
+        have hg3 : s3.machineState.gasAvailable.toNat = g.toNat - (C + 12) := by
+          rw [hs3]; simp only [stJump]; rw [toNat_sub_ofNat (by omega)]; omega
+        have hk3 : s3.machineState.stack = n :: ⟨71⟩ :: sel :: R := by rw [hs3]; simp only [stJump]
+        have st3 := jumpdest_xstep hc3 hp3 (by decide) (by rw [hk3]; simp only [List.length_cons]; omega)
+        by_cases g3 : g.toNat < C + 13
+        · exact Or.inl (hX3.trans (stepOOG (k := k+3) (C := C+12) hg3 st3 (by omega) (by omega) (by omega)))
+        · set s4 := stJumpdest s3 with hs4
+          have hX4 := hX3.trans (stepContinue (k := k+3) (C := C+12) hg3 st3 (by omega) (by omega))
+          have hc4 : s4.executionEnv.code = powBytecode := by rw [hs4]; simp only [stJumpdest]; exact hc3
+          have hp4 : s4.machineState.pc = ⟨94⟩ := by rw [hs4]; simp only [stJumpdest]; rw [hp3]; rfl
+          have hg4 : s4.machineState.gasAvailable.toNat = g.toNat - (C + 13) := by
+            rw [hs4]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
+          have hk4 : s4.machineState.stack = n :: ⟨71⟩ :: sel :: R := by rw [hs4]; simp only [stJumpdest]; exact hk3
+          have st4 := push0_xstep hc4 hp4 (by decide) hk4 (by simp only [List.length_cons]; omega)
+          by_cases g4 : g.toNat < C + 15
+          · exact Or.inl (hX4.trans (stepOOG (k := k+4) (C := C+13) hg4 st4 (by omega) (by omega) (by omega)))
+          · set s5 := stPush0 s4 with hs5
+            have hX5 := hX4.trans (stepContinue (k := k+4) (C := C+13) hg4 st4 (by omega) (by omega))
+            have hc5 : s5.executionEnv.code = powBytecode := by rw [hs5]; simp only [stPush0]; exact hc4
+            have hp5 : s5.machineState.pc = ⟨95⟩ := by rw [hs5]; simp only [stPush0]; rw [hp4]; rfl
+            have hg5 : s5.machineState.gasAvailable.toNat = g.toNat - (C + 15) := by
+              rw [hs5]; simp only [stPush0]; rw [toNat_sub_ofNat (by omega)]; omega
+            have hk5 : s5.machineState.stack = ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs5]; simp only [stPush0, hk4]
+            have st5 := push2_xstep (argv := ⟨256⟩) hc5 hp5 (by decide) hk5 (by simp only [List.length_cons]; omega)
+            by_cases g5 : g.toNat < C + 18
+            · exact Or.inl (hX5.trans (stepOOG (k := k+5) (C := C+15) hg5 st5 (by omega) (by omega) (by omega)))
+            · set s6 := stPush2 s5 ⟨256⟩ with hs6
+              have hX6 := hX5.trans (stepContinue (k := k+5) (C := C+15) hg5 st5 (by omega) (by omega))
+              have hc6 : s6.executionEnv.code = powBytecode := by rw [hs6]; simp only [stPush2]; exact hc5
+              have hp6 : s6.machineState.pc = ⟨98⟩ := by rw [hs6]; simp only [stPush2]; rw [hp5]; rfl
+              have hg6 : s6.machineState.gasAvailable.toNat = g.toNat - (C + 18) := by
+                rw [hs6]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
+              have hk6 : s6.machineState.stack = ⟨256⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs6]; simp only [stPush2, hk5]
+              have st6 := dup3_xstep hc6 hp6 (by decide) hk6 (by simp only [List.length_cons]; omega)
+              by_cases g6 : g.toNat < C + 21
+              · exact Or.inl (hX6.trans (stepOOG (k := k+6) (C := C+18) hg6 st6 (by omega) (by omega) (by omega)))
+              · set s7 := stSwap s6 (n :: ⟨256⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R) with hs7
+                have hX7 := hX6.trans (stepContinue (k := k+6) (C := C+18) hg6 st6 (by omega) (by omega))
+                have hc7 : s7.executionEnv.code = powBytecode := by rw [hs7]; simp only [stSwap]; exact hc6
+                have hp7 : s7.machineState.pc = ⟨99⟩ := by rw [hs7]; simp only [stSwap]; rw [hp6]; rfl
+                have hg7 : s7.machineState.gasAvailable.toNat = g.toNat - (C + 21) := by
+                  rw [hs7]; simp only [stSwap]; rw [toNat_sub_ofNat (by omega)]; omega
+                have hk7 : s7.machineState.stack = n :: ⟨256⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs7]; simp only [stSwap]
+                have st7 := lt_xstep hc7 hp7 (by decide) hk7 (by simp only [List.length_cons]; omega)
+                by_cases g7 : g.toNat < C + 24
+                · exact Or.inl (hX7.trans (stepOOG (k := k+7) (C := C+21) hg7 st7 (by omega) (by omega) (by omega)))
+                · set s8 := stBinop s7 (UInt256.lt n ⟨256⟩) (⟨0⟩ :: n :: ⟨71⟩ :: sel :: R) with hs8
+                  have hX8 := hX7.trans (stepContinue (k := k+7) (C := C+21) hg7 st7 (by omega) (by omega))
+                  have hc8 : s8.executionEnv.code = powBytecode := by rw [hs8]; simp only [stBinop]; exact hc7
+                  have hp8 : s8.machineState.pc = ⟨100⟩ := by rw [hs8]; simp only [stBinop]; rw [hp7]; rfl
+                  have hg8 : s8.machineState.gasAvailable.toNat = g.toNat - (C + 24) := by
+                    rw [hs8]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
+                  have hk8 : s8.machineState.stack = ⟨0⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by
+                    rw [hs8]; simp only [stBinop]; rw [hltval]
+                  have st8 := push2_xstep (argv := ⟨107⟩) hc8 hp8 (by decide) hk8 (by simp only [List.length_cons]; omega)
+                  by_cases g8 : g.toNat < C + 27
+                  · exact Or.inl (hX8.trans (stepOOG (k := k+8) (C := C+24) hg8 st8 (by omega) (by omega) (by omega)))
+                  · set s9 := stPush2 s8 ⟨107⟩ with hs9
+                    have hX9 := hX8.trans (stepContinue (k := k+8) (C := C+24) hg8 st8 (by omega) (by omega))
+                    have hc9 : s9.executionEnv.code = powBytecode := by rw [hs9]; simp only [stPush2]; exact hc8
+                    have hp9 : s9.machineState.pc = ⟨103⟩ := by rw [hs9]; simp only [stPush2]; rw [hp8]; rfl
+                    have hg9 : s9.machineState.gasAvailable.toNat = g.toNat - (C + 27) := by
+                      rw [hs9]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
+                    have hk9 : s9.machineState.stack = ⟨107⟩ :: ⟨0⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs9]; simp only [stPush2, hk8]
+                    have st9 := jumpi_nt_xstep hc9 hp9 (by decide) hk9 (by simp only [List.length_cons]; omega)
+                    by_cases g9 : g.toNat < C + 37
+                    · exact Or.inl (hX9.trans (stepOOG (k := k+9) (C := C+27) (cost := 10) hg9 st9 (by omega) (by omega) (by omega)))
+                    · set s10 := stJumpiNT s9 (⟨0⟩ :: n :: ⟨71⟩ :: sel :: R) with hs10
+                      have hX10 := hX9.trans (stepContinue (k := k+9) (C := C+27) (cost := 10) hg9 st9 (by omega) (by omega))
+                      have hc10 : s10.executionEnv.code = powBytecode := by rw [hs10]; simp only [stJumpiNT]; exact hc9
+                      have hp10 : s10.machineState.pc = ⟨104⟩ := by rw [hs10]; simp only [stJumpiNT]; rw [hp9]; rfl
+                      have hg10 : s10.machineState.gasAvailable.toNat = g.toNat - (C + 37) := by
+                        rw [hs10]; simp only [stJumpiNT]; rw [toNat_sub_ofNat (by omega)]; omega
+                      have hk10 : s10.machineState.stack = ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R := by rw [hs10]; simp only [stJumpiNT]
+                      exact solcRevert0 hc10 hp10 (by decide) (by decide) (by decide) hk10
+                        (by simp only [List.length_cons]; omega) hg10 (by omega) (by omega) hX10
+
 /-- Loop exit `0x8e → 0x47`: drop the loop scratch, keep the result `val = 2^n`, and jump to the
     encoder at the saved return address `ret`.  `[a, val, c, d, ret] ++ Rt → at ret, val :: Rt`. -/
 theorem powX_exit {g : UInt256} {s0 s : State} {k C : ℕ} {a val c d ret : UInt256} {Rt : List UInt256}
@@ -2267,48 +2390,3 @@ theorem powXi_success {cA gh bl σ σ₀ A I} {g : UInt256}
   rcases powX_success hcode hwv hsz36 hsz255 hmatch hn with hoog | ⟨s, hX⟩
   · exact Or.inl (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
   · exact Or.inr ⟨_, Xi_success_of_X (by rw [← hcode] at hX; exact hX)⟩
-
-/-! ## Act-side facts for `pow2` -/
-
-/-- Dispatch reduces (via `powSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
-theorem powDispatch_eq (cd : ByteArray) :
-    dispatchMsg Pow.powContract cd
-      = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4)
-        then some Pow.powTransition else none := by
-  simp only [dispatchMsg, Pow.powContract, List.map_cons, List.map_nil, List.find?_cons,
-    List.find?_nil, Prod.map, id_eq, Function.comp_apply]
-  rw [powSelectorBytes]
-  by_cases hb : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = true
-  · simp [hb]
-  · simp only [Bool.not_eq_true] at hb; simp [hb]
-
-/-- `powContract` has exactly one transition, so any successful dispatch yields it. -/
-theorem powDispatch_unique {cd : ByteArray} {t : TransitionDecl}
-    (h : dispatchMsg Pow.powContract cd = some t) : t = Pow.powTransition := by
-  simp only [dispatchMsg, Pow.powContract, List.map_cons, List.map_nil] at h
-  split at h
-  · rename_i pair heq
-    have hmem := List.mem_of_find?_eq_some heq
-    simp only [List.mem_singleton, Prod.map, id_eq, Prod.mk.injEq] at hmem
-    rw [Option.some.injEq] at h
-    rw [← h, hmem.1]
-  · exact absurd h (by simp)
-
-/-- Short calldata (< 4 bytes) ⇒ dispatch fails. -/
-theorem powDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg Pow.powContract cd = none := by
-  rw [powDispatch_eq]
-  have hfalse : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = false := by
-    by_contra hc
-    rw [Bool.not_eq_false] at hc
-    have hsz := TruthClaude.Theory.byteArray_size_eq_of_beq hc
-    rw [ByteArray.size_extract] at hsz
-    simp only [show (⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray).size = 4 from rfl] at hsz
-    omega
-  simp [hfalse]
-
-/-- Selector mismatch ⇒ dispatch fails. -/
-theorem powDispatch_none_nomatch {cd : ByteArray}
-    (h : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg Pow.powContract cd = none := by
-  rw [powDispatch_eq]; simp [h]
