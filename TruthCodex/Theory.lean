@@ -70,6 +70,10 @@ end USize
 
 namespace ByteArray
 
+@[simp] lemma default_eq_empty :
+    (default : ByteArray) = ByteArray.empty := by
+  rfl
+
 lemma push_eq_append_singleton (bytes : ByteArray) (byte : UInt8) :
     bytes.push byte = bytes ++ ByteArray.mk #[byte] := by
   cases bytes with
@@ -94,6 +98,39 @@ lemma length_toList (bs : ByteArray) :
     bs.toList.length = bs.size := by
   rw [ByteArray.toList.eq_1]
   simpa using toList_loop_length bs 0 []
+
+lemma toList_loop_eq_reverse_append_drop_data (bs : ByteArray) (i : Nat)
+    (r : List UInt8) :
+    ByteArray.toList.loop bs i r = r.reverse ++ bs.data.toList.drop i := by
+  rw [ByteArray.toList.loop.eq_def]
+  by_cases h : i < bs.size
+  · rw [if_pos h]
+    rw [toList_loop_eq_reverse_append_drop_data bs (i + 1) (bs.get! i :: r)]
+    have hLen : i < bs.data.toList.length := by
+      simpa [Array.length_toList, ByteArray.size_data] using h
+    rw [List.drop_eq_getElem_cons hLen]
+    have hGet : bs.get! i = bs.data.toList[i] := by
+      rw [Array.getElem_toList]
+      exact getElem!_pos bs.data i (by simpa [ByteArray.size_data] using h)
+    rw [hGet]
+    simp [List.append_assoc]
+  · rw [if_neg h]
+    have hLen : bs.data.toList.length ≤ i := by
+      rw [Array.length_toList, ByteArray.size_data]
+      omega
+    rw [List.drop_eq_nil_of_le hLen]
+    simp
+termination_by bs.size - i
+
+lemma toList_eq_data_toList (bs : ByteArray) :
+    bs.toList = bs.data.toList := by
+  rw [ByteArray.toList.eq_1]
+  simpa using toList_loop_eq_reverse_append_drop_data bs 0 []
+
+lemma toList_append (a b : ByteArray) :
+    (a ++ b).toList = a.toList ++ b.toList := by
+  rw [toList_eq_data_toList, toList_eq_data_toList, toList_eq_data_toList]
+  exact ByteArray.toList_data_append
 
 lemma not_toList_length_lt_of_extract_eq_size {bytes selector : ByteArray} {n : Nat}
     (hSelectorSize : selector.size = n)
@@ -504,6 +541,18 @@ lemma toNat_sub_of_le {x y : Ethereum.UInt256}
             rw [Fin.le_iff_val_le_val]
             exact h
           exact Fin.sub_val_of_le hLe
+
+lemma toNat_mul_of_lt {x y : Ethereum.UInt256}
+    (h : x.toNat * y.toNat < Ethereum.UInt256.size) :
+    (x * y).toNat = x.toNat * y.toNat := by
+  cases x with
+  | mk xv =>
+      cases y with
+      | mk yv =>
+          unfold Ethereum.UInt256.toNat at h ⊢
+          unfold HMul.hMul instHMul Mul.mul instMul UInt256.mul
+          simp [Fin.val_mul, Nat.mod_eq_of_lt h]
+          rfl
 
 lemma toNat_add_sub_left_of_lt {x y : Ethereum.UInt256}
     (h : x.toNat + y.toNat < Ethereum.UInt256.size) :
@@ -1184,6 +1233,46 @@ lemma fromBytesBigEndian_append_128_add_32_lt_uint256_size
   norm_num at hPrefixLe ⊢
   nlinarith
 
+lemma fromBytesBigEndian_append_128_add_63_lt_uint256_size
+    {xs : List UInt8} (hLen : xs.length ≤ 31) :
+    fromBytesBigEndian (xs ++ [0x80]) + 63 < UInt256.size := by
+  rw [fromBytesBigEndian_append_singleton]
+  change 128 + 256 * fromBytesBigEndian xs + 63 < UInt256.size
+  have hPrefix : fromBytesBigEndian xs < 2 ^ (8 * 31) :=
+    fromBytesBigEndian_lt_of_length_le hLen
+  have hPrefixLe : fromBytesBigEndian xs ≤ 2 ^ (8 * 31) - 1 :=
+    Nat.le_sub_one_of_lt hPrefix
+  unfold UInt256.size
+  norm_num at hPrefixLe ⊢
+  nlinarith
+
+lemma fromByteArrayBigEndian_append_singleton (pre : ByteArray) (b : UInt8) :
+    fromByteArrayBigEndian (pre ++ ByteArray.mk #[b]) =
+      b.toNat + 256 * fromByteArrayBigEndian pre := by
+  unfold fromByteArrayBigEndian
+  rw [ByteArray.toList_append]
+  simp [ByteArray.toList_eq_data_toList, fromBytesBigEndian_append_singleton]
+
+lemma fromByteArrayBigEndian_append_128_add_32_lt_uint256_size
+    {pre : ByteArray} (hLen : pre.size ≤ 31) :
+    fromByteArrayBigEndian (pre ++ ByteArray.mk #[0x80]) + 32 < UInt256.size := by
+  unfold fromByteArrayBigEndian
+  rw [ByteArray.toList_append]
+  simp [ByteArray.toList_eq_data_toList]
+  apply fromBytesBigEndian_append_128_add_32_lt_uint256_size
+  rw [Array.length_toList, ByteArray.size_data]
+  exact hLen
+
+lemma fromByteArrayBigEndian_append_128_add_63_lt_uint256_size
+    {pre : ByteArray} (hLen : pre.size ≤ 31) :
+    fromByteArrayBigEndian (pre ++ ByteArray.mk #[0x80]) + 63 < UInt256.size := by
+  unfold fromByteArrayBigEndian
+  rw [ByteArray.toList_append]
+  simp [ByteArray.toList_eq_data_toList]
+  apply fromBytesBigEndian_append_128_add_63_lt_uint256_size
+  rw [Array.length_toList, ByteArray.size_data]
+  exact hLen
+
 lemma fromBytes'_append (xs ys : List UInt8) :
     fromBytes' (xs ++ ys) = fromBytes' xs + 2 ^ (8 * xs.length) * fromBytes' ys := by
   induction xs with
@@ -1436,6 +1525,68 @@ lemma toByteArray_128_eq_zeroes_append_128 :
     rcases System.Platform.numBits_eq with h | h <;> rw [USize.size, h] <;> norm_num
   have hSub := USize.ofNat_sub_ofNat_eq_of_le (a := 32) (b := 1) h32 (by norm_num)
   rw [hSub]
+
+lemma fromByteArrayBigEndian_toByteArray_128_add_32_lt_size :
+    Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) + 32 <
+      Ethereum.UInt256.size := by
+  rw [toByteArray_128_eq_zeroes_append_128]
+  apply Ethereum.fromByteArrayBigEndian_append_128_add_32_lt_uint256_size
+  rw [ByteArray_zeroes_size]
+  change (31#System.Platform.numBits).toNat ≤ 31
+  rw [BitVec.toNat_ofNat]
+  apply Nat.mod_le
+
+lemma fromByteArrayBigEndian_toByteArray_128_add_63_lt_size :
+    Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) + 63 <
+      Ethereum.UInt256.size := by
+  rw [toByteArray_128_eq_zeroes_append_128]
+  apply Ethereum.fromByteArrayBigEndian_append_128_add_63_lt_uint256_size
+  rw [ByteArray_zeroes_size]
+  change (31#System.Platform.numBits).toNat ≤ 31
+  rw [BitVec.toNat_ofNat]
+  apply Nat.mod_le
+
+lemma ofNat_fromByteArrayBigEndian_toByteArray_128_add_32_lt_size :
+    (Ethereum.UInt256.ofNat
+        (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat +
+      32 < Ethereum.UInt256.size := by
+  have hSmall := fromByteArrayBigEndian_toByteArray_128_add_32_lt_size
+  have hVal :
+      (Ethereum.UInt256.ofNat
+          (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat =
+        Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) :=
+    Ethereum.UInt256.ofNat_toNat_of_lt (by omega)
+  rw [hVal]
+  exact hSmall
+
+lemma ofNat_fromByteArrayBigEndian_toByteArray_128_add_63_lt_size :
+    (Ethereum.UInt256.ofNat
+        (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat +
+      63 < Ethereum.UInt256.size := by
+  have hSmall := fromByteArrayBigEndian_toByteArray_128_add_63_lt_size
+  have hVal :
+      (Ethereum.UInt256.ofNat
+          (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat =
+        Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) := by
+    exact Ethereum.UInt256.ofNat_toNat_of_lt (by omega)
+  rw [hVal]
+  exact hSmall
+
+lemma ofNat_fromByteArrayBigEndian_toByteArray_128_ge_128 :
+    128 ≤
+      (Ethereum.UInt256.ofNat
+        (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat := by
+  have hNaturalSmall := fromByteArrayBigEndian_toByteArray_128_add_32_lt_size
+  have hVal :
+      (Ethereum.UInt256.ofNat
+          (Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray))).toNat =
+        Ethereum.fromByteArrayBigEndian ((⟨0x80⟩ : Ethereum.UInt256).toByteArray) := by
+    exact Ethereum.UInt256.ofNat_toNat_of_lt (by omega)
+  rw [hVal, toByteArray_128_eq_zeroes_append_128]
+  rw [Ethereum.fromByteArrayBigEndian_append_singleton]
+  change 128 ≤ 128 + 256 *
+    Ethereum.fromByteArrayBigEndian (ffi.ByteArray.zeroes (⟨31⟩ : USize))
+  omega
 
 end Ethereum.UInt256
 
@@ -2468,6 +2619,58 @@ theorem mstoreNextState_readWithPadding_word
       (by norm_num)
       (by simp)
       hDestPad
+
+theorem mloadValue_mstoreNextState_same_eq
+    (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256)
+    (hGuard :
+      ¬ (a.toNat ≥ (mstoreNextState s a b t).machineState.memory.size ∨
+        a ≥ (mstoreNextState s a b t).machineState.activeWords *
+          (⟨32⟩ : Ethereum.UInt256)))
+    (hDestPad : a.toNat - s.machineState.memory.size < USize.size) :
+    mloadValue (mstoreNextState s a b t) a =
+      Ethereum.UInt256.ofNat (Ethereum.fromByteArrayBigEndian b.toByteArray) := by
+  unfold mloadValue
+  rw [if_neg hGuard]
+  rw [mstoreNextState_readWithPadding_word]
+  exact hDestPad
+
+theorem mloadValue_mstoreNextState_at_64_of_empty
+    {s : Ethereum.State} {b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
+    (hMemory : s.machineState.memory.size = 0)
+    (hActiveWords : s.machineState.activeWords = (⟨0⟩ : Ethereum.UInt256)) :
+    mloadValue
+        (mstoreNextState s (⟨0x40⟩ : Ethereum.UInt256) b t)
+        (⟨0x40⟩ : Ethereum.UInt256) =
+      Ethereum.UInt256.ofNat (Ethereum.fromByteArrayBigEndian b.toByteArray) := by
+  have hAddr : (⟨0x40⟩ : Ethereum.UInt256).toNat = 64 :=
+    Ethereum.UInt256.toNat_fin_ofNat_of_lt (n := 0x40)
+      (by norm_num [Ethereum.UInt256.size])
+  have hDestPad : (⟨0x40⟩ : Ethereum.UInt256).toNat - s.machineState.memory.size <
+      USize.size := by
+    rw [hAddr, hMemory]
+    change 64 < USize.size
+    rcases System.Platform.numBits_eq with h | h <;> rw [USize.size, h] <;> norm_num
+  apply mloadValue_mstoreNextState_same_eq
+  · apply not_or.mpr
+    constructor
+    · have hSize :
+          (⟨0x40⟩ : Ethereum.UInt256).toNat + 32 ≤
+            (mstoreNextState s (⟨0x40⟩ : Ethereum.UInt256) b t).machineState.memory.size := by
+        simpa [mstoreNextState] using
+          ByteArray.write_size_ge_of_size
+            (source := b.toByteArray)
+            (dest := s.machineState.memory)
+            (destAddr := (⟨0x40⟩ : Ethereum.UInt256).toNat)
+            (len := 32)
+            (by norm_num)
+            (by simp)
+            hDestPad
+      omega
+    · simp [mstoreNextState, hActiveWords, Ethereum.MachineState.M,
+        Ethereum.UInt256.ofNat, Ethereum.UInt256.toNat, Id.run]
+      decide
+  · exact hDestPad
 
 theorem mstoreNextState_readWithPadding_before
     (s : Ethereum.State) (a b : Ethereum.UInt256)
