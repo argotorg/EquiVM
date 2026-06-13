@@ -368,14 +368,73 @@ theorem truthContains38 : (D_J truthBytecode ⟨0⟩).contains ⟨38⟩ = true :
 theorem truthContains42 : (D_J truthBytecode ⟨0⟩).contains ⟨42⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
-/-- **Selector decode** (trusted, per the keccak-axiom directive — see MISSPEC.md).  Unlike
-    `D_J`/keccak this is *not* opaque: it is provable `ByteArray`/`UInt256` bit-arithmetic
-    relating the EVM's `CALLDATALOAD; PUSH 0xe0; SHR` selector to `calldata.extract 0 4`.
-    Admitted here to make progress; deletable once proved. -/
-axiom truthEvmSelector (cd : ByteArray) :
+/-! ### Selector decode — **proved** (was a trusted axiom; not opaque)
+
+Relating the EVM's `CALLDATALOAD; PUSH 0xe0; SHR` selector to `calldata.extract 0 4` is pure
+byte arithmetic.  `Memory.selector_toNat` does the 256-bit-shift ↔ byte-extraction core; below is
+the `0x9e9f51d2`-specific bijection and the final equivalence (needs `4 ≤ calldata.size`, which
+the dispatch path always has).  No new axioms — only `byteArray_zeroes_toList`. -/
+
+private theorem u256_inj {a b : UInt256} (h : a.toNat = b.toNat) : a = b := by
+  cases a; cases b; simp only [UInt256.toNat] at h; exact congrArg UInt256.mk (Fin.ext h)
+private theorem u256_eq_self : UInt256.eq ⟨2661241298⟩ ⟨2661241298⟩ = ⟨1⟩ := by decide
+private theorem u256_eq_ne {b : UInt256} (h : (⟨2661241298⟩ : UInt256) ≠ b) :
+    UInt256.eq ⟨2661241298⟩ b = ⟨0⟩ := by
+  simp only [UInt256.eq, Bool.toUInt256, decide_eq_false h]; rfl
+
+/-- Big-endian decode of four bytes equals `0x9e9f51d2` iff the bytes are `[9e,9f,51,d2]`. -/
+private theorem be4 (l : List UInt8) (hl : l.length = 4) :
+    fromBytesBigEndian l = 2661241298 ↔ l = [0x9e, 0x9f, 0x51, 0xd2] := by
+  match l, hl with
+  | [b0, b1, b2, b3], _ =>
+    unfold fromBytesBigEndian Function.comp
+    simp only [List.reverse_cons, List.reverse_nil, List.nil_append, List.cons_append, fromBytes',
+      List.cons.injEq, and_true]
+    have h0 := b0.toFin.isLt; have h1 := b1.toFin.isLt
+    have h2 := b2.toFin.isLt; have h3 := b3.toFin.isLt
+    simp only [UInt8.size] at h0 h1 h2 h3
+    have e0 : b0.toFin.val = b0.toNat := rfl; have e1 : b1.toFin.val = b1.toNat := rfl
+    have e2 : b2.toFin.val = b2.toNat := rfl; have e3 : b3.toFin.val = b3.toNat := rfl
+    rw [e0, e1, e2, e3]
+    have l0 : (0x9e : UInt8).toNat = 158 := rfl; have l1 : (0x9f : UInt8).toNat = 159 := rfl
+    have l2 : (0x51 : UInt8).toNat = 81 := rfl; have l3 : (0xd2 : UInt8).toNat = 210 := rfl
+    constructor
+    · intro he
+      exact ⟨UInt8.toNat_inj.mp (by omega), UInt8.toNat_inj.mp (by omega),
+             UInt8.toNat_inj.mp (by omega), UInt8.toNat_inj.mp (by omega)⟩
+    · rintro ⟨rfl, rfl, rfl, rfl⟩; rfl
+
+/-- The `ByteArray` `==` selector test equals the first-four-bytes list condition. -/
+private theorem extract_eq_iff (cd : ByteArray) (hsz : 4 ≤ cd.size) :
+    ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = true
+      ↔ cd.data.toList.take 4 = [0x9e, 0x9f, 0x51, 0xd2] := by
+  rw [show ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4)
+        = ((#[0x9e, 0x9f, 0x51, 0xd2] : Array UInt8) == (cd.extract 0 4).data) from rfl,
+      beq_iff_eq, ByteArray.data_extract, ← Array.toList_inj, Array.toList_extract]
+  show ([0x9e, 0x9f, 0x51, 0xd2] : List UInt8) = (cd.data.toList.drop 0).take (0 + 4 - 0) ↔ _
+  rw [List.drop_zero]
+  constructor
+  · intro he; rw [← he]
+  · intro he; rw [he]
+
+/-- **Selector decode** (proved): the EVM selector check `eq(0x9e9f51d2, SHR(calldata,224))`
+    agrees with the dispatcher's 4-byte compare `0x9e9f51d2 == calldata.extract 0 4`. -/
+theorem truthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨2661241298⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
-      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩
+      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
+  have hlen4 : (cd.data.toList.take 4).length = 4 := by
+    rw [List.length_take]
+    have : 4 ≤ cd.data.toList.length := by rw [Array.length_toList]; exact hsz
+    omega
+  have hsv : (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩).toNat
+             = fromBytesBigEndian (cd.data.toList.take 4) := selector_toNat cd hsz
+  by_cases hc : cd.data.toList.take 4 = [0x9e, 0x9f, 0x51, 0xd2]
+  · have h1 : UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩ = ⟨2661241298⟩ :=
+      u256_inj (by rw [hsv]; exact (be4 _ hlen4).mpr hc)
+    rw [if_pos ((extract_eq_iff cd hsz).mpr hc), h1, u256_eq_self]
+  · rw [if_neg (fun he => hc ((extract_eq_iff cd hsz).mp he))]
+    exact u256_eq_ne (fun he => hc ((be4 _ hlen4).mp (by rw [← hsv, ← he]; rfl)))
 
 /-- The shared dispatcher prefix for `callvalue = 0` (14 instructions: through the taken jump
     `0x0a → 0x0e` and up to the `calldatasize`/`LT`/`PUSH 0x26` at the `0x16` JUMPI).  Either
@@ -966,7 +1025,7 @@ theorem truthX_cvz_revertB
                     have hgas22 : s22.machineState.gasAvailable.toNat = g.toNat - 83 := by
                       rw [hs22]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
                     have heq0 : UInt256.eq ⟨2661241298⟩ sel = ⟨0⟩ := by
-                      rw [hsel, truthEvmSelector]; simp [hmatch]
+                      rw [hsel, truthEvmSelector hsz]; simp [hmatch]
                     have hstk22 : s22.machineState.stack = [UInt256.eq ⟨2661241298⟩ sel, sel] := by rw [hs22]; simp only [stBinop]
                     have hstep22 := push1_xstep (argv := ⟨42⟩) hcode22 hpc22 (by decide) hstk22 (by norm_num)
                     by_cases h22 : g.toNat < 86
@@ -1402,7 +1461,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
                                               have hcode22 : s22.executionEnv.code = truthBytecode := by rw [hee22]; exact hcode
                                               have hpc22 : s22.machineState.pc = ⟨35⟩ := by rw [hs22]; simp only [stBinop]; rw [hpc21]; rfl
                                               have hgas22 : s22.machineState.gasAvailable.toNat = g.toNat - 83 := by rw [hs22]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-                                              have hstk22 : s22.machineState.stack = [⟨1⟩, (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩)] := by rw [hs22]; simp only [stBinop]; rw [show (UInt256.eq ⟨2661241298⟩ (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩)) = ⟨1⟩ from by rw [truthEvmSelector]; simp [hmatch]]
+                                              have hstk22 : s22.machineState.stack = [⟨1⟩, (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩)] := by rw [hs22]; simp only [stBinop]; rw [show (UInt256.eq ⟨2661241298⟩ (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩)) = ⟨1⟩ from by rw [truthEvmSelector hsz]; simp [hmatch]]
                                               have haw22 : s22.machineState.activeWords = (UInt256.ofNat 3) := by rw [hs22]; simp only [stBinop]; exact haw21
                                               have hmem22 : s22.machineState.memory = truthMem1 := by rw [hs22]; simp only [stBinop]; exact hmem21
                                               -- step 22: push1

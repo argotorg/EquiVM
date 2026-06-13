@@ -225,4 +225,85 @@ theorem toByteArray_eq_toBytesBE (v : UInt256) :
   rw [hz, show (BE v.toNat).size = (toBytesBigEndian v.toNat).length from by simp [BE]]
   rfl
 
+/-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
+
+/-- `fromBytes'` (little-endian) of an append splits at the byte boundary. -/
+theorem fromBytes'_append (a b : List UInt8) :
+    fromBytes' (a ++ b) = fromBytes' a + 2 ^ (8 * a.length) * fromBytes' b := by
+  induction a with
+  | nil => simp [fromBytes']
+  | cons x xs ih =>
+    simp only [List.cons_append, fromBytes', ih, List.length_cons]
+    rw [show 8 * (xs.length + 1) = 8 + 8 * xs.length from by ring, pow_add]; ring
+
+/-- Big-endian division drops the low `|l2|` bytes. -/
+theorem fromBytesBigEndian_append_div (l1 l2 : List UInt8) :
+    fromBytesBigEndian (l1 ++ l2) / 2 ^ (8 * l2.length) = fromBytesBigEndian l1 := by
+  unfold fromBytesBigEndian Function.comp
+  rw [List.reverse_append, fromBytes'_append, List.length_reverse]
+  have hlt : fromBytes' l2.reverse < 2 ^ (8 * l2.length) := by
+    have := fromBytes'_le (bs := l2.reverse); rwa [List.length_reverse] at this
+  rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hlt, zero_add]
+
+/-- The `ffi.zeroes` right-pad size of `readBytes _ _ 32` (`32 - read.size`), as a `Nat`. -/
+theorem pad_toNat (m : ℕ) (hm : m ≤ 32) : (⟨↑32 - ↑m⟩ : USize).toNat = 32 - m := by
+  have hb : m < 2 ^ 32 := lt_of_le_of_lt hm (by norm_num)
+  show ((USize.ofNat 32) - (USize.ofNat m)).toNat = 32 - m
+  rw [USize.toNat_sub_of_le,
+      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=32) (lt_usize 32 (by norm_num)) le_rfl,
+      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=m) (lt_usize 32 (by norm_num)) hm]
+  rw [USize.le_iff_toNat_le, USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=32) (lt_usize 32 (by norm_num)) le_rfl,
+      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=m) (lt_usize 32 (by norm_num)) hm]; exact hm
+
+theorem copySlice32_toList (cd : ByteArray) :
+    (cd.copySlice 0 ByteArray.empty 0 32).data.toList = cd.data.toList.take 32 := by
+  rw [ByteArray.data_copySlice]; simp [Array.toList_extract, List.extract]
+theorem copySlice32_size (cd : ByteArray) :
+    (cd.copySlice 0 ByteArray.empty 0 32).size = min 32 cd.size := by
+  show (cd.copySlice 0 ByteArray.empty 0 32).data.size = min 32 cd.size
+  rw [← Array.length_toList, copySlice32_toList, List.length_take, Array.length_toList]; rfl
+
+/-- `readBytes cd 0 32` is the first 32 bytes of `cd`, right-padded with zeros to length 32. -/
+theorem readBytes32_toList (cd : ByteArray) :
+    (ByteArray.readBytes cd 0 32).data.toList
+      = cd.data.toList.take 32 ++ List.replicate (32 - min 32 cd.size) 0 := by
+  unfold ByteArray.readBytes
+  rw [if_pos (by decide : (decide (0 < 2 ^ 64) && decide (32 < 2 ^ 64)) = true)]
+  rw [ByteArray.toList_data_append, copySlice32_toList, byteArray_zeroes_toList, copySlice32_size]
+  congr 2
+  exact pad_toNat (min 32 cd.size) (min_le_left _ _)
+
+theorem readBytes32_len (cd : ByteArray) :
+    (ByteArray.readBytes cd 0 32).data.toList.length = 32 := by
+  rw [readBytes32_toList, List.length_append, List.length_take, List.length_replicate]
+  have : min 32 cd.data.toList.length = min 32 cd.size := by rw [Array.length_toList]; rfl
+  omega
+
+/-- **EVM selector extraction.**  `(uInt256OfByteArray (readBytes cd 0 32)) >>> 224` — the EVM's
+    `CALLDATALOAD; PUSH 0xe0; SHR` — equals the big-endian number of `cd`'s first four bytes
+    (for `4 ≤ cd.size`).  Fully proved; nothing opaque. -/
+theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
+    (UInt256.shiftRight (uInt256OfByteArray (ByteArray.readBytes cd 0 32)) ⟨224⟩).toNat
+      = fromBytesBigEndian (cd.data.toList.take 4) := by
+  have hlen := readBytes32_len cd
+  have hV : fromBytes' (ByteArray.readBytes cd 0 32).data.toList.reverse < 2 ^ 256 := by
+    have := fromBytes'_le (bs := (ByteArray.readBytes cd 0 32).data.toList.reverse)
+    rwa [List.length_reverse, hlen] at this
+  unfold UInt256.shiftRight uInt256OfByteArray
+  rw [if_neg (by decide : ¬ ((⟨224⟩ : UInt256).val ≥ 256))]
+  show ((UInt256.ofNat _).val >>> (⟨224⟩ : UInt256).val).val = _
+  rw [Fin.shiftRight_val]
+  show (UInt256.ofNat _).val.val >>> (224 : ℕ) = _
+  rw [Nat.shiftRight_eq_div_pow]
+  show (fromBytes' _ % UInt256.size) / 2 ^ 224 = _
+  rw [show UInt256.size = 2 ^ 256 from rfl, Nat.mod_eq_of_lt hV]
+  show fromBytesBigEndian (ByteArray.readBytes cd 0 32).data.toList / 2 ^ 224 = _
+  conv_lhs => rw [← List.take_append_drop 4 (ByteArray.readBytes cd 0 32).data.toList]
+  rw [show (224 : ℕ) = 8 * ((ByteArray.readBytes cd 0 32).data.toList.drop 4).length from by
+        rw [List.length_drop, hlen], fromBytesBigEndian_append_div]
+  congr 1
+  have h4 : 4 ≤ cd.data.toList.length := by rw [Array.length_toList]; exact h
+  rw [readBytes32_toList, List.take_append_of_le_length (by rw [List.length_take]; omega),
+      List.take_take, show min 4 32 = 4 from rfl]
+
 end TruthClaude.Theory
