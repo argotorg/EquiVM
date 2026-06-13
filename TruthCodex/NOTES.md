@@ -27,6 +27,7 @@
 - `ByteArray.readWithPadding_write_self_of_size`: proves reading back an exact written slice returns the source bytes.
 - `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
 - `USize.ofNat_sub_ofNat_eq_of_le`: lifts non-underflowing natural subtraction into equality of `USize` literals.
+- `Ethereum.UInt256.add_zero`: simplifies addition of the zero word on the right.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.toByteArray_size`: proves every serialized EVM word is 32 bytes.
 - `Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one`: reduces the EVM serialization of word `1` to `ffi.ByteArray.zeroes 31 ++ #[1]`.
@@ -38,6 +39,7 @@
 - `Ethereum.UInt256.toNat_fin_ofNat_of_lt`: computes constructor-literal `UInt256` payloads under the 256-bit bound.
 - `Ethereum.UInt256.ofNat_eq_fin`: relates `UInt256.ofNat n` to the constructor-literal representation.
 - `Ethereum.UInt256.eq_fin_of_toNat_eq`: recovers a constructor-literal `UInt256` word from a bounded natural payload equality.
+- `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`: canonicalizes double-`ISZERO` on a nonzero word to the EVM true word.
 - `Ethereum.UInt256.eq_of_toNat_eq`: recovers a `UInt256` word from a bounded natural payload equality.
 - `Ethereum.UInt256.toNat_sub_ofNat_of_le`: computes non-underflowing `UInt256` subtraction on `toNat`.
 - `Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le`: computes two sequential non-underflowing `UInt256` subtractions on `toNat`.
@@ -330,6 +332,58 @@
 - `Ethereum.EVM.returnNextState_substate`: projection fact showing `RETURN` preserves the substate.
 - `Ethereum.EVM.returnNextState_gasAvailable`: projection fact for gas after `RETURN`.
 - `Ethereum.EVM.returnNextState_pc`: projection fact for pc after `RETURN`.
+- `Ethereum.EVM.push1NextState_memory`: projection fact showing `PUSH1` preserves machine memory.
+- `Ethereum.EVM.push4NextState_memory`: projection fact showing `PUSH4` preserves machine memory.
+- `Ethereum.EVM.mloadNextState_memory`: projection fact showing `MLOAD` preserves machine memory.
+- `Ethereum.EVM.callvalueNextState_memory`: projection fact showing `CALLVALUE` preserves machine memory.
+- `Ethereum.EVM.calldatasizeNextState_memory`: projection fact showing `CALLDATASIZE` preserves machine memory.
+- `Ethereum.EVM.calldataloadNextState_memory`: projection fact showing `CALLDATALOAD` preserves machine memory.
+- `Ethereum.EVM.dup1NextState_memory`: projection fact showing `DUP1` preserves machine memory.
+- `Ethereum.EVM.dup2NextState_memory`: projection fact showing `DUP2` preserves machine memory.
+- `Ethereum.EVM.dup3NextState_memory`: projection fact showing `DUP3` preserves machine memory.
+- `Ethereum.EVM.dup4NextState_memory`: projection fact showing `DUP4` preserves machine memory.
+- `Ethereum.EVM.dup5NextState_memory`: projection fact showing `DUP5` preserves machine memory.
+- `Ethereum.EVM.swap1NextState_memory`: projection fact showing `SWAP1` preserves machine memory.
+- `Ethereum.EVM.swap2NextState_memory`: projection fact showing `SWAP2` preserves machine memory.
+- `Ethereum.EVM.swap3NextState_memory`: projection fact showing `SWAP3` preserves machine memory.
+- `Ethereum.EVM.iszeroNextState_memory`: projection fact showing `ISZERO` preserves machine memory.
+- `Ethereum.EVM.addNextState_memory`: projection fact showing `ADD` preserves machine memory.
+- `Ethereum.EVM.subNextState_memory`: projection fact showing `SUB` preserves machine memory.
+- `Ethereum.EVM.ltNextState_memory`: projection fact showing `LT` preserves machine memory.
+- `Ethereum.EVM.shrNextState_memory`: projection fact showing `SHR` preserves machine memory.
+- `Ethereum.EVM.eqNextState_memory`: projection fact showing `EQ` preserves machine memory.
+- `Ethereum.EVM.push0NextState_memory`: projection fact showing `PUSH0` preserves machine memory.
+- `Ethereum.EVM.jumpNextState_memory`: projection fact showing `JUMP` preserves machine memory.
+- `Ethereum.EVM.jumpiNextState_memory`: projection fact showing `JUMPI` preserves machine memory.
+- `Ethereum.EVM.jumpdestNextState_memory`: projection fact showing `JUMPDEST` preserves machine memory.
+- `Ethereum.EVM.popNextState_memory`: projection fact showing `POP` preserves machine memory.
+- `Ethereum.EVM.revertNextState_memory`: projection fact showing `REVERT` preserves machine memory.
+- `Ethereum.EVM.returnNextState_memory`: projection fact showing `RETURN` preserves machine memory.
+- `Ethereum.EVM.mloadValue_eq_of_memory_activeWords_eq`: proves `MLOAD` value stability under equal memory and active-word counters.
+- `Ethereum.EVM.push1NextState_activeWords`: projection fact showing `PUSH1` preserves active memory words.
+- `Ethereum.EVM.push4NextState_activeWords`: projection fact showing `PUSH4` preserves active memory words.
+- `Ethereum.EVM.callvalueNextState_activeWords`: projection fact showing `CALLVALUE` preserves active memory words.
+- `Ethereum.EVM.calldatasizeNextState_activeWords`: projection fact showing `CALLDATASIZE` preserves active memory words.
+- `Ethereum.EVM.calldataloadNextState_activeWords`: projection fact showing `CALLDATALOAD` preserves active memory words.
+- `Ethereum.EVM.dup1NextState_activeWords`: projection fact showing `DUP1` preserves active memory words.
+- `Ethereum.EVM.dup2NextState_activeWords`: projection fact showing `DUP2` preserves active memory words.
+- `Ethereum.EVM.dup3NextState_activeWords`: projection fact showing `DUP3` preserves active memory words.
+- `Ethereum.EVM.dup4NextState_activeWords`: projection fact showing `DUP4` preserves active memory words.
+- `Ethereum.EVM.dup5NextState_activeWords`: projection fact showing `DUP5` preserves active memory words.
+- `Ethereum.EVM.swap1NextState_activeWords`: projection fact showing `SWAP1` preserves active memory words.
+- `Ethereum.EVM.swap2NextState_activeWords`: projection fact showing `SWAP2` preserves active memory words.
+- `Ethereum.EVM.swap3NextState_activeWords`: projection fact showing `SWAP3` preserves active memory words.
+- `Ethereum.EVM.iszeroNextState_activeWords`: projection fact showing `ISZERO` preserves active memory words.
+- `Ethereum.EVM.addNextState_activeWords`: projection fact showing `ADD` preserves active memory words.
+- `Ethereum.EVM.subNextState_activeWords`: projection fact showing `SUB` preserves active memory words.
+- `Ethereum.EVM.ltNextState_activeWords`: projection fact showing `LT` preserves active memory words.
+- `Ethereum.EVM.shrNextState_activeWords`: projection fact showing `SHR` preserves active memory words.
+- `Ethereum.EVM.eqNextState_activeWords`: projection fact showing `EQ` preserves active memory words.
+- `Ethereum.EVM.push0NextState_activeWords`: projection fact showing `PUSH0` preserves active memory words.
+- `Ethereum.EVM.jumpNextState_activeWords`: projection fact showing `JUMP` preserves active memory words.
+- `Ethereum.EVM.jumpiNextState_activeWords`: projection fact showing `JUMPI` preserves active memory words.
+- `Ethereum.EVM.jumpdestNextState_activeWords`: projection fact showing `JUMPDEST` preserves active memory words.
+- `Ethereum.EVM.popNextState_activeWords`: projection fact showing `POP` preserves active memory words.
 - `Ethereum.EVM.push1NextState_executionEnv`: projection fact showing `PUSH1` preserves the execution environment.
 - `Ethereum.EVM.push4NextState_executionEnv`: projection fact showing `PUSH4` preserves the execution environment.
 - `Ethereum.EVM.mloadNextState_executionEnv`: projection fact showing `MLOAD` preserves the execution environment.
@@ -932,7 +986,7 @@
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The reusable memory lemmas now prove read-back through `MSTORE` up to `UInt256.toByteArray`, and `Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one` reduces the bool word to `ffi.ByteArray.zeroes 31 ++ #[1]`; the remaining byte-level ABI output equality is exactly the trusted-base opacity of `ffi.ByteArray.zeroes 31`, logged in `MISSPEC.md`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The final output proof now delegates memory readback to `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`, discharges the non-writing suffix memory equality with reusable memory projection lemmas, proves `writePtr = freePtr` via `Ethereum.UInt256.add_zero`, and normalizes the stored bool word with `Ethereum.UInt256.isZero_isZero_eq_one_of_ne_zero`. The remaining local output frontiers are the final `MLOAD 0x40` reload fact `returnBase = freePtr`, the derived `returnSize.toNat = 32`, the write padding bound for `MSTORE`, and the trusted-base opacity of `ffi.ByteArray.zeroes 31` logged in `MISSPEC.md`.
 - The former `truthGas_ge_fifty_of_return_cont_jump_continue` local gap was eliminated; the ABI encoder-entry OOG cases now use trace-based no-explicit-fuel wrappers, with the shared fuel argument concentrated in `Ethereum.EVM.ContinueTrace.length_le_initial_gas`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.

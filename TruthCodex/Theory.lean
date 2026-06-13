@@ -132,6 +132,35 @@ lemma extract_append_of_stop_le_size_left {a b : ByteArray} {i j : Nat}
     (a := a.data) (b := b.data) (i := i) (j := j)
     (by simpa [ByteArray.size_data] using h)
 
+lemma extract_copySlice_before_of_stop_le
+    {source dest : ByteArray} {sourceAddr destAddr len start stop : Nat}
+    (hStopDest : stop ≤ dest.size)
+    (hStopDestAddr : stop ≤ destAddr) :
+    (source.copySlice sourceAddr dest destAddr len).extract start stop =
+      dest.extract start stop := by
+  rw [ByteArray.copySlice_eq_append]
+  let pre := dest.extract 0 destAddr
+  let mid := source.extract sourceAddr (sourceAddr + len)
+  let post := dest.extract (destAddr + min len (source.size - sourceAddr)) dest.size
+  have hPreSize : pre.size = min destAddr dest.size := by
+    dsimp [pre]
+    rw [ByteArray.size_extract]
+    omega
+  have hStopPre : stop ≤ pre.size := by
+    rw [hPreSize]
+    exact le_min hStopDestAddr hStopDest
+  have hStopPreMid : stop ≤ (pre ++ mid).size := by
+    rw [ByteArray.size_append]
+    omega
+  change ((pre ++ mid) ++ post).extract start stop = dest.extract start stop
+  rw [extract_append_of_stop_le_size_left
+    (a := pre ++ mid) (b := post) (i := start) (j := stop) hStopPreMid]
+  rw [extract_append_of_stop_le_size_left
+    (a := pre) (b := mid) (i := start) (j := stop) hStopPre]
+  dsimp [pre]
+  rw [ByteArray.extract_extract]
+  simp [Nat.min_eq_left hStopDestAddr]
+
 lemma copySlice_zero_empty_eq_extract (source : ByteArray) (size : Nat) :
     source.copySlice 0 ByteArray.empty 0 size = source.extract 0 size := by
   rw [ByteArray.copySlice_eq_append]
@@ -352,6 +381,15 @@ lemma readWithPadding_write_self_of_size
 end ByteArray
 
 namespace Ethereum.UInt256
+
+@[simp] lemma add_zero (x : Ethereum.UInt256) :
+    x + (⟨0⟩ : Ethereum.UInt256) = x := by
+  cases x with
+  | mk v =>
+      apply congrArg Ethereum.UInt256.mk
+      apply Fin.ext
+      change ((v + (0 : Fin Ethereum.UInt256.size)).val) = v.val
+      simp
 
 @[simp] lemma toByteArray_size (v : Ethereum.UInt256) :
     v.toByteArray.size = 32 := by
@@ -896,6 +934,13 @@ lemma isZero_eq_zero_of_ne_zero {x : Ethereum.UInt256}
       simp [bne, hbeq]
     have hx := Ethereum.EVM.UInt256_bne_zero_eq_false_eq x hbne
     contradiction
+
+lemma isZero_isZero_eq_one_of_ne_zero {x : Ethereum.UInt256}
+    (h : x ≠ (⟨0⟩ : Ethereum.UInt256)) :
+    Ethereum.UInt256.isZero (Ethereum.UInt256.isZero x) =
+      (⟨1⟩ : Ethereum.UInt256) := by
+  rw [isZero_eq_zero_of_ne_zero h]
+  exact isZero_eq_one_of_eq_zero rfl
 
 lemma isZero_bne_zero_eq_true_of_eq_zero {x : Ethereum.UInt256}
     (h : x = (⟨0⟩ : Ethereum.UInt256)) :
@@ -4070,6 +4115,257 @@ theorem Xstep_return_continue_of_decode {s : Ethereum.State}
 @[simp] theorem popNextState_substate (s : Ethereum.State)
     (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
     (popNextState s a t).substate = s.substate :=
+  rfl
+
+@[simp] theorem push1NextState_memory (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem push4NextState_memory (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem mloadNextState_memory (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (mloadNextState s a t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem callvalueNextState_memory (s : Ethereum.State) :
+    (callvalueNextState s).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_memory (s : Ethereum.State) :
+    (calldatasizeNextState s).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem calldataloadNextState_memory (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem dup1NextState_memory (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem dup2NextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem dup3NextState_memory (s : Ethereum.State) (a b c : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem dup4NextState_memory (s : Ethereum.State) (a b c d : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem dup5NextState_memory (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem swap1NextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem swap2NextState_memory (s : Ethereum.State) (a b c : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem swap3NextState_memory (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem iszeroNextState_memory (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem addNextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem subNextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem ltNextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem shrNextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem eqNextState_memory (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem push0NextState_memory (s : Ethereum.State) :
+    (push0NextState s).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem jumpNextState_memory (s : Ethereum.State) (dest : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem jumpiNextState_memory (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem jumpdestNextState_memory (s : Ethereum.State) :
+    (jumpdestNextState s).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem popNextState_memory (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem revertNextState_memory (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (revertNextState s offset size t).machineState.memory = s.machineState.memory :=
+  rfl
+
+@[simp] theorem returnNextState_memory (s : Ethereum.State)
+    (offset size : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (returnNextState s offset size t).machineState.memory = s.machineState.memory :=
+  rfl
+
+theorem mloadValue_eq_of_memory_activeWords_eq {s t : Ethereum.State}
+    {a : Ethereum.UInt256}
+    (hMemory : t.machineState.memory = s.machineState.memory)
+    (hActiveWords : t.machineState.activeWords = s.machineState.activeWords) :
+    mloadValue t a = mloadValue s a := by
+  unfold mloadValue
+  rw [hMemory, hActiveWords]
+
+@[simp] theorem push1NextState_activeWords (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push1NextState s arg).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem push4NextState_activeWords (s : Ethereum.State) (arg : Ethereum.UInt256) :
+    (push4NextState s arg).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem callvalueNextState_activeWords (s : Ethereum.State) :
+    (callvalueNextState s).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem calldatasizeNextState_activeWords (s : Ethereum.State) :
+    (calldatasizeNextState s).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem calldataloadNextState_activeWords (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (calldataloadNextState s a t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem dup1NextState_activeWords (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup1NextState s a t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem dup2NextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup2NextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem dup3NextState_activeWords (s : Ethereum.State) (a b c : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup3NextState s a b c t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem dup4NextState_activeWords (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup4NextState s a b c d t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem dup5NextState_activeWords (s : Ethereum.State)
+    (a b c d e : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (dup5NextState s a b c d e t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem swap1NextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap1NextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem swap2NextState_activeWords (s : Ethereum.State)
+    (a b c : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap2NextState s a b c t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem swap3NextState_activeWords (s : Ethereum.State)
+    (a b c d : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (swap3NextState s a b c d t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem iszeroNextState_activeWords (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem addNextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (addNextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem subNextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (subNextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem ltNextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (ltNextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem shrNextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (shrNextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem eqNextState_activeWords (s : Ethereum.State) (a b : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (eqNextState s a b t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem push0NextState_activeWords (s : Ethereum.State) :
+    (push0NextState s).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem jumpNextState_activeWords (s : Ethereum.State) (dest : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpNextState s dest t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem jumpiNextState_activeWords (s : Ethereum.State)
+    (dest cond : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (jumpiNextState s dest cond t).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem jumpdestNextState_activeWords (s : Ethereum.State) :
+    (jumpdestNextState s).machineState.activeWords = s.machineState.activeWords :=
+  rfl
+
+@[simp] theorem popNextState_activeWords (s : Ethereum.State) (a : Ethereum.UInt256)
+    (t : Ethereum.Stack Ethereum.UInt256) :
+    (popNextState s a t).machineState.activeWords = s.machineState.activeWords :=
   rfl
 
 /-- Equality of the EVM memory field. This is useful for trace suffixes after a
