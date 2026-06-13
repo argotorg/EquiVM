@@ -1121,6 +1121,29 @@ def mstoreNextState (s : Ethereum.State) (a b : Ethereum.UInt256)
     machineState.pc := s.machineState.pc + ⟨1⟩
     machineState.execLength := s.machineState.execLength + 1}
 
+@[simp] theorem mstoreNextState_stack (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).machineState.stack = t :=
+  rfl
+
+@[simp] theorem mstoreNextState_memory (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).machineState.memory =
+      b.toByteArray.write 0 s.machineState.memory a.toNat 32 :=
+  rfl
+
+@[simp] theorem mstoreNextState_gasAvailable (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).machineState.gasAvailable =
+      (s.machineState.gasAvailable - Ethereum.UInt256.ofNat (memoryExpansionCost s .MSTORE)) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow :=
+  rfl
+
+@[simp] theorem mstoreNextState_pc (s : Ethereum.State)
+    (a b : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (mstoreNextState s a b t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
+
 theorem Xstep_mstore_memory_oog_of_decode {s : Ethereum.State}
     {a b : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
     (hDecode : decode s.executionEnv.code s.machineState.pc = some (.MSTORE, .none))
@@ -1622,6 +1645,22 @@ def iszeroNextState (s : Ethereum.State) (a : Ethereum.UInt256)
     machineState.gasAvailable := s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gverylow
     machineState.pc := s.machineState.pc + ⟨1⟩
     machineState.execLength := s.machineState.execLength + 1}
+
+@[simp] theorem iszeroNextState_stack (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).machineState.stack = Ethereum.UInt256.isZero a :: t :=
+  rfl
+
+@[simp] theorem iszeroNextState_gasAvailable (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).machineState.gasAvailable =
+      s.machineState.gasAvailable - Ethereum.UInt256.ofNat GasConstants.Gverylow :=
+  rfl
+
+@[simp] theorem iszeroNextState_pc (s : Ethereum.State)
+    (a : Ethereum.UInt256) (t : Ethereum.Stack Ethereum.UInt256) :
+    (iszeroNextState s a t).machineState.pc = s.machineState.pc + ⟨1⟩ :=
+  rfl
 
 theorem Xstep_iszero_oog_of_decode {s : Ethereum.State}
     {a : Ethereum.UInt256} {t : Ethereum.Stack Ethereum.UInt256}
@@ -2386,6 +2425,78 @@ theorem four {validJumps : Array Ethereum.UInt256} {s t u v w : Ethereum.State}
     (ContinueTrace.cons hStep₁
       (ContinueTrace.cons hStep₂
         (ContinueTrace.cons hStep₃ (ContinueTrace.cons hStep₄ ContinueTrace.nil))))
+
+theorem five {validJumps : Array Ethereum.UInt256}
+    {s₀ s₁ s₂ s₃ s₄ s₅ : Ethereum.State}
+    (hStep₁ : Xstep validJumps s₀ = .ok (s₁, none))
+    (hStep₂ : Xstep validJumps s₁ = .ok (s₂, none))
+    (hStep₃ : Xstep validJumps s₂ = .ok (s₃, none))
+    (hStep₄ : Xstep validJumps s₃ = .ok (s₄, none))
+    (hStep₅ : Xstep validJumps s₄ = .ok (s₅, none)) :
+    ContinueTrace validJumps 5 s₀ s₅ := by
+  simpa using
+    (ContinueTrace.cons hStep₁
+      (ContinueTrace.cons hStep₂
+        (ContinueTrace.cons hStep₃
+          (ContinueTrace.cons hStep₄
+            (ContinueTrace.cons hStep₅ ContinueTrace.nil)))))
+
+theorem six {validJumps : Array Ethereum.UInt256}
+    {s₀ s₁ s₂ s₃ s₄ s₅ s₆ : Ethereum.State}
+    (hStep₁ : Xstep validJumps s₀ = .ok (s₁, none))
+    (hStep₂ : Xstep validJumps s₁ = .ok (s₂, none))
+    (hStep₃ : Xstep validJumps s₂ = .ok (s₃, none))
+    (hStep₄ : Xstep validJumps s₃ = .ok (s₄, none))
+    (hStep₅ : Xstep validJumps s₄ = .ok (s₅, none))
+    (hStep₆ : Xstep validJumps s₅ = .ok (s₆, none)) :
+    ContinueTrace validJumps 6 s₀ s₆ := by
+  simpa using
+    (ContinueTrace.cons hStep₁
+      (ContinueTrace.cons hStep₂
+        (ContinueTrace.cons hStep₃
+          (ContinueTrace.cons hStep₄
+            (ContinueTrace.cons hStep₅
+              (ContinueTrace.cons hStep₆ ContinueTrace.nil))))))
+
+theorem seven {validJumps : Array Ethereum.UInt256}
+    {s₀ s₁ s₂ s₃ s₄ s₅ s₆ s₇ : Ethereum.State}
+    (hStep₁ : Xstep validJumps s₀ = .ok (s₁, none))
+    (hStep₂ : Xstep validJumps s₁ = .ok (s₂, none))
+    (hStep₃ : Xstep validJumps s₂ = .ok (s₃, none))
+    (hStep₄ : Xstep validJumps s₃ = .ok (s₄, none))
+    (hStep₅ : Xstep validJumps s₄ = .ok (s₅, none))
+    (hStep₆ : Xstep validJumps s₅ = .ok (s₆, none))
+    (hStep₇ : Xstep validJumps s₆ = .ok (s₇, none)) :
+    ContinueTrace validJumps 7 s₀ s₇ := by
+  simpa using
+    (ContinueTrace.cons hStep₁
+      (ContinueTrace.cons hStep₂
+        (ContinueTrace.cons hStep₃
+          (ContinueTrace.cons hStep₄
+            (ContinueTrace.cons hStep₅
+              (ContinueTrace.cons hStep₆
+                (ContinueTrace.cons hStep₇ ContinueTrace.nil)))))))
+
+theorem eight {validJumps : Array Ethereum.UInt256}
+    {s₀ s₁ s₂ s₃ s₄ s₅ s₆ s₇ s₈ : Ethereum.State}
+    (hStep₁ : Xstep validJumps s₀ = .ok (s₁, none))
+    (hStep₂ : Xstep validJumps s₁ = .ok (s₂, none))
+    (hStep₃ : Xstep validJumps s₂ = .ok (s₃, none))
+    (hStep₄ : Xstep validJumps s₃ = .ok (s₄, none))
+    (hStep₅ : Xstep validJumps s₄ = .ok (s₅, none))
+    (hStep₆ : Xstep validJumps s₅ = .ok (s₆, none))
+    (hStep₇ : Xstep validJumps s₆ = .ok (s₇, none))
+    (hStep₈ : Xstep validJumps s₇ = .ok (s₈, none)) :
+    ContinueTrace validJumps 8 s₀ s₈ := by
+  simpa using
+    (ContinueTrace.cons hStep₁
+      (ContinueTrace.cons hStep₂
+        (ContinueTrace.cons hStep₃
+          (ContinueTrace.cons hStep₄
+            (ContinueTrace.cons hStep₅
+              (ContinueTrace.cons hStep₆
+                (ContinueTrace.cons hStep₇
+                  (ContinueTrace.cons hStep₈ ContinueTrace.nil))))))))
 
 theorem snoc {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State}

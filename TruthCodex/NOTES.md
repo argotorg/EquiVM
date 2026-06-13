@@ -87,6 +87,10 @@
 - `Ethereum.EVM.Xstep_push4_oog_of_decode`: proves the `PUSH4` gas-underflow case from a decode fact.
 - `Ethereum.EVM.Xstep_push4_continue_of_decode`: proves the successful `PUSH4` step from decode/gas/stack facts.
 - `Ethereum.EVM.mstoreNextState`: names the concrete next state for a successful `MSTORE`.
+- `Ethereum.EVM.mstoreNextState_stack`: projection fact for the stack after `MSTORE`.
+- `Ethereum.EVM.mstoreNextState_memory`: projection fact for memory after `MSTORE`.
+- `Ethereum.EVM.mstoreNextState_gasAvailable`: projection fact for gas after `MSTORE`.
+- `Ethereum.EVM.mstoreNextState_pc`: projection fact for pc after `MSTORE`.
 - `Ethereum.EVM.Xstep_mstore_memory_oog_of_decode`: proves the `MSTORE` memory-expansion gas-underflow case.
 - `Ethereum.EVM.Xstep_mstore_verylow_oog_of_decode`: proves the `MSTORE` post-expansion gas-underflow case.
 - `Ethereum.EVM.Xstep_mstore_continue_of_decode`: proves the successful `MSTORE` step.
@@ -154,6 +158,9 @@
 - `Ethereum.EVM.Xstep_swap3_oog_of_decode`: proves the `SWAP3` gas-underflow case.
 - `Ethereum.EVM.Xstep_swap3_continue_of_decode`: proves the successful `SWAP3` step.
 - `Ethereum.EVM.iszeroNextState`: names the concrete next state for a successful `ISZERO`.
+- `Ethereum.EVM.iszeroNextState_stack`: projection fact for the stack after `ISZERO`.
+- `Ethereum.EVM.iszeroNextState_gasAvailable`: projection fact for gas after `ISZERO`.
+- `Ethereum.EVM.iszeroNextState_pc`: projection fact for pc after `ISZERO`.
 - `Ethereum.EVM.Xstep_iszero_oog_of_decode`: proves the `ISZERO` gas-underflow case.
 - `Ethereum.EVM.Xstep_iszero_continue_of_decode`: proves the successful `ISZERO` step.
 - `Ethereum.EVM.addNextState`: names the concrete next state for a successful `ADD`.
@@ -258,6 +265,10 @@
 - `Ethereum.EVM.ContinueTrace.two`: builds a two-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.three`: builds a three-step continuing trace.
 - `Ethereum.EVM.ContinueTrace.four`: builds a four-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.five`: builds a five-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.six`: builds a six-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.seven`: builds a seven-step continuing trace.
+- `Ethereum.EVM.ContinueTrace.eight`: builds an eight-step continuing trace without an intermediate composition proof.
 - `Ethereum.EVM.ContinueTrace.snoc`: appends a continuing step to an existing trace.
 - `Ethereum.EVM.ContinueTrace.append`: composes two continuing traces end-to-end.
 - `Ethereum.EVM.ContinueTrace.append_three`: composes three continuing traces end-to-end.
@@ -535,6 +546,15 @@
 - `truthEVM_long_calldata_selector_jumpi_trace_taken_of_prefix`: appends the taken selector `JUMPI` to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_match_entry_suffix_trace`: packages the taken selector branch through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP` to the pure body entry.
 - `truthEVM_long_calldata_selector_match_body_suffix_trace`: packages the pure `truth()` body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP` back to the return continuation.
+- `truthEVM_return_continuation_to_abi_entry_trace`: packages the return continuation from pc `0x30` through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP` into the ABI encoder entry, threading the symbolic free-memory pointer.
+- `truthEVM_abi_encoder_entry_offset_trace`: packages the first ABI encoder-entry chunk at pc `0x64`, computing the output end pointer `freePtr + 0x20`.
+- `truthEVM_abi_encoder_entry_to_bool_writer_trace`: packages the second ABI encoder-entry chunk that computes the boolean write pointer and jumps to the shared boolean writer at pc `0x57`.
+- `truthEVM_bool_writer_to_normalizer_trace`: packages the shared ABI boolean writer entry through its jump to the boolean normalizer at pc `0x4c`, with a generic stack tail.
+- `truthEVM_bool_normalizer_trace`: packages the boolean normalizer `JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP`, with a generic stack tail and return label.
+- `truthEVM_bool_writer_store_trace`: packages the post-normalization boolean write `JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, with a generic stack tail.
+- `truthEVM_abi_encoder_return_to_continuation_trace`: packages the ABI encoder cleanup at pc `0x75` back to the caller-provided return continuation.
+- `truthEVM_final_return_prefix_trace`: packages the final return continuation `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1` up to the local `RETURN` halt.
+- `truthEVM_final_return_step`: proves the local successful `RETURN` halt from the final return stack shape and memory gas premise.
 - `truthEVM_long_calldata_selector_jumpi_trace_fallthrough_of_prefix`: appends the selector-mismatch `JUMPI` fallthrough to an already-built selector-prefix trace.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_decode`: decodes selector-mismatch fallthrough as the shared fallback `JUMPDEST`.
 - `truthEVM_long_calldata_selector_fallback_jumpdest_stack`: computes the selector word tail after selector-mismatch fallthrough.
@@ -566,6 +586,6 @@
 
 - `truthCorrect` still has one `sorry`: the remaining symbolic EVM characterization after a successful non-payable-guard `JUMPI`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
-- The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
+- The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
 - The zero-callvalue branch needs a kernel-checked proof that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`; `D_J_aux` is currently opaque, so this is logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
