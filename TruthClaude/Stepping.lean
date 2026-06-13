@@ -90,6 +90,28 @@ theorem push1_xstep {s : State} {code : ByteArray} {pcv argv : UInt256} {rest : 
   rw [← hcode, step_push1 s argv hd, if_neg hov']
   simp only [GasConstants.Gverylow, stPush1]
 
+/-! ### PUSH2 (cost 3, pc += 3) -/
+
+def stPush2 (s : State) (arg : UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + UInt256.ofNat 3,
+      stack := arg :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 3 } }
+
+theorem push2_xstep {s : State} {code : ByteArray} {pcv argv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.Push .PUSH2, some (argv, 2)))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stPush2 s argv, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.Push .PUSH2, some (argv, 2)) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_push2 s argv hd, if_neg hov']
+  simp only [GasConstants.Gverylow, stPush2]
+
 /-! ### PUSH0 (cost 2, pc += 1, pushes 0) -/
 
 def stPush0 (s : State) : State :=
@@ -392,6 +414,26 @@ theorem add_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   rw [← hcode, step_add s hd, hstk]
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
+/-! ### MUL (cost 5 = `Glow`, `a :: b :: t ↦ mul a b :: t`, pc += 1) -/
+
+def stMul (s : State) (res : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩, stack := res :: t,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 5 } }
+
+theorem mul_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.MUL, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stMul s (UInt256.mul a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.MUL, .none) := by rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_mul s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Glow, stMul]
 
 /-! ### POP (cost 2, pc += 1, drops top) -/
 
