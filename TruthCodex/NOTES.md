@@ -100,6 +100,8 @@
 - `actExec_singleton_no_params_initial`: packages one-transition dispatch, zero-parameter calldata decoding, and initial-state body execution into `actExec`.
 - `runtimeEquivalenceFor_success_initial`: runtime-equivalence success case from an EVM success equation and Act execution in `initialEVMState`.
 - `runtimeEquivalenceFor_success_initial_of_eq`: runtime-equivalence success case when the EVM result preserves initial created accounts/account map by equality proofs.
+- `runtimeEquivalenceFor_success_returnNextState`: runtime-equivalence success bridge for EVM results whose success state is expressed with `Ethereum.EVM.returnNextState`.
+- `runtimeEquivalenceFor_success_returnNextState_output`: specialization of the return-state bridge when the EVM output is `Ethereum.EVM.returnOutput`.
 - `runtimeEquivalenceFor_revert_of_act_reverted`: runtime-equivalence revert case from an EVM revert equation and Act revert.
 - `EVM_Xi_of_X_success`: lifts an `EVM.X` success trace to a top-level `Ξ` success result.
 - `EVM_Xi_of_X_revert`: lifts an `EVM.X` revert trace to a top-level `Ξ` revert result.
@@ -453,6 +455,9 @@
 - `EVM_Xi_of_initial_continue_trace_push0_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH0`.
 - `EVM_Xi_of_initial_continue_trace_calldataload_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `CALLDATALOAD`.
 - `EVM_Xi_of_initial_continue_trace_push1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH1`.
+- `EVM_Xi_of_initial_continue_traces_push1_oog_of_le_of_decode`: composes a prefix and suffix trace before lifting decoded `PUSH1` out-of-gas to top-level `Ξ`.
+- `EVM_Xi_of_initial_continue_trace_jump_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `JUMP`.
+- `EVM_Xi_of_initial_continue_traces_jump_oog_of_le_of_decode`: composes a prefix and suffix trace before lifting decoded `JUMP` out-of-gas to top-level `Ξ`.
 - `EVM_Xi_of_initial_continue_trace_shr_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `SHR`.
 - `EVM_Xi_of_initial_continue_trace_dup1_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `DUP1`.
 - `EVM_Xi_of_initial_continue_trace_push4_oog_of_le_of_decode`: specializes the decoded-endpoint-error lifter to an out-of-gas `PUSH4`.
@@ -634,6 +639,7 @@
 - `truthActExec_true`: packages Truth dispatch/decode/body execution for the successful Act path.
 - `truthActExec_revert`: packages Truth dispatch/decode/body execution for the nonzero-callvalue Act revert path.
 - `truthRuntime_success_of_evm`: proves runtime equivalence for the successful selector/callvalue-zero path from a supplied EVM success equation.
+- `truthRuntime_success_of_returnNextState`: Truth-specific wrapper around the generic return-state bridge, reducing final success to the selector, zero callvalue, final-state preservation, and returned ABI bytes.
 - `truthRuntime_revert_of_evm`: proves runtime equivalence for the selector/nonzero-callvalue path from a supplied EVM revert equation.
 - `truthRuntime_noDispatch_revert_of_evm`: proves runtime equivalence for selector mismatch from a supplied EVM revert equation.
 - `truthRuntime_outOfGas_of_evm`: proves runtime equivalence from a supplied EVM out-of-gas equation.
@@ -768,6 +774,10 @@
 - `truthEVM_long_calldata_selector_jumpi_continue_taken`: proves the taken selector-match `JUMPI` step from selector equality and explicit destination validity.
 - `truthEVM_long_calldata_selector_jumpi_continue_fallthrough`: proves the selector-mismatch `JUMPI` fallthrough without a destination-validity premise.
 - `truthEVM_long_calldata_selector_jumpi_trace_taken_of_prefix`: appends the taken selector `JUMPI` to an already-built selector-prefix trace.
+- `truthEVM_long_calldata_selector_match_entry_jumpdest_decode`: decodes the taken selector branch entry state as the function-entry `JUMPDEST` at `0x2a`.
+- `truthEVM_long_calldata_selector_match_entry_push_return_decode`: decodes the next selector-match entry state as `PUSH1 0x30`.
+- `truthEVM_long_calldata_selector_match_entry_push_body_decode`: decodes the next selector-match entry state as `PUSH1 0x44`.
+- `truthEVM_long_calldata_selector_match_entry_jump_decode`: decodes the selector-match entry jump into the pure body.
 - `truthEVM_long_calldata_selector_match_entry_suffix_trace`: packages the taken selector branch through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP` to the pure body entry.
 - `truthEVM_long_calldata_selector_match_body_suffix_trace`: packages the pure `truth()` body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP` back to the return continuation.
 - `truthEVM_return_continuation_to_abi_entry_trace`: packages the return continuation from pc `0x30` through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP` into the ABI encoder entry, threading the symbolic free-memory pointer.
@@ -815,13 +825,17 @@
 - `truthValidJump_0e_of_code`: transports `truthBytecode_validJump_0e` to any execution environment whose code is `truthBytecode`.
 - `truthBytecode_validJump_26`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
 - `truthValidJump_26_of_code`: transports `truthBytecode_validJump_26` to any execution environment whose code is `truthBytecode`.
+- `truthBytecode_validJump_2a`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x2a = true`; same opaque-`D_J_aux` blocker as `0x0e`.
+- `truthValidJump_2a_of_code`: transports `truthBytecode_validJump_2a` to any execution environment whose code is `truthBytecode`.
+- `truthBytecode_validJump_44`: named current `sorry` for proving `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x44 = true`; same opaque-`D_J_aux` blocker as `0x0e`.
+- `truthValidJump_44_of_code`: transports `truthBytecode_validJump_44` to any execution environment whose code is `truthBytecode`.
 
 # Open gaps
 
-- `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match success side remains a body `sorry`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is to name/prove the `0x2a` valid-jump fact and split the selector-match success/OOG coverage through the packaged return/ABI trace segments.
+- `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, and reaches the pure body entry when gas allows.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the remaining main-proof work is to split the selector-match path from the pure body `JUMPDEST` onward through the packaged body/return/ABI trace segments.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
-- The zero-callvalue branch needs kernel-checked proofs that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true` and `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`; `D_J_aux` is currently opaque, so these are logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
+- The zero-callvalue branch needs kernel-checked proofs that `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x0e = true`, `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x26 = true`, `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x2a = true`, and `(Ethereum.EVM.D_J truthBytecode ⟨0⟩).contains 0x44 = true`; `D_J_aux` is currently opaque, so these are logged in `MISSPEC.md` instead of being hidden behind `native_decide`.
 - The only new trusted key-value axiom is `trustedKeccak_truth`; no trusted EVM outcome/correctness axiom is present.
