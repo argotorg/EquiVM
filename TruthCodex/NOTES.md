@@ -3,6 +3,7 @@
 - `ReflBEq ByteArray`: local lawful-reflexive `BEq` support for byte arrays.
 - `LawfulBEq ByteArray`: local equality-from-`BEq` support for byte arrays.
 - `ByteArray.beq_false_of_ne`: turns byte-array inequality into a false `BEq` comparison.
+- `ByteArray.push_eq_append_singleton`: normalizes a byte-array `push` into append with a singleton byte array.
 - `ByteArray.toList_loop_length`: computes the length of the internal `ByteArray.toList` loop.
 - `ByteArray.length_toList`: bridges `ByteArray.toList.length` and `ByteArray.size`.
 - `ByteArray.not_toList_length_lt_of_extract_eq_size`: proves selector extraction implies calldata is long enough.
@@ -25,8 +26,10 @@
 - `ByteArray.write_size_ge_of_size`: derives the post-write size lower bound needed for padded reads.
 - `ByteArray.readWithPadding_write_self_of_size`: proves reading back an exact written slice returns the source bytes.
 - `USize.toNat_ofNat_sub_ofNat_of_le`: computes non-underflowing `USize` subtraction on natural payloads.
+- `USize.ofNat_sub_ofNat_eq_of_le`: lifts non-underflowing natural subtraction into equality of `USize` literals.
 - `Ethereum.UInt256.eq_zero_of_val_val_eq_zero`: turns a zero underlying `Fin` value into `UInt256` zero.
 - `Ethereum.UInt256.toByteArray_size`: proves every serialized EVM word is 32 bytes.
+- `Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one`: reduces the EVM serialization of word `1` to `ffi.ByteArray.zeroes 31 ++ #[1]`.
 - `Ethereum.UInt256.val_val_ne_zero_of_ne_zero`: extracts nonzero natural payload evidence from `UInt256` nonzero evidence.
 - `Ethereum.UInt256.ofNat_toNat_of_lt`: computes `UInt256.ofNat n` when `n < 2^256`.
 - `Ethereum.UInt256.toNat_zero`: normalizes the natural payload of the zero word.
@@ -79,6 +82,7 @@
 - `Ethereum.extract_eq_of_selectorWord_eq`: recovers four-byte selector extraction equality from shifted selector-word equality.
 - `Ethereum.selectorWord_ne_of_extract_ne`: derives shifted selector-word inequality from selector extraction mismatch.
 - `Ethereum_toBytes'_one`: computes the one-byte big/little-endian core representation of `1`.
+- `abiBoolTruePrefix31`: the 31-byte zero prefix of the canonical ABI encoding of `bool true`.
 - `ABI.decodeCalldata_no_params_of_not_lt`: decodes zero ABI parameters when calldata has at least a 4-byte selector.
 - `ABI.decodeCalldata_no_params_of_lt`: zero-parameter calldata decoding fails before the 4-byte selector.
 - `dispatchMsg_singleton_some_of_selector`: dispatch helper for one-transition contracts and a trusted selector.
@@ -95,6 +99,7 @@
 - `abiBoolTrueReturn`: canonical ABI bytes for a single returned `bool true`.
 - `encodeReturnValue_bool_true`: encoder fact for `bool true`.
 - `returnEquiv_bool_true`: return-equivalence fact for `bool true`.
+- `UInt256.toByteArray_one_eq_abiBoolTrueReturn_of_zeroes31`: bridge from the EVM serialization of word `1` to the ABI bool-true return, assuming the missing `ffi.ByteArray.zeroes 31` contents fact.
 - `execResultsEquiv.success_of_returnEquiv`: constructor helper for successful EVM/Act results.
 - `execResultsEquiv.success_rfl`: success-result equivalence when Act and EVM state fields already align.
 - `execResultsEquiv.revert_rfl`: revert-result equivalence helper.
@@ -316,6 +321,7 @@
 - `Ethereum.EVM.Xstep_revert_zero_continue_of_decode`: proves the successful zero-length `REVERT` step without a separate memory-gas premise.
 - `Ethereum.EVM.returnOutput`: names the returned memory slice for `RETURN`.
 - `Ethereum.EVM.returnOutput_eq_of_extract`: proves a `RETURN` output equality from exact memory-slice bounds and extraction.
+- `Ethereum.EVM.returnOutput_eq_mstore_word_of_memory_eq`: proves a `RETURN` output equality directly from memory equality with an `MSTORE` successor and pointer/size facts.
 - `Ethereum.EVM.returnNextState`: names the concrete halt state for a successful `RETURN`.
 - `Ethereum.EVM.returnNextState_stack`: projection fact for the stack after `RETURN`.
 - `Ethereum.EVM.returnNextState_H_return`: projection fact for halt return data after `RETURN`.
@@ -926,7 +932,7 @@
 # Open gaps
 
 - `truthCorrect` now splits the non-OOG selector-match `JUMPI` by selector equality. The selector-mismatch fallback side is wired through `JUMPDEST; PUSH0; PUSH0; REVERT` and its fuel bounds are discharged; the selector-match equality side now builds the taken selector branch, closes OOG throughout `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, closes OOG across the whole pure body, continues through the return continuation and ABI encoder, closes OOG through the boolean writer/normalizer/store, closes OOG through ABI encoder cleanup back to pc `0x3b`, and delegates the final `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN` gas coverage to `truthRuntime_final_return_coverage_of_prefix_trace`.
-- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The reusable memory lemmas now prove read-back through `MSTORE` up to `UInt256.toByteArray`; the remaining byte-level ABI output equality is blocked by the trusted-base opacity of `ffi.ByteArray.zeroes`, logged in `MISSPEC.md`.
+- The reusable selector bridge now connects `calldata.extract 0 4` with `UInt256.shiftRight (uInt256OfByteArray (calldata.readBytes 0 32)) 0xe0`; the endpoint account-field preservation facts for the assembled pure trace are discharged. The reusable memory lemmas now prove read-back through `MSTORE` up to `UInt256.toByteArray`, and `Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one` reduces the bool word to `ffi.ByteArray.zeroes 31 ++ #[1]`; the remaining byte-level ABI output equality is exactly the trusted-base opacity of `ffi.ByteArray.zeroes 31`, logged in `MISSPEC.md`.
 - The former `truthGas_ge_fifty_of_return_cont_jump_continue` local gap was eliminated; the ABI encoder-entry OOG cases now use trace-based no-explicit-fuel wrappers, with the shared fuel argument concentrated in `Ethereum.EVM.ContinueTrace.length_le_initial_gas`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.

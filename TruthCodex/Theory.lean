@@ -58,9 +58,26 @@ lemma toNat_ofNat_sub_ofNat_of_le {a b : Nat}
   rw [USize.toNat_sub_of_le _ _ hle, USize.toNat_ofNat_of_lt ha,
     USize.toNat_ofNat_of_lt hbSize]
 
+lemma ofNat_sub_ofNat_eq_of_le {a b : Nat}
+    (ha : a < USize.size) (hb : b ≤ a) :
+    ((OfNat.ofNat a : USize) - (OfNat.ofNat b : USize)) =
+      (OfNat.ofNat (a - b) : USize) := by
+  apply USize.ext
+  rw [toNat_ofNat_sub_ofNat_of_le ha hb, USize.toNat_ofNat_of_lt]
+  exact Nat.lt_of_le_of_lt (Nat.sub_le a b) ha
+
 end USize
 
 namespace ByteArray
+
+lemma push_eq_append_singleton (bytes : ByteArray) (byte : UInt8) :
+    bytes.push byte = bytes ++ ByteArray.mk #[byte] := by
+  cases bytes with
+  | mk data =>
+      change ByteArray.mk (data.push byte) =
+        ByteArray.mk { toList := data.toList ++ [byte] }
+      exact congrArg ByteArray.mk
+        (Array.toList_inj.mp (by simp [Array.toList_push]))
 
 lemma toList_loop_length (bs : ByteArray) (i : Nat) (r : List UInt8) :
     (ByteArray.toList.loop bs i r).length = (bs.size - i) + r.length := by
@@ -1213,6 +1230,21 @@ lemma Ethereum_toBytes'_one : Ethereum.toBytes' 1 = [1] := by
   · unfold Ethereum.toBytes'
     rfl
 
+namespace Ethereum.UInt256
+
+lemma toByteArray_one_eq_zeroes_append_one :
+    (⟨1⟩ : Ethereum.UInt256).toByteArray =
+      ffi.ByteArray.zeroes (⟨31⟩ : USize) ++ ByteArray.mk #[1] := by
+  unfold Ethereum.UInt256.toByteArray BE Ethereum.toBytesBigEndian
+  simp [Ethereum.UInt256.toNat, Ethereum.UInt256.size, Ethereum_toBytes'_one,
+    ByteArray.push_eq_append_singleton]
+  have h32 : 32 < USize.size := by
+    rcases System.Platform.numBits_eq with h | h <;> rw [USize.size, h] <;> norm_num
+  have hSub := USize.ofNat_sub_ofNat_eq_of_le (a := 32) (b := 1) h32 (by norm_num)
+  rw [hSub]
+
+end Ethereum.UInt256
+
 namespace ABI
 
 lemma decodeCalldata_no_params_of_not_lt {calldata : ByteArray}
@@ -1545,22 +1577,34 @@ lemma fallthrough_of_default {o : ByteArray} {abit : ABIType} {dv : Value}
 
 end returnEquiv
 
-def abiBoolTrueReturn : ByteArray :=
+def abiBoolTruePrefix31 : ByteArray :=
   ByteArray.mk #[
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
   ]
+
+def abiBoolTrueReturn : ByteArray :=
+  abiBoolTruePrefix31 ++ ByteArray.mk #[1]
 
 lemma encodeReturnValue_bool_true :
     encodeReturnValue? (.elem .bool) (.bool true) = some abiBoolTrueReturn := by
-  simp [abiBoolTrueReturn, encodeReturnValue?, encodeReturnValues?, encodeABIValues?,
-    encodeABIValuesFrom?, encodeABIValue?, encodeABIWord?, EVM.Word.toBytesBE,
-    Ethereum.toBytesBigEndian, Ethereum.UInt256.ofNat, Ethereum.UInt256.size, Id.run,
-    abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, Ethereum_toBytes'_one]
+  simp [abiBoolTrueReturn, abiBoolTruePrefix31, encodeReturnValue?,
+    encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?, encodeABIValue?, encodeABIWord?,
+    EVM.Word.toBytesBE, Ethereum.toBytesBigEndian, Ethereum.UInt256.ofNat,
+    Ethereum.UInt256.size, Id.run, abiTupleHeadSize?, staticABIEncodedSize?,
+    isDynamicABIType, Ethereum_toBytes'_one]
+  rfl
 
 lemma returnEquiv_bool_true :
     returnEquiv abiBoolTrueReturn (some (.bool true)) (some (.elem .bool)) :=
   returnEquiv.returned_of_encode encodeReturnValue_bool_true
+
+lemma UInt256.toByteArray_one_eq_abiBoolTrueReturn_of_zeroes31
+    (hZeroes31 :
+      ffi.ByteArray.zeroes (⟨31⟩ : USize) = abiBoolTruePrefix31) :
+    (⟨1⟩ : Ethereum.UInt256).toByteArray = abiBoolTrueReturn := by
+  rw [Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one, hZeroes31]
+  rfl
 
 namespace execResultsEquiv
 
@@ -3428,6 +3472,21 @@ theorem returnOutput_eq_of_extract
     returnOutput s offset size = out :=
   ByteArray.readWithPadding_eq_of_extract
     hLen hLenPos hInBounds hOutSize hExtract
+
+theorem returnOutput_eq_mstore_word_of_memory_eq
+    {s writeState : Ethereum.State}
+    {offset size ptr word : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hMemory :
+      s.machineState.memory =
+        (mstoreNextState writeState ptr word tail).machineState.memory)
+    (hOffset : offset.toNat = ptr.toNat)
+    (hSize : size.toNat = 32)
+    (hDestPad : ptr.toNat - writeState.machineState.memory.size < USize.size) :
+    returnOutput s offset size = word.toByteArray := by
+  unfold returnOutput
+  rw [hOffset, hSize, hMemory]
+  exact mstoreNextState_readWithPadding_word writeState ptr word tail hDestPad
 
 def returnNextState (s : Ethereum.State) (offset size : Ethereum.UInt256)
     (t : Ethereum.Stack Ethereum.UInt256) : Ethereum.State :=

@@ -58,20 +58,17 @@ Minimal scenario:
 ```lean
 example :
     (⟨1⟩ : Ethereum.UInt256).toByteArray = abiBoolTrueReturn := by
-  simp [abiBoolTrueReturn, Ethereum.UInt256.toByteArray, BE,
-    Ethereum.toBytesBigEndian, Ethereum.UInt256.toNat,
-    Ethereum.UInt256.size, Ethereum_toBytes'_one]
+  rw [Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one]
 ```
 
-After simplification, the remaining goal is essentially:
+After this reusable reduction, the remaining goal is exactly the missing padding contents:
 
 ```text
-(ffi.ByteArray.zeroes (OfNat.ofNat 32 - OfNat.ofNat 1)).push 1 =
-  ByteArray.mk #[0, ..., 0, 1]
+ffi.ByteArray.zeroes (⟨31⟩ : USize) ++ ByteArray.mk #[1] = abiBoolTrueReturn
 ```
 
 There is no trusted-base theorem saying the bytes produced by `ffi.ByteArray.zeroes n` are actually zero. A model satisfying only `ByteArray_zeroes_size` could assign arbitrary byte contents of the right length, making the final `RETURN` output fail `returnEquiv` even though the bytecode path writes and reads back the serialized word correctly.
 
-Current local handling: `TruthCodex/Theory.lean` now proves reusable byte/memory lemmas up to the strongest fact available without a contents axiom: `ByteArray.readWithPadding_write_self_of_size` and `Ethereum.EVM.mstoreNextState_readWithPadding_word` show that reading back a just-written EVM word returns `UInt256.toByteArray` for that word. The remaining `truthCorrect` output gap is the equality between `UInt256.toByteArray 1` and the concrete ABI encoding `abiBoolTrueReturn`.
+Current local handling: `TruthCodex/Theory.lean` now proves reusable byte/memory lemmas up to the strongest fact available without a contents axiom: `ByteArray.readWithPadding_write_self_of_size` and `Ethereum.EVM.mstoreNextState_readWithPadding_word` show that reading back a just-written EVM word returns `UInt256.toByteArray` for that word. `Ethereum.UInt256.toByteArray_one_eq_zeroes_append_one` further reduces the serialized true word to `ffi.ByteArray.zeroes 31 ++ #[1]`, and `UInt256.toByteArray_one_eq_abiBoolTrueReturn_of_zeroes31` records that the ABI bridge would close from the single missing `ffi.ByteArray.zeroes 31 = abiBoolTruePrefix31` contents fact.
 
 Suggested long-term fix: make `ffi.ByteArray.zeroes` a pure Lean definition, or add trusted-base content lemmas such as `ffi.ByteArray.zeroes n = ByteArray.mk (Array.replicate n.toNat 0)` / indexed read theorems. A size-only axiom is insufficient for byte-level EVM/ABI equivalence proofs.
