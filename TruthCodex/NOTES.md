@@ -730,6 +730,7 @@
 - `truthEVM_long_calldata_selector_prefix_suffix_trace`: packages the eight long-calldata selector-decoding steps after the calldata-length branch.
 - `truthEVM_long_calldata_selector_jumpi_decode_of_callvalue_zero`: decodes the selector-match branch as `JUMPI`.
 - `truthEVM_long_calldata_selector_jumpi_stack_of_callvalue_zero`: computes the stack before the selector-match `JUMPI`.
+- `truthEVM_long_calldata_selector_jumpi_oog_of_prefix`: lifts the long-calldata prefix through truth branch-target `PUSH1` to top-level out-of-gas at selector-match `JUMPI`.
 - `truthEVM_long_calldata_selector_jumpi_continue_taken`: proves the taken selector-match `JUMPI` step from selector equality and explicit destination validity.
 - `truthEVM_long_calldata_selector_jumpi_continue_fallthrough`: proves the selector-mismatch `JUMPI` fallthrough without a destination-validity premise.
 - `truthEVM_long_calldata_selector_jumpi_trace_taken_of_prefix`: appends the taken selector `JUMPI` to an already-built selector-prefix trace.
@@ -783,7 +784,7 @@
 
 # Open gaps
 
-- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG truth branch target `PUSH1`.
+- `truthCorrect` still has one body `sorry`: the remaining zero-callvalue, long-calldata coverage after the non-OOG selector-match `JUMPI`.
 - The nonzero-callvalue branch is discharged through both fallthrough `PUSH0` gas checks and the final zero-length `REVERT`.
 - The zero-callvalue short-calldata branch is discharged through the taken calldata-length `JUMPI`, all `JUMPDEST; PUSH0; PUSH0` suffix gas checks, and the final zero-length no-dispatch `REVERT`.
 - The zero-callvalue branch has reusable assembly lemmas through `JUMPDEST; POP; PUSH1 0x04; CALLDATASIZE; LT; PUSH1 0x26; JUMPI`, the short-calldata branch through `JUMPDEST; PUSH0; PUSH0; REVERT`, the long-calldata selector path through `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR; DUP1; PUSH4; EQ; PUSH1 0x2a; JUMPI`, the selector-match entry through `JUMPDEST; PUSH1 0x30; PUSH1 0x44; JUMP`, the pure body through `JUMPDEST; PUSH0; PUSH1 0x01; SWAP1; POP; SWAP1; JUMP`, the return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; PUSH1 0x3b; SWAP2; SWAP1; PUSH1 0x64; JUMP`, the ABI encoder entry through `JUMPDEST; PUSH0; PUSH1 0x20; DUP3; ADD; SWAP1; POP; PUSH1 0x75; PUSH0; DUP4; ADD; DUP5; PUSH1 0x57; JUMP`, the shared boolean writer/normalizer through `JUMPDEST; PUSH1 0x5e; DUP2; PUSH1 0x4c; JUMP; JUMPDEST; PUSH0; DUP2; ISZERO; ISZERO; SWAP1; POP; SWAP2; SWAP1; POP; JUMP; JUMPDEST; DUP3; MSTORE; POP; POP; JUMP`, the ABI encoder cleanup through `JUMPDEST; SWAP3; SWAP2; POP; POP; JUMP`, the final return continuation through `JUMPDEST; PUSH1 0x40; MLOAD; DUP1; SWAP2; SUB; SWAP1; RETURN`, and the selector-mismatch fallback through `JUMPDEST; PUSH0; PUSH0; REVERT`, under explicit valid-jump-table premises.
