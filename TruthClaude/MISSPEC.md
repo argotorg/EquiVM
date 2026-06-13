@@ -18,9 +18,15 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
 > below (`truthSelectorBytes`, `truthValidJumps`) as **trusted axioms** to be used for the
 > `callvalue == 0` path. The fully-proved `callvalue ≠ 0` trace (`truthXi_callvalue_ne`)
 > needs **neither** axiom — it avoids both opaque definitions by case-splitting abstractly on
-> `dispatchMsg`/`decodeCalldata` and by reverting before any taken jump. As of now
-> `truthCorrect` does not depend on these axioms (the `callvalue == 0` branch is still a
-> documented `sorry`; see NOTES.md). They become live once that branch is filled in.
+> `dispatchMsg`/`decodeCalldata` and by reverting before any taken jump.
+>
+> The `callvalue == 0` path is **partially proved**: its `calldatasize < 4` branch
+> (`truthX_cvz_short` + `truthDispatch_none_short`) is complete and **uses both axioms** —
+> `truthValidJumps` discharges the two taken jumps `0x0a→0x0e`, `0x16→0x26`, and
+> `truthSelectorBytes` drives `dispatchMsg` (via `truthDispatch_eq`). So `truthCorrect` now
+> genuinely depends on the two axioms (plus `sorryAx` for the remaining `calldatasize ≥ 4`
+> branch; see NOTES.md). Once the base defects are fixed both axioms become provable by
+> `decide` and can be deleted with no change to the proof.
 
 ---
 
