@@ -306,4 +306,49 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
   rw [readBytes32_toList, List.take_append_of_le_length (by rw [List.length_take]; omega),
       List.take_take, show min 4 32 = 4 from rfl]
 
+/-! ## Generic `UInt256` arithmetic facts (shared by Truth/Pow proofs) -/
+
+/-- `UInt256` is determined by its `toNat`. -/
+theorem u256_inj {a b : UInt256} (h : a.toNat = b.toNat) : a = b := by
+  cases a; cases b; simp only [UInt256.toNat] at h; exact congrArg UInt256.mk (Fin.ext h)
+
+/-- `LT` returns `1` when the strict order holds. -/
+theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
+  show UInt256.fromBool (decide (a < b)) = ⟨1⟩; rw [decide_eq_true (show a < b from h)]; rfl
+
+/-- `LT` returns `0` when the strict order fails. -/
+theorem ult_zero {a b : UInt256} (h : b.toNat ≤ a.toNat) : UInt256.lt a b = ⟨0⟩ := by
+  show UInt256.fromBool (decide (a < b)) = ⟨0⟩
+  rw [decide_eq_false (show ¬ (a < b) from by show ¬ (a.toNat < b.toNat); omega)]; rfl
+
+/-- `2^m` stays below `2^256 = UInt256.size` for `m < 256`. -/
+theorem pow_lt_size {m : ℕ} (h : m < 256) : (2:ℕ) ^ m < UInt256.size := by
+  have : (2:ℕ)^m < 2^256 := Nat.pow_lt_pow_right (by norm_num) h
+  simpa [UInt256.size] using this
+
+/-- `(ofNat (2^m)).toNat = 2^m` when `2^m` is in range. -/
+theorem ofNat_pow_toNat {m : ℕ} (h : m < 256) : (UInt256.ofNat (2 ^ m)).toNat = 2 ^ m := by
+  show (Fin.ofNat _ (2^m)).val = 2 ^ m; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (pow_lt_size h)
+
+/-- Any `m < 256` fits in `UInt256`. -/
+theorem lt_size_of_lt256 {m : ℕ} (h : m < 256) : m < UInt256.size := by
+  have : (256:ℕ) ≤ UInt256.size := by
+    have : (2:ℕ)^8 ≤ 2^256 := Nat.pow_le_pow_right (by norm_num) (by norm_num)
+    simpa [UInt256.size] using this
+  omega
+
+/-- `r * 2` does not wrap when `2 * r.toNat` is in range. -/
+theorem mul2_toNat {r : UInt256} (h : 2 * r.toNat < UInt256.size) :
+    (UInt256.mul r ⟨2⟩).toNat = 2 * r.toNat := by
+  show (r.val * (⟨2⟩ : UInt256).val).val = 2 * r.toNat
+  rw [Fin.val_mul]; show (r.toNat * 2) % UInt256.size = 2 * r.toNat
+  rw [Nat.mul_comm]; exact Nat.mod_eq_of_lt h
+
+/-- `i + 1` does not wrap when `i.toNat + 1` is in range. -/
+theorem add1_toNat {i : UInt256} (h : i.toNat + 1 < UInt256.size) :
+    (i + ⟨1⟩).toNat = i.toNat + 1 := by
+  show (i.val + (⟨1⟩ : UInt256).val).val = i.toNat + 1
+  rw [Fin.val_add]; show (i.toNat + 1) % UInt256.size = i.toNat + 1
+  exact Nat.mod_eq_of_lt h
+
 end TruthClaude.Theory
