@@ -366,6 +366,121 @@ lemma add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_lt
   rw [hSub₂, hSub₁] at hTail
   omega
 
+lemma add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt
+    {x : Ethereum.UInt256} {cost₁ cost₂ cost₃ cost₄ remaining : Nat}
+    (hCost₁Size : cost₁ < Ethereum.UInt256.size)
+    (hCost₂Size : cost₂ < Ethereum.UInt256.size)
+    (hCost₃Size : cost₃ < Ethereum.UInt256.size)
+    (hCost₄Size : cost₄ < Ethereum.UInt256.size)
+    (hCost₁ : cost₁ ≤ x.toNat)
+    (hCost₂ : cost₂ ≤ (x - Ethereum.UInt256.ofNat cost₁).toNat)
+    (hCost₃ :
+      cost₃ ≤
+        ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂).toNat)
+    (hCost₄ :
+      cost₄ ≤
+        (((x - Ethereum.UInt256.ofNat cost₁) -
+            Ethereum.UInt256.ofNat cost₂) -
+          Ethereum.UInt256.ofNat cost₃).toNat)
+    (hRemaining :
+      ¬ ((((x - Ethereum.UInt256.ofNat cost₁) -
+              Ethereum.UInt256.ofNat cost₂) -
+            Ethereum.UInt256.ofNat cost₃) -
+          Ethereum.UInt256.ofNat cost₄).toNat < remaining) :
+    cost₁ + cost₂ + cost₃ + cost₄ + remaining ≤ x.toNat := by
+  have hTail :=
+    add_le_toNat_of_not_sub_ofNat_lt
+      (x := ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂) -
+        Ethereum.UInt256.ofNat cost₃)
+      (cost := cost₄)
+      (remaining := remaining)
+      hCost₄Size
+      hCost₄
+      hRemaining
+  have hSub₃ :=
+    toNat_sub_ofNat_of_le
+      (x := (x - Ethereum.UInt256.ofNat cost₁) - Ethereum.UInt256.ofNat cost₂)
+      (n := cost₃)
+      hCost₃Size
+      hCost₃
+  have hSub₂ :=
+    toNat_sub_ofNat_of_le
+      (x := x - Ethereum.UInt256.ofNat cost₁)
+      (n := cost₂)
+      hCost₂Size
+      hCost₂
+  have hSub₁ := toNat_sub_ofNat_of_le (x := x) (n := cost₁) hCost₁Size hCost₁
+  rw [hSub₃, hSub₂, hSub₁] at hTail
+  omega
+
+lemma add_add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt
+    {x : Ethereum.UInt256} {cost₁ cost₂ cost₃ cost₄ cost₅ remaining : Nat}
+    (hCost₁Size : cost₁ < Ethereum.UInt256.size)
+    (hCost₂Size : cost₂ < Ethereum.UInt256.size)
+    (hCost₃Size : cost₃ < Ethereum.UInt256.size)
+    (hCost₄Size : cost₄ < Ethereum.UInt256.size)
+    (hCost₅Size : cost₅ < Ethereum.UInt256.size)
+    (hCost₁ : cost₁ ≤ x.toNat)
+    (hCost₂ : cost₂ ≤ (x - Ethereum.UInt256.ofNat cost₁).toNat)
+    (hCost₃ :
+      cost₃ ≤
+        ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂).toNat)
+    (hCost₄ :
+      cost₄ ≤
+        (((x - Ethereum.UInt256.ofNat cost₁) -
+            Ethereum.UInt256.ofNat cost₂) -
+          Ethereum.UInt256.ofNat cost₃).toNat)
+    (hCost₅ :
+      cost₅ ≤
+        ((((x - Ethereum.UInt256.ofNat cost₁) -
+              Ethereum.UInt256.ofNat cost₂) -
+            Ethereum.UInt256.ofNat cost₃) -
+          Ethereum.UInt256.ofNat cost₄).toNat)
+    (hRemaining :
+      ¬ (((((x - Ethereum.UInt256.ofNat cost₁) -
+                Ethereum.UInt256.ofNat cost₂) -
+              Ethereum.UInt256.ofNat cost₃) -
+            Ethereum.UInt256.ofNat cost₄) -
+          Ethereum.UInt256.ofNat cost₅).toNat < remaining) :
+    cost₁ + cost₂ + cost₃ + cost₄ + cost₅ + remaining ≤ x.toNat := by
+  have hTail :=
+    add_le_toNat_of_not_sub_ofNat_lt
+      (x := (((x - Ethereum.UInt256.ofNat cost₁) -
+            Ethereum.UInt256.ofNat cost₂) -
+          Ethereum.UInt256.ofNat cost₃) -
+        Ethereum.UInt256.ofNat cost₄)
+      (cost := cost₅)
+      (remaining := remaining)
+      hCost₅Size
+      hCost₅
+      hRemaining
+  have hSub₄ :=
+    toNat_sub_ofNat_of_le
+      (x := ((x - Ethereum.UInt256.ofNat cost₁) -
+          Ethereum.UInt256.ofNat cost₂) -
+        Ethereum.UInt256.ofNat cost₃)
+      (n := cost₄)
+      hCost₄Size
+      hCost₄
+  have hSub₃ :=
+    toNat_sub_ofNat_of_le
+      (x := (x - Ethereum.UInt256.ofNat cost₁) - Ethereum.UInt256.ofNat cost₂)
+      (n := cost₃)
+      hCost₃Size
+      hCost₃
+  have hSub₂ :=
+    toNat_sub_ofNat_of_le
+      (x := x - Ethereum.UInt256.ofNat cost₁)
+      (n := cost₂)
+      hCost₂Size
+      hCost₂
+  have hSub₁ := toNat_sub_ofNat_of_le (x := x) (n := cost₁) hCost₁Size hCost₁
+  rw [hSub₄, hSub₃, hSub₂, hSub₁] at hTail
+  omega
+
 lemma isZero_eq_one_of_eq_zero {x : Ethereum.UInt256}
     (h : x = (⟨0⟩ : Ethereum.UInt256)) :
     Ethereum.UInt256.isZero x = (⟨1⟩ : Ethereum.UInt256) := by

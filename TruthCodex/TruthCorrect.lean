@@ -1491,6 +1491,190 @@ lemma truthGas_ge_twenty_three_of_dup_continue
   unfold GasConstants.Gverylow GasConstants.Gbase at hEnough
   omega
 
+lemma truthGas_ge_twenty_nine_of_push_dest_continue
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    (hFirstGas : ¬ g.toNat < GasConstants.Gverylow)
+    (hSecondGas :
+      ¬ (g - Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gverylow)
+    (hMemGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE))
+    (hVerylowGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         (s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+            GasConstants.Gverylow))
+    (hCallvalueGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         s3.machineState.gasAvailable.toNat < GasConstants.Gbase))
+    (hDupGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         let s4 := Ethereum.EVM.callvalueNextState s3
+         s4.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hIszeroGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         let s4 := Ethereum.EVM.callvalueNextState s3
+         let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+         s5.machineState.gasAvailable.toNat < GasConstants.Gverylow))
+    (hPushDestGas :
+      ¬ (let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+         let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+         let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+         let s3 := Ethereum.EVM.mstoreNextState s2
+          (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+         let s4 := Ethereum.EVM.callvalueNextState s3
+         let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+         let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+         s6.machineState.gasAvailable.toNat < GasConstants.Gverylow)) :
+    29 ≤ g.toNat := by
+  let s0 := initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+  let s1 := Ethereum.EVM.push1NextState s0 (⟨0x80⟩ : Ethereum.UInt256)
+  let s2 := Ethereum.EVM.push1NextState s1 (⟨0x40⟩ : Ethereum.UInt256)
+  let s3 := Ethereum.EVM.mstoreNextState s2
+    (⟨0x40⟩ : Ethereum.UInt256) (⟨0x80⟩ : Ethereum.UInt256) []
+  let s4 := Ethereum.EVM.callvalueNextState s3
+  let s5 := Ethereum.EVM.dup1NextState s4 I.weiValue []
+  let s6 := Ethereum.EVM.iszeroNextState s5 I.weiValue [I.weiValue]
+  have hg6 : 6 ≤ g.toNat := truthGas_ge_six_of_second_push_continue hFirstGas hSecondGas
+  have hSub :
+      ((g - Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat =
+          g.toNat - GasConstants.Gverylow - GasConstants.Gverylow :=
+    Ethereum.UInt256.toNat_sub_ofNat_sub_ofNat_of_le
+      (x := g) (a := GasConstants.Gverylow) (b := GasConstants.Gverylow)
+      (by decide) (by decide) (by simpa [GasConstants.Gverylow] using hg6)
+  have hGas2 :
+      s2.machineState.gasAvailable.toNat = g.toNat - 3 - 3 := by
+    simpa [s0, s1, s2, Ethereum.EVM.push1NextState, GasConstants.Gverylow] using hSub
+  have hCost :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE = 9 := by
+    simpa [s0, s1, s2] using
+      (truthEVM_mstore_memory_cost
+        (createdAccounts := createdAccounts)
+        (genesisBlockHeader := genesisBlockHeader)
+        (blocks := blocks)
+        (σ := σ)
+        (σ₀ := σ₀)
+        (g := g)
+        (A := A)
+        (I := I))
+  have hMemGas' :
+      ¬ s2.machineState.gasAvailable.toNat < Ethereum.EVM.memoryExpansionCost s2 .MSTORE := by
+    simpa [s0, s1, s2] using hMemGas
+  have hCostLe :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE ≤ s2.machineState.gasAvailable.toNat := by
+    omega
+  have hVerylowGas' :
+      ¬ (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat <
+        GasConstants.Gverylow := by
+    simpa [s0, s1, s2] using hVerylowGas
+  have hVerylowLe :
+      GasConstants.Gverylow ≤
+        (s2.machineState.gasAvailable -
+          Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)).toNat := by
+    omega
+  have hCallvalueGas' :
+      ¬ ((s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gbase := by
+    simpa [s0, s1, s2, s3, Ethereum.EVM.mstoreNextState] using hCallvalueGas
+  have hBaseLe :
+      GasConstants.Gbase ≤
+        ((s2.machineState.gasAvailable -
+            Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat := by
+    omega
+  have hDupGas' :
+      ¬ (((s2.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+            Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+          Ethereum.UInt256.ofNat GasConstants.Gbase).toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, Ethereum.EVM.mstoreNextState,
+      Ethereum.EVM.callvalueNextState] using hDupGas
+  have hDupLe :
+      GasConstants.Gverylow ≤
+        (((s2.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+            Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+          Ethereum.UInt256.ofNat GasConstants.Gbase).toNat := by
+    omega
+  have hIszeroGas' :
+      ¬ ((((s2.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+            Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+          Ethereum.UInt256.ofNat GasConstants.Gbase) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, Ethereum.EVM.mstoreNextState,
+      Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState] using hIszeroGas
+  have hIszeroLe :
+      GasConstants.Gverylow ≤
+        ((((s2.machineState.gasAvailable -
+              Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+            Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+          Ethereum.UInt256.ofNat GasConstants.Gbase) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat := by
+    omega
+  have hPushDestGas' :
+      ¬ (((((s2.machineState.gasAvailable -
+                Ethereum.UInt256.ofNat (Ethereum.EVM.memoryExpansionCost s2 .MSTORE)) -
+              Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+            Ethereum.UInt256.ofNat GasConstants.Gbase) -
+          Ethereum.UInt256.ofNat GasConstants.Gverylow) -
+        Ethereum.UInt256.ofNat GasConstants.Gverylow).toNat < GasConstants.Gverylow := by
+    simpa [s0, s1, s2, s3, s4, s5, s6, Ethereum.EVM.mstoreNextState,
+      Ethereum.EVM.callvalueNextState, Ethereum.EVM.dup1NextState,
+      Ethereum.EVM.iszeroNextState] using hPushDestGas
+  have hEnough :
+      Ethereum.EVM.memoryExpansionCost s2 .MSTORE +
+          GasConstants.Gverylow + GasConstants.Gbase +
+            GasConstants.Gverylow + GasConstants.Gverylow + GasConstants.Gverylow ≤
+        s2.machineState.gasAvailable.toNat :=
+    Ethereum.UInt256.add_add_add_add_add_le_toNat_of_not_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_sub_ofNat_lt
+      (x := s2.machineState.gasAvailable)
+      (cost₁ := Ethereum.EVM.memoryExpansionCost s2 .MSTORE)
+      (cost₂ := GasConstants.Gverylow)
+      (cost₃ := GasConstants.Gbase)
+      (cost₄ := GasConstants.Gverylow)
+      (cost₅ := GasConstants.Gverylow)
+      (remaining := GasConstants.Gverylow)
+      (by rw [hCost]; decide)
+      (by decide)
+      (by decide)
+      (by decide)
+      (by decide)
+      hCostLe
+      hVerylowLe
+      hBaseLe
+      hDupLe
+      hIszeroLe
+      hPushDestGas'
+  rw [hCost, hGas2] at hEnough
+  unfold GasConstants.Gverylow GasConstants.Gbase at hEnough
+  omega
+
 lemma truthEVM_mstore_memory_oog
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
     {genesisBlockHeader : Ethereum.BlockHeader}
@@ -21082,22 +21266,23 @@ theorem truthCorrect :
                                                           have hSelectorBranch :
                                                               Ethereum.EVM.ContinueTrace (Ethereum.EVM.D_J I.code ⟨0⟩) 9 s15 s24 := by
                                                             simpa using Ethereum.EVM.ContinueTrace.snoc hSelectorPrefix' hSelectorJumpiStep
+                                                          have hFuel29 : 29 ≤ g.toNat :=
+                                                            truthGas_ge_twenty_nine_of_push_dest_continue
+                                                              (createdAccounts := createdAccounts)
+                                                              (genesisBlockHeader := genesisBlockHeader)
+                                                              (blocks := blocks)
+                                                              (σ := σ)
+                                                              (σ₀ := σ₀)
+                                                              (g := g)
+                                                              (A := A)
+                                                              (I := I)
+                                                              hFirstGas hSecondGas hMstoreMemGas
+                                                              hMstoreVerylowGas hCallvalueGas hDupGas
+                                                              hIszeroGas hPushDestGas
                                                           by_cases hFallbackJumpdestGas :
                                                               s24.machineState.gasAvailable.toNat < GasConstants.Gjumpdest
                                                           · have hFuel24 : 15 + 9 ≤ g.toNat := by
-                                                              have hFuel23 : 23 ≤ g.toNat :=
-                                                                truthGas_ge_twenty_three_of_dup_continue
-                                                                  (createdAccounts := createdAccounts)
-                                                                  (genesisBlockHeader := genesisBlockHeader)
-                                                                  (blocks := blocks)
-                                                                  (σ := σ)
-                                                                  (σ₀ := σ₀)
-                                                                  (g := g)
-                                                                  (A := A)
-                                                                  (I := I)
-                                                                  hFirstGas hSecondGas hMstoreMemGas
-                                                                  hMstoreVerylowGas hCallvalueGas hDupGas
-                                                              sorry
+                                                              omega
                                                             have hDecode :
                                                                 Ethereum.EVM.decode I.code s24.machineState.pc =
                                                                   some (.JUMPDEST, .none) := by
@@ -21150,19 +21335,7 @@ theorem truthCorrect :
                                                             by_cases hFallbackFirstPush0Gas :
                                                                 s25.machineState.gasAvailable.toNat < GasConstants.Gbase
                                                             · have hFuel25 : 15 + 10 ≤ g.toNat := by
-                                                                have hFuel23 : 23 ≤ g.toNat :=
-                                                                  truthGas_ge_twenty_three_of_dup_continue
-                                                                    (createdAccounts := createdAccounts)
-                                                                    (genesisBlockHeader := genesisBlockHeader)
-                                                                    (blocks := blocks)
-                                                                    (σ := σ)
-                                                                    (σ₀ := σ₀)
-                                                                    (g := g)
-                                                                    (A := A)
-                                                                    (I := I)
-                                                                    hFirstGas hSecondGas hMstoreMemGas
-                                                                    hMstoreVerylowGas hCallvalueGas hDupGas
-                                                                sorry
+                                                                omega
                                                               have hDecode :
                                                                   Ethereum.EVM.decode I.code s25.machineState.pc =
                                                                     some (.PUSH0, .none) := by
@@ -21213,19 +21386,7 @@ theorem truthCorrect :
                                                               by_cases hFallbackSecondPush0Gas :
                                                                   s26.machineState.gasAvailable.toNat < GasConstants.Gbase
                                                               · have hFuel26 : 15 + 11 ≤ g.toNat := by
-                                                                  have hFuel23 : 23 ≤ g.toNat :=
-                                                                    truthGas_ge_twenty_three_of_dup_continue
-                                                                      (createdAccounts := createdAccounts)
-                                                                      (genesisBlockHeader := genesisBlockHeader)
-                                                                      (blocks := blocks)
-                                                                      (σ := σ)
-                                                                      (σ₀ := σ₀)
-                                                                      (g := g)
-                                                                      (A := A)
-                                                                      (I := I)
-                                                                      hFirstGas hSecondGas hMstoreMemGas
-                                                                      hMstoreVerylowGas hCallvalueGas hDupGas
-                                                                  sorry
+                                                                  omega
                                                                 have hDecode :
                                                                     Ethereum.EVM.decode I.code s26.machineState.pc =
                                                                       some (.PUSH0, .none) := by
@@ -21270,19 +21431,7 @@ theorem truthCorrect :
                                                                       hFallbackJumpdestGas hFallbackFirstPush0Gas
                                                                       hFallbackSecondPush0Gas
                                                                 have hFuel27 : 27 ≤ g.toNat := by
-                                                                  have hFuel23 : 23 ≤ g.toNat :=
-                                                                    truthGas_ge_twenty_three_of_dup_continue
-                                                                      (createdAccounts := createdAccounts)
-                                                                      (genesisBlockHeader := genesisBlockHeader)
-                                                                      (blocks := blocks)
-                                                                      (σ := σ)
-                                                                      (σ₀ := σ₀)
-                                                                      (g := g)
-                                                                      (A := A)
-                                                                      (I := I)
-                                                                      hFirstGas hSecondGas hMstoreMemGas
-                                                                      hMstoreVerylowGas hCallvalueGas hDupGas
-                                                                  sorry
+                                                                  omega
                                                                 have hΞ := truthEVM_long_calldata_selector_fallback_revert_of_trace_segments
                                                                   (createdAccounts := createdAccounts)
                                                                   (genesisBlockHeader := genesisBlockHeader)
