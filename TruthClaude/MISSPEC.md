@@ -14,23 +14,29 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
 (out-of-gas) regime are *unaffected* and are proved cleanly — see `TruthCorrect.lean`.
 
 > **Status / project-owner directive.** The owner instructed: "you can add specific keccak
-> hashes as trusted axioms for now." Accordingly `TruthCorrect.lean` declares three trusted
-> axioms (`truthSelectorBytes`, `truthValidJumps`, `truthEvmSelector`) for the opaque-base
-> computations, plus one extern-spec axiom (`byteArray_zeroes_toList`, in `Memory.lean`) for the
-> *content* of the `@[extern "memset_zero"]` `ffi.zeroes` primitive (evmlean already axiomatizes
-> only its **size**, `ByteArray_zeroes_size`).
+> hashes as trusted axioms for now." Accordingly `TruthCorrect.lean` declares **two** trusted
+> axioms (`truthSelectorBytes`, `truthValidJumps`) for the genuinely-opaque base computations
+> (Blockers 1 and 2 below), plus one extern-spec axiom (`byteArray_zeroes_toList`, in
+> `Memory.lean`) for the *content* of the `@[extern "memset_zero"]` `ffi.zeroes` primitive
+> (evmlean already axiomatizes only its **size**, `ByteArray_zeroes_size`).
 >
-> **`truthCorrect` is now fully proved — no `sorry`.** Every call is covered, including the
+> A third fact — the EVM selector decode `SHR(calldata,224)` vs `calldata.extract 0 4` — was once
+> admitted but is **not** opaque, so per the "don't admit what isn't opaque" rule it is now
+> **proved** as `truthEvmSelector` (on the contract-agnostic `selector_toNat`); it is no longer
+> an axiom.
+>
+> **`truthCorrect` is fully proved — no `sorry`.** Every call is covered, including the
 > `callvalue == 0` **success path**: the 93-instruction EVM trace (`truthX_cvz_success`) that
 > dispatches `truth()`, stores the free pointer `0x80` and the bool `1` in memory, and ABI-encodes
-> / `RETURN`s the 32-byte word `1`. `truthCorrect` genuinely depends on the three trusted axioms
-> (`truthValidJumps` discharges the many taken jumps; `truthSelectorBytes`/`truthEvmSelector`
-> drive the selector) and `byteArray_zeroes_toList` (the only opacity in the otherwise-computable
-> memory/ABI reasoning — the `ffi.zeroes` pad cancels in the round-trips). `#print axioms
-> truthCorrect` lists exactly these four plus Lean's three and the pre-existing evmlean
-> `ByteArray_zeroes_size` — **no `sorryAx`, no `native_decide`**. The `callvalue ≠ 0` sub-result
-> `truthXi_callvalue_ne` needs **none** of the Truth-specific axioms. Once the base defects are
-> fixed the first three become `decide`-provable and can be deleted with no change to the proof.
+> / `RETURN`s the 32-byte word `1`. `truthCorrect` genuinely depends on the two trusted axioms
+> (`truthValidJumps` discharges the many taken jumps; `truthSelectorBytes` drives the dispatch
+> selector) and `byteArray_zeroes_toList` (the only opacity in the otherwise-computable
+> memory/ABI/selector reasoning — the `ffi.zeroes` pad cancels in the round-trips). `#print axioms
+> truthCorrect` ⇒ `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size,
+> byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps]` — **no `sorryAx`, no
+> `native_decide`**. The `callvalue ≠ 0` sub-result `truthXi_callvalue_ne` needs **none** of the
+> Truth-specific axioms. Once the base defects are fixed both trusted axioms become
+> `decide`-provable and can be deleted with no change to the proof.
 
 ---
 

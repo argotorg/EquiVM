@@ -7,10 +7,10 @@ path** (the 93-instruction EVM trace that dispatches `truth()`, stores `1` in me
 ABI-encodes / `RETURN`s `true`).
 
 `#print axioms truthCorrect` ⇒ `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size,
-byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps, truthEvmSelector]` — Lean's three,
-one pre-existing evmlean base axiom (`ByteArray_zeroes_size`), the one `ffi.zeroes`-content
-extern spec (`byteArray_zeroes_toList`), and the three documented trusted axioms (`MISSPEC.md`).
-**No `sorryAx`.**
+byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps]` — Lean's three, one pre-existing
+evmlean base axiom (`ByteArray_zeroes_size`), the one `ffi.zeroes`-content extern spec
+(`byteArray_zeroes_toList`), and the **two** genuinely-opaque trusted axioms (`MISSPEC.md`).
+**No `sorryAx`.**  (The selector-decode fact is no longer an axiom — see `truthEvmSelector`.)
 
 ## Files
 - `Theory.lean`   — contract-agnostic core: `Ξ`/`X` glue, the stepping drivers, gas/UInt256
@@ -21,7 +21,8 @@ extern spec (`byteArray_zeroes_toList`), and the three documented trusted axioms
   `fromByteArrayBigEndian ∘ toByteArray = toNat` (MLOAD), the `MSTORE`-write characterization
   `toByteArray_write_eq`, `readWithPadding`-as-extract, and `toByteArray = toBytesBE`.  Built on
   the single extern-spec axiom `byteArray_zeroes_toList`.
-- `TruthCorrect.lean` — the Truth-specific data, three trusted axioms, the Act-side facts, the
+- `TruthCorrect.lean` — the Truth-specific data, two trusted axioms (+ the proved selector
+  decode `truthEvmSelector`), the Act-side facts, the
   concrete memory states (`truthMem1`/`truthMem2`), the per-scenario `Ξ`/`X` traces (incl. the
   generated 93-step success trace `truthX_cvz_success`), and the assembled `truthCorrect`.
 - `gen_trace.py` — the generator that emitted the success trace's step-by-step tactic block
@@ -53,7 +54,10 @@ extern spec (`byteArray_zeroes_toList`), and the three documented trusted axioms
 
 ### Byte / memory / ABI (MEMORY) — all contract-agnostic
 - `fromBytes'_toBytes'`, `fromBytesBigEndian_toBytesBigEndian` — little-/big-endian round-trips.
+- `fromBytes'_append`, `fromBytesBigEndian_append_div` — byte concat / big-endian division.
 - `byteArray_toList_eq`, `fromByteArrayBigEndian_toByteArray` — the **MLOAD** decode round-trip.
+- `readBytes32_toList`/`_len`, `selector_toNat` — `CALLDATALOAD`+`SHR(·,224)` = big-endian of the
+  first 4 calldata bytes (the proof backing the `truthEvmSelector` selector decode).
 - `toByteArray_write_eq` — **MSTORE** write: `v` at `off ≥ mem.size` is `mem ++ zeroes ++ v`.
 - `readWithoutPadding_eq_extract` / `readWithPadding_eq_extract` — **MLOAD/RETURN** read = slice.
 - `extract_append_right`/`_left`/`_right'`, `empty_append`, `zeroes_zero`, `zeroes_ofNat_size`,
@@ -92,19 +96,23 @@ extern spec (`byteArray_zeroes_toList`), and the three documented trusted axioms
   + `truthBodyReturns` + `execResultsEquiv.success` + `returnEquiv.returned`).
 - `truthCorrect` — thin: `by_cases` on `callvalue`, delegating to the library.
 
-## Trusted axioms (see MISSPEC.md)
+## Trusted axioms (see MISSPEC.md) — the **two** genuinely-opaque ones
 - `truthSelectorBytes` — `keccak("truth()")[0:4] = 0x9e9f51d2` (`ffi.keccak256` is opaque).
 - `truthValidJumps`   — the `JUMPDEST` set of `truthBytecode` (`D_J_aux` is `partial`).
-- `truthEvmSelector`  — the EVM `SHR`-selector vs `calldata.extract 0 4` relation (depends on the
-  opaque keccak/decode).
-- `byteArray_zeroes_toList` (in `Memory.lean`) — the `ffi.zeroes` (`@[extern "memset_zero"]`)
-  content is `0`; the minimal companion to evmlean's `ByteArray_zeroes_size`.
 Admitted per the project owner's instruction; the real fix (making the base definitions
-computable) is in `MISSPEC.md`, after which the first three become `decide`-provable.
+computable) is in `MISSPEC.md`, after which both become `decide`-provable and deletable.
+
+Plus one extern-spec axiom (not Truth-specific):
+- `byteArray_zeroes_toList` (in `Memory.lean`) — the `ffi.zeroes` (`@[extern "memset_zero"]`)
+  content is `0`; the minimal companion to evmlean's pre-existing `ByteArray_zeroes_size`.
+
+> **`truthEvmSelector` is no longer an axiom — it is proved** (`TruthCorrect.lean`, on the
+> contract-agnostic `selector_toNat`).  It was the one *non-opaque* admitted fact; per the
+> "don't admit what isn't opaque" rule it became a theorem.
 
 ## Axiom audit
 `#print axioms truthCorrect` ⇒ `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size,
-byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps, truthEvmSelector]`.  No `sorryAx`;
-no `native_decide`/`ofReduceBool`.  The `callvalue ≠ 0` sub-result `truthXi_callvalue_ne` needs
+byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps]`.  No `sorryAx`; no
+`native_decide`/`ofReduceBool`.  The `callvalue ≠ 0` sub-result `truthXi_callvalue_ne` needs
 **none** of the Truth-specific axioms — only `[ByteArray_zeroes_size, propext, Classical.choice,
 Quot.sound]`.

@@ -76,14 +76,20 @@ set_option maxRecDepth 10000
 
 /-! ## 3. Trusted axioms for opaque trusted-base computations
 
-`truthCorrect` needs two facts about definitions in the (read-only) trusted base that are
-**logically opaque** (see `MISSPEC.md`): the keccak selector of `truth()` (because
-`ffi.keccak256` is `@[extern] opaque`) and the valid-jump-destination set of
-`truthBytecode` (because `Ethereum.EVM.D_J_aux` is `partial`).  Both values are confirmed
-by `#eval` but cannot be reduced in the kernel.  Per the project owner's instruction we
-admit them as **trusted axioms** here; the real fix is to make those base definitions
-computable (`MISSPEC.md`), after which these axioms become provable by `decide` and can be
-deleted.  They are the *only* axioms `truthCorrect` adds beyond Lean's standard three. -/
+`truthCorrect` needs exactly **two** facts about definitions in the (read-only) trusted base
+that are **logically opaque** (see `MISSPEC.md`): the keccak selector of `truth()` (because
+`ffi.keccak256` is `@[extern] opaque`) and the valid-jump-destination set of `truthBytecode`
+(because `Ethereum.EVM.D_J_aux` is `partial`).  Both values are confirmed by `#eval` but cannot
+be reduced in the kernel.  Per the project owner's instruction we admit them as **trusted
+axioms** here; the real fix is to make those base definitions computable (`MISSPEC.md`), after
+which both become provable by `decide` and can be deleted.
+
+The EVM selector-decode fact (`SHR(calldata,224)` vs `calldata.extract 0 4`) was *also* once
+admitted, but it is **not** opaque — it is now **proved** as `truthEvmSelector` (below), built
+on the contract-agnostic `selector_toNat` in `Memory.lean`.  Beyond these two trusted axioms and
+Lean's standard three, `truthCorrect` depends only on the pre-existing evmlean base axiom
+`ByteArray_zeroes_size` and its companion extern-spec `byteArray_zeroes_toList`
+(`ffi.ByteArray.zeroes` yields zero bytes). -/
 
 /-- The 4-byte function selector of `truth()` is `0x9e9f51d2` (keccak of `"truth()"`). -/
 axiom truthSelectorBytes :
