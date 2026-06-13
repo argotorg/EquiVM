@@ -71,24 +71,36 @@ These are admitted per the project owner's instruction; the real fix (making the
 definitions computable) is in MISSPEC.md.  **`truthCorrect` does not yet depend on them** —
 they will be consumed only when the `callvalue == 0` trace is filled in.
 
-## Open gaps
-- **`truthReEquiv_callvalueZero`, `calldatasize ≥ 4` branch (one `sorry`)** — the rest of the
-  dispatcher (now with the JUMPI at `0x16` *not* taken) runs the selector compare
-  `PUSH0 CALLDATALOAD PUSH 0xe0 SHR DUP1 PUSH4 0x9e9f51d2 EQ … JUMPI` and then:
-  - **wrong selector** ⇒ revert at `0x26` (Act `noDispatch`); and
-  - **matching selector** ⇒ jump into `truth()`, which returns `true` (Act `execution` +
-    `returnEquiv`).
-  What remains:
-  1. the **selector correspondence** — relate the EVM value
-     `(uInt256OfByteArray (calldata.readBytes 0 32)) >> 224 == 0x9e9f51d2` to the Act condition
-     `calldata.extract 0 4 == ⟨#[0x9e,0x9f,0x51,0xd2]⟩` (pure `ByteArray`/`UInt256` arithmetic —
-     **provable**, not opaque, but tedious);
-  2. the **success trace** (~30 instructions through solc's ABI-return helpers, incl.
-     `MLOAD`/`MSTORE` memory tracking) ending in `RETURN`, plus `RETURN output =
-     encodeReturnValue? (.elem .bool) (.bool true)` and the Act `return true` execution.
-  New wrappers still needed: `swap1/2/3`, `dup2/3/4/5`, `mload`, `return`, `eq` (have it).
-  The dispatcher prefix (through both JUMPIs) and all simpler opcodes are already proved; the
-  proved `truthX_cvz_short` is the template.
+## callvalue = 0 — status
+`truthReEquiv_callvalueZero` `by_cases`-splits on `calldatasize < 4`, then (for `≥ 4`) on the
+selector match `⟨#[0x9e,0x9f,0x51,0xd2]⟩ == calldata.extract 0 4`:
+- **`< 4`** (short calldata) — proved (`truthX_cvz_short`, `truthDispatch_none_short`).
+- **`≥ 4`, wrong selector** — proved (`truthX_cvz_revertB`, `truthDispatch_none_nomatch`):
+  the 28-instruction trace runs the dispatcher (JUMPI `0x16` not taken), the selector compare
+  (`EQ = 0` via `truthEvmSelector`), and reverts at `0x26`.
+- **`≥ 4`, matching selector** — the one remaining `sorry` (see below).
+
+The shared dispatcher prefix (14 instructions, through the taken jump `0x0a → 0x0e` up to the
+`0x16` JUMPI) is factored as `truthX_cvz_prefix` and reused.
+
+## Open gap — the `truth()` success path (one `sorry`)
+**`truthReEquiv_callvalueZero`, `calldatasize ≥ 4 ∧ matching selector`.**  The EVM jumps into
+`truth()` (`0x2a`), computes `1`, and ABI-encodes/returns it; Act dispatches `truth()`,
+decodes `∅`, and the body `return true`.  This needs the `execution` case
+(`reEquiv_execution` + `execResultsEquiv.success` + `returnEquiv.returned`).  What remains:
+1. ~30 more instructions through solc's ABI-return helpers (several `JUMP`s between
+   compiler-generated "functions"), needing wrappers `swap1/2/3`, `dup2/3/4/5`, `mload`,
+   `return` (all simple, same pattern as the existing ones except `mload`/`return` are
+   two-stage like `mstore`);
+2. **memory tracking** — `MSTORE` writes the free pointer `0x80` at `0x40` and the bool `1` at
+   `0x80`; `MLOAD` reads them back and `RETURN` outputs `mem[0x80 .. 0xa0]`.  The
+   write-then-read roundtrip and `RETURN output = encodeReturnValue? (.elem .bool) (.bool true)`
+   are provable `ByteArray` reasoning (or admit a couple of memory/ABI facts as trusted, like
+   `truthEvmSelector`);
+3. the Act side: `truth()` body executes to `returned … (some (.bool true))` (mirror of the
+   proved `truthBodyReverts`), and `σ'/createdAccounts` are unchanged (no `SSTORE`).
+`truthX_cvz_prefix` + `truthX_cvz_revertB` are the templates; only the memory/ABI step is
+genuinely new.
 
 ## Axiom audit
 `#print axioms truthXi_callvalue_ne` ⇒ `[ByteArray_zeroes_size, propext, Classical.choice,
