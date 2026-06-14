@@ -402,30 +402,6 @@ theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : 
 
 end TruthClaude.Reach
 
-/-- Old-form wrapper around `RD.routinerequire`. -/
-theorem powX_require {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256} {R : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨66⟩)
-    (hstk : s.machineState.stack = n :: ⟨71⟩ :: sel :: R) (hn : n.toNat < 256)
-    (hov : R.length + 10 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ (k' C' : ℕ) (s' : State),
-          X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
-        ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ⟨117⟩
-        ∧ s'.machineState.stack = ⟨0⟩ :: ⟨1⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-        ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords
-        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
-  have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
-    show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
-    have : (256:ℕ) < UInt256.size := by
-      have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this
-    exact Nat.mod_eq_of_lt this
-  have hltval : UInt256.lt n ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
-  exact (RD.start hcode hpc hstk hgas hk hC hX |>.routinerequire hltval hov).conclude
-
 /-- **`require(n < 256)` fails (`n ≥ 256`)**: same prefix as `powX_require`, but `LT n 256 = 0`,
     so the `JUMPI` is not taken and execution reverts at `0x68`.  Reused (in the assembly) after
     the already-proved `powX_disp` + `powX_decode`. -/
@@ -736,33 +712,34 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
         (by rw [hee1]; exact hcode) hee1 hp1 hstk1 hsz36 hsz255 hg1 (by norm_num) hC1 hX1 with
       hd | ⟨k2, C2, s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, hacc2⟩
     · exact Or.inl hd
-    · rcases powX_require (n := arg) (sel := sel) (R := []) hc2 hp2 hstk2 hn
-          (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2 with
-        hd | ⟨k3, C3, s3, hX3, hc3, hp3, hstk3, hg3, hk3, hCg3, hmem3, haw3, hacc3⟩
+    · -- require (RD.routinerequire) → loop → loop-exit → encoder, threaded as one `RD`
+      have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
+        show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
+        exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
+      have hltval : UInt256.lt arg ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
+      rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
+          hn (by simp only [List.length_cons, List.length_nil]; omega)
+          arg.toNat ⟨0⟩ ⟨1⟩ _ _
+          (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
+          (by decide)
+          (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
+          (RD.start hc2 hp2 hstk2 hg2 hk2 hCg2 hX2
+            |>.routinerequire hltval (by simp only [List.length_nil]; omega)) with ⟨k4, C4, rd4⟩
+      rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+            (by simp only [List.length_cons, List.length_nil]; omega)).out with
+          hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
       · exact Or.inl hd
-      · -- loop (RD.loop) → loop-exit (routineexit) → encoder, threaded as one `RD`
-        rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
-            hn (by simp only [List.length_cons, List.length_nil]; omega)
-            arg.toNat ⟨0⟩ ⟨1⟩ k3 C3
-            (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-            (by decide)
-            (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-            (RD.start hc3 hp3 hstk3 hg3 hk3 hCg3 hX3) with ⟨k4, C4, rd4⟩
-        rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-              (by simp only [List.length_cons, List.length_nil]; omega)).out with
-            hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
+      · have hmemS : s5.machineState.memory = solcFreePtrMem := by
+          rw [hmem5, hmem2, hmem1]
+        have hawS : s5.machineState.activeWords = UInt256.ofNat 3 := by
+          rw [haw5, haw2, haw1]
+        rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
+            hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
+            hg5 hk5 hCg5 hX5 with
+          hd | ⟨s6, hX6, hacc6⟩
         · exact Or.inl hd
-        · have hmemS : s5.machineState.memory = solcFreePtrMem := by
-            rw [hmem5, hmem3, hmem2, hmem1]
-          have hawS : s5.machineState.activeWords = UInt256.ofNat 3 := by
-            rw [haw5, haw3, haw2, haw1]
-          rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
-              hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
-              hg5 hk5 hCg5 hX5 with
-            hd | ⟨s6, hX6, hacc6⟩
-          · exact Or.inl hd
-          · exact Or.inr ⟨s6, hX6,
-              hacc6.trans (hacc5.trans (hacc3.trans (hacc2.trans hacc1)))⟩
+        · exact Or.inr ⟨s6, hX6,
+            hacc6.trans (hacc5.trans (hacc2.trans hacc1))⟩
 
 /-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/
