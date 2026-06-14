@@ -130,13 +130,14 @@ branch, blocked by **both** defects above. It is isolated and documented in NOTE
 `powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract` is **fully proved —
 no `sorry`**. `#print axioms powCorrect` ⇒
 `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size, byteArray_zeroes_toList,
-powSelectorBytes, powValidJumps, powRealisticCalldata, powSuccessAcct]`.
+powSelectorBytes, powValidJumps, powRealisticCalldata]`.
 
 The first six are exactly the Truth set (standard + `ffi.zeroes` base-axioms + the two opaque
-Blocker-1/2 axioms, here `powValidJumps` / `powSelectorBytes`). `pow2` adds **two** axioms because,
-unlike `truth()`, it takes an argument and so exercises the ABI **decoder** and a `while` loop:
+Blocker-1/2 axioms, here `powValidJumps` / `powSelectorBytes`). `pow2` adds **one** further axiom
+because, unlike `truth()`, it takes an argument and so exercises the ABI **decoder** and a `while`
+loop:
 
-## Axiom A — `powRealisticCalldata` (a genuine model-abstraction gap)
+## The one remaining axiom — `powRealisticCalldata` (a genuine model-abstraction gap)
 
 ```
 axiom powRealisticCalldata {I} (hcode : I.code = powBytecode) : I.calldata.size < 2^255
@@ -148,7 +149,7 @@ axiom powRealisticCalldata {I} (hcode : I.code = powBytecode) : I.calldata.size 
   the EVM **reverts**. But the trusted-base `Act.decodeCalldata` performs **no** signed length
   check — it reads 32 bytes and **succeeds** — so for such calldata (with `n < 256`) the Act spec
   *executes and returns `2^n`* while the EVM *reverts*: a genuine divergence.
-* **Why it is sound to assume.** This range is **physically unreachable**: the EVM gas schedule
+* **Why it is sound to assume (modulo the gap).** This range is **physically unreachable**: the EVM gas schedule
   charges ≥ 4 gas per calldata byte, so any transaction with `g < 2^256` gas can carry at most
   `~2^254` bytes. The `Ξ` model here (`Semantics.lean:824`) runs the bytecode straight from gas `g`
   and **does not charge intrinsic calldata gas**, so it permits unrealizable calldata sizes. The
@@ -158,26 +159,27 @@ axiom powRealisticCalldata {I} (hcode : I.code = powBytecode) : I.calldata.size 
   `Ξ = OutOfGass` ⇒ covered by `outOfGas`), or (b) add the signed length check to
   `Act.decodeCalldata` (then both revert ⇒ `decodingFailed`). Either makes the axiom provable.
 
-## Axiom B — `powSuccessAcct` (mechanically provable; deferred plumbing, **not** opaque)
+## (former Axiom B) — `powSuccessAcct`: **now discharged** (no longer an axiom)
 
-```
-axiom powSuccessAcct {…} (hcode) (h : X … (initState …) = .ok (.success s o)) :
-    s.createdAccounts = cA ∧ s.accountMap = σ
-```
+A successful `pow2` run leaves the EVM account state untouched —
+`s.createdAccounts = cA ∧ s.accountMap = σ` — which `execResultsEquiv.success` requires. This was
+previously asserted as `axiom powSuccessAcct`; it has now been **proved** and the axiom deleted.
 
-* `pow2`'s bytecode executes **only** pure stack/memory opcodes — `PUSH*`, `POP`, `DUP*`, `SWAP*`,
-  `ADD`/`MUL`/`SUB`/`LT`/`SLT`/`EQ`/`ISZERO`/`SHR`, `MLOAD`, `MSTORE`, `JUMP*`,
+* **Why it holds.** `pow2`'s bytecode executes **only** pure stack/memory opcodes — `PUSH*`, `POP`,
+  `DUP*`, `SWAP*`, `ADD`/`MUL`/`SUB`/`LT`/`SLT`/`EQ`/`ISZERO`/`SHR`, `MLOAD`, `MSTORE`, `JUMP*`,
   `CALLVALUE`/`CALLDATASIZE`/`CALLDATALOAD`, `RETURN` — **none** of `CREATE`/`CALL`/`SSTORE`/
-  `SELFDESTRUCT`/`LOG`, the only opcodes that mutate `createdAccounts` / `accountMap`. So a
-  successful run leaves both equal to `initState`'s (`= cA`, `= σ`); `execResultsEquiv.success`
-  needs exactly this.
-* Unlike Axiom A and the opaque axioms, this is **provable** in the model. Its proof is pure
-  plumbing: thread two trivial preservation clauses (`s'.createdAccounts = s.createdAccounts`,
-  `s'.accountMap = s.accountMap`) — mirroring the already-threaded `memory`/`activeWords` clauses —
-  through the dozen success-trace lemmas (`solcGuardPrologue`, `powX_dispToEq`, `powX_disp`,
-  `powX_decodeToCf`, `powRoutine_{cf,bb,a5,9c}`, `powX_require`, `powLoopCore`, `powX_exit`,
-  `powX_encode`) and chain them in `powX_success`. It is stated as an axiom only to keep the
-  development tractable; it is intended to be discharged.
+  `SELFDESTRUCT`/`LOG`, the only opcodes that mutate `createdAccounts` / `accountMap` (see
+  `Semantics.lean:209/273/337/595`).
+* **How it was discharged.** A single bundled preservation clause
+  `((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap))` was threaded —
+  mirroring the existing `memory`/`activeWords` clauses — through the whole success chain:
+  `solcGuardPrologue` (Solc.lean), `powX_dispToEq`, `powX_disp`, `powLoopCore` (PowCorrect.lean),
+  `powRoutine_{9c,a5,bb,cf}`, `powX_decodeToCf`, `powX_decode`, `powX_require`, `powX_exit`,
+  `powX_encode`, then chained in `powX_success` back to `initState` (whose `createdAccounts = cA`,
+  `accountMap = σ` definitionally). `powXi_success` extracts the two components via `congrArg
+  Prod.fst/snd`. Each per-lemma obligation is closed by the same `simp only [st*]` projection
+  reduction that already discharges the memory clause. `solcGuardPrologue` is shared with Truth; its
+  four other call sites bind the new (ignored) clause and `truthCorrect`'s axiom set is unchanged.
 
 The five **revert** scenarios (`callvalue ≠ 0`, short calldata `< 4`, wrong selector, short
 argument `4 ≤ size < 36`, `n ≥ 256`) and the **out-of-gas** regime need **neither** new axiom —
