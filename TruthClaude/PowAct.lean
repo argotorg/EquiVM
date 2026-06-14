@@ -119,9 +119,7 @@ theorem powDecode_none_huge {I : Ethereum.ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ 
     taken, and execution reverts at `PUSH0; PUSH0; REVERT`. -/
 theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) with
     hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
@@ -139,9 +137,7 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- Lift any `X`-level revert/OOG result to `Ξ`. -/
 theorem powXi_of_revert {cA gh bl σ σ₀ A I} {g : UInt256} (hcode : I.code = powBytecode)
-    (h : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-        ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                    = .ok (.revert g' o)) :
+    (h : RDrev powBytecode g (initState cA gh bl σ σ₀ g A I)) :
     Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
       ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) := by
   rcases h with hd | ⟨g', o, hX⟩
@@ -161,9 +157,7 @@ theorem powXi_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     (`lt(size, 4)`) takes the `JUMPI` to the `0x29` revert stub. -/
 theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) with
     hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
@@ -209,9 +203,7 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : 256 ≤ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hsize : I.calldata.size < UInt256.size := by
     have h0 : (2:ℕ)^255 + 4 < 2^256 := by norm_num
     have hp : (2:ℕ)^255 + 4 < UInt256.size := by simpa [UInt256.size] using h0
@@ -251,9 +243,7 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   -- selector compare resolves to `0` (mismatch); the dispatch JUMPI falls through to the revert stub
   have rd := powX_dispToEq (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcode hwv hsz hsize
@@ -287,15 +277,12 @@ theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsz36 : I.calldata.size < 36)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hsize : I.calldata.size < UInt256.size := lt_size_of_lt256 (by omega)
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one; rw [sub4_toNat (by omega) hsize]; omega
   -- dispatcher → decoder set-up → Cf-revert (SLT bounds check fails), threaded as one `RD` ⇒ `RDrev`
-  exact powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-        hcode hwv hsz4 hsize hmatch
+  exact powX_disp hcode hwv hsz4 hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -319,14 +306,11 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                  = .ok (.revert g' o) := by
+    RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one_high; rw [sub4_toNat (by omega) hsize]; omega
   -- dispatcher → decoder set-up → Cf-revert (SLT bounds check fails), threaded as one `RD` ⇒ `RDrev`
-  exact powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-        hcode hwv (by omega) hsize hmatch
+  exact powX_disp hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
 
