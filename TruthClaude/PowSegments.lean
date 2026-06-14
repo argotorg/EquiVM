@@ -566,6 +566,20 @@ theorem slt32_one {a : UInt256} (hlo : a.toNat < 32) :
   show UInt256.fromBool (UInt256.sltBool a ⟨32⟩) = ⟨1⟩
   rw [hbool]; rfl
 
+/-- `SLT a 32 = 1` (signed) when `a ≥ 2^255` (so `a` is negative two's-complement).  This is the
+    *high* reason solc's decoder bounds-check reverts: a calldata so large that `calldatasize − 4`
+    has its sign bit set. -/
+theorem slt32_one_high {a : UInt256} (hhi : 2 ^ 255 ≤ a.toNat) :
+    UInt256.slt a ⟨32⟩ = ⟨1⟩ := by
+  have h32 : (⟨32⟩ : UInt256).toNat = 32 := by
+    show (Fin.ofNat _ 32).val = 32; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
+  have hbool : UInt256.sltBool a ⟨32⟩ = true := by
+    unfold UInt256.sltBool
+    rw [if_pos (show a.toNat ≥ 2 ^ 255 by omega),
+        if_neg (show ¬ (⟨32⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h32]; norm_num)]
+  show UInt256.fromBool (UInt256.sltBool a ⟨32⟩) = ⟨1⟩
+  rw [hbool]; rfl
+
 /-- `ADD` of two in-range literals does not wrap. -/
 theorem add_lit_toNat {a b : ℕ} (ha : a < UInt256.size) (hb : b < UInt256.size)
     (h : a + b < UInt256.size) :
@@ -594,7 +608,7 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
     (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
     (hpc : s.machineState.pc = ⟨207⟩)
     (hstk : s.machineState.stack = ⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R')
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255)
+    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R'.length + 15 ≤ 1024)
     (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
@@ -608,8 +622,8 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
         ∧ s'.machineState.activeWords = s.machineState.activeWords
         ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have hszsize : I.calldata.size < UInt256.size := by
-    have hp : (2:ℕ)^255 < UInt256.size := by
-      have : (2:ℕ)^255 < 2^256 := by norm_num
+    have hp : (2:ℕ)^255 + 4 < UInt256.size := by
+      have : (2:ℕ)^255 + 4 < 2^256 := by norm_num
       simpa [UInt256.size] using this
     omega
   set de := UInt256.ofNat I.calldata.size with hde
@@ -952,15 +966,14 @@ theorem powRoutine_cf_revert {g : UInt256} {s0 s : State} {I : Ethereum.Executio
     (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
     (hpc : s.machineState.pc = ⟨207⟩)
     (hstk : s.machineState.stack = ⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R')
-    (hsz4 : 4 ≤ I.calldata.size) (hsz36 : I.calldata.size < 36) (hov : R'.length + 15 ≤ 1024)
+    (hsz4 : 4 ≤ I.calldata.size) (hszsize : I.calldata.size < UInt256.size)
+    (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
+    (hov : R'.length + 15 ≤ 1024)
     (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
       ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .ok (.revert g' o) := by
-  have hszsize : I.calldata.size < UInt256.size := lt_size_of_lt256 (by omega)
   set de := UInt256.ofNat I.calldata.size with hde
-  have hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
-    apply slt32_one; rw [hde, sub4_toNat (by omega) hszsize]; omega
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g0 : g.toNat < C + 1
   · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
@@ -1132,7 +1145,7 @@ theorem powX_decodeToCf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv}
     {sel : UInt256}
     (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
     (hpc : s.machineState.pc = ⟨45⟩) (hstk : s.machineState.stack = [sel])
-    (hsz4 : 4 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255)
+    (hsz4 : 4 ≤ I.calldata.size) (hszsize : I.calldata.size < UInt256.size)
     (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
@@ -1145,11 +1158,6 @@ theorem powX_decodeToCf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv}
         ∧ s'.machineState.memory = s.machineState.memory
         ∧ s'.machineState.activeWords = s.machineState.activeWords
         ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
-  have hszsize : I.calldata.size < UInt256.size := by
-    have hp : (2:ℕ)^255 < UInt256.size := by
-      have : (2:ℕ)^255 < 2^256 := by norm_num
-      simpa [UInt256.size] using this
-    omega
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons, List.length_nil]; omega)
   by_cases g0 : g.toNat < C + 1
   · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
@@ -1330,7 +1338,7 @@ theorem powX_decode {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k 
     {sel : UInt256}
     (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
     (hpc : s.machineState.pc = ⟨45⟩) (hstk : s.machineState.stack = [sel])
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255)
+    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
@@ -1342,7 +1350,12 @@ theorem powX_decode {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k 
         ∧ s'.machineState.memory = s.machineState.memory
         ∧ s'.machineState.activeWords = s.machineState.activeWords
         ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
-  rcases powX_decodeToCf hcode hee hpc hstk (by omega) hsz255 hgas hk hC hX with
+  have hszsize : I.calldata.size < UInt256.size := by
+    have hp : (2:ℕ)^255 + 4 < UInt256.size := by
+      have : (2:ℕ)^255 + 4 < 2^256 := by norm_num
+      simpa [UInt256.size] using this
+    omega
+  rcases powX_decodeToCf hcode hee hpc hstk (by omega) hszsize hgas hk hC hX with
     hoog | ⟨k14, C14, s14, hX14, hc14, he14, hp14, hstk14, hgas14, hkC14, hCg14, hmem14, haw14, hacc14⟩
   · exact Or.inl hoog
   · rcases powRoutine_cf (I := I) (ret := ⟨66⟩) (R' := ⟨71⟩ :: [sel])
@@ -2576,7 +2589,7 @@ well-formed `pow2(n)` call with `callvalue = 0`, `calldatasize ≥ 36`, matching
 set_option maxHeartbeats 1000000 in
 theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255)
+    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
@@ -2586,8 +2599,8 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))))
             ∧ ((s'.createdAccounts, s'.accountMap) = (cA, σ)) := by
   have hsize : I.calldata.size < UInt256.size := by
-    have h0 : (2:ℕ)^255 < 2^256 := by norm_num
-    have hp : (2:ℕ)^255 < UInt256.size := by simpa [UInt256.size] using h0
+    have h0 : (2:ℕ)^255 + 4 < 2^256 := by norm_num
+    have hp : (2:ℕ)^255 + 4 < UInt256.size := by simpa [UInt256.size] using h0
     omega
   -- the selector word and the decoded argument
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
@@ -2634,7 +2647,7 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/
 theorem powXi_success {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255)
+    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
     Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass

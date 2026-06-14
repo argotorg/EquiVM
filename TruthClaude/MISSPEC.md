@@ -130,36 +130,39 @@ branch, blocked by **both** defects above. It is isolated and documented in NOTE
 `powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract` is **fully proved —
 no `sorry`**. `#print axioms powCorrect` ⇒
 `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size, byteArray_zeroes_toList,
-powSelectorBytes, powValidJumps, powRealisticCalldata]`.
+powSelectorBytes, powValidJumps]`.
 
-The first six are exactly the Truth set (standard + `ffi.zeroes` base-axioms + the two opaque
-Blocker-1/2 axioms, here `powValidJumps` / `powSelectorBytes`). `pow2` adds **one** further axiom
-because, unlike `truth()`, it takes an argument and so exercises the ABI **decoder** and a `while`
-loop:
+This is **exactly the Truth axiom set** — the standard logical axioms, the two `ffi.zeroes`
+base-axioms, and the two opaque Blocker-1/2 axioms (here `powValidJumps` / `powSelectorBytes`).
+`pow2` adds **no** further axioms, even though (unlike `truth()`) it takes an argument and so
+exercises the ABI **decoder** and a `while` loop. The two assumptions that earlier stood in for
+proofs — `powRealisticCalldata` and `powSuccessAcct` — have both been **discharged**:
 
-## The one remaining axiom — `powRealisticCalldata` (a genuine model-abstraction gap)
+## (former Axiom A) — `powRealisticCalldata`: **discharged by fixing the model** (no longer an axiom)
 
-```
-axiom powRealisticCalldata {I} (hcode : I.code = powBytecode) : I.calldata.size < 2^255
-```
+* **The gap it papered over.** solc's ABI decoder checks the argument is present with a **signed**
+  `SLT(calldatasize − 4, 32)` (pc 214 of `powBytecode`). For `calldatasize ≥ 2^255 + 4` the word
+  `calldatasize − 4 ≥ 2^255` is *negative* in two's-complement, so `SLT … = 1` and the EVM
+  **reverts**. The trusted-base `Act.decodeCalldata` originally did **no** signed length check — it
+  read 32 bytes and **succeeded** — so for such calldata (with `n < 256`) the spec *returned `2^n`*
+  while the EVM *reverted*: a genuine divergence. (The complementary case `size ≥ 2^256`, where the
+  EVM's `CALLDATASIZE` wraps mod `2^256` but the spec does not, is excluded by the equivalence
+  statement's own hypothesis `I.calldata.size < UInt256.size`.)
+* **The fix (model change in `ABI/Decode.lean`).** `decodeCalldata` now returns `none` exactly when
+  there are arguments to decode **and** the args region is `≥ 2^255` bytes
+  (`types.isEmpty = false ∧ 2^255 ≤ (calldata.drop 4).length`) — precisely the overflow case of
+  solc's signed guard. This is sound for **any** contract (it never rejects calldata the EVM
+  accepts, since `headSize < 2^255` always makes the signed check revert there too); a
+  zero-parameter selector like `truth()` does no such check and is unaffected, so `truthCorrect`'s
+  axiom set is unchanged.
+* **Consequence in the proof.** Sizes `≥ 2^255 + 4` now route to **`decodingFailed`** — Act decode
+  fails (`powDecode_none_huge`) and the EVM reverts at the decoder's signed `SLT` (`powX_hugearg`,
+  which reuses the short-argument revert trace via the new `slt32_one_high`). The success/`n ≥ 256`
+  paths carry the exact realizable bound `size < 2^255 + 4` (the EVM still *succeeds* for
+  `size ∈ [2^255, 2^255 + 3]`, where `SLT` is non-negative), threaded as a real hypothesis instead
+  of an axiom.
 
-* **Why it is needed.** solc's ABI decoder checks the argument is present with a **signed**
-  `SLT(calldatasize − 4, 32)` (pc 214 of `powBytecode`). For `calldatasize ≥ 2^255 + 4` the
-  subtraction `calldatasize − 4 ≥ 2^255` is a *negative* two's-complement word, so `SLT … = 1` and
-  the EVM **reverts**. But the trusted-base `Act.decodeCalldata` performs **no** signed length
-  check — it reads 32 bytes and **succeeds** — so for such calldata (with `n < 256`) the Act spec
-  *executes and returns `2^n`* while the EVM *reverts*: a genuine divergence.
-* **Why it is sound to assume (modulo the gap).** This range is **physically unreachable**: the EVM gas schedule
-  charges ≥ 4 gas per calldata byte, so any transaction with `g < 2^256` gas can carry at most
-  `~2^254` bytes. The `Ξ` model here (`Semantics.lean:824`) runs the bytecode straight from gas `g`
-  and **does not charge intrinsic calldata gas**, so it permits unrealizable calldata sizes. The
-  axiom restores the realistic bound `size < 2^255`, below which solc's signed check and the
-  (unsigned) Act decoder agree.
-* **Suggested fix.** Either (a) charge intrinsic calldata gas in `Ξ` (then `size ≥ 2^254` ⇒
-  `Ξ = OutOfGass` ⇒ covered by `outOfGas`), or (b) add the signed length check to
-  `Act.decodeCalldata` (then both revert ⇒ `decodingFailed`). Either makes the axiom provable.
-
-## (former Axiom B) — `powSuccessAcct`: **now discharged** (no longer an axiom)
+## (former Axiom B) — `powSuccessAcct`: **discharged by threading a preservation clause** (no longer an axiom)
 
 A successful `pow2` run leaves the EVM account state untouched —
 `s.createdAccounts = cA ∧ s.accountMap = σ` — which `execResultsEquiv.success` requires. This was
@@ -181,7 +184,7 @@ previously asserted as `axiom powSuccessAcct`; it has now been **proved** and th
   reduction that already discharges the memory clause. `solcGuardPrologue` is shared with Truth; its
   four other call sites bind the new (ignored) clause and `truthCorrect`'s axiom set is unchanged.
 
-The five **revert** scenarios (`callvalue ≠ 0`, short calldata `< 4`, wrong selector, short
-argument `4 ≤ size < 36`, `n ≥ 256`) and the **out-of-gas** regime need **neither** new axiom —
-they couple via `noDispatch` / `decodingFailed` / `execution`-with-`revert` / `outOfGas`, none of
-which constrains the EVM's account state.
+The **revert** scenarios (`callvalue ≠ 0`, short calldata `< 4`, wrong selector, short argument
+`4 ≤ size < 36`, huge calldata `size ≥ 2^255 + 4`, `n ≥ 256`) and the **out-of-gas** regime need
+**no** axiom — they couple via `noDispatch` / `decodingFailed` / `execution`-with-`revert` /
+`outOfGas`, none of which constrains the EVM's account state.

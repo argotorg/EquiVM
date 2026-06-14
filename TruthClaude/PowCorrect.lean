@@ -44,16 +44,6 @@ axiom powSelectorBytes :
     (ffi.KEC (String.toByteArray (Act.transitionSigStr Pow.powTransition))).extract 0 4
       = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩
 
-/-- **Realistic calldata bound** (modeling assumption; see `MISSPEC.md`).  The EVM cost model
-    charges ≥ 4 gas per calldata byte, so any transaction with `g < 2^256` gas can carry at most
-    `~2^254` calldata bytes — far below `2^255`.  The `Ξ` model here abstracts away that
-    intrinsic calldata gas, so it permits unrealizably-large calldata.  At `calldatasize ≥ 2^255+4`
-    solc's **signed** `SLT(calldatasize − 4, 32)` length check (in the ABI decoder) treats the
-    length as negative and reverts, whereas the Act `decodeCalldata` (which lacks that signed check)
-    still succeeds — a divergence only on unreachable inputs.  We assume the realistic bound. -/
-axiom powRealisticCalldata {I : Ethereum.ExecutionEnv} (hcode : I.code = powBytecode) :
-    I.calldata.size < 2 ^ 255
-
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
 axiom powValidJumps :
     Ethereum.EVM.D_J powBytecode ⟨0⟩
