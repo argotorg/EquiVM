@@ -22,7 +22,8 @@ theorem powRoutine_9c {g : UInt256} {s0 s : State} {k C : ℕ} {v ret : UInt256}
         ∧ s'.machineState.stack = v :: R
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   -- 0: JUMPDEST
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g0 : g.toNat < C + 1
@@ -109,13 +110,16 @@ theorem powRoutine_9c {g : UInt256} {s0 s : State} {k C : ℕ} {v ret : UInt256}
                   · exact Or.inl (hX8.trans (stepOOG (k := k+8) (C := C+19) (cost := 8) hg8 st8 (by omega) (by omega) (by omega)))
                   · set s9 := stJump s8 ret (v :: R) with hs9
                     have hX9 := hX8.trans (stepContinue (k := k+8) (C := C+19) (cost := 8) hg8 st8 (by omega) (by omega))
-                    refine Or.inr ⟨k+9, C+27, s9, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                    refine Or.inr ⟨k+9, C+27, s9, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                     · have he : g.toNat + 1 - (k + 8 + 1) = g.toNat + 1 - (k + 9) := by omega
                       rw [← he]; exact hX9
                     · rw [hs9]; simp only [stJump]; exact hc8
                     · rw [hs9]; simp only [stJump]
                     · rw [hs9]; simp only [stJump]
                     · rw [hs9]; simp only [stJump]; rw [toNat_sub_ofNat (by omega)]; omega
+                    · rw [hs9]; simp only [stJump]
+                      rw [hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                      simp only [stPop, stSwap, stPush0, stJumpdest]
                     · rw [hs9]; simp only [stJump]
                       rw [hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                       simp only [stPop, stSwap, stPush0, stJumpdest]
@@ -140,7 +144,8 @@ theorem powRoutine_a5 {g : UInt256} {s0 s : State} {k C : ℕ} {arg ret : UInt25
         ∧ s'.machineState.stack = R
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   -- 0xa5..0xad: set up the call to 0x9c (target 156, return 174)
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g0 : g.toNat < C + 1
@@ -198,11 +203,13 @@ theorem powRoutine_a5 {g : UInt256} {s0 s : State} {k C : ℕ} {arg ret : UInt25
               rw [hs5]; simp only [stJump]; rw [hs4, hs3, hs2, hs1]; simp only [stPush2, stSwap, stJumpdest]
             have haw5 : s5.machineState.activeWords = s.machineState.activeWords := by
               rw [hs5]; simp only [stJump]; rw [hs4, hs3, hs2, hs1]; simp only [stPush2, stSwap, stJumpdest]
+            have hacc5 : (s5.createdAccounts, s5.accountMap) = (s.createdAccounts, s.accountMap) := by
+              rw [hs5]; simp only [stJump]; rw [hs4, hs3, hs2, hs1]; simp only [stPush2, stSwap, stJumpdest]
             -- call 0x9c: cleans `arg`, returns to 174 with [arg, arg, ret, R]
             rcases powRoutine_9c (v := arg) (ret := ⟨174⟩) (R := arg :: ret :: R)
                 hc5 hp5 hk5 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
                 (by first | (simp only [List.length_cons]; omega) | omega) hg5 (by omega) (by omega) hX5
-              with hoog | ⟨k9, C9, s9, hX9, hc9, hp9, hk9, hg9, hkC9, hCg9, hm9, ha9⟩
+              with hoog | ⟨k9, C9, s9, hX9, hc9, hp9, hk9, hg9, hkC9, hCg9, hm9, ha9, hacc9⟩
             · exact Or.inl hoog
             -- 0xae..0xba: EQ check (always passes), POP, return to `ret`
             have st9 := jumpdest_xstep hc9 hp9 (by decide) (by rw [hk9]; simp only [List.length_cons]; omega)
@@ -282,7 +289,7 @@ theorem powRoutine_a5 {g : UInt256} {s0 s : State} {k C : ℕ} {arg ret : UInt25
                           · exact Or.inl (hX16.trans (stepOOG (k := k9+7) (C := C9+23) (cost := 8) hg16 st16 (by omega) (by omega) (by omega)))
                           · set s17 := stJump s16 ret R with hs17
                             have hX17 := hX16.trans (stepContinue (k := k9+7) (C := C9+23) (cost := 8) hg16 st16 (by omega) (by omega))
-                            refine Or.inr ⟨k9+8, C9+31, s17, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                            refine Or.inr ⟨k9+8, C9+31, s17, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                             · have he : g.toNat + 1 - (k9 + 7 + 1) = g.toNat + 1 - (k9 + 8) := by omega
                               rw [← he]; exact hX17
                             · rw [hs17]; simp only [stJump]; exact hc16
@@ -297,6 +304,10 @@ theorem powRoutine_a5 {g : UInt256} {s0 s : State} {k C : ℕ} {arg ret : UInt25
                               rw [hs16, hs15, hs14, hs13, hs12, hs11, hs10]
                               simp only [stPop, stJumpdest, stJumpiT, stPush2, stBinop, stSwap]
                               rw [ha9, haw5]
+                            · rw [hs17]; simp only [stJump]
+                              rw [hs16, hs15, hs14, hs13, hs12, hs11, hs10]
+                              simp only [stPop, stJumpdest, stJumpiT, stPush2, stBinop, stSwap]
+                              rw [hacc9, hacc5]
 
 /-- solc routine `0xbb` (`abi_decode_uint256`): entry at pc 187 with `[offset, end, ret, …R]`,
     loads the 32-byte word `calldata[offset]`, validates it via `0xa5`, and returns it to `ret`
@@ -317,7 +328,8 @@ theorem powRoutine_bb {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
             = uInt256OfByteArray (I.calldata.readBytes offset.toNat 32) :: R
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g0 : g.toNat < C + 1
   · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
@@ -431,11 +443,14 @@ theorem powRoutine_bb {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                       have haw10 : s10.machineState.activeWords = s.machineState.activeWords := by
                         rw [hs10]; simp only [stJump]; rw [hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                         simp only [stPush2, stSwap, stPop, stCalldataload, stPush0, stJumpdest]
+                      have hacc10 : (s10.createdAccounts, s10.accountMap) = (s.createdAccounts, s.accountMap) := by
+                        rw [hs10]; simp only [stJump]; rw [hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                        simp only [stPush2, stSwap, stPop, stCalldataload, stPush0, stJumpdest]
                       -- call 0xa5 (validator); returns to 201 with [val, offset, ennd, ret, R]
                       rcases powRoutine_a5 (arg := val) (ret := ⟨201⟩) (R := val :: offset :: ennd :: ret :: R)
                           hc10 hp10 hk10 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
                           (by first | (simp only [List.length_cons]; omega) | omega) hg10 (by omega) (by omega) hX10
-                        with hoog | ⟨ka, Ca, sa, hXa, hca, hpa, hka, hga, hkCa, hCga, hma, haa⟩
+                        with hoog | ⟨ka, Ca, sa, hXa, hca, hpa, hka, hga, hkCa, hCga, hma, haa, hacca⟩
                       · exact Or.inl hoog
                       -- 0xc9..0xce: rearrange and return to `ret`
                       have sta := jumpdest_xstep hca hpa (by decide) (by rw [hka]; simp only [List.length_cons]; omega)
@@ -494,7 +509,7 @@ theorem powRoutine_bb {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                                 · exact Or.inl (hX15.trans (stepOOG (k := ka+5) (C := Ca+11) (cost := 8) hg15 st15 (by omega) (by omega) (by omega)))
                                 · set s16 := stJump s15 ret (val :: R) with hs16
                                   have hX16 := hX15.trans (stepContinue (k := ka+5) (C := Ca+11) (cost := 8) hg15 st15 (by omega) (by omega))
-                                  refine Or.inr ⟨ka+6, Ca+19, s16, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                                  refine Or.inr ⟨ka+6, Ca+19, s16, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                                   · have he : g.toNat + 1 - (ka + 5 + 1) = g.toNat + 1 - (ka + 6) := by omega
                                     rw [← he]; exact hX16
                                   · rw [hs16]; simp only [stJump]; exact hc15
@@ -509,6 +524,10 @@ theorem powRoutine_bb {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                                     rw [hs15, hs14, hs13, hs12, hs11]
                                     simp only [stPop, stSwap, stJumpdest]
                                     rw [haa, haw10]
+                                  · rw [hs16]; simp only [stJump]
+                                    rw [hs15, hs14, hs13, hs12, hs11]
+                                    simp only [stPop, stSwap, stJumpdest]
+                                    rw [hacca, hacc10]
 
 /-- `SUB` of `ofNat sz` and `4` is `sz - 4` (no wrap), for `4 ≤ sz < size`. -/
 theorem sub4_toNat {sz : ℕ} (h4 : 4 ≤ sz) (hsz : sz < UInt256.size) :
@@ -586,7 +605,8 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
         ∧ s'.machineState.stack = uInt256OfByteArray (I.calldata.readBytes 4 32) :: R'
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have hszsize : I.calldata.size < UInt256.size := by
     have hp : (2:ℕ)^255 < UInt256.size := by
       have : (2:ℕ)^255 < 2^256 := by norm_num
@@ -804,12 +824,16 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                                           rw [hs19]; simp only [stJump]
                                           rw [hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                           simp only [stPush2, stBinop, stSwap, stJumpiT, stJumpdest, stPush0, stIsZero, stPush1]
+                                        have hacc19 : (s19.createdAccounts, s19.accountMap) = (s.createdAccounts, s.accountMap) := by
+                                          rw [hs19]; simp only [stJump]
+                                          rw [hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                          simp only [stPush2, stBinop, stSwap, stJumpiT, stJumpdest, stPush0, stIsZero, stPush1]
                                         -- call 0xbb: loads the argument, returns to 241
                                         rcases powRoutine_bb (I := I) (offset := (⟨4⟩ : UInt256) + ⟨0⟩) (ennd := de)
                                             (ret := ⟨241⟩) (R := ⟨0⟩ :: ⟨0⟩ :: ⟨4⟩ :: de :: ret :: R')
                                             hc19 he19 hp19 hk19 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
                                             (by first | (simp only [List.length_cons]; omega) | omega) hg19 (by omega) (by omega) hX19
-                                          with hoog | ⟨kb, Cb, sb, hXb, hcb, hpb, hkb, hgb, hkCb, hCgb, hmb, hab⟩
+                                          with hoog | ⟨kb, Cb, sb, hXb, hcb, hpb, hkb, hgb, hkCb, hCgb, hmb, hab, haccb⟩
                                         · exact Or.inl hoog
                                         rw [add40_toNat] at hkb
                                         set val := uInt256OfByteArray (I.calldata.readBytes 4 32) with hvaldef
@@ -899,7 +923,7 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                                                         · exact Or.inl (hX27.trans (stepOOG (k := kb+8) (C := Cb+18) (cost := 8) hg27 st27 (by omega) (by omega) (by omega)))
                                                         · set s28 := stJump s27 ret (val :: R') with hs28
                                                           have hX28 := hX27.trans (stepContinue (k := kb+8) (C := Cb+18) (cost := 8) hg27 st27 (by omega) (by omega))
-                                                          refine Or.inr ⟨kb+9, Cb+26, s28, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                                                          refine Or.inr ⟨kb+9, Cb+26, s28, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                                                           · have he : g.toNat + 1 - (kb + 8 + 1) = g.toNat + 1 - (kb + 9) := by omega
                                                             rw [← he]; exact hX28
                                                           · rw [hs28]; simp only [stJump]; exact hc27
@@ -914,6 +938,10 @@ theorem powRoutine_cf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {
                                                             rw [hs27, hs26, hs25, hs24, hs23, hs22, hs21, hs20]
                                                             simp only [stPop, stSwap, stJumpdest]
                                                             rw [hab, haw19]
+                                                          · rw [hs28]; simp only [stJump]
+                                                            rw [hs27, hs26, hs25, hs24, hs23, hs22, hs21, hs20]
+                                                            simp only [stPop, stSwap, stJumpdest]
+                                                            rw [haccb, hacc19]
 
 /-- **Decoder bounds check fails (`calldatasize < 36`)**: the signed `SLT(size−4, 32)` is `1`, so
     `ISZERO` is `0`, the `JUMPI` is not taken, and execution jumps to the revert routine at `0x98`.
@@ -1115,7 +1143,8 @@ theorem powX_decodeToCf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv}
             = ⟨4⟩ :: UInt256.ofNat I.calldata.size :: ⟨66⟩ :: ⟨71⟩ :: [sel]
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have hszsize : I.calldata.size < UInt256.size := by
     have hp : (2:ℕ)^255 < UInt256.size := by
       have : (2:ℕ)^255 < 2^256 := by norm_num
@@ -1288,8 +1317,12 @@ theorem powX_decodeToCf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv}
                                 rw [hs14]; simp only [stJump]
                                 rw [hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                 simp only [stPush2, stSwap, stBinop, stCalldatasize, stDup1, stPush1, stJumpdest]
+                              have hacc14 : (s14.createdAccounts, s14.accountMap) = (s.createdAccounts, s.accountMap) := by
+                                rw [hs14]; simp only [stJump]
+                                rw [hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                simp only [stPush2, stSwap, stBinop, stCalldatasize, stDup1, stPush1, stJumpdest]
                               exact Or.inr ⟨k + 14, C + 44, s14, hX14, hc14, he14, hp14, hk14, hg14,
-                                by omega, by omega, hmem14, haw14⟩
+                                by omega, by omega, hmem14, haw14, hacc14⟩
 
 /-- Function body `0x2d`: set up and call the ABI decoder (reusing `powX_decodeToCf`), returning at
     `0x42 = 66` with the decoded argument `n = calldata[4:36]` on the stack (`[n, ⟨71⟩, sel]`). -/
@@ -1307,19 +1340,21 @@ theorem powX_decode {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k 
         ∧ s'.machineState.stack = uInt256OfByteArray (I.calldata.readBytes 4 32) :: ⟨71⟩ :: [sel]
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   rcases powX_decodeToCf hcode hee hpc hstk (by omega) hsz255 hgas hk hC hX with
-    hoog | ⟨k14, C14, s14, hX14, hc14, he14, hp14, hstk14, hgas14, hkC14, hCg14, hmem14, haw14⟩
+    hoog | ⟨k14, C14, s14, hX14, hc14, he14, hp14, hstk14, hgas14, hkC14, hCg14, hmem14, haw14, hacc14⟩
   · exact Or.inl hoog
   · rcases powRoutine_cf (I := I) (ret := ⟨66⟩) (R' := ⟨71⟩ :: [sel])
         hc14 he14 hp14 hstk14 hsz36 hsz255
         (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
         (by simp only [List.length_cons, List.length_nil]; omega) hgas14 hkC14 hCg14 hX14
-      with hoog | ⟨kc, Cc, sc, hXc, hcc, hpc', hkc, hgc, hkCc, hCgc, hmc, hac⟩
+      with hoog | ⟨kc, Cc, sc, hXc, hcc, hpc', hkc, hgc, hkCc, hCgc, hmc, hac, hacc⟩
     · exact Or.inl hoog
-    · refine Or.inr ⟨kc, Cc, sc, hXc, hcc, hpc', hkc, hgc, hkCc, hCgc, ?_, ?_⟩
+    · refine Or.inr ⟨kc, Cc, sc, hXc, hcc, hpc', hkc, hgc, hkCc, hCgc, ?_, ?_, ?_⟩
       · rw [hmc, hmem14]
       · rw [hac, haw14]
+      · rw [hacc, hacc14]
 
 /-- `0x42 → 0x75`: jump to the `require(n < 256)` check (passes, since `n < 256`), initialise
     `r = 1, i = 0`, and reach the loop header `0x75` with stack `[0, 1, 0, n, 71, sel]`. -/
@@ -1336,7 +1371,8 @@ theorem powX_require {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256} 
         ∧ s'.machineState.stack = ⟨0⟩ :: ⟨1⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
     show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
     have : (256:ℕ) < UInt256.size := by
@@ -1531,13 +1567,16 @@ theorem powX_require {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256} 
                                       · exact Or.inl (hX18.trans (stepOOG (k := k+18) (C := C+55) hg18 st18 (by omega) (by omega) (by omega)))
                                       · set s19 := stPop s18 (⟨0⟩ :: ⟨1⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R) with hs19
                                         have hX19 := hX18.trans (stepContinue (k := k+18) (C := C+55) hg18 st18 (by omega) (by omega))
-                                        refine Or.inr ⟨k+19, C+57, s19, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                                        refine Or.inr ⟨k+19, C+57, s19, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                                         · have he : g.toNat + 1 - (k + 18 + 1) = g.toNat + 1 - (k + 19) := by omega
                                           rw [← he]; exact hX19
                                         · rw [hs19]; simp only [stPop]; exact hc18
                                         · rw [hs19]; simp only [stPop]; rw [hp18]; rfl
                                         · rw [hs19]; simp only [stPop]
                                         · rw [hs19]; simp only [stPop]; rw [toNat_sub_ofNat (by omega)]; omega
+                                        · rw [hs19]; simp only [stPop]
+                                          rw [hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                          simp only [stPop, stSwap, stPush0, stPush1, stPush2, stBinop, stJumpiT, stJumpdest, stJump]
                                         · rw [hs19]; simp only [stPop]
                                           rw [hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                           simp only [stPop, stSwap, stPush0, stPush1, stPush2, stBinop, stJumpiT, stJumpdest, stJump]
@@ -1683,7 +1722,8 @@ theorem powX_exit {g : UInt256} {s0 s : State} {k C : ℕ} {a val c d ret : UInt
         ∧ s'.machineState.stack = val :: Rt
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   have st0 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g0 : g.toNat < C + 1
   · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
@@ -1779,13 +1819,16 @@ theorem powX_exit {g : UInt256} {s0 s : State} {k C : ℕ} {a val c d ret : UInt
                     · exact Or.inl (hX9.trans (stepOOG (k := k+9) (C := C+21) (cost := 8) hg9 st9 (by omega) (by omega) (by omega)))
                     · set s10 := stJump s9 ret (val :: Rt) with hs10
                       have hX10 := hX9.trans (stepContinue (k := k+9) (C := C+21) (cost := 8) hg9 st9 (by omega) (by omega))
-                      refine Or.inr ⟨k+10, C+29, s10, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                      refine Or.inr ⟨k+10, C+29, s10, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                       · have he : g.toNat + 1 - (k + 9 + 1) = g.toNat + 1 - (k + 10) := by omega
                         rw [← he]; exact hX10
                       · rw [hs10]; simp only [stJump]; exact hc9
                       · rw [hs10]; simp only [stJump]
                       · rw [hs10]; simp only [stJump]
                       · rw [hs10]; simp only [stJump]; rw [toNat_sub_ofNat (by omega)]; omega
+                      · rw [hs10]; simp only [stJump]
+                        rw [hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                        simp only [stPop, stSwap, stJumpdest]
                       · rw [hs10]; simp only [stJump]
                         rw [hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                         simp only [stPop, stSwap, stJumpdest]
@@ -1878,7 +1921,8 @@ theorem powX_encode {g : UInt256} {s0 s : State} {k C : ℕ} {val : UInt256} {Rt
     (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
       ∨ ∃ s', X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0
-                = .ok (.success s' (UInt256.toByteArray val)) := by
+                = .ok (.success s' (UInt256.toByteArray val))
+            ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   -- step 1: JUMPDEST @71
   have st1 := jumpdest_xstep hcode hpc (by decide) (by rw [hstk]; simp only [List.length_cons]; omega)
   by_cases g1 : g.toNat < C + 1
@@ -2241,7 +2285,7 @@ theorem powX_encode {g : UInt256} {s0 s : State} {k C : ℕ} {val : UInt256} {Rt
                                                         rcases powRoutine_9c hc27 hp27 hk27
                                                             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
                                                             (by first | (simp only [List.length_cons]; omega) | omega) hg27 (by omega) (by omega) hX27 with
-                                                          hoog | ⟨k28, C28, sR, hXR, hcR, hpR, hkR, hgR, hkkR, hCCR, hmemR0, hawR0⟩
+                                                          hoog | ⟨k28, C28, sR, hXR, hcR, hpR, hkR, hgR, hkkR, hCCR, hmemR0, hawR0, haccR0⟩
                                                         · exact Or.inl hoog
                                                         · have hmemR : sR.machineState.memory = solcFreePtrMem := by rw [hmemR0]; exact hmem27
                                                           have hawR : sR.machineState.activeWords = UInt256.ofNat 3 := by rw [hawR0]; exact haw27
@@ -2516,8 +2560,13 @@ theorem powX_encode {g : UInt256} {s0 s : State} {k C : ℕ} {val : UInt256} {Rt
                                                                                                       = UInt256.toByteArray val from by
                                                                                                     rw [hmem46, show (⟨128⟩:UInt256).toNat = 128 from by decide,
                                                                                                       show (⟨32⟩:UInt256).toNat = 32 from by decide, powMem2_read128]] at st47
-                                                                                                refine Or.inr ⟨stReturn s46 ⟨128⟩ ⟨32⟩ Rt, ?_⟩
-                                                                                                exact hX46.trans (stepHaltSuccess (k := k28+19) (C := C28+63) (cost := 0) hg46 st47 (by omega) (by omega))
+                                                                                                refine Or.inr ⟨stReturn s46 ⟨128⟩ ⟨32⟩ Rt, ?_, ?_⟩
+                                                                                                · exact hX46.trans (stepHaltSuccess (k := k28+19) (C := C28+63) (cost := 0) hg46 st47 (by omega) (by omega))
+                                                                                                · have e1 : (s27.createdAccounts, s27.accountMap) = (s.createdAccounts, s.accountMap) := by
+                                                                                                    simp only [hs27, hs26, hs25, hs24, hs23, hs22, hs21, hs20, hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1, stJumpdest, stPush0, stPush1, stPush2, stMLoad, stSwap, stJump, stBinop, stPop]
+                                                                                                  have e2 : (sR.createdAccounts, sR.accountMap) = (s.createdAccounts, s.accountMap) := haccR0.trans e1
+                                                                                                  simp only [hs46, hs45, hs44, hs43, hs42, hs41, hs40, hs39, hs38, hs37, hs36, hs35, hs34, hs33, hs32, hs31, hs30, hs29, hs28, stReturn, stJumpdest, stSwap, stMStore, stPop, stJump, stPush1, stMLoad, stDup1, stBinop]
+                                                                                                  exact e2
 
 /-! ## Full success trace — `initState → RETURN(2^n)` (**proved**)
 
@@ -2531,10 +2580,11 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ s', X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
+      ∨ ∃ s', (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
           = .ok (.success s'
               (UInt256.toByteArray
-                (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))) := by
+                (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))))
+            ∧ ((s'.createdAccounts, s'.accountMap) = (cA, σ)) := by
   have hsize : I.calldata.size < UInt256.size := by
     have h0 : (2:ℕ)^255 < 2^256 := by norm_num
     have hp : (2:ℕ)^255 < UInt256.size := by simpa [UInt256.size] using h0
@@ -2543,15 +2593,15 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
   set arg := uInt256OfByteArray (I.calldata.readBytes 4 32) with harg
   rcases powX_disp hcode hwv (by omega) hsize hmatch with
-    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1⟩
+    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1, hacc1⟩
   · exact Or.inl hd
   · rcases powX_decode (s0 := initState cA gh bl σ σ₀ g A I) (I := I) (k := 24) (C := 96)
         (by rw [hee1]; exact hcode) hee1 hp1 hstk1 hsz36 hsz255 hg1 (by norm_num) hC1 hX1 with
-      hd | ⟨k2, C2, s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2⟩
+      hd | ⟨k2, C2, s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, hacc2⟩
     · exact Or.inl hd
     · rcases powX_require (n := arg) (sel := sel) (R := []) hc2 hp2 hstk2 hn
           (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2 with
-        hd | ⟨k3, C3, s3, hX3, hc3, hp3, hstk3, hg3, hk3, hCg3, hmem3, haw3⟩
+        hd | ⟨k3, C3, s3, hX3, hc3, hp3, hstk3, hg3, hk3, hCg3, hmem3, haw3, hacc3⟩
       · exact Or.inl hd
       · rcases powLoopCore (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
             hn (by simp only [List.length_cons, List.length_nil]; omega)
@@ -2560,13 +2610,13 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
             (by decide)
             (by rw [show (⟨0⟩:UInt256).toNat = 0 from by decide]; omega)
             hc3 hp3 hstk3 hg3 hk3 hCg3 hX3 with
-          hd | ⟨k4, C4, s4, hX4, hc4, hp4, hstk4, hg4, hk4, hCg4, hmem4, haw4⟩
+          hd | ⟨k4, C4, s4, hX4, hc4, hp4, hstk4, hg4, hk4, hCg4, hmem4, haw4, hacc4⟩
         · exact Or.inl hd
         · rcases powX_exit (a := arg) (val := UInt256.ofNat (2 ^ arg.toNat)) (c := ⟨0⟩)
               (d := arg) (ret := ⟨71⟩) (Rt := [sel]) hc4 hp4 hstk4
               (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
               (by simp only [List.length_cons, List.length_nil]; omega) hg4 hk4 hCg4 hX4 with
-            hd | ⟨k5, C5, s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5⟩
+            hd | ⟨k5, C5, s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5⟩
           · exact Or.inl hd
           · have hmemS : s5.machineState.memory = solcFreePtrMem := by
               rw [hmem5, hmem4, hmem3, hmem2, hmem1]
@@ -2575,9 +2625,10 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
             rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
                 hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
                 hg5 hk5 hCg5 hX5 with
-              hd | ⟨s6, hX6⟩
+              hd | ⟨s6, hX6, hacc6⟩
             · exact Or.inl hd
-            · exact Or.inr ⟨s6, hX6⟩
+            · exact Or.inr ⟨s6, hX6,
+                hacc6.trans (hacc5.trans (hacc4.trans (hacc3.trans (hacc2.trans hacc1))))⟩
 
 /-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/
@@ -2591,9 +2642,10 @@ theorem powXi_success {cA gh bl σ σ₀ A I} {g : UInt256}
                 = .ok (.success (cA, σ, g', A')
                     (UInt256.toByteArray
                       (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))) := by
-  rcases powX_success hcode hwv hsz36 hsz255 hmatch hn with hoog | ⟨s, hX⟩
+  rcases powX_success hcode hwv hsz36 hsz255 hmatch hn with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
-  · obtain ⟨hcA, hσ⟩ := powSuccessAcct hcode hX
+  · have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
     refine Or.inr ⟨s.machineState.gasAvailable, s.substate, ?_⟩
     have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
     rw [hcA, hσ] at hxi

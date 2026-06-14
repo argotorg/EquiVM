@@ -458,7 +458,7 @@ theorem truthX_cvz_prefix
   have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
   rcases solcGuardPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    with hoog | ⟨s6, hX6, hee6, hpc6, hgas6, hstk6raw, haw6, _hmem6, _hg26⟩
+    with hoog | ⟨s6, hX6, hee6, hpc6, hgas6, hstk6raw, haw6, _hmem6, _hg26, _hacc6⟩
   · exact Or.inl hoog
   have hcode6 : s6.executionEnv.code = truthBytecode := by rw [hee6]; exact hcode
   have hstk6 : s6.machineState.stack = [⟨1⟩, ⟨0⟩] := by

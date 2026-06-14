@@ -54,21 +54,6 @@ axiom powSelectorBytes :
 axiom powRealisticCalldata {I : Ethereum.ExecutionEnv} (hcode : I.code = powBytecode) :
     I.calldata.size < 2 ^ 255
 
-/-- **Account state is preserved by a successful `pow2` run** (mechanically provable; deferred
-    plumbing — see `MISSPEC.md`).  `pow2`'s bytecode executes only pure stack/memory opcodes
-    (`PUSH*`, `POP`, `DUP*`, `SWAP*`, `ADD`/`MUL`/`SUB`/`LT`/`SLT`/`EQ`/`ISZERO`/`SHR`, `MLOAD`,
-    `MSTORE`, `JUMP*`, `CALLVALUE`/`CALLDATASIZE`/`CALLDATALOAD`, `RETURN`) — **none** of
-    `CREATE`/`CALL`/`SSTORE`/`SELFDESTRUCT`/`LOG`, the only opcodes that touch `createdAccounts` or
-    `accountMap`.  Hence a successful run leaves both equal to `initState`'s (`= cA`, `= σ`).  The
-    full proof threads two trivial preservation clauses through the dozen success-trace lemmas; we
-    state it as an axiom to keep the development tractable.  Unlike `powSelectorBytes`/`powValidJumps`
-    this is **not** opaque — it is provable and intended to be discharged. -/
-axiom powSuccessAcct {cA gh bl σ σ₀ A I} {g : UInt256} {s : State} {o : ByteArray}
-    (hcode : I.code = powBytecode)
-    (h : X (g.toNat + 1) (D_J powBytecode ⟨0⟩)
-          (initState cA gh bl σ σ₀ g A I) = .ok (.success s o)) :
-    s.createdAccounts = cA ∧ s.accountMap = σ
-
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
 axiom powValidJumps :
     Ethereum.EVM.D_J powBytecode ⟨0⟩
@@ -107,7 +92,8 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
         ∧ s'.machineState.stack = (n :: UInt256.ofNat (2 ^ n.toNat) :: slot :: n :: REST)
         ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
         ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords := by
+        ∧ s'.machineState.activeWords = s.machineState.activeWords
+        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
   intro var
   induction var with
   | zero =>
@@ -185,13 +171,15 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
                 · exact Or.inl (hX6.trans (stepOOG (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega) (by omega)))
                 · set s7 := stJumpiT s6 ⟨142⟩ (i :: r :: slot :: n :: REST) with hs7
                   have hX7 := hX6.trans (stepContinue (k:=k+6) (C:=C+16) (cost:=10) hg6 st6 (by omega) (by omega))
-                  refine Or.inr ⟨k+7, C+26, s7, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_⟩
+                  refine Or.inr ⟨k+7, C+26, s7, ?_, ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_⟩
                   · have he : g.toNat + 1 - (k + 6 + 1) = g.toNat + 1 - (k+7) := by omega
                     rw [← he]; exact hX7
                   · rw [hs7]; simp only [stJumpiT]; exact hc6
                   · rw [hs7]; simp only [stJumpiT]
                   · rw [hs7]; simp only [stJumpiT]; rw [hieqn, hreq]
                   · rw [hs7]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
+                  · rw [hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                    simp only [stJumpiT, stPush2, stIsZero, stBinop, stSwap, stJumpdest]
                   · rw [hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                     simp only [stJumpiT, stPush2, stIsZero, stBinop, stSwap, stJumpdest]
                   · rw [hs7, hs6, hs5, hs4, hs3, hs2, hs1]
@@ -410,14 +398,18 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
                                             (by rw [hr2, hi1, hinv, pow_succ]; ring)
                                             (by rw [hi1]; omega)
                                             hc19 hp19 hk19 hg19 (by omega) (by omega) hX19 with
-                                            h | ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', hmem', haw'⟩
+                                            h | ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', hmem', haw', hacc'⟩
                                           · exact Or.inl h
-                                          · refine Or.inr ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', ?_, ?_⟩
+                                          · refine Or.inr ⟨k', C', s', hX', hc', hp', hk', hg', hkC', hCg', ?_, ?_, ?_⟩
                                             · rw [hmem', hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10,
                                                 hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                               simp only [stJump, stPush2, stPush1, stMul, stPop, stSwap, stBinop,
                                                 stIsZero, stJumpiNT, stJumpdest]
                                             · rw [haw', hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10,
+                                                hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
+                                              simp only [stJump, stPush2, stPush1, stMul, stPop, stSwap, stBinop,
+                                                stIsZero, stJumpiNT, stJumpdest]
+                                            · rw [hacc', hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10,
                                                 hs9, hs8, hs7, hs6, hs5, hs4, hs3, hs2, hs1]
                                               simp only [stJump, stPush2, stPush1, stMul, stPop, stSwap, stBinop,
                                                 stIsZero, stJumpiNT, stJumpdest]
@@ -443,7 +435,8 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
                     (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩),
                   UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
            ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 83 ≤ g.toNat := by
+           ∧ s.machineState.memory = solcFreePtrMem ∧ 83 ≤ g.toNat
+           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
   have hsztoNat : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
     show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
     simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
@@ -451,7 +444,7 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     ult_zero (by rw [hsztoNat]; exact le_trans (show (⟨4⟩ : UInt256).toNat ≤ 4 by decide) hsz)
   rcases solcGuardPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    with hoog | ⟨s6, hX6, hee6, hpc6, hgas6, hstk6raw, haw6, hmem6, _hg26⟩
+    with hoog | ⟨s6, hX6, hee6, hpc6, hgas6, hstk6raw, haw6, hmem6, _hg26, hacc6⟩
   · exact Or.inl hoog
   have hcode6 : s6.executionEnv.code = powBytecode := by rw [hee6]; exact hcode
   have hstk6 : s6.machineState.stack = [⟨1⟩, ⟨0⟩] := by
@@ -665,7 +658,12 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
                                   have hstk22 : s22.machineState.stack = [UInt256.eq ⟨1143701499⟩ sel, sel] := by rw [hs22]; simp only [stBinop]
                                   have haw22 : s22.machineState.activeWords = UInt256.ofNat 3 := by rw [hs22]; simp only [stBinop]; exact haw21
                                   have hmem22 : s22.machineState.memory = solcFreePtrMem := by rw [hs22]; simp only [stBinop]; exact hmem21
-                                  exact Or.inr ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, by omega⟩
+                                  refine Or.inr ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, by omega, ?_⟩
+                                  have eacc : (s22.createdAccounts, s22.accountMap) = (s6.createdAccounts, s6.accountMap) := by
+                                    rw [hs22, hs21, hs20, hs19, hs18, hs17, hs16, hs15, hs14, hs13, hs12, hs11, hs10, hs9, hs8, hs7]
+                                    simp only [stPush2, stJumpiT, stJumpdest, stPop, stPush1, stCalldatasize, stBinop,
+                                      stPush0, stCalldataload, stDup1, stPush4, stJumpiNT]
+                                  exact eacc.trans hacc6
 
 
 
@@ -685,9 +683,10 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
            ∧ s.machineState.stack
                = [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
            ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 96 ≤ g.toNat := by
+           ∧ s.machineState.memory = solcFreePtrMem ∧ 96 ≤ g.toNat
+           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
   rcases powX_dispToEq hcode hwv hsz hsize with
-    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83⟩
+    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83, hacc22⟩
   · exact Or.inl hoog
   · set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hseldef
     have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
@@ -713,7 +712,7 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
       · exact Or.inl (by rw [hX23]; exact stepOOG hgas23 hstep23 (by norm_num) (by omega) (by omega))
       · set s24 := stJumpiT s23 ⟨45⟩ [sel] with hs24
         have hX24 := hX23.trans (stepContinue (k := 23) (C := 86) hgas23 hstep23 (by norm_num) (by omega))
-        refine Or.inr ⟨s24, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega⟩
+        refine Or.inr ⟨s24, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega, ?_⟩
         · have he : g.toNat + 1 - (23 + 1) = g.toNat + 1 - 24 := by omega
           rw [← he]; exact hX24
         · rw [hs24]; simp only [stJumpiT]; exact hee23
@@ -722,3 +721,4 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
         · rw [hs24]; simp only [stJumpiT]
         · rw [hs24]; simp only [stJumpiT]; exact haw23
         · rw [hs24]; simp only [stJumpiT]; exact hmem23
+        · rw [hs24]; simp only [stJumpiT]; rw [hs23]; simp only [stPush2]; exact hacc22

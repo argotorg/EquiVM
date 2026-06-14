@@ -203,7 +203,8 @@ theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArra
            ∧ s.machineState.gasAvailable.toNat = g.toNat - 26
            ∧ s.machineState.stack = [UInt256.isZero I.weiValue, I.weiValue]
            ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 26 ≤ g.toNat := by
+           ∧ s.machineState.memory = solcFreePtrMem ∧ 26 ≤ g.toNat
+           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
   set s0 := initState cA gh bl σ σ₀ g A I with hs0
   have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
   have hcode0 : s0.executionEnv.code = code := by rw [hee0]; exact hcode
@@ -281,7 +282,7 @@ theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArra
             · exact Or.inl (by rw [hX5]; exact stepOOG hgas5 hstep5 (by norm_num) (by omega) (by omega))
             · set s6 := stIsZero s5 I.weiValue [I.weiValue] with hs6
               have hX6 := hX5.trans (stepContinue (k := 5) (C := 23) hgas5 hstep5 (by norm_num) (by omega))
-              refine Or.inr ⟨s6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega⟩
+              refine Or.inr ⟨s6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega, ?_⟩
               · have he : g.toNat + 1 - (5 + 1) = g.toNat + 1 - 6 := by omega
                 rw [← he]; exact hX6
               · rw [hs6]; simp only [stIsZero]; exact hee5
@@ -290,5 +291,8 @@ theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArra
               · rw [hs6]; simp only [stIsZero]
               · rw [hs6]; simp only [stIsZero]; exact haw5
               · rw [hs6]; simp only [stIsZero]; exact hmem5
+              · rw [hs6]; simp only [stIsZero]
+                rw [hs5, hs4, hs3, hs2, hs1, hs0]
+                simp only [stDup1, stCallvalue, stMStore, stPush1, initState]
 
 end TruthClaude.Theory
