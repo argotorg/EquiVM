@@ -30,27 +30,6 @@ theorem RD.routine9c {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
     |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
 
-end TruthClaude.Reach
-
-/-- Old-form wrapper around `RD.routine9c` (for callers not yet migrated to the `RD` fold). -/
-theorem powRoutine_9c {g : UInt256} {s0 s : State} {k C : ℕ} {v ret : UInt256} {R : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨156⟩)
-    (hstk : s.machineState.stack = v :: ret :: R)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 4 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ (k' C' : ℕ) (s' : State),
-          X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
-        ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ret
-        ∧ s'.machineState.stack = v :: R
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-        ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords
-        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) :=
-  (RD.start hcode hpc hstk hgas hk hC hX |>.routine9c hret hov).conclude
-
-namespace TruthClaude.Reach
 
 /-- solc routine `0xa5` (`abi_decode`'s validator) as an **`RD→RD` combinator**: entry at pc 165
     with `[arg, ret, …R]`, calls `0x9c` to clean `arg`, checks `arg == cleanup(arg)` (always true
@@ -553,8 +532,6 @@ theorem u128 : (⟨128⟩ : UInt256).toNat = 128 := by
   show (Fin.ofNat _ 128).val = 128; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
 
 /-- `ADD` of two literals (toNat). -/
-theorem add128_0_toNat : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by
-  rw [uadd_toNat, u128, u0, Nat.add_zero, Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))]
 theorem add128_32_toNat : ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 := by
   rw [uadd_toNat, u128, u32]; show (160:ℕ) % UInt256.size = 160; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
 
@@ -566,16 +543,6 @@ theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
 
 theorem sub_ret32_toNat : (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
   rw [usub_toNat (by rw [add128_32_toNat, u128]; omega), add128_32_toNat, u128]
-
-theorem u160 : (⟨160⟩ : UInt256).toNat = 160 := by
-  show (Fin.ofNat _ 160).val = 160; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-theorem add128_0 : ((⟨128⟩ : UInt256) + ⟨0⟩) = ⟨128⟩ := u256_inj (by rw [add128_0_toNat, u128])
-theorem add128_32 : ((⟨128⟩ : UInt256) + ⟨32⟩) = ⟨160⟩ := u256_inj (by rw [add128_32_toNat, u160])
-theorem sub_160_128 : UInt256.sub (⟨160⟩ : UInt256) ⟨128⟩ = ⟨32⟩ :=
-  u256_inj (by rw [usub_toNat (by rw [u160, u128]; omega), u160, u128, u32])
-
-theorem ofNat128 : UInt256.ofNat 128 = ⟨128⟩ :=
-  u256_inj (by rw [ulit_toNat' 128 (lt_size_of_lt256 (by norm_num)), u128])
 
 /-! ## Encoder `0x47 → RETURN` — the ABI-encode-and-return tail (**proved**)
 
@@ -773,31 +740,29 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
           (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2 with
         hd | ⟨k3, C3, s3, hX3, hc3, hp3, hstk3, hg3, hk3, hCg3, hmem3, haw3, hacc3⟩
       · exact Or.inl hd
-      · rcases powLoopCore (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
+      · -- loop (RD.loop) → loop-exit (routineexit) → encoder, threaded as one `RD`
+        rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
             hn (by simp only [List.length_cons, List.length_nil]; omega)
-            arg.toNat ⟨0⟩ ⟨1⟩ k3 C3 s3
+            arg.toNat ⟨0⟩ ⟨1⟩ k3 C3
             (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
             (by decide)
             (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-            hc3 hp3 hstk3 hg3 hk3 hCg3 hX3 with
-          hd | ⟨k4, C4, s4, hX4, hc4, hp4, hstk4, hg4, hk4, hCg4, hmem4, haw4, hacc4⟩
+            (RD.start hc3 hp3 hstk3 hg3 hk3 hCg3 hX3) with ⟨k4, C4, rd4⟩
+        rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+              (by simp only [List.length_cons, List.length_nil]; omega)).out with
+            hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
         · exact Or.inl hd
-        · rcases (RD.start hc4 hp4 hstk4 hg4 hk4 hCg4 hX4
-              |>.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-                (by simp only [List.length_cons, List.length_nil]; omega)).conclude with
-            hd | ⟨k5, C5, s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5⟩
+        · have hmemS : s5.machineState.memory = solcFreePtrMem := by
+            rw [hmem5, hmem3, hmem2, hmem1]
+          have hawS : s5.machineState.activeWords = UInt256.ofNat 3 := by
+            rw [haw5, haw3, haw2, haw1]
+          rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
+              hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
+              hg5 hk5 hCg5 hX5 with
+            hd | ⟨s6, hX6, hacc6⟩
           · exact Or.inl hd
-          · have hmemS : s5.machineState.memory = solcFreePtrMem := by
-              rw [hmem5, hmem4, hmem3, hmem2, hmem1]
-            have hawS : s5.machineState.activeWords = UInt256.ofNat 3 := by
-              rw [haw5, haw4, haw3, haw2, haw1]
-            rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
-                hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
-                hg5 hk5 hCg5 hX5 with
-              hd | ⟨s6, hX6, hacc6⟩
-            · exact Or.inl hd
-            · exact Or.inr ⟨s6, hX6,
-                hacc6.trans (hacc5.trans (hacc4.trans (hacc3.trans (hacc2.trans hacc1))))⟩
+          · exact Or.inr ⟨s6, hX6,
+              hacc6.trans (hacc5.trans (hacc3.trans (hacc2.trans hacc1)))⟩
 
 /-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/

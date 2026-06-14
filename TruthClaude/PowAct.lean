@@ -8,7 +8,7 @@ This file carries the **Act-level** facts (dispatch, calldata decode, return enc
 execution including the `while` loop) and assembles the runtime-equivalence theorem.
 -/
 
-open Act ABI Ethereum Ethereum.EVM TruthClaude.Theory
+open Act ABI Ethereum Ethereum.EVM TruthClaude.Theory TruthClaude.Reach
 
 namespace TruthClaude
 
@@ -124,32 +124,18 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
                   = .ok (.revert g' o) := by
   rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) with
-    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, _hacc⟩
+    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
   · exact Or.inl hd
   · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
-    have st1 := push2_xstep (argv := ⟨15⟩) hcs hp (by decide) hstk (by norm_num)
-    by_cases g1 : g.toNat < 29
-    · exact Or.inl (hX.trans (stepOOG (k := 6) (C := 26) hg st1 (by omega) hC (by omega)))
-    · set s1 := stPush2 s ⟨15⟩ with hs1
-      have hX1 := hX.trans (stepContinue (k := 6) (C := 26) hg st1 (by omega) (by omega))
-      have hc1 : s1.executionEnv.code = powBytecode := by rw [hs1]; simp only [stPush2]; exact hcs
-      have hp1 : s1.machineState.pc = ⟨11⟩ := by rw [hs1]; simp only [stPush2]; rw [hp]; rfl
-      have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - 29 := by
-        rw [hs1]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hk1 : s1.machineState.stack = ⟨15⟩ :: ⟨0⟩ :: [I.weiValue] := by
-        rw [hs1]; simp only [stPush2, hstk]; rw [isZero_eq_zero_of_ne hwv]
-      have st2 := jumpi_nt_xstep hc1 hp1 (by decide) hk1 (by norm_num)
-      by_cases g2 : g.toNat < 39
-      · exact Or.inl (hX1.trans (stepOOG (k := 7) (C := 29) (cost := 10) hg1 st2 (by omega) (by omega) (by omega)))
-      · set s2 := stJumpiNT s1 [I.weiValue] with hs2
-        have hX2 := hX1.trans (stepContinue (k := 7) (C := 29) (cost := 10) hg1 st2 (by omega) (by omega))
-        have hc2 : s2.executionEnv.code = powBytecode := by rw [hs2]; simp only [stJumpiNT]; exact hc1
-        have hp2 : s2.machineState.pc = ⟨12⟩ := by rw [hs2]; simp only [stJumpiNT]; rw [hp1]; rfl
-        have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - 39 := by
-          rw [hs2]; simp only [stJumpiNT]; rw [toNat_sub_ofNat (by omega)]; omega
-        have hk2 : s2.machineState.stack = [I.weiValue] := by rw [hs2]; simp only [stJumpiNT]
-        exact solcRevert0 hc2 hp2 (by decide) (by decide) (by decide) hk2 (by norm_num) hg2
-          (by omega) (by omega) hX2
+    -- PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub at pc 12
+    rcases (RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
+        |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpiNT (by decide) (isZero_eq_zero_of_ne hwv)
+          (by simp only [List.length_cons, List.length_nil]; omega)).out
+      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
+    · exact Or.inl hoog
+    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
+        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
 
 /-- Lift any `X`-level revert/OOG result to `Ξ`. -/
 theorem powXi_of_revert {cA gh bl σ σ₀ A I} {g : UInt256} (hcode : I.code = powBytecode)
@@ -180,134 +166,32 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
                   = .ok (.revert g' o) := by
   rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
       (by decide) (by decide) (by decide) with
-    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, _hacc⟩
+    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
   · exact Or.inl hd
   · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
-    have hstk0 : s.machineState.stack = ⟨1⟩ :: ⟨0⟩ :: [] := by
-      rw [hstk, hwv, isZero_zero]
-    -- PUSH2 15
-    have st1 := push2_xstep (argv := ⟨15⟩) hcs hp (by decide) hstk0 (by norm_num)
-    by_cases g1 : g.toNat < 29
-    · exact Or.inl (hX.trans (stepOOG (k := 6) (C := 26) hg st1 (by omega) hC (by omega)))
-    · set s1 := stPush2 s ⟨15⟩ with hs1
-      have hX1 := hX.trans (stepContinue (k := 6) (C := 26) hg st1 (by omega) (by omega))
-      have hc1 : s1.executionEnv.code = powBytecode := by rw [hs1]; simp only [stPush2]; exact hcs
-      have he1 : s1.executionEnv = I := by rw [hs1]; simp only [stPush2]; exact hee
-      have hp1 : s1.machineState.pc = ⟨11⟩ := by rw [hs1]; simp only [stPush2]; rw [hp]; rfl
-      have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - 29 := by
-        rw [hs1]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hk1 : s1.machineState.stack = ⟨15⟩ :: ⟨1⟩ :: [⟨0⟩] := by rw [hs1]; simp only [stPush2, hstk0]
-      -- JUMPI taken → 15
-      have st2 := jumpi_t_xstep hc1 hp1 (by decide) hk1 (by decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
-      by_cases g2 : g.toNat < 39
-      · exact Or.inl (hX1.trans (stepOOG (k := 7) (C := 29) (cost := 10) hg1 st2 (by omega) (by omega) (by omega)))
-      · set s2 := stJumpiT s1 ⟨15⟩ [⟨0⟩] with hs2
-        have hX2 := hX1.trans (stepContinue (k := 7) (C := 29) (cost := 10) hg1 st2 (by omega) (by omega))
-        have hc2 : s2.executionEnv.code = powBytecode := by rw [hs2]; simp only [stJumpiT]; exact hc1
-        have he2 : s2.executionEnv = I := by rw [hs2]; simp only [stJumpiT]; exact he1
-        have hp2 : s2.machineState.pc = ⟨15⟩ := by rw [hs2]; simp only [stJumpiT]
-        have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - 39 := by
-          rw [hs2]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
-        have hk2 : s2.machineState.stack = [⟨0⟩] := by rw [hs2]; simp only [stJumpiT]
-        -- JUMPDEST 15
-        have st3 := jumpdest_xstep hc2 hp2 (by decide) (by rw [hk2]; simp)
-        by_cases g3 : g.toNat < 40
-        · exact Or.inl (hX2.trans (stepOOG (k := 8) (C := 39) hg2 st3 (by omega) (by omega) (by omega)))
-        · set s3 := stJumpdest s2 with hs3
-          have hX3 := hX2.trans (stepContinue (k := 8) (C := 39) hg2 st3 (by omega) (by omega))
-          have hc3 : s3.executionEnv.code = powBytecode := by rw [hs3]; simp only [stJumpdest]; exact hc2
-          have he3 : s3.executionEnv = I := by rw [hs3]; simp only [stJumpdest]; exact he2
-          have hp3 : s3.machineState.pc = ⟨16⟩ := by rw [hs3]; simp only [stJumpdest]; rw [hp2]; rfl
-          have hg3 : s3.machineState.gasAvailable.toNat = g.toNat - 40 := by
-            rw [hs3]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
-          have hk3 : s3.machineState.stack = [⟨0⟩] := by rw [hs3]; simp only [stJumpdest]; exact hk2
-          -- POP
-          have st4 := pop_xstep hc3 hp3 (by decide) hk3 (by simp)
-          by_cases g4 : g.toNat < 42
-          · exact Or.inl (hX3.trans (stepOOG (k := 9) (C := 40) hg3 st4 (by omega) (by omega) (by omega)))
-          · set s4 := stPop s3 [] with hs4
-            have hX4 := hX3.trans (stepContinue (k := 9) (C := 40) hg3 st4 (by omega) (by omega))
-            have hc4 : s4.executionEnv.code = powBytecode := by rw [hs4]; simp only [stPop]; exact hc3
-            have he4 : s4.executionEnv = I := by rw [hs4]; simp only [stPop]; exact he3
-            have hp4 : s4.machineState.pc = ⟨17⟩ := by rw [hs4]; simp only [stPop]; rw [hp3]; rfl
-            have hg4 : s4.machineState.gasAvailable.toNat = g.toNat - 42 := by
-              rw [hs4]; simp only [stPop]; rw [toNat_sub_ofNat (by omega)]; omega
-            have hk4 : s4.machineState.stack = [] := by rw [hs4]; simp only [stPop]
-            -- PUSH1 4
-            have st5 := push1_xstep (argv := ⟨4⟩) hc4 hp4 (by decide) hk4 (by norm_num)
-            by_cases g5 : g.toNat < 45
-            · exact Or.inl (hX4.trans (stepOOG (k := 10) (C := 42) hg4 st5 (by omega) (by omega) (by omega)))
-            · set s5 := stPush1 s4 ⟨4⟩ with hs5
-              have hX5 := hX4.trans (stepContinue (k := 10) (C := 42) hg4 st5 (by omega) (by omega))
-              have hc5 : s5.executionEnv.code = powBytecode := by rw [hs5]; simp only [stPush1]; exact hc4
-              have he5 : s5.executionEnv = I := by rw [hs5]; simp only [stPush1]; exact he4
-              have hp5 : s5.machineState.pc = ⟨19⟩ := by rw [hs5]; simp only [stPush1]; rw [hp4]; rfl
-              have hg5 : s5.machineState.gasAvailable.toNat = g.toNat - 45 := by
-                rw [hs5]; simp only [stPush1]; rw [toNat_sub_ofNat (by omega)]; omega
-              have hk5 : s5.machineState.stack = [⟨4⟩] := by rw [hs5]; simp only [stPush1, hk4]
-              -- CALLDATASIZE
-              have st6 := calldatasize_xstep hc5 hp5 (by decide) hk5 (by norm_num)
-              by_cases g6 : g.toNat < 47
-              · exact Or.inl (hX5.trans (stepOOG (k := 11) (C := 45) hg5 st6 (by omega) (by omega) (by omega)))
-              · set s6 := stCalldatasize s5 with hs6
-                have hX6 := hX5.trans (stepContinue (k := 11) (C := 45) hg5 st6 (by omega) (by omega))
-                have hc6 : s6.executionEnv.code = powBytecode := by rw [hs6]; simp only [stCalldatasize]; exact hc5
-                have hp6 : s6.machineState.pc = ⟨20⟩ := by rw [hs6]; simp only [stCalldatasize]; rw [hp5]; rfl
-                have hg6 : s6.machineState.gasAvailable.toNat = g.toNat - 47 := by
-                  rw [hs6]; simp only [stCalldatasize]; rw [toNat_sub_ofNat (by omega)]; omega
-                have hk6 : s6.machineState.stack = UInt256.ofNat I.calldata.size :: [⟨4⟩] := by
-                  rw [hs6]; simp only [stCalldatasize, hk5]; rw [he5]
-                -- LT  (size < 4 ⇒ 1)
-                have st7 := lt_xstep hc6 hp6 (by decide) hk6 (by norm_num)
-                by_cases g7 : g.toNat < 50
-                · exact Or.inl (hX6.trans (stepOOG (k := 12) (C := 47) hg6 st7 (by omega) (by omega) (by omega)))
-                · set s7 := stBinop s6 (UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩) [] with hs7
-                  have hX7 := hX6.trans (stepContinue (k := 12) (C := 47) hg6 st7 (by omega) (by omega))
-                  have hc7 : s7.executionEnv.code = powBytecode := by rw [hs7]; simp only [stBinop]; exact hc6
-                  have hp7 : s7.machineState.pc = ⟨21⟩ := by rw [hs7]; simp only [stBinop]; rw [hp6]; rfl
-                  have hg7 : s7.machineState.gasAvailable.toNat = g.toNat - 50 := by
-                    rw [hs7]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-                  have hk7 : s7.machineState.stack = [⟨1⟩] := by
-                    rw [hs7]; simp only [stBinop]
-                    rw [ult_one (by rw [ulit_toNat' _ (lt_size_of_lt256 (by omega)),
-                      show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]
-                  -- PUSH2 41
-                  have st8 := push2_xstep (argv := ⟨41⟩) hc7 hp7 (by decide) hk7 (by norm_num)
-                  by_cases g8 : g.toNat < 53
-                  · exact Or.inl (hX7.trans (stepOOG (k := 13) (C := 50) hg7 st8 (by omega) (by omega) (by omega)))
-                  · set s8 := stPush2 s7 ⟨41⟩ with hs8
-                    have hX8 := hX7.trans (stepContinue (k := 13) (C := 50) hg7 st8 (by omega) (by omega))
-                    have hc8 : s8.executionEnv.code = powBytecode := by rw [hs8]; simp only [stPush2]; exact hc7
-                    have hp8 : s8.machineState.pc = ⟨24⟩ := by rw [hs8]; simp only [stPush2]; rw [hp7]; rfl
-                    have hg8 : s8.machineState.gasAvailable.toNat = g.toNat - 53 := by
-                      rw [hs8]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-                    have hk8 : s8.machineState.stack = ⟨41⟩ :: [⟨1⟩] := by rw [hs8]; simp only [stPush2, hk7]
-                    -- JUMPI taken → 41
-                    have st9 := jumpi_t_xstep hc8 hp8 (by decide) hk8 (by decide)
-                      (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
-                    by_cases g9 : g.toNat < 63
-                    · exact Or.inl (hX8.trans (stepOOG (k := 14) (C := 53) (cost := 10) hg8 st9 (by omega) (by omega) (by omega)))
-                    · set s9 := stJumpiT s8 ⟨41⟩ [] with hs9
-                      have hX9 := hX8.trans (stepContinue (k := 14) (C := 53) (cost := 10) hg8 st9 (by omega) (by omega))
-                      have hc9 : s9.executionEnv.code = powBytecode := by rw [hs9]; simp only [stJumpiT]; exact hc8
-                      have hp9 : s9.machineState.pc = ⟨41⟩ := by rw [hs9]; simp only [stJumpiT]
-                      have hg9 : s9.machineState.gasAvailable.toNat = g.toNat - 63 := by
-                        rw [hs9]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
-                      have hk9 : s9.machineState.stack = [] := by rw [hs9]; simp only [stJumpiT]
-                      -- JUMPDEST 41
-                      have st10 := jumpdest_xstep hc9 hp9 (by decide) (by rw [hk9]; simp)
-                      by_cases g10 : g.toNat < 64
-                      · exact Or.inl (hX9.trans (stepOOG (k := 15) (C := 63) hg9 st10 (by omega) (by omega) (by omega)))
-                      · set s10 := stJumpdest s9 with hs10
-                        have hX10 := hX9.trans (stepContinue (k := 15) (C := 63) hg9 st10 (by omega) (by omega))
-                        have hc10 : s10.executionEnv.code = powBytecode := by rw [hs10]; simp only [stJumpdest]; exact hc9
-                        have hp10 : s10.machineState.pc = ⟨42⟩ := by rw [hs10]; simp only [stJumpdest]; rw [hp9]; rfl
-                        have hg10 : s10.machineState.gasAvailable.toNat = g.toNat - 64 := by
-                          rw [hs10]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
-                        have hk10 : s10.machineState.stack = [] := by rw [hs10]; simp only [stJumpdest]; exact hk9
-                        exact solcRevert0 hc10 hp10 (by decide) (by decide) (by decide) hk10 (by simp)
-                          hg10 (by omega) (by omega) hX10
+    -- guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
+    --   JUMPI (taken → 41)·JUMPDEST → revert stub at pc 42
+    rcases (RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
+        |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpiT (by decide) (by rw [hwv]; decide)
+          (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+          (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.pop (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push1 ⟨4⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.calldatasize (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.lt (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push2 ⟨41⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpiT (by decide)
+          (by rw [ult_one (by rw [ulit_toNat' _ (lt_size_of_lt256 (by omega)),
+            show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]; decide)
+          (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+          (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)).out
+      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
+    · exact Or.inl hoog
+    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
+        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
 
 /-- `Ξ` lift of the short-calldata revert. -/
 theorem powXi_short {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -366,45 +250,22 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
       ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
                   = .ok (.revert g' o) := by
   rcases powX_dispToEq hcode hwv hsz hsize with
-    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83⟩
+    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83, _hacc22⟩
   · exact Or.inl hoog
   · set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hseldef
     have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
     have heq0 : UInt256.eq ⟨1143701499⟩ sel = ⟨0⟩ := by
       rw [hseldef, powEvmSelector hsz, if_neg (by rw [hmatch]; decide)]
     have hstk22' : s22.machineState.stack = [⟨0⟩, sel] := by rw [hstk22, heq0]
-    have hstep22 := push2_xstep (argv := ⟨45⟩) hcode22 hpc22 (by decide) hstk22' (by norm_num)
-    by_cases h22 : g.toNat < 86
-    · exact Or.inl (by rw [hX22]; exact stepOOG hgas22 hstep22 (by norm_num) (by omega) (by omega))
-    · set s23 := stPush2 s22 ⟨45⟩ with hs23
-      have hX23 := hX22.trans (stepContinue (k := 22) (C := 83) hgas22 hstep22 (by norm_num) (by omega))
-      have hcode23 : s23.executionEnv.code = powBytecode := by rw [hs23]; simp only [stPush2]; exact hcode22
-      have hpc23 : s23.machineState.pc = ⟨40⟩ := by rw [hs23]; simp only [stPush2]; rw [hpc22]; rfl
-      have hgas23 : s23.machineState.gasAvailable.toNat = g.toNat - 86 := by
-        rw [hs23]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hstk23 : s23.machineState.stack = ⟨45⟩ :: ⟨0⟩ :: [sel] := by rw [hs23]; simp only [stPush2, hstk22']
-      have hstep23 := jumpi_nt_xstep hcode23 hpc23 (by decide) hstk23 (by norm_num)
-      by_cases h23 : g.toNat < 96
-      · exact Or.inl (by rw [hX23]; exact stepOOG (k := 23) (C := 86) (cost := 10) hgas23 hstep23 (by omega) (by omega) (by omega))
-      · set s24 := stJumpiNT s23 [sel] with hs24
-        have hX24 := hX23.trans (stepContinue (k := 23) (C := 86) (cost := 10) hgas23 hstep23 (by omega) (by omega))
-        have hcode24 : s24.executionEnv.code = powBytecode := by rw [hs24]; simp only [stJumpiNT]; exact hcode23
-        have hpc24 : s24.machineState.pc = ⟨41⟩ := by rw [hs24]; simp only [stJumpiNT]; rw [hpc23]; rfl
-        have hgas24 : s24.machineState.gasAvailable.toNat = g.toNat - 96 := by
-          rw [hs24]; simp only [stJumpiNT]; rw [toNat_sub_ofNat (by omega)]; omega
-        have hstk24 : s24.machineState.stack = [sel] := by rw [hs24]; simp only [stJumpiNT]
-        have hstep24 := jumpdest_xstep hcode24 hpc24 (by decide) (by rw [hstk24]; simp)
-        by_cases h24 : g.toNat < 97
-        · exact Or.inl (by rw [hX24]; exact stepOOG (k := 24) (C := 96) hgas24 hstep24 (by omega) (by omega) (by omega))
-        · set s25 := stJumpdest s24 with hs25
-          have hX25 := hX24.trans (stepContinue (k := 24) (C := 96) hgas24 hstep24 (by omega) (by omega))
-          have hcode25 : s25.executionEnv.code = powBytecode := by rw [hs25]; simp only [stJumpdest]; exact hcode24
-          have hpc25 : s25.machineState.pc = ⟨42⟩ := by rw [hs25]; simp only [stJumpdest]; rw [hpc24]; rfl
-          have hgas25 : s25.machineState.gasAvailable.toNat = g.toNat - 97 := by
-            rw [hs25]; simp only [stJumpdest]; rw [toNat_sub_ofNat (by omega)]; omega
-          have hstk25 : s25.machineState.stack = [sel] := by rw [hs25]; simp only [stJumpdest]; exact hstk24
-          exact solcRevert0 hcode25 hpc25 (by decide) (by decide) (by decide) hstk25 (by simp)
-            hgas25 (by omega) (by omega) hX25
+    -- PUSH2 0x2d · JUMPI (not taken: selector mismatch ⇒ eq = 0) · JUMPDEST → revert stub at pc 42
+    rcases (RD.start hcode22 hpc22 hstk22' hgas22 (by omega) hg83 hX22
+        |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpiNT (by decide) rfl (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)).out
+      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
+    · exact Or.inl hoog
+    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
+        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
 
 /-- `Ξ` lift of the wrong-selector revert. -/
 theorem powXi_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
