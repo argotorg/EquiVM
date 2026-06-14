@@ -173,10 +173,7 @@ def followSteps (loc : IntermediateStorageLoc) (steps : List EvaledStorageRefSte
   | step :: steps' =>
     match node, step with
     | .atomic _, _ => .none
-    | .indexed indirector node' , .mindex v => do
-      let iloc <- indirector loc.slot v
-      followSteps iloc steps' node'
-    | .indexed indirector node' , .aindex v => do
+    | .indexed indirector node' , .index v => do
       let iloc <- indirector loc.slot v
       followSteps iloc steps' node'
     | .tuples indirector, .tupleElem n => do

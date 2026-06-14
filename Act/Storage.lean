@@ -127,8 +127,7 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
 inductive EvaledStorageRefStep where
   | field : Ident -> EvaledStorageRefStep
   | tupleElem : Nat -> EvaledStorageRefStep
-  | mindex : KeyValue -> EvaledStorageRefStep
-  | aindex : KeyValue -> EvaledStorageRefStep
+  | index : KeyValue -> EvaledStorageRefStep
   deriving DecidableEq, Inhabited
 
 structure EvaledStorageRef where
@@ -165,4 +164,3 @@ def fixedTypeSize (t : FixedType) : Fin 33 :=
   match t with
   | .ufixed ⟨bw,hbw⟩ _ => ⟨bw/8, by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
   | .fixed ⟨bw,hbw⟩ _ => ⟨bw/8,  by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
-

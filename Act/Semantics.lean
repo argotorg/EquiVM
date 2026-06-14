@@ -370,11 +370,11 @@ def evalStorageRefStep (cfg : Config) (act : Frame) (evm : EVM.State) (step : St
   | .mindex expr => do
     let index <- evalExpr? cfg act evm expr
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
-    pure (.mindex indexKey)
+    pure (.index indexKey)
   | .aindex expr => do
     let index <- evalExpr? cfg act evm expr
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
-    pure (.aindex indexKey)
+    pure (.index indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
     all_goals simp [slotStepEvalSize]
