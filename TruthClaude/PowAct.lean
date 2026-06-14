@@ -218,15 +218,19 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
     omega
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
   set arg := uInt256OfByteArray (I.calldata.readBytes 4 32) with harg
-  rcases powX_disp hcode hwv (by omega) hsize hmatch with
-    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1, _hacc1⟩
+  have hsltval0 : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
+    apply slt32_zero <;> (rw [sub4_toNat (by omega) hsize]; omega)
+  -- dispatcher → decoder → cf, threaded as one `RD`; the require check then reverts (n ≥ 256)
+  have rdDec := powX_disp hcode hwv (by omega) hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize
+      |>.routinecf hsltval0 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+          (by simp only [List.length_cons, List.length_nil]; omega)
+  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
+  rcases rdDec.out with
+      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, _hee2⟩
   · exact Or.inl hd
-  · rcases powX_decode (s0 := initState cA gh bl σ σ₀ g A I) (I := I) (k := 24) (C := 96)
-        (by rw [hee1]; exact hcode) hee1 hp1 hstk1 hsz36 hsz255 hg1 (by norm_num) hC1 hX1 with
-      hd | ⟨k2, C2, s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2⟩
-    · exact Or.inl hd
-    · exact powX_require_revert (n := arg) (sel := sel) (R := []) hc2 hp2 hstk2 hn
-        (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2
+  · exact powX_require_revert (n := arg) (sel := sel) (R := []) hc2 hp2 hstk2 hn
+      (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2
 
 /-- `Ξ` lift of the `n ≥ 256` revert. -/
 theorem powXi_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -291,18 +295,16 @@ theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
   have hsize : I.calldata.size < UInt256.size := lt_size_of_lt256 (by omega)
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one; rw [sub4_toNat (by omega) hsize]; omega
-  rcases powX_disp hcode hwv hsz4 hsize hmatch with
-    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1, _hacc1⟩
+  -- dispatcher → decoder set-up, threaded as one `RD`; the SLT bounds check then reverts at Cf
+  rcases (powX_disp hcode hwv hsz4 hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize).out with
+      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, he2⟩
   · exact Or.inl hd
-  · rcases powX_decodeToCf (s0 := initState cA gh bl σ σ₀ g A I) (I := I) (k := 24) (C := 96)
-        (by rw [hee1]; exact hcode) hee1 hp1 hstk1 hsz4 hsize hg1 (by norm_num) hC1 hX1 with
-      hd | ⟨k2, C2, s2, hX2, hc2, he2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2⟩
-    · exact Or.inl hd
-    · exact powRoutine_cf_revert (I := I)
-        (ret := ⟨66⟩)
-        (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
-        hc2 he2 hp2 hstk2 hsz4 hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-        hg2 hk2 hCg2 hX2
+  · exact powRoutine_cf_revert (I := I)
+      (ret := ⟨66⟩)
+      (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
+      hc2 he2 hp2 hstk2 hsz4 hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
+      hg2 hk2 hCg2 hX2
 
 /-- `Ξ` lift of the short-argument revert. -/
 theorem powXi_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -329,18 +331,16 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
                   = .ok (.revert g' o) := by
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one_high; rw [sub4_toNat (by omega) hsize]; omega
-  rcases powX_disp hcode hwv (by omega) hsize hmatch with
-    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1, _hacc1⟩
+  -- dispatcher → decoder set-up, threaded as one `RD`; the SLT bounds check then reverts at Cf
+  rcases (powX_disp hcode hwv (by omega) hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize).out with
+      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, he2⟩
   · exact Or.inl hd
-  · rcases powX_decodeToCf (s0 := initState cA gh bl σ σ₀ g A I) (I := I) (k := 24) (C := 96)
-        (by rw [hee1]; exact hcode) hee1 hp1 hstk1 (by omega) hsize hg1 (by norm_num) hC1 hX1 with
-      hd | ⟨k2, C2, s2, hX2, hc2, he2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2⟩
-    · exact Or.inl hd
-    · exact powRoutine_cf_revert (I := I)
-        (ret := ⟨66⟩)
-        (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
-        hc2 he2 hp2 hstk2 (by omega) hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-        hg2 hk2 hCg2 hX2
+  · exact powRoutine_cf_revert (I := I)
+      (ret := ⟨66⟩)
+      (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
+      hc2 he2 hp2 hstk2 (by omega) hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
+      hg2 hk2 hCg2 hX2
 
 /-- `Ξ` lift of the huge-calldata revert. -/
 theorem powXi_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}

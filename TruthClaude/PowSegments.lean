@@ -306,66 +306,6 @@ theorem RD.routinedecodeToCf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C
       |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
           (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
 
-end TruthClaude.Reach
-
-/-- Old-form wrapper around `RD.routinedecodeToCf` (still used by the short-arg revert paths in
-    `PowAct`).  Exposes `s'.executionEnv = I` via `concludeE`. -/
-theorem powX_decodeToCf {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k C : ℕ}
-    {sel : UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
-    (hpc : s.machineState.pc = ⟨45⟩) (hstk : s.machineState.stack = [sel])
-    (hsz4 : 4 ≤ I.calldata.size) (hszsize : I.calldata.size < UInt256.size)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ (k' C' : ℕ) (s' : State),
-          X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
-        ∧ s'.executionEnv.code = powBytecode ∧ s'.executionEnv = I ∧ s'.machineState.pc = ⟨207⟩
-        ∧ s'.machineState.stack
-            = ⟨4⟩ :: UInt256.ofNat I.calldata.size :: ⟨66⟩ :: ⟨71⟩ :: [sel]
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-        ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords
-        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) :=
-  (RD.startWith hcode hpc hstk hgas hk hC hX rfl rfl rfl hee
-    |>.routinedecodeToCf hsz4 hszsize).concludeE
-
-/-- Function body `0x2d`: set up and call the ABI decoder, returning at
-    `0x42 = 66` with the decoded argument `n = calldata[4:36]` on the stack (`[n, ⟨71⟩, sel]`). -/
-theorem powX_decode {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k C : ℕ}
-    {sel : UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
-    (hpc : s.machineState.pc = ⟨45⟩) (hstk : s.machineState.stack = [sel])
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ (k' C' : ℕ) (s' : State),
-          X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
-        ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ⟨66⟩
-        ∧ s'.machineState.stack = uInt256OfByteArray (I.calldata.readBytes 4 32) :: ⟨71⟩ :: [sel]
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-        ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords
-        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
-  have hszsize : I.calldata.size < UInt256.size := by
-    have hp : (2:ℕ)^255 + 4 < UInt256.size := by
-      have : (2:ℕ)^255 + 4 < 2^256 := by norm_num
-      simpa [UInt256.size] using this
-    omega
-  have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
-    apply slt32_zero
-    · rw [sub4_toNat (by omega) hszsize]; omega
-    · rw [sub4_toNat (by omega) hszsize]; omega
-  rw [show I.calldata.readBytes 4 32
-        = I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨0⟩).toNat 32 from by rw [add40_toNat]]
-  -- decode prefix (0x2d → 207) then the bounds-checked decoder 0xcf, composed as one RD fold
-  exact (RD.startWith hcode hpc hstk hgas hk hC hX rfl rfl rfl hee
-      |>.routinedecodeToCf (by omega) hszsize
-      |>.routinecf hsltval (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by simp only [List.length_cons, List.length_nil]; omega)).conclude
-
-namespace TruthClaude.Reach
 
 /-- `require(n < 256)` check (passes) as an **`RD→RD` combinator**: `0x42 → 0x75`, leaving
     `[0, 1, 0, n, 71, sel]` (initialises the loop's `r = 1, i = 0`).  19 instructions / gas 57. -/
@@ -705,41 +645,37 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
   -- the selector word and the decoded argument
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
   set arg := uInt256OfByteArray (I.calldata.readBytes 4 32) with harg
-  rcases powX_disp hcode hwv (by omega) hsize hmatch with
-    hd | ⟨s1, hX1, hee1, hp1, hg1, hstk1, haw1, hmem1, hC1, hacc1⟩
+  -- decoder bounds check passes (size ≥ 36 ⇒ slt(size − 4, 32) = 0); require check passes (n < 256)
+  have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
+    apply slt32_zero <;> (rw [sub4_toNat (by omega) hsize]; omega)
+  have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
+    show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
+    exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
+  have hltval : UInt256.lt arg ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
+  -- dispatcher → decoder → cf → require → loop → loop-exit, threaded as one `RD`; encoder is terminal
+  have rdDec := powX_disp hcode hwv (by omega) hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize
+      |>.routinecf hsltval (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+          (by simp only [List.length_cons, List.length_nil]; omega)
+  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
+  rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
+      hn (by simp only [List.length_cons, List.length_nil]; omega)
+      arg.toNat ⟨0⟩ ⟨1⟩ _ _
+      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
+      (by decide)
+      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
+      (rdDec |>.routinerequire hltval (by simp only [List.length_cons, List.length_nil]; omega))
+    with ⟨k4, C4, rd4⟩
+  rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+        (by simp only [List.length_cons, List.length_nil]; omega)).out with
+      hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
   · exact Or.inl hd
-  · rcases powX_decode (s0 := initState cA gh bl σ σ₀ g A I) (I := I) (k := 24) (C := 96)
-        (by rw [hee1]; exact hcode) hee1 hp1 hstk1 hsz36 hsz255 hg1 (by norm_num) hC1 hX1 with
-      hd | ⟨k2, C2, s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, hacc2⟩
+  · rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
+        hc5 hp5 hstk5 hmem5 haw5 (by simp only [List.length_cons, List.length_nil]; omega)
+        hg5 hk5 hCg5 hX5 with
+      hd | ⟨s6, hX6, hacc6⟩
     · exact Or.inl hd
-    · -- require (RD.routinerequire) → loop → loop-exit → encoder, threaded as one `RD`
-      have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
-        show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
-        exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
-      have hltval : UInt256.lt arg ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
-      rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
-          hn (by simp only [List.length_cons, List.length_nil]; omega)
-          arg.toNat ⟨0⟩ ⟨1⟩ _ _
-          (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-          (by decide)
-          (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-          (RD.start hc2 hp2 hstk2 hg2 hk2 hCg2 hX2
-            |>.routinerequire hltval (by simp only [List.length_nil]; omega)) with ⟨k4, C4, rd4⟩
-      rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-            (by simp only [List.length_cons, List.length_nil]; omega)).out with
-          hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
-      · exact Or.inl hd
-      · have hmemS : s5.machineState.memory = solcFreePtrMem := by
-          rw [hmem5, hmem2, hmem1]
-        have hawS : s5.machineState.activeWords = UInt256.ofNat 3 := by
-          rw [haw5, haw2, haw1]
-        rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
-            hc5 hp5 hstk5 hmemS hawS (by simp only [List.length_cons, List.length_nil]; omega)
-            hg5 hk5 hCg5 hX5 with
-          hd | ⟨s6, hX6, hacc6⟩
-        · exact Or.inl hd
-        · exact Or.inr ⟨s6, hX6,
-            hacc6.trans (hacc5.trans (hacc2.trans hacc1))⟩
+    · exact Or.inr ⟨s6, hX6, hacc6.trans hacc5⟩
 
 /-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/

@@ -217,16 +217,9 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ s, (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                = X (g.toNat + 1 - 24) (D_J powBytecode ⟨0⟩) s)
-           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨45⟩
-           ∧ s.machineState.gasAvailable.toNat = g.toNat - 96
-           ∧ s.machineState.stack
-               = [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
-           ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 96 ≤ g.toNat
-           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
+    RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
+        [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+        solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 24 96 := by
   rcases powX_dispToEq hcode hwv hsz hsize with
     hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83, hacc22⟩
   · exact Or.inl hoog
@@ -236,11 +229,8 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
       rw [hseldef, powEvmSelector hsz, if_pos hmatch]
     have hstk22' : s22.machineState.stack = [⟨1⟩, sel] := by rw [hstk22, heq1]
     -- PUSH2 0x2d · JUMPI (taken: selector match ⇒ eq = 1) → function body JUMPDEST at pc 45
-    rcases (RD.startWith hcode22 hpc22 hstk22' hgas22 (by omega) hg83 hX22 hmem22 haw22 hacc22 hee22
+    exact RD.startWith hcode22 hpc22 hstk22' hgas22 (by omega) hg83 hX22 hmem22 haw22 hacc22 hee22
         |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
         |>.jumpiT (by decide) (by decide)
           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by simp only [List.length_cons, List.length_nil]; omega)).out
-      with hoog | ⟨s, hX, _hc, hp, hstk, hg, _hk, hCg, hmem, haw, hacc, hee⟩
-    · exact Or.inl hoog
-    · exact Or.inr ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hCg, hacc⟩
+          (by simp only [List.length_cons, List.length_nil]; omega)
