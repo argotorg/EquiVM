@@ -127,15 +127,15 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
   · exact Or.inl hd
   · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
-    -- PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub at pc 12
-    rcases (RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
+    -- PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub PUSH0·PUSH0·REVERT
+    exact RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
         |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
         |>.jumpiNT (by decide) (isZero_eq_zero_of_ne hwv)
-          (by simp only [List.length_cons, List.length_nil]; omega)).out
-      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
-    · exact Or.inl hoog
-    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
-        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
+          (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+          (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Lift any `X`-level revert/OOG result to `Ξ`. -/
 theorem powXi_of_revert {cA gh bl σ σ₀ A I} {g : UInt256} (hcode : I.code = powBytecode)
@@ -171,7 +171,7 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
   · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
     -- guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
     --   JUMPI (taken → 41)·JUMPDEST → revert stub at pc 42
-    rcases (RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
+    exact RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
         |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
         |>.jumpiT (by decide) (by rw [hwv]; decide)
           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
@@ -187,11 +187,11 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
             show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]; decide)
           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
           (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)).out
-      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
-    · exact Or.inl hoog
-    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
-        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
+        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+        |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+          (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- `Ξ` lift of the short-calldata revert. -/
 theorem powXi_short {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -220,17 +220,18 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
   set arg := uInt256OfByteArray (I.calldata.readBytes 4 32) with harg
   have hsltval0 : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
     apply slt32_zero <;> (rw [sub4_toNat (by omega) hsize]; omega)
-  -- dispatcher → decoder → cf, threaded as one `RD`; the require check then reverts (n ≥ 256)
-  have rdDec := powX_disp hcode hwv (by omega) hsize hmatch
+  have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
+    show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
+    exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
+  have hltval : UInt256.lt arg ⟨256⟩ = ⟨0⟩ := ult_zero (by rw [h256]; exact hn)
+  -- dispatcher → decoder → cf → require-revert (n ≥ 256), threaded as one `RD` ⇒ `RDrev`
+  have rdDec := powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+        hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf hsltval0 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
           (by simp only [List.length_cons, List.length_nil]; omega)
   rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
-  rcases rdDec.out with
-      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, _hee2⟩
-  · exact Or.inl hd
-  · exact powX_require_revert (n := arg) (sel := sel) (R := []) hc2 hp2 hstk2 hn
-      (by simp only [List.length_nil]; omega) hg2 hk2 hCg2 hX2
+  exact rdDec |>.routinerequire_revert hltval (by simp only [List.length_nil]; omega)
 
 /-- `Ξ` lift of the `n ≥ 256` revert. -/
 theorem powXi_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -253,23 +254,20 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
       ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
                   = .ok (.revert g' o) := by
-  rcases powX_dispToEq hcode hwv hsz hsize with
-    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83, _hacc22⟩
-  · exact Or.inl hoog
-  · set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hseldef
-    have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
-    have heq0 : UInt256.eq ⟨1143701499⟩ sel = ⟨0⟩ := by
-      rw [hseldef, powEvmSelector hsz, if_neg (by rw [hmatch]; decide)]
-    have hstk22' : s22.machineState.stack = [⟨0⟩, sel] := by rw [hstk22, heq0]
-    -- PUSH2 0x2d · JUMPI (not taken: selector mismatch ⇒ eq = 0) · JUMPDEST → revert stub at pc 42
-    rcases (RD.start hcode22 hpc22 hstk22' hgas22 (by omega) hg83 hX22
-        |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.jumpiNT (by decide) rfl (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)).out
-      with hoog | ⟨s', hX', hc', hp', hstk', hg', hk', hCg', _, _, _, _⟩
-    · exact Or.inl hoog
-    · exact solcRevert0 hc' hp' (by decide) (by decide) (by decide) hstk'
-        (by simp only [List.length_cons, List.length_nil]; omega) hg' hk' hCg' hX'
+  -- selector compare resolves to `0` (mismatch); the dispatch JUMPI falls through to the revert stub
+  have rd := powX_dispToEq (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcode hwv hsz hsize
+  rw [show UInt256.eq ⟨1143701499⟩
+        (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨0⟩
+      from by rw [powEvmSelector hsz, if_neg (by rw [hmatch]; decide)]] at rd
+  exact rd
+      |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.jumpiNT (by decide) rfl (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+        (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- `Ξ` lift of the wrong-selector revert. -/
 theorem powXi_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -295,16 +293,11 @@ theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
   have hsize : I.calldata.size < UInt256.size := lt_size_of_lt256 (by omega)
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one; rw [sub4_toNat (by omega) hsize]; omega
-  -- dispatcher → decoder set-up, threaded as one `RD`; the SLT bounds check then reverts at Cf
-  rcases (powX_disp hcode hwv hsz4 hsize hmatch
-      |>.routinedecodeToCf (by omega) hsize).out with
-      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, he2⟩
-  · exact Or.inl hd
-  · exact powRoutine_cf_revert (I := I)
-      (ret := ⟨66⟩)
-      (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
-      hc2 he2 hp2 hstk2 hsz4 hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-      hg2 hk2 hCg2 hX2
+  -- dispatcher → decoder set-up → Cf-revert (SLT bounds check fails), threaded as one `RD` ⇒ `RDrev`
+  exact powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+        hcode hwv hsz4 hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize
+      |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- `Ξ` lift of the short-argument revert. -/
 theorem powXi_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -331,16 +324,11 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
                   = .ok (.revert g' o) := by
   have hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply slt32_one_high; rw [sub4_toNat (by omega) hsize]; omega
-  -- dispatcher → decoder set-up, threaded as one `RD`; the SLT bounds check then reverts at Cf
-  rcases (powX_disp hcode hwv (by omega) hsize hmatch
-      |>.routinedecodeToCf (by omega) hsize).out with
-      hd | ⟨s2, hX2, hc2, hp2, hstk2, hg2, hk2, hCg2, hmem2, haw2, _hacc2, he2⟩
-  · exact Or.inl hd
-  · exact powRoutine_cf_revert (I := I)
-      (ret := ⟨66⟩)
-      (R' := ⟨71⟩ :: [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩])
-      hc2 he2 hp2 hstk2 (by omega) hsize hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-      hg2 hk2 hCg2 hX2
+  -- dispatcher → decoder set-up → Cf-revert (SLT bounds check fails), threaded as one `RD` ⇒ `RDrev`
+  exact powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+        hcode hwv (by omega) hsize hmatch
+      |>.routinedecodeToCf (by omega) hsize
+      |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- `Ξ` lift of the huge-calldata revert. -/
 theorem powXi_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}

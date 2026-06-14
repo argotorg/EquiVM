@@ -794,6 +794,90 @@ theorem RD.jumpiNT {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : St
       · simp only [stJumpiNT]; exact hacc
       · exact hee
 
+/-! ## Halting terminals (`RETURN` ⇒ success, `REVERT` ⇒ revert)
+
+`RDret`/`RDrev` are the **terminal** analogues of `RD`: instead of a reached cursor, they record
+that the whole run `X (g+1) … s0` has *halted* — with a success (returning bytes `o`, accounts
+`acc` preserved) or a revert.  The combinators `RD.ret`/`RD.rev` step the final `RETURN`/`REVERT`
+off an `RD` cursor, so a terminating segment composes in the `|>.` chain (`… |>.push0 |>.push0
+|>.rev …`) instead of breaking out via `.out` + a manual halt step. -/
+
+/-- Halting-success terminal: `X (g+1) … s0` returns the bytes `o`, preserving accounts `acc`. -/
+def RDret (code : ByteArray) (g : UInt256) (s0 : State)
+    (acc : Batteries.RBSet AccountAddress compare × AccountMap) (o : ByteArray) : Prop :=
+  X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
+  ∨ ∃ s', X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .ok (.success s' o)
+        ∧ (s'.createdAccounts, s'.accountMap) = acc
+
+/-- Halting-revert terminal: `X (g+1) … s0` reverts. -/
+def RDrev (code : ByteArray) (g : UInt256) (s0 : State) : Prop :=
+  X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
+  ∨ ∃ g' o, X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .ok (.revert g' o)
+
+/-- A terminal opcode whose gas check fails leaves the whole run out of gas (shared by
+    `RD.ret`/`RD.rev`).  `stepOOG` does not apply — it wants the *continue* control `.none`,
+    whereas a halt step carries `.some (_, o)` — so we peel the erroring `Xstep` directly. -/
+private theorem RD.terminalOOG {code : ByteArray} {g : UInt256} {s0 s : State} {k C cost : ℕ}
+    {res : Except _ (State × Option (Bool × ByteArray))}
+    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C)
+    (hstep : Xstep (D_J code ⟨0⟩) s
+              = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass else res)
+    (hk : k ≤ C) (hC : C ≤ g.toNat) (hOOG : g.toNat < C + cost)
+    (hX : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J code ⟨0⟩) s) :
+    X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass := by
+  rw [hX]
+  have hgg : s.machineState.gasAvailable.toNat < cost := by rw [hgas]; omega
+  have hstepE : Xstep (D_J code ⟨0⟩) s = .error .OutOfGass := by rw [hstep, if_pos hgg]
+  have hfuel : g.toNat + 1 - k = (g.toNat + 1 - (k + 1)) + 1 := by omega
+  rw [hfuel]; exact Ethereum.EVM.Xstep_X_X_except _ s _ _ hstepE
+
+/-- `RETURN`: terminate, returning `mem[off .. off+len]` (resolved to the literal `oval`).  Turns an
+    `RD` cursor into the halting-success terminal `RDret`. -/
+theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {off len : UInt256} {t : List UInt256} (mcost : ℕ) (oval : ByteArray)
+    (h : RD code ee g s0 pc (off :: len :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.RETURN, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
+        memoryExpansionCost s .RETURN = mcost)
+    (hoval : mem.readWithPadding off.toNat len.toNat = oval)
+    (hov : t.length ≤ 1024) :
+    RDret code g s0 acc oval := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, _hee⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .RETURN = mcost := hmc s haw hstk
+    have st := return_xstep hcode hpc hdec hstk hov
+    rw [hmcS, show s.machineState.memory.readWithPadding off.toNat len.toNat = oval from by
+      rw [hmem, hoval]] at st
+    by_cases gg : g.toNat < C + mcost
+    · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
+    · exact Or.inr ⟨stReturn s off len t, hX.trans (stepHaltSuccess hgas st hk (by omega)),
+        by simp only [stReturn]; exact hacc⟩
+
+/-- `REVERT`: terminate with a revert returning `mem[off .. off+len]`.  Turns an `RD` cursor into the
+    halting-revert terminal `RDrev`. -/
+theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {off len : UInt256} {t : List UInt256} (mcost : ℕ)
+    (h : RD code ee g s0 pc (off :: len :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.REVERT, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
+        memoryExpansionCost s .REVERT = mcost)
+    (hov : t.length ≤ 1024) :
+    RDrev code g s0 := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, _hacc, _hee⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .REVERT = mcost := hmc s haw hstk
+    have st := revert_xstep hcode hpc hdec hstk hov
+    rw [hmcS] at st
+    by_cases gg : g.toNat < C + mcost
+    · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
+    · exact Or.inr ⟨_, _, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
+
 /-! ## Spike acceptance: a 2-step fold closes a fixed-pc / fixed-stack conclusion -/
 
 /-- JUMPDEST then SWAP1, fully abstract over the bytecode (decode facts supplied as

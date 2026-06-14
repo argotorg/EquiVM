@@ -216,47 +216,38 @@ theorem RD.routinecf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
     |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
 
+/-- Decoder bounds-check **failure** (`0xcf` revert path) as an **`RD → RDrev` combinator**: from the
+    decoder Cf-entry at pc 207 with `[4, de, ret, …R']`, the signed `SLT(de − 4, 32) = 1` ⇒ `ISZERO = 0`
+    ⇒ the `JUMPI` falls through to the revert routine `0x98`, which reverts (`PUSH0·PUSH0·REVERT`).
+    Composes off `routinedecodeToCf` (the short-arg / huge-arg revert paths). -/
+theorem RD.routinecf_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {de ret : UInt256} {R' : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD powBytecode ee g s0 ⟨207⟩ (⟨4⟩ :: de :: ret :: R') mem aw acc k C)
+    (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨1⟩)
+    (hov : R'.length + 15 ≤ 1024) :
+    RDrev powBytecode g s0 :=
+  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push1 ⟨32⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.slt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨228⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jumpiNT (by decide) (by rw [hsltval]; decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨227⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨152⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+        (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+        (by first | (simp only [List.length_cons]; omega) | omega)
+
 end TruthClaude.Reach
-
-/-- **Decoder bounds check fails (`calldatasize < 36`)**: the signed `SLT(size−4, 32)` is `1`, so
-    `ISZERO` is `0`, the `JUMPI` is not taken, and execution jumps to the revert routine at `0x98`.
-    Shares the `0x cf` entry with `powRoutine_cf`; only the `SLT` value and the post-`JUMPI` tail
-    differ. -/
-theorem powRoutine_cf_revert {g : UInt256} {s0 s : State} {I : Ethereum.ExecutionEnv} {k C : ℕ}
-    {ret : UInt256} {R' : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hee : s.executionEnv = I)
-    (hpc : s.machineState.pc = ⟨207⟩)
-    (hstk : s.machineState.stack = ⟨4⟩ :: UInt256.ofNat I.calldata.size :: ret :: R')
-    (hsz4 : 4 ≤ I.calldata.size) (hszsize : I.calldata.size < UInt256.size)
-    (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
-    (hov : R'.length + 15 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .ok (.revert g' o) := by
-  set de := UInt256.ofNat I.calldata.size with hde
-  -- 207→153: same prologue as cf, but SLT=1 ⇒ ISZERO=0 ⇒ JUMPI not taken ⇒ fall through to revert routine
-  rcases (RD.startWith hcode hpc hstk hgas hk hC hX rfl rfl rfl hee
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push1 ⟨32⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.slt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨228⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpiNT (by decide) (by rw [hsltval]; decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨227⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨152⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)).out
-    with hoog | ⟨s14, hX14, hc14, hp14, hstk14, hg14, hkC14, hCg14, _hm, _ha, _hacc, _hee⟩
-  · exact Or.inl hoog
-  exact solcRevert0 hc14 hp14 (by decide) (by decide) (by decide) hstk14
-    (by first | (simp only [List.length_cons]; omega) | omega) hg14 hkC14 hCg14 hX14
-
 /-- General `ADD` toNat (mod size). -/
 theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt256.size := by
   show (a.val + b.val).val = (a.val.val + b.val.val) % UInt256.size
@@ -340,45 +331,32 @@ theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : 
     |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
     |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
 
-end TruthClaude.Reach
+/-- `require(n < 256)` **failure** (`n ≥ 256`) as an **`RD → RDrev` combinator**: from pc 66 with
+    `[n, 71, sel, …R]`, `LT n 256 = 0` ⇒ the `JUMPI` is not taken and execution reverts at `0x68`
+    (`PUSH0·PUSH0·REVERT`).  Composes off the decoder (the `n ≥ 256` revert path). -/
+theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {n sel : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD powBytecode ee g s0 ⟨66⟩ (n :: ⟨71⟩ :: sel :: R) mem aw acc k C)
+    (hltval : UInt256.lt n ⟨256⟩ = ⟨0⟩) (hov : R.length + 10 ≤ 1024) :
+    RDrev powBytecode g s0 :=
+  -- 66→104: JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT(=0)·PUSH2 107·JUMPI(nt) ⇒ revert
+  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨93⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+        (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨256⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push2 ⟨107⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.jumpiNT (by decide) hltval (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+    |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+        (by first | (simp only [List.length_cons]; omega) | omega)
 
-/-- **`require(n < 256)` fails (`n ≥ 256`)**: same prefix as `powX_require`, but `LT n 256 = 0`,
-    so the `JUMPI` is not taken and execution reverts at `0x68`.  Reused (in the assembly) after
-    the already-proved `powX_disp` + `powX_decode`. -/
-theorem powX_require_revert {g : UInt256} {s0 s : State} {k C : ℕ} {n sel : UInt256}
-    {R : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨66⟩)
-    (hstk : s.machineState.stack = n :: ⟨71⟩ :: sel :: R) (hn : 256 ≤ n.toNat)
-    (hov : R.length + 10 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .ok (.revert g' o) := by
-  have h256 : (⟨256⟩ : UInt256).toNat = 256 := by
-    show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
-    have : (256:ℕ) < UInt256.size := by
-      have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this
-    exact Nat.mod_eq_of_lt this
-  have hltval : UInt256.lt n ⟨256⟩ = ⟨0⟩ := ult_zero (by rw [h256]; exact hn)
-  -- 66→104: JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT(=0)·PUSH2 107·JUMPI(not taken) ⇒ revert
-  rcases (RD.start hcode hpc hstk hgas hk hC hX
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨93⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨256⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨107⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpiNT (by decide) hltval (by first | (simp only [List.length_cons]; omega) | omega)).out
-    with hoog | ⟨s10, hX10, hc10, hp10, hstk10, hg10, hkC10, hCg10, _hm, _ha, _hacc, _hee⟩
-  · exact Or.inl hoog
-  exact solcRevert0 hc10 hp10 (by decide) (by decide) (by decide) hstk10
-    (by first | (simp only [List.length_cons]; omega) | omega) hg10 hkC10 hCg10 hX10
-
-namespace TruthClaude.Reach
 
 /-- Loop exit `0x8e → 0x47` as an **`RD→RD` combinator**: drop the loop scratch, keep the result
     `val = 2^n`, and jump to the encoder at the saved return address `ret`.
@@ -465,20 +443,20 @@ theorem sub_ret32_toNat : (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128
 `pc 71` ABI-encodes the return word `val = 2^n` into `mem[0x80 .. 0xa0]` (via the internal
 `abi_encode` routines at `0x109`/`0xfa`/`0x9c`) and `RETURN`s those 32 bytes.  47 instructions
 plus one nested `powRoutine_9c` call.  Concludes the success result `toByteArray val`. -/
+namespace TruthClaude.Reach
+
 set_option maxHeartbeats 4000000 in
-theorem powX_encode {g : UInt256} {s0 s : State} {k C : ℕ} {val : UInt256} {Rt : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨71⟩)
-    (hstk : s.machineState.stack = val :: Rt)
-    (hmem : s.machineState.memory = solcFreePtrMem)
-    (haw : s.machineState.activeWords = UInt256.ofNat 3)
-    (hov : Rt.length + 11 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ s', X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0
-                = .ok (.success s' (UInt256.toByteArray val))
-            ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) := by
-  rcases (RD.startWith hcode hpc hstk hgas hk hC hX hmem haw rfl rfl
+/-- The encoder `0x47 → RETURN` as an **`RD → RDret` combinator**: from pc 71 with `[val, …Rt]`,
+    free-pointer memory and `activeWords = 3`, ABI-encode `val` into `mem[0x80 .. 0xa0]` and `RETURN`
+    those 32 bytes — halting with success returning `toByteArray val`.  47 instructions plus one
+    nested `0x9c` call. -/
+theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {val : UInt256} {Rt : List UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD powBytecode ee g s0 ⟨71⟩ (val :: Rt) solcFreePtrMem (UInt256.ofNat 3) acc k C)
+    (hov : Rt.length + 11 ≤ 1024) :
+    RDret powBytecode g s0 acc (UInt256.toByteArray val) :=
+  h
       -- 1: JUMPDEST @71
       |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
       -- 2: PUSH1 64 @72
@@ -600,26 +578,17 @@ theorem powX_encode {g : UInt256} {s0 s : State} {k C : ℕ} {val : UInt256} {Rt
       |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
       -- 47: SWAP1 @91 → pc 92
       |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      ).out with hoog | ⟨sR, hXR, hcR, hpR, hstkR, hgR, hkCR, hCgR, hmemR, hawR, haccR, _heeR⟩
-  · exact Or.inl hoog
-  -- RETURN @92: returns mem[128 .. 160] = toByteArray val
-  · have h0ᵣ : sR.machineState.stack[0]! = (⟨128⟩ : UInt256) := by rw [hstkR]; rfl
-    have h1ᵣ : sR.machineState.stack[1]! = UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩ := by
-      rw [hstkR]; rfl
-    have hmcr : memoryExpansionCost sR .RETURN = 0 := by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hawR, h0ᵣ, h1ᵣ]; decide
-    have st47 := return_xstep hcR hpR (by decide) hstkR
-      (by first | (simp only [List.length_cons]; omega) | omega)
-    rw [hmcr,
-      show sR.machineState.memory.readWithPadding (⟨128⟩ : UInt256).toNat
-            (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = UInt256.toByteArray val from by
-        rw [hmemR, show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat,
-          powMem2_read128]] at st47
-    refine Or.inr ⟨stReturn sR ⟨128⟩ (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩) Rt, ?_, ?_⟩
-    · exact hXR.trans (stepHaltSuccess hgR st47 (by omega) (by omega))
-    · show (sR.createdAccounts, sR.accountMap) = (s.createdAccounts, s.accountMap)
-      exact haccR
+      -- 48: RETURN @92 → success returning mem[128 .. 160] = toByteArray val
+      |>.ret 0 (UInt256.toByteArray val) (by decide)
+        (fun s haws hstks => by
+          have h0 : s.machineState.stack[0]! = (⟨128⟩ : UInt256) := (by rw [hstks]; rfl)
+          have h1 : s.machineState.stack[1]! = UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩ :=
+            (by rw [hstks]; rfl)
+          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0, h1]; decide)
+        (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, powMem2_read128])
+        (by first | (simp only [List.length_cons]; omega) | omega)
 
+end TruthClaude.Reach
 
 /-! ## Full success trace — `initState → RETURN(2^n)` (**proved**)
 
@@ -632,12 +601,9 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ s', (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-          = .ok (.success s'
-              (UInt256.toByteArray
-                (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))))
-            ∧ ((s'.createdAccounts, s'.accountMap) = (cA, σ)) := by
+    RDret powBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+        (UInt256.toByteArray
+          (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat))) := by
   have hsize : I.calldata.size < UInt256.size := by
     have h0 : (2:ℕ)^255 + 4 < 2^256 := by norm_num
     have hp : (2:ℕ)^255 + 4 < UInt256.size := by simpa [UInt256.size] using h0
@@ -653,7 +619,8 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
     exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
   have hltval : UInt256.lt arg ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
   -- dispatcher → decoder → cf → require → loop → loop-exit, threaded as one `RD`; encoder is terminal
-  have rdDec := powX_disp hcode hwv (by omega) hsize hmatch
+  have rdDec := powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+        hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf hsltval (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
           (by simp only [List.length_cons, List.length_nil]; omega)
@@ -666,16 +633,10 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
       (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
       (rdDec |>.routinerequire hltval (by simp only [List.length_cons, List.length_nil]; omega))
     with ⟨k4, C4, rd4⟩
-  rcases (rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by simp only [List.length_cons, List.length_nil]; omega)).out with
-      hd | ⟨s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5, _hee5⟩
-  · exact Or.inl hd
-  · rcases powX_encode (val := UInt256.ofNat (2 ^ arg.toNat)) (Rt := [sel])
-        hc5 hp5 hstk5 hmem5 haw5 (by simp only [List.length_cons, List.length_nil]; omega)
-        hg5 hk5 hCg5 hX5 with
-      hd | ⟨s6, hX6, hacc6⟩
-    · exact Or.inl hd
-    · exact Or.inr ⟨s6, hX6, hacc6.trans hacc5⟩
+  -- loop-exit → encoder, threaded straight to the success terminal `RDret`
+  exact rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+        (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.routineencode (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
     big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/

@@ -157,18 +157,11 @@ the free-pointer memory in place.  Mirrors `truthX_cvz_*` but with PUSH2 jump ta
 theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ s, (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                = X (g.toNat + 1 - 22) (D_J powBytecode ⟨0⟩) s)
-           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨37⟩
-           ∧ s.machineState.gasAvailable.toNat = g.toNat - 83
-           ∧ s.machineState.stack
-               = [UInt256.eq ⟨1143701499⟩
-                    (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩),
-                  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
-           ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 83 ≤ g.toNat
-           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
+    RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨37⟩
+        [UInt256.eq ⟨1143701499⟩
+            (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩),
+          UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+        solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 22 83 := by
   have hsztoNat : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
     show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
     simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
@@ -183,7 +176,7 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     rw [hstk6raw, hwv, show UInt256.isZero ⟨0⟩ = ⟨1⟩ from by decide]
   -- steps 6–21: PUSH2·JUMPI(t)·JUMPDEST·POP·PUSH1·CALLDATASIZE·LT·PUSH2·JUMPI(nt)·PUSH0·
   --             CALLDATALOAD·PUSH1·SHR·DUP1·PUSH4·EQ, reaching the selector compare at pc 37
-  rcases (RD.startWith hcode6 hpc6 hstk6 hgas6 (by omega) hg26 hX6 hmem6 haw6 hacc6 hee6
+  have rd := RD.startWith hcode6 hpc6 hstk6 hgas6 (by omega) hg26 hX6 hmem6 haw6 hacc6 hee6
       |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpiT (by decide) (by decide)
         (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
@@ -201,11 +194,9 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
       |>.shr (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.dup1 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.push4 ⟨1143701499⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.eq (by decide) (by simp only [List.length_cons, List.length_nil]; omega)).out
-    with hoog | ⟨s, hX, _hc, hp, hstk, hg, _hk, hCg, hmem, haw, hacc, hee⟩
-  · exact Or.inl hoog
-  · refine Or.inr ⟨s, hX, hee, hp, hg, ?_, haw, hmem, hCg, hacc⟩
-    rw [hstk, show (⟨0⟩ : UInt256).toNat = 0 from by decide]
+      |>.eq (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide] at rd
+  exact rd
 
 
 
@@ -220,17 +211,14 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
     RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
         [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
         solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 24 96 := by
-  rcases powX_dispToEq hcode hwv hsz hsize with
-    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83, hacc22⟩
-  · exact Or.inl hoog
-  · set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hseldef
-    have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
-    have heq1 : UInt256.eq ⟨1143701499⟩ sel = ⟨1⟩ := by
-      rw [hseldef, powEvmSelector hsz, if_pos hmatch]
-    have hstk22' : s22.machineState.stack = [⟨1⟩, sel] := by rw [hstk22, heq1]
-    -- PUSH2 0x2d · JUMPI (taken: selector match ⇒ eq = 1) → function body JUMPDEST at pc 45
-    exact RD.startWith hcode22 hpc22 hstk22' hgas22 (by omega) hg83 hX22 hmem22 haw22 hacc22 hee22
-        |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.jumpiT (by decide) (by decide)
-          (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by simp only [List.length_cons, List.length_nil]; omega)
+  -- the selector compare resolves to `1` (match), then PUSH2 0x2d · JUMPI (taken) → body at pc 45
+  have rd := powX_dispToEq (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcode hwv hsz hsize
+  rw [show UInt256.eq ⟨1143701499⟩
+        (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨1⟩
+      from by rw [powEvmSelector hsz, if_pos hmatch]] at rd
+  exact rd
+      |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.jumpiT (by decide) (by decide)
+        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+        (by simp only [List.length_cons, List.length_nil]; omega)
