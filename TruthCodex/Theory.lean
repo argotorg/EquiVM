@@ -6154,6 +6154,39 @@ theorem append {validJumps : Array Ethereum.UInt256}
       simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
         (GasTrace.cons hStep hGas hRest)
 
+theorem append_three {validJumps : Array Ethereum.UInt256}
+    {m n k : Nat} {s t u v : Ethereum.State}
+    (h₁ : GasTrace validJumps m s t)
+    (h₂ : GasTrace validJumps n t u)
+    (h₃ : GasTrace validJumps k u v) :
+    GasTrace validJumps (m + n + k) s v := by
+  have h₁₂ : GasTrace validJumps (m + n) s u :=
+    GasTrace.append h₁ h₂
+  exact GasTrace.append h₁₂ h₃
+
+theorem append_four {validJumps : Array Ethereum.UInt256}
+    {m n k l : Nat} {s t u v w : Ethereum.State}
+    (h₁ : GasTrace validJumps m s t)
+    (h₂ : GasTrace validJumps n t u)
+    (h₃ : GasTrace validJumps k u v)
+    (h₄ : GasTrace validJumps l v w) :
+    GasTrace validJumps (m + n + k + l) s w := by
+  have h₁₂₃ : GasTrace validJumps (m + n + k) s v :=
+    GasTrace.append_three h₁ h₂ h₃
+  exact GasTrace.append h₁₂₃ h₄
+
+theorem append_five {validJumps : Array Ethereum.UInt256}
+    {m n k l p : Nat} {s t u v w x : Ethereum.State}
+    (h₁ : GasTrace validJumps m s t)
+    (h₂ : GasTrace validJumps n t u)
+    (h₃ : GasTrace validJumps k u v)
+    (h₄ : GasTrace validJumps l v w)
+    (h₅ : GasTrace validJumps p w x) :
+    GasTrace validJumps (m + n + k + l + p) s x := by
+  have h₁₂₃₄ : GasTrace validJumps (m + n + k + l) s w :=
+    GasTrace.append_four h₁ h₂ h₃ h₄
+  exact GasTrace.append h₁₂₃₄ h₅
+
 theorem snoc {validJumps : Array Ethereum.UInt256}
     {n : Nat} {s t u : Ethereum.State}
     (hTrace : GasTrace validJumps n s t)
@@ -7476,6 +7509,35 @@ lemma EVM_Xi_of_initial_continue_trace_jumpi_oog_of_le_of_decode
     hTrace
     hDecode
     (fun hDecode' => Ethereum.EVM.Xstep_jumpi_oog_of_decode hDecode' hStack hGas)
+
+lemma EVM_Xi_of_initial_gas_trace_jumpi_oog_of_decode
+    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
+    {genesisBlockHeader : Ethereum.BlockHeader}
+    {blocks : Ethereum.ProcessedBlocks}
+    {σ σ₀ : Ethereum.AccountMap}
+    {g : Ethereum.UInt256}
+    {A : Ethereum.Substate}
+    {I : Ethereum.ExecutionEnv}
+    {n : Nat}
+    {t : Ethereum.State}
+    {dest cond : Ethereum.UInt256}
+    {tail : Ethereum.Stack Ethereum.UInt256}
+    (hTrace :
+      Ethereum.EVM.GasTrace (Ethereum.EVM.D_J I.code ⟨0⟩) n
+        (initialEVMState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) t)
+    (hDecode :
+      Ethereum.EVM.decode I.code t.machineState.pc = some (.JUMPI, .none))
+    (hStack : t.machineState.stack = dest :: cond :: tail)
+    (hGas : t.machineState.gasAvailable.toNat < GasConstants.Ghigh) :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I =
+      .error .OutOfGass :=
+  EVM_Xi_of_initial_continue_trace_jumpi_oog_of_le_of_decode
+    (n := n)
+    (Ethereum.EVM.GasTrace.length_le_initial_gas hTrace)
+    hTrace.toContinueTrace
+    hDecode
+    hStack
+    hGas
 
 lemma EVM_Xi_of_initial_continue_trace_jumpdest_oog_of_le_of_decode
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
