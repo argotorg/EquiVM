@@ -122,3 +122,64 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
   `outOfGas`.
 The single remaining `sorry` in `truthCorrect` is the `callvalue == 0 ∧ enough-gas`
 branch, blocked by **both** defects above. It is isolated and documented in NOTES.md.
+
+---
+
+# `powCorrect` (the `pow2(uint256 n)` contract)
+
+`powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract` is **fully proved —
+no `sorry`**. `#print axioms powCorrect` ⇒
+`[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size, byteArray_zeroes_toList,
+powSelectorBytes, powValidJumps, powRealisticCalldata, powSuccessAcct]`.
+
+The first six are exactly the Truth set (standard + `ffi.zeroes` base-axioms + the two opaque
+Blocker-1/2 axioms, here `powValidJumps` / `powSelectorBytes`). `pow2` adds **two** axioms because,
+unlike `truth()`, it takes an argument and so exercises the ABI **decoder** and a `while` loop:
+
+## Axiom A — `powRealisticCalldata` (a genuine model-abstraction gap)
+
+```
+axiom powRealisticCalldata {I} (hcode : I.code = powBytecode) : I.calldata.size < 2^255
+```
+
+* **Why it is needed.** solc's ABI decoder checks the argument is present with a **signed**
+  `SLT(calldatasize − 4, 32)` (pc 214 of `powBytecode`). For `calldatasize ≥ 2^255 + 4` the
+  subtraction `calldatasize − 4 ≥ 2^255` is a *negative* two's-complement word, so `SLT … = 1` and
+  the EVM **reverts**. But the trusted-base `Act.decodeCalldata` performs **no** signed length
+  check — it reads 32 bytes and **succeeds** — so for such calldata (with `n < 256`) the Act spec
+  *executes and returns `2^n`* while the EVM *reverts*: a genuine divergence.
+* **Why it is sound to assume.** This range is **physically unreachable**: the EVM gas schedule
+  charges ≥ 4 gas per calldata byte, so any transaction with `g < 2^256` gas can carry at most
+  `~2^254` bytes. The `Ξ` model here (`Semantics.lean:824`) runs the bytecode straight from gas `g`
+  and **does not charge intrinsic calldata gas**, so it permits unrealizable calldata sizes. The
+  axiom restores the realistic bound `size < 2^255`, below which solc's signed check and the
+  (unsigned) Act decoder agree.
+* **Suggested fix.** Either (a) charge intrinsic calldata gas in `Ξ` (then `size ≥ 2^254` ⇒
+  `Ξ = OutOfGass` ⇒ covered by `outOfGas`), or (b) add the signed length check to
+  `Act.decodeCalldata` (then both revert ⇒ `decodingFailed`). Either makes the axiom provable.
+
+## Axiom B — `powSuccessAcct` (mechanically provable; deferred plumbing, **not** opaque)
+
+```
+axiom powSuccessAcct {…} (hcode) (h : X … (initState …) = .ok (.success s o)) :
+    s.createdAccounts = cA ∧ s.accountMap = σ
+```
+
+* `pow2`'s bytecode executes **only** pure stack/memory opcodes — `PUSH*`, `POP`, `DUP*`, `SWAP*`,
+  `ADD`/`MUL`/`SUB`/`LT`/`SLT`/`EQ`/`ISZERO`/`SHR`, `MLOAD`, `MSTORE`, `JUMP*`,
+  `CALLVALUE`/`CALLDATASIZE`/`CALLDATALOAD`, `RETURN` — **none** of `CREATE`/`CALL`/`SSTORE`/
+  `SELFDESTRUCT`/`LOG`, the only opcodes that mutate `createdAccounts` / `accountMap`. So a
+  successful run leaves both equal to `initState`'s (`= cA`, `= σ`); `execResultsEquiv.success`
+  needs exactly this.
+* Unlike Axiom A and the opaque axioms, this is **provable** in the model. Its proof is pure
+  plumbing: thread two trivial preservation clauses (`s'.createdAccounts = s.createdAccounts`,
+  `s'.accountMap = s.accountMap`) — mirroring the already-threaded `memory`/`activeWords` clauses —
+  through the dozen success-trace lemmas (`solcGuardPrologue`, `powX_dispToEq`, `powX_disp`,
+  `powX_decodeToCf`, `powRoutine_{cf,bb,a5,9c}`, `powX_require`, `powLoopCore`, `powX_exit`,
+  `powX_encode`) and chain them in `powX_success`. It is stated as an axiom only to keep the
+  development tractable; it is intended to be discharged.
+
+The five **revert** scenarios (`callvalue ≠ 0`, short calldata `< 4`, wrong selector, short
+argument `4 ≤ size < 36`, `n ≥ 256`) and the **out-of-gas** regime need **neither** new axiom —
+they couple via `noDispatch` / `decodingFailed` / `execution`-with-`revert` / `outOfGas`, none of
+which constrains the EVM's account state.

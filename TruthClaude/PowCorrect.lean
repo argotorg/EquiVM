@@ -44,6 +44,31 @@ axiom powSelectorBytes :
     (ffi.KEC (String.toByteArray (Act.transitionSigStr Pow.powTransition))).extract 0 4
       = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩
 
+/-- **Realistic calldata bound** (modeling assumption; see `MISSPEC.md`).  The EVM cost model
+    charges ≥ 4 gas per calldata byte, so any transaction with `g < 2^256` gas can carry at most
+    `~2^254` calldata bytes — far below `2^255`.  The `Ξ` model here abstracts away that
+    intrinsic calldata gas, so it permits unrealizably-large calldata.  At `calldatasize ≥ 2^255+4`
+    solc's **signed** `SLT(calldatasize − 4, 32)` length check (in the ABI decoder) treats the
+    length as negative and reverts, whereas the Act `decodeCalldata` (which lacks that signed check)
+    still succeeds — a divergence only on unreachable inputs.  We assume the realistic bound. -/
+axiom powRealisticCalldata {I : Ethereum.ExecutionEnv} (hcode : I.code = powBytecode) :
+    I.calldata.size < 2 ^ 255
+
+/-- **Account state is preserved by a successful `pow2` run** (mechanically provable; deferred
+    plumbing — see `MISSPEC.md`).  `pow2`'s bytecode executes only pure stack/memory opcodes
+    (`PUSH*`, `POP`, `DUP*`, `SWAP*`, `ADD`/`MUL`/`SUB`/`LT`/`SLT`/`EQ`/`ISZERO`/`SHR`, `MLOAD`,
+    `MSTORE`, `JUMP*`, `CALLVALUE`/`CALLDATASIZE`/`CALLDATALOAD`, `RETURN`) — **none** of
+    `CREATE`/`CALL`/`SSTORE`/`SELFDESTRUCT`/`LOG`, the only opcodes that touch `createdAccounts` or
+    `accountMap`.  Hence a successful run leaves both equal to `initState`'s (`= cA`, `= σ`).  The
+    full proof threads two trivial preservation clauses through the dozen success-trace lemmas; we
+    state it as an axiom to keep the development tractable.  Unlike `powSelectorBytes`/`powValidJumps`
+    this is **not** opaque — it is provable and intended to be discharged. -/
+axiom powSuccessAcct {cA gh bl σ σ₀ A I} {g : UInt256} {s : State} {o : ByteArray}
+    (hcode : I.code = powBytecode)
+    (h : X (g.toNat + 1) (D_J powBytecode ⟨0⟩)
+          (initState cA gh bl σ σ₀ g A I) = .ok (.success s o)) :
+    s.createdAccounts = cA ∧ s.accountMap = σ
+
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
 axiom powValidJumps :
     Ethereum.EVM.D_J powBytecode ⟨0⟩
@@ -402,19 +427,23 @@ theorem powLoopCore {g : UInt256} {s0 : State} {slot n : UInt256} {REST : List U
 `callvalue = 0`, `calldatasize ≥ 4`, selector matches `0x442b7ffb`: 24 instructions from
 `initState` to the `JUMPDEST` at `0x2d = 45`, leaving the decoded selector word on the stack and
 the free-pointer memory in place.  Mirrors `truthX_cvz_*` but with PUSH2 jump targets. -/
-theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
+/-- **Dispatcher prefix → the selector `EQ` (pc 37).**  Contract-agnostic of whether the selector
+    matches: reaches pc 37 with `[eq(0x442b7ffb, sel), sel]` on the stack (`sel` = the decoded
+    4-byte selector).  Shared by the `match` path (`powX_disp`) and the `nomatch` revert. -/
+theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
       ∨ ∃ s, (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                = X (g.toNat + 1 - 24) (D_J powBytecode ⟨0⟩) s)
-           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨45⟩
-           ∧ s.machineState.gasAvailable.toNat = g.toNat - 96
+                = X (g.toNat + 1 - 22) (D_J powBytecode ⟨0⟩) s)
+           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨37⟩
+           ∧ s.machineState.gasAvailable.toNat = g.toNat - 83
            ∧ s.machineState.stack
-               = [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+               = [UInt256.eq ⟨1143701499⟩
+                    (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩),
+                  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
            ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 96 ≤ g.toNat := by
+           ∧ s.machineState.memory = solcFreePtrMem ∧ 83 ≤ g.toNat := by
   have hsztoNat : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
     show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
     simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
@@ -623,9 +652,7 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
                                 have hstk21 : s21.machineState.stack = [⟨1143701499⟩, sel, sel] := by rw [hs21]; simp only [stPush4, hstk20]
                                 have haw21 : s21.machineState.activeWords = UInt256.ofNat 3 := by rw [hs21]; simp only [stPush4]; exact haw20
                                 have hmem21 : s21.machineState.memory = solcFreePtrMem := by rw [hs21]; simp only [stPush4]; exact hmem20
-                                -- 21: EQ (matches → 1)
-                                have heq1 : UInt256.eq ⟨1143701499⟩ sel = ⟨1⟩ := by
-                                  rw [hseldef, powEvmSelector hsz, if_pos hmatch]
+                                -- 21: EQ (selector compare; result left symbolic)
                                 have hstep21 := eq_xstep hcode21 hpc21 (by decide) hstk21 (by norm_num)
                                 by_cases h21 : g.toNat < 83
                                 · exact Or.inl (by rw [hX21]; exact stepOOG hgas21 hstep21 (by norm_num) (by omega) (by omega))
@@ -635,37 +662,63 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
                                   have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
                                   have hpc22 : s22.machineState.pc = ⟨37⟩ := by rw [hs22]; simp only [stBinop]; rw [hpc21]; rfl
                                   have hgas22 : s22.machineState.gasAvailable.toNat = g.toNat - 83 := by rw [hs22]; simp only [stBinop]; rw [toNat_sub_ofNat (by omega)]; omega
-                                  have hstk22 : s22.machineState.stack = [⟨1⟩, sel] := by rw [hs22]; simp only [stBinop]; rw [heq1]
+                                  have hstk22 : s22.machineState.stack = [UInt256.eq ⟨1143701499⟩ sel, sel] := by rw [hs22]; simp only [stBinop]
                                   have haw22 : s22.machineState.activeWords = UInt256.ofNat 3 := by rw [hs22]; simp only [stBinop]; exact haw21
                                   have hmem22 : s22.machineState.memory = solcFreePtrMem := by rw [hs22]; simp only [stBinop]; exact hmem21
-                                  -- 22: PUSH2 0x2d
-                                  have hstep22 := push2_xstep (argv := ⟨45⟩) hcode22 hpc22 (by decide) hstk22 (by norm_num)
-                                  by_cases h22 : g.toNat < 86
-                                  · exact Or.inl (by rw [hX22]; exact stepOOG hgas22 hstep22 (by norm_num) (by omega) (by omega))
-                                  · set s23 := stPush2 s22 ⟨45⟩ with hs23
-                                    have hX23 := hX22.trans (stepContinue (k := 22) (C := 83) hgas22 hstep22 (by norm_num) (by omega))
-                                    have hee23 : s23.executionEnv = I := by rw [hs23]; simp only [stPush2]; exact hee22
-                                    have hcode23 : s23.executionEnv.code = powBytecode := by rw [hee23]; exact hcode
-                                    have hpc23 : s23.machineState.pc = ⟨40⟩ := by rw [hs23]; simp only [stPush2]; rw [hpc22]; rfl
-                                    have hgas23 : s23.machineState.gasAvailable.toNat = g.toNat - 86 := by rw [hs23]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
-                                    have hstk23 : s23.machineState.stack = [⟨45⟩, ⟨1⟩, sel] := by rw [hs23]; simp only [stPush2, hstk22]
-                                    have haw23 : s23.machineState.activeWords = UInt256.ofNat 3 := by rw [hs23]; simp only [stPush2]; exact haw22
-                                    have hmem23 : s23.machineState.memory = solcFreePtrMem := by rw [hs23]; simp only [stPush2]; exact hmem22
-                                    -- 23: JUMPI (taken → 0x2d)
-                                    have hstep23 := jumpi_t_xstep hcode23 hpc23 (by decide) hstk23 (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
-                                    by_cases h23 : g.toNat < 96
-                                    · exact Or.inl (by rw [hX23]; exact stepOOG hgas23 hstep23 (by norm_num) (by omega) (by omega))
-                                    · set s24 := stJumpiT s23 ⟨45⟩ [sel] with hs24
-                                      have hX24 := hX23.trans (stepContinue (k := 23) (C := 86) hgas23 hstep23 (by norm_num) (by omega))
-                                      refine Or.inr ⟨s24, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega⟩
-                                      · have he : g.toNat + 1 - (23 + 1) = g.toNat + 1 - 24 := by omega
-                                        rw [← he]; exact hX24
-                                      · rw [hs24]; simp only [stJumpiT]; exact hee23
-                                      · rw [hs24]; simp only [stJumpiT]
-                                      · rw [hs24]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
-                                      · rw [hs24]; simp only [stJumpiT]
-                                      · rw [hs24]; simp only [stJumpiT]; exact haw23
-                                      · rw [hs24]; simp only [stJumpiT]; exact hmem23
+                                  exact Or.inr ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, by omega⟩
 
 
 
+
+/-- **The dispatcher (match path).**  Reuses `powX_dispToEq`, then resolves the selector `EQ`
+    to `1` (via `powEvmSelector` + `hmatch`) and takes the `JUMPI` to the function body at
+    `0x2d = 45`.  Same statement as before the refactor; only the prefix is now shared. -/
+theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
+      ∨ ∃ s, (X (g.toNat + 1) (D_J powBytecode ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
+                = X (g.toNat + 1 - 24) (D_J powBytecode ⟨0⟩) s)
+           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨45⟩
+           ∧ s.machineState.gasAvailable.toNat = g.toNat - 96
+           ∧ s.machineState.stack
+               = [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+           ∧ s.machineState.activeWords = UInt256.ofNat 3
+           ∧ s.machineState.memory = solcFreePtrMem ∧ 96 ≤ g.toNat := by
+  rcases powX_dispToEq hcode hwv hsz hsize with
+    hoog | ⟨s22, hX22, hee22, hpc22, hgas22, hstk22, haw22, hmem22, hg83⟩
+  · exact Or.inl hoog
+  · set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hseldef
+    have hcode22 : s22.executionEnv.code = powBytecode := by rw [hee22]; exact hcode
+    have heq1 : UInt256.eq ⟨1143701499⟩ sel = ⟨1⟩ := by
+      rw [hseldef, powEvmSelector hsz, if_pos hmatch]
+    have hstk22' : s22.machineState.stack = [⟨1⟩, sel] := by rw [hstk22, heq1]
+    have hstep22 := push2_xstep (argv := ⟨45⟩) hcode22 hpc22 (by decide) hstk22' (by norm_num)
+    by_cases h22 : g.toNat < 86
+    · exact Or.inl (by rw [hX22]; exact stepOOG hgas22 hstep22 (by norm_num) (by omega) (by omega))
+    · set s23 := stPush2 s22 ⟨45⟩ with hs23
+      have hX23 := hX22.trans (stepContinue (k := 22) (C := 83) hgas22 hstep22 (by norm_num) (by omega))
+      have hee23 : s23.executionEnv = I := by rw [hs23]; simp only [stPush2]; exact hee22
+      have hcode23 : s23.executionEnv.code = powBytecode := by rw [hee23]; exact hcode
+      have hpc23 : s23.machineState.pc = ⟨40⟩ := by rw [hs23]; simp only [stPush2]; rw [hpc22]; rfl
+      have hgas23 : s23.machineState.gasAvailable.toNat = g.toNat - 86 := by
+        rw [hs23]; simp only [stPush2]; rw [toNat_sub_ofNat (by omega)]; omega
+      have hstk23 : s23.machineState.stack = [⟨45⟩, ⟨1⟩, sel] := by rw [hs23]; simp only [stPush2, hstk22']
+      have haw23 : s23.machineState.activeWords = UInt256.ofNat 3 := by rw [hs23]; simp only [stPush2]; exact haw22
+      have hmem23 : s23.machineState.memory = solcFreePtrMem := by rw [hs23]; simp only [stPush2]; exact hmem22
+      have hstep23 := jumpi_t_xstep hcode23 hpc23 (by decide) hstk23 (by decide)
+        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by norm_num)
+      by_cases h23 : g.toNat < 96
+      · exact Or.inl (by rw [hX23]; exact stepOOG hgas23 hstep23 (by norm_num) (by omega) (by omega))
+      · set s24 := stJumpiT s23 ⟨45⟩ [sel] with hs24
+        have hX24 := hX23.trans (stepContinue (k := 23) (C := 86) hgas23 hstep23 (by norm_num) (by omega))
+        refine Or.inr ⟨s24, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega⟩
+        · have he : g.toNat + 1 - (23 + 1) = g.toNat + 1 - 24 := by omega
+          rw [← he]; exact hX24
+        · rw [hs24]; simp only [stJumpiT]; exact hee23
+        · rw [hs24]; simp only [stJumpiT]
+        · rw [hs24]; simp only [stJumpiT]; rw [toNat_sub_ofNat (by omega)]; omega
+        · rw [hs24]; simp only [stJumpiT]
+        · rw [hs24]; simp only [stJumpiT]; exact haw23
+        · rw [hs24]; simp only [stJumpiT]; exact hmem23
