@@ -671,15 +671,15 @@ literal offset) and updates `mem`/`aw` accordingly. -/
 theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256} (mcost : ℕ)
+    {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
     (hdec : decode code pc = some (.MSTORE, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
         memoryExpansionCost s .MSTORE = mcost)
+    (hmemout : b.toByteArray.write 0 mem a.toNat 32 = memout)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t
-        (b.toByteArray.write 0 mem a.toNat 32)
-        (UInt256.ofNat (MachineState.M aw.toNat a.toNat 32)) acc (k + 1) (C + (mcost + 3)) := by
+    RD code ee g s0 (pc + ⟨1⟩) t memout awout acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee⟩
   · exact Or.inl hoog
@@ -696,8 +696,8 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
       · simp only [stMStore, hmcS]
         rw [toNat_sub_ofNat (by rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega),
           toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
-      · simp only [stMStore]; rw [hmem]
-      · simp only [stMStore]; rw [haw]
+      · simp only [stMStore]; rw [hmem, hmemout]
+      · simp only [stMStore]; rw [haw, hawout]
       · simp only [stMStore]; exact hacc
       · exact hee
 
@@ -705,17 +705,16 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
 theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a : UInt256} {t : List UInt256} (mcost : ℕ) (loadval : UInt256)
+    {a : UInt256} {t : List UInt256} (mcost : ℕ) (loadval awout : UInt256)
     (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: t →
         memoryExpansionCost s .MLOAD = mcost)
     (hval : (if a.toNat ≥ mem.size ∨ a ≥ aw * ⟨32⟩ then ⟨0⟩
              else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) = loadval)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-        (loadval :: t)
-        mem (UInt256.ofNat (MachineState.M aw.toNat a.toNat 32)) acc (k + 1) (C + (mcost + 3)) := by
+    RD code ee g s0 (pc + ⟨1⟩) (loadval :: t) mem awout acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee⟩
   · exact Or.inl hoog
@@ -733,7 +732,7 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Stat
         rw [toNat_sub_ofNat (by rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega),
           toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stMLoad]; rw [hmem]
-      · simp only [stMLoad]; rw [haw]
+      · simp only [stMLoad]; rw [haw, hawout]
       · simp only [stMLoad]; exact hacc
       · exact hee
 
