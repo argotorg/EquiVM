@@ -508,24 +508,6 @@ theorem RD.routineexit {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 
 end TruthClaude.Reach
 
-/-- Old-form wrapper around `RD.routineexit`. -/
-theorem powX_exit {g : UInt256} {s0 s : State} {k C : ℕ} {a val c d ret : UInt256} {Rt : List UInt256}
-    (hcode : s.executionEnv.code = powBytecode) (hpc : s.machineState.pc = ⟨142⟩)
-    (hstk : s.machineState.stack = a :: val :: c :: d :: ret :: Rt)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : Rt.length + 7 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J powBytecode ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ (k' C' : ℕ) (s' : State),
-          X (g.toNat + 1) (D_J powBytecode ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J powBytecode ⟨0⟩) s'
-        ∧ s'.executionEnv.code = powBytecode ∧ s'.machineState.pc = ret
-        ∧ s'.machineState.stack = val :: Rt
-        ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-        ∧ s'.machineState.memory = s.machineState.memory
-        ∧ s'.machineState.activeWords = s.machineState.activeWords
-        ∧ ((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap)) :=
-  (RD.start hcode hpc hstk hgas hk hC hX |>.routineexit hret hov).conclude
-
 /-! ## Encoder memory: the result word stored at `0x80` -/
 
 /-- Memory after solc stores the return word `val` at `0x80` (over the free-pointer memory). -/
@@ -800,10 +782,9 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
             hc3 hp3 hstk3 hg3 hk3 hCg3 hX3 with
           hd | ⟨k4, C4, s4, hX4, hc4, hp4, hstk4, hg4, hk4, hCg4, hmem4, haw4, hacc4⟩
         · exact Or.inl hd
-        · rcases powX_exit (a := arg) (val := UInt256.ofNat (2 ^ arg.toNat)) (c := ⟨0⟩)
-              (d := arg) (ret := ⟨71⟩) (Rt := [sel]) hc4 hp4 hstk4
-              (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-              (by simp only [List.length_cons, List.length_nil]; omega) hg4 hk4 hCg4 hX4 with
+        · rcases (RD.start hc4 hp4 hstk4 hg4 hk4 hCg4 hX4
+              |>.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+                (by simp only [List.length_cons, List.length_nil]; omega)).conclude with
             hd | ⟨k5, C5, s5, hX5, hc5, hp5, hstk5, hg5, hk5, hCg5, hmem5, haw5, hacc5⟩
           · exact Or.inl hd
           · have hmemS : s5.machineState.memory = solcFreePtrMem := by
