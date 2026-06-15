@@ -2,6 +2,7 @@ import Examples.Truth.Bytecode
 import Examples.Truth.Spec
 import Reasoning.Theory
 import Reasoning.Dispatch
+import Reasoning.ActBody
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -37,15 +38,8 @@ theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 /-- With non-zero call value, the Act body reverts: `require(callvalue == 0)` fails. -/
 theorem truthBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody truthConfig truthContract evm locals truthTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse ?_))
-  have hval : (Value.int (Int.ofNat ↑evm.executionEnv.weiValue.val) == Value.int 0) = false := by
-    rw [beq_eq_false_iff_ne]
-    intro hh
-    rw [Value.int.injEq] at hh
-    exact h (Reasoning.Theory.uint256_toNat_eq_zero (Int.ofNat.inj hh))
-  show evalExpr? truthConfig _ evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool false)
-  simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
+    ExecContractBody truthConfig truthContract evm locals truthTransition.body .reverted :=
+  bodyReverts_nonPayable h
 
 /-- With zero call value, the Act body returns `true`: `require(callvalue == 0)` passes and
     `return true` yields `(.bool true)` with the frame/EVM-state unchanged. -/
@@ -53,14 +47,10 @@ theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecContractBody truthConfig truthContract evm locals truthTransition.body
       (.returned { contract := truthContract, locals := locals } evm (some (.bool true))) := by
-  refine ExecFuncBody.execBlockRet (ExecBlock.consNormal (ExecStmt.requireTrue ?_)
+  refine ExecFuncBody.execBlockRet (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h))
             (ExecBlock.consReturn (ExecStmt.return ?_)))
-  · have hval : (Value.int (Int.ofNat ↑evm.executionEnv.weiValue.val) == Value.int 0) = true := by
-      rw [h]; rfl
-    show evalExpr? truthConfig _ evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true)
-    simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
-  · show evalExpr? truthConfig _ evm (.boolLit true) = .ok (.bool true)
-    simp only [evalExpr?]; rfl
+  show evalExpr? truthConfig _ evm (.boolLit true) = .ok (.bool true)
+  simp only [evalExpr?]; rfl
 
 /-- **ABI encoding of the `truth()` return.**  `encodeReturnValue?` of `(.bool true)` is the
     32-byte big-endian word `1` — definitionally the EVM `RETURN`/`MSTORE` value
@@ -254,14 +244,10 @@ theorem truthReEquiv_callvalueZero
     · -- matching selector → `truth()` runs and returns `true`
       have hd : dispatchMsg truthContract I.calldata = some truthTransition := by
         rw [truthDispatch_eq, if_pos hmatch]
-      exact (truthX_cvz_success hcode hwv hsz hsize hmatch).reEquivElim hcode fun _ _ hsucc => by
-        refine reEquiv_execution hd (truthDecode_empty hsz)
-          (truthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅ ?_) ?_
-        · show (initState cA gh bl σ σ₀ g A I).executionEnv.weiValue = ⟨0⟩
-          simp only [initState]; exact hwv
-        · rw [hsucc]
-          exact execResultsEquiv.success rfl rfl rfl rfl
-            (returnEquiv.returned rfl rfl truthReturnEncoding)
+      exact (truthX_cvz_success hcode hwv hsz hsize hmatch).reEquivExecution hcode hd
+        (truthDecode_empty hsz)
+        (truthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅ (by simp only [initState]; exact hwv))
+        (returnEquiv_of_encode truthReturnEncoding)
     · -- wrong selector → EVM reverts at `0x26`, Act fails to dispatch
       rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode hwv hsz hsize hmatch).reEquivNoDispatch hcode

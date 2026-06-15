@@ -11,6 +11,8 @@ proof (`rfl`) and its selector axiom.  `RDrev.reEquivNonPayable` (below) package
 `callvalue ≠ 0` Act-coupling on top of them.
 -/
 
+/- TODO generalize for an arbitrary number of transitions -/
+
 open Act ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Reasoning.Theory
@@ -68,6 +70,13 @@ theorem dispatch_none_nomatch
     dispatchMsg contract cd = none := by
   rw [dispatch_eq htr hsel]; simp [h]
 
+/-- The EVM return bytes `o` couple to the Act return value `rv` whenever `o` is `rv`'s ABI
+    encoding (the `returned` case of `returnEquiv`). -/
+theorem returnEquiv_of_encode {abit : ABIType} {rv : Value} {o : ByteArray}
+    (h : encodeReturnValue? abit rv = some o) :
+    returnEquiv o (some rv) (some abit) :=
+  returnEquiv.returned rfl rfl h
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
@@ -95,5 +104,36 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
       · exact reEquiv_decodingFailed ht hdec hrev
       · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
         exact reEquiv_execution ht hca (hbody callargs) (by rw [hrev]; exact .revert rfl rfl)
+
+/-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Act body returns
+    `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`). -/
+theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray} {callargs cs retVal}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ) o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+              (.returned cs (initState cA gh bl σ σ₀ g A I) retVal))
+    (henc : returnEquiv o retVal t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+  h.reEquivElim hcode fun _ _ hsucc => by
+    refine reEquiv_execution hd hdec hbody ?_
+    rw [hsucc]; exact execResultsEquiv.success rfl rfl rfl rfl henc
+
+/-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Act body reverts too. -/
+theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray} {callargs}
+    (hcode : I.code = code)
+    (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+  h.reEquivElim hcode fun _ _ hrev => by
+    refine reEquiv_execution hd hdec hbody ?_
+    rw [hrev]; exact execResultsEquiv.revert rfl rfl
 
 end Reasoning.Reach

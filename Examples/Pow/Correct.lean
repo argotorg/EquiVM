@@ -2,6 +2,7 @@ import Examples.Pow.Bytecode
 import Examples.Pow.Spec
 import Reasoning.Theory
 import Reasoning.Dispatch
+import Reasoning.ActBody
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -909,16 +910,6 @@ theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : 
     rw [decide_eq_true hlt]
 
 /-! ## The Act body returns `2^n` (callvalue 0, n < 256) -/
-
-/-- `require(callvalue == 0)` passes when the call value is zero. -/
-theorem evalReqCV {cfg : Config} {C : ContractDecl} {L : Act.Store} {evm : EVM.State}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    evalExpr? cfg { contract := C, locals := L } evm
-        (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true) := by
-  have hval : (Value.int (Int.ofNat evm.executionEnv.weiValue.val) == Value.int 0) = true := by
-    rw [hwv]; rfl
-  simp only [evalExpr?, EvalResult.bind, bind, envValue, evalBinaryOp?, hval]
-
 /-- `require(n < 256)` passes when the argument is in range. -/
 theorem evalReqN {cfg : Config} {C : ContractDecl} {L : Act.Store} {evm : EVM.State} {N : ℕ}
     (hn : L.get? "n" = some (.int (Int.ofNat N))) (hN : N < 256) :
@@ -949,7 +940,7 @@ theorem powBodyReturns (evm : EVM.State) (locals : Act.Store) {N : ℕ}
     powLoopActCore (cfg := powConfig) (C := Pow.powContract) (evm := evm) N
       N 0 Lri (by omega) (by omega) hLri_i hLri_r hLri_n
   refine ⟨L', ExecFuncBody.execBlockRet ?_⟩
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalReqCV hwv))
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalReqN hn hN))
     (ExecBlock.consNormal (ExecStmt.letDecl (value := .int 1) (by simp only [evalExpr?]; rfl))
     (ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?]; rfl))
@@ -961,22 +952,15 @@ theorem powBodyReturns (evm : EVM.State) (locals : Act.Store) {N : ℕ}
 /-- Non-zero call value ⇒ `require(callvalue == 0)` fails, body reverts. -/
 theorem powBodyReverts_cv (evm : EVM.State) (locals : Act.Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse ?_))
-  have hval : (Value.int (Int.ofNat evm.executionEnv.weiValue.val) == Value.int 0) = false := by
-    rw [beq_eq_false_iff_ne]
-    intro hh
-    rw [Value.int.injEq] at hh
-    exact h (Reasoning.Theory.uint256_toNat_eq_zero (Int.ofNat.inj hh))
-  show evalExpr? powConfig _ evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool false)
-  simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
+    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
+  bodyReverts_nonPayable h
 
 /-- `n ≥ 256` (with zero call value) ⇒ `require(n < 256)` fails, body reverts. -/
 theorem powBodyReverts_n (evm : EVM.State) (locals : Act.Store) {N : ℕ}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hN : 256 ≤ N)
     (hn : locals.get? "n" = some (.int (Int.ofNat N))) :
     ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert (ExecBlock.consNormal (ExecStmt.requireTrue (evalReqCV hwv))
+  refine ExecFuncBody.execBlockRevert (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
     (ExecBlock.consRevert (ExecStmt.requireFalse ?_)))
   have h : ¬ (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
   show evalExpr? powConfig _ evm (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool false)
@@ -1043,21 +1027,17 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
             (powDecode_none_huge hbig)
         · rw [not_le] at hbig
           by_cases hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256
-          · -- success
-            exact (powX_success hcode hwv hsz36 hbig hmatch hn).reEquivElim hcode fun _ _ hsucc => by
-              obtain ⟨L', hbody⟩ := powBodyReturns (initState cA gh bl σ σ₀ g A I) (powCallargs I)
-                (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])
-              refine reEquiv_execution hd (powDecode_n hsz36 hbig) hbody ?_
-              rw [hsucc]
-              exact execResultsEquiv.success rfl rfl rfl rfl
-                (returnEquiv.returned rfl rfl (powReturnEncoding hn))
+          · -- success: EVM returns 2^n, Act body returns 2^n
+            obtain ⟨L', hbody⟩ := powBodyReturns (initState cA gh bl σ σ₀ g A I) (powCallargs I)
+              (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])
+            exact (powX_success hcode hwv hsz36 hbig hmatch hn).reEquivExecution hcode hd
+              (powDecode_n hsz36 hbig) hbody (returnEquiv_of_encode (powReturnEncoding hn))
           · -- n ≥ 256 ⇒ body reverts (execution)
             rw [not_lt] at hn
-            exact (powX_nlarge hcode hwv hsz36 hbig hmatch hn).reEquivElim hcode fun _ _ hrev =>
-              reEquiv_execution hd (powDecode_n hsz36 hbig)
-                (powBodyReverts_n (initState cA gh bl σ σ₀ g A I) (powCallargs I)
-                  (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self]))
-                (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
+            exact (powX_nlarge hcode hwv hsz36 hbig hmatch hn).reEquivExecutionRevert hcode hd
+              (powDecode_n hsz36 hbig)
+              (powBodyReverts_n (initState cA gh bl σ σ₀ g A I) (powCallargs I)
+                (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self]))
     · -- wrong selector ⇒ noDispatch
       rw [Bool.not_eq_true] at hmatch
       exact (powX_nomatch hcode hwv hsz4 hsize hmatch).reEquivNoDispatch hcode
