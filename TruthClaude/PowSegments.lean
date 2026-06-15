@@ -20,15 +20,9 @@ theorem RD.routine9c {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 4 ≤ 1024) :
     RD powBytecode ee g s0 ret (v :: R) mem aw acc (k + 9) (C + 27) :=
   -- JUMPDEST · PUSH0 · DUP2 · SWAP1 · POP · SWAP2 · SWAP1 · POP · JUMP
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop,
+    jump hret ]
 
 
 /-- solc routine `0xa5` (`abi_decode`'s validator) as an **`RD→RD` combinator**: entry at pc 165
@@ -42,24 +36,15 @@ theorem RD.routinea5 {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 6 ≤ 1024) :
     RD powBytecode ee g s0 ret R mem aw acc (k + 22) (C + 76) :=
   -- JUMPDEST·PUSH2 174·DUP2·PUSH2 156·JUMP → 0x9c → JUMPDEST·DUP2·EQ·PUSH2 184·JUMPI·JUMPDEST·POP·JUMP
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨174⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨156⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.eq (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨184⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpiT (by decide) (by rw [u256_eq_refl]; exact one_ne_zero_uint)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push2 ⟨174⟩, dup2, push2 ⟨156⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    raw routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jumpdest, dup2, eq, push2 ⟨184⟩,
+    jumpiT (by rw [u256_eq_refl]; exact one_ne_zero_uint)
+           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, pop,
+    jump hret ]
 
 
 /-- solc routine `0xbb` (`abi_decode_uint256`) as an **`RD→RD` combinator**: entry at pc 187 with
@@ -74,25 +59,12 @@ theorem RD.routinebb {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     RD powBytecode ee g s0 ret
         (uInt256OfByteArray (ee.calldata.readBytes offset.toNat 32) :: R) mem aw acc (k + 38) (C + 126) :=
   -- JUMPDEST·PUSH0·DUP2·CALLDATALOAD·SWAP1·POP·PUSH2 201·DUP2·PUSH2 165·JUMP → 0xa5 → JUMPDEST·SWAP3·SWAP2·POP·POP·JUMP
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.calldataload (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨201⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨165⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.routinea5 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨201⟩, dup2, push2 ⟨165⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    raw routinea5 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jumpdest, swap3, swap2, pop, pop,
+    jump hret ]
 
 end TruthClaude.Reach
 
@@ -182,39 +154,15 @@ theorem RD.routinecf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
         (uInt256OfByteArray (ee.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨0⟩).toNat 32) :: R')
         mem aw acc (k + 66) (C + 215) :=
   -- prologue (SLT=0 ⇒ ISZERO=1 ⇒ JUMPI taken) · set up offset · JUMP → 0xbb → rearrange · JUMP ret
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push1 ⟨32⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.slt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨228⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpiT (by decide) (by rw [hsltval]; decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨241⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup6 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.add (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨187⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.routinebb (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
+    jumpiT (by rw [hsltval]; decide)
+           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, push0, push2 ⟨241⟩, dup5, dup3, dup6, add, push2 ⟨187⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    raw routinebb (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jumpdest, swap2, pop, pop, swap3, swap2, pop, pop,
+    jump hret ]
 
 /-- Decoder bounds-check **failure** (`0xcf` revert path) as an **`RD → RDrev` combinator**: from the
     decoder Cf-entry at pc 207 with `[4, de, ret, …R']`, the signed `SLT(de − 4, 32) = 1` ⇒ `ISZERO = 0`
@@ -227,25 +175,13 @@ theorem RD.routinecf_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C 
     (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨1⟩)
     (hov : R'.length + 15 ≤ 1024) :
     RDrev powBytecode g s0 :=
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push1 ⟨32⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.slt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨228⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpiNT (by decide) (by rw [hsltval]; decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨227⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨152⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
-        (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
+    jumpiNT (by rw [hsltval]; decide),
+    push2 ⟨227⟩, push2 ⟨152⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, push0, push0,
+    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 
 end TruthClaude.Reach
 /-- General `ADD` toNat (mod size). -/
@@ -281,21 +217,10 @@ theorem RD.routinedecodeToCf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C
   rw [show UInt256.ofNat ee.calldata.size
         = (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩
       from (add_sub4 hsz4 hszsize).symm]
-  exact h |>.jumpdest (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.push2 ⟨71⟩ (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.push1 ⟨4⟩ (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.dup1 (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.calldatasize (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.sub (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.dup2 (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.add (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.push2 ⟨66⟩ (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.swap2 (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.push2 ⟨207⟩ (by decide) (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-          (by first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
+  exact evm_run h with [
+    jumpdest, push2 ⟨71⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
+    push2 ⟨66⟩, swap2, swap1, push2 ⟨207⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
 
 
 /-- `require(n < 256)` check (passes) as an **`RD→RD` combinator**: `0x42 → 0x75`, leaving
@@ -308,28 +233,13 @@ theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : 
     RD powBytecode ee g s0 ⟨117⟩ (⟨0⟩ :: ⟨1⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R)
         mem aw acc (k + 19) (C + 57) :=
   -- JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT·PUSH2 107·JUMPI(taken)·JUMPDEST·PUSH0·PUSH1 1·SWAP1·POP·PUSH0·PUSH0·SWAP1·POP
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨93⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨256⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨107⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpiT (by decide) (by rw [hltval]; exact one_ne_zero_uint)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push1 ⟨1⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push2 ⟨93⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
+    jumpiT (by rw [hltval]; exact one_ne_zero_uint)
+           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, push0, push1 ⟨1⟩, swap1, pop, push0, push0, swap1, pop ]
 
 /-- `require(n < 256)` **failure** (`n ≥ 256`) as an **`RD → RDrev` combinator**: from pc 66 with
     `[n, 71, sel, …R]`, `LT n 256 = 0` ⇒ the `JUMPI` is not taken and execution reverts at `0x68`
@@ -341,21 +251,13 @@ theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} 
     (hltval : UInt256.lt n ⟨256⟩ = ⟨0⟩) (hov : R.length + 10 ≤ 1024) :
     RDrev powBytecode g s0 :=
   -- 66→104: JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT(=0)·PUSH2 107·JUMPI(nt) ⇒ revert
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨93⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨256⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push2 ⟨107⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jumpiNT (by decide) hltval (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
-        (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, push2 ⟨93⟩,
+    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
+    jumpiNT hltval,
+    push0, push0,
+    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 
 
 /-- Loop exit `0x8e → 0x47` as an **`RD→RD` combinator**: drop the loop scratch, keep the result
@@ -368,16 +270,9 @@ theorem RD.routineexit {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : Rt.length + 7 ≤ 1024) :
     RD powBytecode ee g s0 ret (val :: Rt) mem aw acc (k + 10) (C + 29) :=
   -- JUMPDEST · DUP2 · SWAP3 · POP · POP · POP · SWAP2 · SWAP1 · POP · JUMP ret
-  h |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-    |>.jump (by decide) hret (by first | (simp only [List.length_cons]; omega) | omega)
+  evm_run h with [
+    jumpdest, dup2, swap3, pop, pop, pop, swap2, swap1, pop,
+    jump hret ]
 
 end TruthClaude.Reach
 
@@ -456,13 +351,10 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
     (h : RD powBytecode ee g s0 ⟨71⟩ (val :: Rt) solcFreePtrMem (UInt256.ofNat 3) acc k C)
     (hov : Rt.length + 11 ≤ 1024) :
     RDret powBytecode g s0 acc (UInt256.toByteArray val) :=
-  h
-      -- 1: JUMPDEST @71
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 2: PUSH1 64 @72
-      |>.push1 ⟨64⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 3: MLOAD @74  (free-pointer mem[64] = 128)
-      |>.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+  evm_run h with [
+      -- 71→83: load free pointer, save return addr 84, JUMP to the abi-encode helper @265
+      jumpdest, push1 ⟨64⟩,
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = (⟨64⟩ : UInt256) := (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
@@ -470,98 +362,33 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
-        (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 4: PUSH2 84 @75
-      |>.push2 ⟨84⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 5: SWAP2 @78
-      |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 6: SWAP1 @79
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 7: PUSH2 265 @80
-      |>.push2 ⟨265⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 8: JUMP @83 → 265
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 9: JUMPDEST @265
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 10: PUSH0 @266
-      |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 11: PUSH1 32 @267
-      |>.push1 ⟨32⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 12: DUP3 @269
-      |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 13: ADD @270  (128 + 32)
-      |>.add (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 14: SWAP1 @271
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 15: POP @272
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 16: PUSH2 284 @273
-      |>.push2 ⟨284⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 17: PUSH0 @276
-      |>.push0 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 18: DUP4 @277
-      |>.dup4 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 19: ADD @278  (128 + 0)
-      |>.add (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 20: DUP5 @279
-      |>.dup5 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 21: PUSH2 250 @280
-      |>.push2 ⟨250⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 22: JUMP @283 → 250
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 23: JUMPDEST @250
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 24: PUSH2 259 @251
-      |>.push2 ⟨259⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 25: DUP2 @254
-      |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 26: PUSH2 156 @255
-      |>.push2 ⟨156⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 27: JUMP @258 → 156
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 28: routine 0x9c @156 → 259
-      |>.routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 29: JUMPDEST @259
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 30: DUP3 @260
-      |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 31: MSTORE @261  (mem[128] := val)
-      |>.mstore 6 (powMem2 val) (UInt256.ofNat 5) (by decide)
+        (by decide) (by evm_ov),
+      push2 ⟨84⟩, swap2, swap1, push2 ⟨265⟩,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      -- 265→283: tail = 128+32, head = 128+0, JUMP to the word-copy helper @250
+      jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
+      push2 ⟨284⟩, push0, dup4, add, dup5, push2 ⟨250⟩,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      -- 250→258: cleanup the value (0x9c), JUMP to it
+      jumpdest, push2 ⟨259⟩, dup2, push2 ⟨156⟩,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      raw routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+      -- 259→264: MSTORE mem[128] := val, JUMP back @284
+      jumpdest, dup3,
+      raw mstore 6 (powMem2 val) (UInt256.ofNat 5) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = ((⟨128⟩ : UInt256) + ⟨0⟩) := (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
         (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from (by decide)]; rfl)
-        (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 32: POP @262
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 33: POP @263
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 34: JUMP @264 → 284
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 35: JUMPDEST @284
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 36: SWAP3 @285
-      |>.swap3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 37: SWAP2 @286
-      |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 38: POP @287
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 39: POP @288
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 40: JUMP @289 → 84
-      |>.jump (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 41: JUMPDEST @84
-      |>.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 42: PUSH1 64 @85
-      |>.push1 ⟨64⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 43: MLOAD @87  (free-pointer mem[64] = 128, now in powMem2)
-      |>.mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+        (by decide) (by evm_ov),
+      pop, pop,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      -- 284→289: rearrange, JUMP back @84
+      jumpdest, swap3, swap2, pop, pop,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      -- 84→92: reload free pointer (now powMem2), compute length 160−128, RETURN mem[128..160]
+      jumpdest, push1 ⟨64⟩,
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = (⟨64⟩ : UInt256) := (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
@@ -569,24 +396,16 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), powMem2_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
-        (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 44: DUP1 @88
-      |>.dup1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 45: SWAP2 @89
-      |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 46: SUB @90  (160 - 128 = 32, symbolic)
-      |>.sub (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 47: SWAP1 @91 → pc 92
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      -- 48: RETURN @92 → success returning mem[128 .. 160] = toByteArray val
-      |>.ret 0 (UInt256.toByteArray val) (by decide)
+        (by decide) (by evm_ov),
+      dup1, swap2, sub, swap1,
+      raw ret 0 (UInt256.toByteArray val) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = (⟨128⟩ : UInt256) := (by rw [hstks]; rfl)
           have h1 : s.machineState.stack[1]! = UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩ :=
             (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0, h1]; decide)
         (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, powMem2_read128])
-        (by first | (simp only [List.length_cons]; omega) | omega)
+        (by evm_ov) ]
 
 end TruthClaude.Reach
 

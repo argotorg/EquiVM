@@ -96,16 +96,10 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
     have hreq : r = UInt256.ofNat (2 ^ n.toNat) :=
       u256_inj (by rw [hinv, hin, ofNat_pow_toNat hn])
     -- guard (7 steps): the `JUMPI` is **taken** (`i = n` ⇒ `iszero (lt i n) = 1 ≠ 0`)
-    have rd := h.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup4 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨142⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpiT (by decide)
-        (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
+    have rd := evm_run h with [
+      jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
+      jumpiT (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; decide)
+             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
     rw [hieqn, hreq] at rd
     exact ⟨_, _, rd⟩
   | succ var ih =>
@@ -118,29 +112,11 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
       exact pow_lt_size (by omega)
     have hr2 : (UInt256.mul r ⟨2⟩).toNat = 2 * r.toNat := mul2_toNat hr2size
     -- guard (7 steps, `JUMPI` not taken: `i < n` ⇒ `iszero (lt i n) = 0`) then the 12-step body
-    have rd := h.jumpdest (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup4 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.lt (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.iszero (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨142⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jumpiNT (by decide)
-        (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; decide)
-        (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push1 ⟨2⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup3 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.mul (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.swap2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push1 ⟨1⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.dup2 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.add (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.swap1 (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.pop (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.push2 ⟨117⟩ (by decide) (by first | (simp only [List.length_cons]; omega) | omega)
-      |>.jump (by decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by first | (simp only [List.length_cons]; omega) | omega)
+    have rd := evm_run h with [
+      jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
+      jumpiNT (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; decide),
+      push1 ⟨2⟩, dup3, mul, swap2, pop, push1 ⟨1⟩, dup2, add, swap1, pop, push2 ⟨117⟩,
+      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
     exact ih (i + ⟨1⟩) (UInt256.mul r ⟨2⟩) _ _
       (by rw [hi1]; omega) (by rw [hr2, hi1, hinv, pow_succ]; ring) (by rw [hi1]; omega) rd
 
@@ -169,26 +145,15 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     ult_zero (by rw [hsztoNat]; exact le_trans (show (⟨4⟩ : UInt256).toNat ≤ 4 by decide) hsz)
   -- prologue → PUSH2·JUMPI(t)·JUMPDEST·POP·PUSH1·CALLDATASIZE·LT·PUSH2·JUMPI(nt)·PUSH0·
   --   CALLDATALOAD·PUSH1·SHR·DUP1·PUSH4·EQ, reaching the selector compare at pc 37, as one `RD` chain
-  have rd := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-        hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-      |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.jumpiT (by decide) (by rw [hwv]; decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.pop (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.push1 ⟨4⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.calldatasize (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.lt (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.push2 ⟨41⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.jumpiNT (by decide) hlt0 (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.calldataload (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.push1 ⟨224⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.shr (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.dup1 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.push4 ⟨1143701499⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.eq (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd := evm_run (solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide))
+      with [
+      push2 ⟨15⟩,
+      jumpiT (by rw [hwv]; decide)
+             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩,
+      jumpiNT hlt0,
+      push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨1143701499⟩, eq ]
   rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide] at rd
   exact rd
 
@@ -211,8 +176,6 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
   rw [show UInt256.eq ⟨1143701499⟩
         (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨1⟩
       from by rw [powEvmSelector hsz, if_pos hmatch]] at rd
-  exact rd
-      |>.push2 ⟨45⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.jumpiT (by decide) (by decide)
-        (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
-        (by simp only [List.length_cons, List.length_nil]; omega)
+  exact evm_run rd with [
+      push2 ⟨45⟩,
+      jumpiT (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]

@@ -905,4 +905,57 @@ example {code : ByteArray} {g : UInt256} {s0 s : State} {k C : ℕ}
     |>.jumpdest hd0 (by simp only [List.length_cons]; omega)
     |>.swap1 hd1 (by omega)).conclude
 
+/-! ## `evm_run` — a boilerplate-eliding chain builder
+
+Every straight-line combinator above ends in the *same* two trailing proofs: a decode
+fact (`by decide`, since on the concrete contracts the bytecode is a literal) and a
+stack-depth bound (`by evm_ov`).  Writing them out on each of ~50 ops per segment is
+pure noise.  `evm_run base with [op, op, …]` threads `base` through the listed
+combinators left-to-right, auto-supplying both proofs:
+
+```
+exact evm_run h with [
+  jumpdest, push0, dup2, swap1, pop,          -- uniform ops: ` (by decide) (by evm_ov)`
+  push2 ⟨174⟩,                                -- a push carries its value, proofs still auto
+  jumpiT hb hjd, jump hjd, jumpiNT hb,        -- control flow: value proofs inline, decode/ov auto
+  raw routine9c hret (by evm_ov),             -- anything else: written verbatim after `raw`
+  raw ret 0 oval (by decide) hmc hoval (by evm_ov) ]
+```
+
+Only `decode`/overflow are inferred; every *value* proof (`hjd`, `hb`, `hret`, memory
+costs, …) is still supplied explicitly, so nothing about the proof is hidden.  Use
+`raw` for any op whose argument shape is not `… (by decide) (by evm_ov)`
+(`mstore`/`mload`/`ret`/`rev`/`routine*`). -/
+
+/-- Universal stack-depth discharger: reduce concrete `length`s then `omega` (which also
+    picks up a variable tail's bound from context); fall back to bare `omega`. -/
+macro "evm_ov" : tactic =>
+  `(tactic| first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
+
+/-- One step of an `evm_run` chain. -/
+declare_syntax_cat evmStep
+/-- Verbatim step: the combinator and all its arguments are written out unchanged. -/
+syntax "raw " ident (term:max)* : evmStep
+/-- Cooked step: combinator + value args; decode/overflow proofs are auto-supplied. -/
+syntax ident (term:max)* : evmStep
+
+syntax "evm_run " term:max " with " "[" evmStep,* "]" : term
+
+open Lean in
+macro_rules
+  | `(evm_run $base:term with [ $steps,* ]) => do
+      let mut acc := base
+      for s in steps.getElems do
+        match s with
+        | `(evmStep| raw $op:ident $args*) =>
+            acc ← `($(acc).$op $args*)
+        | `(evmStep| $op:ident $args*) =>
+            match op.getId with
+            | `jump    => acc ← `($(acc).jump (by decide) $(args[0]!) (by evm_ov))
+            | `jumpiT  => acc ← `($(acc).jumpiT (by decide) $(args[0]!) $(args[1]!) (by evm_ov))
+            | `jumpiNT => acc ← `($(acc).jumpiNT (by decide) $(args[0]!) (by evm_ov))
+            | _        => acc ← `($(acc).$op $args* (by decide) (by evm_ov))
+        | _ => Macro.throwUnsupported
+      return acc
+
 end TruthClaude.Reach
