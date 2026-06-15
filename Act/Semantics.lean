@@ -515,11 +515,14 @@ def defaultEncodeCall? (_name : Ident) (args : List Value) : Option EVM.Bytes :=
   some (words.foldl (fun bytes word => bytes ++ (Ethereum.UInt256.toByteArray word)) ByteArray.empty)
 
 def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option Value :=
-  if bytes.isEmpty then
-    some .unit
+  -- The solc-generated ABI return decoder for an `int`/`uint` value reverts unless at least one
+  -- full word (32 bytes) of return data is present (`if slt(returndatasize, 32) { revert }`).  We
+  -- mirror that *partiality*: under-length return data decodes to `none`, which the
+  -- `externalCallReturnDecodeRevert` rule turns into a revert — matching the bytecode.
+  if bytes.size < 32 then
+    none
   else
     some (.int (Ethereum.fromByteArrayBigEndian (bytes.extract 0 32)))
-    -- Check if fromByteArrayBigEndian is correct here
 
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }
@@ -732,6 +735,16 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg act evm eth = .ok (.int sendVal) ->
       evalExprs? cfg act evm args = .ok argVals ->
       externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
+      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+  | externalCallReturnDecodeRevert :
+      -- The sub-call *succeeds* (`z = true`) but the returned bytes do not ABI-decode to the
+      -- expected return value (`decode? = none`).  The caller's solc-generated return decoder then
+      -- reverts (`if slt(returndatasize, 32) { revert }`), so the whole statement reverts.
+      evalExpr? cfg act evm receiver = .ok (.address target) ->
+      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg act evm args = .ok argVals ->
+      externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
+      cfg.externalABI.decode? name out = none ->
       ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReceiverRevert :
       evalExpr? cfg act evm receiver = .revert ->
