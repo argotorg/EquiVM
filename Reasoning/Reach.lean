@@ -1,4 +1,5 @@
 import Reasoning.Stepping
+import Reasoning.Memory
 
 /-!
 # Reach — a reusable symbolic straight-line execution abstraction
@@ -288,6 +289,31 @@ theorem RD.push4 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Stat
       · exact hee
       · exact hworld
 
+theorem RD.push20 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw acc k C) (argv : UInt256)
+    (hdec : decode code pc = some (.Push .PUSH20, some (argv, 20)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + UInt256.ofNat 21) (argv :: stk) mem aw acc (k + 1) (C + 3) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := push20_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 3
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stPush20 s argv,
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stPush20]; exact hcode
+      · simp only [stPush20]; rw [hpc]
+      · simp only [stPush20]; rw [hstk]
+      · simp only [stPush20]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
+      · simp only [stPush20]; exact hmem
+      · simp only [stPush20]; exact haw
+      · simp only [stPush20]; exact hacc
+      · exact hee
+      · exact hworld
+
 theorem RD.swap1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -359,6 +385,15 @@ theorem RD.dup6 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State
     (hdec : decode code pc = some (.DUP6, .none)) (hov : t.length + 7 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) (f :: a :: b :: c :: d :: e :: f :: t) mem aw acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup6_xstep hc hp hdec hs hov)
+
+theorem RD.dup7 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.DUP7, .none)) (hov : t.length + 8 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup7_xstep hc hp hdec hs hov)
 
 /-- `DUP1` goes through `stDup1`, not `stSwap`, so it is its own combinator. -/
 theorem RD.dup1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
@@ -510,6 +545,24 @@ theorem RD.sub {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     (hdec : decode code pc = some (.SUB, .none)) (hov : t.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.sub a b :: t) mem aw acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => sub_xstep hc hp hdec hs hov)
+
+theorem RD.and {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.AND, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => and_xstep hc hp hdec hs hov)
+
+theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.SHL, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftLeft b a :: t) mem aw acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => shl_xstep hc hp hdec hs hov)
 
 theorem RD.add {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256}
@@ -845,6 +898,151 @@ theorem RD.sstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
         rw [stSStore_createdAccounts, stSStore_accountMap, hcA, hσ, hco]
       · rw [stSStore_executionEnv]; exact hee
       · exact hworld
+
+
+set_option maxHeartbeats 1000000 in
+/-- **CALL** (value 0) as an `RD → RD` combinator.  From a cursor at the `CALL` pc with the
+    7 stack args `[gas, target, 0, inOff, inSize, outOff, outSize, …t]`, perform the *opaque*
+    external message call `Θ` and advance to the successor: the result `(cA', σ', z, o)` is
+    abstracted (no assumption on the callee's code), the return bytes `o` are written to memory,
+    the status flag `z` is pushed, and accounts advance to `(cA', σ')`.  The same `Θ` is what the
+    Act-side `externalCall` invokes, so the two coincide by construction.  Gas is existential
+    (the callee's refund `g'` is unknown but `≤` forwarded, via `Theta_returnedGas_le`). -/
+theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {gasArg target inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: t)
+          mem aw (cA, σ) k C)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hdepth : ee.depth.val < 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
+          (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.perm)
+      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+          (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
+          (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
+            outOffset.toNat outSize.toNat))
+          (cA', σ') k' C' := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  · -- OOG: default witnesses; the Θ-link is tuple-eta (rfl), the RD part is OOG.
+    exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, (by unfold RD; exact Or.inl hoog)⟩
+  · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
+    have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
+      rw [hcode, hpc]; exact hdec
+    have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
+    have st := step_call s hd
+    rw [hstk] at st
+    have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False := eq_false (by omega)
+    have hstaticF : (¬ s.executionEnv.perm = true ∧ ({val := 0} : UInt256) ≠ {val := 0}) = False :=
+      eq_false (by rintro ⟨_, h2⟩; exact h2 rfl)
+    have hdepthLt : s.executionEnv.depth < 1024 := by rw [Fin.lt_def]; exact hdepth'
+    have hbal : ∀ y : UInt256, (({val := 0} : UInt256) ≤ y) = True := fun y => eq_true (Fin.zero_le _)
+    have hgtF : ∀ y : UInt256, (({val := 0} : UInt256) > y) = False := fun y => eq_false (Fin.not_lt_zero _)
+    have hdeqF : (s.executionEnv.depth == 1024) = false := by
+      rw [beq_eq_false_iff_ne]; intro hh; rw [hh] at hdepth'; exact absurd hdepth' (by decide)
+    simp only [List.length_cons, hovF, hstaticF, if_false, hdepthLt, hbal, hgtF, hdeqF,
+      and_true, if_true, Bool.or_false] at st
+    rw [collapse_two_stage, hcode] at st
+    -- st : Xstep (D_J code 0) s = if (gas < memCost+gasCost) then OOG else .ok (SUCC, none)
+    -- Step the cursor with `X_peel`, then `split` on the (unnamed) gas guard so SUCC stays concrete.
+    have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
+    have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
+    -- hXP : X (g+1) s0 = if (gas < memCost+gasCost) then OOG else X (g-k) SUCC
+    split at hXP
+    · -- OOG: the whole run is out of gas (RD absorbs it); Θ-link via default witnesses.
+      exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, by unfold RD; exact Or.inl hXP⟩
+    · -- success: SUCC is concrete in hXP.  Emit `Or.inr ⟨SUCC, …⟩` with field projections,
+      -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
+      rename_i hP
+      set mc := memoryExpansionCost s Operation.CALL with hmc
+      set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+        s.accountMap
+        { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
+          gasAvailable := s.machineState.gasAvailable - UInt256.ofNat mc,
+          activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+          returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
+      set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 } gasArg
+        s.accountMap
+        { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
+          gasAvailable := s.machineState.gasAvailable - UInt256.ofNat mc,
+          activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+          returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hG
+      set cg := UInt256.ofNat G with hcg
+      set ce := Cextra (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 }
+        s.accountMap s.substate with hce
+      set θs := Θ s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
+        s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+        (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
+        (AccountAddress.ofUInt256 target) (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+        cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
+        (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
+        s.executionEnv.header s.executionEnv.perm with hθs
+      set gv := s.machineState.gasAvailable - UInt256.ofNat mc - UInt256.ofNat gc + θs.2.2.1 with hgv
+      have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+      have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+      have hw1 : s.σ₀ = s0.σ₀ := hworld.1
+      have hw2 : s.genesisBlockHeader = s0.genesisBlockHeader := hworld.2.1
+      have hw3 : s.blocks = s0.blocks := hworld.2.2
+      -- gas arithmetic
+      have haN : s.machineState.gasAvailable.toNat < UInt256.size := s.machineState.gasAvailable.val.isLt
+      have hPle : mc + gc ≤ s.machineState.gasAvailable.toNat := Nat.le_of_not_lt hP
+      have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
+      have hretle : θs.2.2.1.toNat ≤ cg.toNat := by
+        rw [hθs]
+        exact Theta_returnedGas_le s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader
+          s.blocks s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
+          (AccountAddress.ofUInt256 target) (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
+          (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
+          s.executionEnv.header s.executionEnv.perm
+      have hcgle : cg.toNat ≤ G := by
+        have h : cg.toNat = G % UInt256.size := by rw [hcg]; rfl
+        rw [h]; exact Nat.mod_le _ _
+      have hgcG : gc = G + ce := by rw [hgc, hG, hce]; rfl
+      have hce1 : 1 ≤ ce := by
+        rw [hce]
+        have hcacc : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
+          unfold Caccess; split <;> decide
+        unfold Cextra; omega
+      have hg''le : θs.2.2.1.toNat + 1 ≤ gc := by omega
+      have hgcle' : gc ≤ (s.machineState.gasAvailable - UInt256.ofNat mc).toNat := by
+        rw [toNat_sub_ofNat hmcle]; omega
+      have hgvN : gv.toNat = s.machineState.gasAvailable.toNat - mc - gc + θs.2.2.1.toNat := by
+        rw [hgv, uadd_toNat, toNat_sub_ofNat hgcle', toNat_sub_ofNat hmcle, Nat.mod_eq_of_lt (by omega)]
+      have hgkey : gv.toNat + k + 1 ≤ g.toNat := by rw [hgvN]; omega
+      rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
+      -- assemble the conclusion
+      refine ⟨θs.1, θs.2.1, θs.2.2.2.2.1, θs.2.2.2.2.2,
+        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
+        g.toNat - gv.toNat, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_⟩
+      · -- Θ-link: rewrite cursor fields to the world/ee/acc form, then tuple-eta
+        rw [← hee, ← hcA, ← hσ, ← hmem, ← hw1, ← hw2, ← hw3, ← hθs]
+      · -- RD on the successor `SUCC` (inferred from `hXP`'s `X` equation)
+        unfold RD
+        refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · exact hcode
+        · rw [hpc]
+        · cases θs.2.2.2.2.1 <;> rfl
+        · show gv.toNat = g.toNat - (g.toNat - gv.toNat); omega
+        · show k + 1 ≤ g.toNat - gv.toNat; omega
+        · show g.toNat - gv.toNat ≤ g.toNat; omega
+        · rw [hmem]
+        · rw [haw]
+        · rfl
+        · exact hee
+        · exact hworld
+
 
 /-! ## Halting terminals (`RETURN` ⇒ success, `REVERT` ⇒ revert)
 
