@@ -395,6 +395,42 @@ theorem RD.dup7 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State
     RD code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup7_xstep hc hp hdec hs hov)
 
+theorem RD.dup8 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw acc k C)
+    (hdec : decode code pc = some (.DUP8, .none)) (hov : t.length + 9 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup8_xstep hc hp hdec hs hov)
+
+/-- `GAS` pushes the (cursor-dependent) remaining gas, so its pushed value is existential. -/
+theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (hdec : decode code pc = some (.GAS, .none)) (hov : stk.length + 1 ≤ 1024) :
+    ∃ gv, RD code ee g s0 (pc + ⟨1⟩) (gv :: stk) mem aw acc (k + 1) (C + 2) := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  · exact ⟨⟨0⟩, by unfold RD; exact Or.inl hoog⟩
+  · have st := gas_xstep hcode hpc hdec hstk hov
+    refine ⟨s.machineState.gasAvailable - UInt256.ofNat 2, ?_⟩
+    unfold RD
+    by_cases gg : g.toNat < C + 2
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stGas s,
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stGas]; exact hcode
+      · simp only [stGas]; rw [hpc]
+      · simp only [stGas]; rw [hstk]
+      · simp only [stGas]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
+      · simp only [stGas]; exact hmem
+      · simp only [stGas]; exact haw
+      · simp only [stGas]; exact hacc
+      · exact hee
+      · exact hworld
+
 /-- `DUP1` goes through `stDup1`, not `stSwap`, so it is its own combinator. -/
 theorem RD.dup1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256}

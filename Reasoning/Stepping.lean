@@ -118,6 +118,26 @@ def stPush0 (s : State) : State :=
       execLength := s.machineState.execLength + 1,
       gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 2 } }
 
+def stGas (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := (s.machineState.gasAvailable - UInt256.ofNat 2) :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 2 } }
+
+theorem gas_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.GAS, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stGas s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.GAS, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_gas s hd, if_neg hov']
+  simp only [GasConstants.Gbase, stGas]
+
 theorem push0_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
     (hdec : decode code pcv = some (.PUSH0, .none))
@@ -725,6 +745,18 @@ theorem dup7_xstep {s : State} {code : ByteArray} {pcv a b c d e f gg : UInt256}
   have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP7, .none) := by rw [hcode, hpc]; exact hdec
   rw [← hcode, step_dup7 s hd, hstk]
   have hov' : ¬ ((a :: b :: c :: d :: e :: f :: gg :: t).length - 7 + 8 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+theorem dup8_xstep {s : State} {code : ByteArray} {pcv a b c d e f gg hh : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.DUP8, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: gg :: hh :: t) (hov : t.length + 9 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stSwap s (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP8, .none) := by rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_dup8 s hd, hstk]
+  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: t).length - 8 + 9 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 def stJumpiT (s : State) (a : UInt256) (t : List UInt256) : State :=

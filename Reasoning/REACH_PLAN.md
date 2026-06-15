@@ -137,3 +137,49 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
    SSTORE coupling, `decode o`) or revert.
 5. **Assemble**: a success-execution eliminator that does the `z`/size case-split and feeds
    `RDret.reEquivExecution` / `RDrev.reEquiv*` ⇒ discharge the `sorry` ⇒ `callerCorrect`.
+
+---
+
+## External calls — STATUS (2026-06-15, session 2: decoder + body trace)
+
+**Whole project builds green; one `sorry` (Caller success path). New infrastructure all verified:**
+- `RD.and`, `RD.shl`, `RD.push20`, `RD.dup7`, `RD.dup8`, `RD.gas` (+ `and/shl/push20/dup7/dup8/gas_xstep`,
+  `stPush20`/`stGas`). `RD.gas` returns `∃ gv, …` (GAS pushes the cursor's remaining gas).
+- `Examples/Caller/Correct.lean` now proves the **entire ABI decoder** `abi_decode_(address,uint256)`
+  pc 348→66 through 7 nested sub-routines, as a chain of existential-counter lemmas:
+  `callerX_dec277` → `callerX_dec264` (arg0 load+cleanup) → `callerX_dec291` (clean-address check,
+  needs `hclean : eq (callerArg0 I) (land (callerArg0 I) addrMask) = ⟨1⟩`) → `callerX_decoded`
+  (arg1 uint256 decode, reaches pc 66 with `[callerArg1 I, callerArg0 I, ⟨71⟩, sel]`).
+  Helpers: `add4_sub4`, `slt64_zero`, `ueq_self`, `addrMask`, `callerArg0/1`, `caller_jd` macro.
+- Body: `callerX_body117` (clean target, MLOAD free-ptr, build selector → reach selector MSTORE),
+  `callerX_body425` (selector MSTORE → encoder entry pc 425, mem = `callerSelMem`, aw 5).
+
+**REMAINING (the `sorry`) — each a real sub-step, NOT trivial:**
+1. **Encoder MSTORE + CALL setup → CALL cursor (pc 143).** Trace 425→142 (encoder writes `n` at
+   mem[132] via the 410/297 sub-routines; `mem = callerCalldataMem := (callerArg1 I).toByteArray.write
+   0 callerSelMem 132 32`, aw 6), MLOAD the free-ptr at 64 (carry `loadval` SYMBOLICALLY via
+   `RD.mload`'s `hval` — RD.call's offsets are free vars, so no need to prove it's 128 yet), DUP8/GAS,
+   then **`RD.call`** (value 0). Stack at 143: `[gv, tgt, ⟨0⟩, inOff, inSize, outOff, ⟨32⟩, …]`.
+2. **Memory–encoding coupling (HARD, byte-level).** For the Act coincidence: prove
+   `callerCalldataMem.readWithPadding 128 36 = pow2Selector ++ UInt256.toByteArray (callerArg1 I)`
+   AND `loadval = ⟨128⟩`, `inSize = ⟨36⟩`. Needs NEW lemmas: the 2nd MSTORE is a *partial overwrite*
+   (off 132 < callerSelMem.size 160), which `toByteArray_write_eq` (write-past-end only) does NOT
+   cover. Also relate `callerArg1 I` (the EVM word) to the Act decoded `n : ℤ` so `encode? "pow2"
+   [.int n] = some (…)`.
+3. **Post-CALL z-split (more bytecode).** pc 144: `z=true` → POP×4 → return-decoder 470 (uint256) →
+   `RD.sstore` slot 0 (store `decode o`) → JUMP back → 71 STOP ⇒ `RDret (cA, σ[slot0])`;
+   `z=false` → 151 RETURNDATACOPY → REVERT ⇒ `RDrev`.
+4. **Act body** `ExecContractBody callerConfig callerContract … runTransition.body`: `require(cv=0)`
+   passes → `externalCall` via `callerCallCoincides` (instantiate Act `A_in`/`callGas` to the
+   `RD.call` witnesses; uses coupling #2) → on `z`: `assign stored` (decode coupling) or revert.
+5. **Assembly.** New success eliminator doing the `z`/size/clean-address case-split, feeding
+   `RDret.reEquivExecution` / `RDrev.reEquiv*` ⇒ discharge the `sorry` (the matching-selector branch
+   of `callerReEquiv_callvalueZero`) ⇒ `callerCorrect`.
+
+### MILESTONE (session 2 cont.): the opaque CALL executes in the trace
+`callerX_afterCall` (Examples/Caller/Correct.lean) — PROVED & green: the full EVM trace
+`initState → dispatcher → decoder → body → encoder → GAS → RD.call` reaches the post-CALL cursor at
+pc 144 with `(if z then ⟨1⟩ else ⟨0⟩) :: REST` on the stack and accounts `(cA', σ')` — the opaque
+`Θ` output. Memory/activeWords carried symbolically (`callerCalldataMem I`, `callerOutPtr I`). The
+entire EVM side up to and including the opaque CALL is done. Remaining: post-call z-split tails
+(success/​fail), memory–encoding coupling, Act body, assembly.
