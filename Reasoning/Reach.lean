@@ -4,7 +4,7 @@ import Reasoning.Memory
 /-!
 # Reach — a reusable symbolic straight-line execution abstraction
 
-`RD code ee g s0 pc stk mem aw acc k C` ("**R**eached **D**isjunction") is the
+`RD code ee g s0 pc stk mem aw rdata acc k C` ("**R**eached **D**isjunction") is the
 **segment invariant** the straight-line proofs carry, packaged as a single `Prop`:
 
 > either the whole run `X (g+1) … s0` already ran out of gas, **or** there is a
@@ -44,7 +44,7 @@ def RDWorld (s0 s : State) : Prop :=
     absolute values (initialised at `start` to the input state's), so a relative
     preservation clause like `s'.memory = s.memory` falls out at `conclude`. -/
 def RD (code : ByteArray) (ee : ExecutionEnv) (g : UInt256) (s0 : State)
-    (pc : UInt256) (stk : List UInt256) (mem : ByteArray) (aw : UInt256)
+    (pc : UInt256) (stk : List UInt256) (mem : ByteArray) (aw : UInt256) (rdata : ByteArray)
     (acc : Batteries.RBSet AccountAddress compare × AccountMap) (k C : ℕ) : Prop :=
   X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
   ∨ ∃ s : State,
@@ -56,6 +56,7 @@ def RD (code : ByteArray) (ee : ExecutionEnv) (g : UInt256) (s0 : State)
     ∧ k ≤ C ∧ C ≤ g.toNat
     ∧ s.machineState.memory = mem
     ∧ s.machineState.activeWords = aw
+    ∧ s.machineState.returnData = rdata
     ∧ (s.createdAccounts, s.accountMap) = acc
     ∧ s.executionEnv = ee
     ∧ RDWorld s0 s
@@ -71,9 +72,9 @@ theorem RD.start {code : ByteArray} {g : UInt256} {s0 s : State} {k C : ℕ}
     (hX : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J code ⟨0⟩) s)
     (hworld : RDWorld s0 s) :
     RD code s.executionEnv g s0 pc stk s.machineState.memory s.machineState.activeWords
-       (s.createdAccounts, s.accountMap) k C := by
+       s.machineState.returnData (s.createdAccounts, s.accountMap) k C := by
   unfold RD
-  exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, rfl, rfl, rfl, rfl, hworld⟩
+  exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, rfl, rfl, rfl, rfl, rfl, hworld⟩
 
 /-- Like `start`, but the carried `mem`/`aw`/`acc` are *given* values related to the
     cursor by equations (rather than pinned to the cursor's own fields).  This is what
@@ -81,7 +82,7 @@ theorem RD.start {code : ByteArray} {g : UInt256} {s0 s : State} {k C : ℕ}
     state together with its preservation facts composed back to the original input
     (`hsub.trans horig`), so the suffix keeps carrying the original `s.memory` etc. -/
 theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 s : State} {k C : ℕ}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (hcode : s.executionEnv.code = code)
     (hpc : s.machineState.pc = pc) (hstk : s.machineState.stack = stk)
@@ -89,18 +90,19 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 s 
     (hX : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J code ⟨0⟩) s)
     (hmem : s.machineState.memory = mem)
     (haw : s.machineState.activeWords = aw)
+    (hrdata : s.machineState.returnData = rdata)
     (hacc : (s.createdAccounts, s.accountMap) = acc)
     (hee : s.executionEnv = ee) (hworld : RDWorld s0 s) :
-    RD code ee g s0 pc stk mem aw acc k C := by
+    RD code ee g s0 pc stk mem aw rdata acc k C := by
   unfold RD
-  exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
 
 /-- Repackage the invariant into the `∃ k' C' s'` conclusion the segment lemmas
     state (the explicit step/gas indices become the existential witnesses). -/
 theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) :
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) :
     X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
     ∨ ∃ (k' C' : ℕ) (s' : State),
         X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J code ⟨0⟩) s'
@@ -109,11 +111,12 @@ theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : S
       ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
       ∧ s'.machineState.memory = mem
       ∧ s'.machineState.activeWords = aw
+      ∧ s'.machineState.returnData = rdata
       ∧ (s'.createdAccounts, s'.accountMap) = acc := by
   unfold RD at h
-  rcases h with hoog | ⟨s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hacc, _hee, _hworld⟩
+  rcases h with hoog | ⟨s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hrd, hacc, _hee, _hworld⟩
   · exact Or.inl hoog
-  · exact Or.inr ⟨k, C, s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hacc⟩
+  · exact Or.inr ⟨k, C, s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hrd, hacc⟩
 
 /-! ## Per-opcode combinators (continue steps)
 
@@ -130,30 +133,31 @@ fired on the exposed cursor. -/
 
 /-- Common tail for a cost-3, pc+1 `stSwap`-family step (`SWAP*`, `DUP2-6`). -/
 theorem RD.stepSwap {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {stkIn stkOut : List UInt256}
-    (h : RD code ee g s0 pc stkIn mem aw acc k C)
+    (h : RD code ee g s0 pc stkIn mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = stkIn →
         Xstep (D_J code ⟨0⟩) s =
           if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
           else .ok (stSwap s stkOut, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) stkOut mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + ⟨1⟩) stkOut mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := hstep s hcode hpc hstk
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stSwap s stkOut,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stSwap]; exact hcode
       · simp only [stSwap]; rw [hpc]
       · rfl
       · simp only [stSwap]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stSwap]; exact hmem
       · simp only [stSwap]; exact haw
+      · simp only [stSwap]; exact hrdata
       · simp only [stSwap]; exact hacc
       · exact hee
       · exact hworld
@@ -161,258 +165,264 @@ theorem RD.stepSwap {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : S
 /-- Common tail for a cost-3, pc+1 `stBinop`-family step (`EQ/LT/SLT/SHR/SUB/ADD`):
     pops two, pushes the result `res`. -/
 theorem RD.stepBinop {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b res : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hstep : ∀ s : State, s.executionEnv.code = code → s.machineState.pc = pc →
         s.machineState.stack = a :: b :: t →
         Xstep (D_J code ⟨0⟩) s =
           if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
           else .ok (stBinop s res t, .none)) :
-    RD code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + ⟨1⟩) (res :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := hstep s hcode hpc hstk
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stBinop s res t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stBinop]; exact hcode
       · simp only [stBinop]; rw [hpc]
       · rfl
       · simp only [stBinop]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stBinop]; exact hmem
       · simp only [stBinop]; exact haw
+      · simp only [stBinop]; exact hrdata
       · simp only [stBinop]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.jumpdest {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPDEST, .none))
     (hov : stk.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) stk mem aw acc (k + 1) (C + 1) := by
+    RD code ee g s0 (pc + ⟨1⟩) stk mem aw rdata acc (k + 1) (C + 1) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := jumpdest_xstep hcode hpc hdec (by rw [hstk]; exact hov)
     by_cases gg : g.toNat < C + 1
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpdest s,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stJumpdest]; exact hcode
       · simp only [stJumpdest]; rw [hpc]
       · simp only [stJumpdest]; exact hstk
       · simp only [stJumpdest]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stJumpdest]; exact hmem
       · simp only [stJumpdest]; exact haw
+      · simp only [stJumpdest]; exact hrdata
       · simp only [stJumpdest]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.push0 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.PUSH0, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: stk) mem aw acc (k + 1) (C + 2) := by
+    RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := push0_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush0 s,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPush0]; exact hcode
       · simp only [stPush0]; rw [hpc]
       · simp only [stPush0]; rw [hstk]
       · simp only [stPush0]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPush0]; exact hmem
       · simp only [stPush0]; exact haw
+      · simp only [stPush0]; exact hrdata
       · simp only [stPush0]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.push1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) (argv : UInt256)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH1, some (argv, 1)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 2) (argv :: stk) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + UInt256.ofNat 2) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := push1_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush1 s argv,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPush1]; exact hcode
       · simp only [stPush1]; rw [hpc]
       · simp only [stPush1]; rw [hstk]
       · simp only [stPush1]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPush1]; exact hmem
       · simp only [stPush1]; exact haw
+      · simp only [stPush1]; exact hrdata
       · simp only [stPush1]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.push4 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) (argv : UInt256)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH4, some (argv, 4)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 5) (argv :: stk) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + UInt256.ofNat 5) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := push4_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush4 s argv,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPush4]; exact hcode
       · simp only [stPush4]; rw [hpc]
       · simp only [stPush4]; rw [hstk]
       · simp only [stPush4]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPush4]; exact hmem
       · simp only [stPush4]; exact haw
+      · simp only [stPush4]; exact hrdata
       · simp only [stPush4]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.push20 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) (argv : UInt256)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH20, some (argv, 20)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 21) (argv :: stk) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + UInt256.ofNat 21) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := push20_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush20 s argv,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPush20]; exact hcode
       · simp only [stPush20]; rw [hpc]
       · simp only [stPush20]; rw [hstk]
       · simp only [stPush20]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPush20]; exact hmem
       · simp only [stPush20]; exact haw
+      · simp only [stPush20]; exact hrdata
       · simp only [stPush20]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.swap1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP1, .none)) (hov : t.length + 2 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap1_xstep hc hp hdec hs hov)
 
 theorem RD.swap2 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP2, .none)) (hov : t.length + 3 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (c :: b :: a :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (c :: b :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap2_xstep hc hp hdec hs hov)
 
 theorem RD.swap3 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SWAP3, .none)) (hov : t.length + 4 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (d :: b :: c :: a :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (d :: b :: c :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap3_xstep hc hp hdec hs hov)
 
 theorem RD.dup2 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP2, .none)) (hov : t.length + 3 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (b :: a :: b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup2_xstep hc hp hdec hs hov)
 
 theorem RD.dup3 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP3, .none)) (hov : t.length + 4 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (c :: a :: b :: c :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (c :: a :: b :: c :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup3_xstep hc hp hdec hs hov)
 
 theorem RD.dup4 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP4, .none)) (hov : t.length + 5 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (d :: a :: b :: c :: d :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (d :: a :: b :: c :: d :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup4_xstep hc hp hdec hs hov)
 
 theorem RD.dup5 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d e : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (e :: a :: b :: c :: d :: e :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (e :: a :: b :: c :: d :: e :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup5_xstep hc hp hdec hs hov)
 
 theorem RD.dup6 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP6, .none)) (hov : t.length + 7 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: a :: b :: c :: d :: e :: f :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (f :: a :: b :: c :: d :: e :: f :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup6_xstep hc hp hdec hs hov)
 
 theorem RD.dup7 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d e f gg : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP7, .none)) (hov : t.length + 8 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (gg :: a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup7_xstep hc hp hdec hs hov)
 
 theorem RD.dup8 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b c d e f gg hh : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP8, .none)) (hov : t.length + 9 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup8_xstep hc hp hdec hs hov)
 
 /-- `GAS` pushes the (cursor-dependent) remaining gas, so its pushed value is existential. -/
 theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.GAS, .none)) (hov : stk.length + 1 ≤ 1024) :
-    ∃ gv, RD code ee g s0 (pc + ⟨1⟩) (gv :: stk) mem aw acc (k + 1) (C + 2) := by
+    ∃ gv, RD code ee g s0 (pc + ⟨1⟩) (gv :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact ⟨⟨0⟩, by unfold RD; exact Or.inl hoog⟩
   · have st := gas_xstep hcode hpc hdec hstk hov
     refine ⟨s.machineState.gasAvailable - UInt256.ofNat 2, ?_⟩
@@ -420,65 +430,183 @@ theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stGas s,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stGas]; exact hcode
       · simp only [stGas]; rw [hpc]
       · simp only [stGas]; rw [hstk]
       · simp only [stGas]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stGas]; exact hmem
       · simp only [stGas]; exact haw
+      · simp only [stGas]; exact hrdata
       · simp only [stGas]; exact hacc
       · exact hee
       · exact hworld
 
+/-- `RETURNDATASIZE` as an `RD → RD` combinator: pushes `|returnData|`.  Like `RD.gas`, the value is
+    existential (the carried cursor does not pin `returnData`), which is all the revert tail needs. -/
+theorem RD.returndatasize {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.RETURNDATASIZE, .none)) (hov : stk.length + 1 ≤ 1024) :
+    ∃ rdv, RD code ee g s0 (pc + ⟨1⟩) (rdv :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact ⟨⟨0⟩, by unfold RD; exact Or.inl hoog⟩
+  · have st := returndatasize_xstep hcode hpc hdec hstk hov
+    refine ⟨UInt256.ofNat s.machineState.returnData.size, ?_⟩
+    unfold RD
+    by_cases gg : g.toNat < C + 2
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stReturndatasize s,
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stReturndatasize]; exact hcode
+      · simp only [stReturndatasize]; rw [hpc]
+      · simp only [stReturndatasize]; rw [hstk]
+      · simp only [stReturndatasize]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
+      · simp only [stReturndatasize]; exact hmem
+      · simp only [stReturndatasize]; exact haw
+      · simp only [stReturndatasize]; exact hrdata
+      · simp only [stReturndatasize]; exact hacc
+      · exact hee
+      · exact hworld
+
+/-- The four-opcode idiom `RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY` — copy the *entire* return
+    data to `mem[0]`.  Done as one combinator so the `RETURNDATACOPY` length argument stays tied to
+    `|returnData|` (the size just pushed), discharging its `b + c ≤ |returnData|` guard internally
+    (`0 + |rd| % 2²⁵⁶ ≤ |rd|`).  Resulting memory / active-words / counters are existential — the
+    revert tail that follows ignores them. -/
+theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    ∃ mem' aw' k' C', RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk mem' aw' rdata acc k' C' := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl hoog⟩
+  · -- s1 = RETURNDATASIZE s
+    set c := UInt256.ofNat s.machineState.returnData.size with hc
+    have st1 := returndatasize_xstep hcode hpc hd0 hstk (by omega)
+    by_cases g1 : g.toNat < C + 2
+    · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl (hX.trans (stepOOG hgas st1 hk hC (by omega)))⟩
+    set s1 := stReturndatasize s with hs1
+    have hX1 := hX.trans (stepContinue hgas st1 hk (by omega))
+    have hc1 : s1.executionEnv.code = code := hcode
+    have hp1 : s1.machineState.pc = pc + ⟨1⟩ := by simp only [hs1, stReturndatasize]; rw [hpc]
+    have hk1 : s1.machineState.stack = c :: stk := by simp only [hs1, stReturndatasize, ← hc]; rw [hstk]
+    have hgas1 : s1.machineState.gasAvailable.toNat = g.toNat - (C + 2) := by
+      simp only [hs1, stReturndatasize]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
+    -- s2 = PUSH0 s1
+    have st2 := push0_xstep hc1 hp1 hd1 hk1 (by simp only [List.length_cons]; omega)
+    by_cases g2 : g.toNat < (C + 2) + 2
+    · exact ⟨mem, aw, k + 1, C + 2, by unfold RD; exact Or.inl (hX1.trans (stepOOG hgas1 st2 (by omega) (by omega) (by omega)))⟩
+    set s2 := stPush0 s1 with hs2
+    have hX2 := hX1.trans (stepContinue hgas1 st2 (by omega) (by omega))
+    have hc2 : s2.executionEnv.code = code := hc1
+    have hp2 : s2.machineState.pc = pc + ⟨1⟩ + ⟨1⟩ := by simp only [hs2, stPush0]; rw [hp1]
+    have hk2 : s2.machineState.stack = ⟨0⟩ :: c :: stk := by simp only [hs2, stPush0]; rw [hk1]
+    have hgas2 : s2.machineState.gasAvailable.toNat = g.toNat - ((C + 2) + 2) := by
+      simp only [hs2, stPush0]; rw [toNat_sub_ofNat (by rw [hgas1]; omega), hgas1]; omega
+    -- s3 = PUSH0 s2
+    have st3 := push0_xstep hc2 hp2 hd2 hk2 (by simp only [List.length_cons]; omega)
+    by_cases g3 : g.toNat < ((C + 2) + 2) + 2
+    · exact ⟨mem, aw, k + 2, (C + 2) + 2, by unfold RD; exact Or.inl (hX2.trans (stepOOG hgas2 st3 (by omega) (by omega) (by omega)))⟩
+    set s3 := stPush0 s2 with hs3
+    have hX3 := hX2.trans (stepContinue hgas2 st3 (by omega) (by omega))
+    have hc3 : s3.executionEnv.code = code := hc2
+    have hp3 : s3.machineState.pc = pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ := by simp only [hs3, stPush0]; rw [hp2]
+    have hk3 : s3.machineState.stack = ⟨0⟩ :: ⟨0⟩ :: c :: stk := by simp only [hs3, stPush0]; rw [hk2]
+    have hgas3 : s3.machineState.gasAvailable.toNat = g.toNat - (((C + 2) + 2) + 2) := by
+      simp only [hs3, stPush0]; rw [toNat_sub_ofNat (by rw [hgas2]; omega), hgas2]; omega
+    have hrd3 : s3.machineState.returnData = s.machineState.returnData := by
+      simp only [hs3, hs2, hs1, stPush0, stReturndatasize]
+    -- s4 = RETURNDATACOPY s3, copying all of returnData to mem[0]
+    have hcle : c.toNat ≤ s.machineState.returnData.size := by
+      rw [hc]; exact Nat.mod_le _ _
+    have hguard : ¬ (⟨0⟩ : UInt256).toNat + c.toNat > s3.machineState.returnData.size := by
+      rw [hrd3, show (⟨0⟩ : UInt256).toNat = 0 from rfl]; omega
+    have st4 := returndatacopy_xstep hc3 hp3 hd3 hk3 hguard (by omega)
+    rw [collapse_two_stage] at st4
+    -- generalise the two symbolic gas components so the arithmetic is purely linear
+    set memc := memoryExpansionCost s3 .RETURNDATACOPY with hmemc
+    set cpc := GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32) with hcpc
+    by_cases g4 : g.toNat < (((C + 2) + 2) + 2) + (memc + cpc)
+    · exact ⟨mem, aw, k + 3, ((C + 2) + 2) + 2, by unfold RD; exact Or.inl (hX3.trans (stepOOG hgas3 st4 (by omega) (by omega) (by omega)))⟩
+    set s4 := stReturndatacopy s3 ⟨0⟩ ⟨0⟩ c stk with hs4
+    refine ⟨s4.machineState.memory, s4.machineState.activeWords, k + 4,
+      (((C + 2) + 2) + 2) + (memc + cpc), ?_⟩
+    unfold RD
+    refine Or.inr ⟨s4, hX3.trans (stepContinue hgas3 st4 (by omega) (by omega)),
+      ?_, ?_, ?_, ?_, by omega, by omega, rfl, rfl, ?_, ?_, ?_, ?_⟩
+    · simp only [hs4, stReturndatacopy]; exact hc3
+    · simp only [hs4, stReturndatacopy]; rw [hp3]
+    · simp only [hs4, stReturndatacopy]
+    · simp only [hs4, stReturndatacopy, ← hmemc, ← hcpc]
+      rw [toNat_sub_ofNat (by rw [toNat_sub_ofNat (by rw [hgas3]; omega), hgas3]; omega),
+        toNat_sub_ofNat (by rw [hgas3]; omega), hgas3]; omega
+    · simp only [hs4, stReturndatacopy]; rw [hrd3]; exact hrdata
+    · simp only [hs4, stReturndatacopy]; exact hacc
+    · simp only [hs4, stReturndatacopy]; exact hee
+    · refine ⟨?_, ?_, ?_⟩
+      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.1
+      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.2.1
+      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.2.2
+
 /-- `DUP1` goes through `stDup1`, not `stSwap`, so it is its own combinator. -/
 theorem RD.dup1 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.DUP1, .none)) (hov : t.length + 2 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (a :: a :: t) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + ⟨1⟩) (a :: a :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := dup1_xstep hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stDup1 s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stDup1]; exact hcode
       · simp only [stDup1]; rw [hpc]
       · rfl
       · simp only [stDup1]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stDup1]; exact hmem
       · simp only [stDup1]; exact haw
+      · simp only [stDup1]; exact hrdata
       · simp only [stDup1]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.pop {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.POP, .none))
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem aw acc (k + 1) (C + 2) := by
+    RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := pop_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPop s t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPop]; exact hcode
       · simp only [stPop]; rw [hpc]
       · rfl
       · simp only [stPop]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPop]; exact hmem
       · simp only [stPop]; exact haw
+      · simp only [stPop]; exact hrdata
       · simp only [stPop]; exact hacc
       · exact hee
       · exact hworld
@@ -486,255 +614,288 @@ theorem RD.pop {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
 /-- Internal `JUMP` to a statically-valid destination `a` (needs the
     `(D_J code 0).contains a` fact).  Sets `pc := a`, pops the target. -/
 theorem RD.jump {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMP, .none))
     (hjd : (D_J code ⟨0⟩).contains a = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 a t mem aw acc (k + 1) (C + 8) := by
+    RD code ee g s0 a t mem aw rdata acc (k + 1) (C + 8) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := jump_xstep hcode hpc hdec hstk hjd hov
     by_cases gg : g.toNat < C + 8
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJump s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stJump]; exact hcode
       · rfl
       · rfl
       · simp only [stJump]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stJump]; exact hmem
       · simp only [stJump]; exact haw
+      · simp only [stJump]; exact hrdata
       · simp only [stJump]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.push2 {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) (argv : UInt256)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256)
     (hdec : decode code pc = some (.Push .PUSH2, some (argv, 2)))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + UInt256.ofNat 3) (argv :: stk) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + UInt256.ofNat 3) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := push2_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stPush2 s argv,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stPush2]; exact hcode
       · simp only [stPush2]; rw [hpc]
       · simp only [stPush2]; rw [hstk]
       · simp only [stPush2]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stPush2]; exact hmem
       · simp only [stPush2]; exact haw
+      · simp only [stPush2]; exact hrdata
       · simp only [stPush2]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.eq {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.EQ, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.eq a b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.eq a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => eq_xstep hc hp hdec hs hov)
 
 theorem RD.lt {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lt a b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => lt_xstep hc hp hdec hs hov)
 
 theorem RD.slt {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SLT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.slt a b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.slt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => slt_xstep hc hp hdec hs hov)
 
 theorem RD.shr {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SHR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftRight b a :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftRight b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => shr_xstep hc hp hdec hs hov)
 
 theorem RD.sub {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SUB, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sub a b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sub a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => sub_xstep hc hp hdec hs hov)
 
 theorem RD.and {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.AND, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => and_xstep hc hp hdec hs hov)
 
 theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SHL, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftLeft b a :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftLeft b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => shl_xstep hc hp hdec hs hov)
 
 theorem RD.add {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.ADD, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) ((a + b) :: t) mem aw acc (k + 1) (C + 3) :=
+    RD code ee g s0 (pc + ⟨1⟩) ((a + b) :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => add_xstep hc hp hdec hs hov)
 
 /-- `MUL` is cost 5 (`stMul`), so it does not share the `stBinop` helper. -/
 theorem RD.mul {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MUL, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mul a b :: t) mem aw acc (k + 1) (C + 5) := by
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mul a b :: t) mem aw rdata acc (k + 1) (C + 5) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := mul_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 5
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stMul s (UInt256.mul a b) t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMul]; exact hcode
       · simp only [stMul]; rw [hpc]
       · rfl
       · simp only [stMul]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stMul]; exact hmem
       · simp only [stMul]; exact haw
+      · simp only [stMul]; exact hrdata
       · simp only [stMul]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.iszero {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.ISZERO, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.isZero a :: t) mem aw acc (k + 1) (C + 3) := by
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.isZero a :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := iszero_xstep hcode hpc hdec hstk (by simp only [List.length_cons]; omega)
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stIsZero s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stIsZero]; exact hcode
       · simp only [stIsZero]; rw [hpc]
       · rfl
       · simp only [stIsZero]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stIsZero]; exact hmem
       · simp only [stIsZero]; exact haw
+      · simp only [stIsZero]; exact hrdata
       · simp only [stIsZero]; exact hacc
+      · exact hee
+      · exact hworld
+
+theorem RD.not {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.NOT, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lnot a :: t) mem aw rdata acc (k + 1) (C + 3) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := not_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 3
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stNot s a t,
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stNot]; exact hcode
+      · simp only [stNot]; rw [hpc]
+      · rfl
+      · simp only [stNot]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
+      · simp only [stNot]; exact hmem
+      · simp only [stNot]; exact haw
+      · simp only [stNot]; exact hrdata
+      · simp only [stNot]; exact hacc
       · exact hee
       · exact hworld
 
 /-! ### Environment-reading ops (read the carried `ee`) -/
 
 theorem RD.callvalue {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLVALUE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (ee.weiValue :: stk) mem aw acc (k + 1) (C + 2) := by
+    RD code ee g s0 (pc + ⟨1⟩) (ee.weiValue :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := callvalue_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCallvalue s,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stCallvalue]; exact hcode
       · simp only [stCallvalue]; rw [hpc]
       · simp only [stCallvalue]; rw [hee, hstk]
       · simp only [stCallvalue]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stCallvalue]; exact hmem
       · simp only [stCallvalue]; exact haw
+      · simp only [stCallvalue]; exact hrdata
       · simp only [stCallvalue]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.calldatasize {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATASIZE, .none))
     (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.calldata.size :: stk) mem aw acc (k + 1) (C + 2) := by
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.calldata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := calldatasize_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCalldatasize s,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stCalldatasize]; exact hcode
       · simp only [stCalldatasize]; rw [hpc]
       · simp only [stCalldatasize]; rw [hee, hstk]
       · simp only [stCalldatasize]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stCalldatasize]; exact hmem
       · simp only [stCalldatasize]; exact haw
+      · simp only [stCalldatasize]; exact hrdata
       · simp only [stCalldatasize]; exact hacc
       · exact hee
       · exact hworld
 
 theorem RD.calldataload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATALOAD, .none))
     (hov : t.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩)
-        (uInt256OfByteArray (ee.calldata.readBytes a.toNat 32) :: t) mem aw acc (k + 1) (C + 3) := by
+        (uInt256OfByteArray (ee.calldata.readBytes a.toNat 32) :: t) mem aw rdata acc (k + 1) (C + 3) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := calldataload_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 3
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stCalldataload s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stCalldataload]; exact hcode
       · simp only [stCalldataload]; rw [hpc]
       · simp only [stCalldataload]; rw [hee]
       · simp only [stCalldataload]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stCalldataload]; exact hmem
       · simp only [stCalldataload]; exact haw
+      · simp only [stCalldataload]; exact hrdata
       · simp only [stCalldataload]; exact hacc
       · exact hee
       · exact hworld
@@ -748,19 +909,19 @@ literal offset) and updates `mem`/`aw` accordingly. -/
 
 /-- `MSTORE`: pops `a` (offset), `b` (value); writes `b` at `mem[a]`, grows active words. -/
 theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
         memoryExpansionCost s .MSTORE = mcost)
     (hmemout : b.toByteArray.write 0 mem a.toNat 32 = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout acc (k + 1) (C + (mcost + 3)) := by
+    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .MSTORE = mcost := hmc s haw hstk
     have st := mstore_xstep hcode hpc hdec hstk hov
@@ -768,7 +929,7 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
     by_cases gg : g.toNat < C + (mcost + 3)
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stMStore s a b t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMStore]; exact hcode
       · simp only [stMStore]; rw [hpc]
       · rfl
@@ -777,16 +938,17 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
           toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stMStore]; rw [hmem, hmemout]
       · simp only [stMStore]; rw [haw, hawout]
+      · simp only [stMStore]; exact hrdata
       · simp only [stMStore]; exact hacc
       · exact hee
       · exact hworld
 
 /-- `MLOAD`: pops `a` (offset), pushes the 32-byte word at `mem[a]`, grows active words. -/
 theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a : UInt256} {t : List UInt256} (mcost : ℕ) (loadval awout : UInt256)
-    (h : RD code ee g s0 pc (a :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: t →
         memoryExpansionCost s .MLOAD = mcost)
@@ -794,9 +956,9 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Stat
              else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) = loadval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (loadval :: t) mem awout acc (k + 1) (C + (mcost + 3)) := by
+    RD code ee g s0 (pc + ⟨1⟩) (loadval :: t) mem awout rdata acc (k + 1) (C + (mcost + 3)) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .MLOAD = mcost := hmc s haw hstk
     have st := mload_xstep hcode hpc hdec hstk hov
@@ -804,7 +966,7 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Stat
     by_cases gg : g.toNat < C + (mcost + 3)
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stMLoad s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMLoad]; exact hcode
       · simp only [stMLoad]; rw [hpc]
       · simp only [stMLoad]; rw [hmem, haw, hval]
@@ -813,35 +975,37 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Stat
           toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stMLoad]; rw [hmem]
       · simp only [stMLoad]; rw [haw, hawout]
+      · simp only [stMLoad]; exact hrdata
       · simp only [stMLoad]; exact hacc
       · exact hee
       · exact hworld
 
 /-- `JUMPI` **taken** (condition `b ≠ 0`) to a statically-valid destination `a`. -/
 theorem RD.jumpiT {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPI, .none))
     (hb : b ≠ ⟨0⟩)
     (hjd : (D_J code ⟨0⟩).contains a = true)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 a t mem aw acc (k + 1) (C + 10) := by
+    RD code ee g s0 a t mem aw rdata acc (k + 1) (C + 10) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · have st := jumpi_t_xstep hcode hpc hdec hstk hb hjd hov
     by_cases gg : g.toNat < C + 10
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpiT s a t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stJumpiT]; exact hcode
       · rfl
       · rfl
       · simp only [stJumpiT]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stJumpiT]; exact hmem
       · simp only [stJumpiT]; exact haw
+      · simp only [stJumpiT]; exact hrdata
       · simp only [stJumpiT]; exact hacc
       · exact hee
       · exact hworld
@@ -850,29 +1014,30 @@ theorem RD.jumpiT {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
     condition value + a proof it is `⟨0⟩` (so a symbolic condition can be resolved at
     the call site), symmetric with `jumpiT`. -/
 theorem RD.jumpiNT {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.JUMPI, .none))
     (hb : b = ⟨0⟩)
     (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem aw acc (k + 1) (C + 10) := by
+    RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata acc (k + 1) (C + 10) := by
   unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
   · rw [hb] at hstk
     have st := jumpi_nt_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 10
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stJumpiNT s t,
-        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩
+        hX.trans (stepContinue hgas st hk (by omega)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stJumpiNT]; exact hcode
       · simp only [stJumpiNT]; rw [hpc]
       · rfl
       · simp only [stJumpiNT]; rw [toNat_sub_ofNat (by rw [hgas]; omega), hgas]; omega
       · simp only [stJumpiNT]; exact hmem
       · simp only [stJumpiNT]; exact haw
+      · simp only [stJumpiNT]; exact hrdata
       · simp only [stJumpiNT]; exact hacc
       · exact hee
       · exact hworld
@@ -900,17 +1065,17 @@ axiom Theta_returnedGas_le
     `Csstore s` is symbolic (it depends on the unknown prior slot value), so the counters are
     existential.  Requires `ee.perm = true` — `SSTORE` aborts in static mode. -/
 theorem RD.sstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
     {slot val : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (slot :: val :: t) mem aw (cA, σ) k C)
+    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata (cA, σ) k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.SSTORE, .none))
     (hov : t.length ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) t mem aw
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) t mem aw rdata
       (cA, sstoreAccountMap ee.codeOwner σ slot val) k' C' := by
   unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact ⟨k, C, Or.inl hoog⟩
   · have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
     have st := sstore_xstep hcode hpc hdec hperms hstk hov
@@ -921,13 +1086,14 @@ theorem RD.sstore {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : Sta
     · have hcss : Csstore s ≤ s.machineState.gasAvailable.toNat := by rw [hgas]; omega
       refine ⟨k + 1, C + Csstore s, Or.inr ⟨stSStore s slot val t,
         hX.trans (stepContinue hgas st hk (by omega)),
-        ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_⟩⟩
+        ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
       · rw [stSStore_executionEnv]; exact hcode
       · rw [stSStore_pc, hpc]
       · exact stSStore_stack s slot val t
       · rw [stSStore_gas s slot val t hcss, hgas]; omega
       · rw [stSStore_memory]; exact hmem
       · rw [stSStore_activeWords]; exact haw
+      · exact hrdata
       · have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
         have hσ : s.accountMap = σ := congrArg Prod.snd hacc
         have hco : s.executionEnv.codeOwner = ee.codeOwner := by rw [hee]
@@ -945,12 +1111,12 @@ set_option maxHeartbeats 1000000 in
     Act-side `externalCall` invokes, so the two coincide by construction.  Gas is existential
     (the callee's refund `g'` is unknown but `≤` forwarded, via `Theta_returnedGas_le`). -/
 theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: t)
-          mem aw (cA, σ) k C)
+          mem aw rdata (cA, σ) k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
@@ -967,9 +1133,9 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
-          (cA', σ') k' C' := by
+          o (cA', σ') k' C' := by
   unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee, hworld⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · -- OOG: default witnesses; the Θ-link is tuple-eta (rfl), the RD part is OOG.
     exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, (by unfold RD; exact Or.inl hoog)⟩
   · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
@@ -1066,7 +1232,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State
         rw [← hee, ← hcA, ← hσ, ← hmem, ← hw1, ← hw2, ← hw3, ← hθs]
       · -- RD on the successor `SUCC` (inferred from `hXP`'s `X` equation)
         unfold RD
-        refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · exact hcode
         · rw [hpc]
         · cases θs.2.2.2.2.1 <;> rfl
@@ -1075,6 +1241,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State
         · show g.toNat - gv.toNat ≤ g.toNat; omega
         · rw [hmem]
         · rw [haw]
+        · rfl
         · rfl
         · exact hee
         · exact hworld
@@ -1120,10 +1287,10 @@ private theorem RD.terminalOOG {code : ByteArray} {g : UInt256} {s0 s : State} {
 /-- `RETURN`: terminate, returning `mem[off .. off+len]` (resolved to the literal `oval`).  Turns an
     `RD` cursor into the halting-success terminal `RDret`. -/
 theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ) (oval : ByteArray)
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURN, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
         memoryExpansionCost s .RETURN = mcost)
@@ -1131,7 +1298,7 @@ theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     (hov : t.length ≤ 1024) :
     RDret code g s0 acc oval := by
   unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, _hee⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, _hrdata, hacc, _hee⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .RETURN = mcost := hmc s haw hstk
     have st := return_xstep hcode hpc hdec hstk hov
@@ -1145,17 +1312,17 @@ theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
 /-- `REVERT`: terminate with a revert returning `mem[off .. off+len]`.  Turns an `RD` cursor into the
     halting-revert terminal `RDrev`. -/
 theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ)
-    (h : RD code ee g s0 pc (off :: len :: t) mem aw acc k C)
+    (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
         memoryExpansionCost s .REVERT = mcost)
     (hov : t.length ≤ 1024) :
     RDrev code g s0 := by
   unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, _hacc, _hee⟩
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, _hrdata, _hacc, _hee⟩
   · exact Or.inl hoog
   · have hmcS : memoryExpansionCost s .REVERT = mcost := hmc s haw hstk
     have st := revert_xstep hcode hpc hdec hstk hov
@@ -1276,10 +1443,11 @@ example {code : ByteArray} {g : UInt256} {s0 s : State} {k C : ℕ}
       ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
       ∧ s'.machineState.memory = s.machineState.memory
       ∧ s'.machineState.activeWords = s.machineState.activeWords
+      ∧ s'.machineState.returnData = s.machineState.returnData
       ∧ (s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap) :=
   (RD.start hcode hpc hstk hgas hk hC hX hworld
     |>.jumpdest hd0 (by simp only [List.length_cons]; omega)
-    |>.swap1 hd1 (by omega)).conclude
+    |>.swap1 hd1 (by omega)).conclude (rdata := s.machineState.returnData)
 
 /-! ## `evm_run` — a boilerplate-eliding chain builder
 

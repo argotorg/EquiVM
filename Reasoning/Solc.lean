@@ -176,6 +176,18 @@ theorem memExpRevert0 (s : State) {t : List UInt256}
     List.getElem!_cons_zero, List.getElem!_cons_succ,
     show (⟨0⟩ : UInt256).toNat = 0 from rfl, MachineState.M, hof, Nat.sub_self]
 
+/-- `REVERT` (or `RETURN`) memory-expansion cost when the **offset is zero** and the length `len` is
+    arbitrary (e.g. the post-call `RETURNDATACOPY`+`REVERT` failure tail copies/​reverts the whole
+    return buffer at offset 0).  Unlike `memExpRevert0` the cost is *not* zero, so it is returned
+    symbolically in terms of the carried active-words. -/
+theorem memExpRevertZeroOff (s : State) {len : UInt256} {t : List UInt256}
+    (hstk : s.machineState.stack = ⟨0⟩ :: len :: t) :
+    memoryExpansionCost s .REVERT
+      = Cₘ (UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat 0 len.toNat))
+        - Cₘ s.machineState.activeWords := by
+  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk,
+    List.getElem!_cons_zero, List.getElem!_cons_succ, show (⟨0⟩ : UInt256).toNat = 0 from rfl]
+
 /-- **The solc guard prologue** (`PUSH1 0x80; PUSH1 0x40; MSTORE; CALLVALUE; DUP1; ISZERO`, byte-
     identical for every solc contract) as a **producer of the `RD` invariant** (compositional):
     `initState → RD … ⟨8⟩ [isZero(callvalue), callvalue]` so a dispatcher fold can chain straight off
@@ -189,7 +201,8 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
     (hd6 : decode code ⟨6⟩ = some (.DUP1, .none))
     (hd7 : decode code ⟨7⟩ = some (.ISZERO, .none)) :
     RD code I g (initState cA gh bl σ σ₀ g A I) ⟨8⟩
-        [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 6 26 := by
+        [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) 6 26 := by
   set s0 := initState cA gh bl σ σ₀ g A I with hs0
   have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
   have hcode0 : s0.executionEnv.code = code := by rw [hee0]; exact hcode
@@ -198,11 +211,12 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
   have hstk0 : s0.machineState.stack = [] := by rw [hs0]; simp [initState]; rfl
   have haw0 : s0.machineState.activeWords = UInt256.ofNat 0 := by rw [hs0]; simp [initState]; rfl
   have hmem0 : s0.machineState.memory = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
+  have hrdata0 : s0.machineState.returnData = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
   have hacc0 : (s0.createdAccounts, s0.accountMap) = (cA, σ) := by rw [hs0]; simp [initState]
   have hX0 : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - 0) (D_J code ⟨0⟩) s0 := rfl
   -- PUSH1 0x80 · PUSH1 0x40 · MSTORE (install free pointer) · CALLVALUE · DUP1 · ISZERO ⇒ pc 8
-  exact RD.startWith hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0 hmem0 haw0 hacc0 hee0
-        ⟨rfl, rfl, rfl⟩
+  exact RD.startWith (rdata := ByteArray.empty) hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0
+        hmem0 haw0 hrdata0 hacc0 hee0 ⟨rfl, rfl, rfl⟩
       |>.push1 ⟨128⟩ hd0 (by decide)
       |>.push1 ⟨64⟩ hd2 (by decide)
       |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4
@@ -223,9 +237,9 @@ open Ethereum Ethereum.EVM Reasoning.Theory
     cursor at the first `PUSH0`, push the two zero words and `REVERT` (memory-expansion cost `0`).
     Recurs at the end of every revert path. -/
 theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hd0 : decode code pc = some (.PUSH0, .none))
     (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
     (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))

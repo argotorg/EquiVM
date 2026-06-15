@@ -910,4 +910,99 @@ theorem Csstore_pos (s : State) : 1 ≤ Csstore s := by
     GasConstants.Gcoldsload]
   split_ifs <;> omega
 
+/-! ### RETURNDATASIZE (cost `Gbase = 2`, pc += 1, pushes `|returnData|`) -/
+
+def stReturndatasize (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat s.machineState.returnData.size :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 2 } }
+
+theorem returndatasize_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.RETURNDATASIZE, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stReturndatasize s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.RETURNDATASIZE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_returndatasize s hd]
+  by_cases hg : s.machineState.gasAvailable.toNat < GasConstants.Gbase
+  · have : s.machineState.gasAvailable.toNat < 2 := by simpa [GasConstants.Gbase] using hg
+    rw [if_pos hg, if_pos this]
+  · have hg2 : ¬ s.machineState.gasAvailable.toNat < 2 := by simpa [GasConstants.Gbase] using hg
+    have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+    rw [if_neg hg, if_neg hov', if_neg hg2]
+    simp only [GasConstants.Gbase, stReturndatasize]
+
+/-! ### RETURNDATACOPY (`a :: b :: c :: t ↦ t`, copy `returnData[b .. b+c]` to `mem[a .. a+c]`;
+    two-stage gas `memCost` then `Gverylow + Gcopy·⌈c/32⌉`, plus the `b + c ≤ |returnData|` guard) -/
+
+def stReturndatacopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      memory := s.machineState.returnData.write b.toNat s.machineState.memory a.toNat c.toNat,
+      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat c.toNat),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable - UInt256.ofNat (memoryExpansionCost s .RETURNDATACOPY))
+          - UInt256.ofNat (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) } }
+
+theorem returndatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.RETURNDATACOPY, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: t)
+    (hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size)
+    (hov : t.length ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .RETURNDATACOPY
+         then .error .OutOfGass
+         else if (s.machineState.gasAvailable
+                  - UInt256.ofNat (memoryExpansionCost s .RETURNDATACOPY)).toNat
+                < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+              then .error .OutOfGass
+              else .ok (stReturndatacopy s a b c t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.RETURNDATACOPY, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_returndatacopy s hd, hstk]
+  by_cases hg1 : s.machineState.gasAvailable.toNat < memoryExpansionCost s .RETURNDATACOPY
+  · simp only [hg1, if_true]
+  · by_cases hg2 : (s.machineState.gasAvailable
+        - UInt256.ofNat (memoryExpansionCost s .RETURNDATACOPY)).toNat
+        < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+    · simp only [hg1, hg2, if_true, if_false]
+    · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
+        simp only [List.length_cons]; omega
+      simp only [hg1, hg2, hmemok, hov', if_false, stReturndatacopy]
+
+/-! ### NOT (`a :: t ↦ lnot a :: t`, cost `Gverylow = 3`, pc += 1) -/
+
+def stNot (s : State) (a : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.lnot a :: t,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 3 } }
+
+theorem not_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.NOT, .none))
+    (hstk : s.machineState.stack = a :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stNot s a t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.NOT, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_not s hd, hstk]
+  by_cases hg : s.machineState.gasAvailable.toNat < GasConstants.Gverylow
+  · have h3 : s.machineState.gasAvailable.toNat < 3 := by simpa [GasConstants.Gverylow] using hg
+    simp only [hg, h3, if_true]
+  · have hg2 : ¬ s.machineState.gasAvailable.toNat < 3 := by simpa [GasConstants.Gverylow] using hg
+    have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by simp only [List.length_cons]; omega
+    simp only [hg, hg2, hov', if_false, GasConstants.Gverylow, stNot]
+
 end Reasoning.Theory

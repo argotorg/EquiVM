@@ -183,3 +183,102 @@ pc 144 with `(if z then ⟨1⟩ else ⟨0⟩) :: REST` on the stack and accounts
 `Θ` output. Memory/activeWords carried symbolically (`callerCalldataMem I`, `callerOutPtr I`). The
 entire EVM side up to and including the opaque CALL is done. Remaining: post-call z-split tails
 (success/​fail), memory–encoding coupling, Act body, assembly.
+
+---
+
+## BLOCKER (session 3): Act `decode?` is total, EVM return-ABI-decoder is partial
+
+**Status: the theorem `callerCorrect` is FALSE as currently stated. Root cause is in the trusted
+Act spec, not the proof.** Found while building the post-call z=true tail.
+
+### The discrepancy
+Post-CALL, on success (`z=true`), solc ABI-decodes the return data as `(uint256)` via the decoder
+at pc 470 (`abi_decode_tuple_t_uint256_fromMemory`):
+```
+470 PUSH0; PUSH1 32; DUP3(dataEnd); DUP5(headStart); SUB; SLT; ISZERO; PUSH2 491; JUMPI
+483 PUSH2 490; PUSH2 203; JUMP        ; 203: PUSH0;PUSH0;REVERT
+```
+i.e. `if slt(returndatasize, 32) { revert }`. So **`z=true ∧ returndata.size < 32 ⇒ EVM REVERTS**
+(reachable: an opaque callee can `STOP` → 0 bytes, or `RETURN` <32 bytes, with success=1).
+
+Act `defaultDecodeReturn?` (Act/Semantics.lean:517) is TOTAL:
+```
+if bytes.isEmpty then some .unit else some (.int (fromByteArrayBigEndian (bytes.extract 0 32)))
+```
+So `decode? "pow2" out = some value` ALWAYS holds ⇒ `externalCallSuccess` (Semantics.lean:722)
+fires ⇒ `assign stored := tmp` ⇒ result `.ok`/`.returned` (a committed store), NEVER `.reverted`.
+
+### Why it's a real refinement violation (not a proof gap)
+For an opaque sub-call that succeeds returning `0 < out.size < 32` bytes: EVM = `.ok (.revert …)`,
+Act = `.returned …` (stored). `execResultsEquiv` cannot relate a revert to a returned result, and
+no other `runtimeEquivalenceFor` constructor applies (dispatch+decode of the *top-level* calldata
+both succeed; not OOG). Hence the `execution` case is unprovable for this witness. Everything ELSE
+is done/mechanical — this single case breaks it.
+
+### Fix (REQUIRES changing the trusted Act semantics — user decision)
+BOTH pieces are needed:
+1. Make the return decoder **partial**: `decode? "pow2" out = none` when `out.size < 32` (for an
+   int/uint return). (Narrow option: do it only in `callerExternalABI.decode?`.)
+2. Add an `ExecStmt` rule `externalCallReturnDecodeRevert`:
+   `… externalCallViaEVM … (true, evm', out) → cfg.externalABI.decode? name out = none → .reverted`.
+   (Piece 1 alone leaves `z=true ∧ decode=none` with no applicable rule ⇒ `ExecContractBody`
+   uninhabited ⇒ still cannot build the witness.)
+Then all cases couple: `out.size ≥ 32` → success/store (matches EVM store); `out.size < 32` →
+revert (matches EVM revert); `z=false` → `externalCallFailure` revert (matches EVM revert).
+
+---
+
+## PROGRESS (session 3): spec fix + returndata infra + z=false revert tail
+
+**All green; the single `sorry` (matching-selector success branch) remains.**
+
+1. **Spec blocker FIXED** (per user "apply the full fix"): `defaultDecodeReturn?` is now partial
+   (`none` when `bytes.size < 32`); added `ExecStmt.externalCallReturnDecodeRevert`
+   (`z=true ∧ decode?=none → .reverted`). Act/Semantics.lean. Builds clean, no other dependents.
+2. **Returndata stepping lemmas** (Stepping.lean): `returndatasize_xstep` (Gbase=2),
+   `returndatacopy_xstep` (two-stage gas + `b+c ≤ |rd|` guard). `memExpRevertZeroOff` (Solc.lean):
+   REVERT/RETURN memory cost for offset-0, arbitrary length.
+3. **RD combinators** (Reach.lean): `RD.returndatasize` (existential pushed value, like `RD.gas`);
+   `RD.returndatacopyFull` (the 4-op `RETURNDATASIZE;PUSH0;PUSH0;RETURNDATACOPY` idiom copying the
+   whole return buffer to `mem[0]`, discharging the InvalidMemoryAccess guard internally via
+   `|rd| % 2²⁵⁶ ≤ |rd|`; memory/aw/counters existential).
+4. **z=false revert tail DONE**: `callerX_postRevert` (Correct.lean) — from the post-call cursor with
+   `⟨0⟩` (failure flag) on the stack, traces `144 ISZERO…JUMPI(not taken) → 151 RETURNDATACOPY…REVERT`
+   ⇒ `RDrev`. Verified green.
+
+### Remaining (unchanged shape) — z=TRUE success tail needs `returnData` tracking
+The success path (144 → JUMPI taken → 158 → return-decoder 470 → SSTORE slot 0 → 71 STOP) runs the
+solc ABI return-decoder, which **reads `returnData`** (RETURNDATASIZE for the `≥32` check + allocation,
+RETURNDATACOPY to copy `o` into fresh memory, then MLOAD the first word → SSTORE). `RD` does **not**
+track `returnData` (it hides the cursor state and pins only pc/stack/mem/aw/accounts/world). So the
+stored value cannot currently be tied to the opaque `o`.
+
+**Architectural fork to resolve before the z=true tail:**
+  (a) add a `returnData` field to `RD` (≈preserved by all opcodes, set by `RD.call` to `o`, read by
+      RETURNDATASIZE/COPY) — clean + reusable, but churns the whole `RD` core (~40 combinators +
+      ~10 lemma signatures); OR
+  (b) a parallel `RDr` predicate (RD + `returnData = rdata`) with combinators only for the ~25 tail
+      opcodes; OR
+  (c) one monolithic `callerX_postSuccess` lemma that rcases the post-call RD once (exposing
+      `returnData = o`) and steps the whole decoder by hand.
+Then: memory–encoding coupling (#2, HARD byte-level), Act body, assembly.
+
+---
+
+## PROGRESS (session 3 cont.): returnData added to RD (option a) — DONE, green
+
+`RD` now carries a `rdata : ByteArray` field (sibling of `mem`/`aw`), threaded through every
+combinator: `RD.start`/`startWith`/`conclude`, all ~27 per-opcode combinators, `RD.call` (sets
+`rdata := o`, the opaque output), `RD.mstore`/`mload`/`sstore`/`ret`/`rev`, `RD.returndatasize`/
+`returndatacopyFull` (preserve it). `solcGuardPrologueRD`/`revertStub` (Solc.lean) and all ~13
+`callerX_*` RD annotations (Correct.lean) updated — pre-call `rdata = ByteArray.empty`, post-call
+`rdata = o`. `callerX_afterCall` now existentially exposes `rdata'` (= the opaque `o`). Whole project
+builds green; single `sorry` unchanged.
+
+### Next: z=true success tail (now unblocked)
+From `callerX_afterCall` (z=true): `144 ISZERO…JUMPI(taken) → 158 POP×4 → PUSH1 64;MLOAD → return
+decoder (RETURNDATASIZE, round-up, RETURNDATACOPY copies `o` into fresh mem, subroutine 470 checks
+`|o| ≥ 32`, MLOAD the word) → SSTORE slot 0 → JUMP 71 → STOP ⇒ RDret`. The stored word is
+`fromByteArrayBigEndian (o[0:32])` = Act's `decode? "pow2" o`. Needs: an `RD.not` combinator (opcode
+0x19 at pc 169), the decoder trace (incl. subroutine 470/450/306), and the memory↔encoding coupling
+(#2). Then Act body + assembly.
