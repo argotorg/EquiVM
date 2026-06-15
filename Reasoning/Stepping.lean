@@ -1,4 +1,4 @@
-import TruthClaude.Theory
+import Reasoning.Theory
 
 /-!
 # Stepping — reusable per-opcode `Xstep` wrappers
@@ -8,7 +8,7 @@ For each opcode used by a trace we give:
   output (so the successor is *named* and its fields project cleanly), and
 * an `<op>_xstep` lemma putting `Xstep` into the single-guard shape
   `if gas < cost then OutOfGass else .ok (st<Op> …, ctrl)`
-  that `TruthClaude.Theory.stepContinue`/`stepOOG`/`stepHalt*` consume.
+  that `Reasoning.Theory.stepContinue`/`stepOOG`/`stepHalt*` consume.
 
 These are **contract-agnostic** (parameterised by the code `ByteArray`); only the `decode`
 facts fed to them are contract-specific.
@@ -16,7 +16,7 @@ facts fed to them are contract-specific.
 
 open Act ABI Ethereum Ethereum.EVM
 
-namespace TruthClaude.Theory
+namespace Reasoning.Theory
 
 /-- The derived `BEq UInt256` is lawful (it reduces to `Fin` equality). -/
 instance : LawfulBEq UInt256 where
@@ -31,9 +31,6 @@ theorem isZero_eq_zero_of_ne {a : UInt256} (h : a ≠ ⟨0⟩) : UInt256.isZero 
   simp only [UInt256.isZero, UInt256.eq0]
   rw [beq_eq_false_iff_ne.mpr h]
   rfl
-
-/-- `isZero 0 = 1`. -/
-theorem isZero_zero : UInt256.isZero ⟨0⟩ = ⟨1⟩ := by decide
 
 /-- Equal `ByteArray`s under `==` have equal size. -/
 theorem byteArray_size_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a.size = b.size := by
@@ -696,4 +693,4 @@ theorem jumpi_t_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : Li
   simp only [hbtrue, hcode, hjd, not_true_eq_false, and_false, if_neg hov',
     GasConstants.Ghigh, stJumpiT, if_false, reduceIte]
 
-end TruthClaude.Theory
+end Reasoning.Theory

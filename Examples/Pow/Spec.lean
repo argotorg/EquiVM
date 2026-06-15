@@ -1,4 +1,4 @@
-import Act.Syntax
+import Act.Semantics
 
 /-!
 # Pow — the Act specification for `Pow.sol`'s `pow2(uint256 n)`
@@ -59,3 +59,8 @@ def powContract : ContractDecl :=
     transitions := [powTransition] }
 
 end Pow
+
+/-- Verification config: empty storage layout, default external-call ABI. -/
+def powConfig : Config :=
+  { storage := { layout := fun _ => none }
+    externalABI := defaultExternalCallABI }

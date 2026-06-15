@@ -10,7 +10,7 @@ General, **contract-agnostic** infrastructure for proving
 
 Lemmas here are about `runtimeEquivalenceFor`, `actExec`, `execResultsEquiv`,
 `returnEquiv`, and the EVM driver `Ethereum.EVM.Ξ` / `X` / `Xstep` — never about a
-specific contract. `TruthCorrect.lean` assembles them with the Truth-specific facts.
+specific contract. Each example's `Correct.lean` assembles them with its contract-specific facts.
 
 The backbone is a *symbolic-execution* discipline:
 * `initState` — the fresh EVM state `Ξ` builds, shared with `actExec`'s `evmState`.
@@ -24,7 +24,7 @@ a concrete bytecode trace be run for a *universally quantified* gas `g`.
 
 open Act ABI Ethereum Ethereum.EVM
 
-namespace TruthClaude.Theory
+namespace Reasoning.Theory
 
 /-! ## 1. The initial EVM state -/
 
@@ -255,4 +255,4 @@ theorem X_mono {vj : Array UInt256} {s : State} :
       | none => exact ih hr hne (by omega)
       | some bo => obtain ⟨b, o⟩ := bo; cases b <;> simpa using hr
 
-end TruthClaude.Theory
+end Reasoning.Theory

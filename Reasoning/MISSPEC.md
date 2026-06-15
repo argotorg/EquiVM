@@ -11,10 +11,10 @@ proven without `native_decide` (which adds the `Lean.ofReduceBool`-style
 
 Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatches
 `truth()` and returns `true`). The `callvalue ≠ 0` path and the low-gas
-(out-of-gas) regime are *unaffected* and are proved cleanly — see `TruthCorrect.lean`.
+(out-of-gas) regime are *unaffected* and are proved cleanly — see `Examples/Truth/Correct.lean`.
 
 > **Status / project-owner directive.** The owner instructed: "you can add specific keccak
-> hashes as trusted axioms for now." Accordingly `TruthCorrect.lean` declares **two** trusted
+> hashes as trusted axioms for now." Accordingly `Examples/Truth/Correct.lean` declares **two** trusted
 > axioms (`truthSelectorBytes`, `truthValidJumps`) for the genuinely-opaque base computations
 > (Blockers 1 and 2 below), plus one extern-spec axiom (`byteArray_zeroes_toList`, in
 > `Memory.lean`) for the *content* of the `@[extern "memset_zero"]` `ffi.zeroes` primitive
@@ -34,7 +34,7 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
 > memory/ABI/selector reasoning — the `ffi.zeroes` pad cancels in the round-trips). `#print axioms
 > truthCorrect` ⇒ `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size,
 > byteArray_zeroes_toList, truthSelectorBytes, truthValidJumps]` — **no `sorryAx`, no
-> `native_decide`**. The `callvalue ≠ 0` sub-result `truthXi_callvalue_ne` needs **none** of the
+> `native_decide`**. The `callvalue ≠ 0` sub-result `truthX_callvalue_ne` needs **none** of the
 > Truth-specific axioms. Once the base defects are fixed both trusted axioms become
 > `decide`-provable and can be deleted with no change to the proof.
 
@@ -104,7 +104,7 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
   *hard-coded* selector check (`PUSH4 0x9e9f51d2` in `truthBytecode`) to the Act
   selector `KEC("truth()")[0:4]`; that requires `KEC("truth()")[0:4] = 0x9e9f51d2`,
   a fact about the opaque `keccak256` that is unprovable without `native_decide`.
-* **Note:** the `callvalue ≠ 0` path proved in `TruthCorrect.lean` *avoids* this by
+* **Note:** the `callvalue ≠ 0` path proved in `Examples/Truth/Correct.lean` *avoids* this by
   case-splitting on `dispatchMsg`'s result **abstractly** (`none` / `some`) instead of
   computing it — the EVM reverts before the selector check regardless of calldata.
 * **Suggested fix:** for verification, provide a model-level keccak (or a proven
@@ -120,15 +120,17 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
   `decodingFailed`.
 * low gas (any calldata): `Ξ = .error .OutOfGass` before any jump — covered by
   `outOfGas`.
-The single remaining `sorry` in `truthCorrect` is the `callvalue == 0 ∧ enough-gas`
-branch, blocked by **both** defects above. It is isolated and documented in NOTES.md.
+
+The `callvalue == 0 ∧ enough-gas` success path is also fully proved; it genuinely depends on the
+two trusted axioms (`truthValidJumps` discharges the taken jumps, `truthSelectorBytes` the dispatch
+selector). Once the base defects are fixed, both become `decide`-provable and can be deleted.
 
 ---
 
-# `powCorrect` (the `pow2(uint256 n)` contract)
+# `Pow.powCorrect` (the `pow2(uint256 n)` contract)
 
 `powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract` is **fully proved —
-no `sorry`**. `#print axioms powCorrect` ⇒
+no `sorry`**. `#print axioms Pow.powCorrect` ⇒
 `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size, byteArray_zeroes_toList,
 powSelectorBytes, powValidJumps]`.
 
@@ -173,16 +175,12 @@ previously asserted as `axiom powSuccessAcct`; it has now been **proved** and th
   `CALLVALUE`/`CALLDATASIZE`/`CALLDATALOAD`, `RETURN` — **none** of `CREATE`/`CALL`/`SSTORE`/
   `SELFDESTRUCT`/`LOG`, the only opcodes that mutate `createdAccounts` / `accountMap` (see
   `Semantics.lean:209/273/337/595`).
-* **How it was discharged.** A single bundled preservation clause
-  `((s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap))` was threaded —
-  mirroring the existing `memory`/`activeWords` clauses — through the whole success chain:
-  `solcGuardPrologue` (Solc.lean), `powX_dispToEq`, `powX_disp`, `powLoopCore` (PowCorrect.lean),
-  `powRoutine_{9c,a5,bb,cf}`, `powX_decodeToCf`, `powX_decode`, `powX_require`, `powX_exit`,
-  `powX_encode`, then chained in `powX_success` back to `initState` (whose `createdAccounts = cA`,
-  `accountMap = σ` definitionally). `powXi_success` extracts the two components via `congrArg
-  Prod.fst/snd`. Each per-lemma obligation is closed by the same `simp only [st*]` projection
-  reduction that already discharges the memory clause. `solcGuardPrologue` is shared with Truth; its
-  four other call sites bind the new (ignored) clause and `truthCorrect`'s axiom set is unchanged.
+* **How it was discharged.** Accounts are carried as the `acc` field of every `RD` combinator
+  (alongside `mem`/`aw`), initialized at `start` to `initState`'s `(cA, σ)` and preserved by each
+  opcode (none of the in-scope opcodes touch accounts). At the success terminal, `RDret` exposes
+  `(s'.createdAccounts, s'.accountMap) = (cA, σ)`, which `RDret.reEquivElim` feeds straight into
+  `execResultsEquiv.success`. The same mechanism is generic, so `truthCorrect`'s axiom set is
+  unchanged.
 
 The **revert** scenarios (`callvalue ≠ 0`, short calldata `< 4`, wrong selector, short argument
 `4 ≤ size < 36`, huge calldata `size ≥ 2^255 + 4`, `n ≥ 256`) and the **out-of-gas** regime need

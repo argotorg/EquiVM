@@ -1,107 +1,23 @@
-import TruthClaude.Theory
-import TruthClaude.Stepping
-import TruthClaude.Memory
-import TruthClaude.Solc
-import TruthClaude.Reach
+import Examples.Truth.Bytecode
+import Examples.Truth.Spec
+import Reasoning.Theory
+import Reasoning.Stepping
+import Reasoning.Memory
+import Reasoning.Solc
+import Reasoning.Reach
 
 /-!
-# Truth — a worked runtime-equivalence example
+# Truth — runtime-equivalence proof for `truth()`
 
-The contract (Solidity):
-
-```solidity
-contract Truth {
-  function truth() public pure returns (bool) { return true; }
-}
-```
-
-This file pins down the three ingredients of a runtime-equivalence claim:
-* `truthBytecode` — the deployed EVM runtime bytecode (solc output);
-* `truthContract` — the Act specification;
-* `truthCorrect`  — the correctness statement.  **Fully proved** (no `sorry`): every call —
-  `callvalue ≠ 0`, low-gas, short-calldata, wrong-selector, and the `truth()` success path
-  (a 93-instruction EVM trace that ABI-encodes and `RETURN`s `true`) — is shown equivalent to
-  the Act spec, via the contract-agnostic `TruthClaude.Theory`/`Stepping`/`Memory` libraries.
-  `#print axioms truthCorrect` lists only Lean's three, the evmlean `ByteArray_zeroes_size`
-  base axiom, the `ffi.zeroes`-content extern spec, and the three documented trusted
-  selector/jump axioms (see `MISSPEC.md`) — no `sorryAx`.
+Every call (`callvalue ≠ 0`, short calldata, wrong selector, and the `truth()` success path)
+is shown equivalent to the Act spec, via the generic `Reasoning` library.  `#print axioms
+truthCorrect` lists only Lean's three, the evmlean base axioms, and the two documented trusted
+selector/jump axioms (`Examples/Truth/Bytecode.lean`) — no `sorryAx`.
 -/
 
-open Act ABI
-
-/-! ## 1. The contract's runtime bytecode -/
-
-/-- Deployed runtime bytecode of the `Truth` contract. -/
-def truthBytecode : ByteArray :=
-  ⟨#[
-    0x60, 0x80, 0x60, 0x40, 0x52, 0x34, 0x80, 0x15, 0x60, 0x0e, 0x57, 0x5f,
-    0x5f, 0xfd, 0x5b, 0x50, 0x60, 0x04, 0x36, 0x10, 0x60, 0x26, 0x57, 0x5f,
-    0x35, 0x60, 0xe0, 0x1c, 0x80, 0x63, 0x9e, 0x9f, 0x51, 0xd2, 0x14, 0x60,
-    0x2a, 0x57, 0x5b, 0x5f, 0x5f, 0xfd, 0x5b, 0x60, 0x30, 0x60, 0x44, 0x56,
-    0x5b, 0x60, 0x40, 0x51, 0x60, 0x3b, 0x91, 0x90, 0x60, 0x64, 0x56, 0x5b,
-    0x60, 0x40, 0x51, 0x80, 0x91, 0x03, 0x90, 0xf3, 0x5b, 0x5f, 0x60, 0x01,
-    0x90, 0x50, 0x90, 0x56, 0x5b, 0x5f, 0x81, 0x15, 0x15, 0x90, 0x50, 0x91,
-    0x90, 0x50, 0x56, 0x5b, 0x60, 0x5e, 0x81, 0x60, 0x4c, 0x56, 0x5b, 0x82,
-    0x52, 0x50, 0x50, 0x56, 0x5b, 0x5f, 0x60, 0x20, 0x82, 0x01, 0x90, 0x50,
-    0x60, 0x75, 0x5f, 0x83, 0x01, 0x84, 0x60, 0x57, 0x56, 0x5b, 0x92, 0x91,
-    0x50, 0x50, 0x56
-  ]⟩
-
-/-! ## 2. The Act specification -/
-
-/-- The single transition: `truth()` requires zero callvalue and returns `true`.
-    (The `require(callvalue == 0)` mirrors the compiler-inserted non-payable guard.) -/
-def truthTransition : TransitionDecl :=
-  { name := "truth"
-    params := []
-    returnType := some (.elem .bool)
-    body :=
-      [ .require (.binary .eq (.env .callvalue) (.intLit 0))
-      , .return (.boolLit true) ] }
-
-/-- Act specification of the `Truth` contract: no storage, no constructor body,
-    a single transition. -/
-def truthContract : ContractDecl :=
-  { name := "Truth"
-    storage := []
-    ctor := { params := [], body := [] }
-    transitions := [truthTransition] }
-
-/-- Configuration: empty storage layout and the default external-call ABI. -/
-def truthConfig : Config :=
-  { storage := { layout := fun _ => none }
-    externalABI := defaultExternalCallABI }
-
-open Ethereum Ethereum.EVM TruthClaude.Theory TruthClaude.Reach
+open Act ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 10000
-
-/-! ## 3. Trusted axioms for opaque trusted-base computations
-
-`truthCorrect` needs exactly **two** facts about definitions in the (read-only) trusted base
-that are **logically opaque** (see `MISSPEC.md`): the keccak selector of `truth()` (because
-`ffi.keccak256` is `@[extern] opaque`) and the valid-jump-destination set of `truthBytecode`
-(because `Ethereum.EVM.D_J_aux` is `partial`).  Both values are confirmed by `#eval` but cannot
-be reduced in the kernel.  Per the project owner's instruction we admit them as **trusted
-axioms** here; the real fix is to make those base definitions computable (`MISSPEC.md`), after
-which both become provable by `decide` and can be deleted.
-
-The EVM selector-decode fact (`SHR(calldata,224)` vs `calldata.extract 0 4`) was *also* once
-admitted, but it is **not** opaque — it is now **proved** as `truthEvmSelector` (below), built
-on the contract-agnostic `selector_toNat` in `Memory.lean`.  Beyond these two trusted axioms and
-Lean's standard three, `truthCorrect` depends only on the pre-existing evmlean base axiom
-`ByteArray_zeroes_size` and its companion extern-spec `byteArray_zeroes_toList`
-(`ffi.ByteArray.zeroes` yields zero bytes). -/
-
-/-- The 4-byte function selector of `truth()` is `0x9e9f51d2` (keccak of `"truth()"`). -/
-axiom truthSelectorBytes :
-    (ffi.KEC (String.toByteArray (Act.transitionSigStr truthTransition))).extract 0 4
-      = ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩
-
-/-- The `JUMPDEST` positions of `truthBytecode` (the valid jump targets). -/
-axiom truthValidJumps :
-    Ethereum.EVM.D_J truthBytecode ⟨0⟩
-      = #[⟨14⟩, ⟨38⟩, ⟨42⟩, ⟨48⟩, ⟨59⟩, ⟨68⟩, ⟨76⟩, ⟨87⟩, ⟨94⟩, ⟨100⟩, ⟨117⟩]
 
 /-! ## 4. Truth-specific Act-side facts -/
 
@@ -139,7 +55,7 @@ theorem truthBodyReverts (evm : EVM.State) (locals : Store)
     rw [beq_eq_false_iff_ne]
     intro hh
     rw [Value.int.injEq] at hh
-    exact h (TruthClaude.Theory.uint256_toNat_eq_zero (Int.ofNat.inj hh))
+    exact h (Reasoning.Theory.uint256_toNat_eq_zero (Int.ofNat.inj hh))
   show evalExpr? truthConfig _ evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool false)
   simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
 
@@ -161,10 +77,10 @@ theorem truthBodyReturns (evm : EVM.State) (locals : Store)
 /-- **ABI encoding of the `truth()` return.**  `encodeReturnValue?` of `(.bool true)` is the
     32-byte big-endian word `1` — definitionally the EVM `RETURN`/`MSTORE` value
     `UInt256.toByteArray ⟨1⟩` (the opaque `ffi.zeroes` pad cancels; see
-    `TruthClaude.Theory.toByteArray_eq_toBytesBE`). -/
+    `Reasoning.Theory.toByteArray_eq_toBytesBE`). -/
 theorem truthReturnEncoding :
     encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
-  rw [TruthClaude.Theory.toByteArray_eq_toBytesBE]
+  rw [Reasoning.Theory.toByteArray_eq_toBytesBE]
   simp [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, abiTupleHeadSize?,
     staticABIEncodedSize?, isDynamicABIType, encodeABIValuesFrom?, encodeABIValue?,
     encodeABIWord?, Bool.toUInt256_true]
@@ -191,8 +107,6 @@ theorem truthX_callvalue_ne
 theorem truthContains14 : (D_J truthBytecode ⟨0⟩).contains ⟨14⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 theorem truthContains38 : (D_J truthBytecode ⟨0⟩).contains ⟨38⟩ = true := by
-  rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
-theorem truthContains42 : (D_J truthBytecode ⟨0⟩).contains ⟨42⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
 /-! ### Selector decode — **proved** (was a trusted axiom; not opaque)
@@ -294,7 +208,7 @@ theorem truthDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
   have hfalse : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = false := by
     by_contra hc
     rw [Bool.not_eq_false] at hc
-    have hsz := TruthClaude.Theory.byteArray_size_eq_of_beq hc
+    have hsz := Reasoning.Theory.byteArray_size_eq_of_beq hc
     rw [ByteArray.size_extract] at hsz
     simp only [show (⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray).size = 4 from rfl] at hsz
     omega
@@ -369,7 +283,7 @@ theorem truthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldata.si
     decodeCalldata (truthTransition.params.map Param.name)
       (transitionSignature truthTransition).paramTypes I.calldata = some ∅ := by
   have hlen : ¬ (I.calldata.toList.length < 4) := by
-    rw [TruthClaude.Theory.byteArray_toList_eq, Array.length_toList]
+    rw [Reasoning.Theory.byteArray_toList_eq, Array.length_toList]
     have : I.calldata.size = I.calldata.data.size := rfl
     omega
   show decodeCalldata [] [] I.calldata = some ∅

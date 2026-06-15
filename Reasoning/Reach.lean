@@ -1,4 +1,4 @@
-import TruthClaude.Stepping
+import Reasoning.Stepping
 
 /-!
 # Reach — a reusable symbolic straight-line execution abstraction
@@ -10,25 +10,25 @@ import TruthClaude.Stepping
 > cursor state `s` reached after `k` steps / `C` gas, sitting at `pc` with stack
 > `stk`, memory `mem`, active words `aw`, accounts `acc`, with `k ≤ C ≤ g`.
 
-This is *exactly* the conclusion shape of the hand-written segment lemmas
-(`powRoutine_9c` …), with the existential step/gas counters `k' C'` pulled out as
-explicit indices.  Each opcode becomes a forward **implication** combinator
+This is *exactly* the conclusion shape of the hand-written segment lemmas it replaced, with the
+existential step/gas counters `k' C'` pulled out as explicit indices.  Each opcode becomes a
+forward **implication** combinator
 `RD … pc stkᵢₙ … k C → decode … → RD … (pc+1) stkₒᵤₜ … (k+1) (C+cost)`; chaining is
 ordinary function application (`r.jumpdest …  |>.swap1 …`), the out-of-gas case
 threads itself inside the `Prop`, and `RD.conclude` repackages the indices back into
 the `∃ k' C'` form the segment lemmas state.
 
-Design notes live in `TruthClaude/REACH_PLAN.md`.  Built on `TruthClaude.Theory`
-(`stepContinue`/`stepOOG`, `toNat_sub_ofNat`) and `TruthClaude.Stepping` (the
+Design notes live in `Reasoning/REACH_PLAN.md`.  Built on `Reasoning.Theory`
+(`stepContinue`/`stepOOG`, `toNat_sub_ofNat`) and `Reasoning.Stepping` (the
 `st_op` successors + `<op>_xstep` lemmas).  Straight-line only; control flow stays
 ordinary Lean and composes by `RD` transitivity at the call site.
 -/
 
 open Act ABI Ethereum Ethereum.EVM
 
-namespace TruthClaude.Reach
+namespace Reasoning.Reach
 
-open TruthClaude.Theory
+open Reasoning.Theory
 
 set_option maxRecDepth 10000
 
@@ -85,20 +85,6 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 s 
   unfold RD
   exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hacc, hee⟩
 
-/-- Expose the cursor and its facts, to feed an internal sub-routine lemma (whose
-    hypotheses are about a concrete entry state).  Definitionally `RD` itself. -/
-theorem RD.out {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) :
-    X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
-    ∨ ∃ s : State,
-        X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J code ⟨0⟩) s
-      ∧ s.executionEnv.code = code ∧ s.machineState.pc = pc ∧ s.machineState.stack = stk
-      ∧ s.machineState.gasAvailable.toNat = g.toNat - C ∧ k ≤ C ∧ C ≤ g.toNat
-      ∧ s.machineState.memory = mem ∧ s.machineState.activeWords = aw
-      ∧ (s.createdAccounts, s.accountMap) = acc ∧ s.executionEnv = ee := h
-
 /-- Repackage the invariant into the `∃ k' C' s'` conclusion the segment lemmas
     state (the explicit step/gas indices become the existential witnesses). -/
 theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
@@ -118,26 +104,6 @@ theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : S
   rcases h with hoog | ⟨s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hacc, _hee⟩
   · exact Or.inl hoog
   · exact Or.inr ⟨k, C, s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hacc⟩
-
-/-- Like `conclude`, but also exposes `s'.executionEnv = ee` (after the code clause),
-    for segments whose conclusion threads the env (e.g. `powX_decodeToCf`). -/
-theorem RD.concludeE {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw acc k C) :
-    X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
-    ∨ ∃ (k' C' : ℕ) (s' : State),
-        X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k') (D_J code ⟨0⟩) s'
-      ∧ s'.executionEnv.code = code ∧ s'.executionEnv = ee ∧ s'.machineState.pc = pc
-      ∧ s'.machineState.stack = stk
-      ∧ s'.machineState.gasAvailable.toNat = g.toNat - C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-      ∧ s'.machineState.memory = mem
-      ∧ s'.machineState.activeWords = aw
-      ∧ (s'.createdAccounts, s'.accountMap) = acc := by
-  unfold RD at h
-  rcases h with hoog | ⟨s', hX, hc, hp, hstk, hg, hkC, hCg, hm, ha, hacc, hee⟩
-  · exact Or.inl hoog
-  · exact Or.inr ⟨k, C, s', hX, hc, hee, hp, hstk, hg, hkC, hCg, hm, ha, hacc⟩
 
 /-! ## Per-opcode combinators (continue steps)
 
@@ -1015,4 +981,4 @@ macro_rules
         | _ => Macro.throwUnsupported
       return acc
 
-end TruthClaude.Reach
+end Reasoning.Reach

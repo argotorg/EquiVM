@@ -1,6 +1,6 @@
-import TruthClaude.Memory
-import TruthClaude.Stepping
-import TruthClaude.Reach
+import Reasoning.Memory
+import Reasoning.Stepping
+import Reasoning.Reach
 
 /-!
 # Solc — reusable boilerplate shared by every solc-compiled contract
@@ -14,9 +14,9 @@ Everything in this file is contract-agnostic; the only inputs are the four selec
 matching `UInt256` constant.
 -/
 
-namespace TruthClaude.Theory
+namespace Reasoning.Theory
 
-open Ethereum Ethereum.EVM TruthClaude.Reach
+open Ethereum Ethereum.EVM Reasoning.Reach
 
 /-! ## Generic `UInt256.eq` facts -/
 
@@ -126,10 +126,9 @@ theorem solcFreePtrMem_read64 : solcFreePtrMem.readWithPadding 64 32 = UInt256.t
 
 /-! ## Shared bytecode-sequence lemmas
 
-These are *trace segments* that recur byte-for-byte across solc output, factored as parameterized
-lemmas (entry state / `code` / pc passed in, end state handed back through `∃ s, X … = X … s ∧ …`)
-so Truth and Pow share them instead of duplicating the steps.  No combinator yet — each is threaded
-by hand at the call site; the planned segment abstraction will later package exactly this shape. -/
+Trace segments that recur byte-for-byte across solc output, factored once so every contract reuses
+them.  The non-payable guard prologue is exposed as an `RD` producer (`solcGuardPrologueRD`) that
+chains directly into an `evm_run` dispatcher fold; the rest are supporting cost/selector facts. -/
 
 /-- The `revert(0,0)` memory-expansion cost is `0` for any state whose top two stack words are `0`
     (offset/size `0` ⇒ `M` does not grow ⇒ cost `0`), independent of `activeWords`. -/
@@ -148,8 +147,7 @@ theorem memExpRevert0 (s : State) {t : List UInt256}
 /-- **The solc guard prologue** (`PUSH1 0x80; PUSH1 0x40; MSTORE; CALLVALUE; DUP1; ISZERO`, byte-
     identical for every solc contract) as a **producer of the `RD` invariant** (compositional):
     `initState → RD … ⟨8⟩ [isZero(callvalue), callvalue]` so a dispatcher fold can chain straight off
-    it.  `solcGuardPrologue` is the `.out`-reshaped old-form wrapper (kept for the hand-written Truth
-    dispatcher). -/
+    it. -/
 theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
     (hcode : I.code = code)
     (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
@@ -183,28 +181,4 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
       |>.dup1 hd6 (by simp only [List.length_cons, List.length_nil]; omega)
       |>.iszero hd7 (by simp only [List.length_cons, List.length_nil]; omega)
 
-/-- Old-form `.out` wrapper around `solcGuardPrologueRD` (raw cursor state + facts) for the
-    hand-written Truth dispatcher, which steps on from `s` directly. -/
-theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
-    (hcode : I.code = code)
-    (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
-    (hd2 : decode code ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)))
-    (hd4 : decode code ⟨4⟩ = some (.MSTORE, .none))
-    (hd5 : decode code ⟨5⟩ = some (.CALLVALUE, .none))
-    (hd6 : decode code ⟨6⟩ = some (.DUP1, .none))
-    (hd7 : decode code ⟨7⟩ = some (.ISZERO, .none)) :
-    X (g.toNat + 1) (D_J code ⟨0⟩) (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass
-      ∨ ∃ s, (X (g.toNat + 1) (D_J code ⟨0⟩) (initState cA gh bl σ σ₀ g A I)
-                = X (g.toNat + 1 - 6) (D_J code ⟨0⟩) s)
-           ∧ s.executionEnv = I ∧ s.machineState.pc = ⟨8⟩
-           ∧ s.machineState.gasAvailable.toNat = g.toNat - 26
-           ∧ s.machineState.stack = [UInt256.isZero I.weiValue, I.weiValue]
-           ∧ s.machineState.activeWords = UInt256.ofNat 3
-           ∧ s.machineState.memory = solcFreePtrMem ∧ 26 ≤ g.toNat
-           ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
-  rcases (solcGuardPrologueRD hcode hd0 hd2 hd4 hd5 hd6 hd7).out with
-      hoog | ⟨s, hX, _hc, hp, hstk, hg, _hk, hCg, hmem, haw, hacc, hee⟩
-  · exact Or.inl hoog
-  · exact Or.inr ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hCg, hacc⟩
-
-end TruthClaude.Theory
+end Reasoning.Theory

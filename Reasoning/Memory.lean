@@ -1,4 +1,4 @@
-import TruthClaude.Stepping
+import Reasoning.Stepping
 
 /-!
 # Memory — reusable EVM memory + ABI-encoding lemmas
@@ -16,7 +16,7 @@ open Ethereum Ethereum.EVM Act ABI
 
 set_option maxRecDepth 8000
 
-namespace TruthClaude.Theory
+namespace Reasoning.Theory
 
 /-- **Trusted (extern spec).** `ffi.ByteArray.zeroes` (`@[extern "memset_zero"]`) yields zero
     bytes.  Companion to evmlean's admitted `ByteArray_zeroes_size`; the only `ffi.zeroes` fact
@@ -351,4 +351,4 @@ theorem add1_toNat {i : UInt256} (h : i.toNat + 1 < UInt256.size) :
   rw [Fin.val_add]; show (i.toNat + 1) % UInt256.size = i.toNat + 1
   exact Nat.mod_eq_of_lt h
 
-end TruthClaude.Theory
+end Reasoning.Theory

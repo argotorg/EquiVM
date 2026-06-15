@@ -17,14 +17,11 @@ name = "Act"
 
 [[lean_lib]]
 name = "Examples"
+globs = ["Examples.+"]
 
 [[lean_lib]]
-name = "TruthClaude"
-globs = ["TruthClaude.+"]
-
-[[lean_lib]]
-name = "TruthCodex"
-globs = ["TruthCodex.+"]
+name = "Reasoning"
+globs = ["Reasoning.+"]
 
 # [[lean_exe]]
 # name = "equivm"
