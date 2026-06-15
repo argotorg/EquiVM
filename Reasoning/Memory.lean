@@ -351,4 +351,19 @@ theorem add1_toNat {i : UInt256} (h : i.toNat + 1 < UInt256.size) :
   rw [Fin.val_add]; show (i.toNat + 1) % UInt256.size = i.toNat + 1
   exact Nat.mod_eq_of_lt h
 
+/-- `(ofNat c).toNat = c` for an in-range literal `c`. -/
+theorem ulit_toNat' (c : ℕ) (h : c < UInt256.size) : (UInt256.ofNat c).toNat = c := by
+  show (Fin.ofNat _ c).val = c; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt h
+
+/-- General `ADD` `toNat` (mod `size`). -/
+theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt256.size := by
+  show (a.val + b.val).val = (a.val.val + b.val.val) % UInt256.size
+  rw [Fin.add_def]
+
+/-- General `SUB` `toNat` (no wrap, given `b ≤ a`). -/
+theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
+    (UInt256.sub a b).toNat = a.toNat - b.toNat := by
+  show (a.val - b.val).val = a.toNat - b.toNat
+  rw [Fin.coe_sub_iff_le.mpr (by rw [Fin.le_def]; exact h)]; rfl
+
 end Reasoning.Theory

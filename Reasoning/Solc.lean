@@ -214,3 +214,24 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
       |>.iszero hd7 (by simp only [List.length_cons, List.length_nil]; omega)
 
 end Reasoning.Theory
+
+namespace Reasoning.Reach
+open Ethereum Ethereum.EVM Reasoning.Theory
+
+/-- The solc `revert(0,0)` stub `PUSH0·PUSH0·REVERT` as an **`RD → RDrev` combinator**: from a
+    cursor at the first `PUSH0`, push the two zero words and `REVERT` (memory-expansion cost `0`).
+    Recurs at the end of every revert path. -/
+theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw acc k C)
+    (hd0 : decode code pc = some (.PUSH0, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))
+    (hov : stk.length + 2 ≤ 1024) :
+    RDrev code g s0 :=
+  h.push0 hd0 (by omega)
+    |>.push0 hd1 (by simp only [List.length_cons]; omega)
+    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+
+end Reasoning.Reach

@@ -87,8 +87,7 @@ theorem truthX_callvalue_ne
         (by decide) (by decide)) with [
       push1 ⟨14⟩,
       jumpiNT (isZero_eq_zero_of_ne hwv),
-      push0, push0,
-      raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+      raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-! ### callvalue = 0 dispatcher -/
 
@@ -97,71 +96,16 @@ theorem truthContains14 : (D_J truthBytecode ⟨0⟩).contains ⟨14⟩ = true :
 theorem truthContains38 : (D_J truthBytecode ⟨0⟩).contains ⟨38⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
-/-! ### Selector decode — **proved** (was a trusted axiom; not opaque)
+/-! ### Selector decode (proved, not an axiom): the EVM `CALLDATALOAD; PUSH 0xe0; SHR` selector
+    vs `calldata.extract 0 4` — a generic instance of `evmSelectorDecode`. -/
 
-Relating the EVM's `CALLDATALOAD; PUSH 0xe0; SHR` selector to `calldata.extract 0 4` is pure
-byte arithmetic.  `Memory.selector_toNat` does the 256-bit-shift ↔ byte-extraction core; below is
-the `0x9e9f51d2`-specific bijection and the final equivalence (needs `4 ≤ calldata.size`, which
-the dispatch path always has).  No new axioms — only `byteArray_zeroes_toList`. -/
-
-private theorem u256_eq_self : UInt256.eq ⟨2661241298⟩ ⟨2661241298⟩ = ⟨1⟩ := by decide
-private theorem u256_eq_ne {b : UInt256} (h : (⟨2661241298⟩ : UInt256) ≠ b) :
-    UInt256.eq ⟨2661241298⟩ b = ⟨0⟩ := by
-  simp only [UInt256.eq, Bool.toUInt256, decide_eq_false h]; rfl
-
-/-- Big-endian decode of four bytes equals `0x9e9f51d2` iff the bytes are `[9e,9f,51,d2]`. -/
-private theorem be4 (l : List UInt8) (hl : l.length = 4) :
-    fromBytesBigEndian l = 2661241298 ↔ l = [0x9e, 0x9f, 0x51, 0xd2] := by
-  match l, hl with
-  | [b0, b1, b2, b3], _ =>
-    unfold fromBytesBigEndian Function.comp
-    simp only [List.reverse_cons, List.reverse_nil, List.nil_append, List.cons_append, fromBytes',
-      List.cons.injEq, and_true]
-    have h0 := b0.toFin.isLt; have h1 := b1.toFin.isLt
-    have h2 := b2.toFin.isLt; have h3 := b3.toFin.isLt
-    simp only [UInt8.size] at h0 h1 h2 h3
-    have e0 : b0.toFin.val = b0.toNat := rfl; have e1 : b1.toFin.val = b1.toNat := rfl
-    have e2 : b2.toFin.val = b2.toNat := rfl; have e3 : b3.toFin.val = b3.toNat := rfl
-    rw [e0, e1, e2, e3]
-    have l0 : (0x9e : UInt8).toNat = 158 := rfl; have l1 : (0x9f : UInt8).toNat = 159 := rfl
-    have l2 : (0x51 : UInt8).toNat = 81 := rfl; have l3 : (0xd2 : UInt8).toNat = 210 := rfl
-    constructor
-    · intro he
-      exact ⟨UInt8.toNat_inj.mp (by omega), UInt8.toNat_inj.mp (by omega),
-             UInt8.toNat_inj.mp (by omega), UInt8.toNat_inj.mp (by omega)⟩
-    · rintro ⟨rfl, rfl, rfl, rfl⟩; rfl
-
-/-- The `ByteArray` `==` selector test equals the first-four-bytes list condition. -/
-private theorem extract_eq_iff (cd : ByteArray) (hsz : 4 ≤ cd.size) :
-    ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = true
-      ↔ cd.data.toList.take 4 = [0x9e, 0x9f, 0x51, 0xd2] := by
-  rw [show ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4)
-        = ((#[0x9e, 0x9f, 0x51, 0xd2] : Array UInt8) == (cd.extract 0 4).data) from rfl,
-      beq_iff_eq, ByteArray.data_extract, ← Array.toList_inj, Array.toList_extract]
-  show ([0x9e, 0x9f, 0x51, 0xd2] : List UInt8) = (cd.data.toList.drop 0).take (0 + 4 - 0) ↔ _
-  rw [List.drop_zero]
-  constructor
-  · intro he; rw [← he]
-  · intro he; rw [he]
-
-/-- **Selector decode** (proved): the EVM selector check `eq(0x9e9f51d2, SHR(calldata,224))`
-    agrees with the dispatcher's 4-byte compare `0x9e9f51d2 == calldata.extract 0 4`. -/
+/-- The EVM selector check `eq(0x9e9f51d2, SHR(calldata,224))` agrees with the dispatcher's
+    4-byte compare `0x9e9f51d2 == calldata.extract 0 4`. -/
 theorem truthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨2661241298⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
-      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  have hlen4 : (cd.data.toList.take 4).length = 4 := by
-    rw [List.length_take]
-    have : 4 ≤ cd.data.toList.length := by rw [Array.length_toList]; exact hsz
-    omega
-  have hsv : (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩).toNat
-             = fromBytesBigEndian (cd.data.toList.take 4) := selector_toNat cd hsz
-  by_cases hc : cd.data.toList.take 4 = [0x9e, 0x9f, 0x51, 0xd2]
-  · have h1 : UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩ = ⟨2661241298⟩ :=
-      u256_inj (by rw [hsv]; exact (be4 _ hlen4).mpr hc)
-    rw [if_pos ((extract_eq_iff cd hsz).mpr hc), h1, u256_eq_self]
-  · rw [if_neg (fun he => hc ((extract_eq_iff cd hsz).mp he))]
-    exact u256_eq_ne (fun he => hc ((be4 _ hlen4).mp (by rw [← hsv, ← he]; rfl)))
+      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
+  evmSelectorDecode hsz 0x9e 0x9f 0x51 0xd2 ⟨2661241298⟩ (by decide)
 
 /-- The shared dispatcher prefix for `callvalue = 0`: through the non-payable guard's taken jump
     (`0x08 → 0x0e`) and on to the `0x16` `JUMPI`, reaching pc 22 with stack `[0x26, (size < 4)]`,
@@ -187,8 +131,8 @@ theorem truthX_cvz_short
     RDrev truthBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
     jumpiT (lt_four_ne_zero_of_lt hsz) truthContains38,
-    jumpdest, push0, push0,
-    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
 /-- Short calldata (`< 4` bytes) cannot match the 4-byte selector ⇒ dispatch fails. -/
 theorem truthDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg truthContract cd = none :=
@@ -215,8 +159,7 @@ theorem truthX_cvz_revertB
     push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨2661241298⟩, eq, push1 ⟨42⟩,
     jumpiNT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide, truthEvmSelector hsz];
                 simp [hmatch]),
-    jumpdest, push0, push0,
-    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 
 /-- Decoding `truth()`'s (empty) argument list always succeeds with the empty store. -/

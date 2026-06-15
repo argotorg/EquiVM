@@ -325,15 +325,9 @@ theorem RD.routinecf_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C 
     jumpiNT (by rw [hsltval]; decide),
     push2 ⟨227⟩, push2 ⟨152⟩,
     jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, push0, push0,
-    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 end Reasoning.Reach
-/-- General `ADD` toNat (mod size). -/
-theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt256.size := by
-  show (a.val + b.val).val = (a.val.val + b.val.val) % UInt256.size
-  rw [Fin.add_def]
-
 /-- solc recomputes `dataEnd = headStart + (calldatasize − headStart) = calldatasize`. -/
 theorem add_sub4 {sz : ℕ} (h4 : 4 ≤ sz) (hsz : sz < UInt256.size) :
     (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat sz) ⟨4⟩ = UInt256.ofNat sz := by
@@ -401,8 +395,7 @@ theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} 
     jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
     jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
     jumpiNT hltval,
-    push0, push0,
-    raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 
 /-- Loop exit `0x8e → 0x47` as an **`RD→RD` combinator**: drop the loop scratch, keep the result
@@ -421,9 +414,6 @@ theorem RD.routineexit {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 
 end Reasoning.Reach
 
-/-- `(ofNat c).toNat = c` for in-range `c`. -/
-theorem ulit_toNat' (c : ℕ) (h : c < UInt256.size) : (UInt256.ofNat c).toNat = c := by
-  show (Fin.ofNat _ c).val = c; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt h
 
 theorem u0 : (⟨0⟩ : UInt256).toNat = 0 := by
   show (Fin.ofNat _ 0).val = 0; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
@@ -435,12 +425,6 @@ theorem u128 : (⟨128⟩ : UInt256).toNat = 128 := by
 /-- `ADD` of two literals (toNat). -/
 theorem add128_32_toNat : ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 := by
   rw [uadd_toNat, u128, u32]; show (160:ℕ) % UInt256.size = 160; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-
-/-- General `SUB` toNat (no wrap). -/
-theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
-    (UInt256.sub a b).toNat = a.toNat - b.toNat := by
-  show (a.val - b.val).val = a.toNat - b.toNat
-  rw [Fin.coe_sub_iff_le.mpr (by rw [Fin.le_def]; exact h)]; rfl
 
 theorem sub_ret32_toNat : (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
   rw [usub_toNat (by rw [add128_32_toNat, u128]; omega), add128_32_toNat, u128]
@@ -686,8 +670,7 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
         (by decide) (by decide)) with [
       push2 ⟨15⟩,
       jumpiNT (isZero_eq_zero_of_ne hwv),
-      push0, push0,
-      raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+      raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: short calldata (`size < 4`) -/
 
@@ -707,8 +690,7 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
       jumpiT (by rw [ult_one (by rw [ulit_toNat' _ (lt_size_of_lt256 (by omega)),
                 show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]; decide)
              (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-      jumpdest, push0, push0,
-      raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+      jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: `n ≥ 256` (reuses the dispatcher + decoder) -/
 
@@ -759,8 +741,7 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
   exact evm_run rd with [
       push2 ⟨45⟩,
       jumpiNT rfl,
-      jumpdest, push0, push0,
-      raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
+      jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: short argument (`4 ≤ size < 36`, reuses disp + decode prefixes) -/
 
