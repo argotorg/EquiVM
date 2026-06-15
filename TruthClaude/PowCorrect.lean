@@ -167,18 +167,12 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
     simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
   have hlt0 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩ = ⟨0⟩ :=
     ult_zero (by rw [hsztoNat]; exact le_trans (show (⟨4⟩ : UInt256).toNat ≤ 4 by decide) hsz)
-  rcases solcGuardPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-      (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    with hoog | ⟨s6, hX6, hee6, hpc6, hgas6, hstk6raw, haw6, hmem6, hg26, hacc6⟩
-  · exact Or.inl hoog
-  have hcode6 : s6.executionEnv.code = powBytecode := by rw [hee6]; exact hcode
-  have hstk6 : s6.machineState.stack = [⟨1⟩, ⟨0⟩] := by
-    rw [hstk6raw, hwv, show UInt256.isZero ⟨0⟩ = ⟨1⟩ from by decide]
-  -- steps 6–21: PUSH2·JUMPI(t)·JUMPDEST·POP·PUSH1·CALLDATASIZE·LT·PUSH2·JUMPI(nt)·PUSH0·
-  --             CALLDATALOAD·PUSH1·SHR·DUP1·PUSH4·EQ, reaching the selector compare at pc 37
-  have rd := RD.startWith hcode6 hpc6 hstk6 hgas6 (by omega) hg26 hX6 hmem6 haw6 hacc6 hee6
+  -- prologue → PUSH2·JUMPI(t)·JUMPDEST·POP·PUSH1·CALLDATASIZE·LT·PUSH2·JUMPI(nt)·PUSH0·
+  --   CALLDATALOAD·PUSH1·SHR·DUP1·PUSH4·EQ, reaching the selector compare at pc 37, as one `RD` chain
+  have rd := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+        hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
       |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-      |>.jumpiT (by decide) (by decide)
+      |>.jumpiT (by decide) (by rw [hwv]; decide)
         (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
         (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpdest (by decide) (by simp only [List.length_cons, List.length_nil]; omega)

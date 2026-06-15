@@ -1,5 +1,6 @@
 import TruthClaude.Memory
 import TruthClaude.Stepping
+import TruthClaude.Reach
 
 /-!
 # Solc — reusable boilerplate shared by every solc-compiled contract
@@ -15,7 +16,7 @@ matching `UInt256` constant.
 
 namespace TruthClaude.Theory
 
-open Ethereum Ethereum.EVM
+open Ethereum Ethereum.EVM TruthClaude.Reach
 
 /-! ## Generic `UInt256.eq` facts -/
 
@@ -144,50 +145,46 @@ theorem memExpRevert0 (s : State) {t : List UInt256}
     List.getElem!_cons_zero, List.getElem!_cons_succ,
     show (⟨0⟩ : UInt256).toNat = 0 from rfl, MachineState.M, hof, Nat.sub_self]
 
-/-- **The `PUSH0; PUSH0; REVERT` stub** (`revert(0,0)`) emitted by solc for the non-payable guard,
-    the dispatch fall-through, and every `require` failure.  From a state at `pc = p` part-way
-    through a trace, the whole run either runs out of gas or halts with a `revert`.  Contract- and
-    position-agnostic. -/
-theorem solcRevert0 {g : UInt256} {s0 s : State} {code : ByteArray} {p : UInt256}
-    {k C : ℕ} {rest : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = p)
-    (hd0 : decode code p = some (.PUSH0, .none))
-    (hd1 : decode code (p + ⟨1⟩) = some (.PUSH0, .none))
-    (hd2 : decode code (p + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))
-    (hstk : s.machineState.stack = rest) (hov : rest.length + 2 ≤ 1024)
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - k) (D_J code ⟨0⟩) s) :
-    X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
-      ∨ ∃ g' o, X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .ok (.revert g' o) := by
-  have st0 := push0_xstep hcode hpc hd0 hstk (by omega)
-  by_cases g0 : g.toNat < C + 2
-  · exact Or.inl (hX.trans (stepOOG hgas st0 hk hC (by omega)))
-  · set s1 := stPush0 s with hs1
-    have hX1 := hX.trans (stepContinue (k := k) (C := C) hgas st0 hk (by omega))
-    have hc1 : s1.executionEnv.code = code := by rw [hs1]; simp only [stPush0]; exact hcode
-    have hp1 : s1.machineState.pc = p + ⟨1⟩ := by rw [hs1]; simp only [stPush0]; rw [hpc]
-    have hg1 : s1.machineState.gasAvailable.toNat = g.toNat - (C + 2) := by
-      rw [hs1]; simp only [stPush0]; rw [toNat_sub_ofNat (by omega)]; omega
-    have hk1 : s1.machineState.stack = ⟨0⟩ :: rest := by rw [hs1]; simp only [stPush0, hstk]
-    have st1 := push0_xstep hc1 hp1 hd1 hk1 (by simp only [List.length_cons]; omega)
-    by_cases g1 : g.toNat < C + 4
-    · exact Or.inl (hX1.trans (stepOOG (k := k + 1) (C := C + 2) hg1 st1 (by omega) (by omega) (by omega)))
-    · set s2 := stPush0 s1 with hs2
-      have hX2 := hX1.trans (stepContinue (k := k + 1) (C := C + 2) hg1 st1 (by omega) (by omega))
-      have hc2 : s2.executionEnv.code = code := by rw [hs2]; simp only [stPush0]; exact hc1
-      have hp2 : s2.machineState.pc = p + ⟨1⟩ + ⟨1⟩ := by rw [hs2]; simp only [stPush0]; rw [hp1]
-      have hg2 : s2.machineState.gasAvailable.toNat = g.toNat - (C + 4) := by
-        rw [hs2]; simp only [stPush0]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hk2 : s2.machineState.stack = ⟨0⟩ :: ⟨0⟩ :: rest := by rw [hs2]; simp only [stPush0, hk1]
-      have st2 := revert_xstep hc2 hp2 hd2 hk2 (by omega)
-      rw [memExpRevert0 s2 hk2] at st2
-      exact Or.inr ⟨_, _, hX2.trans (stepHaltRevert (k := k + 2) (C := C + 4) (cost := 0) hg2 st2
-        (by omega) (by omega))⟩
+/-- **The solc guard prologue** (`PUSH1 0x80; PUSH1 0x40; MSTORE; CALLVALUE; DUP1; ISZERO`, byte-
+    identical for every solc contract) as a **producer of the `RD` invariant** (compositional):
+    `initState → RD … ⟨8⟩ [isZero(callvalue), callvalue]` so a dispatcher fold can chain straight off
+    it.  `solcGuardPrologue` is the `.out`-reshaped old-form wrapper (kept for the hand-written Truth
+    dispatcher). -/
+theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
+    (hcode : I.code = code)
+    (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
+    (hd2 : decode code ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)))
+    (hd4 : decode code ⟨4⟩ = some (.MSTORE, .none))
+    (hd5 : decode code ⟨5⟩ = some (.CALLVALUE, .none))
+    (hd6 : decode code ⟨6⟩ = some (.DUP1, .none))
+    (hd7 : decode code ⟨7⟩ = some (.ISZERO, .none)) :
+    RD code I g (initState cA gh bl σ σ₀ g A I) ⟨8⟩
+        [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 6 26 := by
+  set s0 := initState cA gh bl σ σ₀ g A I with hs0
+  have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
+  have hcode0 : s0.executionEnv.code = code := by rw [hee0]; exact hcode
+  have hpc0 : s0.machineState.pc = ⟨0⟩ := by rw [hs0]; simp [initState]; rfl
+  have hgas0 : s0.machineState.gasAvailable.toNat = g.toNat - 0 := by rw [hs0]; simp [initState]
+  have hstk0 : s0.machineState.stack = [] := by rw [hs0]; simp [initState]; rfl
+  have haw0 : s0.machineState.activeWords = UInt256.ofNat 0 := by rw [hs0]; simp [initState]; rfl
+  have hmem0 : s0.machineState.memory = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
+  have hacc0 : (s0.createdAccounts, s0.accountMap) = (cA, σ) := by rw [hs0]; simp [initState]
+  have hX0 : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - 0) (D_J code ⟨0⟩) s0 := rfl
+  -- PUSH1 0x80 · PUSH1 0x40 · MSTORE (install free pointer) · CALLVALUE · DUP1 · ISZERO ⇒ pc 8
+  exact RD.startWith hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0 hmem0 haw0 hacc0 hee0
+      |>.push1 ⟨128⟩ hd0 (by decide)
+      |>.push1 ⟨64⟩ hd2 (by decide)
+      |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4
+        (fun s haws hstks => by
+          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks]; decide)
+        (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
+        (by decide) (by decide)
+      |>.callvalue hd5 (by decide)
+      |>.dup1 hd6 (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.iszero hd7 (by simp only [List.length_cons, List.length_nil]; omega)
 
-/-- **The solc guard prologue** (first six instructions, byte-identical for every solc contract):
-    `PUSH1 0x80; PUSH1 0x40; MSTORE; CALLVALUE; DUP1; ISZERO`.  From `initState`, reach `pc = 8`
-    with the free-pointer memory installed and `[isZero(callvalue), callvalue]` on the stack, ready
-    for the non-payable-guard `JUMPI`.  Used by both Truth and Pow. -/
+/-- Old-form `.out` wrapper around `solcGuardPrologueRD` (raw cursor state + facts) for the
+    hand-written Truth dispatcher, which steps on from `s` directly. -/
 theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
     (hcode : I.code = code)
     (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
@@ -205,94 +202,9 @@ theorem solcGuardPrologue {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArra
            ∧ s.machineState.activeWords = UInt256.ofNat 3
            ∧ s.machineState.memory = solcFreePtrMem ∧ 26 ≤ g.toNat
            ∧ ((s.createdAccounts, s.accountMap) = (cA, σ)) := by
-  set s0 := initState cA gh bl σ σ₀ g A I with hs0
-  have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
-  have hcode0 : s0.executionEnv.code = code := by rw [hee0]; exact hcode
-  have hpc0 : s0.machineState.pc = ⟨0⟩ := by rw [hs0]; simp [initState]; rfl
-  have hgas0 : s0.machineState.gasAvailable.toNat = g.toNat - 0 := by rw [hs0]; simp [initState]
-  have hstk0 : s0.machineState.stack = [] := by rw [hs0]; simp [initState]; rfl
-  have haw0 : s0.machineState.activeWords = UInt256.ofNat 0 := by rw [hs0]; simp [initState]; rfl
-  have hmem0 : s0.machineState.memory = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
-  have hX0 : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - 0) (D_J code ⟨0⟩) s0 := rfl
-  have hstep0 := push1_xstep (argv := ⟨128⟩) hcode0 hpc0 hd0 hstk0 (by norm_num)
-  by_cases h0 : g.toNat < 3
-  · exact Or.inl (by rw [hX0]; exact stepOOG hgas0 hstep0 (by norm_num) (by omega) (by omega))
-  · set s1 := stPush1 s0 ⟨128⟩ with hs1
-    have hX1 := hX0.trans (stepContinue (k := 0) (C := 0) hgas0 hstep0 (by norm_num) (by omega))
-    have hee1 : s1.executionEnv = I := by rw [hs1]; simp only [stPush1]; exact hee0
-    have hcode1 : s1.executionEnv.code = code := by rw [hee1]; exact hcode
-    have hpc1 : s1.machineState.pc = ⟨2⟩ := by rw [hs1]; simp only [stPush1]; rw [hpc0]; rfl
-    have hgas1 : s1.machineState.gasAvailable.toNat = g.toNat - 3 := by rw [hs1]; simp only [stPush1]; rw [toNat_sub_ofNat (by omega)]; omega
-    have hstk1 : s1.machineState.stack = [⟨128⟩] := by rw [hs1]; simp only [stPush1, hstk0]
-    have haw1 : s1.machineState.activeWords = UInt256.ofNat 0 := by rw [hs1]; simp only [stPush1]; exact haw0
-    have hmem1 : s1.machineState.memory = ByteArray.empty := by rw [hs1]; simp only [stPush1]; exact hmem0
-    have hstep1 := push1_xstep (argv := ⟨64⟩) hcode1 hpc1 hd2 hstk1 (by norm_num)
-    by_cases h1 : g.toNat < 6
-    · exact Or.inl (by rw [hX1]; exact stepOOG hgas1 hstep1 (by norm_num) (by omega) (by omega))
-    · set s2 := stPush1 s1 ⟨64⟩ with hs2
-      have hX2 := hX1.trans (stepContinue (k := 1) (C := 3) hgas1 hstep1 (by norm_num) (by omega))
-      have hee2 : s2.executionEnv = I := by rw [hs2]; simp only [stPush1]; exact hee1
-      have hcode2 : s2.executionEnv.code = code := by rw [hee2]; exact hcode
-      have hpc2 : s2.machineState.pc = ⟨4⟩ := by rw [hs2]; simp only [stPush1]; rw [hpc1]; rfl
-      have hgas2 : s2.machineState.gasAvailable.toNat = g.toNat - 6 := by rw [hs2]; simp only [stPush1]; rw [toNat_sub_ofNat (by omega)]; omega
-      have hstk2 : s2.machineState.stack = [⟨64⟩, ⟨128⟩] := by rw [hs2]; simp only [stPush1, hstk1]
-      have haw2 : s2.machineState.activeWords = UInt256.ofNat 0 := by rw [hs2]; simp only [stPush1]; exact haw1
-      have hmem2 : s2.machineState.memory = ByteArray.empty := by rw [hs2]; simp only [stPush1]; exact hmem1
-      have hmc2 : memoryExpansionCost s2 .MSTORE = 9 := by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw2, hstk2]; decide
-      have hstep2 := mstore_xstep hcode2 hpc2 hd4 hstk2 (by norm_num)
-      rw [hmc2] at hstep2
-      by_cases h2 : g.toNat < 18
-      · exact Or.inl (by rw [hX2]; exact stepOOG (cost := 9 + 3) hgas2 hstep2 (by norm_num) (by omega) (by omega))
-      · set s3 := stMStore s2 ⟨64⟩ ⟨128⟩ [] with hs3
-        have hX3 := hX2.trans (stepContinue (k := 2) (C := 6) (cost := 9 + 3) hgas2 hstep2 (by norm_num) (by omega))
-        have hee3 : s3.executionEnv = I := by rw [hs3]; simp only [stMStore]; exact hee2
-        have hcode3 : s3.executionEnv.code = code := by rw [hee3]; exact hcode
-        have hpc3 : s3.machineState.pc = ⟨5⟩ := by rw [hs3]; simp only [stMStore]; rw [hpc2]; rfl
-        have hgas3 : s3.machineState.gasAvailable.toNat = g.toNat - 18 := by rw [hs3]; simp only [stMStore, hmc2]; rw [toNat_sub_ofNat (by rw [toNat_sub_ofNat (by omega)]; omega), toNat_sub_ofNat (by omega)]; omega
-        have hstk3 : s3.machineState.stack = [] := by rw [hs3]; simp [stMStore]
-        have haw3 : s3.machineState.activeWords = UInt256.ofNat 3 := by rw [hs3]; simp only [stMStore, haw2]; decide
-        have hmem3 : s3.machineState.memory = solcFreePtrMem := by rw [hs3]; simp only [stMStore]; rw [hmem2, show (⟨64⟩:UInt256).toNat = 64 from by decide]; rfl
-        have hstep3 := callvalue_xstep hcode3 hpc3 hd5 hstk3 (by norm_num)
-        by_cases h3 : g.toNat < 20
-        · exact Or.inl (by rw [hX3]; exact stepOOG hgas3 hstep3 (by norm_num) (by omega) (by omega))
-        · set s4 := stCallvalue s3 with hs4
-          have hX4 := hX3.trans (stepContinue (k := 3) (C := 18) hgas3 hstep3 (by norm_num) (by omega))
-          have hee4 : s4.executionEnv = I := by rw [hs4]; simp only [stCallvalue]; exact hee3
-          have hcode4 : s4.executionEnv.code = code := by rw [hee4]; exact hcode
-          have hpc4 : s4.machineState.pc = ⟨6⟩ := by rw [hs4]; simp only [stCallvalue]; rw [hpc3]; rfl
-          have hgas4 : s4.machineState.gasAvailable.toNat = g.toNat - 20 := by rw [hs4]; simp only [stCallvalue]; rw [toNat_sub_ofNat (by omega)]; omega
-          have hstk4 : s4.machineState.stack = [I.weiValue] := by rw [hs4]; simp only [stCallvalue, hee3, hstk3]
-          have haw4 : s4.machineState.activeWords = UInt256.ofNat 3 := by rw [hs4]; simp only [stCallvalue]; exact haw3
-          have hmem4 : s4.machineState.memory = solcFreePtrMem := by rw [hs4]; simp only [stCallvalue]; exact hmem3
-          have hstep4 := dup1_xstep hcode4 hpc4 hd6 hstk4 (by norm_num)
-          by_cases h4 : g.toNat < 23
-          · exact Or.inl (by rw [hX4]; exact stepOOG hgas4 hstep4 (by norm_num) (by omega) (by omega))
-          · set s5 := stDup1 s4 I.weiValue [] with hs5
-            have hX5 := hX4.trans (stepContinue (k := 4) (C := 20) hgas4 hstep4 (by norm_num) (by omega))
-            have hee5 : s5.executionEnv = I := by rw [hs5]; simp only [stDup1]; exact hee4
-            have hcode5 : s5.executionEnv.code = code := by rw [hee5]; exact hcode
-            have hpc5 : s5.machineState.pc = ⟨7⟩ := by rw [hs5]; simp only [stDup1]; rw [hpc4]; rfl
-            have hgas5 : s5.machineState.gasAvailable.toNat = g.toNat - 23 := by rw [hs5]; simp only [stDup1]; rw [toNat_sub_ofNat (by omega)]; omega
-            have hstk5 : s5.machineState.stack = [I.weiValue, I.weiValue] := by rw [hs5]; simp only [stDup1]
-            have haw5 : s5.machineState.activeWords = UInt256.ofNat 3 := by rw [hs5]; simp only [stDup1]; exact haw4
-            have hmem5 : s5.machineState.memory = solcFreePtrMem := by rw [hs5]; simp only [stDup1]; exact hmem4
-            have hstep5 := iszero_xstep hcode5 hpc5 hd7 hstk5 (by norm_num)
-            by_cases h5 : g.toNat < 26
-            · exact Or.inl (by rw [hX5]; exact stepOOG hgas5 hstep5 (by norm_num) (by omega) (by omega))
-            · set s6 := stIsZero s5 I.weiValue [I.weiValue] with hs6
-              have hX6 := hX5.trans (stepContinue (k := 5) (C := 23) hgas5 hstep5 (by norm_num) (by omega))
-              refine Or.inr ⟨s6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by omega, ?_⟩
-              · have he : g.toNat + 1 - (5 + 1) = g.toNat + 1 - 6 := by omega
-                rw [← he]; exact hX6
-              · rw [hs6]; simp only [stIsZero]; exact hee5
-              · rw [hs6]; simp only [stIsZero]; rw [hpc5]; rfl
-              · rw [hs6]; simp only [stIsZero]; rw [toNat_sub_ofNat (by omega)]; omega
-              · rw [hs6]; simp only [stIsZero]
-              · rw [hs6]; simp only [stIsZero]; exact haw5
-              · rw [hs6]; simp only [stIsZero]; exact hmem5
-              · rw [hs6]; simp only [stIsZero]
-                rw [hs5, hs4, hs3, hs2, hs1, hs0]
-                simp only [stDup1, stCallvalue, stMStore, stPush1, initState]
+  rcases (solcGuardPrologueRD hcode hd0 hd2 hd4 hd5 hd6 hd7).out with
+      hoog | ⟨s, hX, _hc, hp, hstk, hg, _hk, hCg, hmem, haw, hacc, hee⟩
+  · exact Or.inl hoog
+  · exact Or.inr ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hCg, hacc⟩
 
 end TruthClaude.Theory
