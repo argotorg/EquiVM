@@ -854,9 +854,9 @@ def powLoopBody : List Stmt :=
 /-- The loop condition of `pow2`. -/
 def powLoopCond : Expr := .binary .lt (.var "i") (.var "n")
 
-/-- **Act-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while`
-    runs (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  Proved by induction
-    on the variant `N − i`, mirroring the EVM loop (`RD.loop`). -/
+/-- **Act-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while` runs
+    (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  A direct instance of the
+    generic `execWhile_var` Hoare rule (variant `N − i`, coupling invariant on the locals). -/
 theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ) :
     ∀ (var i : ℕ) (L : Act.Store),
       N - i = var → i ≤ N →
@@ -866,48 +866,46 @@ theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : 
       ∃ L', ExecStmt cfg { contract := C, locals := L } evm (.while powLoopCond powLoopBody)
               (.ok { contract := C, locals := L' } evm)
             ∧ L'.get? "r" = some (.int (Int.ofNat (2 ^ N))) := by
-  intro var
-  induction var with
-  | zero =>
-    intro i L hvar hile hi hr hn
-    have hiN : i = N := by omega
-    refine ⟨L, ExecStmt.whileFalse ?_, by rw [hr, hiN]⟩
-    show evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool false)
-    rw [powLoopCond, evalLt hi hn]
-    have hge : ¬ (Int.ofNat i < Int.ofNat N) := by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega
-    rw [decide_eq_false hge]
-  | succ var ih =>
-    intro i L hvar hile hi hr hn
-    have hilt : i < N := by omega
+  -- variant-indexed invariant: `var` iterations left ⟺ a counter `i` with `N − i = var`
+  let P : ℕ → Act.Store → Prop := fun var L =>
+    ∃ i, N - i = var ∧ i ≤ N ∧ L.get? "i" = some (.int (Int.ofNat i))
+      ∧ L.get? "r" = some (.int (Int.ofNat (2 ^ i))) ∧ L.get? "n" = some (.int (Int.ofNat N))
+  have hfalse : ∀ L, P 0 L →
+      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool false) := by
+    rintro L ⟨i, hvar, hile, hi, _, hn⟩
+    rw [powLoopCond, evalLt hi hn,
+        decide_eq_false (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
+  have htrue : ∀ v L, P (v + 1) L →
+      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool true) := by
+    rintro v L ⟨i, hvar, hile, hi, _, hn⟩
+    rw [powLoopCond, evalLt hi hn,
+        decide_eq_true (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
+  have hstep : ∀ v L, P (v + 1) L →
+      ∃ L', ExecBlock cfg { contract := C, locals := L } evm powLoopBody
+              (.ok { contract := C, locals := L' } evm) ∧ P v L' := by
+    rintro v L ⟨i, hvar, hile, hi, hr, hn⟩
     have e1 : (Int.ofNat i + 1 : Int) = Int.ofNat (i + 1) := by
       simp only [Int.ofNat_eq_natCast]; push_cast; ring
     have e2 : (Int.ofNat (2 ^ i) * 2 : Int) = Int.ofNat (2 ^ (i + 1)) := by
       simp only [Int.ofNat_eq_natCast]; push_cast [pow_succ]; ring
-    -- the two body `letDecl`s, producing locals L2
     set L1 := L.insert "r" (.int (Int.ofNat (2 ^ i) * 2)) with hL1
     set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
-    have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by
-      rw [hL2, store_get_self, e1]
+    have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
     have hL2r : L2.get? "r" = some (.int (Int.ofNat (2 ^ (i + 1)))) := by
       rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_self, e2]
     have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
       rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
-    -- run the body block to `.ok {locals := L2} evm`
-    have hbody : ExecBlock cfg { contract := C, locals := L } evm powLoopBody
-                   (.ok { contract := C, locals := L2 } evm) := by
-      refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
-                ExecBlock.nil)
-      · rw [evalMul2 hr]
-      · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
-            = .ok (.int (Int.ofNat i + 1))
-        rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
-    -- recurse via the IH at `i+1`
-    obtain ⟨L', hwhile, hL'r⟩ := ih (i + 1) L2 (by omega) (by omega) hL2i hL2r hL2n
-    refine ⟨L', ExecStmt.whileTrue ?_ hbody hwhile, hL'r⟩
-    show evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool true)
-    rw [powLoopCond, evalLt hi hn]
-    have hlt : Int.ofNat i < Int.ofNat N := by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega
-    rw [decide_eq_true hlt]
+    refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
+    refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
+              ExecBlock.nil)
+    · rw [evalMul2 hr]
+    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
+          = .ok (.int (Int.ofNat i + 1))
+      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
+  intro var i L hvar hile hi hr hn
+  obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
+    execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
+  exact ⟨L', hwhile, by rw [hjr, show j = N by omega]⟩
 
 /-! ## The Act body returns `2^n` (callvalue 0, n < 256) -/
 /-- `require(n < 256)` passes when the argument is in range. -/
@@ -939,13 +937,15 @@ theorem powBodyReturns (evm : EVM.State) (locals : Act.Store) {N : ℕ}
   obtain ⟨L', hwhile, hL'r⟩ :=
     powLoopActCore (cfg := powConfig) (C := Pow.powContract) (evm := evm) N
       N 0 Lri (by omega) (by omega) hLri_i hLri_r hLri_n
-  refine ⟨L', ExecFuncBody.execBlockRet ?_⟩
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalReqN hn hN))
-    (ExecBlock.consNormal (ExecStmt.letDecl (value := .int 1) (by simp only [evalExpr?]; rfl))
-    (ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by simp only [evalExpr?]; rfl))
-    (ExecBlock.consNormal hwhile
-    (ExecBlock.consReturn (ExecStmt.return (evalVar hL'r)))))))
+  -- the body reads forward: require · require · let r:=1 · let i:=0 · while · return r
+  exact ⟨L', ExecFuncBody.execBlockRet <|
+    ABlock.start
+      |>.requireStep (evalCallvalueEq_true hwv)
+      |>.requireStep (evalReqN hn hN)
+      |>.letStep (value := .int 1) (by simp only [evalExpr?]; rfl)
+      |>.letStep (value := .int 0) (by simp only [evalExpr?]; rfl)
+      |>.whileStep hwhile
+      |>.returns (evalVar hL'r)⟩
 
 /-! ## The Act body reverts (callvalue ≠ 0, or n ≥ 256) -/
 
@@ -959,13 +959,13 @@ theorem powBodyReverts_cv (evm : EVM.State) (locals : Act.Store)
 theorem powBodyReverts_n (evm : EVM.State) (locals : Act.Store) {N : ℕ}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hN : 256 ≤ N)
     (hn : locals.get? "n" = some (.int (Int.ofNat N))) :
-    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
-    (ExecBlock.consRevert (ExecStmt.requireFalse ?_)))
-  have h : ¬ (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
-  show evalExpr? powConfig _ evm (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool false)
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hn]
-  rw [decide_eq_false h]
+    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
+  ExecFuncBody.execBlockRevert <|
+    (ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireRevert (by
+      have h : ¬ (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
+      show evalExpr? powConfig _ evm (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool false)
+      simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hn]
+      rw [decide_eq_false h])
 
 /-! ## ABI encoding of the `uint256` return value `2^n` -/
 
@@ -1043,9 +1043,26 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
       exact (powX_nomatch hcode hwv hsz4 hsize hmatch).reEquivNoDispatch hcode
         (powDispatch_none_nomatch hmatch)
 
+/-! ## (Kept pending cleanup) Pow's `Ξ`-success, exposed via `RDret.xiResult`.
+
+Built when the plan was to reuse a verified callee's behavior in a caller proof.  The external-call
+proof instead treats the sub-call as opaque (the caller has no runtime guarantee that the callee is
+Pow), so this is **not** used by `Caller`; retained for now. -/
+theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
+    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
+    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
+    ∨ ∃ (g' : UInt256) (A' : Substate),
+        Ξ cA gh bl σ σ₀ g A I = .ok (.success (cA, σ, g', A')
+          (UInt256.toByteArray
+            (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))) :=
+  (powX_success hcode hwv hsz36 hsz255 hmatch hn).xiResult hcode
+
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Act specification.** -/
 theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Act coupling

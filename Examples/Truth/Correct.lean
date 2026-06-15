@@ -47,10 +47,8 @@ theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecContractBody truthConfig truthContract evm locals truthTransition.body
       (.returned { contract := truthContract, locals := locals } evm (some (.bool true))) := by
-  refine ExecFuncBody.execBlockRet (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h))
-            (ExecBlock.consReturn (ExecStmt.return ?_)))
-  show evalExpr? truthConfig _ evm (.boolLit true) = .ok (.bool true)
-  simp only [evalExpr?]; rfl
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
 
 /-- **ABI encoding of the `truth()` return.**  `encodeReturnValue?` of `(.bool true)` is the
     32-byte big-endian word `1` — definitionally the EVM `RETURN`/`MSTORE` value
@@ -258,7 +256,7 @@ theorem truthReEquiv_callvalueZero
 /-- The runtime bytecode refines the Act specification, for every initial state. -/
 theorem truthCorrect :
     runtimeEquivalence!?! truthConfig truthBytecode truthContract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize => ?_⟩
+  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Act coupling

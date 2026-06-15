@@ -202,6 +202,7 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
   have hX0 : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - 0) (D_J code ⟨0⟩) s0 := rfl
   -- PUSH1 0x80 · PUSH1 0x40 · MSTORE (install free pointer) · CALLVALUE · DUP1 · ISZERO ⇒ pc 8
   exact RD.startWith hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0 hmem0 haw0 hacc0 hee0
+        ⟨rfl, rfl, rfl⟩
       |>.push1 ⟨128⟩ hd0 (by decide)
       |>.push1 ⟨64⟩ hd2 (by decide)
       |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4

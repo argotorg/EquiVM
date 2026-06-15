@@ -693,4 +693,134 @@ theorem jumpi_t_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : Li
   simp only [hbtrue, hcode, hjd, not_true_eq_false, and_false, if_neg hov',
     GasConstants.Ghigh, stJumpiT, if_false, reduceIte]
 
+/-! ### SSTORE (storage write; cost `Csstore` with the call-stipend floor, pops 2)
+
+The successor mirrors `step_sstore` verbatim — including the EIP-2200 refund bookkeeping on the
+substate, which `RD` does not track but must still be reproduced so the equation holds by `rfl`.
+The gas guard combines `step_sstore`'s two out-of-gas conditions — `gas < Csstore` and the
+`gas ≤ Gcallstipend` floor — into the single threshold `max (Csstore s) (Gcallstipend + 1)`, fitting
+the `if gas < cost then OOG else …` shape the `RD` machinery consumes. -/
+
+def stSStore (s : State) (slot val : UInt256) (t : List UInt256) : State :=
+  let Iₐ := s.executionEnv.codeOwner
+  let v₀ :=
+    match s.σ₀.find? Iₐ with
+    | none => ⟨0⟩
+    | some acc => acc.storage.findD slot ⟨0⟩
+  let v := (s.accountMap.find! Iₐ).storage.findD slot ⟨0⟩
+  let v' := val
+  let r_dirtyclear : ℤ :=
+    if v₀ ≠ UInt256.ofNat 0 && v = UInt256.ofNat 0 then - GasConstants.Rsclear else
+    if v₀ ≠ UInt256.ofNat 0 && v' = UInt256.ofNat 0 then GasConstants.Rsclear else
+    0
+  let r_dirtyreset : ℤ :=
+    if v₀ = v' && v₀ = UInt256.ofNat 0 then GasConstants.Gsset - GasConstants.Gwarmaccess else
+    if v₀ = v' && v₀ ≠ UInt256.ofNat 0 then GasConstants.Gsreset - GasConstants.Gwarmaccess else
+    0
+  let ΔAᵣ : ℤ :=
+    if v ≠ v' && v₀ = v && v' = UInt256.ofNat 0 then GasConstants.Rsclear else
+    if v ≠ v' && v₀ ≠ v then r_dirtyclear + r_dirtyreset else
+    0
+  let newAᵣ : UInt256 :=
+    match ΔAᵣ with
+    | .ofNat n => s.substate.refundBalance + UInt256.ofNat n
+    | .negSucc n => s.substate.refundBalance - UInt256.ofNat n - ⟨1⟩
+  let accountMap :=
+    s.accountMap.find? Iₐ |>.option s.accountMap
+      (fun acc =>
+        s.accountMap.insert Iₐ
+          (if val == default then
+            {acc with storage := acc.storage.erase slot}
+          else
+            {acc with storage := acc.storage.insert slot val}))
+  let substate :=
+    s.accountMap.find? Iₐ |>.option s.substate
+      (fun _ =>
+        {s.substate with
+          accessedStorageKeys := s.substate.accessedStorageKeys.insert (Iₐ, slot)
+          refundBalance := newAᵣ})
+  {s with
+      accountMap := accountMap
+      substate := substate
+      machineState.stack := t
+      machineState.gasAvailable := s.machineState.gasAvailable - UInt256.ofNat (Csstore s)
+      machineState.pc := s.machineState.pc + ⟨1⟩
+      machineState.execLength := s.machineState.execLength + 1 }
+
+theorem sstore_xstep {s : State} {code : ByteArray} {pcv slot val : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SSTORE, .none))
+    (hperm : s.executionEnv.perm = true)
+    (hstk : s.machineState.stack = slot :: val :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s
+      = (if s.machineState.gasAvailable.toNat < max (Csstore s) (GasConstants.Gcallstipend + 1)
+         then .error .OutOfGass else .ok (stSStore s slot val t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SSTORE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_sstore s hd, hstk]
+  have hg2 : ((slot :: val :: t).length - 2 + 0 > 1024) = False :=
+    eq_false (by simp only [List.length_cons]; omega)
+  have hg3 : (¬ (s.executionEnv.perm = true)) = False := eq_false (by simp [hperm])
+  simp only [hg2, hg3, if_false]
+  by_cases h1 : s.machineState.gasAvailable.toNat < Csstore s
+  · rw [if_pos h1,
+      if_pos (show s.machineState.gasAvailable.toNat
+          < max (Csstore s) (GasConstants.Gcallstipend + 1) from
+        lt_of_lt_of_le h1 (le_max_left _ _))]
+  · by_cases h2 : s.machineState.gasAvailable.toNat ≤ GasConstants.Gcallstipend
+    · rw [if_neg h1, if_pos h2,
+        if_pos (show s.machineState.gasAvailable.toNat
+            < max (Csstore s) (GasConstants.Gcallstipend + 1) from
+          lt_of_lt_of_le (Nat.lt_succ_of_le h2) (le_max_right _ _))]
+    · rw [if_neg h1, if_neg h2,
+        if_neg (show ¬ s.machineState.gasAvailable.toNat
+            < max (Csstore s) (GasConstants.Gcallstipend + 1) from
+          Nat.not_lt.mpr (max_le (Nat.le_of_not_lt h1) (by omega)))]
+      rfl
+
+/-- The `accountMap` after an `SSTORE` of `val` at `slot` by `Iₐ` (the field `RD` carries). -/
+def sstoreAccountMap (Iₐ : AccountAddress) (σ : AccountMap) (slot val : UInt256) : AccountMap :=
+  σ.find? Iₐ |>.option σ
+    (fun acc =>
+      σ.insert Iₐ
+        (if val == default then {acc with storage := acc.storage.erase slot}
+         else {acc with storage := acc.storage.insert slot val}))
+
+@[simp] theorem stSStore_accountMap (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).accountMap
+      = sstoreAccountMap s.executionEnv.codeOwner s.accountMap slot val := rfl
+
+@[simp] theorem stSStore_createdAccounts (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).createdAccounts = s.createdAccounts := rfl
+
+@[simp] theorem stSStore_pc (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).machineState.pc = s.machineState.pc + ⟨1⟩ := rfl
+
+@[simp] theorem stSStore_stack (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).machineState.stack = t := rfl
+
+@[simp] theorem stSStore_memory (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).machineState.memory = s.machineState.memory := rfl
+
+@[simp] theorem stSStore_activeWords (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).machineState.activeWords = s.machineState.activeWords := rfl
+
+@[simp] theorem stSStore_executionEnv (s : State) (slot val : UInt256) (t : List UInt256) :
+    (stSStore s slot val t).executionEnv = s.executionEnv := rfl
+
+theorem stSStore_gas (s : State) (slot val : UInt256) (t : List UInt256)
+    (hle : Csstore s ≤ s.machineState.gasAvailable.toNat) :
+    (stSStore s slot val t).machineState.gasAvailable.toNat
+      = s.machineState.gasAvailable.toNat - Csstore s := by
+  show (s.machineState.gasAvailable - UInt256.ofNat (Csstore s)).toNat = _
+  rw [toNat_sub_ofNat hle]
+
+/-- `SSTORE` always costs at least its warm-access store component, so it is non-zero — needed so a
+    continue step's `k + 1 ≤ C + Csstore s` invariant survives. -/
+theorem Csstore_pos (s : State) : 1 ≤ Csstore s := by
+  unfold Csstore
+  simp only [GasConstants.Gwarmaccess, GasConstants.Gsset, GasConstants.Gsreset,
+    GasConstants.Gcoldsload]
+  split_ifs <;> omega
+
 end Reasoning.Theory

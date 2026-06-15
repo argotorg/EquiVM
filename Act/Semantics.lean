@@ -530,14 +530,12 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
   | callMade :
       Except.ok calldata = (cfg.externalABI.encode? name args).elim (.error Ethereum.EVM.ExecutionException.InvalidInstruction) pure
       → valueWord = EVM.wordOfInt value
-      → (∃ callGas refunds accessedStorageKeys,
-        -- We need to existentially quantify over fields whose value we
-        -- do not track accurately but which the bytecode can change.
-        -- The rest of substate fields we should be able to track by act as well,
-        -- but we may decide not to
-          let A_exist := { ((evm.addAccessedAccount target) |>.substate ) with
-                      refundBalance := refunds
-                      accessedStorageKeys := accessedStorageKeys }
+      → (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
+        -- The external call bridges directly to the EVM `Θ`.  Act tracks neither gas nor the
+        -- substate, so — exactly as `callGas` is already existential — the *entire* input
+        -- substate `A_in` is existentially quantified: the call "behaves as `Θ` would for some
+        -- gas and substate".  (The result substate `A'` is discarded; `execResultsEquiv` ignores
+        -- it.)
           (cA', σ', _, A', z, o)
             = Ethereum.EVM.Θ
             evm.executionEnv.blobVersionedHashes
@@ -546,7 +544,7 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
             evm.blocks
             evm.accountMap
             evm.σ₀
-            A_exist
+            A_in
             evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as a CALL does
             evm.executionEnv.sender      -- original transactor (tx.origin)
             target

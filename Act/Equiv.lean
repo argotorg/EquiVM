@@ -141,6 +141,11 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
+    -- A top-level message call is never executed in static (read-only) mode: the EVM's
+    -- transaction entry `Υ` sets the permission flag, and Act's external-call rule likewise
+    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
+    -- under `perm = false`, whereas Act's `.assign` is permission-free); benign for pure ones.
+    I.perm = true →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
     ) →
     runtimeEquivalence!?! cfg bytecode contract
