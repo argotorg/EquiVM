@@ -120,20 +120,15 @@ theorem powDecode_none_huge {I : Ethereum.ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ 
 theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide) with
-    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
-  · exact Or.inl hd
-  · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
-    -- PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub PUSH0·PUSH0·REVERT
-    exact RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
-        |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.jumpiNT (by decide) (isZero_eq_zero_of_ne hwv)
-          (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
-        |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
-          (by simp only [List.length_cons, List.length_nil]; omega)
+  -- prologue → PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
+  exact solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+      |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.jumpiNT (by decide) (isZero_eq_zero_of_ne hwv)
+        (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.push0 (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks)
+        (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Lift any `X`-level revert/OOG result to `Ξ`. -/
 theorem powXi_of_revert {cA gh bl σ σ₀ A I} {g : UInt256} (hcode : I.code = powBytecode)
@@ -158,14 +153,9 @@ theorem powXi_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  rcases solcGuardPrologue (code := powBytecode) hcode (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide) with
-    hd | ⟨s, hX, hee, hp, hg, hstk, haw, hmem, hC, hacc⟩
-  · exact Or.inl hd
-  · have hcs : s.executionEnv.code = powBytecode := by rw [hee]; exact hcode
-    -- guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
-    --   JUMPI (taken → 41)·JUMPDEST → revert stub at pc 42
-    exact RD.startWith hcs hp hstk hg (by omega) hC hX hmem haw hacc hee
+  -- prologue → guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
+  --   JUMPI (taken → 41)·JUMPDEST → revert stub at pc 42, as one `RD`
+  exact solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
         |>.push2 ⟨15⟩ (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
         |>.jumpiT (by decide) (by rw [hwv]; decide)
           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
