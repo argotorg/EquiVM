@@ -878,6 +878,63 @@ theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
     · exact Or.inr ⟨_, _, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
 
+/-! ## From RD terminals to Act runtime-equivalence
+
+`RDret`/`RDrev` record that the *whole* run `X (g+1) … (initState …)` halts.  These
+eliminators carry that halting fact across the `X → Ξ` bridge (`Xi_*_of_X`) and into a
+`runtimeEquivalenceFor` case, folding the out-of-gas alternative into `reEquiv_outOfGas`
+*once*.  A revert/success segment therefore reaches the Act layer compositionally — e.g.
+`(powX_short …).reEquivNoDispatch hcode (powDispatch_none_short …)` — with no per-site
+`rcases` / `Xi_*_of_X` / `reEquiv_*` plumbing.  All four are contract- and bytecode-generic
+(`hcode : I.code = code` bridges the concrete bytecode back to `I.code`). -/
+
+/-- Eliminate an `RDrev` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
+    `outOfGas` case automatically, and the continuation `k` receives the `Ξ`-level revert. -/
+theorem RDrev.reEquivElim {cfg contract cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
+    (hcode : I.code = code)
+    (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
+    (k : ∀ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) →
+          runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := by
+  rcases h with hoog | ⟨g', o, hX⟩
+  · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
+  · exact k g' o (Xi_revert_of_X (by rw [← hcode] at hX; exact hX))
+
+/-- `RDrev ⇒ noDispatch`: the revert with Act failing to dispatch. -/
+theorem RDrev.reEquivNoDispatch {cfg contract cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
+    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
+    (hd : dispatchMsg contract I.calldata = none) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+  h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
+
+/-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails. -/
+theorem RDrev.reEquivDecodingFailed {cfg contract cA gh bl σ σ₀ A I} {g : UInt256}
+    {code : ByteArray} {t}
+    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = none) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+  h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev
+
+/-- Eliminate an `RDret` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
+    `outOfGas` case automatically; the continuation `k` receives the `Ξ`-level success, with
+    accounts already projected back to the carried `(cA, σ)`. -/
+theorem RDret.reEquivElim {cfg contract cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ) o)
+    (k : ∀ (g' : UInt256) (A' : Substate),
+          Ξ cA gh bl σ σ₀ g A I = .ok (.success (cA, σ, g', A') o) →
+          runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := by
+  rcases h with hoog | ⟨s, hX, hacc⟩
+  · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
+  · have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+    have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
+    rw [hcA, hσ] at hxi
+    exact k _ _ hxi
+
 /-! ## Spike acceptance: a 2-step fold closes a fixed-pc / fixed-stack conclusion -/
 
 /-- JUMPDEST then SWAP1, fully abstract over the bytecode (decode facts supplied as

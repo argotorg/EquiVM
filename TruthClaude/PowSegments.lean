@@ -456,24 +456,3 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
   exact rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
         (by simp only [List.length_cons, List.length_nil]; omega)
       |>.routineencode (by simp only [List.length_cons, List.length_nil]; omega)
-
-/-- Lift the success trace to `Ξ`: either out-of-gas, or success returning the 32-byte
-    big-endian encoding of `2^n`, with `σ`/`createdAccounts`/substate carried by the final state. -/
-theorem powXi_success {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ (g' : UInt256) (A' : Ethereum.Substate), Ξ cA gh bl σ σ₀ g A I
-                = .ok (.success (cA, σ, g', A')
-                    (UInt256.toByteArray
-                      (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))) := by
-  rcases powX_success hcode hwv hsz36 hsz255 hmatch hn with hoog | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
-  · have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
-    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
-    refine Or.inr ⟨s.machineState.gasAvailable, s.substate, ?_⟩
-    have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
-    rw [hcA, hσ] at hxi
-    exact hxi

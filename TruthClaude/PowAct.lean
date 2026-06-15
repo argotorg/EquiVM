@@ -128,22 +128,6 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
       push0, push0,
       raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 
-/-- Lift any `X`-level revert/OOG result to `Ξ`. -/
-theorem powXi_of_revert {cA gh bl σ σ₀ A I} {g : UInt256} (hcode : I.code = powBytecode)
-    (h : RDrev powBytecode g (initState cA gh bl σ σ₀ g A I)) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) := by
-  rcases h with hd | ⟨g', o, hX⟩
-  · exact Or.inl (Xi_error_of_X (by rw [← hcode] at hd; exact hd))
-  · exact Or.inr ⟨g', o, Xi_revert_of_X (by rw [← hcode] at hX; exact hX)⟩
-
-/-- `Ξ` lift of the `callvalue ≠ 0` revert. -/
-theorem powXi_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_callvalue_ne hcode hwv)
-
 /-! ## EVM revert trace: short calldata (`size < 4`) -/
 
 /-- **`callvalue = 0`, `calldatasize < 4`**: the guard passes, but the calldata-size check
@@ -164,13 +148,6 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
              (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
       jumpdest, push0, push0,
       raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
-
-/-- `Ξ` lift of the short-calldata revert. -/
-theorem powXi_short {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_short hcode hwv hsz)
 
 /-! ## EVM revert trace: `n ≥ 256` (reuses `powX_disp` + `powX_decode`) -/
 
@@ -203,16 +180,6 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
   rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
   exact rdDec |>.routinerequire_revert hltval (by simp only [List.length_nil]; omega)
 
-/-- `Ξ` lift of the `n ≥ 256` revert. -/
-theorem powXi_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hn : 256 ≤ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_nlarge hcode hwv hsz36 hsz255 hmatch hn)
-
 /-! ## EVM revert trace: wrong selector (reuses `powX_dispToEq`) -/
 
 /-- **`callvalue = 0`, `calldatasize ≥ 4`, selector mismatch**: reuses `powX_dispToEq`, then the
@@ -234,15 +201,6 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
       jumpdest, push0, push0,
       raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 
-/-- `Ξ` lift of the wrong-selector revert. -/
-theorem powXi_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_nomatch hcode hwv hsz hsize hmatch)
-
 /-! ## EVM revert trace: short argument (`4 ≤ size < 36`, reuses disp + decode prefixes) -/
 
 /-- **`callvalue = 0`, valid selector, `4 ≤ calldatasize < 36`**: dispatch and the decode
@@ -260,15 +218,6 @@ theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
   exact powX_disp hcode hwv hsz4 hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-
-/-- `Ξ` lift of the short-argument revert. -/
-theorem powXi_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz4 : 4 ≤ I.calldata.size) (hsz36 : I.calldata.size < 36)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_shortarg hcode hwv hsz4 hsz36 hmatch)
 
 /-! ## EVM revert trace: huge calldata (`calldatasize ≥ 2^255 + 4`) -/
 
@@ -288,15 +237,6 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
   exact powX_disp hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf_revert hsltval (by simp only [List.length_cons, List.length_nil]; omega)
-
-/-- `Ξ` lift of the huge-calldata revert. -/
-theorem powXi_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ g' o, Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o) :=
-  powXi_of_revert hcode (powX_hugearg hcode hwv hbig hsize hmatch)
 
 /-! ## Dispatch -/
 
@@ -564,30 +504,26 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size) :
     runtimeEquivalenceFor powConfig Pow.powContract cA gh bl σ σ₀ g A I := by
   by_cases hsz4 : I.calldata.size < 4
-  · rcases powXi_short hcode hwv hsz4 with hoog | ⟨g', o, hrev⟩
-    · exact reEquiv_outOfGas hoog
-    · exact reEquiv_noDispatch (powDispatch_none_short hsz4) hrev
+  · -- short calldata ⇒ noDispatch
+    exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch_none_short hsz4)
   · rw [not_lt] at hsz4
     by_cases hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · have hd : dispatchMsg Pow.powContract I.calldata = some Pow.powTransition := by
         rw [powDispatch_eq, if_pos hmatch]
       by_cases hsz36 : I.calldata.size < 36
       · -- decode fails ⇒ decodingFailed
-        rcases powXi_shortarg hcode hwv hsz4 hsz36 hmatch with hoog | ⟨g', o, hrev⟩
-        · exact reEquiv_outOfGas hoog
-        · exact reEquiv_decodingFailed hd (powDecode_none hsz36) hrev
+        exact (powX_shortarg hcode hwv hsz4 hsz36 hmatch).reEquivDecodingFailed hcode hd
+          (powDecode_none hsz36)
       · rw [not_lt] at hsz36
         by_cases hbig : 2 ^ 255 + 4 ≤ I.calldata.size
         · -- huge calldata: solc's signed `SLT(size−4,32)` reverts (decoder), Act decode fails too
-          rcases powXi_hugearg hcode hwv hbig hsize hmatch with hoog | ⟨g', o, hrev⟩
-          · exact reEquiv_outOfGas hoog
-          · exact reEquiv_decodingFailed hd (powDecode_none_huge hbig) hrev
+          exact (powX_hugearg hcode hwv hbig hsize hmatch).reEquivDecodingFailed hcode hd
+            (powDecode_none_huge hbig)
         · rw [not_le] at hbig
           by_cases hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256
           · -- success
-            rcases powXi_success hcode hwv hsz36 hbig hmatch hn with hoog | ⟨g', A', hsucc⟩
-            · exact reEquiv_outOfGas hoog
-            · obtain ⟨L', hbody⟩ := powBodyReturns (initState cA gh bl σ σ₀ g A I) (powCallargs I)
+            exact (powX_success hcode hwv hsz36 hbig hmatch hn).reEquivElim hcode fun _ _ hsucc => by
+              obtain ⟨L', hbody⟩ := powBodyReturns (initState cA gh bl σ σ₀ g A I) (powCallargs I)
                 (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])
               refine reEquiv_execution hd (powDecode_n hsz36 hbig) hbody ?_
               rw [hsucc]
@@ -595,26 +531,23 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
                 (returnEquiv.returned rfl rfl (powReturnEncoding hn))
           · -- n ≥ 256 ⇒ body reverts (execution)
             rw [not_lt] at hn
-            rcases powXi_nlarge hcode hwv hsz36 hbig hmatch hn with hoog | ⟨g', o, hrev⟩
-            · exact reEquiv_outOfGas hoog
-            · refine reEquiv_execution hd (powDecode_n hsz36 hbig)
+            exact (powX_nlarge hcode hwv hsz36 hbig hmatch hn).reEquivElim hcode fun _ _ hrev =>
+              reEquiv_execution hd (powDecode_n hsz36 hbig)
                 (powBodyReverts_n (initState cA gh bl σ σ₀ g A I) (powCallargs I)
-                  (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])) ?_
-              rw [hrev]; exact execResultsEquiv.revert rfl rfl
+                  (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self]))
+                (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
     · -- wrong selector ⇒ noDispatch
       rw [Bool.not_eq_true] at hmatch
-      rcases powXi_nomatch hcode hwv hsz4 hsize hmatch with hoog | ⟨g', o, hrev⟩
-      · exact reEquiv_outOfGas hoog
-      · exact reEquiv_noDispatch (powDispatch_none_nomatch hmatch) hrev
+      exact (powX_nomatch hcode hwv hsz4 hsize hmatch).reEquivNoDispatch hcode
+        (powDispatch_none_nomatch hmatch)
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Act specification.** -/
 theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract := by
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero hcode hwv hsize
-  · rcases powXi_callvalue_ne hcode hwv with hoog | ⟨g', o, hrev⟩
-    · exact reEquiv_outOfGas hoog
-    · by_cases hdisp : dispatchMsg Pow.powContract I.calldata = none
+  · exact (powX_callvalue_ne hcode hwv).reEquivElim hcode fun _ _ hrev => by
+      by_cases hdisp : dispatchMsg Pow.powContract I.calldata = none
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         cases powDispatch_unique ht
