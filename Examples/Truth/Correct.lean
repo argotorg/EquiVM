@@ -1,6 +1,7 @@
 import Examples.Truth.Bytecode
 import Examples.Truth.Spec
 import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -25,26 +26,13 @@ set_option maxRecDepth 10000
 theorem truthDispatch_eq (cd : ByteArray) :
     dispatchMsg truthContract cd
       = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4)
-        then some truthTransition else none := by
-  simp only [dispatchMsg, truthContract, List.map_cons, List.map_nil, List.find?_cons,
-    List.find?_nil, Prod.map, id_eq, Function.comp_apply]
-  rw [truthSelectorBytes]
-  by_cases hb : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = true
-  · simp [hb]
-  · simp only [Bool.not_eq_true] at hb; simp [hb]
+        then some truthTransition else none :=
+  dispatch_eq rfl truthSelectorBytes cd
 
 /-- `truthContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
-    (h : dispatchMsg truthContract cd = some t) : t = truthTransition := by
-  simp only [dispatchMsg, truthContract, List.map_cons, List.map_nil] at h
-  -- `find?` over the single-transition list: the only candidate is `truthTransition`.
-  split at h
-  · rename_i pair heq
-    have hmem := List.mem_of_find?_eq_some heq
-    simp only [List.mem_singleton, Prod.map, id_eq, Prod.mk.injEq] at hmem
-    rw [Option.some.injEq] at h
-    rw [← h, hmem.1]
-  · exact absurd h (by simp)
+    (h : dispatchMsg truthContract cd = some t) : t = truthTransition :=
+  dispatch_unique rfl h
 
 /-- With non-zero call value, the Act body reverts: `require(callvalue == 0)` fails. -/
 theorem truthBodyReverts (evm : EVM.State) (locals : Store)
@@ -203,22 +191,14 @@ theorem truthX_cvz_short
     raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 /-- Short calldata (`< 4` bytes) cannot match the 4-byte selector ⇒ dispatch fails. -/
 theorem truthDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg truthContract cd = none := by
-  rw [truthDispatch_eq]
-  have hfalse : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = false := by
-    by_contra hc
-    rw [Bool.not_eq_false] at hc
-    have hsz := Reasoning.Theory.byteArray_size_eq_of_beq hc
-    rw [ByteArray.size_extract] at hsz
-    simp only [show (⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray).size = 4 from rfl] at hsz
-    omega
-  simp [hfalse]
+    dispatchMsg truthContract cd = none :=
+  dispatch_none_short rfl truthSelectorBytes rfl h
 
 /-- Selector mismatch ⇒ dispatch fails. -/
 theorem truthDispatch_none_nomatch {cd : ByteArray}
     (h : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg truthContract cd = none := by
-  rw [truthDispatch_eq]; simp [h]
+    dispatchMsg truthContract cd = none :=
+  dispatch_none_nomatch rfl truthSelectorBytes h
 
 /-- **calldatasize ≥ 4, wrong selector**: the dispatcher continues past the `0x16` JUMPI
     (not taken), decodes & compares the selector (`EQ = 0` via `truthEvmSelector`), and reverts
@@ -238,45 +218,6 @@ theorem truthX_cvz_revertB
     jumpdest, push0, push0,
     raw rev 0 (by decide) (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov) ]
 
-/-! ## Concrete memory states of the `truth()` epilogue -/
-
-/-- Memory after solc stores the free pointer `0x80` at `0x40`. -/
-noncomputable def truthMem1 : ByteArray :=
-  (UInt256.toByteArray ⟨128⟩).write 0 ByteArray.empty 64 32
-/-- Memory after solc additionally stores the return word `1` at `0x80`. -/
-noncomputable def truthMem2 : ByteArray :=
-  (UInt256.toByteArray ⟨1⟩).write 0 truthMem1 128 32
-
-theorem truthMem1_eq :
-    truthMem1 = (ByteArray.empty ++ ffi.ByteArray.zeroes (USize.ofNat 64)) ++ UInt256.toByteArray ⟨128⟩ := by
-  rw [truthMem1, toByteArray_write_eq _ _ _ (by decide) (by exact lt_usize _ (by norm_num))]; rfl
-theorem truthMem1_size : truthMem1.size = 96 := by
-  rw [truthMem1_eq, ByteArray.size_append, ByteArray.size_append, zeroes_ofNat_size _ (by norm_num),
-      toByteArray_size]; decide
-theorem truthMem1_read64 : truthMem1.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  rw [readWithPadding_eq_extract _ _ (by have := truthMem1_size; omega), truthMem1_eq,
-      extract_append_right' _ _ _ _
-        (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num)]; rfl)
-        (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num), toByteArray_size]; rfl)]
-theorem truthMem2_eq :
-    truthMem2 = (truthMem1 ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ UInt256.toByteArray ⟨1⟩ := by
-  rw [truthMem2, toByteArray_write_eq _ _ _ (by rw [truthMem1_size]; omega)
-        (by rw [truthMem1_size]; exact lt_usize _ (by norm_num))]
-  norm_num [truthMem1_size]
-theorem truthMem2_size : truthMem2.size = 160 := by
-  rw [truthMem2_eq, ByteArray.size_append, ByteArray.size_append, truthMem1_size,
-      zeroes_ofNat_size _ (by norm_num), toByteArray_size]
-theorem truthMem1pad_size : (truthMem1 ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
-  rw [ByteArray.size_append, truthMem1_size, zeroes_ofNat_size _ (by norm_num)]
-theorem truthMem2_read64 : truthMem2.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  rw [readWithPadding_eq_extract _ _ (by have := truthMem2_size; omega), truthMem2_eq,
-      extract_append_left _ _ _ _ (by have := truthMem1pad_size; omega),
-      extract_append_left _ _ _ _ (by have := truthMem1_size; omega),
-      ← readWithPadding_eq_extract _ _ (by have := truthMem1_size; omega), truthMem1_read64]
-theorem truthMem2_read128 : truthMem2.readWithPadding 128 32 = UInt256.toByteArray ⟨1⟩ := by
-  rw [readWithPadding_eq_extract _ _ (by have := truthMem2_size; omega), truthMem2_eq,
-      extract_append_right' _ _ _ _ (by have := truthMem1pad_size; omega)
-        (by have := truthMem1pad_size; have := toByteArray_size (⟨1⟩ : UInt256); omega)]
 
 /-- Decoding `truth()`'s (empty) argument list always succeeds with the empty store. -/
 theorem truthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -329,7 +270,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpdest, push1 ⟨94⟩, dup2, push1 ⟨76⟩, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
     jumpdest, push0, dup2, iszero, iszero, swap1, pop, swap2, swap1, pop, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
     jumpdest, dup3,
-    raw mstore 6 truthMem2 (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
       (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
           List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
           Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
@@ -343,8 +284,8 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
       (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
           List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
           Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
-      (by rw [if_neg (by rw [truthMem2_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), truthMem2_read64,
+      (by rw [if_neg (by rw [solcReturnMem_size]; decide),
+          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
       (by decide) (by evm_ov),
@@ -354,7 +295,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
           List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
           Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
       (by rw [show (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 from by decide,
-          show ((⟨128⟩ : UInt256).toNat) = 128 from by decide, truthMem2_read128])
+          show ((⟨128⟩ : UInt256).toNat) = 128 from by decide, solcReturnMem_read128])
       (by evm_ov) ]
 
 theorem truthReEquiv_callvalueZero
@@ -391,17 +332,7 @@ theorem truthCorrect :
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero hcode hsize hwv
-  · -- callvalue ≠ 0: the non-payable guard reverts; match it against Act's dispatch/decode cases
-    exact (truthX_callvalue_ne hcode hwv).reEquivElim hcode fun _ _ hrev => by
-      by_cases hdisp : dispatchMsg truthContract I.calldata = none
-      · exact reEquiv_noDispatch hdisp hrev
-      · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-        cases truthDispatch_unique ht
-        by_cases hdec : decodeCalldata (truthTransition.params.map Param.name)
-            (transitionSignature truthTransition).paramTypes I.calldata = none
-        · exact reEquiv_decodingFailed ht hdec hrev
-        · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
-          refine reEquiv_execution ht hca (truthBodyReverts _ _ ?_) ?_
-          · show I.weiValue ≠ ⟨0⟩; exact hwv
-          · rw [hrev]; exact .revert rfl rfl
+  · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Act coupling
+    exact (truthX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
+      fun ca => truthBodyReverts _ ca (by simp only [initState]; exact hwv)
 

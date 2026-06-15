@@ -124,6 +124,38 @@ theorem solcFreePtrMem_read64 : solcFreePtrMem.readWithPadding 64 32 = UInt256.t
         (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num)]; rfl)
         (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num), toByteArray_size]; rfl)]
 
+theorem solcFreePtrMem_pad_size :
+    (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
+  rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
+
+/-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
+    the shape every solc ABI-encoder's epilogue produces (its `RETURN`s `mem[0x80 .. 0xa0] = val`). -/
+noncomputable def solcReturnMem (val : UInt256) : ByteArray :=
+  (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
+
+theorem solcReturnMem_eq (val : UInt256) :
+    solcReturnMem val = (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ UInt256.toByteArray val := by
+  rw [solcReturnMem, toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
+        (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
+  norm_num [solcFreePtrMem_size]
+
+theorem solcReturnMem_size (val : UInt256) : (solcReturnMem val).size = 160 := by
+  rw [solcReturnMem_eq, ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
+      zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+
+theorem solcReturnMem_read64 (val : UInt256) :
+    (solcReturnMem val).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  rw [readWithPadding_eq_extract _ _ (by have := solcReturnMem_size val; omega), solcReturnMem_eq,
+      extract_append_left _ _ _ _ (by have := solcFreePtrMem_pad_size; omega),
+      extract_append_left _ _ _ _ (by have := solcFreePtrMem_size; omega),
+      ← readWithPadding_eq_extract _ _ (by have := solcFreePtrMem_size; omega), solcFreePtrMem_read64]
+
+theorem solcReturnMem_read128 (val : UInt256) :
+    (solcReturnMem val).readWithPadding 128 32 = UInt256.toByteArray val := by
+  rw [readWithPadding_eq_extract _ _ (by have := solcReturnMem_size val; omega), solcReturnMem_eq,
+      extract_append_right' _ _ _ _ (by have := solcFreePtrMem_pad_size; omega)
+        (by have := solcFreePtrMem_pad_size; have := toByteArray_size val; omega)]
+
 /-! ## Shared bytecode-sequence lemmas
 
 Trace segments that recur byte-for-byte across solc output, factored once so every contract reuses

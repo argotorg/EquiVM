@@ -1,6 +1,7 @@
 import Examples.Pow.Bytecode
 import Examples.Pow.Spec
 import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -420,39 +421,6 @@ theorem RD.routineexit {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 
 end Reasoning.Reach
 
-/-! ## Encoder memory: the result word stored at `0x80` -/
-
-/-- Memory after solc stores the return word `val` at `0x80` (over the free-pointer memory). -/
-noncomputable def powMem2 (val : UInt256) : ByteArray :=
-  (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
-
-theorem powMem2_eq (val : UInt256) :
-    powMem2 val = (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ UInt256.toByteArray val := by
-  rw [powMem2, toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
-        (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
-  norm_num [solcFreePtrMem_size]
-
-theorem powMem2_size (val : UInt256) : (powMem2 val).size = 160 := by
-  rw [powMem2_eq, ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
-      zeroes_ofNat_size _ (by norm_num), toByteArray_size]
-
-theorem solcFreePtrMem_pad_size :
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
-  rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
-
-theorem powMem2_read64 (val : UInt256) :
-    (powMem2 val).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  rw [readWithPadding_eq_extract _ _ (by have := powMem2_size val; omega), powMem2_eq,
-      extract_append_left _ _ _ _ (by have := solcFreePtrMem_pad_size; omega),
-      extract_append_left _ _ _ _ (by have := solcFreePtrMem_size; omega),
-      ← readWithPadding_eq_extract _ _ (by have := solcFreePtrMem_size; omega), solcFreePtrMem_read64]
-
-theorem powMem2_read128 (val : UInt256) :
-    (powMem2 val).readWithPadding 128 32 = UInt256.toByteArray val := by
-  rw [readWithPadding_eq_extract _ _ (by have := powMem2_size val; omega), powMem2_eq,
-      extract_append_right' _ _ _ _ (by have := solcFreePtrMem_pad_size; omega)
-        (by have := solcFreePtrMem_pad_size; have := toByteArray_size val; omega)]
-
 /-- `(ofNat c).toNat = c` for in-range `c`. -/
 theorem ulit_toNat' (c : ℕ) (h : c < UInt256.size) : (UInt256.ofNat c).toNat = c := by
   show (Fin.ofNat _ c).val = c; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt h
@@ -519,7 +487,7 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
       raw routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
       -- 259→264: MSTORE mem[128] := val, JUMP back @284
       jumpdest, dup3,
-      raw mstore 6 (powMem2 val) (UInt256.ofNat 5) (by decide)
+      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = ((⟨128⟩ : UInt256) + ⟨0⟩) := (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
@@ -530,14 +498,14 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
       -- 284→289: rearrange, JUMP back @84
       jumpdest, swap3, swap2, pop, pop,
       jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-      -- 84→92: reload free pointer (now powMem2), compute length 160−128, RETURN mem[128..160]
+      -- 84→92: reload free pointer (now solcReturnMem), compute length 160−128, RETURN mem[128..160]
       jumpdest, push1 ⟨64⟩,
       raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
         (fun s haws hstks => by
           have h0 : s.machineState.stack[0]! = (⟨64⟩ : UInt256) := (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
-        (by rw [if_neg (by rw [powMem2_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), powMem2_read64,
+        (by rw [if_neg (by rw [solcReturnMem_size]; decide),
+          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
         (by decide) (by evm_ov),
@@ -548,7 +516,7 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
           have h1 : s.machineState.stack[1]! = UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩ :=
             (by rw [hstks]; rfl)
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0, h1]; decide)
-        (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, powMem2_read128])
+        (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, solcReturnMem_read128])
         (by evm_ov) ]
 
 end Reasoning.Reach
@@ -837,44 +805,24 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem powDispatch_eq (cd : ByteArray) :
     dispatchMsg Pow.powContract cd
       = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4)
-        then some Pow.powTransition else none := by
-  simp only [dispatchMsg, Pow.powContract, List.map_cons, List.map_nil, List.find?_cons,
-    List.find?_nil, Prod.map, id_eq, Function.comp_apply]
-  rw [powSelectorBytes]
-  by_cases hb : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = true
-  · simp [hb]
-  · simp only [Bool.not_eq_true] at hb; simp [hb]
+        then some Pow.powTransition else none :=
+  dispatch_eq rfl powSelectorBytes cd
 
 /-- `powContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem powDispatch_unique {cd : ByteArray} {t : TransitionDecl}
-    (h : dispatchMsg Pow.powContract cd = some t) : t = Pow.powTransition := by
-  simp only [dispatchMsg, Pow.powContract, List.map_cons, List.map_nil] at h
-  split at h
-  · rename_i pair heq
-    have hmem := List.mem_of_find?_eq_some heq
-    simp only [List.mem_singleton, Prod.map, id_eq, Prod.mk.injEq] at hmem
-    rw [Option.some.injEq] at h
-    rw [← h, hmem.1]
-  · exact absurd h (by simp)
+    (h : dispatchMsg Pow.powContract cd = some t) : t = Pow.powTransition :=
+  dispatch_unique rfl h
 
 /-- Short calldata (< 4 bytes) ⇒ dispatch fails. -/
 theorem powDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg Pow.powContract cd = none := by
-  rw [powDispatch_eq]
-  have hfalse : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = false := by
-    by_contra hc
-    rw [Bool.not_eq_false] at hc
-    have hsz := Reasoning.Theory.byteArray_size_eq_of_beq hc
-    rw [ByteArray.size_extract] at hsz
-    simp only [show (⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray).size = 4 from rfl] at hsz
-    omega
-  simp [hfalse]
+    dispatchMsg Pow.powContract cd = none :=
+  dispatch_none_short rfl powSelectorBytes rfl h
 
 /-- Selector mismatch ⇒ dispatch fails. -/
 theorem powDispatch_none_nomatch {cd : ByteArray}
     (h : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg Pow.powContract cd = none := by
-  rw [powDispatch_eq]; simp [h]
+    dispatchMsg Pow.powContract cd = none :=
+  dispatch_none_nomatch rfl powSelectorBytes h
 
 /-! ## Store / expression-evaluation helpers -/
 
@@ -1139,19 +1087,8 @@ theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero hcode hwv hsize
-  · exact (powX_callvalue_ne hcode hwv).reEquivElim hcode fun _ _ hrev => by
-      by_cases hdisp : dispatchMsg Pow.powContract I.calldata = none
-      · exact reEquiv_noDispatch hdisp hrev
-      · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-        cases powDispatch_unique ht
-        by_cases hdec : decodeCalldata (Pow.powTransition.params.map Param.name)
-            (transitionSignature Pow.powTransition).paramTypes I.calldata = none
-        · exact reEquiv_decodingFailed ht hdec hrev
-        · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
-          refine reEquiv_execution ht hca
-            (powBodyReverts_cv (initState cA gh bl σ σ₀ g A I) callargs ?_) ?_
-          · show (initState cA gh bl σ σ₀ g A I).executionEnv.weiValue ≠ ⟨0⟩
-            simp only [initState]; exact hwv
-          · rw [hrev]; exact execResultsEquiv.revert rfl rfl
+  · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Act coupling
+    exact (powX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
+      fun ca => powBodyReverts_cv _ ca (by simp only [initState]; exact hwv)
 
 end Pow
