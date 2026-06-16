@@ -46,9 +46,9 @@ namespace Reasoning.Reach
     ending in the taken `JUMPI` to the exit; each inductive step is the 19-step body (guard not taken →
     `r*=2; i+=1` → back-jump) feeding the IH.  This replaces the hand-written straight-line stepping
     with the `RD` combinator chain — the loop is now *inside* `Reach`. -/
-theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256}
-    {REST : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.loop {g : Sat256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256}
+    {REST : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (hn : n.toNat < 256) (hRov : REST.length + 20 ≤ 1024) :
     ∀ (var : ℕ) (i r : UInt256) (k C : ℕ),
       n.toNat - i.toNat = var → r.toNat = 2 ^ i.toNat → i.toNat ≤ n.toNat →
@@ -107,7 +107,7 @@ the free-pointer memory in place.  Mirrors `truthX_cvz_*` but with PUSH2 jump ta
 /-- **Dispatcher prefix → the selector `EQ` (pc 37).**  Contract-agnostic of whether the selector
     matches: reaches pc 37 with `[eq(0x442b7ffb, sel), sel]` on the stack (`sel` = the decoded
     4-byte selector).  Shared by the `match` path (`powX_disp`) and the `nomatch` revert. -/
-theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨37⟩
@@ -140,7 +140,7 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- **The dispatcher (match path).**  Reuses `powX_dispToEq`, then resolves the selector `EQ`
     to `1` (via `powEvmSelector` + `hmatch`) and takes the `JUMPI` to the function body at
     `0x2d = 45`.  Same statement as before the refactor; only the prefix is now shared. -/
-theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_disp {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -167,11 +167,11 @@ namespace Reasoning.Reach
     `[v, ret, …R]` at pc 156, returns `v` to the dynamic address `ret`, leaving `[v, …R]`.
     9 instructions / gas 27; memory, active words, accounts and env untouched.  Chains directly
     inside callers (no `out`/`startWith` glue). -/
-theorem RD.routine9c {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routine9c {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨156⟩ (v :: ret :: R) mem aw rdata acc k C)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 4 ≤ 1024) :
+    (hret : (D_J powBytecode 0).contains ret = true) (hov : R.length + 4 ≤ 1024) :
     RD powBytecode ee g s0 ret (v :: R) mem aw rdata acc (k + 9) (C + 27) :=
   -- JUMPDEST · PUSH0 · DUP2 · SWAP1 · POP · SWAP2 · SWAP1 · POP · JUMP
   evm_run h with [
@@ -183,11 +183,11 @@ theorem RD.routine9c {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     with `[arg, ret, …R]`, calls `0x9c` to clean `arg`, checks `arg == cleanup(arg)` (always true
     for uint256), returns to `ret` leaving `[…R]`.  The `0x9c` call is now a direct `.routine9c`
     chain — no `out`/`startWith` glue.  22 instructions / gas 76. -/
-theorem RD.routinea5 {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {arg ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinea5 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {arg ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨165⟩ (arg :: ret :: R) mem aw rdata acc k C)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 6 ≤ 1024) :
+    (hret : (D_J powBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
     RD powBytecode ee g s0 ret R mem aw rdata acc (k + 22) (C + 76) :=
   -- JUMPDEST·PUSH2 174·DUP2·PUSH2 156·JUMP → 0x9c → JUMPDEST·DUP2·EQ·PUSH2 184·JUMPI·JUMPDEST·POP·JUMP
   evm_run h with [
@@ -205,11 +205,11 @@ theorem RD.routinea5 {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     `[offset, end, ret, …R]`, loads `calldata[offset]` (off the carried env `ee`), validates it via
     `0xa5` (a direct `.routinea5` chain), returns it to `ret` leaving `[calldata[offset], …R]`.
     38 instructions / gas 126. -/
-theorem RD.routinebb {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {offset ennd ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinebb {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {offset ennd ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨187⟩ (offset :: ennd :: ret :: R) mem aw rdata acc k C)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R.length + 10 ≤ 1024) :
+    (hret : (D_J powBytecode 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
     RD powBytecode ee g s0 ret
         (uInt256OfByteArray (ee.calldata.readBytes offset.toNat 32) :: R) mem aw rdata acc (k + 38) (C + 126) :=
   -- JUMPDEST·PUSH0·DUP2·CALLDATALOAD·SWAP1·POP·PUSH2 201·DUP2·PUSH2 165·JUMP → 0xa5 → JUMPDEST·SWAP3·SWAP2·POP·POP·JUMP
@@ -228,7 +228,7 @@ theorem sub4_toNat {sz : ℕ} (h4 : 4 ≤ sz) (hsz : sz < UInt256.size) :
   have h1 : (UInt256.ofNat sz).toNat = sz := by
     show (Fin.ofNat _ sz).val = sz; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsz
   have hrw : UInt256.sub (UInt256.ofNat sz) ⟨4⟩ = UInt256.ofNat sz - UInt256.ofNat 4 := rfl
-  rw [hrw, toNat_sub_ofNat (by rw [h1]; exact h4), h1]
+  rw [hrw, UInt256.toNat_sub_ofNat_of_le (by rw [h1]; exact h4), h1]
 
 /-- `SLT a 32 = 0` (signed) when `32 ≤ a < 2^255`. -/
 theorem slt32_zero {a : UInt256} (hlo : 32 ≤ a.toNat) (hhi : a.toNat < 2 ^ 255) :
@@ -298,12 +298,12 @@ namespace Reasoning.Reach
     entry at pc 207 with `[4, size, ret, …R']`; when `SLT(size−4, 32) = 0` (enough calldata) it sets
     up offset `4+0` and calls `0xbb` (a direct `.routinebb` chain), returning `calldata[4:36]` to
     `ret`.  66 instructions / gas 215. -/
-theorem RD.routinecf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {de ret : UInt256} {R' : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinecf {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {de ret : UInt256} {R' : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨207⟩ (⟨4⟩ :: de :: ret :: R') mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨0⟩)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : R'.length + 15 ≤ 1024) :
+    (hret : (D_J powBytecode 0).contains ret = true) (hov : R'.length + 15 ≤ 1024) :
     RD powBytecode ee g s0 ret
         (uInt256OfByteArray (ee.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨0⟩).toNat 32) :: R')
         mem aw rdata acc (k + 66) (C + 215) :=
@@ -322,9 +322,9 @@ theorem RD.routinecf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     decoder Cf-entry at pc 207 with `[4, de, ret, …R']`, the signed `SLT(de − 4, 32) = 1` ⇒ `ISZERO = 0`
     ⇒ the `JUMPI` falls through to the revert routine `0x98`, which reverts (`PUSH0·PUSH0·REVERT`).
     Composes off `routinedecodeToCf` (the short-arg / huge-arg revert paths). -/
-theorem RD.routinecf_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {de ret : UInt256} {R' : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinecf_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {de ret : UInt256} {R' : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨207⟩ (⟨4⟩ :: de :: ret :: R') mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨1⟩)
     (hov : R'.length + 15 ≤ 1024) :
@@ -354,9 +354,9 @@ namespace Reasoning.Reach
     `[sel]` at pc 45, reaches pc 207 with `[4, calldatasize, 0x42, 0x47, sel]`, ready for the
     decoder's bounds check.  14 instructions / gas 44.  (The `ADD` produces the raw `4 + (size−4)`,
     rewritten to `ofNat size` here so callers get the clean form.) -/
-theorem RD.routinedecodeToCf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {sel : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinedecodeToCf {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨45⟩ [sel] mem aw rdata acc k C)
     (hsz4 : 4 ≤ ee.calldata.size) (hszsize : ee.calldata.size < UInt256.size) :
     RD powBytecode ee g s0 ⟨207⟩
@@ -373,9 +373,9 @@ theorem RD.routinedecodeToCf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C
 
 /-- `require(n < 256)` check (passes) as an **`RD→RD` combinator**: `0x42 → 0x75`, leaving
     `[0, 1, 0, n, 71, sel]` (initialises the loop's `r = 1, i = 0`).  19 instructions / gas 57. -/
-theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {n sel : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinerequire {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {n sel : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨66⟩ (n :: ⟨71⟩ :: sel :: R) mem aw rdata acc k C)
     (hltval : UInt256.lt n ⟨256⟩ = ⟨1⟩) (hov : R.length + 10 ≤ 1024) :
     RD powBytecode ee g s0 ⟨117⟩ (⟨0⟩ :: ⟨1⟩ :: ⟨0⟩ :: n :: ⟨71⟩ :: sel :: R)
@@ -392,9 +392,9 @@ theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : 
 /-- `require(n < 256)` **failure** (`n ≥ 256`) as an **`RD → RDrev` combinator**: from pc 66 with
     `[n, 71, sel, …R]`, `LT n 256 = 0` ⇒ the `JUMPI` is not taken and execution reverts at `0x68`
     (`PUSH0·PUSH0·REVERT`).  Composes off the decoder (the `n ≥ 256` revert path). -/
-theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {n sel : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routinerequire_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {n sel : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨66⟩ (n :: ⟨71⟩ :: sel :: R) mem aw rdata acc k C)
     (hltval : UInt256.lt n ⟨256⟩ = ⟨0⟩) (hov : R.length + 10 ≤ 1024) :
     RDrev powBytecode g s0 :=
@@ -410,11 +410,11 @@ theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} 
 /-- Loop exit `0x8e → 0x47` as an **`RD→RD` combinator**: drop the loop scratch, keep the result
     `val = 2^n`, and jump to the encoder at the saved return address `ret`.
     `[a, val, c, d, ret] ++ Rt → at ret, val :: Rt`.  10 instructions / gas 29. -/
-theorem RD.routineexit {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {a val c d ret : UInt256} {Rt : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RD.routineexit {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {a val c d ret : UInt256} {Rt : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨142⟩ (a :: val :: c :: d :: ret :: Rt) mem aw rdata acc k C)
-    (hret : (D_J powBytecode ⟨0⟩).contains ret = true) (hov : Rt.length + 7 ≤ 1024) :
+    (hret : (D_J powBytecode 0).contains ret = true) (hov : Rt.length + 7 ≤ 1024) :
     RD powBytecode ee g s0 ret (val :: Rt) mem aw rdata acc (k + 10) (C + 29) :=
   -- JUMPDEST · DUP2 · SWAP3 · POP · POP · POP · SWAP2 · SWAP1 · POP · JUMP ret
   evm_run h with [
@@ -450,7 +450,7 @@ set_option maxHeartbeats 4000000 in
     free-pointer memory and `activeWords = 3`, ABI-encode `val` into `mem[0x80 .. 0xa0]` and `RETURN`
     those 32 bytes — halting with success returning `toByteArray val`.  47 instructions plus one
     nested `0x9c` call. -/
-theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {Rt : List UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD powBytecode ee g s0 ⟨71⟩ (val :: Rt) solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
@@ -506,7 +506,7 @@ Composes the six forward segments (dispatcher → decode → require → loop �
 well-formed `pow2(n)` call with `callvalue = 0`, `calldatasize ≥ 36`, matching selector, and
 `n < 256`.  Either the run OOGs, or it succeeds returning the 32-byte big-endian word `2^n`. -/
 set_option maxHeartbeats 1000000 in
-theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
@@ -617,7 +617,7 @@ theorem powDecode_none_huge {I : Ethereum.ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ 
 
 /-- **`callvalue ≠ 0`**: the non-payable guard fails — `ISZERO` gives `0`, the `JUMPI` is not
     taken, and execution reverts at `PUSH0; PUSH0; REVERT`. -/
-theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   -- prologue → PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
@@ -631,7 +631,7 @@ theorem powX_callvalue_ne {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- **`callvalue = 0`, `calldatasize < 4`**: the guard passes, but the calldata-size check
     (`lt(size, 4)`) takes the `JUMPI` to the `0x29` revert stub. -/
-theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   -- prologue → guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
@@ -651,7 +651,7 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- **`callvalue = 0`, valid selector, `calldatasize ≥ 36`, `n ≥ 256`**: dispatch and decode
     succeed (reusing the dispatcher/decoder), then `require(n < 256)` reverts. -/
-theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
@@ -682,7 +682,7 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- **`callvalue = 0`, `calldatasize ≥ 4`, selector mismatch**: reuses `powX_dispToEq`, then the
     `EQ` is `0`, the dispatch `JUMPI` is not taken, and execution reverts at `0x29`. -/
-theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
@@ -703,7 +703,7 @@ theorem powX_nomatch {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- **`callvalue = 0`, valid selector, `4 ≤ calldatasize < 36`**: dispatch and the decode
     call-setup succeed (reusing `powX_disp` + `powX_decodeToCf`), then the decoder's bounds check
     (`SLT(size−4, 32) = 1`) reverts. -/
-theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsz36 : I.calldata.size < 36)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -723,7 +723,7 @@ theorem powX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
     here because `size − 4 ≥ 2^255` is a negative two's-complement word.  Mirrors `powX_shortarg`
     (same trace, `slt32_one_high` instead of `slt32_one`); the matching Solm failure is
     `powDecode_none_huge`. -/
-theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -950,10 +950,10 @@ private def powCallargs (I : Ethereum.ExecutionEnv) : Solm.Store :=
 
 /-- **`callvalue = 0` case**: split on calldata size and the selector to land in one of
     `noDispatch` / `decodingFailed` / `execution`. -/
-theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) :
-    runtimeEquivalenceFor powConfig Pow.powContract cA gh bl σ σ₀ g A I := by
+    runtimeEquivalenceFor powConfig Pow.powContract cA gh bl σ σ₀ g.toUInt256 A I := by
   by_cases hsz4 : I.calldata.size < 4
   · -- short calldata ⇒ noDispatch
     exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch_none_short hsz4)
@@ -993,14 +993,14 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
 Built when the plan was to reuse a verified callee's behavior in a caller proof.  The external-call
 proof instead treats the sub-call as opaque (the caller has no runtime guarantee that the callee is
 Pow), so this is **not** used by `Caller`; retained for now. -/
-theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256) :
-    Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass
+    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g A I = .ok (.success (cA, σ, g', A')
+        Ξ cA gh bl σ σ₀ g.toUInt256 A I = .ok (.success (cA, σ, g', A')
           (UInt256.toByteArray
             (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat)))) :=
   (powX_success hcode hwv hsz36 hsz255 hmatch hn).xiResult hcode
@@ -1009,9 +1009,9 @@ theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract := by
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact powReEquiv_callvalueZero hcode hwv hsize
+  · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
-    exact (powX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
+    exact (powX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
       fun ca => powBodyReverts_cv _ ca (by simp only [initState]; exact hwv)
 
 end Pow

@@ -45,7 +45,10 @@ axiom truthSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr truthTransition))).extract 0 4
       = ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩
 
+-- set_option maxRecDepth 10000000000 in
+-- set_option maxHeartbeats 10000000000 in
 /-- The `JUMPDEST` positions of `truthBytecode` (the valid jump targets). -/
-@[valid_jumps] axiom truthValidJumps :
-    Ethereum.EVM.D_J truthBytecode ⟨0⟩
+@[valid_jumps] theorem truthValidJumps :
+    Ethereum.EVM.D_J truthBytecode 0
       = #[⟨14⟩, ⟨38⟩, ⟨42⟩, ⟨48⟩, ⟨59⟩, ⟨68⟩, ⟨76⟩, ⟨87⟩, ⟨94⟩, ⟨100⟩, ⟨117⟩]
+  := by native_decide

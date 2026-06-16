@@ -1,6 +1,7 @@
 import Examples.ERC20.Spec
 import Solm.Dispatch
 import Ethereum.Semantics
+import Reasoning.JumpDest
 
 /-! # ERC20 — deployed runtime bytecode and trusted-base facts. -/
 
@@ -162,8 +163,8 @@ axiom erc20AllowanceSelectorBytes :
       = ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
 
 /-- The `JUMPDEST` set of `erc20Bytecode` (computed with PUSH-data skipping). -/
-axiom erc20ValidJumps :
-    Ethereum.EVM.D_J erc20Bytecode ⟨0⟩
+@[valid_jumps] theorem erc20ValidJumps :
+    Ethereum.EVM.D_J erc20Bytecode 0
       = #[⟨15⟩, ⟨96⟩, ⟨100⟩, ⟨121⟩, ⟨126⟩, ⟨139⟩, ⟨148⟩, ⟨156⟩, ⟨169⟩, ⟨178⟩, ⟨199⟩,
           ⟨204⟩, ⟨217⟩, ⟨226⟩, ⟨247⟩, ⟨252⟩, ⟨265⟩, ⟨274⟩, ⟨295⟩, ⟨300⟩, ⟨313⟩, ⟨322⟩,
           ⟨343⟩, ⟨348⟩, ⟨361⟩, ⟨370⟩, ⟨589⟩, ⟨607⟩, ⟨613⟩, ⟨796⟩, ⟨805⟩, ⟨923⟩, ⟨932⟩,
@@ -175,3 +176,4 @@ axiom erc20ValidJumps :
           ⟨2212⟩, ⟨2221⟩, ⟨2242⟩, ⟨2243⟩, ⟨2256⟩, ⟨2273⟩, ⟨2283⟩, ⟨2299⟩, ⟨2339⟩, ⟨2351⟩,
           ⟨2362⟩, ⟨2373⟩, ⟨2396⟩, ⟨2403⟩, ⟨2443⟩, ⟨2455⟩, ⟨2466⟩, ⟨2477⟩, ⟨2500⟩, ⟨2507⟩,
           ⟨2552⟩, ⟨2562⟩, ⟨2573⟩, ⟨2596⟩, ⟨2597⟩, ⟨2603⟩, ⟨2613⟩, ⟨2624⟩, ⟨2647⟩, ⟨2648⟩]
+  := by native_decide

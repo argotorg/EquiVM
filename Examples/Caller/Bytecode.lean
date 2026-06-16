@@ -45,9 +45,10 @@ axiom callerSelectorBytes :
       = ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩
 
 /-- The `JUMPDEST` set of `callerBytecode` (computed by `#eval`; `D_J_aux` is `partial`). -/
-@[valid_jumps] axiom callerValidJumps :
-    Ethereum.EVM.D_J callerBytecode ⟨0⟩
+@[valid_jumps] theorem callerValidJumps :
+    Ethereum.EVM.D_J callerBytecode 0
       = #[⟨15⟩, ⟨41⟩, ⟨45⟩, ⟨66⟩, ⟨71⟩, ⟨73⟩, ⟨130⟩, ⟨158⟩, ⟨194⟩, ⟨203⟩, ⟨207⟩, ⟨238⟩, ⟨248⟩,
           ⟨255⟩, ⟨264⟩, ⟨274⟩, ⟨277⟩, ⟨291⟩, ⟨297⟩, ⟨306⟩, ⟨315⟩, ⟨325⟩, ⟨328⟩, ⟨342⟩, ⟨348⟩,
           ⟨369⟩, ⟨370⟩, ⟨383⟩, ⟨400⟩, ⟨410⟩, ⟨419⟩, ⟨425⟩, ⟨444⟩, ⟨450⟩, ⟨464⟩, ⟨470⟩, ⟨490⟩,
           ⟨491⟩, ⟨504⟩]
+  := by native_decide

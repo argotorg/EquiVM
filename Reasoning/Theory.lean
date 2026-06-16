@@ -34,7 +34,7 @@ namespace Reasoning.Theory
 def initState
     (createdAccounts : Batteries.RBSet AccountAddress compare)
     (genesisBlockHeader : BlockHeader) (blocks : ProcessedBlocks)
-    (σ σ₀ : AccountMap) (g : UInt256) (A : Substate) (I : ExecutionEnv) : State :=
+    (σ σ₀ : AccountMap) (g : Sat256) (A : Substate) (I : ExecutionEnv) : State :=
   { (default : State) with
       accountMap := σ
       σ₀ := σ₀
@@ -49,34 +49,34 @@ def initState
 
 /-- If the fuelled iterator errors, so does `Ξ`. -/
 theorem Xi_error_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀ g A I} {e}
-    (h : X (g.toNat + 1) (D_J I.code ⟨0⟩)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) = .error e) :
+    {createdAccounts genesisBlockHeader blocks σ σ₀  A I} {e} {g : UInt256}
+    (h : X (g.toNat + 1) (D_J I.code 0)
+            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I) = .error e) :
     Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e := by
   unfold Ξ
-  simp only [initState] at h
-  simp [bind, Except.bind, h]
+  simp only [initState, Sat256.ofUInt256] at h
+  simp [bind, Except.bind, Sat256.ofUInt256, h]
 
 /-- If the fuelled iterator reverts, so does `Ξ` (same gas/output). -/
 theorem Xi_revert_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀ g A I} {g' o}
-    (h : X (g.toNat + 1) (D_J I.code ⟨0⟩)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g' o} {g : UInt256}
+    (h : X (g.toNat + 1) (D_J I.code 0)
+            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I)
           = .ok (.revert g' o)) :
     Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .ok (.revert g' o) := by
   unfold Ξ
-  simp only [initState] at h
-  simp [bind, Except.bind, h]
+  simp only [initState, Sat256.ofUInt256] at h
+  simp [bind, Except.bind, Sat256.ofUInt256, h]
 
 /-- If the fuelled iterator succeeds (halts), so does `Ξ`, projecting the relevant
     fields of the final machine state. -/
 theorem Xi_success_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀ g A I} {s' o}
-    (h : X (g.toNat + 1) (D_J I.code ⟨0⟩)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {s' o} {g : UInt256}
+    (h : X (g.toNat + 1) (D_J I.code 0)
+            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I)
           = .ok (.success s' o)) :
     Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-      = .ok (.success (s'.createdAccounts, s'.accountMap, s'.machineState.gasAvailable,
+      = .ok (.success (s'.createdAccounts, s'.accountMap, s'.machineState.gasAvailable.toUInt256,
                        s'.substate) o) := by
   unfold Ξ
   simp only [initState] at h
@@ -86,15 +86,15 @@ theorem Xi_success_of_X
 
 /-- Charging a (small, non-wrapping) gas cost decrements `toNat` by that cost.  The
     side condition `c ≤ g.toNat` rules out the modular wrap. -/
-theorem toNat_sub_ofNat {g : UInt256} {c : ℕ} (hc : c ≤ g.toNat) :
-    (g - UInt256.ofNat c).toNat = g.toNat - c := by
-  have hsize : c < UInt256.size := lt_of_le_of_lt hc g.val.isLt
+theorem toNat_sub_ofNat {g : Sat256} {c : ℕ} (hc : c ≤ g.toNat) :
+    (g.subNat c).toNat = g.toNat - c := by
+  have hsize : c < UInt256.size := lt_of_le_of_lt hc g.isLt
   have hofnat : (UInt256.ofNat c).val.val = c := by
     simp [UInt256.ofNat, Id.run, Fin.ofNat, Nat.mod_eq_of_lt hsize]
   have hle : (UInt256.ofNat c).val ≤ g.val := by
-    rw [Fin.le_def, hofnat]; exact hc
-  show (g.val - (UInt256.ofNat c).val).val = g.toNat - c
-  rw [Fin.coe_sub_iff_le.mpr hle, hofnat]; rfl
+    rw [hofnat]; exact hc
+  show (g.subNat c).val = g.toNat - c
+  rw [← Sat256.toNat, Sat256.subNat_toNat]
 
 /-- A `UInt256` with `toNat = 0` is `⟨0⟩`.  (Used to discharge `callvalue = 0` tests.) -/
 theorem uint256_toNat_eq_zero {a : UInt256} (h : a.toNat = 0) : a = ⟨0⟩ := by
@@ -127,16 +127,16 @@ theorem X_continue {vj : Array UInt256} {s s' : State} {f : ℕ}
 
 /-- Collapse the two-stage gas guard of a memory opcode (charge `c1` for memory
     expansion, then `c2` for the base cost) into a single guard `gas < c1 + c2`. -/
-theorem collapse_two_stage {α : Type _} {gas : UInt256} {c1 c2 : ℕ} {X Y : α} :
+theorem collapse_two_stage {α : Type _} {gas : Sat256} {c1 c2 : ℕ} {X Y : α} :
     (if gas.toNat < c1 then Y
-     else if (gas - UInt256.ofNat c1).toNat < c2 then Y else X)
+     else if (gas.subNat c1).toNat < c2 then Y else X)
       = if gas.toNat < c1 + c2 then Y else X := by
   by_cases h1 : gas.toNat < c1
   · rw [if_pos h1, if_pos (by omega)]
-  · rw [if_neg h1, toNat_sub_ofNat (by omega : c1 ≤ gas.toNat)]
-    by_cases h2 : gas.toNat - c1 < c2
-    · rw [if_pos h2, if_pos (by omega)]
-    · rw [if_neg h2, if_neg (by omega)]
+  · rw [if_neg h1]
+    by_cases h2 : (gas.subNat c1).toNat < c2
+    · rw [if_pos h2, if_pos (by simp [Sat256.toNat, Sat256.subNat] at *; omega)]
+    · rw [if_neg h2, if_neg (by simp [Sat256.toNat, Sat256.subNat] at *; omega)]
 
 /-! ## 3½. Trace drivers — peel a step tracking step-count `k` and cumulative cost `C` -/
 
@@ -144,8 +144,8 @@ theorem collapse_two_stage {α : Type _} {gas : UInt256} {c1 c2 : ℕ} {X Y : α
     `s` is reached after `k` steps, has gas `g - C` (cumulative cost `C`), and the next
     instruction costs `cost` with `C + cost ≤ g.toNat` (enough gas).  The iterator advances
     one step, decrementing fuel `g.toNat + 1 - k` and growing the cumulative cost. -/
-theorem stepContinue {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : UInt256}
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C)
+theorem stepContinue {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256}
+    (hgas : s.machineState.gasAvailable = g.subNat C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
                 else .ok (s', .none))
@@ -159,8 +159,8 @@ theorem stepContinue {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : U
 /-- **Run out of gas** at the current instruction.  Same invariants as `stepContinue`,
     but now the next instruction's `cost` exceeds the remaining gas
     (`g.toNat < C + cost`), so the iterator returns `OutOfGass`. -/
-theorem stepOOG {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : UInt256}
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C)
+theorem stepOOG {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256}
+    (hgas : s.machineState.gasAvailable = g.subNat  C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
                 else .ok (s', .none))
@@ -173,28 +173,28 @@ theorem stepOOG {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : UInt25
 
 /-- **Halt** (`RETURN`/`STOP`/`SELFDESTRUCT` ⇒ success, or `REVERT`) when the current
     instruction's gas suffices: the iterator returns the halt result directly. -/
-theorem stepHaltSuccess {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : UInt256} {o}
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C)
+theorem stepHaltSuccess {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256} {o}
+    (hgas : s.machineState.gasAvailable = g.subNat  C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
-                else .ok (s', .some (true, o)))
+                else .ok (s', .some (.success, o)))
     (hk : k ≤ C) (hC : C + cost ≤ g.toNat) :
     X (g.toNat + 1 - k) vj s = .ok (.success s' o) := by
   have hfuel : g.toNat + 1 - k = (g.toNat + 1 - (k + 1)) + 1 := by omega
   rw [hfuel]
-  have hgg : ¬ (s.machineState.gasAvailable.toNat < cost) := by rw [hgas]; omega
+  have hgg : ¬ (s.machineState.gasAvailable.toNat < cost) := by rw [hgas]; simp [Sat256.subNat, Sat256.toNat] at *; omega
   exact Xstep_X_X_halt_success _ s s' vj o (by rw [hstep]; simp [hgg])
 
-theorem stepHaltRevert {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : UInt256} {o}
-    (hgas : s.machineState.gasAvailable.toNat = g.toNat - C)
+theorem stepHaltRevert {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256} {o}
+    (hgas : s.machineState.gasAvailable = g.subNat  C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
-                else .ok (s', .some (false, o)))
+                else .ok (s', .some (.revert, o)))
     (hk : k ≤ C) (hC : C + cost ≤ g.toNat) :
-    X (g.toNat + 1 - k) vj s = .ok (.revert s'.machineState.gasAvailable o) := by
+    X (g.toNat + 1 - k) vj s = .ok (.revert s'.machineState.gasAvailable.toUInt256 o) := by
   have hfuel : g.toNat + 1 - k = (g.toNat + 1 - (k + 1)) + 1 := by omega
   rw [hfuel]
-  have hgg : ¬ (s.machineState.gasAvailable.toNat < cost) := by rw [hgas]; omega
+  have hgg : ¬ (s.machineState.gasAvailable.toNat < cost) := by rw [hgas]; simp [Sat256.subNat, Sat256.toNat] at *; omega
   exact Xstep_X_X_halt_revert _ s s' vj o (by rw [hstep]; simp [hgg])
 
 /-! ## 3¾. Coverage helpers — build a `runtimeEquivalenceFor` case from a `Ξ` outcome -/
@@ -221,11 +221,11 @@ theorem reEquiv_decodingFailed {cfg contract cA gh bl σ σ₀ g A I} {t g' o}
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution`
     case.  `actExec` is assembled from dispatch + decode + an `ExecContractBody` over the
     canonical `initState`. -/
-theorem reEquiv_execution {cfg contract cA gh bl σ σ₀ g A I} {t callargs actRes}
+theorem reEquiv_execution {cfg contract cA gh bl σ σ₀ A I} {t callargs actRes} {g : UInt256}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata
               = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body actRes)
+    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
     (hequiv : execResultsEquiv (Ξ cA gh bl σ σ₀ g A I) actRes t.returnType) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
   .execution rfl (.intro hd rfl hdec rfl hbody) hequiv

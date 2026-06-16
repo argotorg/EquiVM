@@ -22,7 +22,7 @@ open Ethereum Ethereum.EVM Reasoning.Reach
 
 /-- `EQ` of equal words is `1`. -/
 theorem u256_eq_refl (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
-  simp only [UInt256.eq, Bool.toUInt256, decide_eq_true (rfl : a = a)]; rfl
+  simp only [UInt256.eq, Bool.toUInt256]; rfl
 
 /-- `EQ` of distinct words is `0`. -/
 theorem u256_eq_of_ne {a b : UInt256} (h : a ≠ b) : UInt256.eq a b = ⟨0⟩ := by
@@ -192,7 +192,7 @@ theorem memExpRevertZeroOff (s : State) {len : UInt256} {t : List UInt256}
     identical for every solc contract) as a **producer of the `RD` invariant** (compositional):
     `initState → RD … ⟨8⟩ [isZero(callvalue), callvalue]` so a dispatcher fold can chain straight off
     it. -/
-theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
+theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
     (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
     (hd2 : decode code ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)))
@@ -207,13 +207,13 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
   have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]
   have hcode0 : s0.executionEnv.code = code := by rw [hee0]; exact hcode
   have hpc0 : s0.machineState.pc = ⟨0⟩ := by rw [hs0]; simp [initState]; rfl
-  have hgas0 : s0.machineState.gasAvailable.toNat = g.toNat - 0 := by rw [hs0]; simp [initState]
+  have hgas0 : s0.machineState.gasAvailable = g.subNat 0 := by rw [hs0]; simp [initState, Sat256.subNat]
   have hstk0 : s0.machineState.stack = [] := by rw [hs0]; simp [initState]; rfl
   have haw0 : s0.machineState.activeWords = UInt256.ofNat 0 := by rw [hs0]; simp [initState]; rfl
   have hmem0 : s0.machineState.memory = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
   have hrdata0 : s0.machineState.returnData = ByteArray.empty := by rw [hs0]; simp [initState]; rfl
   have hacc0 : (s0.createdAccounts, s0.accountMap) = (cA, σ) := by rw [hs0]; simp [initState]
-  have hX0 : X (g.toNat + 1) (D_J code ⟨0⟩) s0 = X (g.toNat + 1 - 0) (D_J code ⟨0⟩) s0 := rfl
+  have hX0 : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - 0) (D_J code 0) s0 := rfl
   -- PUSH1 0x80 · PUSH1 0x40 · MSTORE (install free pointer) · CALLVALUE · DUP1 · ISZERO ⇒ pc 8
   exact RD.startWith (rdata := ByteArray.empty) hcode0 hpc0 hstk0 hgas0 (by omega) (by omega) hX0
         hmem0 haw0 hrdata0 hacc0 hee0 ⟨rfl, rfl, rfl⟩
@@ -224,7 +224,7 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
         (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
         (by decide) (by decide)
       |>.callvalue hd5 (by decide)
-      |>.dup1 hd6 (by simp only [List.length_cons, List.length_nil]; omega)
+      |>.dup1 hd6 (by simp only [List.length_nil]; omega)
       |>.iszero hd7 (by simp only [List.length_cons, List.length_nil]; omega)
 
 end Reasoning.Theory
@@ -235,7 +235,7 @@ open Ethereum Ethereum.EVM Reasoning.Theory
 /-- The solc `revert(0,0)` stub `PUSH0·PUSH0·REVERT` as an **`RD → RDrev` combinator**: from a
     cursor at the first `PUSH0`, push the two zero words and `REVERT` (memory-expansion cost `0`).
     Recurs at the end of every revert path. -/
-theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
