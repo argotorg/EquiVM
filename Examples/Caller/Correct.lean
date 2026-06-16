@@ -405,7 +405,7 @@ macro "caller_jd" : term => `(by rw [callerValidJumps]; exact Array.contains_eq_
 theorem callerX_dec277 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨277⟩
         [⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨383⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
@@ -436,7 +436,7 @@ def addrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975�
 theorem callerX_dec264 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨264⟩
         [UInt256.land (uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨0⟩ : UInt256).toNat 32)) addrMask,
@@ -462,7 +462,7 @@ abbrev callerArg0 (I : ExecutionEnv) : UInt256 :=
 theorem callerX_dec291 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨291⟩
@@ -562,7 +562,7 @@ theorem callerDecode_n {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
 theorem callerX_decoded {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨66⟩
@@ -588,7 +588,7 @@ theorem callerX_decoded {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem callerX_body117 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨117⟩
@@ -620,7 +620,7 @@ noncomputable def callerSelMem : ByteArray :=
 theorem callerX_body425 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨425⟩
@@ -773,7 +773,7 @@ theorem callerTarget_eq {I : ExecutionEnv}
 theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨142⟩
@@ -810,7 +810,7 @@ theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
     (hdepth : I.depth.val < 1024) :
@@ -834,7 +834,7 @@ theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
     (hperm : I.perm = true) (hdepth : I.depth.val < 1024) :
@@ -851,12 +851,13 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
         (EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)) "pow2" 0
         [.int (Int.ofNat (callerArg1 I).toNat)]
         (z, { initState cA gh bl σ σ₀ g A I with
-                accountMap := σ', substate := A', createdAccounts := cA' }, o) := by
+                accountMap := σ', substate := A', createdAccounts := cA' }, o)
+    ∧ o.size < 2 ^ 255 := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', _hΘ, rd144⟩ := rd143.call (by decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := _hΘ
-  refine ⟨cA', σ', z, o, A', k', C', ?_, ?_⟩
+  refine ⟨cA', σ', z, o, A', k', C', ?_, ?_, ?_⟩
   · -- the `RD` cursor: rewrite the active-words `M`-expression to `⟨6⟩`
     have haw : UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         (callerOutPtr I).toNat (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat)
@@ -872,6 +873,19 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
     rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
         show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
     exact callerEncode_eq I
+  · -- the opaque return data is `< 2²⁵⁵` (trusted `Θ` axiom)
+    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
+        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader (initState cA gh bl σ σ₀ g A I).blocks σ
+        (initState cA gh bl σ σ₀ g A I).σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (AccountAddress.ofUInt256 (UInt256.land addrMask (callerArg0 I)))
+        (toExecute σ (AccountAddress.ofUInt256 (UInt256.land addrMask (callerArg0 I)))) callGas
+        (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+        ((callerCalldataMem I).readWithPadding (callerOutPtr I).toNat
+          (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat) (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
+      congrArg (fun t => t.2.2.2.2.2) hΘ
+    rw [ho]
+    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 /-- **Post-call failure tail** (`z = false`): the `CALL` returned `0`, so the solc check
     `iszero(success)` jumps into the `RETURNDATACOPY … REVERT` bail-out — the whole run reverts,
@@ -1094,6 +1108,212 @@ theorem callerArg0_canonical {I : ExecutionEnv}
     Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
   have hmask : addrMask.toNat < EVM.addressModulus := by decide
   rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
+
+/-! ## Storage coupling: the Act `.assign stored := v` writes the same word the EVM `SSTORE` does -/
+
+/-- `wordOfInt (Int.ofNat k) = ofNat k` (a nonnegative literal round-trips through `ℤ`). -/
+theorem wordOfInt_ofNat_eq (k : ℕ) : EVM.wordOfInt (Int.ofNat k) = UInt256.ofNat k := by
+  rw [EVM.wordOfInt, if_neg (by simp)]; apply u256_inj
+  show (Int.ofNat k).toNat % EVM.twoPow 256 = (UInt256.ofNat k).toNat
+  rw [show (Int.ofNat k).toNat = k from rfl, show (UInt256.ofNat k).toNat = k % UInt256.size from rfl,
+      show EVM.twoPow 256 = UInt256.size from by decide]
+
+/-- The little-endian byte serialization round-trips: `fromBytes' (toBytesLE w) = w.toNat`. -/
+theorem fromBytesLE_roundtrip (w : UInt256) :
+    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
+  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
+  rw [fromBytes'_append_zeros, fromBytes'_toBytes']; rfl
+
+/-- **Whole-slot store.**  Storing `.int k` into the `stored` location (slot 0, offset 0, size 32)
+    writes exactly the word `ofNat k` — i.e. the value the EVM `SSTORE`s. -/
+theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
+    storageLocStore evm'
+        { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+          type := .int (.uint ⟨256, by decide⟩) } (.int (Int.ofNat k))
+      = some (EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
+  unfold storageLocStore
+  simp only [valueToWord, wordOfInt_ofNat_eq, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨0⟩)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat k)).2
+  congr 2; apply u256_inj
+  show fromBytes' (List.take (0:Fin 32).val _ ++ List.take (32:Fin 33).val _
+        ++ List.drop ((0:Fin 32).val + (32:Fin 33).val) _) = (UInt256.ofNat k).toNat
+  rw [show (0:Fin 32).val = 0 from rfl, show (32:Fin 33).val = 32 from rfl,
+      List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
+      List.take_of_length_le (by omega), fromBytesLE_roundtrip]
+
+/-- **The Act `.assign stored := .int k` step.**  Dispatches to the storage write (the local
+    `stored` is absent, `hbase`), producing the post-`SSTORE` EVM state. -/
+theorem callerAssign (evm' : EVM.State) (L : Act.Store) (k : ℕ) (hbase : L.get? "stored" = none) :
+    assignStorageRef? callerConfig { contract := callerContract, locals := L } evm'
+        { base := "stored", steps := [] } (.int (Int.ofNat k))
+      = .ok ({ contract := callerContract, locals := L },
+             EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
+  unfold assignStorageRef?
+  rw [hbase]
+  simp only [evalStorageRef, EvalResult.seqList, List.map_nil, bind, EvalResult.bind, pure,
+    EvalResult.ofOption]
+  rw [show callerConfig.storage.layout { base := "stored" }
+        = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+                 type := .int (.uint ⟨256, by decide⟩) } from rfl]
+  simp only [callerLocStore]
+
+/-- `EVM.storageStore`'s `accountMap` is exactly the `sstoreAccountMap` the `RD` `SSTORE` carries. -/
+theorem storageStore_accountMap (evm' : EVM.State) (a : AccountAddress) (s v : UInt256) :
+    (EVM.storageStore evm' a s v).accountMap = sstoreAccountMap a evm'.accountMap s v := by
+  simp only [EVM.storageStore, sstoreAccountMap, State.lookupAccount]
+  cases evm'.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
+
+theorem storageStore_createdAccounts (evm' : EVM.State) (a : AccountAddress) (s v : UInt256) :
+    (EVM.storageStore evm' a s v).createdAccounts = evm'.createdAccounts := by
+  simp only [EVM.storageStore, State.lookupAccount]
+  cases evm'.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount]
+
+/-! ## Decoded-store accessors and the canonical-execution coupling -/
+
+theorem store_get_ne (L : Act.Store) (k k' : Ident) (v : Value) (h : (k' == k) = false) :
+    (L.insert k' v).get? k = L.get? k := by
+  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, h]
+theorem store_get_empty (k : Ident) : (∅ : Act.Store).get? k = none := by simp
+abbrev callerDecStore (I : ExecutionEnv) : Act.Store :=
+  ((∅:Act.Store).insert "t" (.address (AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
+    (.int (Int.ofNat (callerArg1 I).toNat))
+theorem callerStore_t (I : ExecutionEnv) :
+    (callerDecStore I).get? "t" = some (.address (AccountAddress.ofNat (callerArg0 I).toNat)) := by
+  rw [callerDecStore, store_get_ne _ _ _ _ (by decide), store_get_self]
+theorem callerStore_n (I : ExecutionEnv) :
+    (callerDecStore I).get? "n" = some (.int (Int.ofNat (callerArg1 I).toNat)) := by
+  rw [callerDecStore, store_get_self]
+theorem callerStore_stored (I : ExecutionEnv) (v : Value) :
+    ((callerDecStore I).insert "tmp" v).get? "stored" = none := by
+  rw [store_get_ne _ _ _ _ (by decide), callerDecStore, store_get_ne _ _ _ _ (by decide),
+      store_get_ne _ _ _ _ (by decide), store_get_empty]
+theorem ofNat_toNat_lt (n : ℕ) (h : n < 2^255) : (UInt256.ofNat n).toNat = n :=
+  ulit_toNat' n (by simpa [UInt256.size] using (by omega : n < 2^256))
+theorem callerL_succ (n : ℕ) (h1 : 32 ≤ n) (h2 : n < 2^255) :
+    (min (⟨32⟩:UInt256) (UInt256.ofNat n)).toNat = 32 := by
+  show (if (⟨32⟩:UInt256) ≤ UInt256.ofNat n then (⟨32⟩:UInt256) else UInt256.ofNat n).toNat = 32
+  rw [if_pos (show (⟨32⟩:UInt256) ≤ UInt256.ofNat n from ?_)]
+  · rfl
+  · show (32:ℕ) ≤ (UInt256.ofNat n).val.val
+    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl, ofNat_toNat_lt n h2]; omega
+theorem callerL_rev (n : ℕ) (h : n < 32) :
+    (min (⟨32⟩:UInt256) (UInt256.ofNat n)).toNat = n := by
+  show (if (⟨32⟩:UInt256) ≤ UInt256.ofNat n then (⟨32⟩:UInt256) else UInt256.ofNat n).toNat = n
+  rw [if_neg (show ¬ (⟨32⟩:UInt256) ≤ UInt256.ofNat n from ?_), ofNat_toNat_lt n (by omega)]
+  · show ¬ (32:ℕ) ≤ (UInt256.ofNat n).val.val
+    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl, ofNat_toNat_lt n (by omega)]; omega
+theorem write_len_zero (src base : ByteArray) (sa da : ℕ) : src.write sa base da 0 = base := by
+  rw [ByteArray.write]; rfl
+theorem callerWrite_size (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 (callerCalldataMem I) 128 L).size = 164 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h; rw [write_len_zero]; exact callerCalldataMem_size I
+  · rw [write_eq_gen o (callerCalldataMem I) 128 L (by omega) hLo (by rw [callerCalldataMem_size]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+      ByteArray.size_extract, callerCalldataMem_size]; omega
+theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 (callerCalldataMem I) 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h; rw [write_len_zero]; exact callerCalldataMem_read64 I
+  · rw [write_read_below_gen o (callerCalldataMem I) 128 L 64 (by omega) hLo
+      (by rw [callerCalldataMem_size]; omega) (by omega), callerCalldataMem_read64]
+
+theorem RDret_reEquivExecGen {cfg contract t} {cA gh bl σ σ₀ A I} {g : UInt256} {code o}
+    {callargs cs retVal} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata = some callargs)
+    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body (.returned cs evm'' retVal))
+    (hAcc : acc = (evm''.createdAccounts, evm''.accountMap))
+    (henc : returnEquiv o retVal t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := by
+  rcases h with hoog | ⟨s, hX, hsacc⟩
+  · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
+  · have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
+    refine reEquiv_execution hd hdec hbody ?_
+    rw [hxi]
+    have heq : (s.createdAccounts, s.accountMap) = (evm''.createdAccounts, evm''.accountMap) :=
+      hsacc.trans hAcc
+    exact execResultsEquiv.success rfl rfl (congrArg Prod.fst heq) (congrArg Prod.snd heq) henc
+
+set_option maxHeartbeats 1000000 in
+theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hdepth : I.depth.val < 1024)
+    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
+    runtimeEquivalenceFor callerConfig callerContract cA gh bl σ σ₀ g A I := by
+  have hcanon := callerArg0_canonical hclean
+  have hd : dispatchMsg callerContract I.calldata = some runTransition := by
+    rw [callerDispatch_eq, if_pos hmatch]
+  have hdec := callerDecode_n hsz68 hbig hcanon
+  obtain ⟨cA', σ', z, o, A', k', C', rd144, hcoin, ho255⟩ :=
+    callerX_postCall hcode hwv (by omega) hsize hsz68 hbig hmatch hclean hperm hdepth
+  cases z
+  · -- z = false: external call failed ⇒ revert
+    simp only [Bool.false_eq_true, if_false] at rd144 hcoin
+    refine (callerX_postRevert rd144 (by simp)).reEquivExecutionRevert hcode hd hdec ?_
+    exact callerBodyExtFail _ (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I) hcoin
+  · -- z = true
+    simp only [if_true] at rd144 hcoin
+    by_cases ho32 : 32 ≤ o.size
+    · -- success: |o| ≥ 32
+      rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+          callerL_succ o.size ho32 ho255] at rd144
+      have hmsz : 160 ≤ (o.write 0 (callerCalldataMem I) 128 32).size := by
+        have := callerWrite_size I o 32 (by omega) ho32; omega
+      have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size
+              ∨ (⟨64⟩:UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+            else UInt256.ofNat (fromByteArrayBigEndian
+              ((o.write 0 (callerCalldataMem I) 128 32).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
+        rw [if_neg (by rw [callerWrite_size I o 32 (by omega) ho32]; decide),
+            show (⟨64⟩:UInt256).toNat = 64 from by decide,
+            callerWrite_read64 I o 32 (by omega) ho32, fromByteArrayBigEndian_toByteArray]
+        decide
+      have hword : (o.write 0 (callerCalldataMem I) 128 32).readWithPadding 128 32 = o.extract 0 32 :=
+        write32_read_back o (callerCalldataMem I) 128 ho32 (by rw [callerCalldataMem_size]; omega)
+      have hrd := callerX_successChain rd144 hperm ho32 ho255 hfp hword hmsz
+      -- Act body
+      set evmP : EVM.State := { initState cA gh bl σ σ₀ g A I with
+        accountMap := σ', substate := A', createdAccounts := cA' } with hevmP
+      set kw := fromByteArrayBigEndian (o.extract 0 32) with hkw
+      have hassign := callerAssign evmP ((callerDecStore I).insert "tmp" (.int (Int.ofNat kw))) kw
+        (callerStore_stored I _)
+      have hdecv : callerConfig.externalABI.decode? "pow2" o = some (.int (Int.ofNat kw)) := by
+        show defaultDecodeReturn? "pow2" o = _
+        rw [defaultDecodeReturn?, if_neg (by omega : ¬ o.size < 32), ← hkw, Int.ofNat_eq_natCast]
+      have hbody := callerBodySuccess (initState cA gh bl σ σ₀ g A I) (callerDecStore I)
+        (by exact hwv) (callerStore_t I) (callerStore_n I) hcoin hdecv hassign
+      refine RDret_reEquivExecGen hcode hrd hd hdec hbody ?_ (returnEquiv.void rfl rfl rfl)
+      rw [storageStore_createdAccounts, storageStore_accountMap]
+      simp only [hevmP]; rfl
+    · -- |o| < 32: decode reverts
+      rw [not_le] at ho32
+      rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+          callerL_rev o.size ho32] at rd144
+      have hfp2 : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 o.size).size
+              ∨ (⟨64⟩:UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+            else UInt256.ofNat (fromByteArrayBigEndian
+              ((o.write 0 (callerCalldataMem I) 128 o.size).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
+        rw [if_neg (by rw [callerWrite_size I o o.size (by omega) (by omega)]; decide),
+            show (⟨64⟩:UInt256).toNat = 64 from by decide,
+            callerWrite_read64 I o o.size (by omega) (by omega), fromByteArrayBigEndian_toByteArray]
+        decide
+      obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
+      obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp2
+      refine (callerX_succ_revert rd470 ho32).reEquivExecutionRevert hcode hd hdec ?_
+      have hdecn : callerConfig.externalABI.decode? "pow2" o = none := by
+        show defaultDecodeReturn? "pow2" o = none
+        rw [defaultDecodeReturn?, if_pos ho32]
+      exact callerBodyDecodeRevert _ (callerDecStore I) (by exact hwv) (callerStore_t I)
+        (callerStore_n I) hcoin hdecn
 
 /-! ## The `callvalue = 0` Act coupling -/
 

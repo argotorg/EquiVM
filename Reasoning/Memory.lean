@@ -263,6 +263,42 @@ theorem write32_read_below (src base : ByteArray) (destAddr readAddr : ℕ)
       extract_prefix _ _ _ _ (by omega),
       ← readWithPadding_eq_extract _ readAddr (by omega)]
 
+/-- **`write` of an arbitrary length, in bounds.**  When the destination window `[destAddr,
+    destAddr+len)` lies inside `base` (and `0 < len ≤ src.size`), `write` splices `src`'s first
+    `len` bytes into `base`. -/
+theorem write_eq_gen (src base : ByteArray) (destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hin : destAddr + len ≤ base.size) :
+    src.write 0 base destAddr len
+      = base.extract 0 destAddr ++ src.extract 0 len ++ base.extract (destAddr + len) base.size := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - 0) = len := by omega
+  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 :=
+    Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
+  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le (by omega)
+  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty := zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
+    show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
+    hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
+
+/-- **Read below an arbitrary-length write.**  A 32-byte read strictly below an in-bounds write of
+    any length is unaffected. -/
+theorem write_read_below_gen (src base : ByteArray) (destAddr len readAddr : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hin : destAddr + len ≤ base.size)
+    (hbelow : readAddr + 32 ≤ destAddr) :
+    (src.write 0 base destAddr len).readWithPadding readAddr 32 = base.readWithPadding readAddr 32 := by
+  have hbsz : (base.extract 0 destAddr).size = destAddr := by rw [ByteArray.size_extract]; omega
+  have hszl : (src.extract 0 len).size = len := by rw [ByteArray.size_extract]; omega
+  rw [write_eq_gen src base destAddr len hlen hsrc hin,
+      readWithPadding_eq_extract _ readAddr
+        (by rw [ByteArray.size_append, ByteArray.size_append, hbsz, hszl]; omega),
+      extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hszl]; omega),
+      extract_append_left _ _ _ _ (by rw [hbsz]; omega),
+      extract_prefix _ _ _ _ (by omega),
+      ← readWithPadding_eq_extract _ readAddr (by omega)]
+
 /-- **Readback of a write.**  Reading the 32-byte window just written returns the source's first
     word. -/
 theorem write32_read_back (src base : ByteArray) (destAddr : ℕ)
