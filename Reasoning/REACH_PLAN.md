@@ -282,3 +282,120 @@ decoder (RETURNDATASIZE, round-up, RETURNDATACOPY copies `o` into fresh mem, sub
 `fromByteArrayBigEndian (o[0:32])` = Act's `decode? "pow2" o`. Needs: an `RD.not` combinator (opcode
 0x19 at pc 169), the decoder trace (incl. subroutine 470/450/306), and the memory↔encoding coupling
 (#2). Then Act body + assembly.
+
+---
+
+## PROGRESS (session 3 cont. 2): RD.not / RD.stop / RD.returndatasize upgrade + z=true prefix
+
+- `RD.returndatasize` now pushes the **concrete** `ofNat rdata.size` (not existential) — the decoder
+  needs `|o|` for the `≥ 32` check. `RD.not` (opcode 0x19) and `RD.stop` (STOP ⇒ `RDret … empty`)
+  added (+ `stop_xstep`/`not_xstep` in Stepping.lean).
+- **z=true prefix DONE & green**: `callerX_succ_to165` — `144 ISZERO…JUMPI(taken) → 158 POP×4 →
+  PUSH1 64`, reaching the `MLOAD` at pc 165 with stack `[64, arg1, arg0, 71, sel]` (the 4 popped
+  words are the success flag + 3 dispatcher words). Whole project green.
+
+### KEY finding for the rest of z=true: the success decoder reads the CALL out-region, NOT returndata
+There is **no RETURNDATACOPY** on the success path (it is only on the z=false revert path). The CALL
+was issued with `outOffset = callerOutPtr (= mem[64] = 128)`, `outSize = 32`, so the EVM wrote
+`o[0:min(32,|o|)]` into memory at 128 (this is in `RD.call`'s output `mem`). The decoder then:
+MLOADs `fp = mem[64]`, uses `RETURNDATASIZE` (= `|o|`, needs the `rdata` field!) only for the
+`dataEnd = fp+|o|` / `≥32` length check, and MLOADs the result word from `mem[fp:fp+32]` =
+`mem[128:160] = o[0:32]`.
+
+**The byte-level coupling is therefore needed *inside* the trace** (not deferrable): the decoder's
+pointer arithmetic `(fp+|o|) - fp = |o|` and the final read both require `fp = 128` concretely.
+Sub-goals: (1) `callerOutPtr I = ⟨128⟩` (read free-ptr 128 from `callerCalldataMem`/`solcFreePtrMem`,
+written by the prologue `MSTORE` at offset 64); (2) `mem'[64:96] = 128` (CALL write at 128 doesn't
+touch [64,96)); (3) out-region readback `mem'[128:160] = o[0:32]` when `|o| ≥ 32`. Then: decoder
+trace (incl. subroutine 470 size-check split / 450 / 306) → SSTORE slot 0 ← `fromByteArray(o[0:32])`
+→ STOP ⇒ `RDret (cA, σ[slot0])`; `|o| < 32` → decoder reverts ⇒ `RDrev` (matches the new Act rule).
+
+---
+
+## PROGRESS (session 3 cont. 3): byte-level memory coupling DONE (green)
+
+General reusable `ByteArray` lemmas (Reasoning/Memory.lean): `write32_eq` (partial-overwrite =
+3-way append via `data_copySlice`), `extract_prefix`, `extract_append_right_window`,
+`extract_extract_BA`, and the three non-overlap read lemmas `write32_read_below` / `write32_read_back`
+/ `write32_read_above`. Caller-specific (Correct.lean): `callerSelMem = solcReturnMem selWord` (size
+160, read64 = 128), `callerCalldataMem_size = 164`, `callerCalldataMem_read64 = 128`, and the key
+**`callerOutPtr_eq : callerOutPtr I = ⟨128⟩`** — the CALL out-region pointer is `0x80`, tying the
+decoder's read region to where the CALL wrote `o`.
+
+Post-call reads now all discharge: `mem'[64:96] = 128` (write32_read_below, CALL write at 128),
+`mem'[128:160] = o[0:32]` for `|o| ≥ 32` (write32_read_back), and after the decoder's free-ptr MSTORE
+at 64, `mem''[128:160] = mem'[128:160]` (write32_read_above).
+
+### Next: z=true decoder trace + one new axiom
+The decoder computes `dataEnd = fp + |o|` (ADD) and checks `slt(dataEnd - fp, 32)`. For
+`(fp+|o|) - fp = |o|` (no `ADD` overflow) and the signed compare to read as unsigned, need
+`o.size < 2^255` — physically always true (returndata can't be ~10^76 bytes), analogous to the
+existing `calldata.size < 2^255`. Add as a trusted `Theta`-output axiom (sibling of
+`Theta_returnedGas_le`). Then trace `165 MLOAD(fp=128) → roundup(NOT/AND, rdsR symbolic) →
+MSTORE 64 → 470 size-split → 450 MLOAD(o[0:32]) → SSTORE slot0 → STOP ⇒ RDret`.
+
+---
+
+## PROGRESS (session 3 cont. 4): returndata-size axiom + decoder fully mapped
+
+`Theta_returnData_size_lt` axiom added (returndata `< 2²⁵⁵`, sibling of `Theta_returnedGas_le`).
+Whole project green.
+
+### z=true decoder trace — full opcode map (the remaining mechanical work)
+From `callerX_succ_to165` (pc 165, stack `[64, arg1, arg0, 71, sel]`, mem = post-call `mem'`,
+aw = `⟨6⟩`, rdata = `o`):
+- **165→193 (straight-line, build dataEnd):** `MLOAD`(fp=128 via `hfp`) · `RETURNDATASIZE`(=`|o|`) ·
+  round-up `PUSH1 31;NOT;PUSH1 31;DUP3;ADD;AND`(rdsR symbolic) · `DUP3;ADD`(128+rdsR) ·
+  `DUP1;PUSH1 64;MSTORE`(free-ptr update at 64 → mem2) · `POP;DUP2;ADD`(dataEnd=128+|o|) ·
+  `SWAP1;PUSH2 194;SWAP2;SWAP1;PUSH2 470;JUMP` → 470, stack `[128, 128+|o|, 194, …]`.
+  All mcosts = 0 (aw=6 ⇒ 192 ≥ all offsets). aw stays 6.
+- **470 size-check:** `PUSH0;PUSH1 32;DUP3;DUP5;SUB`(`(128+|o|)-128=|o|`, needs `|o|<2²⁵⁵`)`;SLT`(|o|<32)`;
+  ISZERO;PUSH2 491;JUMPI`. `|o|≥32` → 491; `|o|<32` → 483→490→**203 REVERT** (⇒ RDrev, matches Act).
+- **491→503:** `PUSH0;PUSH2 504;DUP5;DUP3;DUP6;ADD;PUSH2 450;JUMP` → 450.
+- **450 (abi_decode_uint256):** `PUSH0;DUP2;MLOAD`(reads mem2[128:160]=o[0:32] via write32_read_above
+  then write32_read_back)`;SWAP1;POP;PUSH2 464;DUP2;PUSH2 306;JUMP` → 306 (validator).
+- **306→327 (validate uint256):** `PUSH2 315;DUP2;PUSH2 297;JUMP`→297(cleanup)→315 `DUP2;EQ;PUSH2 325;
+  JUMPI`(must hold)`…;325 JUMPDEST;POP;JUMP`→back to 464→504→491-return→194.
+- **194→202:** `PUSH0;DUP2;SWAP1;SSTORE`(slot 0 ← `ofNat(fromByteArray(o[0:32]))` = `decode o`)`;
+  POP;POP;POP;JUMP`→71→**STOP** ⇒ `RDret (cA, σ[slot0:=decode o]) empty`.
+
+Recommended structure: a `callerX_succ` lemma taking the pc-165 `RD` + hypotheses `hfp` (free-ptr
+reads 128), `hword` (`mem'[128:160] = o.extract 0 32`), `aw = ⟨6⟩`, `32 ≤ |o|`, `|o| < 2²⁵⁵`,
+`160 ≤ mem'.size`; discharge those in the final assembly via `callerOutPtr_eq` + `write32_read_*` +
+`Theta_returnData_size_lt`. The 297/306/315 validator subroutine for `uint256` is a no-op identity
+(unlike address, no masking) — `EQ` at 317 always holds, so it just returns the value.
+
+- callerX_succ_to470 DONE & green (straight-line 165 to 470 size-check entry; mem ops free at aw=6, dataEnd=128+|o|). Remaining: 470 size-split + subroutine maze (491/450/306/315/297/325/504) + SSTORE slot0 + STOP, then Act body + assembly. Use callerX_succ_to470 as the segment template.
+
+---
+
+## PROGRESS (session 3 cont. 5): two decoder segments green + helpers
+
+- Arithmetic: `add128_sub128` (`(128+n)−128 = n` for `n < 2²⁵⁵`), `slt32_zero` (`slt(n,32)=0` for
+  `32 ≤ n < 2²⁵⁵`). `callerContains470/491`.
+- **`callerX_succ_to470`** (green): straight-line 165→470 (MLOAD fp=128 via `hfp`, RETURNDATASIZE,
+  round-up, MSTORE free-ptr, dataEnd=128+|o|), aw stays ⟨6⟩, mem ops free.
+- **`callerX_succ_to491`** (green): 470→491 length check (`slt(|o|,32)=0`, JUMPI taken) for `|o|≥32`.
+
+### Remaining decoder (exact stacks; segment template = callerX_succ_to470)
+At 491: stack `[0, 128, 128+|o|, 194, arg1, arg0, 71, sel]`.
+- **491→450:** `JUMPDEST;PUSH0;PUSH2 504;DUP5;DUP3;DUP6;ADD;PUSH2 450;JUMP`. Sets up inner read:
+  pushes retAddr 504, computes read-offset `headStart+0 = add(128,0)`, end, → 450.
+- **450 (read word):** `PUSH0;DUP2;MLOAD`(reads `mem2[128:160]`)`;SWAP1;POP;PUSH2 464;DUP2;PUSH2 306;JUMP`.
+  **MLOAD coupling:** `mem2[128:160] = mem'[128:160]` (write32_read_above, MSTORE was at 64) `= o[0:32]`
+  (write32_read_back on mem'); offset `add(128,0)` reduces to 128. word = `ofNat(fromByteArray(o[0:32]))`.
+- **306→327 (validate, no-op for uint256):** `306 PUSH2 315;DUP2;PUSH2 297;JUMP` → **297 (cleanup =
+  identity):** `PUSH0;DUP2;SWAP1;POP;SWAP2;SWAP1;POP;JUMP` (returns value unchanged) → 315
+  `DUP2;EQ;PUSH2 325;JUMPI`(word==word always true, taken)`;325 JUMPDEST;POP;JUMP` → returns to 464.
+- **464→469:** `SWAP3;SWAP2;POP;POP;JUMP` → 504. **504→509:** `SWAP2;POP;POP;SWAP3;SWAP2;…` → returns
+  to 194 with `word` in place.
+- **194→202:** `PUSH0;DUP2;SWAP1;SSTORE`(slot 0 ← word = decode o)`;POP;POP;POP;JUMP`→71→**STOP**
+  ⇒ `RDret (cA, sstoreAccountMap codeOwner σ ⟨0⟩ word) empty`.
+The validation subroutine threads `word` unchanged (uint256 has no masking), so the whole 450→194
+chain is: read word, return it, SSTORE it. The only coupling is the single MLOAD at 453.
+
+Then: **Act body** (require cv=0 → externalCallSuccess via callerCallCoincides → assign stored ←
+`.int (fromByteArrayBigEndian (o.extract 0 32))`, matching `word`'s nat), and **assembly**
+(`cases z`; `z=true` split on `|o|≥32` [RDret via this trace + RDret.reEquivExecution] vs `|o|<32`
+[470→203 revert ⇒ RDrev]; `z=false` ⇒ callerX_postRevert). Discharge `hfp`/`hword`/`aw=6`/`|o|<2²⁵⁵`
+via callerOutPtr_eq + write32_read_* + Theta_returnData_size_lt.

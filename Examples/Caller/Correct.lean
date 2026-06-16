@@ -93,6 +93,42 @@ theorem slt64_zero {a : UInt256} (hlo : 64 ≤ a.toNat) (hhi : a.toNat < 2 ^ 255
   show UInt256.fromBool (UInt256.sltBool a ⟨64⟩) = ⟨0⟩
   rw [hbool]; rfl
 
+/-- `(128 + n) − 128 = n` (no overflow) when `n < 2²⁵⁵` — the decoder's `dataEnd − headStart`. -/
+theorem add128_sub128 {n : ℕ} (hn : n < 2 ^ 255) :
+    UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat n)) ⟨128⟩ = UInt256.ofNat n := by
+  apply u256_inj
+  have hsz : (2:ℕ) ^ 255 + 128 < UInt256.size := by norm_num [UInt256.size]
+  have ho : (UInt256.ofNat n).toNat = n := by
+    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
+  have h128 : (⟨128⟩ : UInt256).toNat = 128 := by decide
+  have hadd : (UInt256.add ⟨128⟩ (UInt256.ofNat n)).toNat = 128 + n := by
+    rw [show UInt256.add ⟨128⟩ (UInt256.ofNat n) = ⟨128⟩ + UInt256.ofNat n from rfl, uadd_toNat,
+        h128, ho]
+    exact Nat.mod_eq_of_lt (by omega)
+  rw [show UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat n)) ⟨128⟩
+        = UInt256.add ⟨128⟩ (UInt256.ofNat n) - UInt256.ofNat 128 from rfl,
+      toNat_sub_ofNat (by rw [hadd]; omega), hadd, ho]
+  omega
+
+/-- `SLT (ofNat n) 32 = 0` (signed) when `32 ≤ n < 2²⁵⁵` — the decoder's `≥ 32` length check passes. -/
+theorem slt32_zero {n : ℕ} (hlo : 32 ≤ n) (hhi : n < 2 ^ 255) :
+    UInt256.slt (UInt256.ofNat n) ⟨32⟩ = ⟨0⟩ := by
+  have hsz : (2:ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
+  have ho : (UInt256.ofNat n).toNat = n := by
+    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
+  have h32 : (⟨32⟩ : UInt256).toNat = 32 := by decide
+  have hbool : UInt256.sltBool (UInt256.ofNat n) ⟨32⟩ = false := by
+    unfold UInt256.sltBool
+    rw [if_neg (show ¬ (UInt256.ofNat n).toNat ≥ 2 ^ 255 by rw [ho]; omega),
+        if_neg (show ¬ (⟨32⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h32]; norm_num)]
+    exact decide_eq_false (show ¬ UInt256.ofNat n < ⟨32⟩ by
+      show ¬ (UInt256.ofNat n).toNat < (⟨32⟩ : UInt256).toNat; rw [ho, h32]; omega)
+  show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨0⟩
+  rw [hbool]; rfl
+
+theorem callerContains491 : (D_J callerBytecode ⟨0⟩).contains ⟨491⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+
 /-! ## EVM traces (revert scenarios) -/
 
 /-- `callvalue ≠ 0`: the non-payable guard reverts (prologue → not-taken JUMPI → revert stub). -/
@@ -425,6 +461,40 @@ noncomputable def callerOutPtr (I : ExecutionEnv) : UInt256 :=
   then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian ((callerCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))
 
+/-- `callerSelMem` is exactly the generic solc "store a word at `0x80`" memory (`solcReturnMem`)
+    applied to the shifted selector, so its size / read-backs are the generic ones. -/
+theorem callerSelMem_size : callerSelMem.size = 160 := solcReturnMem_size _
+
+theorem callerSelMem_read64 : callerSelMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
+  solcReturnMem_read64 _
+
+/-- The full `pow2(n)` calldata buffer is 164 bytes (`0x80 .. 0xa4`). -/
+theorem callerCalldataMem_size (I : ExecutionEnv) : (callerCalldataMem I).size = 164 := by
+  unfold callerCalldataMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [callerSelMem_size]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+      ByteArray.size_extract, callerSelMem_size, toByteArray_size]
+  omega
+
+/-- The free pointer (`mem[0x40]`) is untouched by the selector/arg writes: it still reads `0x80`. -/
+theorem callerCalldataMem_read64 (I : ExecutionEnv) :
+    (callerCalldataMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold callerCalldataMem
+  rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size]) (by rw [callerSelMem_size]; omega)
+        (by omega), callerSelMem_read64]
+
+/-- **The output pointer the `CALL` uses is `0x80`** — the byte-level coupling that ties the decoder's
+    read region to the `CALL` out-region. -/
+theorem callerOutPtr_eq (I : ExecutionEnv) : callerOutPtr I = ⟨128⟩ := by
+  unfold callerOutPtr
+  rw [if_neg (by
+        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, callerCalldataMem_size]
+        rintro (h | h)
+        · omega
+        · exact absurd h (by decide)),
+      show (⟨64⟩ : UInt256).toNat = 64 from by decide, callerCalldataMem_read64,
+      fromByteArrayBigEndian_toByteArray, show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from by decide]
+
 /-- Body segment: run the uint256 encoder (MSTORE `n` at mem[132]), set up and MLOAD for the CALL,
     reaching the GAS at pc 142 (just before the `CALL`). -/
 theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -504,11 +574,81 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     RD.returndatacopyFull rd151 (by decide) (by decide) (by decide) (by decide)
       (by simp only [List.length_cons]; omega)
   -- 155 RETURNDATASIZE; 156 PUSH0; 157 REVERT
-  obtain ⟨rdv, rd156⟩ := RD.returndatasize rd155 (by decide) (by simp only [List.length_cons]; omega)
+  have rd156 := RD.returndatasize rd155 (by decide) (by simp only [List.length_cons]; omega)
   have rd157 := RD.push0 rd156 (by decide) (by simp only [List.length_cons]; omega)
   exact RD.rev _ rd157 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by simp only [List.length_cons]; omega)
+
+theorem callerContains158 : (D_J callerBytecode ⟨0⟩).contains ⟨158⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+
+/-- **Post-call success prefix** (`z = true`): the `CALL` returned `1`, so `iszero(success)` is
+    false and control jumps to pc 158, the 4 dead stack words are `POP`ped, and `PUSH1 64` pushes the
+    free-pointer slot address — reaching the `MLOAD` at pc 165 with stack `[64, arg1, arg0, 71, sel]`.
+    (`d0 d1 d2` are the three dispatcher words above `arg1` that the `POP`s discard.) -/
+theorem callerX_succ_to165 {cA gh bl σ σ₀ A I} {g : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
+    {d0 d1 d2 : UInt256} {tl : List UInt256}
+    (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+            (⟨1⟩ :: d0 :: d1 :: d2 :: tl) mem aw rdata acc k C)
+    (hov : tl.length + 7 ≤ 1024) :
+    ∃ k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨165⟩
+        (⟨64⟩ :: tl) mem aw rdata acc k' C' := by
+  -- 144 ISZERO; DUP1; ISZERO; PUSH2 158; JUMPI (taken, z = true) → 158; POP×4; PUSH1 64
+  refine ⟨_, _, evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩,
+    jumpiT (by decide) callerContains158, jumpdest, pop, pop, pop, pop, push1 ⟨64⟩]⟩
+
+theorem callerContains470 : (D_J callerBytecode ⟨0⟩).contains ⟨470⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+
+/-- **Success decoder, straight-line part (165 → 470).**  `MLOAD` the free pointer (`fp = 128`),
+    `RETURNDATASIZE` (= `|o|`), round up and bump the free pointer (`MSTORE` at `0x40`), compute
+    `dataEnd = 128 + |o|`, and jump into the length-checking decoder subroutine at pc 470 — leaving
+    `[128, 128+|o|, 194, …]` on the stack.  Active words stay `⟨6⟩`, so every memory op is free. -/
+theorem callerX_succ_to470 {cA gh bl σ σ₀ A I} {g : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
+    (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨165⟩
+            [⟨64⟩, arg1, arg0, ⟨71⟩, sel] mem ⟨6⟩ o acc k C)
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+           else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+          = ⟨128⟩) :
+    ∃ mem2 k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
+      [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
+      mem2 ⟨6⟩ o acc k' C' := by
+  refine ⟨_, _, _, evm_run rd with [
+    raw mload 0 ⟨128⟩ ⟨6⟩ (by decide)
+      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
+        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      hfp (by decide) (by evm_ov),
+    returndatasize,
+    push1 ⟨31⟩, not, push1 ⟨31⟩, dup3, add, and, dup3, add, dup1, push1 ⟨64⟩,
+    raw mstore 0 ((UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+        (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32) ⟨6⟩ (by decide)
+      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
+        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      (by rfl) (by decide) (by evm_ov),
+    pop, dup2, add, swap1, push2 ⟨194⟩, swap2, swap1, push2 ⟨470⟩, jump callerContains470 ]⟩
+
+/-- **Success decoder, length check (470 → 491).**  `slt(dataEnd − headStart, 32) = slt(|o|, 32) = 0`
+    (since `|o| ≥ 32`), so `iszero` is `1` and the `JUMPI` jumps past the bail-out to pc 491. -/
+theorem callerX_succ_to491 {cA gh bl σ σ₀ A I} {g : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
+    (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
+            [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
+            mem2 ⟨6⟩ o acc k C)
+    (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255) :
+    ∃ k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨491⟩
+      [⟨0⟩, ⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
+      mem2 ⟨6⟩ o acc k' C' := by
+  refine ⟨_, _, evm_run rd with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
+    jumpiT (by rw [add128_sub128 ho, slt32_zero ho32 ho]; decide) callerContains491 ]⟩
 
 /-! ## The `callvalue = 0` Act coupling -/
 

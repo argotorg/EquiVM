@@ -442,19 +442,20 @@ theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
       · exact hee
       · exact hworld
 
-/-- `RETURNDATASIZE` as an `RD → RD` combinator: pushes `|returnData|`.  Like `RD.gas`, the value is
-    existential (the carried cursor does not pin `returnData`), which is all the revert tail needs. -/
+/-- `RETURNDATASIZE` as an `RD → RD` combinator: pushes `|returnData| = |rdata|`.  Now that `RD`
+    pins `rdata`, the pushed size is the *concrete* `ofNat rdata.size` (the post-call decoder needs
+    it for the `≥ 32` length check). -/
 theorem RD.returndatasize {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATASIZE, .none)) (hov : stk.length + 1 ≤ 1024) :
-    ∃ rdv, RD code ee g s0 (pc + ⟨1⟩) (rdv :: stk) mem aw rdata acc (k + 1) (C + 2) := by
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat rdata.size :: stk) mem aw rdata acc (k + 1) (C + 2) := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact ⟨⟨0⟩, by unfold RD; exact Or.inl hoog⟩
+  · exact (by unfold RD; exact Or.inl hoog)
   · have st := returndatasize_xstep hcode hpc hdec hstk hov
-    refine ⟨UInt256.ofNat s.machineState.returnData.size, ?_⟩
+    rw [show UInt256.ofNat rdata.size = UInt256.ofNat s.machineState.returnData.size from by rw [hrdata]]
     unfold RD
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
@@ -1058,6 +1059,18 @@ axiom Theta_returnedGas_le
     (e : Fin 1025) (H : BlockHeader) (w : Bool) :
     (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.1.toNat ≤ g.toNat
 
+/-- **Trusted base — `Θ` return-data is address-bounded.**  A message call's return data is a slice
+    `memory[off .. off+len]` with `off, len : UInt256`, so its size is below `2²⁵⁶`; the tighter
+    `< 2²⁵⁵` bound (still astronomically large — a return buffer can never approach `2²⁵⁵` bytes)
+    is what the solc return-decoder's `ADD`/signed-`SLT` length check needs to behave as plain
+    unsigned arithmetic.  Physically always true; analogue of the per-call `calldata.size < 2²⁵⁵`. -/
+axiom Theta_returnData_size_lt
+    (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
+    (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
+    (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
+    (e : Fin 1025) (H : BlockHeader) (w : Bool) :
+    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size < 2 ^ 255
+
 /-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters, like `RD.loop`): from a
     cursor at the `SSTORE` pc with `[slot, val, …t]` and carried accounts `(cA, σ)`, write `val` to
     `slot` of the caller account (`ee.codeOwner`), advancing the carried `accountMap` to
@@ -1308,6 +1321,23 @@ theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
     · exact Or.inr ⟨stReturn s off len t, hX.trans (stepHaltSuccess hgas st hk (by omega)),
         by simp only [stReturn]; exact hacc⟩
+
+/-- `STOP`: terminate with **empty** output (cost `Gzero = 0`).  Turns an `RD` cursor into the
+    halting-success terminal `RDret … ByteArray.empty`. -/
+theorem RD.stop {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.STOP, .none))
+    (hov : stk.length ≤ 1024) :
+    RDret code g s0 acc ByteArray.empty := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, _haw, _hrdata, hacc, _hee⟩
+  · exact Or.inl hoog
+  · have st := stop_xstep hcode hpc hdec hstk hov
+    refine Or.inr ⟨stStop s, hX.trans (stepHaltSuccess (cost := 0) hgas ?_ hk (by omega)),
+      by simp only [stStop]; exact hacc⟩
+    rw [if_neg (Nat.not_lt_zero _)]; exact st
 
 /-- `REVERT`: terminate with a revert returning `mem[off .. off+len]`.  Turns an `RD` cursor into the
     halting-revert terminal `RDrev`. -/

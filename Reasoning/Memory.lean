@@ -144,7 +144,37 @@ theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
       Array.extract_eq_empty_of_le (by rw [hDsz]; omega),
       Array.append_empty]
 
-/-! ## 4. Reading memory back (`readWithPadding`) -/
+/-- **Partial-overwrite write.**  Storing a 32-byte slice of `src` (its first word) at offset
+    `destAddr ≤ base.size` splits `base` into `base[0..destAddr] ++ src[0..32] ++ base[destAddr+32..]`
+    (the trailing piece is empty when the write reaches/extends the end).  Unlike `toByteArray_write_eq`
+    this covers `destAddr < base.size`, the partial-overwrite case the post-call calldata buffer uses. -/
+theorem write32_eq (src base : ByteArray) (destAddr : ℕ)
+    (hsrc : 32 ≤ src.size) (hlo : destAddr ≤ base.size) :
+    src.write 0 base destAddr 32
+      = base.extract 0 destAddr ++ src.extract 0 32 ++ base.extract (destAddr + 32) base.size := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg (by decide : ¬ (32:ℕ) = 0),
+      if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min 32 (src.size - 0) = 32 := by omega
+  have hsp : min base.size (destAddr + 32) - (destAddr + 32) = 0 :=
+    Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
+  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hlo
+  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty :=
+    zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
+    show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
+    hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
+
+/-- Extracting a window `[i,j)` from a prefix `b[0..n]` (with `j ≤ n`) is the same as extracting it
+    from `b` directly. -/
+theorem extract_prefix (b : ByteArray) (n i j : ℕ) (hjn : j ≤ n) :
+    (b.extract 0 n).extract i j = b.extract i j := by
+  apply ByteArray.ext
+  simp only [ByteArray.data_extract, Array.extract_extract, Nat.add_zero, Nat.zero_add]
+  congr 1
+  omega
 
 /-- Reading the head of an append when the window fits in the left component. -/
 theorem extract_append_left (A B : ByteArray) (i j : ℕ) (h : j ≤ A.size) :
@@ -194,6 +224,68 @@ theorem readWithPadding_eq_extract (source : ByteArray) (addr : ℕ)
   rw [zeroes_zero (n := ⟨↑(32:ℕ) - ↑(32:ℕ)⟩)
         (by show (↑(32:ℕ) - ↑(32:ℕ) : BitVec System.Platform.numBits).toNat = 0; rw [sub_self]; rfl)]
   apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
+
+/-- **Non-overlap read below a write.**  A 32-byte read at `readAddr` strictly below the write
+    region `[destAddr, destAddr+32)` is unaffected by the write. -/
+theorem write32_read_below (src base : ByteArray) (destAddr readAddr : ℕ)
+    (hsrc : 32 ≤ src.size) (hlo : destAddr ≤ base.size) (hbelow : readAddr + 32 ≤ destAddr) :
+    (src.write 0 base destAddr 32).readWithPadding readAddr 32 = base.readWithPadding readAddr 32 := by
+  have hbsz : (base.extract 0 destAddr).size = destAddr := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  rw [write32_eq src base destAddr hsrc hlo,
+      readWithPadding_eq_extract _ readAddr
+        (by rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]; omega),
+      extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega),
+      extract_append_left _ _ _ _ (by rw [hbsz]; omega),
+      extract_prefix _ _ _ _ (by omega),
+      ← readWithPadding_eq_extract _ readAddr (by omega)]
+
+/-- **Readback of a write.**  Reading the 32-byte window just written returns the source's first
+    word. -/
+theorem write32_read_back (src base : ByteArray) (destAddr : ℕ)
+    (hsrc : 32 ≤ src.size) (hlo : destAddr ≤ base.size) :
+    (src.write 0 base destAddr 32).readWithPadding destAddr 32 = src.extract 0 32 := by
+  have hbsz : (base.extract 0 destAddr).size = destAddr := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  rw [write32_eq src base destAddr hsrc hlo,
+      readWithPadding_eq_extract _ destAddr
+        (by rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]; omega),
+      extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]),
+      extract_append_right' _ _ _ _ hbsz.symm (by rw [hbsz, hsz32])]
+
+/-- `extract` of the right component of an append, for a window past the left component. -/
+theorem extract_append_right_window (A B : ByteArray) (i j : ℕ) (h : A.size ≤ i) :
+    (A ++ B).extract i j = B.extract (i - A.size) (j - A.size) := by
+  apply ByteArray.ext
+  simp only [ByteArray.data_extract, ByteArray.data_append,
+    Array.extract_append_of_size_left_le_start h, show A.data.size = A.size from rfl]
+
+/-- `extract` composition for `ByteArray` (lifts `Array.extract_extract`). -/
+theorem extract_extract_BA (b : ByteArray) (s e s' e' : ℕ) :
+    (b.extract s e).extract s' e' = b.extract (s + s') (min (s + e') e) := by
+  apply ByteArray.ext; simp only [ByteArray.data_extract, Array.extract_extract]
+
+/-- **Non-overlap read above a write.**  A 32-byte read at `readAddr ≥ destAddr+32` (within bounds)
+    is unaffected by a write at `destAddr`. -/
+theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
+    (hsrc : 32 ≤ src.size) (hlo : destAddr ≤ base.size)
+    (habove : destAddr + 32 ≤ readAddr) (hin : readAddr + 32 ≤ base.size) :
+    (src.write 0 base destAddr 32).readWithPadding readAddr 32 = base.readWithPadding readAddr 32 := by
+  have hbsz : (base.extract 0 destAddr).size = destAddr := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  have hcsz : (base.extract (destAddr + 32) base.size).size = base.size - (destAddr + 32) := by
+    rw [ByteArray.size_extract]; omega
+  have habsz : (base.extract 0 destAddr ++ src.extract 0 32).size = destAddr + 32 := by
+    rw [ByteArray.size_append, hbsz, hsz32]
+  rw [write32_eq src base destAddr hsrc hlo,
+      readWithPadding_eq_extract _ readAddr
+        (by rw [ByteArray.size_append, habsz, hcsz]; omega),
+      readWithPadding_eq_extract _ readAddr (by omega),
+      extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz,
+      extract_extract_BA,
+      show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
+      show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size = readAddr + 32 from by
+        omega]
 
 /-! ## 5. `RETURN`/ABI encoding: `UInt256.toByteArray` as the big-endian word list -/
 

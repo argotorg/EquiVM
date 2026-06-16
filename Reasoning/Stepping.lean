@@ -979,6 +979,26 @@ theorem returndatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256
         simp only [List.length_cons]; omega
       simp only [hg1, hg2, hmemok, hov', if_false, stReturndatacopy]
 
+/-! ### STOP (halt *success*, empty output, cost `Gzero = 0`) -/
+
+def stStop (s : State) : State :=
+  { s with machineState := { s.machineState with
+      execLength := s.machineState.execLength + 1,
+      returnData := .empty,
+      gasAvailable := s.machineState.gasAvailable - UInt256.ofNat 0 } }
+
+theorem stop_xstep {s : State} {code : ByteArray} {pcv : UInt256} {stk : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.STOP, .none))
+    (hstk : s.machineState.stack = stk) (hov : stk.length ≤ 1024) :
+    Xstep (D_J code ⟨0⟩) s = .ok (stStop s, .some (true, ByteArray.empty)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.STOP, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_stop s hd]
+  have hov' : ¬ (s.machineState.stack.length - 0 + 0 > 1024) := by rw [hstk]; omega
+  rw [if_neg hov']
+  simp only [GasConstants.Gzero, stStop]
+
 /-! ### NOT (`a :: t ↦ lnot a :: t`, cost `Gverylow = 3`, pc += 1) -/
 
 def stNot (s : State) (a : UInt256) (t : List UInt256) : State :=
