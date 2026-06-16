@@ -80,9 +80,9 @@ theorem truthX_callvalue_ne
 /-! ### callvalue = 0 dispatcher -/
 
 theorem truthContains14 : (D_J truthBytecode ⟨0⟩).contains ⟨14⟩ = true := by
-  rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem truthContains38 : (D_J truthBytecode ⟨0⟩).contains ⟨38⟩ = true := by
-  rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-! ### Selector decode (proved, not an axiom): the EVM `CALLDATALOAD; PUSH 0xe0; SHR` selector
     vs `calldata.extract 0 4` — a generic instance of `evmSelectorDecode`. -/
@@ -182,39 +182,33 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpiT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide,
                 show UInt256.eq ⟨2661241298⟩
                   (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨1⟩
-              from by rw [truthEvmSelector hsz]; simp [hmatch]]; decide) (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, push1 ⟨48⟩, push1 ⟨68⟩, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, push0, push1 ⟨1⟩, swap1, pop, swap1, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+              from by rw [truthEvmSelector hsz]; simp [hmatch]]; decide) (by jump_dest),
+    jumpdest, push1 ⟨48⟩, push1 ⟨68⟩, jump (by jump_dest),
+    jumpdest, push0, push1 ⟨1⟩, swap1, pop, swap1, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
-          List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rw [if_neg (by rw [solcFreePtrMem_size]; decide),
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
       (by decide) (by evm_ov),
-    push1 ⟨59⟩, swap2, swap1, push1 ⟨100⟩, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    push1 ⟨59⟩, swap2, swap1, push1 ⟨100⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
-    push1 ⟨117⟩, push0, dup4, add, dup5, push1 ⟨87⟩, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, push1 ⟨94⟩, dup2, push1 ⟨76⟩, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, push0, dup2, iszero, iszero, swap1, pop, swap2, swap1, pop, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    push1 ⟨117⟩, push0, dup4, add, dup5, push1 ⟨87⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨94⟩, dup2, push1 ⟨76⟩, jump (by jump_dest),
+    jumpdest, push0, dup2, iszero, iszero, swap1, pop, swap2, swap1, pop, jump (by jump_dest),
     jumpdest, dup3,
     raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
-          List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide,
           show UInt256.isZero (UInt256.isZero ⟨1⟩) = ⟨1⟩ from by decide]; rfl)
       (by decide) (by evm_ov),
-    pop, pop, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    jumpdest, swap3, swap2, pop, pop, jump (by rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    pop, pop, jump (by jump_dest),
+    jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
-          List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rw [if_neg (by rw [solcReturnMem_size]; decide),
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
           fromByteArrayBigEndian_toByteArray,
@@ -222,9 +216,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, Fin.isValue,
-          List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rw [show (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 from by decide,
           show ((⟨128⟩ : UInt256).toNat) = 128 from by decide, solcReturnMem_read128])
       (by evm_ov) ]

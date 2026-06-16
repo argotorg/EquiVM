@@ -124,11 +124,11 @@ theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Solm.Store) {tval : E
 /-! ## JUMPDEST membership facts -/
 
 theorem callerContains15 : (D_J callerBytecode ⟨0⟩).contains ⟨15⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains41 : (D_J callerBytecode ⟨0⟩).contains ⟨41⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains45 : (D_J callerBytecode ⟨0⟩).contains ⟨45⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-! ## Selector decode (generic instance) -/
 
@@ -201,9 +201,9 @@ theorem slt32_zero {n : ℕ} (hlo : 32 ≤ n) (hhi : n < 2 ^ 255) :
   rw [hbool]; rfl
 
 theorem callerContains491 : (D_J callerBytecode ⟨0⟩).contains ⟨491⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains203 : (D_J callerBytecode ⟨0⟩).contains ⟨203⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-- `SLT (ofNat n) 32 = 1` (signed) when `n < 32` — the decoder's `≥ 32` length check *fails*. -/
 theorem slt32_one {n : ℕ} (hn : n < 32) : UInt256.slt (UInt256.ofNat n) ⟨32⟩ = ⟨1⟩ := by
@@ -220,23 +220,23 @@ theorem slt32_one {n : ℕ} (hn : n < 32) : UInt256.slt (UInt256.ofNat n) ⟨32�
   show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨1⟩
   rw [hbool]; rfl
 theorem callerContains71 : (D_J callerBytecode ⟨0⟩).contains ⟨71⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains194 : (D_J callerBytecode ⟨0⟩).contains ⟨194⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains297 : (D_J callerBytecode ⟨0⟩).contains ⟨297⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains306 : (D_J callerBytecode ⟨0⟩).contains ⟨306⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains315 : (D_J callerBytecode ⟨0⟩).contains ⟨315⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains325 : (D_J callerBytecode ⟨0⟩).contains ⟨325⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains450 : (D_J callerBytecode ⟨0⟩).contains ⟨450⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains464 : (D_J callerBytecode ⟨0⟩).contains ⟨464⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 theorem callerContains504 : (D_J callerBytecode ⟨0⟩).contains ⟨504⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-! ## EVM traces (revert scenarios) -/
 
@@ -292,7 +292,7 @@ theorem callerX_cvz_revertB
 /-! ## Success path — the dispatcher reaches the `run` dispatch at pc 45 -/
 
 theorem callerContains348 : (D_J callerBytecode ⟨0⟩).contains ⟨348⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-- **Dispatcher (match path).**  `callvalue = 0`, `calldatasize ≥ 4`, selector matches: reaches the
     `run` dispatch `JUMPDEST` at pc 45, leaving the decoded selector word on the stack. -/
@@ -344,7 +344,7 @@ trace couplings (`callerTarget_eq`, `callerEncode_eq`). -/
 /-! ## Decoder trace (abi_decode (address,uint256)) -/
 
 /-- All `callerBytecode` jump targets validated by one tactic (mirrors `callerContains15`). -/
-macro "caller_jd" : term => `(by rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+macro "caller_jd" : term => `(by jump_dest)
 
 /-- Decoder segment: bounds-check (`datalen ≥ 64`) passes, set up arg0 offset, jump to the address
     element decoder at pc 277.  Counters existential. -/
@@ -593,9 +593,7 @@ theorem callerX_body117 {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpdest, push2 ⟨73⟩, jump caller_jd,
     jumpdest, dup2, push20 addrMask, and, push4 ⟨1143701499⟩, dup3, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rw [if_neg (by rw [solcFreePtrMem_size]; decide),
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
           fromByteArrayBigEndian_toByteArray,
@@ -623,9 +621,7 @@ theorem callerX_body425 {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨k, C, rd⟩ := callerX_body117 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   exact ⟨_, _, evm_run rd with [
     raw mstore 6 callerSelMem (UInt256.ofNat 5) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨130⟩, swap2, swap1, push2 ⟨425⟩, jump caller_jd ]⟩
 
@@ -782,17 +778,13 @@ theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump caller_jd,
     jumpdest, dup3,
     raw mstore 3 (callerCalldataMem I) (UInt256.ofNat 6) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rfl) (by decide) (by evm_ov),
     pop, pop, jump caller_jd,
     jumpdest, swap3, swap2, pop, pop, jump caller_jd,
     jumpdest, push1 ⟨32⟩, push1 ⟨64⟩,
     raw mload 0 (callerOutPtr I) (UInt256.ofNat 6) (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-          getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup1, dup4, sub, dup2, push0, dup8 ]⟩
 
@@ -906,7 +898,7 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons]; omega)
 
 theorem callerContains158 : (D_J callerBytecode ⟨0⟩).contains ⟨158⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-- **Post-call success prefix** (`z = true`): the `CALL` returned `1`, so `iszero(success)` is
     false and control jumps to pc 158, the 4 dead stack words are `POP`ped, and `PUSH1 64` pushes the
@@ -926,7 +918,7 @@ theorem callerX_succ_to165 {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpiT (by decide) callerContains158, jumpdest, pop, pop, pop, pop, push1 ⟨64⟩]⟩
 
 theorem callerContains470 : (D_J callerBytecode ⟨0⟩).contains ⟨470⟩ = true := by
-  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+  jump_dest
 
 /-- The memory after the success decoder's free-pointer `MSTORE` at offset 64.  The result word at
     `[128, 160)` (where the CALL wrote `o`) is untouched, so `readWithPadding 128` is preserved. -/
@@ -951,17 +943,13 @@ theorem callerX_succ_to470 {cA gh bl σ σ₀ A I} {g : UInt256}
       (callerMem2 o mem) ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
     raw mload 0 ⟨128⟩ ⟨6⟩ (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       hfp (by decide) (by evm_ov),
     returndatasize,
     push1 ⟨31⟩, not, push1 ⟨31⟩, dup3, add, and, dup3, add, dup1, push1 ⟨64⟩,
     raw mstore 0 ((UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
         (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32) ⟨6⟩ (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by rfl) (by decide) (by evm_ov),
     pop, dup2, add, swap1, push2 ⟨194⟩, swap2, swap1, push2 ⟨470⟩, jump callerContains470 ]⟩
 
@@ -1020,9 +1008,7 @@ theorem callerX_succ_tail {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
     jumpdest, push0, dup2,
     raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by decide)
-      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
-        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      mem_cost
       (by
         have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by decide
         split_ifs with h
@@ -1326,24 +1312,8 @@ theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L 
   · rw [write_read_below_gen o (callerCalldataMem I) 128 L 64 (by omega) hLo
       (by rw [callerCalldataMem_size]; omega) (by omega), callerCalldataMem_read64]
 
-theorem RDret_reEquivExecGen {cfg contract t} {cA gh bl σ σ₀ A I} {g : UInt256} {code o}
-    {callargs cs retVal} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
-    (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o)
-    (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body (.returned cs evm'' retVal))
-    (hAcc : acc = (evm''.createdAccounts, evm''.accountMap))
-    (henc : returnEquiv o retVal t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := by
-  rcases h with hoog | ⟨s, hX, hsacc⟩
-  · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
-  · have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
-    refine reEquiv_execution hd hdec hbody ?_
-    rw [hxi]
-    have heq : (s.createdAccounts, s.accountMap) = (evm''.createdAccounts, evm''.accountMap) :=
-      hsacc.trans hAcc
-    exact execResultsEquiv.success rfl rfl (congrArg Prod.fst heq) (congrArg Prod.snd heq) henc
+-- The state-changing return bridge `RDret.reEquivExecutionGen` now lives next to
+-- `RDret.reEquivExecution` in `Reasoning/Dispatch.lean`.
 
 set_option maxHeartbeats 1000000 in
 theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -1394,7 +1364,7 @@ theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : UInt256}
         rw [defaultDecodeReturn?, if_neg (by omega : ¬ o.size < 32), ← hkw, Int.ofNat_eq_natCast]
       have hbody := callerBodySuccess (initState cA gh bl σ σ₀ g A I) (callerDecStore I)
         (by exact hwv) (callerStore_t I) (callerStore_n I) hcoin hdecv hassign
-      refine RDret_reEquivExecGen hcode hrd hd hdec hbody ?_ (returnEquiv.void rfl rfl rfl)
+      refine RDret.reEquivExecutionGen hcode hrd hd hdec hbody ?_ (returnEquiv.void rfl rfl rfl)
       rw [storageStore_createdAccounts, storageStore_accountMap]
       simp only [hevmP]; rfl
     · -- |o| < 32: decode reverts

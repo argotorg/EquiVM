@@ -75,7 +75,7 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
     have rd := evm_run h with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
       jumpiT (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; decide)
-             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
+             (by jump_dest) ]
     rw [hieqn, hreq] at rd
     exact ⟨_, _, rd⟩
   case hbody =>
@@ -93,7 +93,7 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
       jumpiNT (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; decide),
       push1 ⟨2⟩, dup3, mul, swap2, pop, push1 ⟨1⟩, dup2, add, swap1, pop, push2 ⟨117⟩,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
+      jump (by jump_dest) ]
     exact ⟨(i + ⟨1⟩, UInt256.mul r ⟨2⟩), _, _,
       ⟨by rw [hi1]; omega, by rw [hr2, hi1, hinv, pow_succ]; ring, by rw [hi1]; omega⟩, rd⟩
 
@@ -127,7 +127,7 @@ theorem powX_dispToEq {cA gh bl σ σ₀ A I} {g : UInt256}
       with [
       push2 ⟨15⟩,
       jumpiT (by rw [hwv]; decide)
-             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+             (by jump_dest),
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩,
       jumpiNT hlt0,
       push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨1143701499⟩, eq ]
@@ -155,7 +155,7 @@ theorem powX_disp {cA gh bl σ σ₀ A I} {g : UInt256}
       from by rw [powEvmSelector hsz, if_pos hmatch]] at rd
   exact evm_run rd with [
       push2 ⟨45⟩,
-      jumpiT (by decide) (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
+      jumpiT (by decide) (by jump_dest) ]
 
 
 
@@ -192,11 +192,11 @@ theorem RD.routinea5 {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
   -- JUMPDEST·PUSH2 174·DUP2·PUSH2 156·JUMP → 0x9c → JUMPDEST·DUP2·EQ·PUSH2 184·JUMPI·JUMPDEST·POP·JUMP
   evm_run h with [
     jumpdest, push2 ⟨174⟩, dup2, push2 ⟨156⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    raw routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jump (by jump_dest),
+    raw routine9c (by jump_dest) (by evm_ov),
     jumpdest, dup2, eq, push2 ⟨184⟩,
     jumpiT (by rw [u256_eq_refl]; exact one_ne_zero_uint)
-           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+           (by jump_dest),
     jumpdest, pop,
     jump hret ]
 
@@ -215,8 +215,8 @@ theorem RD.routinebb {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
   -- JUMPDEST·PUSH0·DUP2·CALLDATALOAD·SWAP1·POP·PUSH2 201·DUP2·PUSH2 165·JUMP → 0xa5 → JUMPDEST·SWAP3·SWAP2·POP·POP·JUMP
   evm_run h with [
     jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨201⟩, dup2, push2 ⟨165⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    raw routinea5 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jump (by jump_dest),
+    raw routinea5 (by jump_dest) (by evm_ov),
     jumpdest, swap3, swap2, pop, pop,
     jump hret ]
 
@@ -311,10 +311,10 @@ theorem RD.routinecf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
     jumpiT (by rw [hsltval]; decide)
-           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+           (by jump_dest),
     jumpdest, push0, push2 ⟨241⟩, dup5, dup3, dup6, add, push2 ⟨187⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-    raw routinebb (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+    jump (by jump_dest),
+    raw routinebb (by jump_dest) (by evm_ov),
     jumpdest, swap2, pop, pop, swap3, swap2, pop, pop,
     jump hret ]
 
@@ -333,7 +333,7 @@ theorem RD.routinecf_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C 
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
     jumpiNT (by rw [hsltval]; decide),
     push2 ⟨227⟩, push2 ⟨152⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jump (by jump_dest),
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 end Reasoning.Reach
@@ -368,7 +368,7 @@ theorem RD.routinedecodeToCf {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C
   exact evm_run h with [
     jumpdest, push2 ⟨71⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
     push2 ⟨66⟩, swap2, swap1, push2 ⟨207⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
+    jump (by jump_dest) ]
 
 
 /-- `require(n < 256)` check (passes) as an **`RD→RD` combinator**: `0x42 → 0x75`, leaving
@@ -383,10 +383,10 @@ theorem RD.routinerequire {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : 
   -- JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT·PUSH2 107·JUMPI(taken)·JUMPDEST·PUSH0·PUSH1 1·SWAP1·POP·PUSH0·PUSH0·SWAP1·POP
   evm_run h with [
     jumpdest, push2 ⟨93⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jump (by jump_dest),
     jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
     jumpiT (by rw [hltval]; exact one_ne_zero_uint)
-           (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+           (by jump_dest),
     jumpdest, push0, push1 ⟨1⟩, swap1, pop, push0, push0, swap1, pop ]
 
 /-- `require(n < 256)` **failure** (`n ≥ 256`) as an **`RD → RDrev` combinator**: from pc 66 with
@@ -401,7 +401,7 @@ theorem RD.routinerequire_revert {g : UInt256} {s0 : State} {ee : ExecutionEnv} 
   -- 66→104: JUMPDEST·PUSH2 93·JUMP·JUMPDEST·PUSH0·PUSH2 256·DUP3·LT(=0)·PUSH2 107·JUMPI(nt) ⇒ revert
   evm_run h with [
     jumpdest, push2 ⟨93⟩,
-    jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+    jump (by jump_dest),
     jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
     jumpiNT hltval,
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
@@ -459,56 +459,42 @@ theorem RD.routineencode {g : UInt256} {s0 : State} {ee : ExecutionEnv} {k C : �
   evm_run h with [
       -- 71→83: load free pointer, save return addr 84, JUMP to the abi-encode helper @265
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-        (fun s haws hstks => by
-          have h0 : s.machineState.stack[0]! = (⟨64⟩ : UInt256) := (by rw [hstks]; rfl)
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
         (by rw [if_neg (by rw [solcFreePtrMem_size]; decide),
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
         (by decide) (by evm_ov),
       push2 ⟨84⟩, swap2, swap1, push2 ⟨265⟩,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      jump (by jump_dest),
       -- 265→283: tail = 128+32, head = 128+0, JUMP to the word-copy helper @250
       jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
       push2 ⟨284⟩, push0, dup4, add, dup5, push2 ⟨250⟩,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      jump (by jump_dest),
       -- 250→258: cleanup the value (0x9c), JUMP to it
       jumpdest, push2 ⟨259⟩, dup2, push2 ⟨156⟩,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
-      raw routine9c (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) (by evm_ov),
+      jump (by jump_dest),
+      raw routine9c (by jump_dest) (by evm_ov),
       -- 259→264: MSTORE mem[128] := val, JUMP back @284
       jumpdest, dup3,
-      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
-        (fun s haws hstks => by
-          have h0 : s.machineState.stack[0]! = ((⟨128⟩ : UInt256) + ⟨0⟩) := (by rw [hstks]; rfl)
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
+      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
         (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from (by decide)]; rfl)
         (by decide) (by evm_ov),
       pop, pop,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      jump (by jump_dest),
       -- 284→289: rearrange, JUMP back @84
       jumpdest, swap3, swap2, pop, pop,
-      jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+      jump (by jump_dest),
       -- 84→92: reload free pointer (now solcReturnMem), compute length 160−128, RETURN mem[128..160]
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-        (fun s haws hstks => by
-          have h0 : s.machineState.stack[0]! = (⟨64⟩ : UInt256) := (by rw [hstks]; rfl)
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0]; decide)
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
         (by rw [if_neg (by rw [solcReturnMem_size]; decide),
           show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
           fromByteArrayBigEndian_toByteArray,
           show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret 0 (UInt256.toByteArray val) (by decide)
-        (fun s haws hstks => by
-          have h0 : s.machineState.stack[0]! = (⟨128⟩ : UInt256) := (by rw [hstks]; rfl)
-          have h1 : s.machineState.stack[1]! = UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩ :=
-            (by rw [hstks]; rfl)
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, h0, h1]; decide)
+      raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
         (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, solcReturnMem_read128])
         (by evm_ov) ]
 
@@ -546,7 +532,7 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
   have rdDec := powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
         hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
-      |>.routinecf hsltval (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+      |>.routinecf hsltval (by jump_dest)
           (by simp only [List.length_cons, List.length_nil]; omega)
   rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
   rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
@@ -558,7 +544,7 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : UInt256}
       (rdDec |>.routinerequire hltval (by simp only [List.length_cons, List.length_nil]; omega))
     with ⟨k4, C4, rd4⟩
   -- loop-exit → encoder, threaded straight to the success terminal `RDret`
-  exact rd4.routineexit (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+  exact rd4.routineexit (by jump_dest)
         (by simp only [List.length_cons, List.length_nil]; omega)
       |>.routineencode (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -654,11 +640,11 @@ theorem powX_short {cA gh bl σ σ₀ A I} {g : UInt256}
         (by decide) (by decide)) with [
       push2 ⟨15⟩,
       jumpiT (by rw [hwv]; decide)
-             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+             (by jump_dest),
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩,
       jumpiT (by rw [ult_one (by rw [ulit_toNat' _ (lt_size_of_lt256 (by omega)),
                 show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]; decide)
-             (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)),
+             (by jump_dest),
       jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: `n ≥ 256` (reuses the dispatcher + decoder) -/
@@ -687,7 +673,7 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : UInt256}
   have rdDec := powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
         hcode hwv (by omega) hsize hmatch
       |>.routinedecodeToCf (by omega) hsize
-      |>.routinecf hsltval0 (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp))
+      |>.routinecf hsltval0 (by jump_dest)
           (by simp only [List.length_cons, List.length_nil]; omega)
   rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from add40_toNat, ← harg] at rdDec
   exact rdDec |>.routinerequire_revert hltval (by simp only [List.length_nil]; omega)

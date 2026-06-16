@@ -19,18 +19,73 @@ namespace Reasoning.Theory
 
 variable {contract : ContractDecl} {transition : TransitionDecl} {selBytes : ByteArray}
 
-/-- `dispatchMsg` of a single-transition contract is the selector compare. -/
+/-! ## Generic multi-selector dispatch
+
+`dispatchMsg` (the trusted Solm dispatcher) maps each transition to its 4-byte keccak selector and
+returns the first whose selector matches the calldata prefix.  `dispatchList` is its pure
+list-recursive form and `dispatchMsg_eq_dispatchList` bridges the two, after which a contract with
+*any* number of functions is handled by walking the list with `dispatchList_cons` / `dispatchList_nil`
+and the per-transition selector axioms.  The single-transition lemmas below are the `n = 1`
+instances. -/
+
+/-- The 4-byte function selector of a transition, `keccak(signature)[0:4]`. -/
+def selectorOf (t : TransitionDecl) : ByteArray :=
+  (ffi.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
+
+/-- Pure list form of `dispatchMsg`: the first transition whose selector matches `cd`'s 4-byte
+    prefix, scanning in order. -/
+def dispatchList : List TransitionDecl → ByteArray → Option TransitionDecl
+  | [],      _  => none
+  | t :: ts, cd => if selectorOf t == cd.extract 0 4 then some t else dispatchList ts cd
+
+@[simp] theorem dispatchList_nil (cd : ByteArray) : dispatchList [] cd = none := rfl
+
+theorem dispatchList_cons (t : TransitionDecl) (ts : List TransitionDecl) (cd : ByteArray) :
+    dispatchList (t :: ts) cd =
+      if selectorOf t == cd.extract 0 4 then some t else dispatchList ts cd := rfl
+
+/-- `dispatchMsg` agrees with its pure list form on every contract — the bridge that lets the
+    single-selector lemmas (and any example's N-way dispatch) reason about `dispatchList`. -/
+theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray) :
+    dispatchMsg contract cd = dispatchList contract.transitions cd := by
+  simp only [dispatchMsg]
+  generalize contract.transitions = ts
+  induction ts with
+  | nil => rfl
+  | cons t ts ih =>
+    simp only [List.map_cons, List.find?_cons, Prod.map, id_eq, Function.comp_apply]
+    rw [dispatchList_cons, selectorOf]
+    by_cases hb : ((ffi.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
+        == cd.extract 0 4) = true
+    · rw [if_pos hb]; simp only [hb]
+    · rw [if_neg hb]; simp only [Bool.not_eq_true] at hb; simp only [hb]; exact ih
+
+/-- Calldata shorter than a selector dispatches to nothing, for **any** number of transitions
+    (every selector is 4 bytes, so none can equal a `< 4`-byte prefix). -/
+theorem dispatchList_none_short (ts : List TransitionDecl)
+    (hsz : ∀ t ∈ ts, (selectorOf t).size = 4) {cd : ByteArray} (hcd : cd.size < 4) :
+    dispatchList ts cd = none := by
+  induction ts with
+  | nil => rfl
+  | cons t ts ih =>
+    rw [dispatchList_cons]
+    have hfalse : (selectorOf t == cd.extract 0 4) = false := by
+      by_contra hc
+      rw [Bool.not_eq_false] at hc
+      have heq := byteArray_size_eq_of_beq hc
+      rw [ByteArray.size_extract, hsz t (by simp)] at heq
+      omega
+    rw [if_neg (by rw [hfalse]; simp)]
+    exact ih (fun t' ht' => hsz t' (List.mem_cons_of_mem _ ht'))
+
+/-- `dispatchMsg` of a single-transition contract is the selector compare — the `n = 1` instance of
+    the `dispatchList` framework above. -/
 theorem dispatch_eq
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (cd : ByteArray) :
     dispatchMsg contract cd = if (selBytes == cd.extract 0 4) then some transition else none := by
-  simp only [dispatchMsg, htr, List.map_cons, List.map_nil, List.find?_cons, List.find?_nil,
-    Prod.map, id_eq, Function.comp_apply]
-  rw [hsel]
-  by_cases hb : (selBytes == cd.extract 0 4) = true
-  · simp [hb]
-  · simp only [Bool.not_eq_true] at hb; simp [hb]
+  rw [dispatchMsg_eq_dispatchList, htr, dispatchList_cons, dispatchList_nil, selectorOf, hsel]
 
 /-- A single-transition contract dispatches only to that transition. -/
 theorem dispatch_unique
@@ -105,8 +160,35 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
       · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
         exact reEquiv_execution ht hca (hbody callargs) (by rw [hrev]; exact .revert rfl rfl)
 
+/-- `RDret ⇒ execution` (success), **state-changing form**: the run returns bytes `o` and the
+    dispatched Solm body returns `retVal` leaving the EVM at `evm''`, whose accounts/state are `acc`
+    (coupled by `hAcc`).  The peer of `reEquivExecution` for executions that *mutate* accounts (e.g.
+    after an external `CALL`); `reEquivExecution` is the special case `evm'' = initState …`. -/
+theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray} {callargs cs retVal}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+              (.returned cs evm'' retVal))
+    (hAcc : acc = (evm''.createdAccounts, evm''.accountMap))
+    (henc : returnEquiv o retVal t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := by
+  rcases h with hoog | ⟨s, hX, hsacc⟩
+  · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
+  · have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
+    refine reEquiv_execution hd hdec hbody ?_
+    rw [hxi]
+    have heq : (s.createdAccounts, s.accountMap) = (evm''.createdAccounts, evm''.accountMap) :=
+      hsacc.trans hAcc
+    exact execResultsEquiv.success rfl rfl (congrArg Prod.fst heq) (congrArg Prod.snd heq) henc
+
 /-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
-    `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`). -/
+    `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`).
+    The non-mutating special case of `reEquivExecutionGen` (`evm'' = initState …`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
@@ -118,9 +200,7 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
               (.returned cs (initState cA gh bl σ σ₀ g A I) retVal))
     (henc : returnEquiv o retVal t.returnType) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
-  h.reEquivElim hcode fun _ _ hsucc => by
-    refine reEquiv_execution hd hdec hbody ?_
-    rw [hsucc]; exact execResultsEquiv.success rfl rfl rfl rfl henc
+  h.reEquivExecutionGen hcode hd hdec hbody rfl henc
 
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}

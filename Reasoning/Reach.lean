@@ -82,7 +82,7 @@ theorem RD.start {code : ByteArray} {g : UInt256} {s0 s : State} {k C : ℕ}
     state together with its preservation facts composed back to the original input
     (`hsub.trans horig`), so the suffix keeps carrying the original `s.memory` etc. -/
 theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 s : State} {k C : ℕ}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {rdata : ByteArray}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (hcode : s.executionEnv.code = code)
     (hpc : s.machineState.pc = pc) (hstk : s.machineState.stack = stk)
@@ -100,7 +100,7 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 s 
 /-- Repackage the invariant into the `∃ k' C' s'` conclusion the segment lemmas
     state (the explicit step/gas indices become the existential witnesses). -/
 theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {rdata : ByteArray}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C) :
     X (g.toNat + 1) (D_J code ⟨0⟩) s0 = .error .OutOfGass
@@ -1632,6 +1632,17 @@ costs, …) is still supplied explicitly, so nothing about the proof is hidden. 
     picks up a variable tail's bound from context); fall back to bare `omega`. -/
 macro "evm_ov" : tactic =>
   `(tactic| first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
+
+/-- The recurring **memory-cost witness** every `mload`/`mstore`/`ret`/`rev` carries:
+    `fun s haws hstks => …` proving `memoryExpansionCost s op = mcost` for the carried active-words
+    `haws` and literal stack offset(s) in `hstks`.  Rewriting by `haws`/`hstks` reduces the cost to a
+    closed term on literals, which `decide` evaluates — independent of the op, offset, and `mcost`. -/
+macro "mem_cost" : term =>
+  `(fun s haws hstks => by
+      set_option linter.unusedSimpArgs false in
+        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      decide)
 
 /-- One step of an `evm_run` chain. -/
 declare_syntax_cat evmStep

@@ -220,8 +220,7 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteAr
       |>.push1 ⟨128⟩ hd0 (by decide)
       |>.push1 ⟨64⟩ hd2 (by decide)
       |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4
-        (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks]; decide)
+        mem_cost
         (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
         (by decide) (by decide)
       |>.callvalue hd5 (by decide)
