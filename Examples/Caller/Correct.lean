@@ -1252,6 +1252,26 @@ theorem storageStore_createdAccounts (evm' : EVM.State) (a : AccountAddress) (s 
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
+theorem land_mask160 (n : ℕ) (h : n < 2^160) : Nat.land n (2^160 - 1) = n := by
+  apply Nat.eq_of_testBit_eq; intro i
+  show (n &&& (2^160-1)).testBit i = n.testBit i
+  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one]
+  by_cases hi : i < 160
+  · rw [decide_eq_true hi, Bool.and_true]
+  · rw [decide_eq_false hi, Bool.and_false]
+    have : n < 2^i := lt_of_lt_of_le h (Nat.pow_le_pow_right (by norm_num) (by omega))
+    exact (Nat.testBit_lt_two_pow this).symm
+
+theorem callerCanon_eq {I : ExecutionEnv} (hcanon : (callerArg0 I).toNat < EVM.addressModulus) :
+    UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩ := by
+  have hland : UInt256.land (callerArg0 I) addrMask = callerArg0 I := by
+    apply u256_inj
+    show Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256 = (callerArg0 I).toNat
+    rw [show addrMask.toNat = 2 ^ 160 - 1 from by decide,
+        land_mask160 _ (by rw [show EVM.addressModulus = 2^160 from by decide] at hcanon; exact hcanon)]
+    exact Nat.mod_eq_of_lt (by have := (callerArg0 I).val.isLt; simpa [UInt256.size, EVM.twoPow, UInt256.toNat] using this)
+  rw [hland]; exact ueq_self (callerArg0 I)
+
 /-! ## Decode-failure EVM revert traces (datalen / signed / clean-address checks) -/
 
 theorem slt64_one {n : ℕ} (hn : n < 64) : UInt256.slt (UInt256.ofNat n) ⟨64⟩ = ⟨1⟩ := by
@@ -1296,7 +1316,6 @@ theorem callerX_shortarg {cA gh bl σ σ₀ A I} {g : UInt256}
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
   exact rd
 
-namespace Caller
 theorem slt64_neg {a : UInt256} (ha : a.toNat ≥ 2 ^ 255) : UInt256.slt a ⟨64⟩ = ⟨1⟩ := by
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have hbool : UInt256.sltBool a ⟨64⟩ = true := by
@@ -1489,19 +1508,68 @@ theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : UInt256}
       exact callerBodyDecodeRevert _ (callerDecStore I) (by exact hwv) (callerStore_t I)
         (callerStore_n I) hcoin hdecn
 
+theorem callerX_callDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
+    (hdepth : I.depth = 1024) :
+    RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
+  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
+  exact callerX_postRevert rd144 (by simp)
+
+theorem callerCallNotMade {cA gh bl σ σ₀ A I} {g : UInt256} (tval : EVM.Address) (nval : ℤ)
+    (hdepth : I.depth = 1024) :
+    externalCallViaEVM callerConfig (initState cA gh bl σ σ₀ g A I) (EVM.address tval) "pow2" 0
+      [.int nval]
+      (false, { initState cA gh bl σ σ₀ g A I with
+          substate := ((initState cA gh bl σ σ₀ g A I).addAccessedAccount (EVM.address tval)).substate },
+        ByteArray.empty) := by
+  apply externalCallViaEVM.callNotMade rfl rfl
+  rintro ⟨_, hne⟩
+  exact hne hdepth
+
 /-! ## The `callvalue = 0` Act coupling -/
 
 theorem callerReEquiv_callvalueZero
     {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) :
+    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) :
     runtimeEquivalenceFor callerConfig callerContract cA gh bl σ σ₀ g A I := by
   by_cases hsz : I.calldata.size < 4
   · exact (callerX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (callerDispatch_none_short hsz)
   · rw [not_lt] at hsz
     by_cases hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true
-    · -- matching selector → `run` executes the external call and stores the result
-      sorry
+    · -- matching selector → dispatch succeeds
+      have hd : dispatchMsg callerContract I.calldata = some runTransition := by
+        rw [callerDispatch_eq, if_pos hmatch]
+      by_cases hsz68 : 68 ≤ I.calldata.size
+      · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+        · by_cases hcanon : (callerArg0 I).toNat < EVM.addressModulus
+          · -- valid decode: the external call executes; its outcome depends only on the depth limit
+            by_cases hdepth : I.depth.val < 1024
+            · exact callerExec_canonical hcode hwv hsize hperm hdepth hsz68 hbig hmatch
+                (callerCanon_eq hcanon)
+            · -- call-depth limit reached ⇒ the `CALL` returns 0 immediately (both sides revert)
+              rw [not_lt] at hdepth
+              have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
+              refine (callerX_callDepthLimit hcode hwv (by omega) hsize hsz68 hbig hmatch
+                  (callerCanon_eq hcanon) hdepth1024).reEquivExecutionRevert hcode hd
+                (callerDecode_n hsz68 hbig hcanon) ?_
+              exact callerBodyExtFail _ (callerDecStore I) (by exact hwv) (callerStore_t I)
+                (callerStore_n I) (callerCallNotMade _ _ hdepth1024)
+          · exact (callerX_noncanon hcode hwv (by omega) hsize hsz68 hbig hmatch
+                (ueq_zero_of_ne (fun he => hcanon (callerArg0_canonical he)))).reEquivDecodingFailed
+              hcode hd (callerDecode_none_noncanon hsz68 hbig hcanon)
+        · rw [not_lt] at hbig
+          exact (callerX_hugearg hcode hwv (by omega) hsize hbig hmatch).reEquivDecodingFailed
+            hcode hd (callerDecode_none_huge hbig)
+      · rw [not_le] at hsz68
+        exact (callerX_shortarg hcode hwv hsz hsize hsz68 hmatch).reEquivDecodingFailed
+          hcode hd (callerDecode_none_short hsz hsz68)
     · rw [Bool.not_eq_true] at hmatch
       exact (callerX_cvz_revertB hcode hwv hsz hsize hmatch).reEquivNoDispatch hcode
         (callerDispatch_none_nomatch hmatch)
@@ -1511,9 +1579,9 @@ theorem callerReEquiv_callvalueZero
 /-- The runtime bytecode refines the Act specification, for every initial state. -/
 theorem callerCorrect :
     runtimeEquivalence!?! callerConfig callerBytecode callerContract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact callerReEquiv_callvalueZero hcode hsize hwv
+  · exact callerReEquiv_callvalueZero hcode hsize hwv hperm
   · exact (callerX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
       fun ca => callerBodyReverts _ ca (by simp only [initState]; exact hwv)
 
