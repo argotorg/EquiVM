@@ -85,9 +85,12 @@ def storageLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
 -- TODO: Should the given value be restricted to fit in the location?
 def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State := do
   let slot := EVM.storageLoad self self.executionEnv.codeOwner loc.slot
-  let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.UInt256.toBytesWithSizeProof slot -- LITTLE ENDIAN! easier extraction
+  -- LITTLE ENDIAN (`toBytes' ++ zero-pad`) — the *correct* LE serialization, matching
+  -- `storageLocLoad` byte-for-byte so that load∘store round-trips and a whole-slot `uint256`
+  -- store of `v` writes exactly `v` (the EVM `SSTORE` word).
+  let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot
   let valueWord <- valueToWord value
-  let ⟨valueBytes, hvalueSize⟩ := EVM.UInt256.toBytesWithSizeProof valueWord
+  let ⟨valueBytes, hvalueSize⟩ := EVM.Word.toBytesLEWithSizeProof valueWord
   let startByte := loc.offset.val
   let endByte := loc.offset.val + loc.size.val
 

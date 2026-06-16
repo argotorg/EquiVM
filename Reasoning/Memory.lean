@@ -225,6 +225,29 @@ theorem readWithPadding_eq_extract (source : ByteArray) (addr : ℕ)
         (by show (↑(32:ℕ) - ↑(32:ℕ) : BitVec System.Platform.numBits).toNat = 0; rw [sub_self]; rfl)]
   apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
 
+/-- `readWithoutPadding` of an in-bounds window of arbitrary length is exactly the slice. -/
+theorem readWithoutPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
+    (hpos : 0 < len) (h : addr + len ≤ source.size) :
+    source.readWithoutPadding addr len = source.extract addr (addr + len) := by
+  unfold ByteArray.readWithoutPadding
+  rw [if_neg (by omega : ¬ (addr ≥ source.size))]
+  simp only [show min len source.size = len from by omega]
+
+/-- **In-bounds read of an arbitrary-length window.**  When `[addr, addr+len)` lies inside
+    `source` (and `len < 2⁶⁴`), `readWithPadding addr len` is exactly that slice (no trailing pad). -/
+theorem readWithPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
+    (hpos : 0 < len) (hlen : len < 2 ^ 64) (h : addr + len ≤ source.size) :
+    source.readWithPadding addr len = source.extract addr (addr + len) := by
+  have hsz : (source.extract addr (addr + len)).size = len := by
+    rw [ByteArray.size_extract]; omega
+  unfold ByteArray.readWithPadding
+  rw [if_neg (by omega : ¬ ((len:ℕ) ≥ 2 ^ 64)), readWithoutPadding_eq_extract' source addr len hpos h]
+  simp only []
+  rw [hsz]
+  rw [zeroes_zero (n := ⟨↑len - ↑len⟩)
+        (by show (↑len - ↑len : BitVec System.Platform.numBits).toNat = 0; rw [sub_self]; rfl)]
+  apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
+
 /-- **Non-overlap read below a write.**  A 32-byte read at `readAddr` strictly below the write
     region `[destAddr, destAddr+32)` is unaffected by the write. -/
 theorem write32_read_below (src base : ByteArray) (destAddr readAddr : ℕ)
@@ -259,6 +282,17 @@ theorem extract_append_right_window (A B : ByteArray) (i j : ℕ) (h : A.size �
   apply ByteArray.ext
   simp only [ByteArray.data_extract, ByteArray.data_append,
     Array.extract_append_of_size_left_le_start h, show A.data.size = A.size from rfl]
+
+/-- **Boundary-spanning extract of an append.**  A window `[i, j)` with `i ≤ |A| ≤ j` reads the
+    tail of `A` followed by the head of `B`. -/
+theorem extract_append_span (A B : ByteArray) (i j : ℕ) (hi : i ≤ A.size) (hj : A.size ≤ j) :
+    (A ++ B).extract i j = A.extract i A.size ++ B.extract 0 (j - A.size) := by
+  apply ByteArray.ext
+  simp only [ByteArray.data_extract, ByteArray.data_append]
+  rw [Array.extract_append]
+  congr 1
+  · exact Array.extract_eq_of_size_le_stop hj
+  · rw [show A.data.size = A.size from rfl]; congr 1; omega
 
 /-- `extract` composition for `ByteArray` (lifts `Array.extract_extract`). -/
 theorem extract_extract_BA (b : ByteArray) (s e s' e' : ℕ) :

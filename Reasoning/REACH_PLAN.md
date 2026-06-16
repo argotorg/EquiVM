@@ -399,3 +399,36 @@ Then: **Act body** (require cv=0 → externalCallSuccess via callerCallCoincides
 (`cases z`; `z=true` split on `|o|≥32` [RDret via this trace + RDret.reEquivExecution] vs `|o|<32`
 [470→203 revert ⇒ RDrev]; `z=false` ⇒ callerX_postRevert). Discharge `hfp`/`hword`/`aw=6`/`|o|<2²⁵⁵`
 via callerOutPtr_eq + write32_read_* + Theta_returnData_size_lt.
+
+---
+
+## PROGRESS (session 3 cont. 6): Act bodies + decode coupling + success chain ALL GREEN
+
+This continuation built (all green, single `sorry` remains in the final assembly):
+- **All 3 Act bodies**: `callerBodySuccess` (require→externalCallSuccess→assign), `callerBodyExtFail`
+  (z=false → externalCallFailure), `callerBodyDecodeRevert` (z=true,decode=none →
+  externalCallReturnDecodeRevert). `store_get_self`.
+- **Byte-read helpers**: `uInt256OfByteArray_eq`, `readBytes_at_toList`, `decode_word_at_eq` (Act
+  decoder's word at any offset = EVM `readBytes`).
+- **`callerDecode_n`**: the full `[address, uint256]` calldata decode = `some {t↦addr, n↦int}` (the
+  hardest Act-side lemma; needs `maxHeartbeats 1000000`).
+- **`callerX_successChain`**: chains 144→165→470→491→tail→STOP ⇒ `RDret (cA, σ[slot0:=decode o])`,
+  discharging `hfp`/`hword`/`hmsz` via `write32_read_below`/`_above`/`_back` (`callerMem2` exposes the
+  post-MSTORE memory explicitly).
+- Storage coupling confirmed **definitional** (`Account.updateStorage` = `sstoreAccountMap` inner);
+  clean-address coupling holds (`decodeABIWord?` address rejects `≥ 2¹⁶⁰`, matching the EVM 274 check).
+
+### Remaining (final assembly only — ~200 lines, all unblocked, Pow-templated)
+1. **Encoding coupling** (for `callerCallCoincides`' `hcd`): `callerCalldataMem.readWithPadding 128 36
+   = pow2Selector ++ (callerArg1 I).toByteArray` (36-byte read = selector[128:132] ++ arg[132:164]).
+2. **Target coupling**: `AccountAddress.ofUInt256 (land addrMask (callerArg0 I))` = the decoded
+   address (uses canonical `callerArg0 < 2¹⁶⁰`).
+3. **`hclean → canonical`**: `eq(arg0, arg0 & addrMask)=1 → arg0.toNat < addressModulus`.
+4. **`callerX_postCall`**: toCall142→gas→call, rewrite `aw → ⟨6⟩` (via `callerOutPtr_eq` + decide),
+   expose the Θ-link + `rd144`.
+5. **Decode-fail EVM reverts** (reuse dispatcher/decoder): size<68, huge, non-canonical; +
+   `callerDecode_none` variants. → `reEquivDecodingFailed`.
+6. **Assembly** (mirror `powReEquiv_callvalueZero`): `cases z`; z=true split `|o|≥32`
+   [`callerX_successChain` + `callerBodySuccess` via coincidence + `execResultsEquiv.success`] vs
+   `|o|<32` [`callerX_succ_revert` + `callerBodyDecodeRevert`]; z=false [`callerX_postRevert` +
+   `callerBodyExtFail`]. Via `reEquiv_execution` (general, accounts-changing).

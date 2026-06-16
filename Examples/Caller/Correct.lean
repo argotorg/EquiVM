@@ -47,6 +47,83 @@ theorem callerBodyReverts (evm : EVM.State) (locals : Store)
     ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted :=
   bodyReverts_nonPayable h
 
+/-- Reading back a just-inserted store key. -/
+theorem store_get_self (L : Act.Store) (k : Ident) (v : Value) :
+    (L.insert k v).get? k = some v := by simp
+
+/-- **The Act body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
+    `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `value`, and the
+    storage assign succeeding, `run`'s body runs to completion (`returned … none`), leaving the
+    `stored` slot written. -/
+theorem callerBodySuccess (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
+    {value : Value} {evm' evm'' : EVM.State} {out : ByteArray} {act'' : Frame}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ht : locals.get? "t" = some (.address tval))
+    (hn : locals.get? "n" = some (.int nval))
+    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+              (true, evm', out))
+    (hdec : callerConfig.externalABI.decode? "pow2" out = some value)
+    (hassign : assignStorageRef? callerConfig
+        { contract := callerContract, locals := locals.insert "tmp" value } evm'
+        { base := "stored", steps := [] } value = .ok (act'', evm'')) :
+    ExecContractBody callerConfig callerContract evm locals runTransition.body
+      (.returned act'' evm'' none) := by
+  refine ExecFuncBody.execBlockOK
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+      (ExecBlock.consNormal (ExecStmt.externalCallSuccess ?_ ?_ ?_ hcall hdec)
+        (ExecBlock.consNormal (ExecStmt.assign ?_ hassign) ExecBlock.nil)))
+  · show evalExpr? callerConfig _ evm (.var "t") = .ok (.address tval)
+    simp only [evalExpr?, EvalResult.ofOption, ht]
+  · show evalExpr? callerConfig _ evm (.intLit 0) = .ok (.int 0)
+    simp only [evalExpr?]; rfl
+  · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
+    simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
+  · show evalExpr? callerConfig { contract := callerContract, locals := locals.insert "tmp" value }
+          evm' (.var "tmp") = .ok value
+    simp only [evalExpr?, EvalResult.ofOption, store_get_self]
+
+/-- **The Act body reverts on a failed sub-call** (`z = false`): `require` passes, the external call
+    fails, so the body reverts (`externalCallFailure`). -/
+theorem callerBodyExtFail (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
+    {evm' : EVM.State} {out : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ht : locals.get? "t" = some (.address tval))
+    (hn : locals.get? "n" = some (.int nval))
+    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+              (false, evm', out)) :
+    ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+      (ExecBlock.consRevert (ExecStmt.externalCallFailure ?_ ?_ ?_ hcall)))
+  · show evalExpr? callerConfig _ evm (.var "t") = .ok (.address tval)
+    simp only [evalExpr?, EvalResult.ofOption, ht]
+  · show evalExpr? callerConfig _ evm (.intLit 0) = .ok (.int 0)
+    simp only [evalExpr?]; rfl
+  · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
+    simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
+
+/-- **The Act body reverts on an under-length return** (`z = true`, `decode? = none`): `require`
+    passes, the sub-call succeeds but its return data does not decode, so the body reverts
+    (`externalCallReturnDecodeRevert`) — the spec analogue of the solc decoder's `< 32` revert. -/
+theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
+    {evm' : EVM.State} {out : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ht : locals.get? "t" = some (.address tval))
+    (hn : locals.get? "n" = some (.int nval))
+    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+              (true, evm', out))
+    (hdec : callerConfig.externalABI.decode? "pow2" out = none) :
+    ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+      (ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert ?_ ?_ ?_ hcall hdec)))
+  · show evalExpr? callerConfig _ evm (.var "t") = .ok (.address tval)
+    simp only [evalExpr?, EvalResult.ofOption, ht]
+  · show evalExpr? callerConfig _ evm (.intLit 0) = .ok (.int 0)
+    simp only [evalExpr?]; rfl
+  · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
+    simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
+
 /-! ## JUMPDEST membership facts -/
 
 theorem callerContains15 : (D_J callerBytecode ⟨0⟩).contains ⟨15⟩ = true := by
@@ -127,6 +204,41 @@ theorem slt32_zero {n : ℕ} (hlo : 32 ≤ n) (hhi : n < 2 ^ 255) :
   rw [hbool]; rfl
 
 theorem callerContains491 : (D_J callerBytecode ⟨0⟩).contains ⟨491⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains203 : (D_J callerBytecode ⟨0⟩).contains ⟨203⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+
+/-- `SLT (ofNat n) 32 = 1` (signed) when `n < 32` — the decoder's `≥ 32` length check *fails*. -/
+theorem slt32_one {n : ℕ} (hn : n < 32) : UInt256.slt (UInt256.ofNat n) ⟨32⟩ = ⟨1⟩ := by
+  have hsz : (2:ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
+  have ho : (UInt256.ofNat n).toNat = n := by
+    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
+  have h32 : (⟨32⟩ : UInt256).toNat = 32 := by decide
+  have hbool : UInt256.sltBool (UInt256.ofNat n) ⟨32⟩ = true := by
+    unfold UInt256.sltBool
+    rw [if_neg (show ¬ (UInt256.ofNat n).toNat ≥ 2 ^ 255 by rw [ho]; omega),
+        if_neg (show ¬ (⟨32⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h32]; norm_num)]
+    exact decide_eq_true (show UInt256.ofNat n < ⟨32⟩ by
+      show (UInt256.ofNat n).toNat < (⟨32⟩ : UInt256).toNat; rw [ho, h32]; omega)
+  show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨1⟩
+  rw [hbool]; rfl
+theorem callerContains71 : (D_J callerBytecode ⟨0⟩).contains ⟨71⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains194 : (D_J callerBytecode ⟨0⟩).contains ⟨194⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains297 : (D_J callerBytecode ⟨0⟩).contains ⟨297⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains306 : (D_J callerBytecode ⟨0⟩).contains ⟨306⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains315 : (D_J callerBytecode ⟨0⟩).contains ⟨315⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains325 : (D_J callerBytecode ⟨0⟩).contains ⟨325⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains450 : (D_J callerBytecode ⟨0⟩).contains ⟨450⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains464 : (D_J callerBytecode ⟨0⟩).contains ⟨464⟩ = true := by
+  rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
+theorem callerContains504 : (D_J callerBytecode ⟨0⟩).contains ⟨504⟩ = true := by
   rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
 /-! ## EVM traces (revert scenarios) -/
@@ -371,6 +483,80 @@ theorem ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
 abbrev callerArg1 (I : ExecutionEnv) : UInt256 :=
   uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨32⟩ : UInt256).toNat 32)
 
+/-- `uInt256OfByteArray` is big-endian decode then `ofNat`. -/
+theorem uInt256OfByteArray_eq (arr : ByteArray) :
+    uInt256OfByteArray arr = UInt256.ofNat (fromByteArrayBigEndian arr) := by
+  unfold uInt256OfByteArray fromByteArrayBigEndian fromBytesBigEndian
+  rw [byteArray_toList_eq]; rfl
+
+/-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
+theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size)
+    (hoff : off < 2 ^ 64) :
+    (ByteArray.readBytes cd off 32).data.toList = (cd.data.toList.drop off).take 32 := by
+  have hcopy : (cd.copySlice off ByteArray.empty 0 32).data = cd.data.extract off (off + 32) := by
+    rw [ByteArray.data_copySlice]; simp
+  have hcl : (cd.copySlice off ByteArray.empty 0 32).data.toList = (cd.data.toList.drop off).take 32 := by
+    rw [hcopy, Array.toList_extract]; rw [List.extract_eq_drop_take]; congr 1; omega
+  have hds : cd.data.size = cd.size := rfl
+  have hcsize : (cd.copySlice off ByteArray.empty 0 32).size = 32 := by
+    show (cd.copySlice off ByteArray.empty 0 32).data.size = 32
+    rw [← Array.length_toList, hcl, List.length_take, List.length_drop, Array.length_toList]; omega
+  unfold ByteArray.readBytes
+  rw [if_pos (by simp only [Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hoff, by decide⟩),
+      ByteArray.toList_data_append, hcl, byteArray_zeroes_toList, hcsize]
+  simp
+
+/-- The Act decoder's word at byte offset `off` equals the EVM's `uInt256OfByteArray (readBytes off)`. -/
+theorem decode_word_at_eq (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) (hoff : off < 2 ^ 64) :
+    ABI.bytesToWord ((cd.toList.drop off).take 32)
+      = uInt256OfByteArray (cd.readBytes off 32) := by
+  rw [uInt256OfByteArray_eq]
+  unfold ABI.bytesToWord fromByteArrayBigEndian
+  congr 2
+  rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList _ _ hsz hoff]
+  simp [byteArray_toList_eq]
+
+set_option maxHeartbeats 1000000 in
+/-- **Calldata decode for `run(address t, uint256 n)`.**  With ≥ 68 bytes of calldata and a
+    *canonical* address argument, decoding succeeds, binding `t`/`n` to the EVM's words at offsets
+    4 / 36 — the Act-side analogue of the bytecode's ABI decoder. -/
+theorem callerDecode_n {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
+    (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (callerArg0 I).toNat < EVM.addressModulus) :
+    decodeCalldata (runTransition.params.map Param.name)
+        (transitionSignature runTransition).paramTypes I.calldata
+      = some (((∅ : Act.Store).insert "t"
+          (.address (Ethereum.AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
+          (.int (Int.ofNat (callerArg1 I).toNat))) := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hw4 : (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.val < EVM.twoPow 256 :=
+    (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.isLt
+  have hw36 : (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.val < EVM.twoPow 256 :=
+    (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.isLt
+  have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) = callerArg0 I :=
+    decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) = callerArg1 I :=
+    decode_word_at_eq I.calldata 36 (by omega) (by norm_num)
+  show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = _
+  unfold decodeCalldata decodeCalldata.decodeArgs
+  rw [if_neg (by rw [htlen]; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
+    decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
+    bind, Option.bind, List.drop_zero, List.drop_drop, htake4, htake36, hw4, hw36, if_true,
+    Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero, Nat.reduceAdd, hword4, hword36]
+  rw [if_pos (show (↑(callerArg0 I).val : ℕ) < EVM.addressModulus from hcanon)]
+  simp only [show (↑(callerArg0 I).val : ℕ) = (callerArg0 I).toNat from rfl,
+    show (↑(callerArg1 I).val : ℕ) = (callerArg1 I).toNat from rfl,
+    show ((256 : ℕ) = 0) = False from by decide, if_false,
+    show ((callerArg1 I).toNat < EVM.twoPow 256) = True from eq_true (callerArg1 I).val.isLt,
+    if_true, decodeCalldata.insertValues]
+
 /-- Decoder final segment: decode arg1 (uint256), return to the dispatch point pc 66 with the two
     decoded values `[n, t, 71, sel]` on the stack. -/
 theorem callerX_decoded {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -495,6 +681,93 @@ theorem callerOutPtr_eq (I : ExecutionEnv) : callerOutPtr I = ⟨128⟩ := by
       show (⟨64⟩ : UInt256).toNat = 64 from by decide, callerCalldataMem_read64,
       fromByteArrayBigEndian_toByteArray, show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from by decide]
 
+/-- `callerSelMem`'s bytes `[128:132]` are exactly the `pow2` selector — the high 4 bytes of the
+    selector word `solc` `MSTORE`s at `0x80` (`selector << 224`). -/
+theorem callerSelMem_selector : callerSelMem.extract 128 132 = pow2Selector := by
+  rw [show callerSelMem
+        = solcReturnMem (UInt256.shiftLeft (UInt256.land ⟨4294967295⟩ ⟨1143701499⟩) ⟨224⟩) from rfl,
+      solcReturnMem_eq,
+      extract_append_right_window _ _ _ _ (by rw [solcFreePtrMem_pad_size]),
+      solcFreePtrMem_pad_size, show (128:ℕ) - 128 = 0 from rfl, show (132:ℕ) - 128 = 4 from rfl,
+      toByteArray_eq_toBytesBE]
+  native_decide
+
+/-- **Encoding coupling (byte level).**  The 36 bytes the `CALL` sends (`mem[0x80 .. 0xa4]`) are
+    exactly `selector ++ word(n)` — the selector in `[128:132]` and the argument word in `[132:164]`. -/
+theorem callerCalldataMem_read128_36 (I : ExecutionEnv) :
+    (callerCalldataMem I).readWithPadding 128 36 = pow2Selector ++ (callerArg1 I).toByteArray := by
+  rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
+        (by rw [callerCalldataMem_size]), callerCalldataMem,
+      write32_eq _ callerSelMem 132 (by rw [toByteArray_size]) (by rw [callerSelMem_size]; omega)]
+  have hAsz : (callerSelMem.extract 0 132).size = 132 := by
+    rw [ByteArray.size_extract, callerSelMem_size]; omega
+  have hBsz : ((callerArg1 I).toByteArray.extract 0 32).size = 32 := by
+    rw [ByteArray.size_extract, toByteArray_size]; omega
+  have hPsz : (callerSelMem.extract 0 132 ++ (callerArg1 I).toByteArray.extract 0 32).size = 164 := by
+    rw [ByteArray.size_append, hAsz, hBsz]
+  have hBfull : (callerArg1 I).toByteArray.extract 0 32 = (callerArg1 I).toByteArray := by
+    have h := @ByteArray.extract_zero_size (callerArg1 I).toByteArray
+    rwa [toByteArray_size] at h
+  rw [extract_append_left _ _ _ _ (by rw [hPsz]),
+      extract_append_span _ _ 128 164 (by rw [hAsz]; omega) (by rw [hAsz]; omega), hAsz,
+      extract_prefix _ 132 128 132 (by omega), callerSelMem_selector,
+      extract_extract_BA, show (0:ℕ) + 0 = 0 from rfl,
+      show min (0 + (164 - 132)) 32 = 32 from by omega, hBfull]
+
+/-- `wordOfInt (Int.ofNat a.toNat) = a` (a nonneg word round-trips through `ℤ`). -/
+theorem wordOfInt_ofNat_toNat (a : UInt256) : EVM.wordOfInt (Int.ofNat a.toNat) = a := by
+  rw [EVM.wordOfInt, if_neg (by simp)]
+  apply u256_inj
+  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
+  show a.toNat % EVM.twoPow 256 = a.toNat
+  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
+
+/-- **Encoding coupling (spec level).**  The Act ABI's `encode? "pow2" [n]` produces exactly the
+    36-byte buffer the bytecode sends to the `CALL`. -/
+theorem callerEncode_eq (I : ExecutionEnv) :
+    callerExternalABI.encode? "pow2" [.int (Int.ofNat (callerArg1 I).toNat)]
+      = some ((callerCalldataMem I).readWithPadding 128 36) := by
+  rw [callerCalldataMem_read128_36]
+  show some (pow2Selector ++ UInt256.toByteArray (EVM.wordOfInt (Int.ofNat (callerArg1 I).toNat)))
+      = some (pow2Selector ++ (callerArg1 I).toByteArray)
+  rw [wordOfInt_ofNat_toNat]
+
+/-- `Nat.land` is commutative (via testbits). -/
+theorem natLandComm (a b : ℕ) : Nat.land a b = Nat.land b a := by
+  apply Nat.eq_of_testBit_eq; intro i
+  show (a &&& b).testBit i = (b &&& a).testBit i
+  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
+
+/-- `UInt256.land` is commutative. -/
+theorem uland_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
+  apply u256_inj
+  show (Fin.land a.val b.val).val = (Fin.land b.val a.val).val
+  simp only [Fin.land]; rw [natLandComm]
+
+/-- The clean-address mask is idempotent on a canonical argument: `addrMask & arg0 = arg0`. -/
+theorem callerLand_target {I : ExecutionEnv}
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
+    UInt256.land addrMask (callerArg0 I) = callerArg0 I := by
+  have heq : callerArg0 I = UInt256.land (callerArg0 I) addrMask := by
+    by_contra hne
+    simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false, Bool.false_eq_true,
+      ↓reduceIte] at hclean
+    exact absurd hclean (by decide)
+  rw [uland_comm, ← heq]
+
+/-- **Target coupling.**  The decoded address (`AccountAddress.ofNat arg0`) is exactly the
+    `CALL` target the bytecode masks (`AccountAddress.ofUInt256 (addrMask & arg0)`). -/
+theorem callerTarget_eq {I : ExecutionEnv}
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
+    EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)
+      = AccountAddress.ofUInt256 (UInt256.land addrMask (callerArg0 I)) := by
+  rw [callerLand_target hclean]
+  apply Fin.ext
+  show (callerArg0 I).toNat % EVM.addressModulus % AccountAddress.size
+      = (callerArg0 I).val % AccountAddress.size % AccountAddress.size
+  rw [show EVM.addressModulus = AccountAddress.size from by decide]
+  rfl
+
 /-- Body segment: run the uint256 encoder (MSTORE `n` at mem[132]), set up and MLOAD for the CALL,
     reaching the GAS at pc 142 (just before the `CALL`). -/
 theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -554,6 +827,52 @@ theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', _hΘ, rd144⟩ := rd143.call (by decide) hdepth (by evm_ov)
   exact ⟨cA', σ', z, _, _, _, k', C', rd144⟩
 
+/-- **The opaque CALL, packaged for the assembly.**  Exposes the post-`CALL` `RD` cursor (memory and
+    active-words resolved to their concrete `o.write …` / `⟨6⟩` forms) **together with** the Act-side
+    `externalCallViaEVM` fact built from the *same* `Θ`-link — the coincidence that lets the EVM and
+    Act sub-calls share `(z, σ', o)`. -/
+theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255)
+    (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
+    (hperm : I.perm = true) (hdepth : I.depth.val < 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o : ByteArray)
+      (A' : Substate) (k' C' : ℕ),
+      RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+        ((if z then ⟨1⟩ else ⟨0⟩) ::
+          ⟨164⟩ :: ⟨1143701499⟩ :: UInt256.land addrMask (callerArg0 I) :: callerArg1 I ::
+          callerArg0 I :: ⟨71⟩ ::
+          UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ :: [])
+        (o.write 0 (callerCalldataMem I) (callerOutPtr I).toNat
+          (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat) ⟨6⟩ o (cA', σ') k' C'
+    ∧ externalCallViaEVM callerConfig (initState cA gh bl σ σ₀ g A I)
+        (EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)) "pow2" 0
+        [.int (Int.ofNat (callerArg1 I).toNat)]
+        (z, { initState cA gh bl σ σ₀ g A I with
+                accountMap := σ', substate := A', createdAccounts := cA' }, o) := by
+  obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
+  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', _hΘ, rd144⟩ := rd143.call (by decide) hdepth (by evm_ov)
+  obtain ⟨g'', A', hΘ⟩ := _hΘ
+  refine ⟨cA', σ', z, o, A', k', C', ?_, ?_⟩
+  · -- the `RD` cursor: rewrite the active-words `M`-expression to `⟨6⟩`
+    have haw : UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
+        (callerOutPtr I).toNat (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat)
+        (callerOutPtr I).toNat (⟨32⟩ : UInt256).toNat) = (⟨6⟩ : UInt256) := by
+      rw [callerOutPtr_eq]; decide
+    exact haw ▸ rd144
+  · -- the Act-side coincidence, fed the same `Θ`-link
+    refine callerCallCoincides (targetWord := UInt256.land addrMask (callerArg0 I))
+      (mem := callerCalldataMem I) (inOff := callerOutPtr I)
+      (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I)) hperm
+      (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+      (callerTarget_eq hclean) ?_ hΘ
+    rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
+        show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
+    exact callerEncode_eq I
+
 /-- **Post-call failure tail** (`z = false`): the `CALL` returned `0`, so the solc check
     `iszero(success)` jumps into the `RETURNDATACOPY … REVERT` bail-out — the whole run reverts,
     independent of the (opaque) return data. -/
@@ -603,6 +922,12 @@ theorem callerX_succ_to165 {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem callerContains470 : (D_J callerBytecode ⟨0⟩).contains ⟨470⟩ = true := by
   rw [callerValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
+/-- The memory after the success decoder's free-pointer `MSTORE` at offset 64.  The result word at
+    `[128, 160)` (where the CALL wrote `o`) is untouched, so `readWithPadding 128` is preserved. -/
+noncomputable def callerMem2 (o mem : ByteArray) : ByteArray :=
+  (UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+    (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32
+
 /-- **Success decoder, straight-line part (165 → 470).**  `MLOAD` the free pointer (`fp = 128`),
     `RETURNDATASIZE` (= `|o|`), round up and bump the free pointer (`MSTORE` at `0x40`), compute
     `dataEnd = 128 + |o|`, and jump into the length-checking decoder subroutine at pc 470 — leaving
@@ -615,10 +940,10 @@ theorem callerX_succ_to470 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩) :
-    ∃ mem2 k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
+    ∃ k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
       [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
-      mem2 ⟨6⟩ o acc k' C' := by
-  refine ⟨_, _, _, evm_run rd with [
+      (callerMem2 o mem) ⟨6⟩ o acc k' C' := by
+  refine ⟨_, _, evm_run rd with [
     raw mload 0 ⟨128⟩ ⟨6⟩ (by decide)
       (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
         Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
@@ -649,6 +974,126 @@ theorem callerX_succ_to491 {cA gh bl σ σ₀ A I} {g : UInt256}
   refine ⟨_, _, evm_run rd with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
     jumpiT (by rw [add128_sub128 ho, slt32_zero ho32 ho]; decide) callerContains491 ]⟩
+
+/-- **Success-path under-length revert (470 → 203 REVERT).**  When `|o| < 32` the length check
+    `slt(|o|, 32) = 1`, so `iszero` is `0`, the `JUMPI` is *not* taken, and control falls into the
+    `…203 REVERT` bail-out ⇒ `RDrev` — matching Act's `externalCallReturnDecodeRevert`. -/
+theorem callerX_succ_revert {cA gh bl σ σ₀ A I} {g : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
+    (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
+            [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
+            mem2 ⟨6⟩ o acc k C)
+    (ho : o.size < 32) :
+    RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) :=
+  evm_run rd with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
+    jumpiNT (by rw [add128_sub128 (by omega), slt32_one ho]; decide),
+    push2 ⟨490⟩, push2 ⟨203⟩, jump callerContains203,
+    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+/-- **Success decoder tail (491 → STOP).**  Mirrors the calldata `uint256` decoder
+    (`callerX_decoded`), but reads the result word from **memory** (`MLOAD` at 453, coupled to the
+    `CALL` out-region via `hword`) instead of calldata.  Threads the word through the no-op
+    `uint256` validator (306/297/315/325), then `SSTORE`s it to slot 0 and `STOP`s ⇒
+    `RDret (cA, σ[slot0 := word])`. -/
+theorem callerX_succ_tail {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+    {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
+    (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨491⟩
+            [⟨0⟩, ⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
+            mem2 ⟨6⟩ o (cAx, σx) k C)
+    (hperm : I.perm = true)
+    (hword : mem2.readWithPadding 128 32 = o.extract 0 32)
+    (hsize2 : 128 < mem2.size) :
+    RDret callerBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cAx, sstoreAccountMap I.codeOwner σx ⟨0⟩
+              (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
+      ByteArray.empty := by
+  have rd198 := evm_run rd with [
+    jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
+    jumpdest, push0, dup2,
+    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by decide)
+      (fun s haws hstks => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+        Fin.isValue, List.length_cons, List.length_nil, zero_add, Nat.reduceAdd, Nat.ofNat_pos,
+        Nat.one_lt_ofNat, getElem!_pos, List.getElem_cons_zero, List.getElem_cons_succ]; decide)
+      (by
+        have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by decide
+        split_ifs with h
+        · exfalso; rcases h with h | h
+          · rw [h128] at h; omega
+          · exact absurd h (by decide)
+        · rw [h128, hword])
+      (by decide) (by evm_ov),
+    swap1, pop, push2 ⟨464⟩, dup2, push2 ⟨306⟩, jump callerContains306,
+    jumpdest, push2 ⟨315⟩, dup2, push2 ⟨297⟩, jump callerContains297,
+    jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump callerContains315,
+    jumpdest, dup2, eq, push2 ⟨325⟩, jumpiT (by rw [ueq_self]; decide) callerContains325,
+    jumpdest, pop, jump callerContains464,
+    jumpdest, swap3, swap2, pop, pop, jump callerContains504,
+    jumpdest, swap2, pop, pop, swap3, swap2, pop, pop, jump callerContains194,
+    jumpdest, push0, dup2, swap1 ]
+  obtain ⟨k', C', rd199⟩ := rd198.sstore hperm (by decide) (by evm_ov)
+  exact RD.stop (evm_run rd199 with [pop, pop, pop, jump callerContains71, jumpdest])
+    (by decide) (by evm_ov)
+
+/-- **The whole success decoder, chained (144 → STOP).**  Given the post-call cursor (`z = true`,
+    active words `⟨6⟩`), the free-pointer read `hfp`, the result-region read `hword`, and the size
+    bound, runs `165 → 470 → 491 → SSTORE → STOP` ⇒ `RDret (cA, σ[slot0 := decode o])`. -/
+theorem callerX_successChain {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+    {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel d0 d1 d2 : UInt256}
+    (rd144 : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
+            (⟨1⟩ :: d0 :: d1 :: d2 :: arg1 :: arg0 :: ⟨71⟩ :: sel :: []) mem ⟨6⟩ o (cAx, σx) k C)
+    (hperm : I.perm = true) (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255)
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+           else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+          = ⟨128⟩)
+    (hword : mem.readWithPadding 128 32 = o.extract 0 32) (hmsz : 160 ≤ mem.size) :
+    RDret callerBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cAx, sstoreAccountMap I.codeOwner σx ⟨0⟩
+              (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
+      ByteArray.empty := by
+  obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
+  obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp
+  obtain ⟨k3, C3, rd491⟩ := callerX_succ_to491 rd470 ho32 ho
+  have hword2 : (callerMem2 o mem).readWithPadding 128 32 = o.extract 0 32 := by
+    rw [callerMem2, write32_read_above _ _ 64 128 (by rw [toByteArray_size]) (by omega)
+      (by omega) (by omega), hword]
+  have hmsz2 : 128 < (callerMem2 o mem).size := by
+    rw [callerMem2, write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+      ByteArray.size_extract, toByteArray_size]
+    omega
+  exact callerX_succ_tail rd491 hperm hword2 hmsz2
+
+/-- **The clean-address check ⇒ canonical address.**  The bytecode's `eq(arg0, arg0 & 0xff…ff)`
+    holding means `arg0`'s high bits are zero, i.e. `arg0 < 2¹⁶⁰` — exactly the Act decoder's
+    address-validity condition. -/
+theorem callerArg0_canonical {I : ExecutionEnv}
+    (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
+    (callerArg0 I).toNat < EVM.addressModulus := by
+  have heq : callerArg0 I = UInt256.land (callerArg0 I) addrMask := by
+    by_contra hne
+    simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false, Bool.false_eq_true,
+      ↓reduceIte] at hclean
+    exact absurd hclean (by decide)
+  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
+    intro a b
+    refine Nat.le_of_testBit fun i hi => ?_
+    change (a &&& b).testBit i = true at hi
+    rw [Nat.testBit_and] at hi
+    simp only [Bool.and_eq_true] at hi
+    exact hi.2
+  have hland : (callerArg0 I).toNat
+      = Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256 := by
+    conv_lhs => rw [heq]
+    rfl
+  have hmod : Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256
+      = Nat.land (callerArg0 I).toNat addrMask.toNat :=
+    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
+  have hmask : addrMask.toNat < EVM.addressModulus := by decide
+  rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
 
 /-! ## The `callvalue = 0` Act coupling -/
 
