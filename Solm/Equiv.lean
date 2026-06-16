@@ -87,7 +87,7 @@ inductive actExec
           executionEnv := I
           substate := A
           createdAccounts := createdAccounts
-          machineState.gasAvailable := g
+          machineState.gasAvailable := .ofUInt256 g
           blocks := blocks
           genesisBlockHeader := genesisBlockHeader
       } →

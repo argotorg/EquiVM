@@ -67,7 +67,7 @@ theorem truthReturnEncoding :
 /-- The EVM trace for `callvalue ≠ 0`: the non-payable guard reverts (11 instructions ending
     in `REVERT`), with no taken jump.  Built compositionally as one `RDrev`. -/
 theorem truthX_callvalue_ne
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev truthBytecode g (initState cA gh bl σ σ₀ g A I) := by
   -- prologue → PUSH1 0x0e · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
@@ -79,9 +79,9 @@ theorem truthX_callvalue_ne
 
 /-! ### callvalue = 0 dispatcher -/
 
-theorem truthContains14 : (D_J truthBytecode ⟨0⟩).contains ⟨14⟩ = true := by
+theorem truthContains14 : (D_J truthBytecode 0).contains ⟨14⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
-theorem truthContains38 : (D_J truthBytecode ⟨0⟩).contains ⟨38⟩ = true := by
+theorem truthContains38 : (D_J truthBytecode 0).contains ⟨38⟩ = true := by
   rw [truthValidJumps]; exact Array.contains_eq_true_of_mem (by simp)
 
 /-! ### Selector decode (proved, not an axiom): the EVM `CALLDATALOAD; PUSH 0xe0; SHR` selector
@@ -99,7 +99,7 @@ theorem truthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     (`0x08 → 0x0e`) and on to the `0x16` `JUMPI`, reaching pc 22 with stack `[0x26, (size < 4)]`,
     the free-pointer memory in place.  Built compositionally as one `RD`. -/
 theorem truthX_cvz_prefix
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩) :
     RD truthBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨22⟩
         [⟨38⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
@@ -114,7 +114,7 @@ theorem truthX_cvz_prefix
 /-- Dispatcher trace for `callvalue = 0 ∧ calldatasize < 4`: the prefix reaches the `0x16`
     `JUMPI` with `(size < 4) = 1`, so it jumps to the `0x26` revert stub.  One `RDrev`. -/
 theorem truthX_cvz_short
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev truthBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
@@ -136,7 +136,7 @@ theorem truthDispatch_none_nomatch {cd : ByteArray}
     (not taken), decodes & compares the selector (`EQ = 0` via `truthEvmSelector`), and reverts
     at `0x26`.  Built compositionally off the prefix as one `RDrev`. -/
 theorem truthX_cvz_revertB
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = false) :
@@ -169,7 +169,7 @@ set_option maxHeartbeats 800000 in
     in memory and `RETURN`s the 32-byte word `1`.  Accounts `(cA, σ)` are preserved (no `SSTORE`);
     the substate is dropped by `RDret` (the Solm equivalence ignores it).  Built compositionally off
     the dispatcher prefix as one `RDret`. -/
-theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -230,10 +230,10 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
       (by evm_ov) ]
 
 theorem truthReEquiv_callvalueZero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ σ₀ g A I := by
+    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
     exact (truthX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (truthDispatch_none_short hsz)
@@ -258,8 +258,7 @@ theorem truthCorrect :
     runtimeEquivalence!?! truthConfig truthBytecode truthContract := by
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact truthReEquiv_callvalueZero hcode hsize hwv
+  · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
-    exact (truthX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
+    exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
       fun ca => truthBodyReverts _ ca (by simp only [initState]; exact hwv)
-

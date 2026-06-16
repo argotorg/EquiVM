@@ -172,7 +172,7 @@ theorem write32_eq (src base : ByteArray) (destAddr : ℕ)
 theorem extract_prefix (b : ByteArray) (n i j : ℕ) (hjn : j ≤ n) :
     (b.extract 0 n).extract i j = b.extract i j := by
   apply ByteArray.ext
-  simp only [ByteArray.data_extract, Array.extract_extract, Nat.add_zero, Nat.zero_add]
+  simp only [ByteArray.data_extract, Array.extract_extract, Nat.zero_add]
   congr 1
   omega
 
@@ -366,7 +366,7 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
 theorem toByteArray_eq_toBytesBE (v : UInt256) :
     UInt256.toByteArray v = ⟨(EVM.Word.toBytesBE v).toArray⟩ := by
   have hb : (BE v.toNat).size ≤ 32 := by
-    apply BE_le; have := v.val.isLt; simpa [UInt256.size, UInt256.toNat] using this
+    apply BE_le; have := v.val.isLt; simp [UInt256.size, UInt256.toNat]
   have h32 : 32 < USize.size := by
     rcases System.Platform.numBits_eq with h | h <;> rw [USize.size, h] <;> norm_num
   have h32' : (OfNat.ofNat 32 : USize).toNat = 32 :=
@@ -496,7 +496,7 @@ theorem ofNat_pow_toNat {m : ℕ} (h : m < 256) : (UInt256.ofNat (2 ^ m)).toNat 
 theorem lt_size_of_lt256 {m : ℕ} (h : m < 256) : m < UInt256.size := by
   have : (256:ℕ) ≤ UInt256.size := by
     have : (2:ℕ)^8 ≤ 2^256 := Nat.pow_le_pow_right (by norm_num) (by norm_num)
-    simpa [UInt256.size] using this
+    simp [UInt256.size]
   omega
 
 /-- `r * 2` does not wrap when `2 * r.toNat` is in range. -/
@@ -543,7 +543,7 @@ theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.
   have hcopy : (cd.copySlice off ByteArray.empty 0 32).data = cd.data.extract off (off + 32) := by
     rw [ByteArray.data_copySlice]; simp
   have hcl : (cd.copySlice off ByteArray.empty 0 32).data.toList = (cd.data.toList.drop off).take 32 := by
-    rw [hcopy, Array.toList_extract]; rw [List.extract_eq_drop_take]; congr 1; omega
+    rw [hcopy, Array.toList_extract]; rw [List.extract_eq_take_drop]; congr 1; omega
   have hds : cd.data.size = cd.size := rfl
   have hcsize : (cd.copySlice off ByteArray.empty 0 32).size = 32 := by
     show (cd.copySlice off ByteArray.empty 0 32).data.size = 32

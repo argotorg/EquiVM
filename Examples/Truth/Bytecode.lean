@@ -46,5 +46,5 @@ axiom truthSelectorBytes :
 
 /-- The `JUMPDEST` positions of `truthBytecode` (the valid jump targets). -/
 axiom truthValidJumps :
-    Ethereum.EVM.D_J truthBytecode ⟨0⟩
+    Ethereum.EVM.D_J truthBytecode 0
       = #[⟨14⟩, ⟨38⟩, ⟨42⟩, ⟨48⟩, ⟨59⟩, ⟨68⟩, ⟨76⟩, ⟨87⟩, ⟨94⟩, ⟨100⟩, ⟨117⟩]

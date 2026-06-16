@@ -28,6 +28,6 @@ axiom powSelectorBytes :
 
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
 axiom powValidJumps :
-    Ethereum.EVM.D_J powBytecode ⟨0⟩
+    Ethereum.EVM.D_J powBytecode 0
       = #[⟨15⟩, ⟨41⟩, ⟨45⟩, ⟨66⟩, ⟨71⟩, ⟨84⟩, ⟨93⟩, ⟨107⟩, ⟨117⟩, ⟨142⟩, ⟨152⟩, ⟨156⟩, ⟨165⟩,
           ⟨174⟩, ⟨184⟩, ⟨187⟩, ⟨201⟩, ⟨207⟩, ⟨227⟩, ⟨228⟩, ⟨241⟩, ⟨250⟩, ⟨259⟩, ⟨265⟩, ⟨284⟩]

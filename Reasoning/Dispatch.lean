@@ -87,13 +87,13 @@ namespace Reasoning.Reach
     `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
     `execution`-with-revert.  Both examples' `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
     (htr : contract.transitions = [transition])
     (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
     (hbody : ∀ callargs, ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I)
               callargs transition.body .reverted) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
     · exact reEquiv_noDispatch hdisp hrev
@@ -108,7 +108,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
 /-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray} {callargs cs retVal}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
     (h : RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ) o)
     (hd : dispatchMsg contract I.calldata = some t)
@@ -117,21 +117,21 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
               (.returned cs (initState cA gh bl σ σ₀ g A I) retVal))
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hsucc => by
     refine reEquiv_execution hd hdec hbody ?_
     rw [hsucc]; exact execResultsEquiv.success rfl rfl rfl rfl henc
 
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray} {callargs}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray} {callargs}
     (hcode : I.code = code)
     (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_
     rw [hrev]; exact execResultsEquiv.revert rfl rfl

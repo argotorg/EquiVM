@@ -5,7 +5,7 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "fb3fa0b964566a9d135740d1b3c13c3c042d914d",
+   "rev": "081ec4e379f8b5ea62fdea9666d2b1b31a64fc3f",
    "name": "evmlean",
    "manifestFile": "lake-manifest.json",
    "inputRev": "step_semantics",
