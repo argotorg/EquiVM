@@ -47,10 +47,6 @@ theorem callerBodyReverts (evm : EVM.State) (locals : Store)
     ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted :=
   bodyReverts_nonPayable h
 
-/-- Reading back a just-inserted store key. -/
-theorem store_get_self (L : Act.Store) (k : Ident) (v : Value) :
-    (L.insert k v).get? k = some v := by simp
-
 /-- **The Act body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
     `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `value`, and the
     storage assign succeeding, `run`'s body runs to completion (`returned … none`), leaving the
@@ -482,39 +478,6 @@ theorem ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
 /-- The decoded calldata uint256 word at offset 36. -/
 abbrev callerArg1 (I : ExecutionEnv) : UInt256 :=
   uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨32⟩ : UInt256).toNat 32)
-
-/-- `uInt256OfByteArray` is big-endian decode then `ofNat`. -/
-theorem uInt256OfByteArray_eq (arr : ByteArray) :
-    uInt256OfByteArray arr = UInt256.ofNat (fromByteArrayBigEndian arr) := by
-  unfold uInt256OfByteArray fromByteArrayBigEndian fromBytesBigEndian
-  rw [byteArray_toList_eq]; rfl
-
-/-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
-theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size)
-    (hoff : off < 2 ^ 64) :
-    (ByteArray.readBytes cd off 32).data.toList = (cd.data.toList.drop off).take 32 := by
-  have hcopy : (cd.copySlice off ByteArray.empty 0 32).data = cd.data.extract off (off + 32) := by
-    rw [ByteArray.data_copySlice]; simp
-  have hcl : (cd.copySlice off ByteArray.empty 0 32).data.toList = (cd.data.toList.drop off).take 32 := by
-    rw [hcopy, Array.toList_extract]; rw [List.extract_eq_drop_take]; congr 1; omega
-  have hds : cd.data.size = cd.size := rfl
-  have hcsize : (cd.copySlice off ByteArray.empty 0 32).size = 32 := by
-    show (cd.copySlice off ByteArray.empty 0 32).data.size = 32
-    rw [← Array.length_toList, hcl, List.length_take, List.length_drop, Array.length_toList]; omega
-  unfold ByteArray.readBytes
-  rw [if_pos (by simp only [Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hoff, by decide⟩),
-      ByteArray.toList_data_append, hcl, byteArray_zeroes_toList, hcsize]
-  simp
-
-/-- The Act decoder's word at byte offset `off` equals the EVM's `uInt256OfByteArray (readBytes off)`. -/
-theorem decode_word_at_eq (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) (hoff : off < 2 ^ 64) :
-    ABI.bytesToWord ((cd.toList.drop off).take 32)
-      = uInt256OfByteArray (cd.readBytes off 32) := by
-  rw [uInt256OfByteArray_eq]
-  unfold ABI.bytesToWord fromByteArrayBigEndian
-  congr 2
-  rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList _ _ hsz hoff]
-  simp [byteArray_toList_eq]
 
 set_option maxHeartbeats 1000000 in
 /-- **Calldata decode for `run(address t, uint256 n)`.**  With ≥ 68 bytes of calldata and a
@@ -1368,23 +1331,20 @@ theorem callerX_noncanon {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-! ## Decoded-store accessors and the canonical-execution coupling -/
 
-theorem store_get_ne (L : Act.Store) (k k' : Ident) (v : Value) (h : (k' == k) = false) :
-    (L.insert k' v).get? k = L.get? k := by
-  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, h]
 theorem store_get_empty (k : Ident) : (∅ : Act.Store).get? k = none := by simp
 abbrev callerDecStore (I : ExecutionEnv) : Act.Store :=
   ((∅:Act.Store).insert "t" (.address (AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
     (.int (Int.ofNat (callerArg1 I).toNat))
 theorem callerStore_t (I : ExecutionEnv) :
     (callerDecStore I).get? "t" = some (.address (AccountAddress.ofNat (callerArg0 I).toNat)) := by
-  rw [callerDecStore, store_get_ne _ _ _ _ (by decide), store_get_self]
+  rw [callerDecStore, store_get_ne _ _ (by decide), store_get_self]
 theorem callerStore_n (I : ExecutionEnv) :
     (callerDecStore I).get? "n" = some (.int (Int.ofNat (callerArg1 I).toNat)) := by
   rw [callerDecStore, store_get_self]
 theorem callerStore_stored (I : ExecutionEnv) (v : Value) :
     ((callerDecStore I).insert "tmp" v).get? "stored" = none := by
-  rw [store_get_ne _ _ _ _ (by decide), callerDecStore, store_get_ne _ _ _ _ (by decide),
-      store_get_ne _ _ _ _ (by decide), store_get_empty]
+  rw [store_get_ne _ _ (by decide), callerDecStore, store_get_ne _ _ (by decide),
+      store_get_ne _ _ (by decide), store_get_empty]
 theorem ofNat_toNat_lt (n : ℕ) (h : n < 2^255) : (UInt256.ofNat n).toNat = n :=
   ulit_toNat' n (by simpa [UInt256.size] using (by omega : n < 2^256))
 theorem callerL_succ (n : ℕ) (h1 : 32 ≤ n) (h2 : n < 2^255) :

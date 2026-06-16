@@ -528,4 +528,39 @@ theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
   show (a.val - b.val).val = a.toNat - b.toNat
   rw [Fin.coe_sub_iff_le.mpr (by rw [Fin.le_def]; exact h)]; rfl
 
+/-! ## ABI calldata decode coupling (shared by every contract with arguments) -/
+
+/-- `uInt256OfByteArray` is the big-endian decode then `ofNat`. -/
+theorem uInt256OfByteArray_eq (arr : ByteArray) :
+    uInt256OfByteArray arr = UInt256.ofNat (fromByteArrayBigEndian arr) := by
+  unfold uInt256OfByteArray fromByteArrayBigEndian fromBytesBigEndian
+  rw [byteArray_toList_eq]; rfl
+
+/-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
+theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size)
+    (hoff : off < 2 ^ 64) :
+    (ByteArray.readBytes cd off 32).data.toList = (cd.data.toList.drop off).take 32 := by
+  have hcopy : (cd.copySlice off ByteArray.empty 0 32).data = cd.data.extract off (off + 32) := by
+    rw [ByteArray.data_copySlice]; simp
+  have hcl : (cd.copySlice off ByteArray.empty 0 32).data.toList = (cd.data.toList.drop off).take 32 := by
+    rw [hcopy, Array.toList_extract]; rw [List.extract_eq_drop_take]; congr 1; omega
+  have hds : cd.data.size = cd.size := rfl
+  have hcsize : (cd.copySlice off ByteArray.empty 0 32).size = 32 := by
+    show (cd.copySlice off ByteArray.empty 0 32).data.size = 32
+    rw [← Array.length_toList, hcl, List.length_take, List.length_drop, Array.length_toList]; omega
+  unfold ByteArray.readBytes
+  rw [if_pos (by simp only [Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hoff, by decide⟩),
+      ByteArray.toList_data_append, hcl, byteArray_zeroes_toList, hcsize]
+  simp
+
+/-- The Act decoder's word at byte offset `off` equals the EVM's `uInt256OfByteArray (readBytes off)`. -/
+theorem decode_word_at_eq (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) (hoff : off < 2 ^ 64) :
+    ABI.bytesToWord ((cd.toList.drop off).take 32)
+      = uInt256OfByteArray (cd.readBytes off 32) := by
+  rw [uInt256OfByteArray_eq]
+  unfold ABI.bytesToWord fromByteArrayBigEndian
+  congr 2
+  rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList _ _ hsz hoff]
+  simp [byteArray_toList_eq]
+
 end Reasoning.Theory

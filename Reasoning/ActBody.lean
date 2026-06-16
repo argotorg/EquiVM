@@ -125,4 +125,15 @@ theorem ABlock.requireRevert {cfg evm act₀ stmts₀ act rest} {cond : Expr}
     ExecBlock cfg act₀ evm stmts₀ .reverted :=
   prev.run (ExecBlock.consRevert (ExecStmt.requireFalse heval))
 
+/-! ## `Act.Store` (locals) lookup -/
+
+/-- Reading the key just inserted. -/
+theorem store_get_self (L : Act.Store) (k : Ident) (v : Value) :
+    (L.insert k v).get? k = some v := by simp
+
+/-- Reading a key untouched by an insert of a different key. -/
+theorem store_get_ne (L : Act.Store) {k a : Ident} (v : Value) (h : (k == a) = false) :
+    (L.insert k v).get? a = L.get? a := by
+  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, h]
+
 end Reasoning.Theory

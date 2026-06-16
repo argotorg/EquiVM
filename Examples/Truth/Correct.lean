@@ -103,7 +103,7 @@ theorem truthX_cvz_prefix
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩) :
     RD truthBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨22⟩
         [⟨38⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
-        solcFreePtrMem (UInt256.ofNat 3) (cA, σ) 14 53 := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 14 53 := by
   -- prologue → PUSH1 0x0e · JUMPI(taken, cv=0) · JUMPDEST · POP · PUSH1 4 · CALLDATASIZE · LT · PUSH1 0x26
   exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
         (by decide) (by decide)) with [
