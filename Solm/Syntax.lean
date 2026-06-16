@@ -1,6 +1,6 @@
 import ABI.Types
 
-namespace Act
+namespace Solm
 
 open ABI
 
@@ -698,4 +698,4 @@ structure ContractDecl where
 
 abbrev Program := List ContractDecl
 
-end Act
+end Solm

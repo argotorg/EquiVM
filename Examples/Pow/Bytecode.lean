@@ -1,10 +1,10 @@
 import Examples.Pow.Spec
-import Act.Dispatch
+import Solm.Dispatch
 import Ethereum.Semantics
 
 /-! # Pow — deployed runtime bytecode and its two trusted-base facts (see `MISSPEC.md`). -/
 
-open Act Ethereum Ethereum.EVM
+open Solm Ethereum Ethereum.EVM
 
 def powBytecode : ByteArray :=
   ⟨#[96, 128, 96, 64, 82, 52, 128, 21, 97, 0, 15, 87, 95, 95, 253, 91, 80, 96, 4, 54, 16, 97, 0, 41,
@@ -23,7 +23,7 @@ def powBytecode : ByteArray :=
 
 /-- `keccak("pow2(uint256)")[0:4] = 0x442b7ffb`. -/
 axiom powSelectorBytes :
-    (ffi.KEC (String.toByteArray (Act.transitionSigStr Pow.powTransition))).extract 0 4
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Pow.powTransition))).extract 0 4
       = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩
 
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/

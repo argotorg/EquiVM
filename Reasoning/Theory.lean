@@ -1,4 +1,4 @@
-import Act.Equiv
+import Solm.Equiv
 import Ethereum.Theory.ProgressLemmas
 import Ethereum.Theory.OpcodeLemmas
 
@@ -22,7 +22,7 @@ Together with the `Ethereum.Theory.OpcodeLemmas` `step_*` lemmas (which evaluate
 a concrete bytecode trace be run for a *universally quantified* gas `g`.
 -/
 
-open Act ABI Ethereum Ethereum.EVM
+open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Theory
 
@@ -204,13 +204,13 @@ theorem reEquiv_outOfGas {cfg contract cA gh bl σ σ₀ g A I}
     (h : Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := .outOfGas h
 
-/-- Act fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case. -/
+/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case. -/
 theorem reEquiv_noDispatch {cfg contract cA gh bl σ σ₀ g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
     (h : Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o)) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := .noDispatch hd h
 
-/-- Act dispatches but decoding fails and `Ξ` reverts ⇒ the `decodingFailed` case. -/
+/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ the `decodingFailed` case. -/
 theorem reEquiv_decodingFailed {cfg contract cA gh bl σ σ₀ g A I} {t g' o}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata = none)
@@ -218,7 +218,7 @@ theorem reEquiv_decodingFailed {cfg contract cA gh bl σ σ₀ g A I} {t g' o}
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
   .decodingFailed hd rfl hdec h
 
-/-- The Act transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution`
+/-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution`
     case.  `actExec` is assembled from dispatch + decode + an `ExecContractBody` over the
     canonical `initState`. -/
 theorem reEquiv_execution {cfg contract cA gh bl σ σ₀ g A I} {t callargs actRes}

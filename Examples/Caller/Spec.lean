@@ -1,11 +1,11 @@
-import Act.Semantics
+import Solm.Semantics
 import Examples.Pow.Spec
 
 /-!
-# Caller — Act specification for `Caller.sol`'s `run(address t, uint256 n)`
+# Caller — Solm specification for `Caller.sol`'s `run(address t, uint256 n)`
 
 `run` makes an **external call** to a `Pow` contract's `pow2(n)` and caches the result in a
-single `uint256` storage slot (`stored`, slot 0).  This is the Act-level spec only (pure data).
+single `uint256` storage slot (`stored`, slot 0).  This is the Solm-level spec only (pure data).
 
 Two pieces are example-specific configuration (the default ABI / empty layout used by `Pow`/`Truth`
 do not suffice here):
@@ -16,14 +16,14 @@ do not suffice here):
 * `callerStorageLayout` — `stored` lives whole-slot at slot 0 (`offset 0`, `size 32`).
 -/
 
-open Act ABI Ethereum
+open Solm ABI Ethereum
 
 namespace Caller
 
-/-- The ABI/Act type `address`. -/
+/-- The ABI/Solm type `address`. -/
 def addr : ABIType := .elem .address
 
-/-- The ABI/Act type `uint256` (shared shape with `Pow.uint256`). -/
+/-- The ABI/Solm type `uint256` (shared shape with `Pow.uint256`). -/
 abbrev uint256 : ABIType := Pow.uint256
 
 /-- `keccak("pow2(uint256)")[0:4]` — the selector of the callee function. -/
@@ -62,7 +62,7 @@ def runTransition : TransitionDecl :=
         .externalCall (.var "t") "pow2" (.intLit 0) [.var "n"] "tmp",
         .assign { base := "stored" } (.var "tmp") ] }
 
-/-- Act spec of the `Caller` contract: one `uint256` storage field, no constructor body,
+/-- Solm spec of the `Caller` contract: one `uint256` storage field, no constructor body,
     a single transition. -/
 def callerContract : ContractDecl :=
   { name := "Caller"

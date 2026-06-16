@@ -14,7 +14,7 @@ These are **contract-agnostic** (parameterised by the code `ByteArray`); only th
 facts fed to them are contract-specific.
 -/
 
-open Act ABI Ethereum Ethereum.EVM
+open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Theory
 

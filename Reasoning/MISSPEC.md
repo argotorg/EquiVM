@@ -96,12 +96,12 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
   @[extern "keccak256"] opaque keccak256 (input : @& ByteArray) (len : USize) : ByteArray
   def KEC (data : ByteArray) : ByteArray := (KECCAK256 data).toOption.getD .empty
   ```
-* `Act.dispatchMsg` (`Act/Dispatch.lean:20`) selects a transition by comparing
+* `Solm.dispatchMsg` (`Solm/Dispatch.lean:20`) selects a transition by comparing
   `calldata.extract 0 4` to `(ffi.KEC (toByteArray (printSignature …))).extract 0 4`.
   Because `keccak256` is `opaque`, `dispatchMsg truthContract calldata` cannot be
   reduced for concrete `calldata`.
 * **Consequence:** for the `callvalue == 0` dispatch path one must relate the EVM's
-  *hard-coded* selector check (`PUSH4 0x9e9f51d2` in `truthBytecode`) to the Act
+  *hard-coded* selector check (`PUSH4 0x9e9f51d2` in `truthBytecode`) to the Solm
   selector `KEC("truth()")[0:4]`; that requires `KEC("truth()")[0:4] = 0x9e9f51d2`,
   a fact about the opaque `keccak256` that is unprovable without `native_decide`.
 * **Note:** the `callvalue ≠ 0` path proved in `Examples/Truth/Correct.lean` *avoids* this by
@@ -115,7 +115,7 @@ Both block the *main* behaviour of `Truth` (a `callvalue == 0` call that dispatc
 
 ### What is proved cleanly despite the blockers
 * `callvalue ≠ 0` (any gas): EVM reverts via the compiler's non-payable guard with no
-  taken jump and no keccak; Act either fails `require(callvalue == 0)` (→ `reverted`),
+  taken jump and no keccak; Solm either fails `require(callvalue == 0)` (→ `reverted`),
   fails to dispatch, or fails to decode — covered by `execution` / `noDispatch` /
   `decodingFailed`.
 * low gas (any calldata): `Ξ = .error .OutOfGass` before any jump — covered by
@@ -145,7 +145,7 @@ proofs — `powRealisticCalldata` and `powSuccessAcct` — have both been **disc
 * **The gap it papered over.** solc's ABI decoder checks the argument is present with a **signed**
   `SLT(calldatasize − 4, 32)` (pc 214 of `powBytecode`). For `calldatasize ≥ 2^255 + 4` the word
   `calldatasize − 4 ≥ 2^255` is *negative* in two's-complement, so `SLT … = 1` and the EVM
-  **reverts**. The trusted-base `Act.decodeCalldata` originally did **no** signed length check — it
+  **reverts**. The trusted-base `Solm.decodeCalldata` originally did **no** signed length check — it
   read 32 bytes and **succeeded** — so for such calldata (with `n < 256`) the spec *returned `2^n`*
   while the EVM *reverted*: a genuine divergence. (The complementary case `size ≥ 2^256`, where the
   EVM's `CALLDATASIZE` wraps mod `2^256` but the spec does not, is excluded by the equivalence
@@ -157,7 +157,7 @@ proofs — `powRealisticCalldata` and `powSuccessAcct` — have both been **disc
   accepts, since `headSize < 2^255` always makes the signed check revert there too); a
   zero-parameter selector like `truth()` does no such check and is unaffected, so `truthCorrect`'s
   axiom set is unchanged.
-* **Consequence in the proof.** Sizes `≥ 2^255 + 4` now route to **`decodingFailed`** — Act decode
+* **Consequence in the proof.** Sizes `≥ 2^255 + 4` now route to **`decodingFailed`** — Solm decode
   fails (`powDecode_none_huge`) and the EVM reverts at the decoder's signed `SLT` (`powX_hugearg`,
   which reuses the short-argument revert trace via the new `slt32_one_high`). The success/`n ≥ 256`
   paths carry the exact realizable bound `size < 2^255 + 4` (the EVM still *succeeds* for

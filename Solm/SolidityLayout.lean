@@ -1,9 +1,9 @@
 import EVM.Types
 import ABI.Types
-import Act.Value
-import Act.Storage
+import Solm.Value
+import Solm.Storage
 
-namespace Act
+namespace Solm
 open ABI
 
 /-

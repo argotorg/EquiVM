@@ -1,13 +1,13 @@
 import EVM.Types
 import EVM.Lemmas
-import Act.Value
+import Solm.Value
 
 -- TODO: I'd like to get rid of these maybe
 import Ethereum.Semantics
 import Ethereum.UInt256
 import Ethereum.Wheels
 
-namespace Act
+namespace Solm
 
 open ABI
 

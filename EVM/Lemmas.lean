@@ -2,7 +2,7 @@ import EVM.Types
 
 namespace EVM
 
--- These theoreoms are used by Act.Storage.
+-- These theoreoms are used by Solm.Storage.
 -- They should be implemented in EVMLean and become public there at some point
 
     -- | A bound for the natural number value of a list of bytes.

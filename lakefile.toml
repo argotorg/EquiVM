@@ -1,7 +1,7 @@
 name = "EquiVM"
 version = "0.1.0"
 # defaultTargets = ["evmlean"] this currently does no correspond to anything
-defaultTargets = ["Act"]
+defaultTargets = ["Solm"]
 
 [[lean_lib]]
 name = "EquiVM"
@@ -13,7 +13,7 @@ name = "EVM"
 name = "ABI"
 
 [[lean_lib]]
-name = "Act"
+name = "Solm"
 
 [[lean_lib]]
 name = "Examples"

@@ -12,7 +12,7 @@ lemmas: the big-endian byte round-trip, `fromByteArrayBigEndian ∘ toByteArray 
 `MSTORE`-then-`MLOAD`/`RETURN` round-trip, and `encodeReturnValue?` for `bool`.
 -/
 
-open Ethereum Ethereum.EVM Act ABI
+open Ethereum Ethereum.EVM Solm ABI
 
 set_option maxRecDepth 8000
 
@@ -553,7 +553,7 @@ theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.
       ByteArray.toList_data_append, hcl, byteArray_zeroes_toList, hcsize]
   simp
 
-/-- The Act decoder's word at byte offset `off` equals the EVM's `uInt256OfByteArray (readBytes off)`. -/
+/-- The Solm decoder's word at byte offset `off` equals the EVM's `uInt256OfByteArray (readBytes off)`. -/
 theorem decode_word_at_eq (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) (hoff : off < 2 ^ 64) :
     ABI.bytesToWord ((cd.toList.drop off).take 32)
       = uInt256OfByteArray (cd.readBytes off 32) := by

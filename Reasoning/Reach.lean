@@ -25,7 +25,7 @@ Design notes live in `Reasoning/REACH_PLAN.md`.  Built on `Reasoning.Theory`
 ordinary Lean and composes by `RD` transitivity at the call site.
 -/
 
-open Act ABI Ethereum Ethereum.EVM
+open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Reach
 
@@ -1121,7 +1121,7 @@ set_option maxHeartbeats 1000000 in
     external message call `Θ` and advance to the successor: the result `(cA', σ', z, o)` is
     abstracted (no assumption on the callee's code), the return bytes `o` are written to memory,
     the status flag `z` is pushed, and accounts advance to `(cA', σ')`.  The same `Θ` is what the
-    Act-side `externalCall` invokes, so the two coincide by construction.  Gas is existential
+    Solm-side `externalCall` invokes, so the two coincide by construction.  Gas is existential
     (the callee's refund `g'` is unknown but `≤` forwarded, via `Theta_returnedGas_le`). -/
 theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1355,7 +1355,7 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {
       · exact hee
       · exact hworld
 
-/-- **Hoare while-rule for an `RD` loop** — the EVM analogue of `execWhile_var` (the Act-side
+/-- **Hoare while-rule for an `RD` loop** — the EVM analogue of `execWhile_var` (the Solm-side
     while-rule).  A variant-indexed invariant `Inv : ℕ → α → Prop` over the loop-carried state `α`
     (whose stack image is `stk a`), together with:
     * **`hexit`** — at variant `0` the guard's `JUMPI` falls through to `exit` with `exitStk`;
@@ -1488,12 +1488,12 @@ theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
     · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
     · exact Or.inr ⟨_, _, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
 
-/-! ## From RD terminals to Act runtime-equivalence
+/-! ## From RD terminals to Solm runtime-equivalence
 
 `RDret`/`RDrev` record that the *whole* run `X (g+1) … (initState …)` halts.  These
 eliminators carry that halting fact across the `X → Ξ` bridge (`Xi_*_of_X`) and into a
 `runtimeEquivalenceFor` case, folding the out-of-gas alternative into `reEquiv_outOfGas`
-*once*.  A revert/success segment therefore reaches the Act layer compositionally — e.g.
+*once*.  A revert/success segment therefore reaches the Solm layer compositionally — e.g.
 `(powX_short …).reEquivNoDispatch hcode (powDispatch_none_short …)` — with no per-site
 `rcases` / `Xi_*_of_X` / `reEquiv_*` plumbing.  All four are contract- and bytecode-generic
 (`hcode : I.code = code` bridges the concrete bytecode back to `I.code`). -/
@@ -1510,14 +1510,14 @@ theorem RDrev.reEquivElim {cfg contract cA gh bl σ σ₀ A I} {g : UInt256} {co
   · exact reEquiv_outOfGas (Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
   · exact k g' o (Xi_revert_of_X (by rw [← hcode] at hX; exact hX))
 
-/-- `RDrev ⇒ noDispatch`: the revert with Act failing to dispatch. -/
+/-- `RDrev ⇒ noDispatch`: the revert with Solm failing to dispatch. -/
 theorem RDrev.reEquivNoDispatch {cfg contract cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
     (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = none) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
-/-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails. -/
+/-- `RDrev ⇒ decodingFailed`: Solm dispatches to `t` but calldata-decoding fails. -/
 theorem RDrev.reEquivDecodingFailed {cfg contract cA gh bl σ σ₀ A I} {g : UInt256}
     {code : ByteArray} {t}
     (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ σ₀ g A I))

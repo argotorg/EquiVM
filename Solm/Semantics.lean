@@ -1,7 +1,7 @@
-import Act.Storage
-import Act.Value
+import Solm.Storage
+import Solm.Value
 
-namespace Act
+namespace Solm
 
 open ABI
 
@@ -199,14 +199,14 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .dynamicArray _, .array _ => some v
   | _, _ => none
 
-/-- Act evaluation errors. Should never happen in well-formed programs -/
+/-- Solm evaluation errors. Should never happen in well-formed programs -/
 inductive EvalError where
   | unboundVariable
   | typeError
   | storageError
   deriving DecidableEq, Repr, Inhabited
 
-/-- Result of evaluating an Act expression:
+/-- Result of evaluating an Solm expression:
     - a value (`ok`)
     - a `revert`
     - or an error, which indicates an ill-formed program
@@ -364,15 +364,15 @@ lemma stepSize_lt_stepsSize : ∀ (slot : StorageRef) step,
 
 mutual
 
-def evalStorageRefStep (cfg : Config) (act : Frame) (evm : EVM.State) (step : StorageRefStep) : EvalResult EvaledStorageRefStep :=
+def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State) (step : StorageRefStep) : EvalResult EvaledStorageRefStep :=
   match step with
   | .field name => pure (.field name)
   | .mindex expr => do
-    let index <- evalExpr? cfg act evm expr
+    let index <- evalExpr? cfg solm evm expr
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
     pure (.mindex indexKey)
   | .aindex expr => do
-    let index <- evalExpr? cfg act evm expr
+    let index <- evalExpr? cfg solm evm expr
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
     pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
@@ -380,8 +380,8 @@ def evalStorageRefStep (cfg : Config) (act : Frame) (evm : EVM.State) (step : St
     all_goals simp [slotStepEvalSize]
     all_goals omega
 
-def evalStorageRef (cfg : Config) (act : Frame) (evm : EVM.State) (slot : StorageRef) : EvalResult EvaledStorageRef := do
-  let steps <- EvalResult.seqList (slot.steps.map (evalStorageRefStep cfg act evm))
+def evalStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State) (slot : StorageRef) : EvalResult EvaledStorageRef := do
+  let steps <- EvalResult.seqList (slot.steps.map (evalStorageRefStep cfg solm evm))
   pure { base := slot.base, steps := steps }
   termination_by (slotEvalSize slot, 0)
   decreasing_by
@@ -391,87 +391,87 @@ def evalStorageRef (cfg : Config) (act : Frame) (evm : EVM.State) (slot : Storag
     apply lt_trans (stepSize_lt_stepsSize slot step (hin))
     omega
 
-def updateLocalPath? (cfg : Config) (act : Frame) (evm : EVM.State)
+def updateLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (root : Value) (steps : List StorageRefStep) (value : Value) : EvalResult Value :=
   match steps with
   | [] => pure value
   | .field name :: rest => do
       let child <- EvalResult.ofOption .typeError (lookupField? root name)
-      let child' <- updateLocalPath? cfg act evm child rest value
+      let child' <- updateLocalPath? cfg solm evm child rest value
       EvalResult.ofOption .typeError (updateField? root name child')
   | .mindex expr :: rest => do
-      let idx <- evalExpr? cfg act evm expr
+      let idx <- evalExpr? cfg solm evm expr
       let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
-      let child' <- updateLocalPath? cfg act evm child rest value
+      let child' <- updateLocalPath? cfg solm evm child rest value
       EvalResult.ofOption .typeError (updateIndex? root idx child')
   | .aindex expr :: rest => do
-      let idx <- evalExpr? cfg act evm expr
+      let idx <- evalExpr? cfg solm evm expr
       let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
-      let child' <- updateLocalPath? cfg act evm child rest value
+      let child' <- updateLocalPath? cfg solm evm child rest value
       EvalResult.ofOption .typeError (updateIndex? root idx child')
   termination_by (slotStepsEvalSize steps, 0)
   decreasing_by
     all_goals simp [slotStepsEvalSize, slotStepEvalSize]
     all_goals omega
 
-def assignStorageRef? (cfg : Config) (act : Frame) (evm : EVM.State)
+def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (slot : StorageRef) (value : Value) : EvalResult (Frame × EVM.State) :=
-  match act.locals.get? slot.base with
+  match solm.locals.get? slot.base with
   | some root => do
-      let root' <- updateLocalPath? cfg act evm root slot.steps value
-      pure ({ act with locals := act.locals.insert slot.base root' }, evm)
+      let root' <- updateLocalPath? cfg solm evm root slot.steps value
+      pure ({ solm with locals := solm.locals.insert slot.base root' }, evm)
   | none =>
-    match evalStorageRef cfg act evm slot with
+    match evalStorageRef cfg solm evm slot with
     | .ok evaledStorageRef => do
       let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
       let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
-      pure (act, evm')
+      pure (solm, evm')
     | .revert => .revert
     | .error e => .error e
 
-def evalExpr? (cfg : Config) (act : Frame) (evm : EVM.State) :
+def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
   | .intLit n => pure (.int n)
   | .boolLit b => pure (.bool b)
-  | .var name => EvalResult.ofOption .unboundVariable (act.locals.get? name)
+  | .var name => EvalResult.ofOption .unboundVariable (solm.locals.get? name)
   | .env var => pure (envValue evm var)
   | .storage slot =>
-      match evalStorageRef cfg act evm slot with
+      match evalStorageRef cfg solm evm slot with
       | .ok evaledStorageRef => do
           let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
           pure (storageLocLoad evm loc)
       | .revert => .revert
       | .error e => .error e
   | .field base name => do
-      let baseValue <- evalExpr? cfg act evm base
+      let baseValue <- evalExpr? cfg solm evm base
       EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .aindex base idxExpr => do
-      let baseValue <- evalExpr? cfg act evm base
-      let idx <- evalExpr? cfg act evm idxExpr
+      let baseValue <- evalExpr? cfg solm evm base
+      let idx <- evalExpr? cfg solm evm idxExpr
       EvalResult.ofOption .typeError (lookupIndex? baseValue idx)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
-      let value <- evalExpr? cfg act evm expr
+      let value <- evalExpr? cfg solm evm expr
       EvalResult.ofOption .typeError (castValue? value ty)
   | .addrOf expr => do
-      let value <- evalExpr? cfg act evm expr
+      let value <- evalExpr? cfg solm evm expr
       match value with
       | .address a => pure (.address a)
       | _ => .error .typeError
   | .unary op expr => do
-      let value <- evalExpr? cfg act evm expr
+      let value <- evalExpr? cfg solm evm expr
       EvalResult.ofOption .typeError (evalUnaryOp? op value)
   | .binary op lhs rhs => do
-      let lhsValue <- evalExpr? cfg act evm lhs
-      let rhsValue <- evalExpr? cfg act evm rhs
+      let lhsValue <- evalExpr? cfg solm evm lhs
+      let rhsValue <- evalExpr? cfg solm evm rhs
       evalBinaryOp? op lhsValue rhsValue
   | .ite cond thenExpr elseExpr => do
-      let condValue <- evalExpr? cfg act evm cond
+      let condValue <- evalExpr? cfg solm evm cond
       match condValue with
-      | .bool true => evalExpr? cfg act evm thenExpr
-      | .bool false => evalExpr? cfg act evm elseExpr
+      | .bool true => evalExpr? cfg solm evm thenExpr
+      | .bool false => evalExpr? cfg solm evm elseExpr
       | _ => .error .typeError
   | .inRange intType expr => do
-      let value <- evalExpr? cfg act evm expr
+      let value <- evalExpr? cfg solm evm expr
       match value, intType with
       | .int i, .uint n =>
           if i < 0 || i >= 2^(n.val) then .revert else pure value
@@ -486,13 +486,13 @@ decreasing_by
 
 end
 
-def evalExprs? (cfg : Config) (act : Frame) (evm : EVM.State)
+def evalExprs? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (exprs : List Expr) : EvalResult (List Value) :=
   match exprs with
   | [] => pure []
   | expr :: rest => do
-      let value <- evalExpr? cfg act evm expr
-      let values <- evalExprs? cfg act evm rest
+      let value <- evalExpr? cfg solm evm expr
+      let values <- evalExprs? cfg solm evm rest
       pure (value :: values)
 
 def externalValueToWord? : Value -> Option EVM.Word
@@ -534,7 +534,7 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
       Except.ok calldata = (cfg.externalABI.encode? name args).elim (.error Ethereum.EVM.ExecutionException.InvalidInstruction) pure
       → valueWord = EVM.wordOfInt value
       → (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
-        -- The external call bridges directly to the EVM `Θ`.  Act tracks neither gas nor the
+        -- The external call bridges directly to the EVM `Θ`.  Solm tracks neither gas nor the
         -- substate, so — exactly as `callGas` is already existential — the *entire* input
         -- substate `A_in` is existentially quantified: the call "behaves as `Θ` would for some
         -- gas and substate".  (The result substate `A'` is discarded; `execResultsEquiv` ignores
@@ -651,183 +651,183 @@ mutual
 inductive ExecStmt (cfg : Config) :
     Frame -> EVM.State -> Stmt -> ExecResult -> Prop where
   | letDecl :
-      evalExpr? cfg act evm expr = .ok value ->
-      ExecStmt cfg act evm (.letDecl name ty expr)
-        (.ok { act with locals := act.locals.insert name value } evm)
+      evalExpr? cfg solm evm expr = .ok value ->
+      ExecStmt cfg solm evm (.letDecl name ty expr)
+        (.ok { solm with locals := solm.locals.insert name value } evm)
   | letDeclRevert :
-      evalExpr? cfg act evm expr = .revert ->
-      ExecStmt cfg act evm (.letDecl name ty expr) .reverted
+      evalExpr? cfg solm evm expr = .revert ->
+      ExecStmt cfg solm evm (.letDecl name ty expr) .reverted
   | assign :
-      evalExpr? cfg act evm expr = .ok value ->
-      assignStorageRef? cfg act evm slot value = .ok (act', evm') ->
-      ExecStmt cfg act evm (.assign slot expr) (.ok act' evm')
+      evalExpr? cfg solm evm expr = .ok value ->
+      assignStorageRef? cfg solm evm slot value = .ok (solm', evm') ->
+      ExecStmt cfg solm evm (.assign slot expr) (.ok solm' evm')
   | assignExprRevert :
-      evalExpr? cfg act evm expr = .revert ->
-      ExecStmt cfg act evm (.assign slot expr) .reverted
+      evalExpr? cfg solm evm expr = .revert ->
+      ExecStmt cfg solm evm (.assign slot expr) .reverted
   | assignStoreRevert :
-      evalExpr? cfg act evm expr = .ok value ->
-      assignStorageRef? cfg act evm slot value = .revert ->
-      ExecStmt cfg act evm (.assign slot expr) .reverted
+      evalExpr? cfg solm evm expr = .ok value ->
+      assignStorageRef? cfg solm evm slot value = .revert ->
+      ExecStmt cfg solm evm (.assign slot expr) .reverted
   | requireTrue {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecStmt cfg act evm (.require condExpr) (.ok act evm)
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecStmt cfg solm evm (.require condExpr) (.ok solm evm)
   | requireFalse {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool false) ->
-      ExecStmt cfg act evm (.require condExpr) .reverted
+      evalExpr? cfg solm evm condExpr = .ok (.bool false) ->
+      ExecStmt cfg solm evm (.require condExpr) .reverted
   | requireRevert {condExpr} :
-      evalExpr? cfg act evm condExpr = .revert ->
-      ExecStmt cfg act evm (.require condExpr) .reverted
+      evalExpr? cfg solm evm condExpr = .revert ->
+      ExecStmt cfg solm evm (.require condExpr) .reverted
   | whileFalse {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool false) ->
-      ExecStmt cfg act evm (.while condExpr body) (.ok act evm)
+      evalExpr? cfg solm evm condExpr = .ok (.bool false) ->
+      ExecStmt cfg solm evm (.while condExpr body) (.ok solm evm)
   | whileCondRevert {condExpr} :
-      evalExpr? cfg act evm condExpr = .revert ->
-      ExecStmt cfg act evm (.while condExpr body) .reverted
+      evalExpr? cfg solm evm condExpr = .revert ->
+      ExecStmt cfg solm evm (.while condExpr body) .reverted
   | whileTrue {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecBlock cfg act evm body (.ok act' evm') ->
-      ExecStmt cfg act' evm' (.while condExpr body) result ->
-      ExecStmt cfg act evm (.while condExpr body) result
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body (.ok solm' evm') ->
+      ExecStmt cfg solm' evm' (.while condExpr body) result ->
+      ExecStmt cfg solm evm (.while condExpr body) result
   | whileReturn {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecBlock cfg act evm body (.returned act' evm' value) ->
-      ExecStmt cfg act evm (.while condExpr body) (.returned act' evm' value)
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body (.returned solm' evm' value) ->
+      ExecStmt cfg solm evm (.while condExpr body) (.returned solm' evm' value)
   | whileRevert {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecBlock cfg act evm body .reverted ->
-      ExecStmt cfg act evm (.while condExpr body) .reverted
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body .reverted ->
+      ExecStmt cfg solm evm (.while condExpr body) .reverted
   | whileBreak {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecBlock cfg act evm body (.break act' evm') ->
-      ExecStmt cfg act evm (.while condExpr body) (.ok act' evm')
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body (.break solm' evm') ->
+      ExecStmt cfg solm evm (.while condExpr body) (.ok solm' evm')
   | whileContinue {condExpr} :
-      evalExpr? cfg act evm condExpr = .ok (.bool true) ->
-      ExecBlock cfg act evm body (.continue act' evm') ->
-      ExecStmt cfg act' evm' (.while condExpr body) result ->
-      ExecStmt cfg act evm (.while condExpr body) result
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body (.continue solm' evm') ->
+      ExecStmt cfg solm' evm' (.while condExpr body) result ->
+      ExecStmt cfg solm evm (.while condExpr body) result
   | internalCallReturn :
-      evalExprs? cfg act evm args = .ok argVals ->
-      lookupCallable? act.contract name = some callee ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      lookupCallable? solm.contract name = some callee ->
       bindParams? callee.params argVals = some locals ->
-      ExecFuncBody cfg { act with locals := locals } evm callee.body
-        (.returned calleeAct calleeEvm value) ->
-      ExecStmt cfg act evm (.internalCall name args retVar)
-        (.ok (resumeAfterInternalCall act retVar value) calleeEvm)
+      ExecFuncBody cfg { solm with locals := locals } evm callee.body
+        (.returned calleeSolm calleeEvm value) ->
+      ExecStmt cfg solm evm (.internalCall name args retVar)
+        (.ok (resumeAfterInternalCall solm retVar value) calleeEvm)
   | internalCallRevert :
-      evalExprs? cfg act evm args = .ok argVals ->
-      lookupCallable? act.contract name = some callee ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      lookupCallable? solm.contract name = some callee ->
       bindParams? callee.params argVals = some locals ->
-      ExecFuncBody cfg { act with locals := locals } evm callee.body .reverted ->
-      ExecStmt cfg act evm (.internalCall name args retVar) .reverted
+      ExecFuncBody cfg { solm with locals := locals } evm callee.body .reverted ->
+      ExecStmt cfg solm evm (.internalCall name args retVar) .reverted
   | internalCallArgsRevert :
-      evalExprs? cfg act evm args = .revert ->
-      ExecStmt cfg act evm (.internalCall name args retVar) .reverted
+      evalExprs? cfg solm evm args = .revert ->
+      ExecStmt cfg solm evm (.internalCall name args retVar) .reverted
   | externalCallSuccess :
-      evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .ok argVals ->
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
       externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
       cfg.externalABI.decode? name out = some value ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar)
-        (.ok { act with locals := act.locals.insert retVar value } evm')
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar)
+        (.ok { solm with locals := solm.locals.insert retVar value } evm')
   | externalCallFailure :
-      evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .ok argVals ->
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
       externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReturnDecodeRevert :
       -- The sub-call *succeeds* (`z = true`) but the returned bytes do not ABI-decode to the
       -- expected return value (`decode? = none`).  The caller's solc-generated return decoder then
       -- reverts (`if slt(returndatasize, 32) { revert }`), so the whole statement reverts.
-      evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .ok argVals ->
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
       externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
       cfg.externalABI.decode? name out = none ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReceiverRevert :
-      evalExpr? cfg act evm receiver = .revert ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      evalExpr? cfg solm evm receiver = .revert ->
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallSendRevert :
-      evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm eth = .revert ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .revert ->
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallArgsRevert :
-      evalExpr? cfg act evm receiver = .ok (.address target) ->
-      evalExpr? cfg act evm eth = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .revert ->
-      ExecStmt cfg act evm (.externalCall receiver name eth args retVar) .reverted
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .revert ->
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
       /- do we want to express a low-level .call? -/
   | newSuccess :
-      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .ok argVals ->
+      evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
       newViaEVM cfg evm name sendVal argVals (addr, evm', true) ->
-      ExecStmt cfg act evm (.new name valExpr args retVar)
-        (.ok { act with locals := act.locals.insert retVar (.address addr) } evm')
+      ExecStmt cfg solm evm (.new name valExpr args retVar)
+        (.ok { solm with locals := solm.locals.insert retVar (.address addr) } evm')
   | newRevert :
       -- A failed creation reverts the caller, unlike a low-level external call.
-      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .ok argVals ->
+      evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
       newViaEVM cfg evm name sendVal argVals (addr, evm', false) ->
-      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
+      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
   | newValueRevert :
-      evalExpr? cfg act evm valExpr = .revert ->
-      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
+      evalExpr? cfg solm evm valExpr = .revert ->
+      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
   | newArgsRevert :
-      evalExpr? cfg act evm valExpr = .ok (.int sendVal) ->
-      evalExprs? cfg act evm args = .revert ->
-      ExecStmt cfg act evm (.new name valExpr args retVar) .reverted
+      evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .revert ->
+      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
   | return :
-      evalExpr? cfg act evm expr = .ok value ->
-      ExecStmt cfg act evm (.return expr) (.returned act evm (some value))
+      evalExpr? cfg solm evm expr = .ok value ->
+      ExecStmt cfg solm evm (.return expr) (.returned solm evm (some value))
   | returnRevert :
-      evalExpr? cfg act evm expr = .revert ->
-      ExecStmt cfg act evm (.return expr) .reverted
+      evalExpr? cfg solm evm expr = .revert ->
+      ExecStmt cfg solm evm (.return expr) .reverted
   | break :
-      ExecStmt cfg act evm .break (.break act evm)
+      ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
-      ExecStmt cfg act evm .continue (.continue act evm)
+      ExecStmt cfg solm evm .continue (.continue solm evm)
 
 inductive ExecBlock (cfg : Config) :
     Frame -> EVM.State -> List Stmt -> ExecResult -> Prop where
   | nil :
-      ExecBlock cfg act evm [] (.ok act evm)
+      ExecBlock cfg solm evm [] (.ok solm evm)
   | consNormal :
-      ExecStmt cfg act evm stmt (.ok act' evm') ->
-      ExecBlock cfg act' evm' stmts result ->
-      ExecBlock cfg act evm (stmt :: stmts) result
+      ExecStmt cfg solm evm stmt (.ok solm' evm') ->
+      ExecBlock cfg solm' evm' stmts result ->
+      ExecBlock cfg solm evm (stmt :: stmts) result
   | consReturn :
-      ExecStmt cfg act evm stmt (.returned act' evm' value) ->
-      ExecBlock cfg act evm (stmt :: stmts) (.returned act' evm' value)
+      ExecStmt cfg solm evm stmt (.returned solm' evm' value) ->
+      ExecBlock cfg solm evm (stmt :: stmts) (.returned solm' evm' value)
   | consRevert :
-      ExecStmt cfg act evm stmt .reverted ->
-      ExecBlock cfg act evm (stmt :: stmts) .reverted
+      ExecStmt cfg solm evm stmt .reverted ->
+      ExecBlock cfg solm evm (stmt :: stmts) .reverted
   | consBreak :
-      ExecStmt cfg act evm stmt (.break act' evm') ->
-      ExecBlock cfg act evm (stmt :: stmts) (.break act' evm')
+      ExecStmt cfg solm evm stmt (.break solm' evm') ->
+      ExecBlock cfg solm evm (stmt :: stmts) (.break solm' evm')
   | consContinue :
-      ExecStmt cfg act evm stmt (.continue act' evm') ->
-      ExecBlock cfg act evm (stmt :: stmts) (.continue act' evm')
+      ExecStmt cfg solm evm stmt (.continue solm' evm') ->
+      ExecBlock cfg solm evm (stmt :: stmts) (.continue solm' evm')
 
 inductive ExecFuncBody (cfg : Config) :
     Frame -> EVM.State -> List Stmt -> ExecResult -> Prop where
   | execBlockOK :
-      ExecBlock cfg act evm body (.ok act' evm') ->
-      ExecFuncBody cfg act evm body (.returned act' evm' none)
+      ExecBlock cfg solm evm body (.ok solm' evm') ->
+      ExecFuncBody cfg solm evm body (.returned solm' evm' none)
   | execBlockRet :
-      ExecBlock cfg act evm body (.returned act' evm' value) ->
-      ExecFuncBody cfg act evm body (.returned act' evm' value)
+      ExecBlock cfg solm evm body (.returned solm' evm' value) ->
+      ExecFuncBody cfg solm evm body (.returned solm' evm' value)
   | execBlockRevert :
-      ExecBlock cfg act evm body .reverted ->
-      ExecFuncBody cfg act evm body .reverted
+      ExecBlock cfg solm evm body .reverted ->
+      ExecFuncBody cfg solm evm body .reverted
   -- A `break`/`continue` that occurs outside a loop is malformed. We have to handle it so that ExecFuncBody is never stuck.
   | execBlockBreak :
-      ExecBlock cfg act evm body (.break act' evm') ->
-      ExecFuncBody cfg act evm body (.returned act' evm' none)
+      ExecBlock cfg solm evm body (.break solm' evm') ->
+      ExecFuncBody cfg solm evm body (.returned solm' evm' none)
   | execBlockContinue :
-      ExecBlock cfg act evm body (.continue act' evm') ->
-      ExecFuncBody cfg act evm body (.returned act' evm' none)
+      ExecBlock cfg solm evm body (.continue solm' evm') ->
+      ExecFuncBody cfg solm evm body (.returned solm' evm' none)
 
 end
 

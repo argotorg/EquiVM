@@ -2,12 +2,12 @@ import ABI.Types
 import ABI.Signature
 import ABI.Decode
 import ABI.Encode
-import Act.Semantics
+import Solm.Semantics
 
 import Ethereum.Semantics
 import Ethereum.Exception
 
-namespace Act
+namespace Solm
 
 open ABI
 

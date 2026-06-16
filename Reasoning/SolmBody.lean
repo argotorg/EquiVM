@@ -1,31 +1,31 @@
 import Reasoning.Theory
 
 /-!
-# ActBody — compositional lemmas for the Act contract body
+# SolmBody — compositional lemmas for the Solm contract body
 
-The Act-side analogue of the EVM trace: facts about `ExecContractBody` / `ExecStmt`.  The piece
+The Solm-side analogue of the EVM trace: facts about `ExecContractBody` / `ExecStmt`.  The piece
 shared across every solc contract is the **non-payable guard** `require(callvalue == 0)` that opens
 each transition body — its evaluation (both directions) and the body-revert it produces under
 non-zero call value.  Statement-level combinators for the success path / loops can be added here as
 more contracts need them.
 -/
 
-open Act ABI Ethereum
+open Solm ABI Ethereum
 
 namespace Reasoning.Theory
 
 /-- The non-payable guard `callvalue == 0` evaluates to `true` when the call value is zero. -/
-theorem evalCallvalueEq_true {cfg : Config} {act : Frame} {evm : EVM.State}
+theorem evalCallvalueEq_true {cfg : Config} {solm : Frame} {evm : EVM.State}
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    evalExpr? cfg act evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true) := by
+    evalExpr? cfg solm evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true) := by
   have hval : (Value.int (Int.ofNat evm.executionEnv.weiValue.val) == Value.int 0) = true := by
     rw [h]; rfl
   simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
 
 /-- The non-payable guard `callvalue == 0` evaluates to `false` when the call value is non-zero. -/
-theorem evalCallvalueEq_false {cfg : Config} {act : Frame} {evm : EVM.State}
+theorem evalCallvalueEq_false {cfg : Config} {solm : Frame} {evm : EVM.State}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    evalExpr? cfg act evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool false) := by
+    evalExpr? cfg solm evm (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool false) := by
   have hval : (Value.int (Int.ofNat evm.executionEnv.weiValue.val) == Value.int 0) = false := by
     rw [beq_eq_false_iff_ne]; intro hh; rw [Value.int.injEq] at hh
     exact h (uint256_toNat_eq_zero (Int.ofNat.inj hh))
@@ -41,7 +41,7 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
-/-- **Hoare while-rule for the Act semantics** — the loop analog of the EVM `RD.loop`.
+/-- **Hoare while-rule for the Solm semantics** — the loop analog of the EVM `RD.loop`.
 
     A variant-indexed invariant `P : ℕ → Store → Prop` (`P v L` = "invariant holds with `v`
     iterations to go") that
@@ -50,9 +50,9 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
     * carries one body iteration from `P (v+1)` to `P v`, leaving the EVM state and contract fixed
       (`hstep`),
     drives the `while` to a final store satisfying `P 0`, from any starting variant.  The EVM state
-    and contract are loop-invariant; only the locals change (an Act loop touches no EVM state). -/
+    and contract are loop-invariant; only the locals change (an Solm loop touches no EVM state). -/
 theorem execWhile_var {cfg : Config} {C : ContractDecl} {evm : EVM.State}
-    {cond : Expr} {body : List Stmt} (P : ℕ → Act.Store → Prop)
+    {cond : Expr} {body : List Stmt} (P : ℕ → Solm.Store → Prop)
     (hfalse : ∀ L, P 0 L →
         evalExpr? cfg { contract := C, locals := L } evm cond = .ok (.bool false))
     (htrue : ∀ v L, P (v + 1) L →
@@ -76,63 +76,63 @@ theorem execWhile_var {cfg : Config} {C : ContractDecl} {evm : EVM.State}
 
 `ExecBlock` is built tail-first (`consNormal` needs the rest), so a straight-line body reads
 inside-out.  `ABlock` is the difference-list/CPS view that lets it read **left-to-right** like
-`evm_run`: `ABlock cfg evm act₀ stmts₀ act stmts` transforms a continuation from the cursor
-`(act, stmts)` into the whole block from `(act₀, stmts₀)`.  Chain with `start |>.requireStep …
+`evm_run`: `ABlock cfg evm solm₀ stmts₀ solm stmts` transforms a continuation from the cursor
+`(solm, stmts)` into the whole block from `(solm₀, stmts₀)`.  Chain with `start |>.requireStep …
 |>.letStep … |>.whileStep …` and close with a terminal (`returns` / `requireRevert`); wrap the
 result with `ExecFuncBody.execBlockRet` / `.execBlockRevert` to get an `ExecContractBody`. -/
 
-/-- A straight-line `ExecBlock` builder, cursor `(act, stmts)` over fixed entry `(act₀, stmts₀)`.
+/-- A straight-line `ExecBlock` builder, cursor `(solm, stmts)` over fixed entry `(solm₀, stmts₀)`.
     (A one-field structure so the combinators chain by dot-notation.) -/
-structure ABlock (cfg : Config) (evm : EVM.State) (act₀ : Frame) (stmts₀ : List Stmt)
-    (act : Frame) (stmts : List Stmt) : Prop where
-  run : ∀ {result}, ExecBlock cfg act evm stmts result → ExecBlock cfg act₀ evm stmts₀ result
+structure ABlock (cfg : Config) (evm : EVM.State) (solm₀ : Frame) (stmts₀ : List Stmt)
+    (solm : Frame) (stmts : List Stmt) : Prop where
+  run : ∀ {result}, ExecBlock cfg solm evm stmts result → ExecBlock cfg solm₀ evm stmts₀ result
 
 /-- Open a builder at the entry frame. -/
-theorem ABlock.start {cfg evm act stmts} : ABlock cfg evm act stmts act stmts := ⟨fun h => h⟩
+theorem ABlock.start {cfg evm solm stmts} : ABlock cfg evm solm stmts solm stmts := ⟨fun h => h⟩
 
 /-- A passing `require` (frame unchanged). -/
-theorem ABlock.requireStep {cfg evm act₀ stmts₀ act rest} {cond : Expr}
-    (prev : ABlock cfg evm act₀ stmts₀ act (.require cond :: rest))
-    (heval : evalExpr? cfg act evm cond = .ok (.bool true)) :
-    ABlock cfg evm act₀ stmts₀ act rest :=
+theorem ABlock.requireStep {cfg evm solm₀ stmts₀ solm rest} {cond : Expr}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.require cond :: rest))
+    (heval : evalExpr? cfg solm evm cond = .ok (.bool true)) :
+    ABlock cfg evm solm₀ stmts₀ solm rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.requireTrue heval) h)⟩
 
 /-- A `let` binding (advances the cursor's locals). -/
-theorem ABlock.letStep {cfg evm act₀ stmts₀ act rest} {name ty expr value}
-    (prev : ABlock cfg evm act₀ stmts₀ act (.letDecl name ty expr :: rest))
-    (heval : evalExpr? cfg act evm expr = .ok value) :
-    ABlock cfg evm act₀ stmts₀ { act with locals := act.locals.insert name value } rest :=
+theorem ABlock.letStep {cfg evm solm₀ stmts₀ solm rest} {name ty expr value}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.letDecl name ty expr :: rest))
+    (heval : evalExpr? cfg solm evm expr = .ok value) :
+    ABlock cfg evm solm₀ stmts₀ { solm with locals := solm.locals.insert name value } rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.letDecl heval) h)⟩
 
-/-- A `while` loop that runs to `.ok` at frame `act'` (supply the loop fact, e.g. `execWhile_var`). -/
-theorem ABlock.whileStep {cfg evm act₀ stmts₀ act act' rest} {cond body}
-    (prev : ABlock cfg evm act₀ stmts₀ act (.while cond body :: rest))
-    (hwhile : ExecStmt cfg act evm (.while cond body) (.ok act' evm)) :
-    ABlock cfg evm act₀ stmts₀ act' rest :=
+/-- A `while` loop that runs to `.ok` at frame `solm'` (supply the loop fact, e.g. `execWhile_var`). -/
+theorem ABlock.whileStep {cfg evm solm₀ stmts₀ solm solm' rest} {cond body}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.while cond body :: rest))
+    (hwhile : ExecStmt cfg solm evm (.while cond body) (.ok solm' evm)) :
+    ABlock cfg evm solm₀ stmts₀ solm' rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal hwhile h)⟩
 
 /-- Close with a `return` ⇒ the block returns `value`. -/
-theorem ABlock.returns {cfg evm act₀ stmts₀ act rest} {expr value}
-    (prev : ABlock cfg evm act₀ stmts₀ act (.return expr :: rest))
-    (heval : evalExpr? cfg act evm expr = .ok value) :
-    ExecBlock cfg act₀ evm stmts₀ (.returned act evm (some value)) :=
+theorem ABlock.returns {cfg evm solm₀ stmts₀ solm rest} {expr value}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.return expr :: rest))
+    (heval : evalExpr? cfg solm evm expr = .ok value) :
+    ExecBlock cfg solm₀ evm stmts₀ (.returned solm evm (some value)) :=
   prev.run (ExecBlock.consReturn (ExecStmt.return heval))
 
 /-- Close with a failing `require` ⇒ the block reverts. -/
-theorem ABlock.requireRevert {cfg evm act₀ stmts₀ act rest} {cond : Expr}
-    (prev : ABlock cfg evm act₀ stmts₀ act (.require cond :: rest))
-    (heval : evalExpr? cfg act evm cond = .ok (.bool false)) :
-    ExecBlock cfg act₀ evm stmts₀ .reverted :=
+theorem ABlock.requireRevert {cfg evm solm₀ stmts₀ solm rest} {cond : Expr}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.require cond :: rest))
+    (heval : evalExpr? cfg solm evm cond = .ok (.bool false)) :
+    ExecBlock cfg solm₀ evm stmts₀ .reverted :=
   prev.run (ExecBlock.consRevert (ExecStmt.requireFalse heval))
 
-/-! ## `Act.Store` (locals) lookup -/
+/-! ## `Solm.Store` (locals) lookup -/
 
 /-- Reading the key just inserted. -/
-theorem store_get_self (L : Act.Store) (k : Ident) (v : Value) :
+theorem store_get_self (L : Solm.Store) (k : Ident) (v : Value) :
     (L.insert k v).get? k = some v := by simp
 
 /-- Reading a key untouched by an insert of a different key. -/
-theorem store_get_ne (L : Act.Store) {k a : Ident} (v : Value) (h : (k == a) = false) :
+theorem store_get_ne (L : Solm.Store) {k a : Ident} (v : Value) (h : (k == a) = false) :
     (L.insert k v).get? a = L.get? a := by
   simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, h]
 

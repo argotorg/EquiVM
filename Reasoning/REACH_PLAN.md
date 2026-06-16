@@ -33,7 +33,7 @@ goal *is* the `RD` itself, with no post-`cases` opacity.
 ## Delivered surface
 
 The per-opcode combinators, the `evm_run` macro (auto-fills decode/overflow proofs), the
-`RDret`/`RDrev` halting terminals, and the `RD → Act` `reEquivElim` eliminators — see `NOTES.md`.
+`RDret`/`RDrev` halting terminals, and the `RD → Solm` `reEquivElim` eliminators — see `NOTES.md`.
 All generic over `code`; `Examples/Pow` and `Examples/Truth` are both expressed through them.
 
 ## External calls (in progress) — `RD.call` recipe
@@ -87,7 +87,7 @@ Gas arithmetic (`C' = C + memCost + gasCost - g'.toNat`):
 * hence `g'.toNat < gasCost`, so net CALL cost `≥ 1`, `k+1 ≤ C'`, `C' ≤ g`, no `UInt256` wrap.
 
 After `RD.call`: trace continues RETURNDATACOPY/decoder/`RD.sstore`/STOP; the caller proof instantiates
-the Act `externalCall`'s `A_in`/`callGas` to these witnesses ⇒ `Θ_Act = Θ_EVM` ⇒ same opaque `(z,σ',o)`.
+the Solm `externalCall`'s `A_in`/`callGas` to these witnesses ⇒ `Θ_Act = Θ_EVM` ⇒ same opaque `(z,σ',o)`.
 
 ### WIP file: `RDCall.lean` (repo root, not in any build glob)
 
@@ -114,7 +114,7 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
   - **Coincidence crux PROVED**: `accountAddress_roundtrip` (160-bit `ofUInt256∘ofNat = id`),
     `wordOfInt_zero`, and **`callerCallCoincides`** — given the EVM `Θ`-link (from `RD.call`, in
     `evm.*` form) + couplings (`tgt = ofUInt256 targetWord`, `encode? "pow2" [n] = mem.read…`,
-    `perm = true`, `depth ≠ 1024`), the Act `externalCallViaEVM` holds for the *same* opaque
+    `perm = true`, `depth ≠ 1024`), the Solm `externalCallViaEVM` holds for the *same* opaque
     `(z,σ',o)`. Built via `@externalCallViaEVM.callMade (x := fun _ _ => g'') …` (the discarded-gas
     implicit `x` must be pinned, else higher-order unification fails on the `⟨callGas,A_in,h⟩` tuple).
 
@@ -126,13 +126,13 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
    96 bits zero ⇒ `decodingFailed` otherwise) → arg1 path 328→306→297 (uint256) → back to 66.
    Build as one `evm_run` chain (inline subroutines in execution order) or as `RD.routine*` combinators;
    trace stacks with compiler assistance (extend, read actual stack from type-mismatch, fix).
-   Also a `size < 68` (or dirty-address) **decode-revert** trace ⇒ `RDrev` + Act `decodingFailed`.
+   Also a `size < 68` (or dirty-address) **decode-revert** trace ⇒ `RDrev` + Solm `decodingFailed`.
 2. **Body** pc 73→143: clean target (AND pc96), build `pow2` calldata in memory via encoder 425
    (PUSH4 0x442b7ffb selector, SHL, MSTORE), reach the CALL cursor at pc 143 with stack
    `[gas, target, 0, inOff, inSize, outOff, outSize, …]` — then **`RD.call`**.
 3. **z-split** post-CALL (pc 144): `z=true` → 158→ return-decoder 470 → `RD.sstore` slot 0 → 73's
    caller → 71 STOP ⇒ `RDret (cA, σ[slot0 := decode o])`; `z=false` → 151 RETURNDATACOPY → REVERT ⇒ `RDrev`.
-4. **Act body**: `require(callvalue=0)` (passes) → `externalCall` via `callerCallCoincides`
+4. **Solm body**: `require(callvalue=0)` (passes) → `externalCall` via `callerCallCoincides`
    (instantiate `A_in`/`callGas` to the `RD.call` witnesses) → on `z` split: `assign stored` (full-slot
    SSTORE coupling, `decode o`) or revert.
 5. **Assemble**: a success-execution eliminator that does the `z`/size case-split and feeds
@@ -160,17 +160,17 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
    0 callerSelMem 132 32`, aw 6), MLOAD the free-ptr at 64 (carry `loadval` SYMBOLICALLY via
    `RD.mload`'s `hval` — RD.call's offsets are free vars, so no need to prove it's 128 yet), DUP8/GAS,
    then **`RD.call`** (value 0). Stack at 143: `[gv, tgt, ⟨0⟩, inOff, inSize, outOff, ⟨32⟩, …]`.
-2. **Memory–encoding coupling (HARD, byte-level).** For the Act coincidence: prove
+2. **Memory–encoding coupling (HARD, byte-level).** For the Solm coincidence: prove
    `callerCalldataMem.readWithPadding 128 36 = pow2Selector ++ UInt256.toByteArray (callerArg1 I)`
    AND `loadval = ⟨128⟩`, `inSize = ⟨36⟩`. Needs NEW lemmas: the 2nd MSTORE is a *partial overwrite*
    (off 132 < callerSelMem.size 160), which `toByteArray_write_eq` (write-past-end only) does NOT
-   cover. Also relate `callerArg1 I` (the EVM word) to the Act decoded `n : ℤ` so `encode? "pow2"
+   cover. Also relate `callerArg1 I` (the EVM word) to the Solm decoded `n : ℤ` so `encode? "pow2"
    [.int n] = some (…)`.
 3. **Post-CALL z-split (more bytecode).** pc 144: `z=true` → POP×4 → return-decoder 470 (uint256) →
    `RD.sstore` slot 0 (store `decode o`) → JUMP back → 71 STOP ⇒ `RDret (cA, σ[slot0])`;
    `z=false` → 151 RETURNDATACOPY → REVERT ⇒ `RDrev`.
-4. **Act body** `ExecContractBody callerConfig callerContract … runTransition.body`: `require(cv=0)`
-   passes → `externalCall` via `callerCallCoincides` (instantiate Act `A_in`/`callGas` to the
+4. **Solm body** `ExecContractBody callerConfig callerContract … runTransition.body`: `require(cv=0)`
+   passes → `externalCall` via `callerCallCoincides` (instantiate Solm `A_in`/`callGas` to the
    `RD.call` witnesses; uses coupling #2) → on `z`: `assign stored` (decode coupling) or revert.
 5. **Assembly.** New success eliminator doing the `z`/size/clean-address case-split, feeding
    `RDret.reEquivExecution` / `RDrev.reEquiv*` ⇒ discharge the `sorry` (the matching-selector branch
@@ -182,14 +182,14 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
 pc 144 with `(if z then ⟨1⟩ else ⟨0⟩) :: REST` on the stack and accounts `(cA', σ')` — the opaque
 `Θ` output. Memory/activeWords carried symbolically (`callerCalldataMem I`, `callerOutPtr I`). The
 entire EVM side up to and including the opaque CALL is done. Remaining: post-call z-split tails
-(success/​fail), memory–encoding coupling, Act body, assembly.
+(success/​fail), memory–encoding coupling, Solm body, assembly.
 
 ---
 
-## BLOCKER (session 3): Act `decode?` is total, EVM return-ABI-decoder is partial
+## BLOCKER (session 3): Solm `decode?` is total, EVM return-ABI-decoder is partial
 
 **Status: the theorem `callerCorrect` is FALSE as currently stated. Root cause is in the trusted
-Act spec, not the proof.** Found while building the post-call z=true tail.
+Solm spec, not the proof.** Found while building the post-call z=true tail.
 
 ### The discrepancy
 Post-CALL, on success (`z=true`), solc ABI-decodes the return data as `(uint256)` via the decoder
@@ -201,7 +201,7 @@ at pc 470 (`abi_decode_tuple_t_uint256_fromMemory`):
 i.e. `if slt(returndatasize, 32) { revert }`. So **`z=true ∧ returndata.size < 32 ⇒ EVM REVERTS**
 (reachable: an opaque callee can `STOP` → 0 bytes, or `RETURN` <32 bytes, with success=1).
 
-Act `defaultDecodeReturn?` (Act/Semantics.lean:517) is TOTAL:
+Solm `defaultDecodeReturn?` (Solm/Semantics.lean:517) is TOTAL:
 ```
 if bytes.isEmpty then some .unit else some (.int (fromByteArrayBigEndian (bytes.extract 0 32)))
 ```
@@ -210,12 +210,12 @@ fires ⇒ `assign stored := tmp` ⇒ result `.ok`/`.returned` (a committed store
 
 ### Why it's a real refinement violation (not a proof gap)
 For an opaque sub-call that succeeds returning `0 < out.size < 32` bytes: EVM = `.ok (.revert …)`,
-Act = `.returned …` (stored). `execResultsEquiv` cannot relate a revert to a returned result, and
+Solm = `.returned …` (stored). `execResultsEquiv` cannot relate a revert to a returned result, and
 no other `runtimeEquivalenceFor` constructor applies (dispatch+decode of the *top-level* calldata
 both succeed; not OOG). Hence the `execution` case is unprovable for this witness. Everything ELSE
 is done/mechanical — this single case breaks it.
 
-### Fix (REQUIRES changing the trusted Act semantics — user decision)
+### Fix (REQUIRES changing the trusted Solm semantics — user decision)
 BOTH pieces are needed:
 1. Make the return decoder **partial**: `decode? "pow2" out = none` when `out.size < 32` (for an
    int/uint return). (Narrow option: do it only in `callerExternalABI.decode?`.)
@@ -234,7 +234,7 @@ revert (matches EVM revert); `z=false` → `externalCallFailure` revert (matches
 
 1. **Spec blocker FIXED** (per user "apply the full fix"): `defaultDecodeReturn?` is now partial
    (`none` when `bytes.size < 32`); added `ExecStmt.externalCallReturnDecodeRevert`
-   (`z=true ∧ decode?=none → .reverted`). Act/Semantics.lean. Builds clean, no other dependents.
+   (`z=true ∧ decode?=none → .reverted`). Solm/Semantics.lean. Builds clean, no other dependents.
 2. **Returndata stepping lemmas** (Stepping.lean): `returndatasize_xstep` (Gbase=2),
    `returndatacopy_xstep` (two-stage gas + `b+c ≤ |rd|` guard). `memExpRevertZeroOff` (Solc.lean):
    REVERT/RETURN memory cost for offset-0, arbitrary length.
@@ -261,7 +261,7 @@ stored value cannot currently be tied to the opaque `o`.
       opcodes; OR
   (c) one monolithic `callerX_postSuccess` lemma that rcases the post-call RD once (exposing
       `returnData = o`) and steps the whole decoder by hand.
-Then: memory–encoding coupling (#2, HARD byte-level), Act body, assembly.
+Then: memory–encoding coupling (#2, HARD byte-level), Solm body, assembly.
 
 ---
 
@@ -279,9 +279,9 @@ builds green; single `sorry` unchanged.
 From `callerX_afterCall` (z=true): `144 ISZERO…JUMPI(taken) → 158 POP×4 → PUSH1 64;MLOAD → return
 decoder (RETURNDATASIZE, round-up, RETURNDATACOPY copies `o` into fresh mem, subroutine 470 checks
 `|o| ≥ 32`, MLOAD the word) → SSTORE slot 0 → JUMP 71 → STOP ⇒ RDret`. The stored word is
-`fromByteArrayBigEndian (o[0:32])` = Act's `decode? "pow2" o`. Needs: an `RD.not` combinator (opcode
+`fromByteArrayBigEndian (o[0:32])` = Solm's `decode? "pow2" o`. Needs: an `RD.not` combinator (opcode
 0x19 at pc 169), the decoder trace (incl. subroutine 470/450/306), and the memory↔encoding coupling
-(#2). Then Act body + assembly.
+(#2). Then Solm body + assembly.
 
 ---
 
@@ -308,7 +308,7 @@ Sub-goals: (1) `callerOutPtr I = ⟨128⟩` (read free-ptr 128 from `callerCalld
 written by the prologue `MSTORE` at offset 64); (2) `mem'[64:96] = 128` (CALL write at 128 doesn't
 touch [64,96)); (3) out-region readback `mem'[128:160] = o[0:32]` when `|o| ≥ 32`. Then: decoder
 trace (incl. subroutine 470 size-check split / 450 / 306) → SSTORE slot 0 ← `fromByteArray(o[0:32])`
-→ STOP ⇒ `RDret (cA, σ[slot0])`; `|o| < 32` → decoder reverts ⇒ `RDrev` (matches the new Act rule).
+→ STOP ⇒ `RDret (cA, σ[slot0])`; `|o| < 32` → decoder reverts ⇒ `RDrev` (matches the new Solm rule).
 
 ---
 
@@ -350,7 +350,7 @@ aw = `⟨6⟩`, rdata = `o`):
   `SWAP1;PUSH2 194;SWAP2;SWAP1;PUSH2 470;JUMP` → 470, stack `[128, 128+|o|, 194, …]`.
   All mcosts = 0 (aw=6 ⇒ 192 ≥ all offsets). aw stays 6.
 - **470 size-check:** `PUSH0;PUSH1 32;DUP3;DUP5;SUB`(`(128+|o|)-128=|o|`, needs `|o|<2²⁵⁵`)`;SLT`(|o|<32)`;
-  ISZERO;PUSH2 491;JUMPI`. `|o|≥32` → 491; `|o|<32` → 483→490→**203 REVERT** (⇒ RDrev, matches Act).
+  ISZERO;PUSH2 491;JUMPI`. `|o|≥32` → 491; `|o|<32` → 483→490→**203 REVERT** (⇒ RDrev, matches Solm).
 - **491→503:** `PUSH0;PUSH2 504;DUP5;DUP3;DUP6;ADD;PUSH2 450;JUMP` → 450.
 - **450 (abi_decode_uint256):** `PUSH0;DUP2;MLOAD`(reads mem2[128:160]=o[0:32] via write32_read_above
   then write32_read_back)`;SWAP1;POP;PUSH2 464;DUP2;PUSH2 306;JUMP` → 306 (validator).
@@ -365,7 +365,7 @@ reads 128), `hword` (`mem'[128:160] = o.extract 0 32`), `aw = ⟨6⟩`, `32 ≤ 
 `Theta_returnData_size_lt`. The 297/306/315 validator subroutine for `uint256` is a no-op identity
 (unlike address, no masking) — `EQ` at 317 always holds, so it just returns the value.
 
-- callerX_succ_to470 DONE & green (straight-line 165 to 470 size-check entry; mem ops free at aw=6, dataEnd=128+|o|). Remaining: 470 size-split + subroutine maze (491/450/306/315/297/325/504) + SSTORE slot0 + STOP, then Act body + assembly. Use callerX_succ_to470 as the segment template.
+- callerX_succ_to470 DONE & green (straight-line 165 to 470 size-check entry; mem ops free at aw=6, dataEnd=128+|o|). Remaining: 470 size-split + subroutine maze (491/450/306/315/297/325/504) + SSTORE slot0 + STOP, then Solm body + assembly. Use callerX_succ_to470 as the segment template.
 
 ---
 
@@ -394,7 +394,7 @@ At 491: stack `[0, 128, 128+|o|, 194, arg1, arg0, 71, sel]`.
 The validation subroutine threads `word` unchanged (uint256 has no masking), so the whole 450→194
 chain is: read word, return it, SSTORE it. The only coupling is the single MLOAD at 453.
 
-Then: **Act body** (require cv=0 → externalCallSuccess via callerCallCoincides → assign stored ←
+Then: **Solm body** (require cv=0 → externalCallSuccess via callerCallCoincides → assign stored ←
 `.int (fromByteArrayBigEndian (o.extract 0 32))`, matching `word`'s nat), and **assembly**
 (`cases z`; `z=true` split on `|o|≥32` [RDret via this trace + RDret.reEquivExecution] vs `|o|<32`
 [470→203 revert ⇒ RDrev]; `z=false` ⇒ callerX_postRevert). Discharge `hfp`/`hword`/`aw=6`/`|o|<2²⁵⁵`
@@ -402,16 +402,16 @@ via callerOutPtr_eq + write32_read_* + Theta_returnData_size_lt.
 
 ---
 
-## PROGRESS (session 3 cont. 6): Act bodies + decode coupling + success chain ALL GREEN
+## PROGRESS (session 3 cont. 6): Solm bodies + decode coupling + success chain ALL GREEN
 
 This continuation built (all green, single `sorry` remains in the final assembly):
-- **All 3 Act bodies**: `callerBodySuccess` (require→externalCallSuccess→assign), `callerBodyExtFail`
+- **All 3 Solm bodies**: `callerBodySuccess` (require→externalCallSuccess→assign), `callerBodyExtFail`
   (z=false → externalCallFailure), `callerBodyDecodeRevert` (z=true,decode=none →
   externalCallReturnDecodeRevert). `store_get_self`.
-- **Byte-read helpers**: `uInt256OfByteArray_eq`, `readBytes_at_toList`, `decode_word_at_eq` (Act
+- **Byte-read helpers**: `uInt256OfByteArray_eq`, `readBytes_at_toList`, `decode_word_at_eq` (Solm
   decoder's word at any offset = EVM `readBytes`).
 - **`callerDecode_n`**: the full `[address, uint256]` calldata decode = `some {t↦addr, n↦int}` (the
-  hardest Act-side lemma; needs `maxHeartbeats 1000000`).
+  hardest Solm-side lemma; needs `maxHeartbeats 1000000`).
 - **`callerX_successChain`**: chains 144→165→470→491→tail→STOP ⇒ `RDret (cA, σ[slot0:=decode o])`,
   discharging `hfp`/`hword`/`hmsz` via `write32_read_below`/`_above`/`_back` (`callerMem2` exposes the
   post-MSTORE memory explicitly).

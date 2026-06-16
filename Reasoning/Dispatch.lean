@@ -1,19 +1,19 @@
-import Act.Dispatch
+import Solm.Dispatch
 import Reasoning.Reach
 
 /-!
-# Dispatch — generic Act `dispatchMsg` facts for a single-transition contract
+# Dispatch — generic Solm `dispatchMsg` facts for a single-transition contract
 
 For a contract with exactly one transition (`contract.transitions = [transition]`) whose 4-byte
 keccak selector is `selBytes`, `dispatchMsg` reduces to a 4-byte calldata-prefix compare.  These
 four lemmas are contract-agnostic; each example instantiates them with its `transitions = [t]`
 proof (`rfl`) and its selector axiom.  `RDrev.reEquivNonPayable` (below) packages the whole
-`callvalue ≠ 0` Act-coupling on top of them.
+`callvalue ≠ 0` Solm-coupling on top of them.
 -/
 
 /- TODO generalize for an arbitrary number of transitions -/
 
-open Act ABI Ethereum Ethereum.EVM Reasoning.Theory
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Reasoning.Theory
 
@@ -22,7 +22,7 @@ variable {contract : ContractDecl} {transition : TransitionDecl} {selBytes : Byt
 /-- `dispatchMsg` of a single-transition contract is the selector compare. -/
 theorem dispatch_eq
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Act.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (cd : ByteArray) :
     dispatchMsg contract cd = if (selBytes == cd.extract 0 4) then some transition else none := by
   simp only [dispatchMsg, htr, List.map_cons, List.map_nil, List.find?_cons, List.find?_nil,
@@ -49,7 +49,7 @@ theorem dispatch_unique
 /-- Calldata shorter than the 4-byte selector cannot dispatch. -/
 theorem dispatch_none_short
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Act.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (hsize : selBytes.size = 4) {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
   rw [dispatch_eq htr hsel]
@@ -65,12 +65,12 @@ theorem dispatch_none_short
 /-- A selector mismatch cannot dispatch. -/
 theorem dispatch_none_nomatch
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Act.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
   rw [dispatch_eq htr hsel]; simp [h]
 
-/-- The EVM return bytes `o` couple to the Act return value `rv` whenever `o` is `rv`'s ABI
+/-- The EVM return bytes `o` couple to the Solm return value `rv` whenever `o` is `rv`'s ABI
     encoding (the `returned` case of `returnEquiv`). -/
 theorem returnEquiv_of_encode {abit : ABIType} {rv : Value} {o : ByteArray}
     (h : encodeReturnValue? abit rv = some o) :
@@ -81,10 +81,10 @@ end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-/-- **The whole `callvalue ≠ 0` Act coupling**, generic over a single-transition contract.  Given the
+/-- **The whole `callvalue ≠ 0` Solm coupling**, generic over a single-transition contract.  Given the
     non-payable guard's revert (`h : RDrev …`) and the contract body's revert under non-zero call
     value (`hbody`), produce the `runtimeEquivalenceFor` case: the OOG alternative folds via
-    `reEquivElim`, and the Act side is dispatched abstractly into `noDispatch` / `decodingFailed` /
+    `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
     `execution`-with-revert.  Both examples' `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
     {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray}
@@ -105,7 +105,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
       · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
         exact reEquiv_execution ht hca (hbody callargs) (by rw [hrev]; exact .revert rfl rfl)
 
-/-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Act body returns
+/-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {cA gh bl σ σ₀ A I} {g : UInt256} {code o : ByteArray} {callargs cs retVal}
@@ -122,7 +122,7 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     refine reEquiv_execution hd hdec hbody ?_
     rw [hsucc]; exact execResultsEquiv.success rfl rfl rfl rfl henc
 
-/-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Act body reverts too. -/
+/-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {cA gh bl σ σ₀ A I} {g : UInt256} {code : ByteArray} {callargs}
     (hcode : I.code = code)

@@ -1,8 +1,8 @@
 import Examples.Truth.Spec
-import Act.Dispatch
+import Solm.Dispatch
 import Ethereum.Semantics
 
-open Act Ethereum Ethereum.EVM
+open Solm Ethereum Ethereum.EVM
 
 /-! ## 1. The contract's runtime bytecode -/
 
@@ -41,7 +41,7 @@ Lean's standard three, `truthCorrect` depends only on the pre-existing evmlean b
 
 /-- The 4-byte function selector of `truth()` is `0x9e9f51d2` (keccak of `"truth()"`). -/
 axiom truthSelectorBytes :
-    (ffi.KEC (String.toByteArray (Act.transitionSigStr truthTransition))).extract 0 4
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr truthTransition))).extract 0 4
       = ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩
 
 /-- The `JUMPDEST` positions of `truthBytecode` (the valid jump targets). -/

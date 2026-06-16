@@ -2,9 +2,9 @@ import Std.Data.HashMap
 
 import EVM.Types
 import ABI.Types
-import Act.Syntax
+import Solm.Syntax
 
-namespace Act
+namespace Solm
 
 /- Runtime values for the first semantics pass. Mappings are finite maps here;
    open-world behavior and typed defaults can be refined later. -/

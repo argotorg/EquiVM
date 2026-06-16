@@ -2,7 +2,7 @@ import Examples.Caller.Bytecode
 import Examples.Caller.Spec
 import Reasoning.Theory
 import Reasoning.Dispatch
-import Reasoning.ActBody
+import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -13,18 +13,18 @@ import Reasoning.ExternalCall
 # Caller — runtime-equivalence proof for `run(address t, uint256 n)`
 
 `run` makes an **external call** `t.pow2(n)` and stores the result in `stored`.  The external call
-is *opaque*: nothing is assumed about the code at `t`.  The EVM `CALL` and the Act `externalCall`
+is *opaque*: nothing is assumed about the code at `t`.  The EVM `CALL` and the Solm `externalCall`
 invoke the identical `Θ`, so the opaque `(z, σ', o)` coincide on both sides by construction; the
-success branch then stores `decode(o)` (EVM `SSTORE` ↔ Act `.assign`).  Built on `RD.call`.
+success branch then stores `decode(o)` (EVM `SSTORE` ↔ Solm `.assign`).  Built on `RD.call`.
 -/
 
-open Act ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 10000
 
 namespace Caller
 
-/-! ## Act-side dispatch facts (mirror `Truth`) -/
+/-! ## Solm-side dispatch facts (mirror `Truth`) -/
 
 /-- Dispatch reduces (via `callerSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
 theorem callerDispatch_eq (cd : ByteArray) :
@@ -42,18 +42,18 @@ theorem callerDispatch_none_nomatch {cd : ByteArray}
     dispatchMsg callerContract cd = none :=
   dispatch_none_nomatch rfl callerSelectorBytes h
 
-/-- With non-zero call value, the Act body reverts: `require(callvalue == 0)` fails. -/
+/-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
 theorem callerBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
     ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted :=
   bodyReverts_nonPayable h
 
-/-- **The Act body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
+/-- **The Solm body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
     `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `value`, and the
     storage assign succeeding, `run`'s body runs to completion (`returned … none`), leaving the
     `stored` slot written. -/
-theorem callerBodySuccess (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
-    {value : Value} {evm' evm'' : EVM.State} {out : ByteArray} {act'' : Frame}
+theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
+    {value : Value} {evm' evm'' : EVM.State} {out : ByteArray} {solm'' : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
@@ -62,9 +62,9 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Act.Store) {tval : EVM.Add
     (hdec : callerConfig.externalABI.decode? "pow2" out = some value)
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
-        { base := "stored", steps := [] } value = .ok (act'', evm'')) :
+        { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
     ExecContractBody callerConfig callerContract evm locals runTransition.body
-      (.returned act'' evm'' none) := by
+      (.returned solm'' evm'' none) := by
   refine ExecFuncBody.execBlockOK
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
       (ExecBlock.consNormal (ExecStmt.externalCallSuccess ?_ ?_ ?_ hcall hdec)
@@ -79,9 +79,9 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Act.Store) {tval : EVM.Add
           evm' (.var "tmp") = .ok value
     simp only [evalExpr?, EvalResult.ofOption, store_get_self]
 
-/-- **The Act body reverts on a failed sub-call** (`z = false`): `require` passes, the external call
+/-- **The Solm body reverts on a failed sub-call** (`z = false`): `require` passes, the external call
     fails, so the body reverts (`externalCallFailure`). -/
-theorem callerBodyExtFail (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
+theorem callerBodyExtFail (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
     {evm' : EVM.State} {out : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
@@ -99,10 +99,10 @@ theorem callerBodyExtFail (evm : EVM.State) (locals : Act.Store) {tval : EVM.Add
   · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
     simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
 
-/-- **The Act body reverts on an under-length return** (`z = true`, `decode? = none`): `require`
+/-- **The Solm body reverts on an under-length return** (`z = true`, `decode? = none`): `require`
     passes, the sub-call succeeds but its return data does not decode, so the body reverts
     (`externalCallReturnDecodeRevert`) — the spec analogue of the solc decoder's `< 32` revert. -/
-theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Act.Store) {tval : EVM.Address} {nval : ℤ}
+theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
     {evm' : EVM.State} {out : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
@@ -335,7 +335,7 @@ theorem callerX_toDecoder {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-! ## The opaque-call coincidence (the conceptual crux)
 
-The EVM `CALL` (via `RD.call`) and the Act `externalCall` (via `externalCallViaEVM`) invoke the
+The EVM `CALL` (via `RD.call`) and the Solm `externalCall` (via `externalCallViaEVM`) invoke the
 *identical* `Θ`, so the opaque result coincides on both sides by construction — no assumption about
 the callee's code.  This is now the **generic** `Reasoning.Theory.callCoincides` (and the
 depth-limit `callNotMade_depthLimit`) in `Reasoning/ExternalCall.lean`; `Caller` only supplies the
@@ -432,13 +432,13 @@ abbrev callerArg1 (I : ExecutionEnv) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 /-- **Calldata decode for `run(address t, uint256 n)`.**  With ≥ 68 bytes of calldata and a
     *canonical* address argument, decoding succeeds, binding `t`/`n` to the EVM's words at offsets
-    4 / 36 — the Act-side analogue of the bytecode's ABI decoder. -/
+    4 / 36 — the Solm-side analogue of the bytecode's ABI decoder. -/
 theorem callerDecode_n {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (callerArg0 I).toNat < EVM.addressModulus) :
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata
-      = some (((∅ : Act.Store).insert "t"
+      = some (((∅ : Solm.Store).insert "t"
           (.address (Ethereum.AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
           (.int (Int.ofNat (callerArg1 I).toNat))) := by
   have htlen : I.calldata.toList.length = I.calldata.size := by
@@ -714,7 +714,7 @@ theorem wordOfInt_ofNat_toNat (a : UInt256) : EVM.wordOfInt (Int.ofNat a.toNat) 
   show a.toNat % EVM.twoPow 256 = a.toNat
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
 
-/-- **Encoding coupling (spec level).**  The Act ABI's `encode? "pow2" [n]` produces exactly the
+/-- **Encoding coupling (spec level).**  The Solm ABI's `encode? "pow2" [n]` produces exactly the
     36-byte buffer the bytecode sends to the `CALL`. -/
 theorem callerEncode_eq (I : ExecutionEnv) :
     callerExternalABI.encode? "pow2" [.int (Int.ofNat (callerArg1 I).toNat)]
@@ -820,9 +820,9 @@ theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : UInt256}
   exact ⟨cA', σ', z, _, _, _, k', C', rd144⟩
 
 /-- **The opaque CALL, packaged for the assembly.**  Exposes the post-`CALL` `RD` cursor (memory and
-    active-words resolved to their concrete `o.write …` / `⟨6⟩` forms) **together with** the Act-side
+    active-words resolved to their concrete `o.write …` / `⟨6⟩` forms) **together with** the Solm-side
     `externalCallViaEVM` fact built from the *same* `Θ`-link — the coincidence that lets the EVM and
-    Act sub-calls share `(z, σ', o)`. -/
+    Solm sub-calls share `(z, σ', o)`. -/
 theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -856,7 +856,7 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
         (callerOutPtr I).toNat (⟨32⟩ : UInt256).toNat) = (⟨6⟩ : UInt256) := by
       rw [callerOutPtr_eq]; decide
     exact haw ▸ rd144
-  · -- the Act-side coincidence, fed the same `Θ`-link
+  · -- the Solm-side coincidence, fed the same `Θ`-link
     refine callCoincides (targetWord := UInt256.land addrMask (callerArg0 I))
       (mem := callerCalldataMem I) (inOff := callerOutPtr I)
       (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I)) hperm
@@ -983,7 +983,7 @@ theorem callerX_succ_to491 {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- **Success-path under-length revert (470 → 203 REVERT).**  When `|o| < 32` the length check
     `slt(|o|, 32) = 1`, so `iszero` is `0`, the `JUMPI` is *not* taken, and control falls into the
-    `…203 REVERT` bail-out ⇒ `RDrev` — matching Act's `externalCallReturnDecodeRevert`. -/
+    `…203 REVERT` bail-out ⇒ `RDrev` — matching Solm's `externalCallReturnDecodeRevert`. -/
 theorem callerX_succ_revert {cA gh bl σ σ₀ A I} {g : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem2 : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
@@ -1074,7 +1074,7 @@ theorem callerX_successChain {cA gh bl σ σ₀ A I} {g : UInt256}
   exact callerX_succ_tail rd491 hperm hword2 hmsz2
 
 /-- **The clean-address check ⇒ canonical address.**  The bytecode's `eq(arg0, arg0 & 0xff…ff)`
-    holding means `arg0`'s high bits are zero, i.e. `arg0 < 2¹⁶⁰` — exactly the Act decoder's
+    holding means `arg0`'s high bits are zero, i.e. `arg0 < 2¹⁶⁰` — exactly the Solm decoder's
     address-validity condition. -/
 theorem callerArg0_canonical {I : ExecutionEnv}
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
@@ -1101,7 +1101,7 @@ theorem callerArg0_canonical {I : ExecutionEnv}
   have hmask : addrMask.toNat < EVM.addressModulus := by decide
   rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
 
-/-! ## Storage coupling: the Act `.assign stored := v` writes the same word the EVM `SSTORE` does -/
+/-! ## Storage coupling: the Solm `.assign stored := v` writes the same word the EVM `SSTORE` does -/
 
 /-- `wordOfInt (Int.ofNat k) = ofNat k` (a nonnegative literal round-trips through `ℤ`). -/
 theorem wordOfInt_ofNat_eq (k : ℕ) : EVM.wordOfInt (Int.ofNat k) = UInt256.ofNat k := by
@@ -1134,9 +1134,9 @@ theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
       List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
       List.take_of_length_le (by omega), fromBytesLE_roundtrip]
 
-/-- **The Act `.assign stored := .int k` step.**  Dispatches to the storage write (the local
+/-- **The Solm `.assign stored := .int k` step.**  Dispatches to the storage write (the local
     `stored` is absent, `hbase`), producing the post-`SSTORE` EVM state. -/
-theorem callerAssign (evm' : EVM.State) (L : Act.Store) (k : ℕ) (hbase : L.get? "stored" = none) :
+theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.get? "stored" = none) :
     assignStorageRef? callerConfig { contract := callerContract, locals := L } evm'
         { base := "stored", steps := [] } (.int (Int.ofNat k))
       = .ok ({ contract := callerContract, locals := L },
@@ -1281,9 +1281,9 @@ theorem callerX_noncanon {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-! ## Decoded-store accessors and the canonical-execution coupling -/
 
-theorem store_get_empty (k : Ident) : (∅ : Act.Store).get? k = none := by simp
-abbrev callerDecStore (I : ExecutionEnv) : Act.Store :=
-  ((∅:Act.Store).insert "t" (.address (AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
+theorem store_get_empty (k : Ident) : (∅ : Solm.Store).get? k = none := by simp
+abbrev callerDecStore (I : ExecutionEnv) : Solm.Store :=
+  ((∅:Solm.Store).insert "t" (.address (AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
     (.int (Int.ofNat (callerArg1 I).toNat))
 theorem callerStore_t (I : ExecutionEnv) :
     (callerDecStore I).get? "t" = some (.address (AccountAddress.ofNat (callerArg0 I).toNat)) := by
@@ -1383,7 +1383,7 @@ theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : UInt256}
       have hword : (o.write 0 (callerCalldataMem I) 128 32).readWithPadding 128 32 = o.extract 0 32 :=
         write32_read_back o (callerCalldataMem I) 128 ho32 (by rw [callerCalldataMem_size]; omega)
       have hrd := callerX_successChain rd144 hperm ho32 ho255 hfp hword hmsz
-      -- Act body
+      -- Solm body
       set evmP : EVM.State := { initState cA gh bl σ σ₀ g A I with
         accountMap := σ', substate := A', createdAccounts := cA' } with hevmP
       set kw := fromByteArrayBigEndian (o.extract 0 32) with hkw
@@ -1431,7 +1431,7 @@ theorem callerX_callDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
   exact callerX_postRevert rd144 (by simp)
 
-/-! ## The `callvalue = 0` Act coupling -/
+/-! ## The `callvalue = 0` Solm coupling -/
 
 theorem callerReEquiv_callvalueZero
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -1475,7 +1475,7 @@ theorem callerReEquiv_callvalueZero
 
 /-! ## The correctness statement -/
 
-/-- The runtime bytecode refines the Act specification, for every initial state. -/
+/-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem callerCorrect :
     runtimeEquivalence!?! callerConfig callerBytecode callerContract := by
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize hperm => ?_⟩

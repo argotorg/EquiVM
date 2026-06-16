@@ -1,5 +1,5 @@
 import Examples.Caller.Spec
-import Act.Dispatch
+import Solm.Dispatch
 import Ethereum.Semantics
 
 /-! # Caller — deployed runtime bytecode and its two trusted-base facts (see `MISSPEC.md`).
@@ -8,7 +8,7 @@ import Ethereum.Semantics
 recipe that produced `powBytecode`.  The two axioms below are the per-contract trusted base, mirroring
 `powSelectorBytes` / `powValidJumps`: the function selector and the `JUMPDEST` set. -/
 
-open Act Ethereum Ethereum.EVM
+open Solm Ethereum Ethereum.EVM
 
 def callerBytecode : ByteArray :=
   ⟨#[96, 128, 96, 64, 82, 52, 128, 21, 97, 0, 15, 87, 95, 95, 253, 91, 80, 96, 4, 54, 16, 97, 0, 41,
@@ -40,7 +40,7 @@ def callerBytecode : ByteArray :=
 
 /-- `keccak("run(address,uint256)")[0:4] = 0x381fd190`. -/
 axiom callerSelectorBytes :
-    (ffi.KEC (String.toByteArray (Act.transitionSigStr Caller.runTransition))).extract 0 4
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Caller.runTransition))).extract 0 4
       = ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩
 
 /-- The `JUMPDEST` set of `callerBytecode` (computed by `#eval`; `D_J_aux` is `partial`). -/

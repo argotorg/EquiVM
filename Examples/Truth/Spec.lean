@@ -1,8 +1,8 @@
-import Act.Semantics
+import Solm.Semantics
 
-/-! # Truth — Act specification for `truth()` (pure data; independent of the proof library). -/
+/-! # Truth — Solm specification for `truth()` (pure data; independent of the proof library). -/
 
-open Act ABI
+open Solm ABI
 
 /-- The single transition: `truth()` requires zero callvalue and returns `true`.
     (The `require(callvalue == 0)` mirrors the compiler-inserted non-payable guard.) -/
@@ -14,7 +14,7 @@ def truthTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0))
       , .return (.boolLit true) ] }
 
-/-- Act specification of the `Truth` contract: no storage, no constructor body,
+/-- Solm specification of the `Truth` contract: no storage, no constructor body,
     a single transition. -/
 def truthContract : ContractDecl :=
   { name := "Truth"

@@ -1,6 +1,6 @@
 # Reasoning — library index
 
-`Reasoning/` is the contract-agnostic library for proving EVM↔Act runtime equivalence.
+`Reasoning/` is the contract-agnostic library for proving EVM↔Solm runtime equivalence.
 Two worked examples live in `Examples/` (`Pow`, `Truth`); both are **fully proved — no
 `sorry`**. `lake build` is green.
 
@@ -39,16 +39,16 @@ bookkeeping internally.
   (`mstore`/`mload`/`ret`/`rev`/`routine*`) are written verbatim after `raw`.
 - **Terminals** — `RDret`/`RDrev` record that the whole run halts (success / revert); `RD.ret` and
   `RD.rev` step the final `RETURN`/`REVERT` off an `RD` cursor.
-- **`RD → Act` eliminators** — `RDret.reEquivElim` / `RDrev.{reEquivElim,reEquivNoDispatch,
+- **`RD → Solm` eliminators** — `RDret.reEquivElim` / `RDrev.{reEquivElim,reEquivNoDispatch,
   reEquivDecodingFailed}` carry a halting `X`-fact across the `X→Ξ` bridge into a
   `runtimeEquivalenceFor` case, folding the out-of-gas alternative automatically.
 
-So a whole proof flows `evm_run` (segments) → `RDret`/`RDrev` (terminals) → `reEquivElim` (Act),
+So a whole proof flows `evm_run` (segments) → `RDret`/`RDrev` (terminals) → `reEquivElim` (Solm),
 with no hand-written stepping. All of the above is generic over `code` — a new contract reuses it
 by supplying its bytecode's `decode` facts.
 
 ## To verify a new contract
 
-Write `Spec.lean` (Act spec), `Bytecode.lean` (bytecode + the two trusted axioms), and
+Write `Spec.lean` (Solm spec), `Bytecode.lean` (bytecode + the two trusted axioms), and
 `Correct.lean` (the proof: `evm_run` chains over the bytecode, terminals, then `reEquivElim`).
 `Examples/Pow` (loop + ABI decode/encode) and `Examples/Truth` (constant return) are the templates.

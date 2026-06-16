@@ -1,8 +1,8 @@
 import ABI.Encode
 import ABI.Decode
-import Act.Dispatch
+import Solm.Dispatch
 
-open Act
+open Solm
 open ABI
 
 /-- Default (zero-initialized) value for an ABI return type. Used when a function
@@ -55,13 +55,13 @@ inductive execResultsEquiv
     execResultsEquiv evmRes actRes t
   | error :
     -- TODO: is this what needs to happen?
-    -- Zoe: Do we model all errors in Act? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
+    -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
     evmRes = .error e →
     actRes = .reverted →
     execResultsEquiv evmRes actRes t
 
 
--- Act transaction dispatch and execution.
+-- Solm transaction dispatch and execution.
 inductive actExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
@@ -76,7 +76,7 @@ inductive actExec
     (actRes : ExecResult)
 : Option ABIType -> Prop where
   | intro :
-    /- Act transition dispatch -/
+    /- Solm transition dispatch -/
     dispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
     decodeCalldata (transition.params.map Param.name) transitionSig.paramTypes I.calldata = .some callargs →
@@ -108,16 +108,16 @@ inductive runtimeEquivalenceFor (cfg : Config)
   | execution {Ξ_res actRes returnType} : /- Both executions return -/
     /- Execute EVM transaction-/
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = Ξ_res →
-    /- Act transition dispatch + execution -/
+    /- Solm transition dispatch + execution -/
     actExec cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I actRes returnType →
     /- Resulting states and return must be equivalent equivalence -/
     execResultsEquiv Ξ_res actRes returnType →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-  | noDispatch : /- Dispatch fails in Act, EVM reverts -/
+  | noDispatch : /- Dispatch fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .none →
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .ok (.revert g' o) →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-  | decodingFailed {transition transitionSig g' o} : /- Decoding fails in Act, EVM reverts -/
+  | decodingFailed {transition transitionSig g' o} : /- Decoding fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
     decodeCalldata (transition.params.map Param.name) transitionSig.paramTypes I.calldata = .none →
@@ -128,7 +128,7 @@ inductive runtimeEquivalenceFor (cfg : Config)
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error .OutOfGass →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
 
--- an act contract corresponds to what?
+-- a Solm contract corresponds to what?
 inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
   | intro :
     (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
@@ -142,9 +142,9 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
     -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Act's external-call rule likewise
+    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
     -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Act's `.assign` is permission-free); benign for pure ones.
+    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
     I.perm = true →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
     ) →

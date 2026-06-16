@@ -1,13 +1,13 @@
 import EVM.Types
 import ABI.Types
-import Act.Value
+import Solm.Value
 
 namespace ABI
 
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
 
-def bytesToValues (bytes : List UInt8) : List Act.Value :=
+def bytesToValues (bytes : List UInt8) : List Solm.Value :=
   bytes.map (λ b ↦ .int (Int.ofNat b.toNat))
 
 def readBytes? (bytes : List UInt8) (offset size : Nat) : Option (List UInt8) :=
@@ -26,7 +26,7 @@ def zeroPadding? (bytes : List UInt8) (offset size : Nat) : Option Unit := do
   let padding <- readBytes? bytes offset size
   if padding.all (· == 0) then some () else none
 
-def decodeABIWord? (ty : ABIType) (word : EVM.Word) : Option Act.Value :=
+def decodeABIWord? (ty : ABIType) (word : EVM.Word) : Option Solm.Value :=
   let n : Nat := word.val
   match ty with
   | .elem .bool =>
@@ -64,7 +64,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) : Option Act.Value :=
 
 mutual
   def decodeABIValue? (ty : ABIType) (bytes : List UInt8) (start : Nat) :
-      Option (Act.Value × Nat) :=
+      Option (Solm.Value × Nat) :=
     match ty with
     | .elem _ => do
         match ty with
@@ -114,7 +114,7 @@ mutual
   termination_by (sizeOf ty, 0, 0)
 
   def decodeABIArrayStaticElems? (ty : ABIType) (n elemSize : Nat)
-      (bytes : List UInt8) (start : Nat) : Option (List Act.Value × Nat) :=
+      (bytes : List UInt8) (start : Nat) : Option (List Solm.Value × Nat) :=
     match n with
     | 0 => some ([], start)
     | n + 1 => do
@@ -127,12 +127,12 @@ mutual
   termination_by (sizeOf ty, n + 1, 1)
 
   def decodeABIArrayDynamicElems? (ty : ABIType) (n : Nat)
-      (bytes : List UInt8) (base : Nat) : Option (List Act.Value × Nat) :=
+      (bytes : List UInt8) (base : Nat) : Option (List Solm.Value × Nat) :=
     decodeABIArrayDynamicElemsFrom? ty n bytes base 0 (n * 32) (base + n * 32)
   termination_by (sizeOf ty, n + 1, 2)
 
   def decodeABIArrayDynamicElemsFrom? (ty : ABIType) (n : Nat)
-      (bytes : List UInt8) (base headCursor headSize maxEnd : Nat) : Option (List Act.Value × Nat) :=
+      (bytes : List UInt8) (base headCursor headSize maxEnd : Nat) : Option (List Solm.Value × Nat) :=
     match n with
     | 0 => some ([], maxEnd)
     | n + 1 => do
@@ -148,7 +148,7 @@ mutual
   termination_by (sizeOf ty, n + 1, 1)
 
   def decodeABIValues? (types : List ABIType) (bytes : List UInt8)
-      (base headCursor headSize maxEnd : Nat) : Option (List Act.Value × Nat) :=
+      (base headCursor headSize maxEnd : Nat) : Option (List Solm.Value × Nat) :=
     match types with
     | [] => some ([], maxEnd)
     | ty :: restTypes => do
@@ -176,7 +176,7 @@ mutual
 
 end
 
-def decodeCalldata (names : List Act.Ident) (types : List ABIType) (calldata : ByteArray) : Option Act.Store :=
+def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray) : Option Solm.Store :=
   if calldata.toList.length < 4 then
     none
   else
@@ -194,8 +194,8 @@ def decodeCalldata (names : List Act.Ident) (types : List ABIType) (calldata : B
     | some (store, _) => some store
     | none => none
   where
-    decodeArgs (names : List Act.Ident) (types : List ABIType) (bytes : List UInt8) (store : Act.Store) :
-        Option (Act.Store × Nat) :=
+    decodeArgs (names : List Solm.Ident) (types : List ABIType) (bytes : List UInt8) (store : Solm.Store) :
+        Option (Solm.Store × Nat) :=
       match types with
       | [] =>
           match names with
@@ -209,7 +209,7 @@ def decodeCalldata (names : List Act.Ident) (types : List ABIType) (calldata : B
               some (store, endOffset)
           | none => none
 
-    insertValues (names : List Act.Ident) (values : List Act.Value) (store : Act.Store) : Option Act.Store :=
+    insertValues (names : List Solm.Ident) (values : List Solm.Value) (store : Solm.Store) : Option Solm.Store :=
       match names, values with
       | [], [] => some store
       | name :: names, value :: values =>

@@ -2,7 +2,7 @@ import Examples.Truth.Bytecode
 import Examples.Truth.Spec
 import Reasoning.Theory
 import Reasoning.Dispatch
-import Reasoning.ActBody
+import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
@@ -12,16 +12,16 @@ import Reasoning.Reach
 # Truth — runtime-equivalence proof for `truth()`
 
 Every call (`callvalue ≠ 0`, short calldata, wrong selector, and the `truth()` success path)
-is shown equivalent to the Act spec, via the generic `Reasoning` library.  `#print axioms
+is shown equivalent to the Solm spec, via the generic `Reasoning` library.  `#print axioms
 truthCorrect` lists only Lean's three, the evmlean base axioms, and the two documented trusted
 selector/jump axioms (`Examples/Truth/Bytecode.lean`) — no `sorryAx`.
 -/
 
-open Act ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 10000
 
-/-! ## 4. Truth-specific Act-side facts -/
+/-! ## 4. Truth-specific Solm-side facts -/
 
 /-- Dispatch reduces (via `truthSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
 theorem truthDispatch_eq (cd : ByteArray) :
@@ -35,13 +35,13 @@ theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg truthContract cd = some t) : t = truthTransition :=
   dispatch_unique rfl h
 
-/-- With non-zero call value, the Act body reverts: `require(callvalue == 0)` fails. -/
+/-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
 theorem truthBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
     ExecContractBody truthConfig truthContract evm locals truthTransition.body .reverted :=
   bodyReverts_nonPayable h
 
-/-- With zero call value, the Act body returns `true`: `require(callvalue == 0)` passes and
+/-- With zero call value, the Solm body returns `true`: `require(callvalue == 0)` passes and
     `return true` yields `(.bool true)` with the frame/EVM-state unchanged. -/
 theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -167,7 +167,7 @@ set_option maxHeartbeats 800000 in
 /-- **The `truth()` success trace**.  With zero call value, ≥4-byte calldata and the matching
     selector, the dispatcher jumps into `truth()`, which stores the free pointer and the bool `1`
     in memory and `RETURN`s the 32-byte word `1`.  Accounts `(cA, σ)` are preserved (no `SSTORE`);
-    the substate is dropped by `RDret` (the Act equivalence ignores it).  Built compositionally off
+    the substate is dropped by `RDret` (the Solm equivalence ignores it).  Built compositionally off
     the dispatcher prefix as one `RDret`. -/
 theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -235,7 +235,7 @@ theorem truthReEquiv_callvalueZero
     (hwv : I.weiValue = ⟨0⟩) :
     runtimeEquivalenceFor truthConfig truthContract cA gh bl σ σ₀ g A I := by
   by_cases hsz : I.calldata.size < 4
-  · -- short calldata ⇒ EVM reverts, Act fails to dispatch
+  · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
     exact (truthX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (truthDispatch_none_short hsz)
   · rw [not_lt] at hsz
     by_cases hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true
@@ -246,20 +246,20 @@ theorem truthReEquiv_callvalueZero
         (truthDecode_empty hsz)
         (truthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅ (by simp only [initState]; exact hwv))
         (returnEquiv_of_encode truthReturnEncoding)
-    · -- wrong selector → EVM reverts at `0x26`, Act fails to dispatch
+    · -- wrong selector → EVM reverts at `0x26`, Solm fails to dispatch
       rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode hwv hsz hsize hmatch).reEquivNoDispatch hcode
         (truthDispatch_none_nomatch hmatch)
 
 /-! ## 6. The correctness statement -/
 
-/-- The runtime bytecode refines the Act specification, for every initial state. -/
+/-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
     runtimeEquivalence!?! truthConfig truthBytecode truthContract := by
   refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero hcode hsize hwv
-  · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Act coupling
+  · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (truthX_callvalue_ne hcode hwv).reEquivNonPayable hcode rfl
       fun ca => truthBodyReverts _ ca (by simp only [initState]; exact hwv)
 
