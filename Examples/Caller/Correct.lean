@@ -7,6 +7,7 @@ import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Reach
+import Reasoning.ExternalCall
 
 /-!
 # Caller — runtime-equivalence proof for `run(address t, uint256 n)`
@@ -335,61 +336,10 @@ theorem callerX_toDecoder {cA gh bl σ σ₀ A I} {g : UInt256}
 /-! ## The opaque-call coincidence (the conceptual crux)
 
 The EVM `CALL` (via `RD.call`) and the Act `externalCall` (via `externalCallViaEVM`) invoke the
-*identical* `Θ` with the *same* arguments, so the opaque result `(cA', σ', z, o)` coincides on both
-sides by construction — no assumption about the callee's code is used.  Coupling the two `Θ`
-applications needs two primitive identities (the address round-trip the `CALL` opcode performs, and
-`wordOfInt 0 = ⟨0⟩`) plus the trace-supplied arg equalities (target, calldata). -/
-
-/-- The 160-bit address round-trip the EVM `CALL` opcode performs on `msg.sender`:
-    `ofUInt256 (ofNat addr) = addr`. -/
-theorem accountAddress_roundtrip (a : AccountAddress) :
-    AccountAddress.ofUInt256 (UInt256.ofNat a.val) = a := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hlt : a.val < AccountAddress.size := a.isLt
-  have hv : ((UInt256.ofNat a.val).val : ℕ) = a.val := by
-    show ((Fin.ofNat _ a.val) : Fin UInt256.size).val = a.val
-    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_trans hlt hsize)
-  apply Fin.ext
-  simp only [AccountAddress.ofUInt256, Fin.ofNat, hv]
-  rw [Nat.mod_eq_of_lt hlt, Nat.mod_eq_of_lt hlt]
-
-/-- `wordOfInt 0 = ⟨0⟩` — the zero value word a value-free `CALL` forwards. -/
-theorem wordOfInt_zero : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by decide
-
-/-- **Coincidence.**  Given the EVM-side `Θ`-link produced by `RD.call` (with witnesses `A_in`,
-    `callGas`) and the trace couplings (the Act target `tgt` is the cleaned stack address, the Act
-    encoding is the calldata the bytecode placed in memory), the Act `externalCallViaEVM` holds for
-    the *same* opaque `(z, σ', o)`.  Instantiate the Act existentials with the EVM witnesses; `Θ`'s
-    determinism does the rest. -/
-theorem callerCallCoincides
-    {evm : EVM.State} {nv : ℤ} {tgt : EVM.Address} {targetWord : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {A' A_in : Ethereum.Substate}
-    {z : Bool} {o : ByteArray} {g'' callGas : UInt256}
-    {mem : ByteArray} {inOff inSize : UInt256}
-    (hperm : evm.executionEnv.perm = true)
-    (hdepth : evm.executionEnv.depth ≠ 1024)
-    (htgt : tgt = AccountAddress.ofUInt256 targetWord)
-    (hcd : callerExternalABI.encode? "pow2" [.int nv]
-            = some (mem.readWithPadding inOff.toNat inSize.toNat))
-    (hΘ : (cA', σ', g'', A', z, o) =
-        Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts evm.genesisBlockHeader
-          evm.blocks evm.accountMap evm.σ₀ A_in
-          (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
-          callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
-          evm.executionEnv.header evm.executionEnv.perm) :
-    externalCallViaEVM callerConfig evm tgt "pow2" 0 [.int nv]
-      (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o) := by
-  -- rewrite the EVM `Θ`-link into the Act form (round-trip sender, `tgt`, `perm = true`)
-  have h := hΘ
-  rw [accountAddress_roundtrip, ← htgt, hperm] at h
-  exact @externalCallViaEVM.callMade callerConfig evm tgt "pow2" 0 [.int nv] (fun _ _ => g'')
-    (mem.readWithPadding inOff.toNat inSize.toNat) ⟨0⟩ cA' σ' A' z o
-    { evm with accountMap := σ', substate := A', createdAccounts := cA' }
-    (by rw [show callerConfig.externalABI = callerExternalABI from rfl, hcd]; rfl)
-    wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
-    (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth
+*identical* `Θ`, so the opaque result coincides on both sides by construction — no assumption about
+the callee's code.  This is now the **generic** `Reasoning.Theory.callCoincides` (and the
+depth-limit `callNotMade_depthLimit`) in `Reasoning/ExternalCall.lean`; `Caller` only supplies the
+trace couplings (`callerTarget_eq`, `callerEncode_eq`). -/
 
 /-! ## Decoder trace (abi_decode (address,uint256)) -/
 
@@ -907,7 +857,7 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : UInt256}
       rw [callerOutPtr_eq]; decide
     exact haw ▸ rd144
   · -- the Act-side coincidence, fed the same `Θ`-link
-    refine callerCallCoincides (targetWord := UInt256.land addrMask (callerArg0 I))
+    refine callCoincides (targetWord := UInt256.land addrMask (callerArg0 I))
       (mem := callerCalldataMem I) (inOff := callerOutPtr I)
       (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I)) hperm
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
@@ -1481,17 +1431,6 @@ theorem callerX_callDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
   exact callerX_postRevert rd144 (by simp)
 
-theorem callerCallNotMade {cA gh bl σ σ₀ A I} {g : UInt256} (tval : EVM.Address) (nval : ℤ)
-    (hdepth : I.depth = 1024) :
-    externalCallViaEVM callerConfig (initState cA gh bl σ σ₀ g A I) (EVM.address tval) "pow2" 0
-      [.int nval]
-      (false, { initState cA gh bl σ σ₀ g A I with
-          substate := ((initState cA gh bl σ σ₀ g A I).addAccessedAccount (EVM.address tval)).substate },
-        ByteArray.empty) := by
-  apply externalCallViaEVM.callNotMade rfl rfl
-  rintro ⟨_, hne⟩
-  exact hne hdepth
-
 /-! ## The `callvalue = 0` Act coupling -/
 
 theorem callerReEquiv_callvalueZero
@@ -1520,7 +1459,7 @@ theorem callerReEquiv_callvalueZero
                   (callerCanon_eq hcanon) hdepth1024).reEquivExecutionRevert hcode hd
                 (callerDecode_n hsz68 hbig hcanon) ?_
               exact callerBodyExtFail _ (callerDecStore I) (by exact hwv) (callerStore_t I)
-                (callerStore_n I) (callerCallNotMade _ _ hdepth1024)
+                (callerStore_n I) (callNotMade_depthLimit hdepth1024)
           · exact (callerX_noncanon hcode hwv (by omega) hsize hsz68 hbig hmatch
                 (ueq_zero_of_ne (fun he => hcanon (callerArg0_canonical he)))).reEquivDecodingFailed
               hcode hd (callerDecode_none_noncanon hsz68 hbig hcanon)

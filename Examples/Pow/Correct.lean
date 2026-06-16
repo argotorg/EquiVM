@@ -56,23 +56,32 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
       ∃ (k' C' : ℕ),
         RD powBytecode ee g s0 ⟨142⟩
           (n :: UInt256.ofNat (2 ^ n.toNat) :: slot :: n :: REST) mem aw rdata acc k' C' := by
-  intro var
-  induction var with
-  | zero =>
-    intro i r k C hvar hinv hile h
+  -- An instance of the generic `RD.whileLoop`: loop state `(i, r) : UInt256 × UInt256`, invariant
+  -- `r = 2^i ∧ i ≤ n` at variant `n − i`, with the `pow2` guard/body as the two trace obligations.
+  intro var i r k C hvar hinv hile h
+  refine RD.whileLoop (α := UInt256 × UInt256) ⟨117⟩ ⟨142⟩
+    (fun m ir => n.toNat - ir.1.toNat = m ∧ ir.2.toNat = 2 ^ ir.1.toNat ∧ ir.1.toNat ≤ n.toNat)
+    (fun ir => ir.1 :: ir.2 :: slot :: n :: REST)
+    (n :: UInt256.ofNat (2 ^ n.toNat) :: slot :: n :: REST)
+    ?hexit ?hbody var (i, r) ⟨hvar, hinv, hile⟩ k C h
+  case hexit =>
+    -- variant `0` (`i = n`): the guard's `JUMPI` is **taken** to the exit `0x8e`.
+    rintro ⟨i, r⟩ ⟨hvar, hinv, hile⟩ k C h
+    dsimp only at hvar hinv hile h
     have hin : i.toNat = n.toNat := by omega
     have hieqn : i = n := u256_inj hin
     have hreq : r = UInt256.ofNat (2 ^ n.toNat) :=
       u256_inj (by rw [hinv, hin, ofNat_pow_toNat hn])
-    -- guard (7 steps): the `JUMPI` is **taken** (`i = n` ⇒ `iszero (lt i n) = 1 ≠ 0`)
     have rd := evm_run h with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
       jumpiT (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; decide)
              (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
     rw [hieqn, hreq] at rd
     exact ⟨_, _, rd⟩
-  | succ var ih =>
-    intro i r k C hvar hinv hile h
+  case hbody =>
+    -- variant `v+1` (`i < n`): guard not taken → `r*=2; i+=1` → back-jump to `0x75`.
+    rintro v ⟨i, r⟩ ⟨hvar, hinv, hile⟩ k C h
+    dsimp only at hvar hinv hile h
     have hilt : i.toNat < n.toNat := by omega
     have hi1size : i.toNat + 1 < UInt256.size := lt_size_of_lt256 (by omega)
     have hi1 : (i + ⟨1⟩).toNat = i.toNat + 1 := add1_toNat hi1size
@@ -80,14 +89,13 @@ theorem RD.loop {g : UInt256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256
       rw [hinv, show 2 * 2 ^ i.toNat = 2 ^ (i.toNat + 1) from by rw [pow_succ]; ring]
       exact pow_lt_size (by omega)
     have hr2 : (UInt256.mul r ⟨2⟩).toNat = 2 * r.toNat := mul2_toNat hr2size
-    -- guard (7 steps, `JUMPI` not taken: `i < n` ⇒ `iszero (lt i n) = 0`) then the 12-step body
     have rd := evm_run h with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
       jumpiNT (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; decide),
       push1 ⟨2⟩, dup3, mul, swap2, pop, push1 ⟨1⟩, dup2, add, swap1, pop, push2 ⟨117⟩,
       jump (by rw [powValidJumps]; exact Array.contains_eq_true_of_mem (by simp)) ]
-    exact ih (i + ⟨1⟩) (UInt256.mul r ⟨2⟩) _ _
-      (by rw [hi1]; omega) (by rw [hr2, hi1, hinv, pow_succ]; ring) (by rw [hi1]; omega) rd
+    exact ⟨(i + ⟨1⟩, UInt256.mul r ⟨2⟩), _, _,
+      ⟨by rw [hi1]; omega, by rw [hr2, hi1, hinv, pow_succ]; ring, by rw [hi1]; omega⟩, rd⟩
 
 end Reasoning.Reach
 

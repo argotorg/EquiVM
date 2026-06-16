@@ -1355,6 +1355,38 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {
       · exact hee
       · exact hworld
 
+/-- **Hoare while-rule for an `RD` loop** — the EVM analogue of `execWhile_var` (the Act-side
+    while-rule).  A variant-indexed invariant `Inv : ℕ → α → Prop` over the loop-carried state `α`
+    (whose stack image is `stk a`), together with:
+    * **`hexit`** — at variant `0` the guard's `JUMPI` falls through to `exit` with `exitStk`;
+    * **`hbody`** — at variant `v+1` the guard (not taken) + body + back-jump returns to `header`
+      with the state at variant `v`;
+
+    drives the loop from any starting variant to the exit.  Memory / active-words / return-data /
+    accounts / env are loop-invariant (carried as fixed parameters); only the stack changes.  The
+    step/gas counters are existential (they grow per iteration), exactly as in the per-contract
+    hand-written version.  Proof: induction on the variant. -/
+theorem RD.whileLoop {code : ByteArray} {ee : ExecutionEnv} {g : UInt256} {s0 : State}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {α : Type}
+    (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256) (exitStk : List UInt256)
+    (hexit : ∀ a, Inv 0 a → ∀ k C,
+        RD code ee g s0 header (stk a) mem aw rdata acc k C →
+        ∃ k' C', RD code ee g s0 exit exitStk mem aw rdata acc k' C')
+    (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
+        RD code ee g s0 header (stk a) mem aw rdata acc k C →
+        ∃ a' k' C', Inv v a' ∧ RD code ee g s0 header (stk a') mem aw rdata acc k' C') :
+    ∀ v a, Inv v a → ∀ k C,
+      RD code ee g s0 header (stk a) mem aw rdata acc k C →
+      ∃ k' C', RD code ee g s0 exit exitStk mem aw rdata acc k' C' := by
+  intro v
+  induction v with
+  | zero => intro a hInv k C h; exact hexit a hInv k C h
+  | succ v ih =>
+    intro a hInv k C h
+    obtain ⟨a', k', C', hInv', h'⟩ := hbody v a hInv k C h
+    exact ih a' hInv' k' C' h'
+
 /-! ## Halting terminals (`RETURN` ⇒ success, `REVERT` ⇒ revert)
 
 `RDret`/`RDrev` are the **terminal** analogues of `RD`: instead of a reached cursor, they record
