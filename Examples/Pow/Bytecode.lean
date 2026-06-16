@@ -27,7 +27,8 @@ axiom powSelectorBytes :
       = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩
 
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
-axiom powValidJumps :
+theorem powValidJumps :
     Ethereum.EVM.D_J powBytecode 0
       = #[⟨15⟩, ⟨41⟩, ⟨45⟩, ⟨66⟩, ⟨71⟩, ⟨84⟩, ⟨93⟩, ⟨107⟩, ⟨117⟩, ⟨142⟩, ⟨152⟩, ⟨156⟩, ⟨165⟩,
           ⟨174⟩, ⟨184⟩, ⟨187⟩, ⟨201⟩, ⟨207⟩, ⟨227⟩, ⟨228⟩, ⟨241⟩, ⟨250⟩, ⟨259⟩, ⟨265⟩, ⟨284⟩]
+  := by native_decide
