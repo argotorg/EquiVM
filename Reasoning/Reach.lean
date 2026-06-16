@@ -665,6 +665,36 @@ theorem RD.push2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
       · exact hee
       · exact hworld
 
+/-- Width-generic `PUSHk` (`k ≥ 1`): pushes `argv`, advancing `pc` by `width + 1` (read from the
+    decode fact), cost `3`.  Lets a generic dispatcher fold push a jump target without forking on
+    `PUSH1`/`PUSH2` — `RD.push1`/`RD.push2` are the fixed-width specializations. -/
+theorem RD.pushConst {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (argv : UInt256) {width : ℕ}
+    {op : Operation.POp} (hop : op ≠ .PUSH0)
+    (hdec : decode code pc = some (.Push op, some (argv, width)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + UInt256.ofNat width.succ) (argv :: stk) mem aw rdata acc (k + 1) (C + 3) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := pushConst_xstep hcode hpc hop hdec hstk hov
+    by_cases gg : g.toNat < C + 3
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stPushConst s argv width,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stPushConst]; exact hcode
+      · simp only [stPushConst]; rw [hpc]
+      · simp only [stPushConst]; rw [hstk]
+      · simp only [stPushConst]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stPushConst]; exact hmem
+      · simp only [stPushConst]; exact haw
+      · simp only [stPushConst]; exact hrdata
+      · simp only [stPushConst]; exact hacc
+      · exact hee
+      · exact hworld
+
 theorem RD.eq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1263,6 +1293,68 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · simp only [stLog3]; exact hacc
       · simp only [stLog3]; exact hee
       · simp only [stLog3]; exact hworld
+
+/-! ## Selector-dispatch arm — one `DUP1; PUSH4 selᵢ; EQ; PUSHk tgtᵢ; JUMPI`
+
+A solc dispatcher is a chain of these arms.  Each consumes the 5 opcodes width-generically (the
+target push via `pushConst`); the EQ outcome (`UInt256.eq selᵢ selWord`) decides taken vs. fall-
+through, supplied as a hypothesis so the arm stays a pure opcode lemma — `evmSelectorDecode` couples
+that outcome to `selᵢBytes == calldata[0:4]` at the call site.  Decode facts are stated at the
+*threaded* pcs the chain produces (so the proof unifies with no normalization); a concrete caller
+discharges each with `by decide`. -/
+
+/-- The pcs within one selector arm starting at `armPc` with a width-`w` target push: the `PUSH4`,
+    `EQ`, target-`PUSH`, and `JUMPI` positions, and `selArmNext` the fall-through (next arm) pc.
+    Reducible, so the decode hypotheses read cleanly while the chain still unifies definitionally. -/
+@[reducible] def selArmPush4Pc (armPc : UInt256) : UInt256 := armPc + ⟨1⟩
+@[reducible] def selArmEqPc (armPc : UInt256) : UInt256 := armPc + ⟨1⟩ + UInt256.ofNat 5
+@[reducible] def selArmPushTgtPc (armPc : UInt256) : UInt256 := armPc + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩
+@[reducible] def selArmJumpiPc (armPc : UInt256) (w : ℕ) : UInt256 :=
+  armPc + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat w.succ
+@[reducible] def selArmNextPc (armPc : UInt256) (w : ℕ) : UInt256 :=
+  armPc + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat w.succ + ⟨1⟩
+
+/-- Arm **taken** (`EQ ≠ 0`): jump to the matched body entry `tgt`, decoded selector word preserved. -/
+theorem RD.selectorArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {armPc selWord selNat tgt : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {width : ℕ} {op : Operation.POp} {rest : List UInt256}
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code armPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc armPc) = some (.Push .PUSH4, some (selNat, 4)))
+    (heq : decode code (selArmEqPc armPc) = some (.EQ, .none))
+    (hop : op ≠ .PUSH0)
+    (hpushT : decode code (selArmPushTgtPc armPc) = some (.Push op, some (tgt, width)))
+    (hjumpi : decode code (selArmJumpiPc armPc width) = some (.JUMPI, .none))
+    (hb : UInt256.eq selNat selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+  h.dup1 hdup (by omega)
+   |>.push4 selNat hpush4 (by simp only [List.length_cons]; omega)
+   |>.eq heq (by simp only [List.length_cons]; omega)
+   |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
+   |>.jumpiT hjumpi hb hjd (by simp only [List.length_cons]; omega)
+
+/-- Arm **not taken** (`EQ = 0`): fall through to the next arm (`selArmNextPc`), selector word kept. -/
+theorem RD.selectorArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {armPc selWord selNat tgt : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {width : ℕ} {op : Operation.POp} {rest : List UInt256}
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code armPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc armPc) = some (.Push .PUSH4, some (selNat, 4)))
+    (heq : decode code (selArmEqPc armPc) = some (.EQ, .none))
+    (hop : op ≠ .PUSH0)
+    (hpushT : decode code (selArmPushTgtPc armPc) = some (.Push op, some (tgt, width)))
+    (hjumpi : decode code (selArmJumpiPc armPc width) = some (.JUMPI, .none))
+    (hb : UInt256.eq selNat selWord = ⟨0⟩)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (selArmNextPc armPc width) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+  h.dup1 hdup (by omega)
+   |>.push4 selNat hpush4 (by simp only [List.length_cons]; omega)
+   |>.eq heq (by simp only [List.length_cons]; omega)
+   |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
+   |>.jumpiNT hjumpi hb (by simp only [List.length_cons]; omega)
 
 
 set_option maxHeartbeats 1000000 in

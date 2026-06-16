@@ -1147,4 +1147,29 @@ theorem log3_xstep {s : State} {code : ByteArray} {pcv a b c d e : UInt256} {t :
   have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
   simp only [collapse_two_stage, if_neg hov', hpermF, if_false, stLog3]
 
+/-! ### PUSHk (width-generic, cost `Gverylow = 3`, pc += k+1, pushes the literal `arg`) -/
+
+def stPushConst (s : State) (arg : UInt256) (width : ℕ) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + UInt256.ofNat width.succ,
+      stack := arg :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 3 } }
+
+/-- One `Xstep` for any `PUSHk` (`k ≥ 1`), the width carried by the decode fact — so a generic
+    dispatcher trace need not fork on `PUSH1`/`PUSH2`.  Mirrors `push1_xstep`/`push2_xstep`. -/
+theorem pushConst_xstep {s : State} {code : ByteArray} {pcv arg : UInt256} {width : ℕ}
+    {op : Operation.POp} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv) (hop : op ≠ .PUSH0)
+    (hdec : decode code pcv = some (.Push op, some (arg, width)))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stPushConst s arg width, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.Push op, some (arg, width)) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_push s op arg width hop hd, if_neg hov']
+  simp only [GasConstants.Gverylow, stPushConst]
+
 end Reasoning.Theory

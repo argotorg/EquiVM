@@ -248,4 +248,122 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
     |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
+/-! ## Solc dispatcher scaffold — small staged lemmas off the prologue
+
+`solcGuardPrologueRD` lands at pc 8 with `[isZero(callvalue), callvalue]`.  These peel the standard
+solc dispatcher: the callvalue guard (zero → continue, nonzero → revert), the calldatasize check
+(`< 4` → revert), and the selector load (`PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR` → `selWord`).  All
+width-generic in the guard-target push (`pushConst`); concrete callers discharge the decode facts
+with `by decide`.  Chain `selectorArmTaken`/`selectorArmNotTaken` after `solcSelectorLoad`. -/
+
+/-- **Callvalue-zero guard.**  From the prologue cursor (`cv = 0`): take the guard `JUMPI` to its
+    `JUMPDEST` and `POP` the call value, reaching the dispatcher body at `ctgt + 2` with empty stack. -/
+theorem solcGuardCallvalueZero {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
+    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨8⟩
+          [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+          (cA, σ) k0 C0)
+    (hwv : I.weiValue = ⟨0⟩) (hopC : opC ≠ .PUSH0)
+    (hpushC : decode code ⟨8⟩ = some (.Push opC, some (ctgt, wC)))
+    (hjumpi : decode code (⟨8⟩ + UInt256.ofNat wC.succ) = some (.JUMPI, .none))
+    (hjmpdest : decode code ctgt = some (.JUMPDEST, .none))
+    (hpop : decode code (ctgt + ⟨1⟩) = some (.POP, .none))
+    (hjd : (D_J code 0).contains ctgt = true) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (ctgt + ⟨1⟩ + ⟨1⟩)
+          [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C :=
+  ⟨_, _, h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
+    |>.jumpiT hjumpi (by rw [hwv]; decide) hjd (by simp only [List.length]; omega)
+    |>.jumpdest hjmpdest (by simp only [List.length]; omega)
+    |>.pop hpop (by simp only [List.length]; omega)⟩
+
+/-- **Callvalue-nonzero revert.**  `cv ≠ 0` ⇒ the guard `JUMPI` is not taken and falls into the
+    `revert(0,0)` stub — the whole run reverts. -/
+theorem solcGuardCallvalueNonzeroRevert {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
+    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨8⟩
+          [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+          (cA, σ) k0 C0)
+    (hwv : I.weiValue ≠ ⟨0⟩) (hopC : opC ≠ .PUSH0)
+    (hpushC : decode code ⟨8⟩ = some (.Push opC, some (ctgt, wC)))
+    (hjumpi : decode code (⟨8⟩ + UInt256.ofNat wC.succ) = some (.JUMPI, .none))
+    (hr0 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩) = some (.PUSH0, .none))
+    (hr1 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
+    (hr2 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)) :
+    RDrev code g (initState cA gh bl σ σ₀ g A I) :=
+  (h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
+    |>.jumpiNT hjumpi (isZero_eq_zero_of_ne hwv) (by simp only [List.length]; omega)).revertStub
+    hr0 hr1 hr2 (by simp only [List.length]; omega)
+
+/-- **Short-calldata revert.**  From the dispatcher body (post-`POP`, empty stack) with
+    `calldatasize < 4`: `PUSH1 4; CALLDATASIZE; LT` is `1`, so the size `JUMPI` jumps to the
+    `revert(0,0)` stub.  Width-generic in the revert-target push. -/
+theorem solcCalldataShortRevert {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {bodyPc rtgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
+    (h : RD code I g (initState cA gh bl σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
+          ByteArray.empty (cA, σ) k0 C0)
+    (hsz : I.calldata.size < 4)
+    (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
+    (hd_cds : decode code (bodyPc + UInt256.ofNat 2) = some (.CALLDATASIZE, .none))
+    (hd_lt : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩) = some (.LT, .none))
+    (hopR : opR ≠ .PUSH0)
+    (hd_pR : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.Push opR, some (rtgt, wR)))
+    (hd_ji : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ)
+              = some (.JUMPI, .none))
+    (hd_jd : decode code rtgt = some (.JUMPDEST, .none)) (hjd : (D_J code 0).contains rtgt = true)
+    (hr0 : decode code (rtgt + ⟨1⟩) = some (.PUSH0, .none))
+    (hr1 : decode code (rtgt + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
+    (hr2 : decode code (rtgt + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)) :
+    RDrev code g (initState cA gh bl σ σ₀ g A I) :=
+  (h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
+    |>.calldatasize hd_cds (by simp only [List.length]; omega)
+    |>.lt hd_lt (by simp only [List.length]; omega)
+    |>.pushConst rtgt hopR hd_pR (by simp only [List.length]; omega)
+    |>.jumpiT hd_ji (lt_four_ne_zero_of_lt hsz) hjd (by simp only [List.length]; omega)
+    |>.jumpdest hd_jd (by simp only [List.length]; omega)).revertStub
+    hr0 hr1 hr2 (by simp only [List.length]; omega)
+
+/-- **Calldata-ok continue** (dual of `solcCalldataShortRevert`).  From the dispatcher body with
+    `calldatasize ≥ 4`: `PUSH1 4; CALLDATASIZE; LT` is `0`, so the size `JUMPI` is not taken and
+    falls through to the selector load (the `PUSH0` at the returned pc) with an empty stack. -/
+theorem solcCalldataOk {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {bodyPc selLoadTgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
+    (h : RD code I g (initState cA gh bl σ σ₀ g A I) bodyPc [] solcFreePtrMem (UInt256.ofNat 3)
+          ByteArray.empty (cA, σ) k0 C0)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
+    (hd_cds : decode code (bodyPc + UInt256.ofNat 2) = some (.CALLDATASIZE, .none))
+    (hd_lt : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩) = some (.LT, .none))
+    (hopR : opR ≠ .PUSH0)
+    (hd_pR : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.Push opR, some (selLoadTgt, wR)))
+    (hd_ji : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ)
+              = some (.JUMPI, .none)) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+        (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ + ⟨1⟩)
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C :=
+  ⟨_, _, h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
+    |>.calldatasize hd_cds (by simp only [List.length]; omega)
+    |>.lt hd_lt (by simp only [List.length]; omega)
+    |>.pushConst selLoadTgt hopR hd_pR (by simp only [List.length]; omega)
+    |>.jumpiNT hd_ji (lt_four_eq_zero_of_ge hsz hsize) (by simp only [List.length]; omega)⟩
+
+/-- **Selector load.**  `PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR` — load `calldata[0:32]` and shift
+    right by 224, leaving the 4-byte function selector word on top.  The `selectorArm*` lemmas
+    consume the result. -/
+theorem solcSelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {loadPc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k0 C0 : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 loadPc rest mem aw rdata acc k0 C0)
+    (hp0 : decode code loadPc = some (.PUSH0, .none))
+    (hcdl : decode code (loadPc + ⟨1⟩) = some (.CALLDATALOAD, .none))
+    (hp1 : decode code (loadPc + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨224⟩, 1)))
+    (hshr : decode code (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) = some (.SHR, .none))
+    (hov : rest.length + 2 ≤ 1024) :
+    ∃ k C, RD code ee g s0 (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+        (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩ :: rest)
+        mem aw rdata acc k C :=
+  ⟨_, _, h.push0 hp0 (by omega)
+    |>.calldataload hcdl (by omega)
+    |>.push1 ⟨224⟩ hp1 (by simp only [List.length]; omega)
+    |>.shr hshr (by omega)⟩
+
 end Reasoning.Reach
