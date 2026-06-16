@@ -1038,21 +1038,19 @@ theorem RD.jumpiNT {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       · exact hee
       · exact hworld
 
-/-! ## Trusted base — `Θ` gas non-creation
 
-A message call cannot *create* gas: the gas `Θ` returns (the callee's leftover) never exceeds the
-gas it was forwarded.  This is a standard EVM invariant (gas is spent or refunded from what was
-provided, never minted), but evmlean carries no lemma for it, and proving it requires induction over
-the mutually-recursive `Θ`/`Ξ`/`X`.  We take it as a single shared trusted axiom — the external-call
-analogue of the per-contract `*ValidJumps`/`*SelectorBytes` facts.  It is what lets a `CALL`'s
-gas-refund successor (`gasAvailable' - gasCost + g'`) still be written as `g - C'` for the `RD`
-invariant. -/
-axiom Theta_returnedGas_le
+/-- A message call cannot create gas: the gas `Θ` returns (the callee's leftover) never exceeds the
+gas it was forwarded.  The old CALL proof needed this to bound a `gasAvailable - cost + refund`
+successor.  The current opcode semantics instead charges `cost - refund`, so the `RD` gas invariant
+does not fundamentally depend on this bound anymore; the proof below still uses it as a convenient
+local fact while establishing that the CALL step advances the symbolic counters. -/
+theorem Theta_returnedGas_le
     (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
     (e : Fin 1025) (H : BlockHeader) (w : Bool) :
-    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.1.toNat ≤ g.toNat
+    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.1.toNat ≤ g.toNat := by
+  exact Ethereum.EVM.Theta_gas_le
 
 /-- **Trusted base — `Θ` return-data is address-bounded.**  A message call's return data is a slice
     `memory[off .. off+len]` with `off, len : UInt256`, so its size is below `2²⁵⁶`; the tighter
@@ -1116,8 +1114,8 @@ set_option maxHeartbeats 1000000 in
     external message call `Θ` and advance to the successor: the result `(cA', σ', z, o)` is
     abstracted (no assumption on the callee's code), the return bytes `o` are written to memory,
     the status flag `z` is pushed, and accounts advance to `(cA', σ')`.  The same `Θ` is what the
-    Solm-side `externalCall` invokes, so the two coincide by construction.  Gas is existential
-    (the callee's refund `g'` is unknown but `≤` forwarded, via `Theta_returnedGas_le`). -/
+    Solm-side `externalCall` invokes, so the two coincide by construction.  Gas is existential:
+    the successor gas is expressed through the charged delta `gc - returnedGas`. -/
 theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
