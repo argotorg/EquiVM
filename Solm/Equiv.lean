@@ -243,7 +243,8 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
       (I : Ethereum.ExecutionEnv)
-      (args : List Value),
+      (args : List Value)
+      (deployedInitcode : ByteArray),
     -- This should handle creating the initcode ++ arguments,
     -- and also enforce that we are only checking equivalence for valid argument values.
     -- We do not need to check for arbitraty given values, because the Solidity compiler
