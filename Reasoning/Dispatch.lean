@@ -146,7 +146,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     (hcode : I.code = code)
     (htr : contract.transitions = [transition])
     (h : RDrev code g (initState cA gh bl σ σ₀ g A I))
-    (hbody : ∀ callargs, ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I)
+    (hbody : ∀ callargs, ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I)
               callargs transition.body .reverted) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
@@ -172,7 +172,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl} {t : 
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal))
     (hAcc : acc = (evm''.createdAccounts, evm''.accountMap))
     (henc : returnEquiv o retVal t.returnType) :
@@ -185,7 +185,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl} {t : 
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
     have hbody' :
-        ExecContractBody cfg contract
+        ExecTransitionBody cfg contract
           (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
@@ -205,7 +205,7 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
               (.returned cs (initState cA gh bl σ σ₀ g A I) retVal))
     (henc : returnEquiv o retVal t.returnType) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
@@ -219,7 +219,7 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted) :
+    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_

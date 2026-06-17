@@ -169,7 +169,7 @@ projections, the gas arithmetic (`C' = C + memCost + gasCost − g'.toNat`, fact
 3. **Post-CALL z-split (more bytecode).** pc 144: `z=true` → POP×4 → return-decoder 470 (uint256) →
    `RD.sstore` slot 0 (store `decode o`) → JUMP back → 71 STOP ⇒ `RDret (cA, σ[slot0])`;
    `z=false` → 151 RETURNDATACOPY → REVERT ⇒ `RDrev`.
-4. **Solm body** `ExecContractBody callerConfig callerContract … runTransition.body`: `require(cv=0)`
+4. **Solm body** `ExecTransitionBody callerConfig callerContract … runTransition.body`: `require(cv=0)`
    passes → `externalCall` via `callerCallCoincides` (instantiate Solm `A_in`/`callGas` to the
    `RD.call` witnesses; uses coupling #2) → on `z`: `assign stored` (decode coupling) or revert.
 5. **Assembly.** New success eliminator doing the `z`/size/clean-address case-split, feeding
@@ -221,7 +221,7 @@ BOTH pieces are needed:
    int/uint return). (Narrow option: do it only in `callerExternalABI.decode?`.)
 2. Add an `ExecStmt` rule `externalCallReturnDecodeRevert`:
    `… externalCallViaEVM … (true, evm', out) → cfg.externalABI.decode? name out = none → .reverted`.
-   (Piece 1 alone leaves `z=true ∧ decode=none` with no applicable rule ⇒ `ExecContractBody`
+   (Piece 1 alone leaves `z=true ∧ decode=none` with no applicable rule ⇒ `ExecTransitionBody`
    uninhabited ⇒ still cannot build the witness.)
 Then all cases couple: `out.size ≥ 32` → success/store (matches EVM store); `out.size < 32` →
 revert (matches EVM revert); `z=false` → `externalCallFailure` revert (matches EVM revert).

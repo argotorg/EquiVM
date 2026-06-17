@@ -3,7 +3,7 @@ import Reasoning.Theory
 /-!
 # SolmBody — compositional lemmas for the Solm contract body
 
-The Solm-side analogue of the EVM trace: facts about `ExecContractBody` / `ExecStmt`.  The piece
+The Solm-side analogue of the EVM trace: facts about `ExecTransitionBody` / `ExecStmt`.  The piece
 shared across every solc contract is the **non-payable guard** `require(callvalue == 0)` that opens
 each transition body — its evaluation (both directions) and the body-revert it produces under
 non-zero call value.  Statement-level combinators for the success path / loops can be added here as
@@ -37,7 +37,7 @@ theorem evalCallvalueEq_false {cfg : Config} {solm : Frame} {evm : EVM.State}
 theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : EVM.State}
     {locals : Store} {rest : List Stmt}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody cfg contract evm locals
+    ExecTransitionBody cfg contract evm locals
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
@@ -79,7 +79,7 @@ inside-out.  `ABlock` is the difference-list/CPS view that lets it read **left-t
 `evm_run`: `ABlock cfg evm solm₀ stmts₀ solm stmts` transforms a continuation from the cursor
 `(solm, stmts)` into the whole block from `(solm₀, stmts₀)`.  Chain with `start |>.requireStep …
 |>.letStep … |>.whileStep …` and close with a terminal (`returns` / `requireRevert`); wrap the
-result with `ExecFuncBody.execBlockRet` / `.execBlockRevert` to get an `ExecContractBody`. -/
+result with `ExecFuncBody.execBlockRet` / `.execBlockRevert` to get an `ExecTransitionBody`. -/
 
 /-- A straight-line `ExecBlock` builder, cursor `(solm, stmts)` over fixed entry `(solm₀, stmts₀)`.
     (A one-field structure so the combinators chain by dot-notation.) -/

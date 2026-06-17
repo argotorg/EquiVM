@@ -45,7 +45,7 @@ theorem callerDispatch_none_nomatch {cd : ByteArray}
 /-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
 theorem callerBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted :=
+    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted :=
   bodyReverts_nonPayable h
 
 /-- **The Solm body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
@@ -63,7 +63,7 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
         { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
-    ExecContractBody callerConfig callerContract evm locals runTransition.body
+    ExecTransitionBody callerConfig callerContract evm locals runTransition.body
       (.returned solm'' evm'' none) := by
   refine ExecFuncBody.execBlockOK
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
@@ -88,7 +88,7 @@ theorem callerBodyExtFail (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hn : locals.get? "n" = some (.int nval))
     (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (false, evm', out)) :
-    ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted := by
+    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
       (ExecBlock.consRevert (ExecStmt.externalCallFailure ?_ ?_ ?_ hcall)))
@@ -110,7 +110,7 @@ theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Solm.Store) {tval : E
     (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = none) :
-    ExecContractBody callerConfig callerContract evm locals runTransition.body .reverted := by
+    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
       (ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert ?_ ?_ ?_ hcall hdec)))

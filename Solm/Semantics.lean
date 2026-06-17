@@ -831,6 +831,6 @@ inductive ExecFuncBody (cfg : Config) :
 
 end
 
-def ExecContractBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State)
+def ExecTransitionBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State)
     (locals : Store) (body : Body) (result : ExecResult) : Prop :=
   ExecFuncBody cfg { contract := contract, locals := locals } evm body result

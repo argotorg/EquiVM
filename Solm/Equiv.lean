@@ -91,7 +91,7 @@ inductive actExec
           blocks := blocks
           genesisBlockHeader := genesisBlockHeader
       } →
-    ExecContractBody conf contract evmState callargs transition.body actRes →
+    ExecTransitionBody conf contract evmState callargs transition.body actRes →
     actExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I actRes transition.returnType
 
 inductive runtimeEquivalenceFor (cfg : Config)

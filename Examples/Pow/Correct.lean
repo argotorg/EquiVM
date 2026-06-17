@@ -921,7 +921,7 @@ theorem evalReqN {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.S
 theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hN : N < 256)
     (hn : locals.get? "n" = some (.int (Int.ofNat N))) :
-    ∃ L', ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body
+    ∃ L', ExecTransitionBody powConfig Pow.powContract evm locals Pow.powTransition.body
             (.returned { contract := Pow.powContract, locals := L' } evm
               (some (.int (Int.ofNat (2 ^ N))))) := by
   -- locals after `r := 1` and `i := 0`
@@ -951,14 +951,14 @@ theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
 /-- Non-zero call value ⇒ `require(callvalue == 0)` fails, body reverts. -/
 theorem powBodyReverts_cv (evm : EVM.State) (locals : Solm.Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
+    ExecTransitionBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
   bodyReverts_nonPayable h
 
 /-- `n ≥ 256` (with zero call value) ⇒ `require(n < 256)` fails, body reverts. -/
 theorem powBodyReverts_n (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hN : 256 ≤ N)
     (hn : locals.get? "n" = some (.int (Int.ofNat N))) :
-    ExecContractBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
+    ExecTransitionBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
   ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireRevert (by
       have h : ¬ (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega

@@ -38,14 +38,14 @@ theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 /-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
 theorem truthBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody truthConfig truthContract evm locals truthTransition.body .reverted :=
+    ExecTransitionBody truthConfig truthContract evm locals truthTransition.body .reverted :=
   bodyReverts_nonPayable h
 
 /-- With zero call value, the Solm body returns `true`: `require(callvalue == 0)` passes and
     `return true` yields `(.bool true)` with the frame/EVM-state unchanged. -/
 theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecContractBody truthConfig truthContract evm locals truthTransition.body
+    ExecTransitionBody truthConfig truthContract evm locals truthTransition.body
       (.returned { contract := truthContract, locals := locals } evm (some (.bool true))) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)

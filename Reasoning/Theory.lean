@@ -219,13 +219,13 @@ theorem reEquiv_decodingFailed {cfg contract cA gh bl σ σ₀ g A I} {t g' o}
   .decodingFailed hd rfl hdec h
 
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution`
-    case.  `actExec` is assembled from dispatch + decode + an `ExecContractBody` over the
+    case.  `actExec` is assembled from dispatch + decode + an `ExecTransitionBody` over the
     canonical `initState`. -/
 theorem reEquiv_execution {cfg contract cA gh bl σ σ₀ A I} {t callargs actRes} {g : UInt256}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata
               = some callargs)
-    (hbody : ExecContractBody cfg contract (initState cA gh bl σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
+    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
     (hequiv : execResultsEquiv (Ξ cA gh bl σ σ₀ g A I) actRes t.returnType) :
     runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
   .execution rfl (.intro hd rfl hdec rfl hbody) hequiv
