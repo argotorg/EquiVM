@@ -128,21 +128,6 @@ inductive runtimeEquivalenceFor (cfg : Config)
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error .OutOfGass →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
 
-/-- **Per-function equivalence** — the body-level analogue of `runtimeEquivalenceFor`'s `execution`
-    case, one level down: one function body instead of the whole contract.  Executing transition
-    `t`'s body in Solm from `evmState` with arguments `callargs` yields a result equivalent
-    (`execResultsEquiv`) to the EVM body-execution result `evmRes`.  Dispatch and the EVM run that
-    produce `evmRes` are supplied by the proof layer; this statement only relates the two bodies. -/
-inductive equivTransition (cfg : Config) (contract : ContractDecl) (t : TransitionDecl)
-    (evmState : EVM.State) (callargs : Store)
-    (evmRes : Except Ethereum.EVM.ExecutionException
-      (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare ×
-        Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate))) : Prop where
-  | exec {solmRes} :
-    ExecTransitionBody cfg contract evmState callargs t.body solmRes →
-    execResultsEquiv evmRes solmRes t.returnType →
-    equivTransition cfg contract t evmState callargs evmRes
-
 -- a Solm contract corresponds to what?
 inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
   | intro :

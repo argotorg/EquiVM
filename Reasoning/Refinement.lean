@@ -3,37 +3,16 @@ import Reasoning.Dispatch
 /-!
 # Refinement — proof-side bridges: straight-line EVM runs ⟹ the equivalence statements
 
-The statements live in `Solm.Equiv` (`runtimeEquivalenceFor`, `equivTransition`).  This file proves
-the bridges between them and the Reasoning-layer EVM discipline (`RD` / `RDret` / `RDrev` from
-`Reach`):
+Only `runtimeEquivalenceFor` lives in `Solm.Equiv`.  The *relational* per-function and per-block
+judgments — `equivTransition` (one function's EVM body ≈ its Solm body) and `equivStmts` (the
+statement-level Hoare logic) — mention the EVM `RD`/`RDret`/`RDrev` discipline, so they live here,
+together with the bridges up the ladder:
 
-* `equivTransition.toRuntime` — **the dispatch glue**: a per-function equivalence
-  (`equivTransition`) plus "the selector dispatches to `t`, its args decode, and the EVM whole-tx
-  result is the body result" ⟹ the whole-contract `runtimeEquivalenceFor`.
-
-The statement-level `equivStmts` (and its `RDret`/`RDrev`-driven proofs) belong here too, once a
-body is cracked open statement by statement.
+* `equivStmts.toTransitionReturns` / `…Reverts` — body-level Hoare triple ⟹ `equivTransition`.
+* `equivTransition.toRuntime` — `equivTransition` + dispatch/decoding ⟹ `runtimeEquivalenceFor`.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
-
-/-- **The dispatch glue.**  Per-function equivalence (`equivTransition`, over the body-entry state
-    `initState`) + the selector dispatches to `t` + its args decode + the EVM whole-transaction
-    result `Ξ` is the body result `evmRes` ⟹ the whole-contract `runtimeEquivalenceFor`.  This is the
-    only place dispatch enters; it is a direct repackaging of `runtimeEquivalenceFor.execution`. -/
-theorem equivTransition.toRuntime
-    {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {createdAccounts gh bl σ σ₀ A I} {g : UInt256} {callargs : Store} {evmRes}
-    (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
-    (hΞ : Ethereum.EVM.Ξ createdAccounts gh bl σ σ₀ g A I = evmRes)
-    (h : equivTransition cfg contract t
-          (initState createdAccounts gh bl σ σ₀ (Sat256.ofUInt256 g) A I) callargs evmRes) :
-    runtimeEquivalenceFor cfg contract createdAccounts gh bl σ σ₀ g A I := by
-  cases h with
-  | exec hbody hequiv =>
-    exact .execution hΞ (.intro hd rfl hdec rfl hbody) hequiv
 
 /-! ## A relational Hoare logic for compiled Solm
 
@@ -158,5 +137,67 @@ theorem equivStmts.single {code ee g s0 cfg returnType} {Rpre Rpost : StateRel} 
   intro cur k C frame evm hRD hpre
   obtain ⟨cur', k', C', frame', evm', hRD', hstmt, hpost⟩ := hstep cur k C frame evm hRD hpre
   exact ⟨cur', k', C', frame', evm', hRD', ExecBlock.consNormal hstmt ExecBlock.nil, hpost⟩
+
+/-! ### Up to the function and the contract -/
+
+/-- Per-function equivalence: from `initState`, the EVM body and the Solm body `t.body` (run with
+    `callargs`) reach a matching terminal result — both return ABI-coupled values with matching final
+    world, or both revert. -/
+inductive equivTransition (cfg : Config) (contract : ContractDecl) (t : TransitionDecl)
+    (cA : Batteries.RBSet AccountAddress compare) (gh : BlockHeader) (bl : ProcessedBlocks)
+    (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) (g : Sat256)
+    (code : ByteArray) (callargs : Store) : Prop where
+  | returns {o : ByteArray} {cs : Frame} {retVal} {evm'' : State}
+      {world : Batteries.RBSet AccountAddress compare × AccountMap} :
+      RDret code g (initState cA gh bl σ σ₀ g A I) world o →
+      ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+        (.returned cs evm'' retVal) →
+      world = (evm''.createdAccounts, evm''.accountMap) →
+      returnEquiv o retVal t.returnType →
+      equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs
+  | reverts :
+      RDrev code g (initState cA gh bl σ σ₀ g A I) →
+      ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted →
+      equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs
+
+/-- `equivTransition` + the selector dispatches to `t` + its args decode ⟹ `runtimeEquivalenceFor`. -/
+theorem equivTransition.toRuntime {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray} {callargs : Store}
+    (hcode : I.code = code)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (h : equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I := by
+  cases h with
+  | returns hret hbody hAcc henc => exact hret.reEquivExecutionGen hcode hd hdec hbody hAcc henc
+  | reverts hrev hbody => exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+
+/-- A body that runs to `.ret` ⟹ `equivTransition.returns`, given the dispatch reached the body
+    entry (`hentry`) under the entry coupling (`hRinit`). -/
+theorem equivStmts.toTransitionReturns {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray} {callargs : Store} {Rinit : StateRel}
+    {entry : Cursor} {kE CE : ℕ} {rv : Option Value}
+    (hentry : RDc code I g (initState cA gh bl σ σ₀ g A I) entry kE CE)
+    (hRinit : Rinit entry { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I))
+    (h : equivStmts code I g (initState cA gh bl σ σ₀ g A I) cfg t.returnType Rinit t.body (.ret rv)) :
+    equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs := by
+  obtain ⟨world, o, frame', evm', hRDret, hblock, hWorld, henc⟩ :=
+    h entry kE CE { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I)
+      hentry hRinit
+  exact .returns hRDret (ExecFuncBody.execBlockRet hblock) hWorld henc
+
+/-- A body that runs to `.rev` ⟹ `equivTransition.reverts`. -/
+theorem equivStmts.toTransitionReverts {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray} {callargs : Store} {Rinit : StateRel}
+    {entry : Cursor} {kE CE : ℕ}
+    (hentry : RDc code I g (initState cA gh bl σ σ₀ g A I) entry kE CE)
+    (hRinit : Rinit entry { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I))
+    (h : equivStmts code I g (initState cA gh bl σ σ₀ g A I) cfg t.returnType Rinit t.body .rev) :
+    equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs := by
+  obtain ⟨hRDrev, hblock⟩ :=
+    h entry kE CE { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I)
+      hentry hRinit
+  exact .reverts hRDrev (ExecFuncBody.execBlockRevert hblock)
 
 end Reasoning.Refinement
