@@ -59,6 +59,23 @@ def RD (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     ∧ s.executionEnv = ee
     ∧ RDWorld s0 s
 
+/-- The EVM **reach-cursor**: the six fields `RD` pins on the underlying `State` at a program point —
+    the transient machine state `pc`/`stack`/`mem`/`aw`/`rdata`, plus the persistent `world`
+    (`createdAccounts × accountMap`, where contract storage lives).  `RDc` below is `RD` indexed by a
+    `Cursor` instead of six loose arguments; eventually `RD` itself should take one. -/
+structure Cursor where
+  pc    : UInt256
+  stack : List UInt256
+  mem   : ByteArray
+  aw    : UInt256
+  rdata : ByteArray
+  world : Batteries.RBSet AccountAddress compare × AccountMap
+
+/-- `RD` indexed by a `Cursor` rather than six positional fields. -/
+def RDc (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+    (cur : Cursor) (k C : ℕ) : Prop :=
+  RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C
+
 /-- Inject the current cursor state into the invariant.  `mem`/`aw`/`acc` are
     pinned to the input state's values; the trace's preservation clauses are then
     `= s.machineState.memory` etc. for free. -/
