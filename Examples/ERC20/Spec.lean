@@ -136,4 +136,5 @@ end ERC20
 
 def erc20Config : Config :=
   { storage := ERC20.erc20StorageLayout
-    externalABI := defaultExternalCallABI }
+    externalABI := defaultExternalCallABI
+    selfDeployment := genSolidityConstructorDeployment ERC20.erc20Contract.ctor.params }

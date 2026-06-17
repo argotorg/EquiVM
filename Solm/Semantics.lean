@@ -16,6 +16,10 @@ structure Config where
      `new` of the named contract. -/
   creationCode : Ident -> List Value -> Option EVM.Bytes := fun _ _ => none
 
+  /- Scheme for initialisation code (creation bytecode ++ ABI-encoded constructor args) for
+     deployment of the contract's constructor -/
+  selfDeployment : EVM.Bytes → List Value → Option EVM.Bytes
+
 structure ContractInstance where
   contract : Ident
   contractCode : ContractDecl
