@@ -1356,6 +1356,109 @@ theorem RD.selectorArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
    |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
    |>.jumpiNT hjumpi hb (by simp only [List.length_cons]; omega)
 
+/-! ### Auto arms — selector/target read from the bytecode (width-generic)
+
+The `selectorArm*` lemmas take `selNat`/`tgt`/`op`/`width` explicitly because `by decide` can't
+infer them inside a decode metavariable.  These wrappers **extract** them from the bytecode
+(`pushAt` reads a `PUSH`'s op/value/width), so a caller supplies only the running cursor and `by
+decide` for each decode fact — no per-arm `(selNat := …) (tgt := …) (op := …) (width := …)`.  The
+target push width stays generic (`PUSH1` for `Truth`, `PUSH2` for the rest), read from the bytecode. -/
+
+/-- The `(op, value, width)` of a `PUSH` decoded at `pc` (junk fallback for a non-push). -/
+def pushAt (code : ByteArray) (pc : UInt256) : Operation.POp × UInt256 × ℕ :=
+  match decode code pc with
+  | some (.Push op, some (v, w)) => (op, v, w)
+  | _ => (.PUSH1, ⟨0⟩, 1)
+
+/-- The arm's `PUSH4` selector value, read from the bytecode. -/
+@[reducible] def armSelNat (code : ByteArray) (armPc : UInt256) : UInt256 :=
+  (pushAt code (selArmPush4Pc armPc)).2.1
+/-- The arm's target-push opcode (`PUSH1`/`PUSH2`/…), read from the bytecode. -/
+@[reducible] def armTgtOp (code : ByteArray) (armPc : UInt256) : Operation.POp :=
+  (pushAt code (selArmPushTgtPc armPc)).1
+/-- The arm's jump target (the function body entry), read from the bytecode. -/
+@[reducible] def armTgt (code : ByteArray) (armPc : UInt256) : UInt256 :=
+  (pushAt code (selArmPushTgtPc armPc)).2.1
+/-- The arm's target-push width (`1`/`2`), read from the bytecode. -/
+@[reducible] def armTgtWidth (code : ByteArray) (armPc : UInt256) : ℕ :=
+  (pushAt code (selArmPushTgtPc armPc)).2.2
+
+/-- An arm at `armPc` is **well-formed**: decodes as `DUP1; PUSH4 selᵢ; EQ; PUSHk tgtᵢ; JUMPI`
+    (selector/target/op/width read from the bytecode).  Bundling the six decode facts lets a caller
+    discharge them with a single `by decide` and a dispatcher fold carry `∀ arm, armWellFormed`. -/
+@[reducible] def armWellFormed (code : ByteArray) (armPc : UInt256) : Prop :=
+  decode code armPc = some (.DUP1, .none)
+  ∧ decode code (selArmPush4Pc armPc) = some (.Push .PUSH4, some (armSelNat code armPc, 4))
+  ∧ decode code (selArmEqPc armPc) = some (.EQ, .none)
+  ∧ armTgtOp code armPc ≠ .PUSH0
+  ∧ decode code (selArmPushTgtPc armPc)
+      = some (.Push (armTgtOp code armPc), some (armTgt code armPc, armTgtWidth code armPc))
+  ∧ decode code (selArmJumpiPc armPc (armTgtWidth code armPc)) = some (.JUMPI, .none)
+
+/-- Arm **taken**, opcode facts bundled as `armWellFormed` (one `by decide`). -/
+theorem RD.selectorArmTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : armWellFormed code armPc)
+    (hb : UInt256.eq (armSelNat code armPc) selWord ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains (armTgt code armPc) = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (armTgt code armPc) (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.selectorArmTaken hdup hpush4 heq hopT hpushT hjumpi hb hjd hov
+
+/-- Arm **not taken**, opcode facts bundled as `armWellFormed` (fall through to the next arm). -/
+theorem RD.selectorArmNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : armWellFormed code armPc)
+    (hb : UInt256.eq (armSelNat code armPc) selWord = ⟨0⟩)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (selArmNextPc armPc (armTgtWidth code armPc)) (selWord :: rest)
+      mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.selectorArmNotTaken hdup hpush4 heq hopT hpushT hjumpi hb hov
+
+/-- The pc of the `n`-th arm from `start`, each arm's width read from the bytecode (so it threads
+    `PUSH1` and `PUSH2` target arms alike). -/
+def nthArmPc (code : ByteArray) (start : UInt256) : ℕ → UInt256
+  | 0 => start
+  | n + 1 => nthArmPc code (selArmNextPc start (armTgtWidth code start)) n
+
+/-- **Dispatcher fold.**  From the first arm with the selector word on top, skip arms `0 … i-1`
+    (`heq0`: none match) and take arm `i` (`htake`: it matches), reaching its body entry `bodyPC`.
+    The per-arm opcode facts are the single `∀`-hypothesis `hwf` — at a concrete call discharged by
+    one `intro/interval_cases/decide`, replacing six `by decide`s per arm. -/
+theorem RD.dispatchTo {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {rest : List UInt256}
+    (bodyPC : UInt256) :
+    ∀ (i : ℕ) {start : UInt256} {k C : ℕ}
+      (_ : RD code ee g s0 start (selWord :: rest) mem aw rdata acc k C)
+      (_ : ∀ j, j ≤ i → armWellFormed code (nthArmPc code start j))
+      (_ : ∀ j, j < i → UInt256.eq (armSelNat code (nthArmPc code start j)) selWord = ⟨0⟩)
+      (_ : UInt256.eq (armSelNat code (nthArmPc code start i)) selWord ≠ ⟨0⟩)
+      (_ : (D_J code 0).contains (armTgt code (nthArmPc code start i)) = true)
+      (_ : armTgt code (nthArmPc code start i) = bodyPC)
+      (_ : rest.length + 3 ≤ 1024),
+      ∃ k' C', RD code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc k' C' := by
+  intro i
+  induction i with
+  | zero =>
+    intro start k C h hwf _ htake hjd hbody hov
+    have key : RD code ee g s0 bodyPC (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+      have hbody' : armTgt code start = bodyPC := hbody
+      rw [← hbody']
+      exact h.selectorArmTakenAuto (hwf 0 (le_refl 0)) htake hjd hov
+    exact ⟨_, _, key⟩
+  | succ n ih =>
+    intro start k C h hwf heq0 htake hjd hbody hov
+    exact ih (h.selectorArmNotTakenAuto (hwf 0 (Nat.zero_le _)) (heq0 0 (Nat.succ_pos n)) hov)
+      (fun j hj => hwf (j + 1) (by omega)) (fun j hj => heq0 (j + 1) (by omega))
+      htake hjd hbody hov
+
 
 set_option maxHeartbeats 1000000 in
 /-- **CALL** (value 0) as an `RD → RD` combinator.  From a cursor at the `CALL` pc with the

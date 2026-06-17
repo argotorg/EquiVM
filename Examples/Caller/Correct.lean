@@ -123,11 +123,11 @@ theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Solm.Store) {tval : E
 
 /-! ## JUMPDEST membership facts -/
 
-theorem callerContains15 : (D_J callerBytecode ⟨0⟩).contains ⟨15⟩ = true := by
+theorem callerContains15 : (D_J callerBytecode 0).contains ⟨15⟩ = true := by
   jump_dest
-theorem callerContains41 : (D_J callerBytecode ⟨0⟩).contains ⟨41⟩ = true := by
+theorem callerContains41 : (D_J callerBytecode 0).contains ⟨41⟩ = true := by
   jump_dest
-theorem callerContains45 : (D_J callerBytecode ⟨0⟩).contains ⟨45⟩ = true := by
+theorem callerContains45 : (D_J callerBytecode 0).contains ⟨45⟩ = true := by
   jump_dest
 
 /-! ## Selector decode (generic instance) -/
@@ -219,23 +219,23 @@ theorem slt32_one {n : ℕ} (hn : n < 32) : UInt256.slt (UInt256.ofNat n) ⟨32�
       show (UInt256.ofNat n).toNat < (⟨32⟩ : UInt256).toNat; rw [ho, h32]; omega)
   show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨1⟩
   rw [hbool]; rfl
-theorem callerContains71 : (D_J callerBytecode ⟨0⟩).contains ⟨71⟩ = true := by
+theorem callerContains71 : (D_J callerBytecode 0).contains ⟨71⟩ = true := by
   jump_dest
-theorem callerContains194 : (D_J callerBytecode ⟨0⟩).contains ⟨194⟩ = true := by
+theorem callerContains194 : (D_J callerBytecode 0).contains ⟨194⟩ = true := by
   jump_dest
-theorem callerContains297 : (D_J callerBytecode ⟨0⟩).contains ⟨297⟩ = true := by
+theorem callerContains297 : (D_J callerBytecode 0).contains ⟨297⟩ = true := by
   jump_dest
-theorem callerContains306 : (D_J callerBytecode ⟨0⟩).contains ⟨306⟩ = true := by
+theorem callerContains306 : (D_J callerBytecode 0).contains ⟨306⟩ = true := by
   jump_dest
-theorem callerContains315 : (D_J callerBytecode ⟨0⟩).contains ⟨315⟩ = true := by
+theorem callerContains315 : (D_J callerBytecode 0).contains ⟨315⟩ = true := by
   jump_dest
-theorem callerContains325 : (D_J callerBytecode ⟨0⟩).contains ⟨325⟩ = true := by
+theorem callerContains325 : (D_J callerBytecode 0).contains ⟨325⟩ = true := by
   jump_dest
-theorem callerContains450 : (D_J callerBytecode ⟨0⟩).contains ⟨450⟩ = true := by
+theorem callerContains450 : (D_J callerBytecode 0).contains ⟨450⟩ = true := by
   jump_dest
-theorem callerContains464 : (D_J callerBytecode ⟨0⟩).contains ⟨464⟩ = true := by
+theorem callerContains464 : (D_J callerBytecode 0).contains ⟨464⟩ = true := by
   jump_dest
-theorem callerContains504 : (D_J callerBytecode ⟨0⟩).contains ⟨504⟩ = true := by
+theorem callerContains504 : (D_J callerBytecode 0).contains ⟨504⟩ = true := by
   jump_dest
 
 /-! ## EVM traces (revert scenarios) -/
@@ -265,6 +265,54 @@ theorem callerX_cvz_prefix
       jumpiT (by rw [hwv]; decide) callerContains15,
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩ ]
 
+/-! ## Dispatch machinery (single arm) — generic `Reasoning.Reach`/`Solc` driver -/
+
+/-- The 4-byte selector word the dispatcher computes from `calldata[0:32]`. -/
+abbrev callerSelWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
+
+/-- `run`'s single selector arm begins at pc 30 (`DUP1; PUSH4 0x381fd190; EQ; PUSH2 0x2d; JUMPI`). -/
+abbrev callerFirstArmPc : UInt256 := ⟨30⟩
+
+/-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH2; JUMPI`). -/
+theorem callerArmWellFormed : armWellFormed callerBytecode callerFirstArmPc :=
+  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+
+/-- The arm's `PUSH4` selector value is `0x381fd190`. -/
+theorem callerArmSelNat : armSelNat callerBytecode callerFirstArmPc = ⟨941609360⟩ := by decide
+
+/-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
+    exactly as `0x381fd190` matches `calldata[0:4]` — the table-indexed instance of `callerEvmSelector`. -/
+theorem callerMatch_eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) :
+    UInt256.eq (armSelNat callerBytecode callerFirstArmPc) (callerSelWord I)
+      = if ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
+  rw [callerArmSelNat]; exact callerEvmSelector hsz
+
+/-- **Machinery driver (proven).**  `cv = 0`, `size ≥ 4`, matching selector: prologue → callvalue
+    guard → calldata-ok → selector load → `RD.dispatchTo` over the single arm, reaching the `run`
+    dispatch body entry at pc 45 with the selector word on the stack. -/
+theorem callerReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
+        [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨15⟩) (opC := .PUSH2) (wC := 2)
+    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨41⟩) (opR := .PUSH2) (wR := 2)
+    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+  have h3' : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) callerFirstArmPc
+      [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
+  exact RD.dispatchTo ⟨45⟩ 0 h3'
+    (fun j hj => by rw [Nat.le_zero.mp hj]; exact callerArmWellFormed)
+    (fun j hj => absurd hj (by omega))
+    (by show UInt256.eq (armSelNat callerBytecode callerFirstArmPc) (callerSelWord I) ≠ ⟨0⟩
+        rw [callerMatch_eq I hsz, if_pos hmatch]; decide)
+    (by show (D_J callerBytecode 0).contains ⟨45⟩ = true; jump_dest) (by decide) (by simp)
+
 /-- `callvalue = 0 ∧ calldatasize < 4`: the prefix's `JUMPI` jumps to the `0x29` (41) revert stub. -/
 theorem callerX_cvz_short
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -291,29 +339,8 @@ theorem callerX_cvz_revertB
 
 /-! ## Success path — the dispatcher reaches the `run` dispatch at pc 45 -/
 
-theorem callerContains348 : (D_J callerBytecode ⟨0⟩).contains ⟨348⟩ = true := by
+theorem callerContains348 : (D_J callerBytecode 0).contains ⟨348⟩ = true := by
   jump_dest
-
-/-- **Dispatcher (match path).**  `callvalue = 0`, `calldatasize ≥ 4`, selector matches: reaches the
-    `run` dispatch `JUMPDEST` at pc 45, leaving the decoded selector word on the stack. -/
-theorem callerX_disp {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
-        [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 24 96 := by
-  have rd := evm_run (callerX_cvz_prefix (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-      (A := A) (g := g) hcode hwv) with [
-    jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
-    push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨941609360⟩, eq ]
-  rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide,
-      show UInt256.eq ⟨941609360⟩
-          (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨1⟩
-        from by rw [callerEvmSelector hsz, if_pos hmatch]] at rd
-  exact evm_run rd with [
-    push2 ⟨45⟩,
-    jumpiT (by decide) callerContains45 ]
 
 /-- **run-dispatch (pc 45 → arg-decoder entry pc 348).**  Pushes the two return addresses
     (`0x42 = 66` after decode, `0x47 = 71` after body), sets up `[headStart=4, dataEnd]`, and jumps
@@ -322,16 +349,18 @@ theorem callerX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨348⟩
+    ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨348⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨66⟩, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 38 140 := by
-  have rd := evm_run (callerX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-      (A := A) (g := g) hcode hwv hsz hsize hmatch) with [
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨k0, C0, rd0⟩ := callerReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (A := A) (g := g) hcode hwv hsz hsize hmatch
+  have rd := evm_run rd0 with [
     jumpdest, push2 ⟨71⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1, push2 ⟨66⟩,
     swap2, swap1, push2 ⟨348⟩,
     jump callerContains348 ]
-  rwa [add4_sub4 hsz hsize] at rd
+  rw [add4_sub4 hsz hsize] at rd
+  exact ⟨_, _, rd⟩
 
 /-! ## The opaque-call coincidence (the conceptual crux)
 
@@ -367,8 +396,9 @@ theorem callerX_dec277 {cA gh bl σ σ₀ A I} {g : Sat256}
         UInt256.toNat_sub_ofNat_of_le (by rw [ho]; omega), ho]
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     slt64_zero (by rw [hsub]; omega) (by rw [hsub]; omega)
-  exact ⟨_, _, evm_run (callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-      (A := A) (g := g) hcode hwv hsz hsize hmatch) with [
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (A := A) (g := g) hcode hwv hsz hsize hmatch
+  exact ⟨_, _, evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
     jumpiT (by rw [hslt]; decide) caller_jd,
     jumpdest, push0, push2 ⟨383⟩, dup6, dup3, dup7, add, push2 ⟨277⟩,
@@ -897,7 +927,7 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by simp only [List.length_cons]; omega)
 
-theorem callerContains158 : (D_J callerBytecode ⟨0⟩).contains ⟨158⟩ = true := by
+theorem callerContains158 : (D_J callerBytecode 0).contains ⟨158⟩ = true := by
   jump_dest
 
 /-- **Post-call success prefix** (`z = true`): the `CALL` returned `1`, so `iszero(success)` is
@@ -917,7 +947,7 @@ theorem callerX_succ_to165 {cA gh bl σ σ₀ A I} {g : Sat256}
   refine ⟨_, _, evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩,
     jumpiT (by decide) callerContains158, jumpdest, pop, pop, pop, pop, push1 ⟨64⟩]⟩
 
-theorem callerContains470 : (D_J callerBytecode ⟨0⟩).contains ⟨470⟩ = true := by
+theorem callerContains470 : (D_J callerBytecode 0).contains ⟨470⟩ = true := by
   jump_dest
 
 /-- The memory after the success decoder's free-pointer `MSTORE` at offset 64.  The result word at
@@ -1207,8 +1237,9 @@ theorem callerX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     exact Nat.mod_eq_of_lt (by omega)
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     rw [← heq]; exact slt64_one (by omega)
-  have rd := evm_run (callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-      (A := A) (g := g) hcode hwv hsz hsize hmatch) with [
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (A := A) (g := g) hcode hwv hsz hsize hmatch
+  have rd := evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
     jumpiNT (by rw [hslt]; decide),
     push2 ⟨369⟩, push2 ⟨203⟩, jump callerContains203,
@@ -1238,8 +1269,9 @@ theorem callerX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
         UInt256.toNat_sub_ofNat_of_le (by rw [ho]; omega), ho]
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     slt64_neg (by rw [hsub]; omega)
-  have rd := evm_run (callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-      (A := A) (g := g) hcode hwv hsz hsize hmatch) with [
+  obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (A := A) (g := g) hcode hwv hsz hsize hmatch
+  have rd := evm_run rd0 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
     jumpiNT (by rw [hslt]; decide),
     push2 ⟨369⟩, push2 ⟨203⟩, jump callerContains203,

@@ -95,6 +95,54 @@ theorem truthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
       = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
   evmSelectorDecode hsz 0x9e 0x9f 0x51 0xd2 ⟨2661241298⟩ (by decide)
 
+/-! ### Dispatch machinery (single arm) — table-indexed selector coupling + `RD.dispatchTo` driver -/
+
+/-- The 4-byte selector word the dispatcher computes from `calldata[0:32]`. -/
+abbrev truthSelWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
+
+/-- `truth()`'s single selector arm begins at pc 28 (`DUP1; PUSH4 0x9e9f51d2; EQ; PUSH1 0x2a; JUMPI`). -/
+abbrev truthFirstArmPc : UInt256 := ⟨28⟩
+
+/-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH1; JUMPI`). -/
+theorem truthArmWellFormed : armWellFormed truthBytecode truthFirstArmPc :=
+  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+
+/-- The arm's `PUSH4` selector value is `0x9e9f51d2`. -/
+theorem truthArmSelNat : armSelNat truthBytecode truthFirstArmPc = ⟨2661241298⟩ := by decide
+
+/-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
+    exactly as `0x9e9f51d2` matches `calldata[0:4]` — the table-indexed instance of `truthEvmSelector`. -/
+theorem truthMatch_eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) :
+    UInt256.eq (armSelNat truthBytecode truthFirstArmPc) (truthSelWord I)
+      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
+  rw [truthArmSelNat]; exact truthEvmSelector hsz
+
+/-- **Machinery driver (proven).**  `cv = 0`, `size ≥ 4`, matching selector: prologue → callvalue
+    guard → calldata-ok → selector load → `RD.dispatchTo` over the single arm, reaching the `truth()`
+    body entry at pc 42 with the selector word on the stack. -/
+theorem truthReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = truthBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD truthBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨42⟩
+        [truthSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨14⟩) (opC := .PUSH1) (wC := 1)
+    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨38⟩) (opR := .PUSH1) (wR := 1)
+    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+  have h3' : RD truthBytecode I g (initState cA gh bl σ σ₀ g A I) truthFirstArmPc
+      [truthSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
+  exact RD.dispatchTo ⟨42⟩ 0 h3'
+    (fun j hj => by rw [Nat.le_zero.mp hj]; exact truthArmWellFormed)
+    (fun j hj => absurd hj (by omega))
+    (by show UInt256.eq (armSelNat truthBytecode truthFirstArmPc) (truthSelWord I) ≠ ⟨0⟩
+        rw [truthMatch_eq I hsz, if_pos hmatch]; decide)
+    (by show (D_J truthBytecode 0).contains ⟨42⟩ = true; jump_dest) (by decide) (by simp)
+
 /-- The shared dispatcher prefix for `callvalue = 0`: through the non-payable guard's taken jump
     (`0x08 → 0x0e`) and on to the `0x16` `JUMPI`, reaching pc 22 with stack `[0x26, (size < 4)]`,
     the free-pointer memory in place.  Built compositionally as one `RD`. -/
@@ -174,15 +222,10 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     RDret truthBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) (UInt256.toByteArray ⟨1⟩) := by
-  -- prefix → size JUMPI(nt) → selector decode/compare (match) → JUMPI(t) into `truth()` →
-  --   abi-encode bool 1 (PUSH/JUMP plumbing through the solc helpers) → MSTORE 1 @128 → RETURN 1
-  exact evm_run (truthX_cvz_prefix hcode hwv) with [
-    jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
-    push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨2661241298⟩, eq, push1 ⟨42⟩,
-    jumpiT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide,
-                show UInt256.eq ⟨2661241298⟩
-                  (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨1⟩
-              from by rw [truthEvmSelector hsz]; simp [hmatch]]; decide) (by jump_dest),
+  -- the dispatch machinery (`truthReachBody`) reaches the `truth()` body entry at pc 42; from there
+  -- abi-encode bool 1 (PUSH/JUMP plumbing through the solc helpers) → MSTORE 1 @128 → RETURN 1
+  obtain ⟨k, C, hreach⟩ := truthReachBody hcode hwv hsz hsize hmatch
+  exact evm_run hreach with [
     jumpdest, push1 ⟨48⟩, push1 ⟨68⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨1⟩, swap1, pop, swap1, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,

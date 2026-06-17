@@ -28,6 +28,59 @@ theorem powEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
       = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
   evmSelectorDecode hsz 0x44 0x2b 0x7f 0xfb ⟨1143701499⟩ (by decide)
 
+/-! ## Dispatch machinery (single arm) — generic `Reach`/`Solc` driver
+
+`callvalue = 0`, `calldatasize ≥ 4`, selector matches `0x442b7ffb`: routed through the generic
+`solcGuardPrologueRD` → `solcGuardCallvalueZero` → `solcCalldataOk` → `solcSelectorLoad` →
+`RD.dispatchTo` machinery (PUSH2 jump targets, unlike `Truth`'s PUSH1).  Reaches the function body
+entry at pc `45 = 0x2d` with the decoded selector word on the stack. -/
+
+/-- The 4-byte selector word the dispatcher computes from `calldata[0:32]`. -/
+abbrev powSelWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
+
+/-- `pow2`'s single selector arm begins at pc 30 (`DUP1; PUSH4 0x442b7ffb; EQ; PUSH2 0x2d; JUMPI`). -/
+abbrev powFirstArmPc : UInt256 := ⟨30⟩
+
+/-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH2; JUMPI`). -/
+theorem powArmWellFormed : armWellFormed powBytecode powFirstArmPc :=
+  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+
+/-- The arm's `PUSH4` selector value is `0x442b7ffb`. -/
+theorem powArmSelNat : armSelNat powBytecode powFirstArmPc = ⟨1143701499⟩ := by decide
+
+/-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
+    exactly as `0x442b7ffb` matches `calldata[0:4]` — the table-indexed instance of `powEvmSelector`. -/
+theorem powMatch_eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) :
+    UInt256.eq (armSelNat powBytecode powFirstArmPc) (powSelWord I)
+      = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
+  rw [powArmSelNat]; exact powEvmSelector hsz
+
+/-- **Machinery driver (proven).**  `cv = 0`, `size ≥ 4`, matching selector: prologue → callvalue
+    guard → calldata-ok → selector load → `RD.dispatchTo` over the single arm, reaching the `pow2`
+    body entry at pc 45 with the selector word on the stack. -/
+theorem powReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
+        [powSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨15⟩) (opC := .PUSH2) (wC := 2)
+    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨41⟩) (opR := .PUSH2) (wR := 2)
+    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+  have h3' : RD powBytecode I g (initState cA gh bl σ σ₀ g A I) powFirstArmPc
+      [powSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
+  exact RD.dispatchTo ⟨45⟩ 0 h3'
+    (fun j hj => by rw [Nat.le_zero.mp hj]; exact powArmWellFormed)
+    (fun j hj => absurd hj (by omega))
+    (by show UInt256.eq (armSelNat powBytecode powFirstArmPc) (powSelWord I) ≠ ⟨0⟩
+        rw [powMatch_eq I hsz, if_pos hmatch]; decide)
+    (by show (D_J powBytecode 0).contains ⟨45⟩ = true; jump_dest) (by decide) (by simp)
+
 /-! ## The loop core (crux) — **proved**
 
 `while (i < n) { r *= 2; i += 1; }`: header `0x75 = 117`, body `0x7e–0x8d`, exit `0x8e = 142`.
@@ -528,9 +581,10 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : Sat256}
     show (Fin.ofNat _ 256).val = 256; simp only [Fin.ofNat]
     exact Nat.mod_eq_of_lt (by have := pow_lt_size (show (8:ℕ) < 256 by norm_num); norm_num at this; exact this)
   have hltval : UInt256.lt arg ⟨256⟩ = ⟨1⟩ := ult_one (by rw [h256]; exact hn)
-  -- dispatcher → decoder → cf → require → loop → loop-exit, threaded as one `RD`; encoder is terminal
-  have rdDec := powX_disp (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-        hcode hwv (by omega) hsize hmatch
+  -- dispatcher (generic machinery) → decoder → cf → require → loop → loop-exit, threaded as one `RD`
+  obtain ⟨_, _, rdDisp⟩ := powReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (A := A) (g := g) hcode hwv (by omega) hsize hmatch
+  have rdDec := rdDisp
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf hsltval (by jump_dest)
           (by simp only [List.length_cons, List.length_nil]; omega)
