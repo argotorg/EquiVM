@@ -51,14 +51,12 @@ inductive execResultsEquiv
   | revert :
     evmRes = .ok (.revert g o) →
     actRes = .reverted →
-    -- TODO: something like: decode o = retVal
     execResultsEquiv evmRes actRes t
-  | error :
-    -- TODO: is this what needs to happen?
-    -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
-    evmRes = .error e →
-    actRes = .reverted →
-    execResultsEquiv evmRes actRes t
+  -- There is intentionally no case for `evmRes = .error e`: bytecode that refines a Solm spec
+  -- must never halt exceptionally.  A Solm `.reverted` is matched only by a clean `REVERT`
+  -- (the `revert` case above); a real EVM exception leaves `execResultsEquiv` unmatchable, so the
+  -- equivalence fails rather than silently equating a crash with a revert.  (Out-of-gas is handled
+  -- separately by `runtimeEquivalenceFor.outOfGas`, not here.)
 
 
 -- Solm transaction dispatch and execution.

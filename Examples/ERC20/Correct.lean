@@ -5,6 +5,7 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
+import Reasoning.Refinement
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -17,7 +18,7 @@ machinery driver (one `RD.dispatchTo`); the per-function body proofs and the sel
 / revert facts are named, sorried stubs.  No axiom.
 -/
 
-open Solm Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
 set_option maxRecDepth 2000000
 
