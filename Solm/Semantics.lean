@@ -192,6 +192,8 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   match ty, v with
   | .elem (.bool), .bool _ => some v
   | .elem (.address), .address _ => some v
+  -- `address(n)`: an integer cast to `address` (e.g. `address(0)`), truncated to the address width.
+  | .elem (.address), .int n => some (.address (.ofNat n.toNat))
   | .elem (.int _), .int _ => some v
   | .contract _, .address _ => some v
   | .struct expected _, .struct actual _ =>
