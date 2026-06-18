@@ -1,5 +1,6 @@
 import Examples.Pow.Bytecode
 import Examples.Pow.Spec
+import Reasoning.ABIDecode
 import Reasoning.EVMWord
 import Reasoning.Theory
 import Reasoning.Dispatch
@@ -524,43 +525,17 @@ theorem powDecode_n {I : Ethereum.ExecutionEnv} (hsz : 36 ≤ I.calldata.size)
         (transitionSignature Pow.powTransition).paramTypes I.calldata
       = some ((∅ : Solm.Store).insert "n"
           (.int (Int.ofNat (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat))) := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hwlt : (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.val < EVM.twoPow 256 :=
-    (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.isLt
   show decodeCalldata ["n"] [Pow.uint256] I.calldata = _
-  unfold decodeCalldata decodeCalldata.decodeArgs
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, Pow.uint256,
-    decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-    bind, Option.bind, List.drop_zero, htake, hwlt, if_true,
-    Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero]
-  rw [decode_word_at_eq I.calldata 4 (by omega) (by norm_num)]
-  rfl
+  simpa [Pow.uint256, abiUInt256, calldataWord]
+    using decodeCalldata_uint256_ok (cd := I.calldata) (x := "n") hsz hbig
 
-/-- **Calldata decode fails** when `4 ≤ size < 36`: the `uint256` argument can't be read. -/
+/-- **Calldata decode fails** when `size < 36`: the `uint256` argument can't be read. -/
 theorem powDecode_none {I : Ethereum.ExecutionEnv} (hsz36 : I.calldata.size < 36) :
     decodeCalldata (Pow.powTransition.params.map Param.name)
         (transitionSignature Pow.powTransition).paramTypes I.calldata = none := by
-  by_cases hsz4 : I.calldata.size < 4
-  · show decodeCalldata ["n"] [Pow.uint256] I.calldata = none
-    have htlen : I.calldata.toList.length = I.calldata.size := by
-      rw [byteArray_toList_eq, Array.length_toList]; rfl
-    unfold decodeCalldata; rw [if_pos (by rw [htlen]; omega)]
-  · have htlen : I.calldata.toList.length = I.calldata.size := by
-      rw [byteArray_toList_eq, Array.length_toList]; rfl
-    have htake : ¬ (((I.calldata.toList.drop 4).take 32).length = 32) := by
-      rw [List.length_take, List.length_drop, htlen]; omega
-    show decodeCalldata ["n"] [Pow.uint256] I.calldata = none
-    unfold decodeCalldata decodeCalldata.decodeArgs
-    rw [if_neg (by rw [htlen]; omega)]
-    rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, Pow.uint256,
-      decodeABIValues?, decodeABIValue?, readWord?, readBytes?, bind, Option.bind,
-      Nat.add_zero, Nat.zero_add, List.drop_zero, Bool.false_eq_true, if_false, htake]
+  show decodeCalldata ["n"] [Pow.uint256] I.calldata = none
+  simpa [Pow.uint256, abiUInt256]
+    using decodeCalldata_uint256_none_short (cd := I.calldata) (x := "n") hsz36
 
 /-- **Calldata decode fails** when `2^255 + 4 ≤ size`: the args region (`size − 4`) is `≥ 2^255`, so
     solc's **signed** length check `SLT(size − 4, 32) = 1` reverts.  The spec's decoder rejects the
@@ -568,12 +543,9 @@ theorem powDecode_none {I : Ethereum.ExecutionEnv} (hsz36 : I.calldata.size < 36
 theorem powDecode_none_huge {I : Ethereum.ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (Pow.powTransition.params.map Param.name)
         (transitionSignature Pow.powTransition).paramTypes I.calldata = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
   show decodeCalldata ["n"] [Pow.uint256] I.calldata = none
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_pos (⟨rfl, by rw [List.length_drop, htlen]; omega⟩)]
+  simpa [Pow.uint256, abiUInt256]
+    using decodeCalldata_uint256_none_huge (cd := I.calldata) (x := "n") hbig
 
 /-! ## EVM revert trace: non-zero call value -/
 

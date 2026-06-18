@@ -1,5 +1,6 @@
 import Examples.Truth.Bytecode
 import Examples.Truth.Spec
+import Reasoning.ABIDecode
 import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
@@ -195,14 +196,8 @@ theorem truthX_cvz_revertB
 theorem truthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldata (truthTransition.params.map Param.name)
       (transitionSignature truthTransition).paramTypes I.calldata = some ∅ := by
-  have hlen : ¬ (I.calldata.toList.length < 4) := by
-    rw [Reasoning.Theory.byteArray_toList_eq, Array.length_toList]
-    have : I.calldata.size = I.calldata.data.size := rfl
-    omega
   show decodeCalldata [] [] I.calldata = some ∅
-  unfold decodeCalldata
-  rw [if_neg hlen]
-  rfl
+  exact decodeCalldata_empty_ok hsz
 
 set_option maxHeartbeats 800000 in
 /-- **The `truth()` success trace**.  With zero call value, ≥4-byte calldata and the matching

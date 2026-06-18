@@ -1,5 +1,6 @@
 import Examples.Caller.Bytecode
 import Examples.Caller.Spec
+import Reasoning.ABIDecode
 import Reasoning.EVMWord
 import Reasoning.Theory
 import Reasoning.Dispatch
@@ -372,7 +373,6 @@ theorem ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
 abbrev callerArg1 (I : ExecutionEnv) : UInt256 :=
   uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ + ⟨32⟩ : UInt256).toNat 32)
 
-set_option maxHeartbeats 1000000 in
 /-- **Calldata decode for `run(address t, uint256 n)`.**  With ≥ 68 bytes of calldata and a
     *canonical* address argument, decoding succeeds, binding `t`/`n` to the EVM's words at offsets
     4 / 36 — the Solm-side analogue of the bytecode's ABI decoder. -/
@@ -384,113 +384,37 @@ theorem callerDecode_n {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
       = some (((∅ : Solm.Store).insert "t"
           (.address (Ethereum.AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
           (.int (Int.ofNat (callerArg1 I).toNat))) := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hw4 : (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.val < EVM.twoPow 256 :=
-    (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.isLt
-  have hw36 : (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.val < EVM.twoPow 256 :=
-    (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.isLt
-  have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) = callerArg0 I :=
-    decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) = callerArg1 I :=
-    decode_word_at_eq I.calldata 36 (by omega) (by norm_num)
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = _
-  unfold decodeCalldata decodeCalldata.decodeArgs
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
-    decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-    bind, Option.bind, List.drop_zero, List.drop_drop, htake4, htake36, hw4, hw36, if_true,
-    Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero, Nat.reduceAdd, hword4, hword36]
-  rw [if_pos (show (↑(callerArg0 I).val : ℕ) < EVM.addressModulus from hcanon)]
-  simp only [show (↑(callerArg0 I).val : ℕ) = (callerArg0 I).toNat from rfl,
-    show (↑(callerArg1 I).val : ℕ) = (callerArg1 I).toNat from rfl,
-    show ((256 : ℕ) = 0) = False from by decide, if_false,
-    show ((callerArg1 I).toNat < EVM.twoPow 256) = True from eq_true (callerArg1 I).val.isLt,
-    if_true, decodeCalldata.insertValues]
+  simpa [addr, uint256, Pow.uint256, abiUInt256, calldataWord, callerArg0, callerArg1]
+    using decodeCalldata_addr_uint256_ok
+      (cd := I.calldata) (x := "t") (y := "n") hsz68 hbig hcanon
 
-set_option maxHeartbeats 1000000 in
 theorem callerDecode_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size)
     (hshort : I.calldata.size < 68) :
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  unfold decodeCalldata decodeCalldata.decodeArgs
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  by_cases hsz36 : I.calldata.size < 36
-  · have htake4n : ¬ (((I.calldata.toList.drop 4).take 32).length = 32) := by
-      rw [List.length_take, List.length_drop, htlen]; omega
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
-      decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-      bind, Option.bind, List.drop_zero, List.drop_drop, htake4n, Bool.false_eq_true, if_false,
-      Nat.zero_add, Nat.add_zero, Nat.reduceAdd]
-  · push_neg at hsz36
-    have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, htlen]; omega
-    have htake36n : ¬ (((I.calldata.toList.drop 36).take 32).length = 32) := by
-      rw [List.length_take, List.length_drop, htlen]; omega
-    have hw4 : (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.val < EVM.twoPow 256 :=
-      (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.isLt
-    have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) = callerArg0 I :=
-      decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
-    by_cases hcanon : (callerArg0 I).toNat < EVM.addressModulus
-    · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
-        decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-        bind, Option.bind, List.drop_zero, List.drop_drop, htake4, htake36n, hw4, if_true,
-        Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero, Nat.reduceAdd, hword4,
-        show (↑(callerArg0 I).val : ℕ) = (callerArg0 I).toNat from rfl, if_pos hcanon]
-    · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
-        decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-        bind, Option.bind, List.drop_zero, List.drop_drop, htake4, hw4, if_true,
-        Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero, Nat.reduceAdd, hword4,
-        show (↑(callerArg0 I).val : ℕ) = (callerArg0 I).toNat from rfl, if_neg hcanon]
+  simpa [addr, uint256, Pow.uint256, abiUInt256]
+    using decodeCalldata_addr_uint256_none_short
+      (cd := I.calldata) (x := "t") (y := "n") hsz4 hshort
 
-set_option maxHeartbeats 1000000 in
 theorem callerDecode_none_noncanon {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hnc : ¬ (callerArg0 I).toNat < EVM.addressModulus) :
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hw4 : (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.val < EVM.twoPow 256 :=
-    (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).val.isLt
-  have hw36 : (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.val < EVM.twoPow 256 :=
-    (ABI.bytesToWord ((I.calldata.toList.drop 36).take 32)).val.isLt
-  have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) = callerArg0 I :=
-    decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) = callerArg1 I :=
-    decode_word_at_eq I.calldata 36 (by omega) (by norm_num)
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  unfold decodeCalldata decodeCalldata.decodeArgs
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, addr, Pow.uint256,
-    decodeABIValues?, decodeABIValue?, readWord?, readBytes?, decodeABIWord?,
-    bind, Option.bind, List.drop_zero, List.drop_drop, htake4, htake36, hw4, hw36, if_true,
-    Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero, Nat.reduceAdd, hword4, hword36]
-  rw [if_neg (show ¬ (↑(callerArg0 I).val : ℕ) < EVM.addressModulus from hnc)]
+  simpa [addr, uint256, Pow.uint256, abiUInt256, calldataWord, callerArg0]
+    using decodeCalldata_addr_uint256_none_noncanon
+      (cd := I.calldata) (x := "t") (y := "n") hsz68 hbig hnc
 
 theorem callerDecode_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  unfold decodeCalldata decodeCalldata.decodeArgs
-  rw [if_neg (by rw [htlen]; omega)]
-  rw [if_pos ⟨rfl, by rw [List.length_drop, htlen]; omega⟩]
+  simpa [addr, uint256, Pow.uint256, abiUInt256]
+    using decodeCalldata_addr_uint256_none_huge
+      (cd := I.calldata) (x := "t") (y := "n") hbig
 
 /-- Decoder final segment: decode arg1 (uint256), return to the dispatch point pc 66 with the two
     decoded values `[n, t, 71, sel]` on the stack. -/
