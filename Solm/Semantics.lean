@@ -310,6 +310,8 @@ mutual
     | .boolLit _ => 1
     | .bytesLit _ => 1
     | .newBytes lenExpr => exprEvalSize lenExpr + 1
+    | .bytesSlice baseE startE endE =>
+        exprEvalSize baseE + exprEvalSize startE + exprEvalSize endE + 1
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
@@ -443,6 +445,15 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | .int n => if n < 0 then .error .typeError
                   else pure (.bytes (ByteArray.mk (Array.replicate n.toNat (0 : UInt8))))
       | _ => .error .typeError
+  | .bytesSlice baseE startE endE => do
+      let baseV <- evalExpr? cfg solm evm baseE
+      let startV <- evalExpr? cfg solm evm startE
+      let endV <- evalExpr? cfg solm evm endE
+      match baseV, startV, endV with
+      | .bytes ba, .int s, .int e =>
+          if s < 0 || e < 0 then .error .typeError
+          else pure (.bytes (ba.extract s.toNat e.toNat))
+      | _, _, _ => .error .typeError
   | .var name => EvalResult.ofOption .unboundVariable (solm.locals.get? name)
   | .env var => pure (envValue evm var)
   | .storage slot =>
@@ -796,27 +807,56 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
       callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out) ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar)
-        (.ok { solm with locals := solm.locals.insert okVar (.bool true) } evm')
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar)
+        (.ok { solm with locals := (solm.locals.insert okVar (.bool true)).insert dataVar (.bytes out) } evm')
   | lowLevelCallFailure :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
       callViaEVM evm (EVM.address target) sendVal calldata (false, evm', out) ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar)
-        (.ok { solm with locals := solm.locals.insert okVar (.bool false) } evm')
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar)
+        (.ok { solm with locals := (solm.locals.insert okVar (.bool false)).insert dataVar (.bytes out) } evm')
   | lowLevelCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
   | lowLevelCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
   | lowLevelCallDataRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
+  | checkedCallSuccess :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
+      cfg.externalABI.decode? name out = some value ->
+      ExecBlock cfg { solm with locals := solm.locals.insert retVar value } evm' onSuccess result ->
+      ExecStmt cfg solm evm (.checkedCall receiver name eth args retVar onSuccess errVar onFail) result
+  | checkedCallFail :
+      -- callee reverted: bind the raw returndata to `errVar` and run `onFail`.  The per-contract spec
+      -- decides there (via `ite` on `errVar`) whether to recover or re-revert (`require false`).
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
+      ExecBlock cfg { solm with locals := solm.locals.insert errVar (.bytes out) } evm' onFail result ->
+      ExecStmt cfg solm evm (.checkedCall receiver name eth args retVar onSuccess errVar onFail) result
+  | checkedCallReceiverRevert :
+      evalExpr? cfg solm evm receiver = .revert ->
+      ExecStmt cfg solm evm (.checkedCall receiver name eth args retVar onSuccess errVar onFail) .reverted
+  | checkedCallSendRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .revert ->
+      ExecStmt cfg solm evm (.checkedCall receiver name eth args retVar onSuccess errVar onFail) .reverted
+  | checkedCallArgsRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .revert ->
+      ExecStmt cfg solm evm (.checkedCall receiver name eth args retVar onSuccess errVar onFail) .reverted
   | newSuccess :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
