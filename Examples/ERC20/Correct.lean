@@ -1,6 +1,7 @@
 import Examples.ERC20.Bytecode
 import Examples.ERC20.Spec
 import Examples.ERC20.TotalSupply
+import Examples.ERC20.BalanceOf
 import Reasoning.ABIDecode
 import Reasoning.Theory
 import Reasoning.Stepping
@@ -274,7 +275,7 @@ theorem erc20BalanceOfBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20BalanceOfBodyCore hcode hsize hwv hsel hreach
 
 /-- STUB: `transfer` body (pc 274) refines its transition. -/
 theorem erc20TransferBody {cA gh bl σ σ₀ A I} {g : UInt256}
