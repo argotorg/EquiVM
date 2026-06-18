@@ -129,8 +129,7 @@ theorem truthReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
         [truthSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   exact solcDispatchReachBody
     (firstArmPc := truthFirstArmPc) (bodyPC := ⟨42⟩) (i := 0)
-    hcode hwv hsz hsize (by solc_dispatch_prefix)
-    (by change (D_J truthBytecode 0).contains (⟨14⟩ : UInt256) = true; jump_dest)
+    hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact truthArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat truthBytecode truthFirstArmPc) (truthSelWord I) ≠ ⟨0⟩

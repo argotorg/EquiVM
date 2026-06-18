@@ -18,7 +18,10 @@ open Ethereum.EVM
     `axiom …ValidJumps : D_J …Bytecode ⟨0⟩ = #[…]` with `@[valid_jumps]`. -/
 register_simp_attr valid_jumps
 
-/-- Discharge a `(D_J …Bytecode ⟨0⟩).contains ⟨pc⟩ = true` JUMPDEST obligation: unfold the
-    contract's JUMPDEST set (via its `@[valid_jumps]`-tagged equation) and decide membership. -/
+/-- Discharge a `(D_J …Bytecode ⟨0⟩).contains ⟨pc⟩ = true` JUMPDEST obligation.
+
+The tactic unfolds the contract's precomputed `@[valid_jumps]` table, then computes the closed
+membership check.  This handles both literal targets and bytecode-derived targets such as
+`solcGuardTgt code`, avoiding call-site `change` boilerplate. -/
 macro "jump_dest" : tactic =>
-  `(tactic| (simp only [valid_jumps]; exact Array.contains_eq_true_of_mem (by simp)))
+  `(tactic| (simp only [valid_jumps]; native_decide))

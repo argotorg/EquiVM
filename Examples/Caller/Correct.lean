@@ -225,8 +225,7 @@ theorem callerReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
         [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   exact solcDispatchReachBody
     (firstArmPc := callerFirstArmPc) (bodyPC := ⟨45⟩) (i := 0)
-    hcode hwv hsz hsize (by solc_dispatch_prefix)
-    (by change (D_J callerBytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
+    hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact callerArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat callerBytecode callerFirstArmPc) (callerSelWord I) ≠ ⟨0⟩

@@ -95,8 +95,7 @@ theorem erc20ReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i �
         [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   exact solcDispatchReachBody
     (firstArmPc := erc20FirstArmPc) (bodyPC := bodyPC) (i := i)
-    hcode hwv hsz hsize (by solc_dispatch_prefix)
-    (by change (D_J erc20Bytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
+    hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
     (fun j hj => erc20ArmsWellFormed j (le_trans hj hi5)) heq0 htake
     hjd hbody
 

@@ -68,8 +68,7 @@ theorem powReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
         [powSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   exact solcDispatchReachBody
     (firstArmPc := powFirstArmPc) (bodyPC := ⟨45⟩) (i := 0)
-    hcode hwv hsz hsize (by solc_dispatch_prefix)
-    (by change (D_J powBytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
+    hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact powArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat powBytecode powFirstArmPc) (powSelWord I) ≠ ⟨0⟩
