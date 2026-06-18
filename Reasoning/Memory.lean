@@ -54,6 +54,18 @@ theorem fromBytesBigEndian_toBytesBigEndian (x : ℕ) :
   simp only [fromBytesBigEndian, toBytesBigEndian, Function.comp, List.reverse_reverse]
   exact fromBytes'_toBytes' x
 
+/-- Nonnegative integers are embedded as their natural-value EVM word. -/
+theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
+    EVM.wordOfInt i = EVM.word i.toNat := by
+  rw [EVM.wordOfInt, if_neg (by omega)]
+
+/-- Little-endian word-byte round-trip for `EVM.Word.toBytesLEWithSizeProof`. -/
+theorem fromBytes'_toBytesLEWithSizeProof (w : UInt256) :
+    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
+  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
+  rw [fromBytes'_append_zeros, fromBytes'_toBytes']
+  rfl
+
 /-! ## 2. `ByteArray.toList` = `data.toList`, and the `fromByteArrayBigEndian ∘ toByteArray` round-trip -/
 
 /-- `ByteArray.toList` (the reversing `loop`) equals `data.toList`. -/
@@ -539,6 +551,20 @@ theorem toByteArray_eq_toBytesBE (v : UInt256) :
     · rw [USize.le_iff_toNat_le, h32', hbsize]; exact hb
   rw [hz, show (BE v.toNat).size = (toBytesBigEndian v.toNat).length from by simp [BE]]
   rfl
+
+/-- Turning `EVM.Word.toBytesBE` into a `ByteArray` gives the same 32-byte word encoding as
+    `UInt256.toByteArray`. -/
+theorem word_toBytesBE_toByteArray_eq_toByteArray (w : UInt256) :
+    (EVM.Word.toBytesBE w).toByteArray = UInt256.toByteArray w := by
+  rw [toByteArray_eq_toBytesBE]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  simp
+
+/-- `EVM.Word.toBytesBE` as a `ByteArray` is 32 bytes. -/
+theorem word_toBytesBE_toByteArray_size (w : UInt256) :
+    (EVM.Word.toBytesBE w).toByteArray.size = 32 := by
+  rw [word_toBytesBE_toByteArray_eq_toByteArray, toByteArray_size]
 
 /-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
 

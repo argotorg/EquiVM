@@ -147,16 +147,6 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
                 CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
 
-theorem ctorStoreWordBytes_eq_toByteArray (w : UInt256) :
-    (EVM.Word.toBytesBE w).toByteArray = UInt256.toByteArray w := by
-  rw [toByteArray_eq_toBytesBE]
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp
-
-theorem ctorStoreWordBytes_size (w : UInt256) : (EVM.Word.toBytesBE w).toByteArray.size = 32 := by
-  rw [ctorStoreWordBytes_eq_toByteArray, toByteArray_size]
-
 theorem ctorStoreInitcode_size : ctorStoreInitcode.size = 28 := by
   native_decide
 
@@ -178,7 +168,7 @@ theorem ctorStoreArgTail_extract (w : UInt256) :
       = (EVM.Word.toBytesBE w).toByteArray := by
   exact extract_append_right' ctorStoreInitcode (EVM.Word.toBytesBE w).toByteArray 28 (28 + 32)
     ctorStoreInitcode_size.symm
-    (by rw [ctorStoreInitcode_size, ctorStoreWordBytes_size])
+    (by rw [ctorStoreInitcode_size, word_toBytesBE_toByteArray_size])
 
 noncomputable def ctorStoreArgMem (w : UInt256) : ByteArray :=
   (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32
@@ -191,9 +181,9 @@ theorem ctorStoreArgMem_read (w : UInt256) :
   unfold ctorStoreArgMem
   rw [write0_read_back_from_gen (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) ByteArray.empty 28 32
     (by decide)
-    (by rw [ByteArray.size_append, ctorStoreInitcode_size, ctorStoreWordBytes_size])
+    (by rw [ByteArray.size_append, ctorStoreInitcode_size, word_toBytesBE_toByteArray_size])
     (by decide)]
-  rw [ctorStoreArgTail_extract, ctorStoreWordBytes_eq_toByteArray]
+  rw [ctorStoreArgTail_extract, word_toBytesBE_toByteArray_eq_toByteArray]
 
 theorem ctorStoreArgMem_mload (w : UInt256) :
     (if (⟨0⟩ : UInt256).toNat ≥ (ctorStoreArgMem w).size
@@ -213,13 +203,13 @@ theorem ctorStoreArgMem_mload (w : UInt256) :
         show ((ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32).data.size ≥ 32
         rw [write0_data_from (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) ByteArray.empty 28 32
           (by decide)
-          (by rw [ByteArray.size_append, ctorStoreInitcode_size, ctorStoreWordBytes_size]),
+          (by rw [ByteArray.size_append, ctorStoreInitcode_size, word_toBytesBE_toByteArray_size]),
           Array.size_append]
         have hpart : (((ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).data.extract 28 (28 + 32)).size = 32) := by
           rw [Array.size_extract]
           have : (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).data.size
               = (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).size := rfl
-          rw [ByteArray.size_append, ctorStoreInitcode_size, ctorStoreWordBytes_size] at this
+          rw [ByteArray.size_append, ctorStoreInitcode_size, word_toBytesBE_toByteArray_size] at this
           omega
         omega
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
@@ -236,7 +226,7 @@ theorem ctorStoreFinal_read (w : UInt256) :
   unfold ctorStoreReturnMem
   rw [write0_read_back_from_gen (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) (ctorStoreArgMem w)
     20 8 (by decide)
-    (by rw [ByteArray.size_append, ctorStoreInitcode_size, ctorStoreWordBytes_size]; omega)
+    (by rw [ByteArray.size_append, ctorStoreInitcode_size, word_toBytesBE_toByteArray_size]; omega)
     (by decide)]
   rw [show (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).extract 20 (20 + 8)
       = ctorStoreRuntimeBytecode from by
@@ -310,23 +300,13 @@ theorem ctorStoreInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
 
 /-! ## Constructor equivalence -/
 
-theorem ctorStoreWordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
-    EVM.wordOfInt i = EVM.word i.toNat := by
-  rw [EVM.wordOfInt, if_neg (by omega)]
-
-theorem ctorStoreFromBytesLE_roundtrip (w : UInt256) :
-    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
-  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
-  rw [fromBytes'_append_zeros, fromBytes'_toBytes']
-  rfl
-
 theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
     storageLocStore evm
         { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
           type := .int (.uint ⟨256, by decide⟩) } (.int i)
       = some (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) := by
   unfold storageLocStore
-  simp only [valueToWord, ctorStoreWordOfInt_nonneg i h0, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_nonneg i h0, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word i.toNat)).2
   congr 2
@@ -335,7 +315,7 @@ theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
         ++ List.drop ((0:Fin 32).val + (32:Fin 33).val) _) = (EVM.word i.toNat).toNat
   rw [show (0:Fin 32).val = 0 from rfl, show (32:Fin 33).val = 32 from rfl,
       List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
-      List.take_of_length_le (by omega), ctorStoreFromBytesLE_roundtrip]
+      List.take_of_length_le (by omega), fromBytes'_toBytesLEWithSizeProof]
 
 theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
     (h0 : 0 ≤ i) (hbase : L.get? "stored" = none) :
@@ -351,22 +331,6 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
         = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
                  type := .int (.uint ⟨256, by decide⟩) } from rfl]
   simp only [ctorStoreLocStore _ _ h0]
-
-theorem ctorStoreStorageStore_accountMap (evm : EVM.State) (a : AccountAddress)
-    (s v : UInt256) :
-    (EVM.storageStore evm a s v).accountMap = sstoreAccountMap a evm.accountMap s v := by
-  simp only [EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-  cases evm.accountMap.find? a with
-  | none => rfl
-  | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
-
-theorem ctorStoreStorageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
-    (s v : UInt256) :
-    (EVM.storageStore evm a s v).createdAccounts = evm.createdAccounts := by
-  simp only [EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? a with
-  | none => rfl
-  | some acc => simp only [Option.option, State.setAccount]
 
 theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)
@@ -437,8 +401,8 @@ theorem ctorStoreConstructorCorrect :
       (ctorStoreSolmCtorExec (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I) i h0) ?_
     refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-    · simp only [ctorStoreStorageStore_createdAccounts, initState]
-    · simp only [ctorStoreStorageStore_accountMap, initState]
+    · simp only [storageStore_createdAccounts, initState]
+    · simp only [storageStore_accountMap, initState]
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorStoreCorrect :

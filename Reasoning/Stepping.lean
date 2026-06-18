@@ -869,6 +869,23 @@ def sstoreAccountMap (Iₐ : AccountAddress) (σ : AccountMap) (slot val : UInt2
         (if val == default then {acc with storage := acc.storage.erase slot}
          else {acc with storage := acc.storage.insert slot val}))
 
+/-- `EVM.storageStore` updates the account map exactly as `sstoreAccountMap` does. -/
+theorem storageStore_accountMap (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
+    (EVM.storageStore evm a slot val).accountMap = sstoreAccountMap a evm.accountMap slot val := by
+  simp only [EVM.storageStore, sstoreAccountMap, State.lookupAccount]
+  cases evm.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
+
+/-- `EVM.storageStore` does not change the created-account set. -/
+theorem storageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
+    (slot val : UInt256) :
+    (EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
+  simp only [EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount]
+
 @[simp] theorem stSStore_accountMap (s : State) (slot val : UInt256) (t : List UInt256) :
     (stSStore s slot val t).accountMap
       = sstoreAccountMap s.executionEnv.codeOwner s.accountMap slot val := rfl
