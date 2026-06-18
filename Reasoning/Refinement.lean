@@ -181,6 +181,64 @@ theorem equivStmts.consequencePost {code : ByteArray} {ee : ExecutionEnv} {g : S
   | «break» _ _ => exact hmatch.elim
   | «continue» _ _ => exact hmatch.elim
 
+/-! ### Sequencing (chunk composition) -/
+
+/-- Append helper: if `s1` falls through to `(f1, e1)`, running `s2` from there is running `s1 ++ s2`. -/
+theorem execBlock_append {cfg : Config} {s2 : List Stmt} :
+    ∀ {s1 : List Stmt} {f e f1 e1 r}, ExecBlock cfg f e s1 (.ok f1 e1) → ExecBlock cfg f1 e1 s2 r →
+      ExecBlock cfg f e (s1 ++ s2) r := by
+  intro s1
+  induction s1 with
+  | nil => intro f e f1 e1 r h1 h2; cases h1; exact h2
+  | cons stmt rest ih =>
+      intro f e f1 e1 r h1 h2
+      cases h1 with
+      | consNormal hstmt hrest => exact ExecBlock.consNormal hstmt (ih hrest h2)
+
+/-- Append helper: if `s1` *terminates* (any non-`.ok` result), `s1 ++ s2` terminates the same way —
+    `s2` never runs. -/
+theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
+    ∀ {s1 : List Stmt} {f e r}, ExecBlock cfg f e s1 r → (∀ f' e', r ≠ .ok f' e') →
+      ExecBlock cfg f e (s1 ++ s2) r := by
+  intro s1
+  induction s1 with
+  | nil => intro f e r h1 hterm; cases h1; exact absurd rfl (hterm _ _)
+  | cons stmt rest ih =>
+      intro f e r h1 hterm
+      cases h1 with
+      | consNormal hstmt hrest => exact ExecBlock.consNormal hstmt (ih hrest hterm)
+      | consReturn hstmt => exact ExecBlock.consReturn hstmt
+      | consRevert hstmt => exact ExecBlock.consRevert hstmt
+      | consBreak hstmt => exact ExecBlock.consBreak hstmt
+      | consContinue hstmt => exact ExecBlock.consContinue hstmt
+
+/-- **seq (chunk composition).**  Glue two chunks at a chosen boundary `pcmid`: `s1` runs from `pc`
+    to a fall-through coupled by `S` (which pins the seam pc, `hmid`), then `s2` runs from `pcmid` to
+    `Q`.  If `s1` instead returns/reverts, that is already the whole block's result.  Composition needs
+    no transitivity — the EVM facts (`RDc`/`RDret`/`RDrev`) are absolute from `s0`, so they carry
+    through verbatim. -/
+theorem equivStmts.seq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {cfg : Config} {returnType : Option ABIType} {pc pcmid : UInt256} {R S Q : StateRel}
+    {s1 s2 : List Stmt}
+    (hmid : ∀ cur frame evm, S cur frame evm → cur.pc = pcmid)
+    (h1 : equivStmts code ee g s0 cfg returnType pc R s1 S)
+    (h2 : equivStmts code ee g s0 cfg returnType pcmid S s2 Q) :
+    equivStmts code ee g s0 cfg returnType pc R (s1 ++ s2) Q := by
+  intro cur k C frame evm hpc hRD hw hR
+  obtain ⟨result1, hblock1, hmatch1⟩ := h1 cur k C frame evm hpc hRD hw hR
+  cases result1 with
+  | ok f1 e1 =>
+      obtain ⟨cur1, k1, C1, hRD1, hw1, hS⟩ := hmatch1
+      obtain ⟨result2, hblock2, hmatch2⟩ :=
+        h2 cur1 k1 C1 f1 e1 (hmid cur1 f1 e1 hS) hRD1 hw1 hS
+      exact ⟨result2, execBlock_append hblock1 hblock2, hmatch2⟩
+  | returned f1 e1 rv =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
+  | reverted =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
+  | «break» f1 e1 => exact hmatch1.elim
+  | «continue» f1 e1 => exact hmatch1.elim
+
 /-! ### Up to the function and the contract -/
 
 /-- Per-function equivalence: from `initState`, the EVM body and the Solm body `t.body` (run with

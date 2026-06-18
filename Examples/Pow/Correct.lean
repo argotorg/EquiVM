@@ -513,10 +513,7 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       -- 71→83: load free pointer, save return addr 84, JUMP to the abi-encode helper @265
       jumpdest, push1 ⟨64⟩,
       raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
-        (by rw [if_neg (by rw [solcFreePtrMem_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
-          fromByteArrayBigEndian_toByteArray,
-          show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
+        solcFreePtrMem_mload64
         (by decide) (by evm_ov),
       push2 ⟨84⟩, swap2, swap1, push2 ⟨265⟩,
       jump (by jump_dest),
@@ -541,10 +538,7 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       -- 84→92: reload free pointer (now solcReturnMem), compute length 160−128, RETURN mem[128..160]
       jumpdest, push1 ⟨64⟩,
       raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
-        (by rw [if_neg (by rw [solcReturnMem_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
-          fromByteArrayBigEndian_toByteArray,
-          show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
+        (solcReturnMem_mload64 val)
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
       raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost

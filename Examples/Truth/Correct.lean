@@ -231,10 +231,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
-      (by rw [if_neg (by rw [solcFreePtrMem_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcFreePtrMem_read64,
-          fromByteArrayBigEndian_toByteArray,
-          show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
+      solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     push1 ⟨59⟩, swap2, swap1, push1 ⟨100⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
@@ -252,10 +249,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
-      (by rw [if_neg (by rw [solcReturnMem_size]; decide),
-          show (⟨64⟩ : UInt256).toNat = 64 from (by decide), solcReturnMem_read64,
-          fromByteArrayBigEndian_toByteArray,
-          show UInt256.ofNat ((⟨128⟩ : UInt256).toNat) = ⟨128⟩ from (by decide)])
+      (solcReturnMem_mload64 ⟨1⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)

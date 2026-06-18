@@ -474,6 +474,23 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
 theorem u256_inj {a b : UInt256} (h : a.toNat = b.toNat) : a = b := by
   cases a; cases b; simp only [UInt256.toNat] at h; exact congrArg UInt256.mk (Fin.ext h)
 
+/-- Rebuilding a word from its in-range `toNat` gives the same word. -/
+theorem u256_ofNat_toNat (a : UInt256) : UInt256.ofNat a.toNat = a := by
+  apply u256_inj
+  show (Fin.ofNat _ a.toNat).val = a.toNat
+  simp only [Fin.ofNat]
+  exact Nat.mod_eq_of_lt a.val.isLt
+
+/-- Simplify the value pushed by `MLOAD` when the 32-byte memory read is known. -/
+theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}
+    (hmem : off.toNat < mem.size)
+    (haw : ¬ off ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding off.toNat 32 = UInt256.toByteArray v) :
+    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) = v := by
+  rw [if_neg (not_or.mpr ⟨by omega, haw⟩), hread, fromByteArrayBigEndian_toByteArray,
+    u256_ofNat_toNat]
+
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
   show UInt256.fromBool (decide (a < b)) = ⟨1⟩; rw [decide_eq_true (show a < b from h)]; rfl

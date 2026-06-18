@@ -124,6 +124,28 @@ theorem solcFreePtrMem_read64 : solcFreePtrMem.readWithPadding 64 32 = UInt256.t
         (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num)]; rfl)
         (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num), toByteArray_size]; rfl)]
 
+/-- The value pushed by a solc-style `MLOAD 0x40` when memory still stores free pointer `0x80`. -/
+theorem mloadFreePtrValue {mem : ByteArray} {aw : UInt256}
+    (hmem : 64 < mem.size) (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := (⟨128⟩ : UInt256))
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hmem)
+    haw
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread)
+
+/-- `MLOAD 0x40` over the initial solc free-pointer memory pushes `0x80`. -/
+theorem solcFreePtrMem_mload64 :
+    (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+
 theorem solcFreePtrMem_pad_size :
     (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
   rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
@@ -149,6 +171,15 @@ theorem solcReturnMem_read64 (val : UInt256) :
       extract_append_left _ _ _ _ (by have := solcFreePtrMem_pad_size; omega),
       extract_append_left _ _ _ _ (by have := solcFreePtrMem_size; omega),
       ← readWithPadding_eq_extract _ _ (by have := solcFreePtrMem_size; omega), solcFreePtrMem_read64]
+
+/-- `MLOAD 0x40` over solc return memory still pushes the free pointer `0x80`. -/
+theorem solcReturnMem_mload64 (val : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcReturnMem val).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian ((solcReturnMem val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcReturnMem_size]; decide) (by decide) (solcReturnMem_read64 val)
 
 theorem solcReturnMem_read128 (val : UInt256) :
     (solcReturnMem val).readWithPadding 128 32 = UInt256.toByteArray val := by
