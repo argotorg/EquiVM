@@ -308,6 +308,8 @@ mutual
   def exprEvalSize : Expr → Nat
     | .intLit _ => 1
     | .boolLit _ => 1
+    | .bytesLit _ => 1
+    | .newBytes lenExpr => exprEvalSize lenExpr + 1
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
@@ -434,6 +436,13 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
   | .intLit n => pure (.int n)
   | .boolLit b => pure (.bool b)
+  | .bytesLit b => pure (.bytes b)
+  | .newBytes lenExpr => do
+      let lenVal <- evalExpr? cfg solm evm lenExpr
+      match lenVal with
+      | .int n => if n < 0 then .error .typeError
+                  else pure (.bytes (ByteArray.mk (Array.replicate n.toNat (0 : UInt8))))
+      | _ => .error .typeError
   | .var name => EvalResult.ofOption .unboundVariable (solm.locals.get? name)
   | .env var => pure (envValue evm var)
   | .storage slot =>
@@ -528,12 +537,15 @@ def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option Value :=
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }
 
-inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
-    (name : Ident) (value : ℤ) (args : List Value) :
+/-- A raw message call to `target` with the given `value` and `calldata`, bridged directly to the
+    EVM `Θ`.  No ABI encoding — calldata is supplied verbatim — and the boolean result is the raw
+    `CALL` success flag.  Both the low-level `.call` and (via `typedCallViaEVM`) typed external calls
+    are built on this. -/
+inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
+    (value : ℤ) (calldata : EVM.Bytes) :
     (Bool × EVM.State × EVM.Bytes) → Prop where
   | callMade :
-      Except.ok calldata = (cfg.externalABI.encode? name args).elim (.error Ethereum.EVM.ExecutionException.InvalidInstruction) pure
-      → valueWord = EVM.wordOfInt value
+      valueWord = EVM.wordOfInt value
       → (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
         -- The external call bridges directly to the EVM `Θ`.  Solm tracks neither gas nor the
         -- substate, so — exactly as `callGas` is already existential — the *entire* input
@@ -572,14 +584,23 @@ inductive externalCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Addr
 
       → valueWord ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
       → evm.executionEnv.depth ≠ 1024
-      → externalCallViaEVM cfg evm target name value args (z, evm', o)
+      → callViaEVM evm target value calldata (z, evm', o)
 
   | callNotMade :
       A' = ((evm.addAccessedAccount target) |>.substate )
       → evm' = { evm with substate := A' }
       → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
          ∧ evm.executionEnv.depth ≠ 1024))
-      → externalCallViaEVM cfg evm target name value args (false, evm', ByteArray.empty)
+      → callViaEVM evm target value calldata (false, evm', ByteArray.empty)
+
+/-- A typed external call: ABI-encode `name`/`args` into calldata, then make a raw `callViaEVM`.
+    This is the call form `externalCall` uses.  The return *decode* (and its failure) stays in the
+    `ExecStmt` rules over the raw output bytes `o`, so decode-failure handling is unchanged. -/
+def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
+    (name : Ident) (value : ℤ) (args : List Value)
+    (result : Bool × EVM.State × EVM.Bytes) : Prop :=
+  ∃ calldata, cfg.externalABI.encode? name args = some calldata
+            ∧ callViaEVM evm target value calldata result
 
 -- Contract creation (`new`) via the EVM `Λ` (Lambda) function. The result triple is
 -- `(addr, evm', success)`: the created contract's address, the resulting EVM state,
@@ -738,7 +759,7 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
-      externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
       cfg.externalABI.decode? name out = some value ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar)
         (.ok { solm with locals := solm.locals.insert retVar value } evm')
@@ -746,7 +767,7 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
-      externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (false, evm', out) ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReturnDecodeRevert :
       -- The sub-call *succeeds* (`z = true`) but the returned bytes do not ABI-decode to the
@@ -755,7 +776,7 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
-      externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ->
       cfg.externalABI.decode? name out = none ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
   | externalCallReceiverRevert :
@@ -770,7 +791,32 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar) .reverted
-      /- do we want to express a low-level .call? -/
+  | lowLevelCallSuccess :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out) ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar)
+        (.ok { solm with locals := solm.locals.insert okVar (.bool true) } evm')
+  | lowLevelCallFailure :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      callViaEVM evm (EVM.address target) sendVal calldata (false, evm', out) ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar)
+        (.ok { solm with locals := solm.locals.insert okVar (.bool false) } evm')
+  | lowLevelCallReceiverRevert :
+      evalExpr? cfg solm evm receiver = .revert ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
+  | lowLevelCallSendRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .revert ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
+  | lowLevelCallDataRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExpr? cfg solm evm cdata = .revert ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar) .reverted
   | newSuccess :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->

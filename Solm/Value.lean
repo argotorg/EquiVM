@@ -14,6 +14,8 @@ inductive Value where
   | address : EVM.Address -> Value
   | struct : Ident -> List (Ident × Value) -> Value
   | array : List Value -> Value /- arrays can be copied to memory, so we need array values -/
+  /- dynamic `bytes` (arbitrary-length byte string), e.g. low-level `.call` calldata -/
+  | bytes : ByteArray -> Value
   | unit : Value
   deriving Inhabited
 
@@ -44,6 +46,10 @@ mutual
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .unit, .unit => isTrue rfl
+    | .bytes x, .bytes y =>
+        match (inferInstance : Decidable (x = y)) with
+        | isTrue h => isTrue (by subst y; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .int _, .bool _ => isFalse (by intro h; cases h)
     | .int _, .address _ => isFalse (by intro h; cases h)
     | .int _, .struct _ _ => isFalse (by intro h; cases h)
@@ -74,6 +80,18 @@ mutual
     | .unit, .address _ => isFalse (by intro h; cases h)
     | .unit, .struct _ _ => isFalse (by intro h; cases h)
     | .unit, .array _ => isFalse (by intro h; cases h)
+    | .int _, .bytes _ => isFalse (by intro h; cases h)
+    | .bool _, .bytes _ => isFalse (by intro h; cases h)
+    | .address _, .bytes _ => isFalse (by intro h; cases h)
+    | .struct _ _, .bytes _ => isFalse (by intro h; cases h)
+    | .array _, .bytes _ => isFalse (by intro h; cases h)
+    | .unit, .bytes _ => isFalse (by intro h; cases h)
+    | .bytes _, .int _ => isFalse (by intro h; cases h)
+    | .bytes _, .bool _ => isFalse (by intro h; cases h)
+    | .bytes _, .address _ => isFalse (by intro h; cases h)
+    | .bytes _, .struct _ _ => isFalse (by intro h; cases h)
+    | .bytes _, .array _ => isFalse (by intro h; cases h)
+    | .bytes _, .unit => isFalse (by intro h; cases h)
 
   private def Value.decEqList : (as bs : List Value) -> Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -137,6 +155,7 @@ def valueToWord : Value -> Option EVM.Word
   | .address a => pure $ .ofNat $ a.toNat
   | .array _ => .none
   | .struct _ _ => .none
+  | .bytes _ => .none
 
 def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   match t with

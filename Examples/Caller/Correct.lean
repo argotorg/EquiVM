@@ -59,7 +59,7 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = some value)
     (hassign : assignStorageRef? callerConfig
@@ -88,7 +88,7 @@ theorem callerBodyExtFail (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (false, evm', out)) :
     ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert
@@ -109,7 +109,7 @@ theorem callerBodyDecodeRevert (evm : EVM.State) (locals : Solm.Store) {tval : E
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
-    (hcall : externalCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = none) :
     ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted := by
@@ -285,7 +285,7 @@ theorem callerX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## The opaque-call coincidence (the conceptual crux)
 
-The EVM `CALL` (via `RD.call`) and the Solm `externalCall` (via `externalCallViaEVM`) invoke the
+The EVM `CALL` (via `RD.call`) and the Solm `externalCall` (via `typedCallViaEVM`) invoke the
 *identical* `Θ`, so the opaque result coincides on both sides by construction — no assumption about
 the callee's code.  This is now the **generic** `Reasoning.Theory.callCoincides` (and the
 depth-limit `callNotMade_depthLimit`) in `Reasoning/ExternalCall.lean`; `Caller` only supplies the
@@ -672,7 +672,7 @@ theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- **The opaque CALL, packaged for the assembly.**  Exposes the post-`CALL` `RD` cursor (memory and
     active-words resolved to their concrete `o.write …` / `⟨6⟩` forms) **together with** the Solm-side
-    `externalCallViaEVM` fact built from the *same* `Θ`-link — the coincidence that lets the EVM and
+    `typedCallViaEVM` fact built from the *same* `Θ`-link — the coincidence that lets the EVM and
     Solm sub-calls share `(z, σ', o)`. -/
 theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -690,7 +690,7 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ :: [])
         (o.write 0 (callerCalldataMem I) (callerOutPtr I).toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat) ⟨6⟩ o (cA', σ') k' C'
-    ∧ externalCallViaEVM callerConfig (initState cA gh bl σ σ₀ g A I)
+    ∧ typedCallViaEVM callerConfig (initState cA gh bl σ σ₀ g A I)
         (EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)) "pow2" 0
         [.int (Int.ofNat (callerArg1 I).toNat)]
         (z, { initState cA gh bl σ σ₀ g A I with
@@ -1246,7 +1246,7 @@ theorem callerReEquiv_callvalueZero
                   (callerCanon_eq hcanon) hdepth1024).reEquivExecutionRevert hcode hd
                 (callerDecode_n hsz68 hbig hcanon) ?_
               exact callerBodyExtFail _ (callerDecStore I) (by exact hwv) (callerStore_t I)
-                (callerStore_n I) (callNotMade_depthLimit hdepth1024)
+                (callerStore_n I) (callNotMade_depthLimit (callerEncode_eq I) hdepth1024)
           · exact (callerX_noncanon hcode hwv (by omega) hsize hsz68 hbig hmatch
                 (ueq_zero_of_ne (fun he => hcanon (callerArg0_canonical he)))).reEquivDecodingFailed
               hcode hd (callerDecode_none_noncanon hsz68 hbig hcanon)

@@ -161,6 +161,9 @@ mutual
 inductive Expr where
   | intLit : Int -> Expr
   | boolLit : Bool -> Expr
+  | bytesLit : ByteArray -> Expr
+  /- `new bytes(len)`: a fresh zero-filled byte string of dynamic length `len` -/
+  | newBytes : Expr -> Expr
   | var : Ident -> Expr
   | env : EnvVar -> Expr
   /- for struct fields -/
@@ -190,6 +193,9 @@ structure StorageRef where
 
 end
 
+instance : Repr ByteArray where
+  reprPrec b _ := repr b.data
+
 deriving instance Repr for Expr
 deriving instance Inhabited for Expr
 deriving instance Repr for StorageRefStep
@@ -206,6 +212,14 @@ mutual
     | .boolLit x, .boolLit y =>
         match (inferInstance : Decidable (x = y)) with
         | isTrue h => isTrue (by subst y; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .bytesLit x, .bytesLit y =>
+        match (inferInstance : Decidable (x = y)) with
+        | isTrue h => isTrue (by subst y; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .newBytes x, .newBytes y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .var x, .var y =>
         match (inferInstance : Decidable (x = y)) with
@@ -416,6 +430,60 @@ mutual
     | .ite _ _ _, .addrOf _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .unary _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .intLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .boolLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .var _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .env _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .field _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .aindex _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .storage _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .cast _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .addrOf _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .unary _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .newBytes _ => isFalse (by intro h; cases h)
+    | .intLit _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .var _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .env _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .field _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .aindex _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .storage _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .cast _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .addrOf _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .unary _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .newBytes _, .intLit _ => isFalse (by intro h; cases h)
+    | .newBytes _, .boolLit _ => isFalse (by intro h; cases h)
+    | .newBytes _, .var _ => isFalse (by intro h; cases h)
+    | .newBytes _, .env _ => isFalse (by intro h; cases h)
+    | .newBytes _, .field _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .aindex _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .storage _ => isFalse (by intro h; cases h)
+    | .newBytes _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .cast _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .addrOf _ => isFalse (by intro h; cases h)
+    | .newBytes _, .unary _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .newBytes _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .newBytes _ => isFalse (by intro h; cases h)
+    | .boolLit _, .newBytes _ => isFalse (by intro h; cases h)
+    | .var _, .newBytes _ => isFalse (by intro h; cases h)
+    | .env _, .newBytes _ => isFalse (by intro h; cases h)
+    | .field _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .aindex _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .storage _, .newBytes _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .cast _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .addrOf _, .newBytes _ => isFalse (by intro h; cases h)
+    | .unary _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .newBytes _ => isFalse (by intro h; cases h)
 
   private def StorageRefStep.decEq : (a b : StorageRefStep) -> Decidable (a = b)
     | .field x, .field y =>
@@ -491,6 +559,9 @@ inductive Stmt where
   /- internal and external call results are explicitly let-bound -/
   | internalCall : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
   | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ -> Stmt
+  /- low-level `target.call{value: v}(data)`: raw call, binds a success `bool` to `okVar`,
+     returndata dropped, callee revert does NOT propagate -/
+  | lowLevelCall : Expr /- target -/ -> Expr /- ETH to send -/ -> Expr /- calldata bytes -/ -> Ident /- success binder -/ -> Stmt
   | return : Expr -> Stmt
   | break : Stmt
   | continue : Stmt
@@ -546,6 +617,13 @@ mutual
         | _, _, isFalse hv, _, _ => isFalse (by intro h; cases h; exact hv rfl)
         | _, _, _, isFalse ha, _ => isFalse (by intro h; cases h; exact ha rfl)
         | _, _, _, _, isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .lowLevelCall tx vx cx ox, .lowLevelCall ty vy cy oy =>
+        match Expr.decEq tx ty, Expr.decEq vx vy, Expr.decEq cx cy, (inferInstance : Decidable (ox = oy)) with
+        | isTrue ht, isTrue hv, isTrue hc, isTrue ho => isTrue (by cases ht; cases hv; cases hc; cases ho; rfl)
+        | isFalse ht, _, _, _ => isFalse (by intro h; cases h; exact ht rfl)
+        | _, isFalse hv, _, _ => isFalse (by intro h; cases h; exact hv rfl)
+        | _, _, isFalse hc, _ => isFalse (by intro h; cases h; exact hc rfl)
+        | _, _, _, isFalse ho => isFalse (by intro h; cases h; exact ho rfl)
     | .return ex, .return ey =>
         match Expr.decEq ex ey with
         | isTrue h => isTrue (by cases h; rfl)
@@ -662,6 +740,28 @@ mutual
     | .ite _ _ _, .return _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .break => isFalse (by intro h; cases h)
     | .ite _ _ _, .continue => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .break => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _, .continue => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .require _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .return _, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .break, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .continue, .lowLevelCall _ _ _ _ => isFalse (by intro h; cases h)
 
   private def Stmt.decEqList : (as bs : List Stmt) -> Decidable (as = bs)
     | [], [] => isTrue rfl

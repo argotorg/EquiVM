@@ -59,26 +59,27 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.perm) :
-    externalCallViaEVM cfg evm tgt name 0 args
+    typedCallViaEVM cfg evm tgt name 0 args
       (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o) := by
   -- rewrite the EVM `Θ`-link into the Solm form (round-trip sender, `tgt`, `perm = true`)
   have h := hΘ
   rw [accountAddress_roundtrip, ← htgt, hperm] at h
-  exact @externalCallViaEVM.callMade cfg evm tgt name 0 args (fun _ _ => g'')
-    (mem.readWithPadding inOff.toNat inSize.toNat) ⟨0⟩ cA' σ' A' z o
-    { evm with accountMap := σ', substate := A', createdAccounts := cA' }
-    (by rw [hcd]; rfl) wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
-    (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth
+  exact ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd,
+    callViaEVM.callMade wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
+      (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth⟩
 
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching
     `callNotMade` branch — `(false, evm[substate], ∅)` — independent of value/balance.  Generic over
     config / callee name / arguments (value `0`). -/
 theorem callNotMade_depthLimit {cfg : Config} {evm : EVM.State} {tgt : EVM.Address}
-    {name : Ident} {args : List Value} (hdepth : evm.executionEnv.depth = 1024) :
-    externalCallViaEVM cfg evm tgt name 0 args
+    {name : Ident} {args : List Value} {calldata : ByteArray}
+    (hcd : cfg.externalABI.encode? name args = some calldata)
+    (hdepth : evm.executionEnv.depth = 1024) :
+    typedCallViaEVM cfg evm tgt name 0 args
       (false, { evm with substate := (evm.addAccessedAccount tgt).substate }, ByteArray.empty) := by
-  apply externalCallViaEVM.callNotMade rfl rfl
+  refine ⟨calldata, hcd, ?_⟩
+  apply callViaEVM.callNotMade rfl rfl
   rintro ⟨_, hne⟩
   exact hne hdepth
 

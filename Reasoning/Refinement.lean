@@ -119,7 +119,7 @@ theorem equivStmts.consRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
   exact ⟨.reverted, ExecBlock.consRevert hstmt, hrev⟩
 
 /-- **external call (success / continue)** — peel a *successful* external call.  The bytecode's
-    `CALL` (`RD.call`) and Solm's `externalCall` (`externalCallViaEVM`) invoke the **same** `Θ`, so
+    `CALL` (`RD.call`) and Solm's `externalCall` (`typedCallViaEVM`) invoke the **same** `Θ`, so
     the opaque result `(z, evm', out)` coincides on both sides by construction; `hcall` packages that
     bridged fact (obtained from `RD.call`) together with the post-`CALL` cursor.  On `z = true` with a
     decoding return, `retVar` binds the decoded `value` and execution continues at `pc'`.
@@ -138,7 +138,7 @@ theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
           evalExpr? cfg frame evm receiver = .ok (.address target) ∧
           evalExpr? cfg frame evm eth = .ok (.int sendVal) ∧
           evalExprs? cfg frame evm args = .ok argVals ∧
-          externalCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ∧
+          typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals (true, evm', out) ∧
           cfg.externalABI.decode? name out = some value ∧
           cur'.pc = pc' ∧
           RDc code ee g s0 cur' k' C' ∧
