@@ -1,11 +1,14 @@
 import Examples.ERC20.Bytecode
 import Examples.ERC20.Spec
+import Examples.ERC20.TotalSupply
+import Reasoning.ABIDecode
 import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.Refinement
+import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -99,6 +102,138 @@ theorem erc20ReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i �
     (fun j hj => erc20ArmsWellFormed j (le_trans hj hi5)) heq0 htake
     hjd hbody
 
+/-! ## ERC20 dispatch and shared revert traces -/
+
+theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
+    dispatchMsg erc20Contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList]
+  change dispatchList
+    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
+      transferTransition, allowanceTransition] cd = none
+  exact dispatchList_none_short _ (by
+    intro t ht
+    simp at ht
+    rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
+    · rw [selectorOf, erc20ApproveSelectorBytes]; rfl
+    · rw [selectorOf, erc20TotalSupplySelectorBytes]; rfl
+    · rw [selectorOf, erc20TransferFromSelectorBytes]; rfl
+    · rw [selectorOf, erc20BalanceOfSelectorBytes]; rfl
+    · rw [selectorOf, erc20TransferSelectorBytes]; rfl
+    · rw [selectorOf, erc20AllowanceSelectorBytes]; rfl) h
+
+theorem dispatchList_some_mem {ts : List TransitionDecl} {cd : ByteArray} {t : TransitionDecl}
+    (h : dispatchList ts cd = some t) : t ∈ ts := by
+  induction ts with
+  | nil => simp [dispatchList] at h
+  | cons head tail ih =>
+      rw [dispatchList_cons] at h
+      by_cases hb : (selectorOf head == cd.extract 0 4) = true
+      · rw [if_pos hb] at h
+        cases h
+        simp
+      · rw [if_neg hb] at h
+        exact List.mem_cons_of_mem head (ih h)
+
+theorem erc20Dispatch_none_nomatch {cd : ByteArray}
+    (hnm : ∀ i, i < 6 → (erc20SelBytes i == cd.extract 0 4) = false) :
+    dispatchMsg erc20Contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList]
+  change dispatchList
+    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
+      transferTransition, allowanceTransition] cd = none
+  rw [dispatchList_cons, selectorOf, erc20ApproveSelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 0 (by omega))]
+  rw [dispatchList_cons, selectorOf, erc20TotalSupplySelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 1 (by omega))]
+  rw [dispatchList_cons, selectorOf, erc20TransferFromSelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 2 (by omega))]
+  rw [dispatchList_cons, selectorOf, erc20BalanceOfSelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 3 (by omega))]
+  rw [dispatchList_cons, selectorOf, erc20TransferSelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 4 (by omega))]
+  rw [dispatchList_cons, selectorOf, erc20AllowanceSelectorBytes]
+  rw [if_neg (by simpa [erc20SelBytes] using hnm 5 (by omega))]
+  rw [dispatchList_nil]
+
+theorem erc20BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ erc20Contract.transitions)
+    (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
+    ExecTransitionBody erc20Config erc20Contract evm locals t.body .reverted := by
+  simp [erc20Contract] at ht
+  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl <;>
+    exact bodyReverts_nonPayable h
+
+theorem erc20X_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
+    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+  exact solcGuardCallvalueNonzeroRevert
+    (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
+    (wC := solcGuardTgtWidth erc20Bytecode)
+    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
+      (by decide) (by decide))
+    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+
+theorem erc20X_short {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
+    (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
+    (wC := solcGuardTgtWidth erc20Bytecode) h0 hwv
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+  exact solcCalldataShortRevert
+    (bodyPc := solcDispatchBodyPc erc20Bytecode)
+    (rtgt := solcCalldataRevertTgt erc20Bytecode)
+    (opR := solcCalldataRevertTgtOp erc20Bytecode)
+    (wR := solcCalldataRevertTgtWidth erc20Bytecode)
+    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+
+theorem erc20X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
+    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have heq0 : ∀ j, j < 6 →
+      UInt256.eq (armSelNat erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc j))
+        (erc20SelWord I) = ⟨0⟩ := by
+    intro j hj
+    rw [erc20ArmEq I hsz j hj]
+    rw [hnm j hj]
+    rfl
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨k1, C1, h1⟩ := solcGuardCallvalueZero
+    (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
+    (wC := solcGuardTgtWidth erc20Bytecode) h0 hwv
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+  obtain ⟨k2, C2, h2⟩ := solcCalldataOk
+    (bodyPc := solcDispatchBodyPc erc20Bytecode)
+    (selLoadTgt := solcCalldataRevertTgt erc20Bytecode)
+    (opR := solcCalldataRevertTgtOp erc20Bytecode)
+    (wR := solcCalldataRevertTgtWidth erc20Bytecode)
+    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+  have h4 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) erc20FirstArmPc
+      [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := by
+    simpa [erc20FirstArmPc, erc20SelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
+      solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
+  have h5 := h4
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 4 (by omega)) (heq0 4 (by omega)) (by simp)
+    |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 5 (by omega)) (heq0 5 (by omega)) (by simp)
+  have h96 : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨96⟩
+      [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    refine ⟨k3 + 5 + 5 + 5 + 5 + 5 + 5, C3 + 22 + 22 + 22 + 22 + 22 + 22, ?_⟩
+    simpa [erc20FirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
+      selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
+  obtain ⟨_, _, h96rd⟩ := h96
+  exact evm_run h96rd with [
+    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
 /-! ## Per-function body obligations — sorried stubs (take the dispatcher-reached cursor) -/
 
 /-- STUB: from `approve`'s body entry (pc 100), the body refines its Solm transition. -/
@@ -119,7 +254,7 @@ theorem erc20TotalSupplyBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20TotalSupplyBodyCore hcode hwv hsel hreach
 
 /-- STUB: `transferFrom` body (pc 178) refines its transition. -/
 theorem erc20TransferFromBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -171,7 +306,12 @@ theorem erc20NoDispatch {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  by_cases hsz : 4 ≤ I.calldata.size
+  · exact (erc20X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
+      hcode (erc20Dispatch_none_nomatch hnm)
+  · have hshort : I.calldata.size < 4 := by omega
+    exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hshort).reEquivNoDispatch hcode
+      (erc20Dispatch_none_short hshort)
 
 /-- STUB: calldata shorter than a selector (`size < 4`) ⇒ the size guard reverts before dispatch.
     The other no-dispatch path; here no selector can match because `calldata[0:4]` has fewer than
@@ -180,13 +320,29 @@ theorem erc20ShortRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
+    (erc20Dispatch_none_short hsz)
 
 /-- STUB: `callvalue ≠ 0` ⇒ both sides revert (non-payable). -/
 theorem erc20NonPayable {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact (erc20X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
+    fun _ _ hrev => by
+      by_cases hdisp : dispatchMsg erc20Contract I.calldata = none
+      · exact reEquiv_noDispatch hdisp hrev
+      · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
+        have htmem : t ∈ erc20Contract.transitions := by
+          rw [dispatchMsg_eq_dispatchList] at ht
+          exact dispatchList_some_mem ht
+        by_cases hdec : decodeCalldata (t.params.map Param.name)
+            (transitionSignature t).paramTypes I.calldata = none
+        · exact reEquiv_decodingFailed ht hdec hrev
+        · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
+          exact reEquiv_execution ht hca
+            (erc20BodyReverts_nonPayable t htmem (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+              callargs (by simp only [initState]; exact hwv))
+            (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-! ## Top-level theorem — drive the dispatcher, route each body to its correctness -/
 
