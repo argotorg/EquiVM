@@ -99,6 +99,196 @@ theorem evmSelectorDecode {cd : ByteArray} (hsz : 4 ≤ cd.size)
       omega
     exact fromBytesBigEndian_inj4 hlen4 rfl (by rw [← hsv, ← he]; exact hsel.symm)
 
+/-! ## Solc ABI decoder length checks
+
+Solc's ABI decoders check static calldata/returndata availability with a signed comparison of the
+form `SLT(dataEnd - headStart, neededBytes)`.  These lemmas expose that compiler pattern directly,
+so contract proofs do not need to spell out the `UInt256`/`Nat` subtraction bridge.
+-/
+
+/-- The solc decoder length check passes when `head + need ≤ size` and the length word is below the
+    signed boundary. -/
+theorem solcDecodeLenCheckOk {sz : ℕ} {head need : UInt256}
+    (hlen : head.toNat + need.toNat ≤ sz)
+    (hhi : sz < 2 ^ 255 + head.toNat)
+    (hsz : sz < UInt256.size)
+    (hneed : need.toNat < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) head) need = ⟨0⟩ := by
+  rw [← u256_ofNat_toNat need]
+  apply slt_lit_zero hneed
+  · rw [usub_ofNat_word_toNat (by omega : head.toNat ≤ sz) hsz]
+    exact Nat.le_sub_of_add_le (by simpa [Nat.add_comm] using hlen)
+  · rw [usub_ofNat_word_toNat (by omega : head.toNat ≤ sz) hsz]
+    exact Nat.sub_lt_right_of_lt_add (by omega : head.toNat ≤ sz) hhi
+
+/-- The solc decoder length check fails in the ordinary short-buffer case:
+    `head ≤ size < head + need`. -/
+theorem solcDecodeLenCheckShort {sz : ℕ} {head need : UInt256}
+    (hhead : head.toNat ≤ sz)
+    (hshort : sz < head.toNat + need.toNat)
+    (hsz : sz < UInt256.size)
+    (hneed : need.toNat < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) head) need = ⟨1⟩ := by
+  rw [← u256_ofNat_toNat need]
+  apply slt_lit_one_low hneed
+  rw [usub_ofNat_word_toNat hhead hsz]
+  exact Nat.sub_lt_right_of_lt_add hhead (by simpa [Nat.add_comm] using hshort)
+
+/-- The solc decoder length check also fails when `size - head` has the sign bit set. -/
+theorem solcDecodeLenCheckHuge {sz : ℕ} {head need : UInt256}
+    (hbig : 2 ^ 255 + head.toNat ≤ sz)
+    (hsz : sz < UInt256.size)
+    (hneed : need.toNat < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) head) need = ⟨1⟩ := by
+  rw [← u256_ofNat_toNat need]
+  apply slt_lit_one_high hneed
+  rw [usub_ofNat_word_toNat (by omega : head.toNat ≤ sz) hsz]
+  exact Nat.le_sub_of_add_le hbig
+
+/-! ### Static calldata tuple length checks
+
+External function calldata has a 4-byte selector followed by ABI words.  A static tuple of
+`words` ABI words needs `32 * words` bytes after the selector.
+-/
+
+theorem solcCalldataStaticLenCheckOk {sz words : ℕ}
+    (hlen : 4 + 32 * words ≤ sz)
+    (hhi : sz < 2 ^ 255 + 4)
+    (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) (UInt256.ofNat (32 * words)) = ⟨0⟩ := by
+  have hneed : 32 * words < 2 ^ 255 := by omega
+  have h4 : ((⟨4⟩ : UInt256).toNat = 4) := by decide
+  have hneedNat : (UInt256.ofNat (32 * words)).toNat = 32 * words :=
+    ulit_toNat' _ (lt_size_of_lt_sign hneed)
+  exact solcDecodeLenCheckOk
+    (head := (⟨4⟩ : UInt256)) (need := UInt256.ofNat (32 * words))
+    (by rw [h4, hneedNat]; exact hlen)
+    (by simpa [h4] using hhi)
+    hsz
+    (by rw [hneedNat]; exact hneed)
+
+theorem solcCalldataStaticLenCheckShort {sz words : ℕ}
+    (hhead : 4 ≤ sz)
+    (hshort : sz < 4 + 32 * words)
+    (hsz : sz < UInt256.size)
+    (hneed : 32 * words < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) (UInt256.ofNat (32 * words)) = ⟨1⟩ := by
+  have h4 : ((⟨4⟩ : UInt256).toNat = 4) := by decide
+  have hneedNat : (UInt256.ofNat (32 * words)).toNat = 32 * words :=
+    ulit_toNat' _ (lt_size_of_lt_sign hneed)
+  exact solcDecodeLenCheckShort
+    (head := (⟨4⟩ : UInt256)) (need := UInt256.ofNat (32 * words))
+    (by rw [h4]; exact hhead)
+    (by rw [h4, hneedNat]; exact hshort)
+    hsz
+    (by rw [hneedNat]; exact hneed)
+
+theorem solcCalldataStaticLenCheckHuge {sz words : ℕ}
+    (hbig : 2 ^ 255 + 4 ≤ sz)
+    (hsz : sz < UInt256.size)
+    (hneed : 32 * words < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) (UInt256.ofNat (32 * words)) = ⟨1⟩ := by
+  have h4 : ((⟨4⟩ : UInt256).toNat = 4) := by decide
+  have hneedNat : (UInt256.ofNat (32 * words)).toNat = 32 * words :=
+    ulit_toNat' _ (lt_size_of_lt_sign hneed)
+  exact solcDecodeLenCheckHuge
+    (head := (⟨4⟩ : UInt256)) (need := UInt256.ofNat (32 * words))
+    (by simpa [h4] using hbig)
+    hsz
+    (by rw [hneedNat]; exact hneed)
+
+/-! ### Common solc ABI calldata specializations
+
+These are the usual external-call decoder checks after the 4-byte selector: one static word needs
+`32` bytes and two static words need `64` bytes.
+-/
+
+theorem solcDecodeLenCheckOk_4_32 {sz : ℕ}
+    (hlen : 36 ≤ sz) (hhi : sz < 2 ^ 255 + 4) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
+  exact solcCalldataStaticLenCheckOk (words := 1) (by simpa using hlen) hhi hsz
+
+theorem solcDecodeLenCheckShort_4_32 {sz : ℕ}
+    (hhead : 4 ≤ sz) (hshort : sz < 36) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
+  exact solcCalldataStaticLenCheckShort (words := 1) hhead (by simpa using hshort) hsz
+    (by norm_num)
+
+theorem solcDecodeLenCheckHuge_4_32 {sz : ℕ}
+    (hbig : 2 ^ 255 + 4 ≤ sz) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
+  exact solcCalldataStaticLenCheckHuge (words := 1) hbig hsz (by norm_num)
+
+theorem solcDecodeLenCheckOk_4_64 {sz : ℕ}
+    (hlen : 68 ≤ sz) (hhi : sz < 2 ^ 255 + 4) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨0⟩ := by
+  exact solcCalldataStaticLenCheckOk (words := 2) (by simpa using hlen) hhi hsz
+
+theorem solcDecodeLenCheckShort_4_64 {sz : ℕ}
+    (hhead : 4 ≤ sz) (hshort : sz < 68) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
+  exact solcCalldataStaticLenCheckShort (words := 2) hhead (by simpa using hshort) hsz
+    (by norm_num)
+
+theorem solcDecodeLenCheckHuge_4_64 {sz : ℕ}
+    (hbig : 2 ^ 255 + 4 ≤ sz) (hsz : sz < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
+  exact solcCalldataStaticLenCheckHuge (words := 2) hbig hsz (by norm_num)
+
+/-! ### Static returndata tuple length checks -/
+
+theorem solcReturnStaticLenCheckOk {base len words : ℕ}
+    (hlen : 32 * words ≤ len)
+    (hhi : len < 2 ^ 255)
+    (hbase : base < UInt256.size)
+    (hadd : base + len < UInt256.size) :
+    UInt256.slt
+      (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base))
+      (UInt256.ofNat (32 * words)) = ⟨0⟩ := by
+  have hneed : 32 * words < 2 ^ 255 := lt_of_le_of_lt hlen hhi
+  have hsub :
+      UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base)
+        = UInt256.ofNat len :=
+    usub_uadd_lit_cancel hbase (lt_size_of_lt_sign hhi) hadd
+  rw [hsub, slt_ofNat_lit_zero hneed hlen hhi]
+
+theorem solcReturnStaticLenCheckShort {base len words : ℕ}
+    (hshort : len < 32 * words)
+    (hbase : base < UInt256.size)
+    (hadd : base + len < UInt256.size)
+    (hneed : 32 * words < 2 ^ 255) :
+    UInt256.slt
+      (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base))
+      (UInt256.ofNat (32 * words)) = ⟨1⟩ := by
+  have hhi : len < 2 ^ 255 := lt_trans hshort hneed
+  have hsub :
+      UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base)
+        = UInt256.ofNat len :=
+    usub_uadd_lit_cancel hbase (lt_size_of_lt_sign hhi) hadd
+  rw [hsub, slt_ofNat_lit_one_low hneed hshort]
+
+/-! ### Common solc ABI returndata specialization -/
+
+theorem solcDecodeEndLenCheckOk_128_32 {len : ℕ}
+    (hlen : 32 ≤ len) (hhi : len < 2 ^ 255) :
+    UInt256.slt (UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat len)) ⟨128⟩) ⟨32⟩
+      = ⟨0⟩ := by
+  exact solcReturnStaticLenCheckOk (base := 128) (words := 1) (by simpa using hlen) hhi
+    (by norm_num [UInt256.size])
+    (by
+      have hcap : (2 : ℕ) ^ 255 + 128 < UInt256.size := by norm_num [UInt256.size]
+      omega)
+
+theorem solcDecodeEndLenCheckShort_128_32 {len : ℕ} (hshort : len < 32) :
+    UInt256.slt (UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat len)) ⟨128⟩) ⟨32⟩
+      = ⟨1⟩ := by
+  exact solcReturnStaticLenCheckShort (base := 128) (words := 1) (by simpa using hshort)
+    (by norm_num [UInt256.size])
+    (by
+      have hcap : (2 : ℕ) ^ 255 + 128 < UInt256.size := by norm_num [UInt256.size]
+      omega)
+    (by norm_num)
+
 /-! ## The free-memory-pointer memory
 
 Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the initial free pointer

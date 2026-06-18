@@ -1,5 +1,6 @@
 import Examples.Caller.Bytecode
 import Examples.Caller.Spec
+import Reasoning.EVMWord
 import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
@@ -140,85 +141,10 @@ theorem callerEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
       = if ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
   evmSelectorDecode hsz 0x38 0x1f 0xd1 0x90 ⟨941609360⟩ (by decide)
 
-/-! ## Decoder arithmetic helpers -/
-
-/-- solc's `dataEnd = headStart + (calldatasize − headStart)` collapses to `calldatasize`. -/
-theorem add4_sub4 {sz : ℕ} (h4 : 4 ≤ sz) (hsz : sz < UInt256.size) :
-    (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat sz) ⟨4⟩ = UInt256.ofNat sz := by
-  apply u256_inj
-  have ho : (UInt256.ofNat sz).toNat = sz := by
-    show (Fin.ofNat _ sz).val = sz; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsz
-  have h4n : (⟨4⟩ : UInt256).toNat = 4 := by decide
-  have hsub : (UInt256.sub (UInt256.ofNat sz) ⟨4⟩).toNat = sz - 4 := by
-    rw [show UInt256.sub (UInt256.ofNat sz) ⟨4⟩ = UInt256.ofNat sz - UInt256.ofNat 4 from rfl,
-        UInt256.toNat_sub_ofNat_of_le (by rw [ho]; exact h4), ho]
-  rw [uadd_toNat, h4n, hsub, ho, show 4 + (sz - 4) = sz from by omega, Nat.mod_eq_of_lt hsz]
-
-/-- `SLT a 64 = 0` (signed) when `64 ≤ a < 2^255`. -/
-theorem slt64_zero {a : UInt256} (hlo : 64 ≤ a.toNat) (hhi : a.toNat < 2 ^ 255) :
-    UInt256.slt a ⟨64⟩ = ⟨0⟩ := by
-  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
-  have hbool : UInt256.sltBool a ⟨64⟩ = false := by
-    unfold UInt256.sltBool
-    rw [if_neg (show ¬ a.toNat ≥ 2 ^ 255 by omega),
-        if_neg (show ¬ (⟨64⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h64]; norm_num)]
-    exact decide_eq_false (show ¬ a < ⟨64⟩ by
-      show ¬ a.toNat < (⟨64⟩ : UInt256).toNat; rw [h64]; omega)
-  show UInt256.fromBool (UInt256.sltBool a ⟨64⟩) = ⟨0⟩
-  rw [hbool]; rfl
-
-/-- `(128 + n) − 128 = n` (no overflow) when `n < 2²⁵⁵` — the decoder's `dataEnd − headStart`. -/
-theorem add128_sub128 {n : ℕ} (hn : n < 2 ^ 255) :
-    UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat n)) ⟨128⟩ = UInt256.ofNat n := by
-  apply u256_inj
-  have hsz : (2:ℕ) ^ 255 + 128 < UInt256.size := by norm_num [UInt256.size]
-  have ho : (UInt256.ofNat n).toNat = n := by
-    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
-  have h128 : (⟨128⟩ : UInt256).toNat = 128 := by decide
-  have hadd : (UInt256.add ⟨128⟩ (UInt256.ofNat n)).toNat = 128 + n := by
-    rw [show UInt256.add ⟨128⟩ (UInt256.ofNat n) = ⟨128⟩ + UInt256.ofNat n from rfl, uadd_toNat,
-        h128, ho]
-    exact Nat.mod_eq_of_lt (by omega)
-  rw [show UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat n)) ⟨128⟩
-        = UInt256.add ⟨128⟩ (UInt256.ofNat n) - UInt256.ofNat 128 from rfl,
-      UInt256.toNat_sub_ofNat_of_le (by rw [hadd]; omega), hadd, ho]
-  omega
-
-/-- `SLT (ofNat n) 32 = 0` (signed) when `32 ≤ n < 2²⁵⁵` — the decoder's `≥ 32` length check passes. -/
-theorem slt32_zero {n : ℕ} (hlo : 32 ≤ n) (hhi : n < 2 ^ 255) :
-    UInt256.slt (UInt256.ofNat n) ⟨32⟩ = ⟨0⟩ := by
-  have hsz : (2:ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
-  have ho : (UInt256.ofNat n).toNat = n := by
-    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
-  have h32 : (⟨32⟩ : UInt256).toNat = 32 := by decide
-  have hbool : UInt256.sltBool (UInt256.ofNat n) ⟨32⟩ = false := by
-    unfold UInt256.sltBool
-    rw [if_neg (show ¬ (UInt256.ofNat n).toNat ≥ 2 ^ 255 by rw [ho]; omega),
-        if_neg (show ¬ (⟨32⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h32]; norm_num)]
-    exact decide_eq_false (show ¬ UInt256.ofNat n < ⟨32⟩ by
-      show ¬ (UInt256.ofNat n).toNat < (⟨32⟩ : UInt256).toNat; rw [ho, h32]; omega)
-  show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨0⟩
-  rw [hbool]; rfl
-
 theorem callerContains491 : (D_J callerBytecode 0).contains ⟨491⟩ = true := by
   jump_dest
 theorem callerContains203 : (D_J callerBytecode 0).contains ⟨203⟩ = true := by
   jump_dest
-
-/-- `SLT (ofNat n) 32 = 1` (signed) when `n < 32` — the decoder's `≥ 32` length check *fails*. -/
-theorem slt32_one {n : ℕ} (hn : n < 32) : UInt256.slt (UInt256.ofNat n) ⟨32⟩ = ⟨1⟩ := by
-  have hsz : (2:ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
-  have ho : (UInt256.ofNat n).toNat = n := by
-    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
-  have h32 : (⟨32⟩ : UInt256).toNat = 32 := by decide
-  have hbool : UInt256.sltBool (UInt256.ofNat n) ⟨32⟩ = true := by
-    unfold UInt256.sltBool
-    rw [if_neg (show ¬ (UInt256.ofNat n).toNat ≥ 2 ^ 255 by rw [ho]; omega),
-        if_neg (show ¬ (⟨32⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h32]; norm_num)]
-    exact decide_eq_true (show UInt256.ofNat n < ⟨32⟩ by
-      show (UInt256.ofNat n).toNat < (⟨32⟩ : UInt256).toNat; rw [ho, h32]; omega)
-  show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨32⟩) = ⟨1⟩
-  rw [hbool]; rfl
 theorem callerContains71 : (D_J callerBytecode 0).contains ⟨71⟩ = true := by
   jump_dest
 theorem callerContains194 : (D_J callerBytecode 0).contains ⟨194⟩ = true := by
@@ -359,7 +285,8 @@ theorem callerX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨71⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1, push2 ⟨66⟩,
     swap2, swap1, push2 ⟨348⟩,
     jump callerContains348 ]
-  rw [add4_sub4 hsz hsize] at rd
+  rw [uadd_word_usub_ofNat_word (c := (⟨4⟩ : UInt256))
+    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz) hsize] at rd
   exact ⟨_, _, rd⟩
 
 /-! ## The opaque-call coincidence (the conceptual crux)
@@ -387,15 +314,8 @@ theorem callerX_dec277 {cA gh bl σ σ₀ A I} {g : Sat256}
           UInt256.ofNat I.calldata.size, ⟨66⟩, ⟨71⟩,
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have ho : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
-    show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
-    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
-  have hsub : (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat = I.calldata.size - 4 := by
-    rw [show UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩
-          = UInt256.ofNat I.calldata.size - UInt256.ofNat 4 from rfl,
-        UInt256.toNat_sub_ofNat_of_le (by rw [ho]; omega), ho]
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
-    slt64_zero (by rw [hsub]; omega) (by rw [hsub]; omega)
+    solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   exact ⟨_, _, evm_run rd0 with [
@@ -989,7 +909,7 @@ theorem callerX_succ_to491 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem2 ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
-    jumpiT (by rw [add128_sub128 ho, slt32_zero ho32 ho]; decide) callerContains491 ]⟩
+    jumpiT (by rw [solcDecodeEndLenCheckOk_128_32 ho32 ho]; decide) callerContains491 ]⟩
 
 /-- **Success-path under-length revert (470 → 203 REVERT).**  When `|o| < 32` the length check
     `slt(|o|, 32) = 1`, so `iszero` is `0`, the `JUMPI` is *not* taken, and control falls into the
@@ -1001,10 +921,10 @@ theorem callerX_succ_revert {cA gh bl σ σ₀ A I} {g : Sat256}
             [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o acc k C)
     (ho : o.size < 32) :
-    RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) :=
-  evm_run rd with [
+    RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  exact evm_run rd with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
-    jumpiNT (by rw [add128_sub128 (by omega), slt32_one ho]; decide),
+    jumpiNT (by rw [solcDecodeEndLenCheckShort_128_32 ho]; decide),
     push2 ⟨490⟩, push2 ⟨203⟩, jump callerContains203,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
@@ -1195,40 +1115,14 @@ theorem callerCanon_eq {I : ExecutionEnv} (hcanon : (callerArg0 I).toNat < EVM.a
 
 /-! ## Decode-failure EVM revert traces (datalen / signed / clean-address checks) -/
 
-theorem slt64_one {n : ℕ} (hn : n < 64) : UInt256.slt (UInt256.ofNat n) ⟨64⟩ = ⟨1⟩ := by
-  have hsz : (2:ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
-  have ho : (UInt256.ofNat n).toNat = n := by
-    show n % UInt256.size = n; exact Nat.mod_eq_of_lt (by omega)
-  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
-  have hbool : UInt256.sltBool (UInt256.ofNat n) ⟨64⟩ = true := by
-    unfold UInt256.sltBool
-    rw [if_neg (show ¬ (UInt256.ofNat n).toNat ≥ 2 ^ 255 by rw [ho]; omega),
-        if_neg (show ¬ (⟨64⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h64]; norm_num)]
-    exact decide_eq_true (show UInt256.ofNat n < ⟨64⟩ by
-      show (UInt256.ofNat n).toNat < (⟨64⟩ : UInt256).toNat; rw [ho, h64]; omega)
-  show UInt256.fromBool (UInt256.sltBool (UInt256.ofNat n) ⟨64⟩) = ⟨1⟩
-  rw [hbool]; rfl
-
 theorem callerX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have ho : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
-    show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
-    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
-  have hsub : (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat = I.calldata.size - 4 := by
-    rw [show UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩
-          = UInt256.ofNat I.calldata.size - UInt256.ofNat 4 from rfl,
-        UInt256.toNat_sub_ofNat_of_le (by rw [ho]; omega), ho]
-  have heq : UInt256.ofNat (I.calldata.size - 4) = UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ := by
-    apply u256_inj
-    rw [hsub]
-    show (I.calldata.size - 4) % UInt256.size = I.calldata.size - 4
-    exact Nat.mod_eq_of_lt (by omega)
-  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
-    rw [← heq]; exact slt64_one (by omega)
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
+    solcDecodeLenCheckShort_4_64 hsz hshort hsize
   obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   have rd := evm_run rd0 with [
@@ -1238,29 +1132,14 @@ theorem callerX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
   exact rd
 
-theorem slt64_neg {a : UInt256} (ha : a.toNat ≥ 2 ^ 255) : UInt256.slt a ⟨64⟩ = ⟨1⟩ := by
-  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
-  have hbool : UInt256.sltBool a ⟨64⟩ = true := by
-    unfold UInt256.sltBool
-    rw [if_pos ha, if_neg (show ¬ (⟨64⟩ : UInt256).toNat ≥ 2 ^ 255 by rw [h64]; norm_num)]
-  show UInt256.fromBool (UInt256.sltBool a ⟨64⟩) = ⟨1⟩
-  rw [hbool]; rfl
-
 theorem callerX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have ho : (UInt256.ofNat I.calldata.size).toNat = I.calldata.size := by
-    show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
-    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
-  have hsub : (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat = I.calldata.size - 4 := by
-    rw [show UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩
-          = UInt256.ofNat I.calldata.size - UInt256.ofNat 4 from rfl,
-        UInt256.toNat_sub_ofNat_of_le (by rw [ho]; omega), ho]
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
-    slt64_neg (by rw [hsub]; omega)
+    solcDecodeLenCheckHuge_4_64 hbig hsize
   obtain ⟨k0, C0, rd0⟩ := callerX_toDecoder (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode hwv hsz hsize hmatch
   have rd := evm_run rd0 with [
