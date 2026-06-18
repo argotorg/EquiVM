@@ -201,22 +201,22 @@ theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
     · simp
     · simp [RDWorld]
   exact evm_run rd0 with [
-    push1 ⟨128⟩,
-    push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
+    raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
+    raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),
+    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
-    push1 ⟨123⟩,
-    dup1,
-    push1 ⟨15⟩,
-    push0,
-    raw codecopy 3 ctorTruthInitReturnMem (UInt256.ofNat 4) (by decide)
+    raw push1 ⟨123⟩ ctorTruthDecode5 (by evm_ov),
+    raw dup1 ctorTruthDecode7 (by evm_ov),
+    raw push1 ⟨15⟩ ctorTruthDecode8 (by evm_ov),
+    raw push0 ctorTruthDecode10 (by evm_ov),
+    raw codecopy 3 ctorTruthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
       mem_cost
       ctorTruthInitcode_codecopy_mem
       (by decide) (by evm_ov),
-    push0,
-    raw ret 0 ctorTruthRuntimeBytecode (by decide)
+    raw push0 ctorTruthDecode12 (by evm_ov),
+    raw ret 0 ctorTruthRuntimeBytecode ctorTruthDecode13
       mem_cost
       ctorTruthFinal_read
       (by evm_ov)]

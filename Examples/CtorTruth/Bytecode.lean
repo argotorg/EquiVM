@@ -1,9 +1,10 @@
 import Examples.CtorTruth.Spec
 import Solm.Dispatch
 import Ethereum.Semantics
+import Reasoning.Initcode
 import Reasoning.JumpDest
 
-open Solm Ethereum Ethereum.EVM
+open Solm Ethereum Ethereum.EVM Reasoning.Theory
 
 /-! ## Creation and runtime bytecode
 
@@ -64,3 +65,103 @@ axiom ctorTruthSelectorBytes :
       = #[⟨29⟩, ⟨53⟩, ⟨57⟩, ⟨63⟩, ⟨74⟩, ⟨83⟩, ⟨91⟩, ⟨102⟩, ⟨109⟩,
           ⟨115⟩, ⟨132⟩]
   := by native_decide
+
+macro "ctor_truth_decode_prefix" : tactic =>
+  `(tactic|
+    rw [decode_append_left ctorTruthInitcode _ _ (by native_decide)
+      (by
+        intro b instr hget hinstr
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)
+      (by
+        intro b instr hget hinstr
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)])
+
+theorem ctorTruthDecode0_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode2_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode4_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨4⟩ = some (.MSTORE, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode5_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨5⟩ = some (.Push .PUSH1, some (⟨123⟩, 1)) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode7_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨7⟩ = some (.DUP1, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode8_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨8⟩ = some (.Push .PUSH1, some (⟨15⟩, 1)) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode10_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨10⟩ = some (.PUSH0, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode11_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨11⟩ = some (.CODECOPY, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode12_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨12⟩ = some (.PUSH0, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode13_append (tail : ByteArray) :
+    decode (ctorTruthInitcode ++ tail) ⟨13⟩ = some (.RETURN, .none) := by
+  ctor_truth_decode_prefix
+  native_decide
+
+theorem ctorTruthDecode0 :
+    decode ctorTruthInitcode ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode0_append ByteArray.empty
+
+theorem ctorTruthDecode2 :
+    decode ctorTruthInitcode ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode2_append ByteArray.empty
+
+theorem ctorTruthDecode4 :
+    decode ctorTruthInitcode ⟨4⟩ = some (.MSTORE, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode4_append ByteArray.empty
+
+theorem ctorTruthDecode5 :
+    decode ctorTruthInitcode ⟨5⟩ = some (.Push .PUSH1, some (⟨123⟩, 1)) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode5_append ByteArray.empty
+
+theorem ctorTruthDecode7 :
+    decode ctorTruthInitcode ⟨7⟩ = some (.DUP1, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode7_append ByteArray.empty
+
+theorem ctorTruthDecode8 :
+    decode ctorTruthInitcode ⟨8⟩ = some (.Push .PUSH1, some (⟨15⟩, 1)) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode8_append ByteArray.empty
+
+theorem ctorTruthDecode10 :
+    decode ctorTruthInitcode ⟨10⟩ = some (.PUSH0, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode10_append ByteArray.empty
+
+theorem ctorTruthDecode11 :
+    decode ctorTruthInitcode ⟨11⟩ = some (.CODECOPY, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode11_append ByteArray.empty
+
+theorem ctorTruthDecode12 :
+    decode ctorTruthInitcode ⟨12⟩ = some (.PUSH0, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode12_append ByteArray.empty
+
+theorem ctorTruthDecode13 :
+    decode ctorTruthInitcode ⟨13⟩ = some (.RETURN, .none) := by
+  simpa [ByteArray.append_empty] using ctorTruthDecode13_append ByteArray.empty
