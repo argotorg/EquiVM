@@ -477,6 +477,81 @@ solc dispatcher: the callvalue guard (zero → continue, nonzero → revert), th
 width-generic in the guard-target push (`pushConst`); concrete callers discharge the decode facts
 with `by decide`.  Chain `selectorArmTaken`/`selectorArmNotTaken` after `solcSelectorLoad`. -/
 
+/-- The callvalue-guard target push at pc 8, read from bytecode. -/
+@[reducible] def solcGuardTgtOp (code : ByteArray) : Operation.POp := (pushAt code ⟨8⟩).1
+@[reducible] def solcGuardTgt (code : ByteArray) : UInt256 := (pushAt code ⟨8⟩).2.1
+@[reducible] def solcGuardTgtWidth (code : ByteArray) : ℕ := (pushAt code ⟨8⟩).2.2
+
+/-- The pc of the callvalue guard's `JUMPI`. -/
+@[reducible] def solcGuardJumpiPc (code : ByteArray) : UInt256 :=
+  ⟨8⟩ + UInt256.ofNat (solcGuardTgtWidth code).succ
+
+/-- The dispatcher body pc after the callvalue guard's `JUMPDEST; POP`. -/
+@[reducible] def solcDispatchBodyPc (code : ByteArray) : UInt256 :=
+  solcGuardTgt code + ⟨1⟩ + ⟨1⟩
+
+/-- The short-calldata revert-target push in the dispatcher body, read from bytecode. -/
+@[reducible] def solcCalldataRevertPushPc (code : ByteArray) : UInt256 :=
+  solcDispatchBodyPc code + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩
+@[reducible] def solcCalldataRevertTgtOp (code : ByteArray) : Operation.POp :=
+  (pushAt code (solcCalldataRevertPushPc code)).1
+@[reducible] def solcCalldataRevertTgt (code : ByteArray) : UInt256 :=
+  (pushAt code (solcCalldataRevertPushPc code)).2.1
+@[reducible] def solcCalldataRevertTgtWidth (code : ByteArray) : ℕ :=
+  (pushAt code (solcCalldataRevertPushPc code)).2.2
+
+/-- The pc of the calldata-size check's `JUMPI`. -/
+@[reducible] def solcCalldataJumpiPc (code : ByteArray) : UInt256 :=
+  solcCalldataRevertPushPc code + UInt256.ofNat (solcCalldataRevertTgtWidth code).succ
+
+/-- The selector-load block pc (`PUSH0; CALLDATALOAD; PUSH1 0xe0; SHR`). -/
+@[reducible] def solcSelectorLoadPc (code : ByteArray) : UInt256 :=
+  solcCalldataJumpiPc code + ⟨1⟩
+
+/-- The first selector-arm pc immediately after the selector-load block. -/
+@[reducible] def solcFirstArmPcFromPrefix (code : ByteArray) : UInt256 :=
+  solcSelectorLoadPc code + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩
+
+/-- The standard solc external-entry prefix through selector load.
+
+This bundles only bytecode shape.  The guard jump target's membership in `D_J` is kept as a separate
+hypothesis because concrete examples usually discharge it with `jump_dest`, not pure computation. -/
+@[reducible] def solcDispatchPrefixWellFormed (code : ByteArray) (firstArmPc : UInt256) : Prop :=
+  decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1))
+  ∧ decode code ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1))
+  ∧ decode code ⟨4⟩ = some (.MSTORE, .none)
+  ∧ decode code ⟨5⟩ = some (.CALLVALUE, .none)
+  ∧ decode code ⟨6⟩ = some (.DUP1, .none)
+  ∧ decode code ⟨7⟩ = some (.ISZERO, .none)
+  ∧ solcGuardTgtOp code ≠ .PUSH0
+  ∧ decode code ⟨8⟩
+      = some (.Push (solcGuardTgtOp code), some (solcGuardTgt code, solcGuardTgtWidth code))
+  ∧ decode code (solcGuardJumpiPc code) = some (.JUMPI, .none)
+  ∧ decode code (solcGuardTgt code) = some (.JUMPDEST, .none)
+  ∧ decode code (solcGuardTgt code + ⟨1⟩) = some (.POP, .none)
+  ∧ decode code (solcDispatchBodyPc code) = some (.Push .PUSH1, some (⟨4⟩, 1))
+  ∧ decode code (solcDispatchBodyPc code + UInt256.ofNat 2) = some (.CALLDATASIZE, .none)
+  ∧ decode code (solcDispatchBodyPc code + UInt256.ofNat 2 + ⟨1⟩) = some (.LT, .none)
+  ∧ solcCalldataRevertTgtOp code ≠ .PUSH0
+  ∧ decode code (solcCalldataRevertPushPc code)
+      = some (.Push (solcCalldataRevertTgtOp code),
+          some (solcCalldataRevertTgt code, solcCalldataRevertTgtWidth code))
+  ∧ decode code (solcCalldataJumpiPc code) = some (.JUMPI, .none)
+  ∧ decode code (solcSelectorLoadPc code) = some (.PUSH0, .none)
+  ∧ decode code (solcSelectorLoadPc code + ⟨1⟩) = some (.CALLDATALOAD, .none)
+  ∧ decode code (solcSelectorLoadPc code + ⟨1⟩ + ⟨1⟩)
+      = some (.Push .PUSH1, some (⟨224⟩, 1))
+  ∧ decode code (solcSelectorLoadPc code + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2)
+      = some (.SHR, .none)
+  ∧ solcFirstArmPcFromPrefix code = firstArmPc
+
+/-- Discharge a concrete `solcDispatchPrefixWellFormed` proof by splitting the bundled bytecode
+    facts and evaluating each closed decode equation. -/
+macro "solc_dispatch_prefix" : tactic =>
+  `(tactic|
+    (dsimp [solcDispatchPrefixWellFormed]
+     repeat' first | apply And.intro | decide))
+
 /-- **Callvalue-zero guard.**  From the prologue cursor (`cv = 0`): take the guard `JUMPI` to its
     `JUMPDEST` and `POP` the call value, reaching the dispatcher body at `ctgt + 2` with empty stack. -/
 theorem solcGuardCallvalueZero {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
@@ -586,5 +661,50 @@ theorem solcSelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     |>.calldataload hcdl (by omega)
     |>.push1 ⟨224⟩ hp1 (by simp only [List.length]; omega)
     |>.shr hshr (by omega)⟩
+
+/-- **Standard solc dispatcher reach.**  From `initState`, with `callvalue = 0`, enough calldata for
+    selector dispatch, and a matching selector arm `i`, run the whole external-entry scaffold:
+    free-pointer prologue, callvalue guard, calldata-size guard, selector load, and `RD.dispatchTo`.
+
+The bytecode-shape facts for the prefix are bundled in `solcDispatchPrefixWellFormed`; the selector
+arms remain the existing `RD.dispatchTo` interface so single-arm and multi-arm dispatchers share the
+same lemma. -/
+theorem solcDispatchReachBody {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {firstArmPc bodyPC : UInt256} {i : ℕ}
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hprefix : solcDispatchPrefixWellFormed code firstArmPc)
+    (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true)
+    (hwf : ∀ j, j ≤ i → armWellFormed code (nthArmPc code firstArmPc j))
+    (heq0 : ∀ j, j < i →
+      UInt256.eq (armSelNat code (nthArmPc code firstArmPc j))
+        (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨0⟩)
+    (htake : UInt256.eq (armSelNat code (nthArmPc code firstArmPc i))
+        (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains bodyPC = true)
+    (hbody : armTgt code (nthArmPc code firstArmPc i) = bodyPC) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) bodyPC
+        [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
+    hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
+    hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
+    hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
+    (ctgt := solcGuardTgt code) (opC := solcGuardTgtOp code) (wC := solcGuardTgtWidth code)
+    h0 hwv hguardOp hguardPush hguardJumpi hguardDest hguardPop hguardJd
+  obtain ⟨_, _, h2⟩ := solcCalldataOk
+    (selLoadTgt := solcCalldataRevertTgt code)
+    (opR := solcCalldataRevertTgtOp code) (wR := solcCalldataRevertTgtWidth code)
+    h1 hsz hsize hcdPush4 hcdSize hcdLt hcdOp hcdPushRevert hcdJumpi
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 hselPush0 hselLoad hselPush224 hselShr (by simp)
+  have h3' : RD code I g (initState cA gh bl σ σ₀ g A I) firstArmPc
+      [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := by
+    simpa [solcFirstArmPcFromPrefix, solcSelectorLoadPc, solcCalldataJumpiPc,
+      solcCalldataRevertPushPc, solcDispatchBodyPc, hfirst] using h3
+  exact RD.dispatchTo bodyPC i h3' hwf heq0 htake (by rw [hbody]; exact hjd) hbody (by simp)
 
 end Reasoning.Reach

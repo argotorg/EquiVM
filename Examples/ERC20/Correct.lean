@@ -93,18 +93,12 @@ theorem erc20ReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i �
     (hbody : armTgt erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc i) = bodyPC) :
     ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
         [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨15⟩) (opC := .PUSH2) (wC := 2)
-    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
-  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨96⟩) (opR := .PUSH2) (wR := 2)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h3' : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) erc20FirstArmPc
-      [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
-  exact RD.dispatchTo bodyPC i h3'
+  exact solcDispatchReachBody
+    (firstArmPc := erc20FirstArmPc) (bodyPC := bodyPC) (i := i)
+    hcode hwv hsz hsize (by solc_dispatch_prefix)
+    (by change (D_J erc20Bytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
     (fun j hj => erc20ArmsWellFormed j (le_trans hj hi5)) heq0 htake
-    (by rw [hbody]; exact hjd) hbody (by simp)
+    hjd hbody
 
 /-! ## Per-function body obligations — sorried stubs (take the dispatcher-reached cursor) -/
 

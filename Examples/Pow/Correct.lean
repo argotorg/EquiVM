@@ -66,21 +66,15 @@ theorem powReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     ∃ k C, RD powBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
         [powSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨15⟩) (opC := .PUSH2) (wC := 2)
-    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
-  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨41⟩) (opR := .PUSH2) (wR := 2)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h3' : RD powBytecode I g (initState cA gh bl σ σ₀ g A I) powFirstArmPc
-      [powSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
-  exact RD.dispatchTo ⟨45⟩ 0 h3'
+  exact solcDispatchReachBody
+    (firstArmPc := powFirstArmPc) (bodyPC := ⟨45⟩) (i := 0)
+    hcode hwv hsz hsize (by solc_dispatch_prefix)
+    (by change (D_J powBytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact powArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat powBytecode powFirstArmPc) (powSelWord I) ≠ ⟨0⟩
         rw [powMatch_eq I hsz, if_pos hmatch]; decide)
-    (by show (D_J powBytecode 0).contains ⟨45⟩ = true; jump_dest) (by decide) (by simp)
+    (by jump_dest) (by decide)
 
 /-! ## The loop core (crux) — **proved**
 

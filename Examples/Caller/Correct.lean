@@ -223,21 +223,15 @@ theorem callerReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     ∃ k C, RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨45⟩
         [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero (ctgt := ⟨15⟩) (opC := .PUSH2) (wC := 2)
-    h0 hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
-  obtain ⟨_, _, h2⟩ := solcCalldataOk (selLoadTgt := ⟨41⟩) (opR := .PUSH2) (wR := 2)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h3' : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) callerFirstArmPc
-      [callerSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := h3
-  exact RD.dispatchTo ⟨45⟩ 0 h3'
+  exact solcDispatchReachBody
+    (firstArmPc := callerFirstArmPc) (bodyPC := ⟨45⟩) (i := 0)
+    hcode hwv hsz hsize (by solc_dispatch_prefix)
+    (by change (D_J callerBytecode 0).contains (⟨15⟩ : UInt256) = true; jump_dest)
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact callerArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat callerBytecode callerFirstArmPc) (callerSelWord I) ≠ ⟨0⟩
         rw [callerMatch_eq I hsz, if_pos hmatch]; decide)
-    (by show (D_J callerBytecode 0).contains ⟨45⟩ = true; jump_dest) (by decide) (by simp)
+    (by jump_dest) (by decide)
 
 /-- `callvalue = 0 ∧ calldatasize < 4`: the prefix's `JUMPI` jumps to the `0x29` (41) revert stub. -/
 theorem callerX_cvz_short
