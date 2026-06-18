@@ -130,6 +130,7 @@ inductive EnvVar where
   | origin
   | callvalue
   | this
+  | timestamp
   deriving DecidableEq, Repr, Inhabited
 
 inductive UnaryOp where
@@ -483,6 +484,8 @@ inductive Stmt where
   | assign : StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
   | while : Expr -> List Stmt -> Stmt
+  /- conditional: `if cond { thenBranch } else { elseBranch }`; a no-`else` `if` is `elseBranch = []` -/
+  | ite : Expr -> List Stmt -> List Stmt -> Stmt
   /- constructor call -/
   | new : Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ -> Stmt
   /- internal and external call results are explicitly let-bound -/
@@ -516,6 +519,12 @@ mutual
         | isTrue hc, isTrue hb => isTrue (by cases hc; cases hb; rfl)
         | isFalse hc, _ => isFalse (by intro h; cases h; exact hc rfl)
         | _, isFalse hb => isFalse (by intro h; cases h; exact hb rfl)
+    | .ite cx tx ex, .ite cy ty ey =>
+        match Expr.decEq cx cy, Stmt.decEqList tx ty, Stmt.decEqList ex ey with
+        | isTrue hc, isTrue ht, isTrue he => isTrue (by cases hc; cases ht; cases he; rfl)
+        | isFalse hc, _, _ => isFalse (by intro h; cases h; exact hc rfl)
+        | _, isFalse ht, _ => isFalse (by intro h; cases h; exact ht rfl)
+        | _, _, isFalse he => isFalse (by intro h; cases h; exact he rfl)
     | .new nx vx ax rx, .new ny vy ay ry =>
         match (inferInstance : Decidable (nx = ny)), Expr.decEq vx vy, (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)) with
         | isTrue hn, isTrue hv, isTrue ha, isTrue hr => isTrue (by cases hn; cases hv; cases ha; cases hr; rfl)
@@ -633,6 +642,26 @@ mutual
     | .continue, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .return _ => isFalse (by intro h; cases h)
     | .continue, .break => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .require _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .return _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .break, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .continue, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .break => isFalse (by intro h; cases h)
+    | .ite _ _ _, .continue => isFalse (by intro h; cases h)
 
   private def Stmt.decEqList : (as bs : List Stmt) -> Decidable (as = bs)
     | [], [] => isTrue rfl

@@ -63,6 +63,7 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .origin => .address evm.executionEnv.sender
   | .callvalue => .int (Int.ofNat evm.executionEnv.weiValue.val)
   | .this => .address evm.executionEnv.codeOwner
+  | .timestamp => .int (Int.ofNat evm.executionEnv.header.timestamp)
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -705,6 +706,17 @@ inductive ExecStmt (cfg : Config) :
       ExecBlock cfg solm evm body (.continue solm' evm') ->
       ExecStmt cfg solm' evm' (.while condExpr body) result ->
       ExecStmt cfg solm evm (.while condExpr body) result
+  | iteTrue {condExpr} :
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm thenB result ->
+      ExecStmt cfg solm evm (.ite condExpr thenB elseB) result
+  | iteFalse {condExpr} :
+      evalExpr? cfg solm evm condExpr = .ok (.bool false) ->
+      ExecBlock cfg solm evm elseB result ->
+      ExecStmt cfg solm evm (.ite condExpr thenB elseB) result
+  | iteCondRevert {condExpr} :
+      evalExpr? cfg solm evm condExpr = .revert ->
+      ExecStmt cfg solm evm (.ite condExpr thenB elseB) .reverted
   | internalCallReturn :
       evalExprs? cfg solm evm args = .ok argVals ->
       lookupCallable? solm.contract name = some callee ->
