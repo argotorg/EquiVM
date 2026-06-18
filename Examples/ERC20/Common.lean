@@ -361,9 +361,7 @@ theorem decodeCalldata_address_address_ok {cd : ByteArray} {x y : Solm.Ident}
       (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat)))
   simp [decodeCalldata.insertValues]
   rw [hword4]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
+  rw [hword36]
 
 theorem decodeCalldata_address_address_none_noncanon0 {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)

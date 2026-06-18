@@ -2,6 +2,7 @@ import Examples.ERC20.Bytecode
 import Examples.ERC20.Spec
 import Examples.ERC20.TotalSupply
 import Examples.ERC20.BalanceOf
+import Examples.ERC20.Allowance
 import Reasoning.ABIDecode
 import Reasoning.Theory
 import Reasoning.Stepping
@@ -295,7 +296,7 @@ theorem erc20AllowanceBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20AllowanceBodyCore hcode hsize hwv hsel hreach
 
 /-! ## Revert obligations — sorried stubs -/
 
