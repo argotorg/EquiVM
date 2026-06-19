@@ -552,6 +552,94 @@ theorem RD.erc20DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
     RDrev erc20Bytecode g s0)
 
+/-- Bytecode shape for the solc mapping-hash suffix used throughout ERC20.
+
+    The suffix starts after the caller-specific key preparation has already left the stack as
+    `[key, 0, baseSlot] ++ R`.  It writes `key` at scratch offset `0`, writes `baseSlot` at
+    scratch offset `32`, then runs `KECCAK256 0 64`. -/
+@[reducible] def erc20MappingHashSuffixWf (pc : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p2 := p1 + ⟨1⟩
+  let p4 := p2 + UInt256.ofNat 2
+  let p5 := p4 + ⟨1⟩
+  let p6 := p5 + ⟨1⟩
+  let p7 := p6 + ⟨1⟩
+  let p8 := p7 + ⟨1⟩
+  let p10 := p8 + UInt256.ofNat 2
+  let p11 := p10 + ⟨1⟩
+  let p12 := p11 + ⟨1⟩
+  decode erc20Bytecode pc = some (.DUP2, .none)
+  ∧ decode erc20Bytecode p1 = some (.MSTORE, .none)
+  ∧ decode erc20Bytecode p2 = some (.Push .PUSH1, some (⟨32⟩, 1))
+  ∧ decode erc20Bytecode p4 = some (.ADD, .none)
+  ∧ decode erc20Bytecode p5 = some (.SWAP1, .none)
+  ∧ decode erc20Bytecode p6 = some (.DUP2, .none)
+  ∧ decode erc20Bytecode p7 = some (.MSTORE, .none)
+  ∧ decode erc20Bytecode p8 = some (.Push .PUSH1, some (⟨32⟩, 1))
+  ∧ decode erc20Bytecode p10 = some (.ADD, .none)
+  ∧ decode erc20Bytecode p11 = some (.PUSH0, .none)
+  ∧ decode erc20Bytecode p12 = some (.KECCAK256, .none)
+
+/-- Discharge an ERC20 mapping-hash suffix bytecode-shape proof at a concrete PC. -/
+macro "erc20_mapping_hash_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.erc20MappingHashSuffixWf
+    repeat' first | apply And.intro | native_decide)
+
+/-- End PC for `erc20MappingHashSuffixWf`.  Kept as chained offsets so callers at concrete PCs
+    reduce by computation instead of needing UInt256 arithmetic reassociation lemmas. -/
+@[reducible] def erc20MappingHashSuffixEndPc (pc : UInt256) : UInt256 :=
+  let p1 := pc + ⟨1⟩
+  let p2 := p1 + ⟨1⟩
+  let p4 := p2 + UInt256.ofNat 2
+  let p5 := p4 + ⟨1⟩
+  let p6 := p5 + ⟨1⟩
+  let p7 := p6 + ⟨1⟩
+  let p8 := p7 + ⟨1⟩
+  let p10 := p8 + UInt256.ofNat 2
+  let p11 := p10 + ⟨1⟩
+  let p12 := p11 + ⟨1⟩
+  p12 + ⟨1⟩
+
+/-- Shared ERC20 mapping-hash suffix.
+
+    From `[key, 0, baseSlot] ++ R`, this runs the straight-line solc sequence
+    `DUP2; MSTORE; PUSH1 32; ADD; SWAP1; DUP2; MSTORE; PUSH1 32; ADD; PUSH0; KECCAK256`,
+    producing `[keccak256(key ++ baseSlot)] ++ R`.  The caller supplies the two memory-write
+    equalities and the keccak slot identity, so the lemma stays independent of `balanceOf` versus
+    `allowance` and of the incoming scratch memory. -/
+theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc key baseSlot slot : UInt256} {R : List UInt256} {mem memKey memHash : ByteArray}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc20Bytecode ee g s0 pc (key :: ⟨0⟩ :: baseSlot :: R) mem
+        (UInt256.ofNat 3) rdata acc k C)
+    (hwf : erc20MappingHashSuffixWf pc)
+    (hkey : (UInt256.toByteArray key).write 0 mem 0 32 = memKey)
+    (hbase : (UInt256.toByteArray baseSlot).write 0 memKey
+        ((⟨32⟩ : UInt256) + ⟨0⟩).toNat 32 = memHash)
+    (hslot : UInt256.ofNat
+        (fromByteArrayBigEndian (ffi.KEC (memHash.readWithPadding 0
+          ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ⟨0⟩)).toNat))) = slot)
+    (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', RD erc20Bytecode ee g s0 (erc20MappingHashSuffixEndPc pc) (slot :: R)
+      memHash (UInt256.ofNat 3) rdata acc k' C' := by
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
+  have rd1 := h.dup2 hd0 (by evm_ov)
+  have rd2 := rd1.mstore 0 memKey (UInt256.ofNat 3) hd1 mem_cost hkey
+    (by native_decide) (by evm_ov)
+  have rd3 := rd2.push1 ⟨32⟩ hd2 (by evm_ov)
+  have rd4 := rd3.add hd3 (by evm_ov)
+  have rd5 := rd4.swap1 hd4 (by evm_ov)
+  have rd6 := rd5.dup2 hd5 (by evm_ov)
+  have rd7 := rd6.mstore 0 memHash (UInt256.ofNat 3) hd6 mem_cost hbase
+    (by native_decide) (by evm_ov)
+  have rd8 := rd7.push1 ⟨32⟩ hd7 (by evm_ov)
+  have rd9 := rd8.add hd8 (by evm_ov)
+  have rd10 := rd9.push0 hd9 (by evm_ov)
+  exact ⟨_, _, rd10.keccak256 0 slot (UInt256.ofNat 3) hd10 mem_cost hslot
+    (by native_decide) (by evm_ov)⟩
+
 end Reasoning.Reach
 
 namespace ERC20

@@ -644,36 +644,17 @@ theorem erc20ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     push20 erc20AddrMask, and ]
   have rd421 := rd421₀
   rw [hownerCleanL, hownerCleanL] at rd421
-  have rd434 := evm_run rd421 with [
-    dup2,
-    raw mstore 0 (approveInnerOwnerMem (approveOwnerWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (allowanceInnerHashMem (approveOwnerWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (approveInnerOwnerMem_writeSlot (approveOwnerWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (allowanceInnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd434⟩ := RD.erc20MappingHashSuffix rd421 erc20_mapping_hash_wf
+    (by rfl) (approveInnerOwnerMem_writeSlot (approveOwnerWord I)) (by rfl) (by evm_ov)
   have rd480₀ := evm_run rd434 with [
     push0, dup6, push20 erc20AddrMask, and, push20 erc20AddrMask, and ]
   have rd480 := rd480₀
   rw [hspenderCleanL, hspenderCleanL] at rd480
-  have rd493 := evm_run rd480 with [
-    dup2,
-    raw mstore 0 (approveOuterSpenderMem (approveOwnerWord I) (approveSpenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (allowanceOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (approveOuterSpenderMem_writeSlot (approveOwnerWord I) (approveSpenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    dup2, swap1 ]
+  obtain ⟨_, _, rd493₀⟩ := RD.erc20MappingHashSuffix rd480 erc20_mapping_hash_wf
+    (by rfl)
+    (approveOuterSpenderMem_writeSlot (approveOwnerWord I) (approveSpenderWord I))
+    hslot (by evm_ov)
+  have rd493 := evm_run rd493₀ with [ dup2, swap1 ]
   exact rd493.sstore hperm (by decide) (by evm_ov)
 
 theorem erc20X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

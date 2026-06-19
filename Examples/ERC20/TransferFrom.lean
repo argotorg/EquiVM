@@ -1645,37 +1645,16 @@ theorem erc20TransferFromX_afterAllowance {cA gh bl σ σ₀ A I} {g : Sat256} {
     push20 erc20AddrMask, and ]
   have rd663 := rd663₀
   rw [hfromCleanL, hfromCleanL] at rd663
-  have rd676 := evm_run rd663 with [
-    dup2,
-    raw mstore 0 (approveInnerOwnerMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (allowanceInnerHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (approveInnerOwnerMem_writeSlot (transferFromFromWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (allowanceInnerSlot (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd676⟩ := RD.erc20MappingHashSuffix rd663 erc20_mapping_hash_wf
+    (by rfl) (approveInnerOwnerMem_writeSlot (transferFromFromWord I)) (by rfl) (by evm_ov)
   have rd722₀ := evm_run rd676 with [
     push0, caller, push20 erc20AddrMask, and, push20 erc20AddrMask, and ]
   have rd722 := rd722₀
   rw [hsenderCleanL, hsenderCleanL] at rd722
-  have rd735 := evm_run rd722 with [
-    dup2,
-    raw mstore 0
-      (approveOuterSpenderMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0
-      (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromAllowanceSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd735⟩ := RD.erc20MappingHashSuffix rd722 erc20_mapping_hash_wf
+    (by rfl)
+    (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
   obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
   have rd737 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨737⟩
       [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
@@ -1722,21 +1701,10 @@ theorem erc20TransferFromX_afterBalance {cA gh bl σ σ₀ A I} {g : Sat256} {se
     push20 erc20AddrMask, and ]
   have rd854 := rd854₀
   rw [hfromCleanL, hfromCleanL] at rd854
-  have rd867 := evm_run rd854 with [
-    dup2,
-    raw mstore 0
-      ((UInt256.toByteArray (transferFromFromWord I)).write 0
-        (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I)) 0 32)
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromFromSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd867⟩ := RD.erc20MappingHashSuffix rd854 erc20_mapping_hash_wf
+    (by rfl)
+    (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
   obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
   have rd868 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨868⟩
       [transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I,
@@ -1806,38 +1774,17 @@ theorem erc20TransferFromX_afterAllowanceStore {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd993 := rd993₀
   rw [hfromCleanL, hfromCleanL] at rd993
-  have rd1006 := evm_run rd993 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner_self (transferFromFromWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (allowanceInnerHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeAllowanceSlot (transferFromFromWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (allowanceInnerSlot (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd1006⟩ := RD.erc20MappingHashSuffix rd993 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner_self (transferFromFromWord I))
+    (balanceOfHashMem_writeAllowanceSlot (transferFromFromWord I)) (by rfl) (by evm_ov)
   have rd1052₀ := evm_run rd1006 with [
     push0, caller, push20 erc20AddrMask, and, push20 erc20AddrMask, and ]
   have rd1052 := rd1052₀
   rw [hsenderCleanL, hsenderCleanL] at rd1052
-  have rd1065 := evm_run rd1052 with [
-    dup2,
-    raw mstore 0
-      (approveOuterSpenderMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0
-      (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromAllowanceSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd1065⟩ := RD.erc20MappingHashSuffix rd1052 erc20_mapping_hash_wf
+    (by rfl)
+    (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
   have rd1067 := evm_run rd1065 with [ dup2, swap1 ]
   obtain ⟨k2, C2, rd1067s⟩ := rd1067.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1067s with [ pop ]⟩
@@ -1879,22 +1826,11 @@ theorem erc20TransferFromX_afterFromStore {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd1117 := rd1117₀
   rw [hfromCleanL, hfromCleanL] at rd1117
-  have rd1130 := evm_run rd1117 with [
-    dup2,
-    raw mstore 0
-      ((UInt256.toByteArray (transferFromFromWord I)).write 0
-        (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I)) 0 32)
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromFromSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1130₀⟩ := RD.erc20MappingHashSuffix rd1117 erc20_mapping_hash_wf
+    (by rfl)
+    (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
+  have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
   have rd1134 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
@@ -1967,22 +1903,11 @@ theorem erc20TransferFromX_balanceDebitUnderflow {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd1117 := rd1117₀
   rw [hfromCleanL, hfromCleanL] at rd1117
-  have rd1130 := evm_run rd1117 with [
-    dup2,
-    raw mstore 0
-      ((UInt256.toByteArray (transferFromFromWord I)).write 0
-        (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I)) 0 32)
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromFromSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1130₀⟩ := RD.erc20MappingHashSuffix rd1117 erc20_mapping_hash_wf
+    (by rfl)
+    (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
+  have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
   have rd1134 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
@@ -2045,20 +1970,10 @@ theorem erc20TransferFromX_afterToStore {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd1199 := rd1199₀
   rw [htoCleanL, htoCleanL] at rd1199
-  have rd1215 := evm_run rd1199 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeSlot_self (transferFromToWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromToSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1215₀⟩ := RD.erc20MappingHashSuffix rd1199 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
+    (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
+  have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
   have rd1216 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1216⟩
       [transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I,
@@ -2218,20 +2133,10 @@ theorem erc20TransferFromX_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     push20 erc20AddrMask, and ]
   have rd1199 := rd1199₀
   rw [htoCleanL, htoCleanL] at rd1199
-  have rd1215 := evm_run rd1199 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeSlot_self (transferFromToWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromToSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1215₀⟩ := RD.erc20MappingHashSuffix rd1199 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
+    (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
+  have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
   have rd1216 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1216⟩
       [transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I,
@@ -2369,37 +2274,16 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd663 := rd663₀
   rw [hfromCleanL, hfromCleanL] at rd663
-  have rd676 := evm_run rd663 with [
-    dup2,
-    raw mstore 0 (approveInnerOwnerMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (allowanceInnerHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (approveInnerOwnerMem_writeSlot (transferFromFromWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (allowanceInnerSlot (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd676⟩ := RD.erc20MappingHashSuffix rd663 erc20_mapping_hash_wf
+    (by rfl) (approveInnerOwnerMem_writeSlot (transferFromFromWord I)) (by rfl) (by evm_ov)
   have rd722₀ := evm_run rd676 with [
     push0, caller, push20 erc20AddrMask, and, push20 erc20AddrMask, and ]
   have rd722 := rd722₀
   rw [hsenderCleanL, hsenderCleanL] at rd722
-  have rd735 := evm_run rd722 with [
-    dup2,
-    raw mstore 0
-      (approveOuterSpenderMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0
-      (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromAllowanceSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd735⟩ := RD.erc20MappingHashSuffix rd722 erc20_mapping_hash_wf
+    (by rfl)
+    (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
   obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
   have rd737 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨737⟩
       [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
@@ -2513,21 +2397,10 @@ theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
     push20 erc20AddrMask, and ]
   have rd854 := rd854₀
   rw [hfromCleanL, hfromCleanL] at rd854
-  have rd867 := evm_run rd854 with [
-    dup2,
-    raw mstore 0
-      ((UInt256.toByteArray (transferFromFromWord I)).write 0
-        (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I)) 0 32)
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferFromFromSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd867⟩ := RD.erc20MappingHashSuffix rd854 erc20_mapping_hash_wf
+    (by rfl)
+    (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
+    hslot (by evm_ov)
   obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
   have rd868 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨868⟩
       [transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I,

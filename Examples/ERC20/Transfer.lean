@@ -1167,18 +1167,8 @@ theorem erc20TransferX_afterRequire {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     push20 erc20AddrMask, and ]
   have rd1415 := rd1415₀
   rw [hsenderCleanL, hsenderCleanL] at rd1415
-  have rd1428 := evm_run rd1415 with [
-    dup2,
-    raw mstore 0 (transferBalanceOwnerMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferSenderSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd1428⟩ := RD.erc20MappingHashSuffix rd1415 erc20_mapping_hash_wf
+    (by rfl) (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) hslot (by evm_ov)
   obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by decide) (by evm_ov)
   have rd1429 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1429⟩
       [transferFromBalanceWord (initState cA gh bl σ σ₀ g A I), transferValueWord I,
@@ -1212,18 +1202,8 @@ theorem erc20TransferX_insufficient {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     push20 erc20AddrMask, and ]
   have rd1415 := rd1415₀
   rw [hsenderCleanL, hsenderCleanL] at rd1415
-  have rd1428 := evm_run rd1415 with [
-    dup2,
-    raw mstore 0 (transferBalanceOwnerMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferSenderSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+  obtain ⟨_, _, rd1428⟩ := RD.erc20MappingHashSuffix rd1415 erc20_mapping_hash_wf
+    (by rfl) (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) hslot (by evm_ov)
   obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by decide) (by evm_ov)
   have rd1429 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1429⟩
       [transferFromBalanceWord (initState cA gh bl σ σ₀ g A I), transferValueWord I,
@@ -1467,19 +1447,10 @@ theorem erc20TransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     push20 erc20AddrMask, and ]
   have rd1517 := rd1517₀
   rw [hsenderCleanL, hsenderCleanL] at rd1517
-  have rd1530 := evm_run rd1517 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner_self (transferSenderWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferSenderWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeSlot_self (transferSenderWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferSenderSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1530₀⟩ := RD.erc20MappingHashSuffix rd1517 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner_self (transferSenderWord I))
+    (balanceOfHashMem_writeSlot_self (transferSenderWord I)) hslot (by evm_ov)
+  have rd1530 := evm_run rd1530₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1559₀⟩ := rd1530.sload (by decide) (by evm_ov)
   have rd1559 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1559⟩
       [transferFromBalanceWord (initState cA gh bl σ σ₀ g A I), transferValueWord I,
@@ -1541,20 +1512,10 @@ theorem erc20TransferX_afterCredit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     push20 erc20AddrMask, and ]
   have rd1624 := rd1624₀
   rw [htoCleanL, htoCleanL] at rd1624
-  have rd1640 := evm_run rd1624 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeSlot_self (transferToWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferToSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1640₀⟩ := RD.erc20MappingHashSuffix rd1624 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
+    (balanceOfHashMem_writeSlot_self (transferToWord I)) hslot (by evm_ov)
+  have rd1640 := evm_run rd1640₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by decide) (by evm_ov)
   have rd1641 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1641⟩
       [transferToBalanceWord (initState cA gh bl σ σ₀ g A I) I, transferValueWord I,
@@ -1609,20 +1570,10 @@ theorem erc20TransferX_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     push20 erc20AddrMask, and ]
   have rd1624 := rd1624₀
   rw [htoCleanL, htoCleanL] at rd1624
-  have rd1640 := evm_run rd1624 with [
-    dup2,
-    raw mstore 0 (balanceOfHashMem (transferToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, swap1, dup2,
-    raw mstore 0 (balanceOfHashMem (transferToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (balanceOfHashMem_writeSlot_self (transferToWord I)) (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push0,
-    raw keccak256 0 (transferToSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
-    push0, dup3, dup3 ]
+  obtain ⟨_, _, rd1640₀⟩ := RD.erc20MappingHashSuffix rd1624 erc20_mapping_hash_wf
+    (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
+    (balanceOfHashMem_writeSlot_self (transferToWord I)) hslot (by evm_ov)
+  have rd1640 := evm_run rd1640₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by decide) (by evm_ov)
   have rd1641 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1641⟩
       [transferToBalanceWord (initState cA gh bl σ σ₀ g A I) I, transferValueWord I,
