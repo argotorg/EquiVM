@@ -50,6 +50,13 @@ theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
   rw [Fin.coe_sub_iff_le.mpr (by rw [Fin.le_def]; exact h)]
   rfl
 
+/-- General `SUB` `toNat` (wrapping, given `a < b`). -/
+theorem usub_toNat_underflow {a b : UInt256} (h : a.toNat < b.toNat) :
+    (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat := by
+  show (a.val - b.val).val = UInt256.size + a.toNat - b.toNat
+  rw [Fin.coe_sub_iff_lt.mpr (by rw [Fin.lt_def]; exact h)]
+  rfl
+
 /-- `ADD` of two in-range naturals does not wrap. -/
 theorem uadd_ofNat_toNat {a b : ℕ}
     (ha : a < UInt256.size) (hb : b < UInt256.size) (hab : a + b < UInt256.size) :

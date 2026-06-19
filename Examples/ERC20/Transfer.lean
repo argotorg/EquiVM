@@ -1329,6 +1329,43 @@ theorem erc20RoutineCheckedSub {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   exact ⟨_, _, evm_run rd2597 with [
     jumpdest, swap3, swap2, pop, pop, jump hret ]⟩
 
+theorem erc20RoutineCheckedSub_underflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc20Bytecode ee g s0 ⟨2552⟩ (a :: b :: ret :: R) mem (UInt256.ofNat 3)
+      rdata acc k C)
+    (hlt : a.toNat < b.toNat) (hov : R.length + 9 ≤ 1024) :
+    RDrev erc20Bytecode g s0 := by
+  have rd2562₀ := evm_run h with [
+    jumpdest, push0, push2 ⟨2562⟩, dup3, push2 ⟨1894⟩, jump erc20_jd ]
+  have rd2562 := rd2562₀.erc20Routine0766 erc20_jd (by evm_ov)
+  have rd2573₀ := evm_run rd2562 with [
+    jumpdest, swap2, pop, push2 ⟨2573⟩, dup4, push2 ⟨1894⟩, jump erc20_jd ]
+  have rd2573 := rd2573₀.erc20Routine0766 erc20_jd (by evm_ov)
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have rd2583 := evm_run rd2573 with [
+    jumpdest, swap3, pop, dup3, dup3, sub, swap1, pop, dup2, dup2 ]
+  have rd2584₀ := evm_run rd2583 with [ gt ]
+  have rd2584 := rd2584₀
+  rw [hgt] at rd2584
+  have rd2585₀ := evm_run rd2584 with [ iszero ]
+  have rd2585 := rd2585₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2585
+  have rd2589 := evm_run rd2585 with [
+    push2 ⟨2597⟩, jumpiNT (by decide) ]
+  have rd2507 := evm_run rd2589 with [
+    push2 ⟨2596⟩, push2 ⟨2507⟩, jump erc20_jd ]
+  exact rd2507.erc20PanicOverflowRevert (by evm_ov)
+
 theorem erc20RoutineCheckedAdd {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}

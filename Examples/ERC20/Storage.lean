@@ -340,18 +340,6 @@ theorem erc20AccountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) 
   rw [Batteries.RBMap.find?_insert_of_eq]
   exact Std.ReflCmp.compare_self
 
-/-! ## ERC20-local storage-layout boundary -/
-
-/-- ERC20-specific storage-layout separation: entries in `balanceOf` and nested `allowance`
-    occupy distinct Solidity mapping slots.
-
-    This is the one storage-layout fact not derivable from the current `ffi.KEC` model: Keccak is
-    exposed as an opaque external function, with no injectivity or collision-resistance theorem.
-    All ordinary map update/lookup behavior is proved above; this assumption is only about the
-    cryptographic slot derivation used by Solidity mappings. -/
-axiom erc20BalanceOfSlot_ne_allowanceSlot (owner spender : KeyValue) :
-    erc20BalanceOfSlot owner ≠ erc20AllowanceSlot owner spender
-
 /-- ABI-encoding `true` for ERC20's bool-returning functions is the one-word value `1`. -/
 theorem erc20BoolTrueReturnEncoding :
     encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by

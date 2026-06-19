@@ -171,7 +171,9 @@ def transferFromTransition : TransitionDecl :=
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign (allowanceRef (.var "from") sender)
           (.binary .sub (.var "currentAllowance") (.var "value")),
-        .assign (balanceOfRef (.var "from")) (.binary .sub (.var "fromBalance") (.var "value")),
+        .assign (balanceOfRef (.var "from"))
+          (valueInUInt256
+            (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),

@@ -12,3 +12,6 @@
 - [ ] Out of gas
   + currently we treat OOG as equivalent to any spec
   + nonterminting EVM programs are currently equivalent to any spec [OK]
+
+- When writing spec, the reads/writes of mappings (and likely arrays too) should happen in the 
+  order they appear in the bytecode. Otherwise, we may need ta add keccak axioms.
