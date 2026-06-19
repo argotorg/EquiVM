@@ -564,8 +564,8 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
         -- substate, so — exactly as `callGas` is already existential — the *entire* input
         -- substate `A_in` is existentially quantified: the call "behaves as `Θ` would for some
         -- gas and substate".  (The result substate `A'` is discarded; `execResultsEquiv` ignores
-        -- it.)
-          (cA', σ', _, A', z, o)
+        -- it.)  `g'` is the (discarded) returned gas; named so it is a plain implicit.
+          (cA', σ', g', A', z, o)
             = Ethereum.EVM.Θ
             evm.executionEnv.blobVersionedHashes
             evm.createdAccounts
