@@ -240,4 +240,70 @@ macro "evm_arith" : tactic =>
     | norm_num [UInt256.size]
     | (simp only [UInt256.size] <;> omega))
 
+/-! ## Word equality (`UInt256.eq`) and low-bit masking -/
+
+/-- The EVM `EQ` of a word with itself is `1`. -/
+theorem uInt256_eq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
+  have h : UInt256.eq a a = UInt256.ofNat 1 := by simp [UInt256.eq, UInt256.fromBool]
+  rw [h]; rfl
+
+/-- The EVM `EQ` of two words that do not compare equal to `1` is `0`. -/
+theorem uInt256_eq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) :
+    UInt256.eq a b = ⟨0⟩ := by
+  by_cases hab : a = b
+  · subst hab; exact absurd (uInt256_eq_self a) h
+  · show UInt256.fromBool (decide (a = b)) = ⟨0⟩
+    rw [decide_eq_false hab]; rfl
+
+/-- `AND` with the low-160-bit mask is the identity on values below `2^160`. -/
+theorem land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n := by
+  apply Nat.eq_of_testBit_eq; intro i
+  show (n &&& (2 ^ 160 - 1)).testBit i = n.testBit i
+  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one]
+  by_cases hi : i < 160
+  · rw [decide_eq_true hi, Bool.and_true]
+  · rw [decide_eq_false hi, Bool.and_false]
+    have : n < 2 ^ i := lt_of_lt_of_le h (Nat.pow_le_pow_right (by norm_num) (by omega))
+    exact (Nat.testBit_lt_two_pow this).symm
+
+/-! ## `UInt256` order — `compare` reduces to the wrapped `Fin`, and the resulting `Std.*Cmp`
+instances (used to drive `Batteries.RBMap` storage-map lemmas). -/
+
+/-- The derived `UInt256` order compares the wrapped `Fin` values. -/
+@[simp] theorem uInt256_compare_eq_val_compare (a b : UInt256) :
+    compare a b = compare a.val b.val := by
+  cases a
+  cases b
+  simp [compare, Ethereum.instOrdUInt256.ord]
+
+instance : Std.OrientedCmp (compare : UInt256 → UInt256 → Ordering) where
+  eq_swap := by
+    intro a b
+    rw [uInt256_compare_eq_val_compare a b, uInt256_compare_eq_val_compare b a]
+    exact Std.OrientedCmp.eq_swap
+
+instance : Std.TransCmp (compare : UInt256 → UInt256 → Ordering) where
+  isLE_trans := by
+    intro a b c hab hbc
+    rw [uInt256_compare_eq_val_compare a b] at hab
+    rw [uInt256_compare_eq_val_compare b c] at hbc
+    rw [uInt256_compare_eq_val_compare a c]
+    exact Std.TransCmp.isLE_trans hab hbc
+
+instance : Std.ReflCmp (compare : UInt256 → UInt256 → Ordering) where
+  compare_self := by
+    intro a
+    rw [uInt256_compare_eq_val_compare a a]
+    exact Std.ReflCmp.compare_self
+
+instance : Std.LawfulEqCmp (compare : UInt256 → UInt256 → Ordering) where
+  eq_of_compare := by
+    intro a b h
+    rw [uInt256_compare_eq_val_compare a b] at h
+    have hv : a.val = b.val := Std.LawfulEqCmp.eq_of_compare h
+    cases a
+    cases b
+    cases hv
+    rfl
+
 end Reasoning.Theory

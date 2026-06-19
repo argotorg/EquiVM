@@ -193,26 +193,8 @@ theorem allowanceInnerKeccakSlot_word (owner : UInt256)
   rw [erc20KeyValueToWord_address_of_canonical _ hcanonOwner]
   exact mappingSlot_single owner ⟨1⟩
 
-theorem erc20AddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land w erc20AddrMask = w := by
-  apply u256_inj
-  show Nat.land w.toNat erc20AddrMask.toNat % EVM.twoPow 256 = w.toNat
-  rw [show erc20AddrMask.toNat = 2 ^ 160 - 1 from by decide,
-    erc20Land_mask160 _ (by
-      rw [show EVM.addressModulus = 2 ^ 160 from by decide] at hcanon
-      exact hcanon)]
-  exact Nat.mod_eq_of_lt (by
-    change w.val.val < EVM.twoPow 256
-    exact w.val.isLt)
-
-theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land erc20AddrMask w = w := by
-  apply u256_inj
-  show Nat.land erc20AddrMask.toNat w.toNat % EVM.twoPow 256 = w.toNat
-  rw [show Nat.land erc20AddrMask.toNat w.toNat = Nat.land w.toNat erc20AddrMask.toNat
-    from Nat.and_comm _ _]
-  show Nat.land w.toNat erc20AddrMask.toNat % EVM.twoPow 256 = w.toNat
-  exact congrArg UInt256.toNat (erc20AddrMask_clean hcanon)
+-- `erc20AddrMask_clean` / `erc20AddrMask_clean_left` moved to `Reasoning.Solc`
+-- (`solcAddrMask_clean` / `_left`); the `erc20*` wrappers now live in `Examples.ERC20.Common`.
 
 /-- Approve stores the owner key at scratch offset `0x00` before it stores the allowance base slot. -/
 noncomputable def approveInnerOwnerMem (owner : UInt256) : ByteArray :=

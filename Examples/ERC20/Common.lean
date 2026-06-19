@@ -43,32 +43,11 @@ theorem erc20StorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
   rw [htake, fromBytesLE_roundtrip]
   rfl
 
-/-- ABI-encoding a Solm `uint256` return value produces exactly the EVM's returned word bytes. -/
+/-- ABI-encoding a Solm `uint256` return value produces exactly the EVM's returned word bytes.
+    Re-export of `Reasoning.Theory.uint256ReturnEncoding` (`uint256 ≡ .elem (.int (.uint 256))`). -/
 theorem erc20Uint256ReturnEncoding (v : UInt256) :
     encodeReturnValue? uint256 (.int (Int.ofNat v.toNat)) =
-      some (UInt256.toByteArray v) := by
-  have hlt : Int.ofNat v.toNat < Int.ofNat (EVM.twoPow 256) := by
-    simp only [Int.ofNat_eq_natCast, Nat.cast_lt, EVM.twoPow]
-    exact v.val.isLt
-  have hword : EVM.word v.toNat = v := by
-    show UInt256.ofNat v.toNat = v
-    exact u256_ofNat_toNat v
-  have hval : encodeABIValue? uint256 (.int (Int.ofNat v.toNat))
-                = some (EVM.Word.toBytesBE v) := by
-    have hltNat : v.toNat < EVM.twoPow 256 := by
-      change v.val.val < EVM.twoPow 256
-      exact v.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hltNat]
-  have hdyn : isDynamicABIType uint256 = false := rfl
-  have hhead : abiTupleHeadSize? [uint256] = some 32 := by
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, uint256, bind,
-      Option.bind]
-    decide
-  rw [toByteArray_eq_toBytesBE,
-    show encodeReturnValue? uint256 (.int (Int.ofNat v.toNat))
-        = encodeReturnValues? [uint256] [.int (Int.ofNat v.toNat)] from rfl]
-  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
-    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
+      some (UInt256.toByteArray v) := uint256ReturnEncoding v
 
 /-- The shared solc return wrapper computes the fixed one-word return length. -/
 theorem erc20SubRet32_toNat :
@@ -78,69 +57,36 @@ theorem erc20SubRet32_toNat :
 /-- ERC20 jump-destination proof macro. -/
 macro "erc20_jd" : term => `(by jump_dest)
 
-/-! ## Address canonicality helpers -/
+/-! ## Address canonicality helpers
 
-/-- Address-mask literal (`PUSH20 0xff…ff`) used by solc address cleanup. -/
-def erc20AddrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975⟩
+These moved to the library — `solcAddrMask` / `solcAddrCanon_eq` / `solcAddrCanonical_of_clean` in
+`Reasoning.Solc`, and `uInt256_eq_self` / `uInt256_eq_zero_of_ne` / `land_mask160` in
+`Reasoning.EVMWord`.  The `erc20*` names are kept as thin re-exports so ERC20's call sites are
+unchanged. -/
 
-theorem erc20Ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := by
-  have h : UInt256.eq a a = UInt256.ofNat 1 := by simp [UInt256.eq, UInt256.fromBool]
-  rw [h]; rfl
+/-- Address-mask literal (`PUSH20 0xff…ff`) used by solc address cleanup.  See `solcAddrMask`. -/
+def erc20AddrMask : UInt256 := solcAddrMask
+
+theorem erc20Ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := uInt256_eq_self a
 
 theorem erc20Ueq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) :
-    UInt256.eq a b = ⟨0⟩ := by
-  by_cases hab : a = b
-  · subst hab; exact absurd (erc20Ueq_self a) h
-  · show UInt256.fromBool (decide (a = b)) = ⟨0⟩
-    rw [decide_eq_false hab]; rfl
+    UInt256.eq a b = ⟨0⟩ := uInt256_eq_zero_of_ne h
 
-theorem erc20Land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n := by
-  apply Nat.eq_of_testBit_eq; intro i
-  show (n &&& (2 ^ 160 - 1)).testBit i = n.testBit i
-  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one]
-  by_cases hi : i < 160
-  · rw [decide_eq_true hi, Bool.and_true]
-  · rw [decide_eq_false hi, Bool.and_false]
-    have : n < 2 ^ i := lt_of_lt_of_le h (Nat.pow_le_pow_right (by norm_num) (by omega))
-    exact (Nat.testBit_lt_two_pow this).symm
+theorem erc20Land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n :=
+  land_mask160 n h
 
 theorem erc20Canon_eq {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩ := by
-  have hland : UInt256.land w erc20AddrMask = w := by
-    apply u256_inj
-    show Nat.land w.toNat erc20AddrMask.toNat % EVM.twoPow 256 = w.toNat
-    rw [show erc20AddrMask.toNat = 2 ^ 160 - 1 from by decide,
-      erc20Land_mask160 _ (by
-        rw [show EVM.addressModulus = 2 ^ 160 from by decide] at hcanon
-        exact hcanon)]
-    exact Nat.mod_eq_of_lt (by
-      change w.val.val < EVM.twoPow 256
-      exact w.val.isLt)
-  rw [hland]; exact erc20Ueq_self w
+    UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩ := solcAddrCanon_eq hcanon
 
 theorem erc20Word_canonical_of_clean {w : UInt256}
     (hclean : UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩) :
-    w.toNat < EVM.addressModulus := by
-  have heq : w = UInt256.land w erc20AddrMask := by
-    by_contra hne
-    simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
-      Bool.false_eq_true, ↓reduceIte] at hclean
-    exact absurd hclean (by decide)
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
-  have hland : w.toNat = Nat.land w.toNat erc20AddrMask.toNat % EVM.twoPow 256 := by
-    conv_lhs => rw [heq]
-    rfl
-  have hmod : Nat.land w.toNat erc20AddrMask.toNat % EVM.twoPow 256 =
-      Nat.land w.toNat erc20AddrMask.toNat :=
-    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
-  have hmask : erc20AddrMask.toNat < EVM.addressModulus := by decide
-  rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
+    w.toNat < EVM.addressModulus := solcAddrCanonical_of_clean hclean
+
+theorem erc20AddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
+    UInt256.land w erc20AddrMask = w := solcAddrMask_clean hcanon
+
+theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
+    UInt256.land erc20AddrMask w = w := solcAddrMask_clean_left hcanon
 
 theorem erc20KeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
@@ -150,285 +96,6 @@ theorem erc20KeyValueToWord_address_of_canonical (w : UInt256)
   exact Nat.mod_eq_of_lt (by
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
 
-/-! ## Single-address calldata decoding -/
-
-theorem decodeScalarWords_address_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hcanon : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address] bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat)]
-  simp only [decodeScalarWords?]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon)]
-  rfl
-
-theorem decodeScalarWords_address_none_noncanon {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address] bytes 0 = none
-  simp only [decodeScalarWords?]
-  rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
-    (by simpa using hnc)]
-  simp only [Option.bind, bind]
-
-theorem decodeScalarWords_address_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 32) :
-    decodeScalarWords? [addr] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address] bytes 0 = none
-  simp only [decodeScalarWords?]
-  have htake0n : ¬ (bytes.take 32).length = 32 := by
-    rw [List.length_take]
-    omega
-  rw [decodeScalarWord_address_none_short (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
-
-theorem decodeCalldata_address_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon : (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x] [addr] cd =
-      some ((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [addr]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_ok (bytes := cd.toList.drop 4) htake4
-    (by rw [hword4]; exact hcanon)]
-  change decodeCalldata.insertValues [x]
-      [.address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat)))
-  simp [decodeCalldata.insertValues]
-  rw [hword4]
-
-theorem decodeCalldata_address_none_noncanon {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x] [addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [addr]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_none_noncanon (bytes := cd.toList.drop 4) htake4
-    (by rw [hword4]; exact hnc)]
-
-theorem decodeCalldata_address_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldata [x] [addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [addr]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_none_short (bytes := cd.toList.drop 4) (by
-    rw [List.length_drop, htlen]
-    omega)]
-
-theorem decodeCalldata_address_none_huge {cd : ByteArray} {x : Solm.Ident}
-    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x] [addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [addr]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
-
-/-! ## Two-address calldata decoding -/
-
-theorem decodeScalarWords_address_address_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hcanon32 : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-      .address (Ethereum.AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)]
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon0)]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_address_ok (start := 32) hlen32 hcanon32]
-  rfl
-
-theorem decodeScalarWords_address_address_none_noncanon0 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
-    (by simpa using hnc0)]
-  simp only [Option.bind, bind]
-
-theorem decodeScalarWords_address_address_none_noncanon1 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon0)]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_address_none_noncanon (start := 32) hlen32 hnc32]
-
-theorem decodeScalarWords_address_address_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeScalarWords? [addr, addr] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]; omega
-    rw [decodeScalarWord_address_none_short (start := 0) (by simpa using htake0n)]
-    simp only [Option.bind, bind]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]; omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]; omega
-    by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
-    · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-        (by simpa using hcanon0)]
-      simp only [Option.bind, bind]
-      rw [decodeScalarWord_address_none_short (start := 32) htake32n]
-    · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
-        (by simpa using hcanon0)]
-      simp only [Option.bind, bind]
-
-theorem decodeCalldata_address_address_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hcanon1 : (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y] [addr, addr] cd =
-      some (((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [addr, addr]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_ok (bytes := cd.toList.drop 4) htake4 htake36'
-    (by rw [hword4]; exact hcanon0)
-    (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-        calldataWord cd 36 from by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm,
-          Nat.add_assoc] using hword36]; exact hcanon1)]
-  change decodeCalldata.insertValues [x, y]
-      [.address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat)] ∅ =
-    some (((∅ : Solm.Store).insert x
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat)))
-  simp [decodeCalldata.insertValues]
-  rw [hword4]
-  rw [hword36]
-
-theorem decodeCalldata_address_address_none_noncanon0 {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y] [addr, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [addr, addr]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_none_noncanon0 (bytes := cd.toList.drop 4) htake4
-    (by rw [hword4]; exact hnc0)]
-
-theorem decodeCalldata_address_address_none_noncanon1 {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hnc1 : ¬ (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y] [addr, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [addr, addr]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_none_noncanon1 (bytes := cd.toList.drop 4) htake4 htake36'
-    (by rw [hword4]; exact hcanon0)
-    (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-        calldataWord cd 36 from by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm,
-          Nat.add_assoc] using hword36]; exact hnc1)]
-
-theorem decodeCalldata_address_address_none_short {cd : ByteArray} {x y : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldata [x, y] [addr, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [addr, addr]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_none_short (bytes := cd.toList.drop 4) (by
-    rw [List.length_drop, htlen]; omega)]
-
-theorem decodeCalldata_address_address_none_huge {cd : ByteArray} {x y : Solm.Ident}
-    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y] [addr, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [addr, addr]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 end ERC20
 

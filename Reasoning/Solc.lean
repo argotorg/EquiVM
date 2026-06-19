@@ -448,6 +448,77 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArr
       |>.dup1 hd6 (by simp only [List.length_nil]; omega)
       |>.iszero hd7 (by simp only [List.length_cons, List.length_nil]; omega)
 
+/-! ## solc address cleanup (the 160-bit mask)
+
+Every solc-compiled function masks `address` values with `0xff…ff` (20 bytes, `PUSH20`) to clean the
+high 96 bits.  These facts couple that mask to address canonicality (`< 2^160`). -/
+
+/-- The address-cleanup mask literal `0xff…ff` (`PUSH20`), shared by every solc contract. -/
+def solcAddrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975⟩
+
+/-- A canonical address word (`< 2^160`) is unchanged by the solc address mask, so `EQ` returns `1`. -/
+theorem solcAddrCanon_eq {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
+    UInt256.eq w (UInt256.land w solcAddrMask) = ⟨1⟩ := by
+  have hland : UInt256.land w solcAddrMask = w := by
+    apply u256_inj
+    show Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 = w.toNat
+    rw [show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide,
+      land_mask160 _ (by
+        rw [show EVM.addressModulus = 2 ^ 160 from by decide] at hcanon
+        exact hcanon)]
+    exact Nat.mod_eq_of_lt (by
+      change w.val.val < EVM.twoPow 256
+      exact w.val.isLt)
+  rw [hland]; exact uInt256_eq_self w
+
+/-- Conversely, a word the mask leaves unchanged (solc's `EQ = 1`) is a canonical address. -/
+theorem solcAddrCanonical_of_clean {w : UInt256}
+    (hclean : UInt256.eq w (UInt256.land w solcAddrMask) = ⟨1⟩) :
+    w.toNat < EVM.addressModulus := by
+  have heq : w = UInt256.land w solcAddrMask := by
+    by_contra hne
+    simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
+      Bool.false_eq_true, ↓reduceIte] at hclean
+    exact absurd hclean (by decide)
+  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
+    intro a b
+    refine Nat.le_of_testBit fun i hi => ?_
+    change (a &&& b).testBit i = true at hi
+    rw [Nat.testBit_and] at hi
+    simp only [Bool.and_eq_true] at hi
+    exact hi.2
+  have hland : w.toNat = Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 := by
+    conv_lhs => rw [heq]
+    rfl
+  have hmod : Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 =
+      Nat.land w.toNat solcAddrMask.toNat :=
+    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
+  have hmask : solcAddrMask.toNat < EVM.addressModulus := by decide
+  rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
+
+/-- A canonical address word is left unchanged by the solc address mask (mask on the right). -/
+theorem solcAddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
+    UInt256.land w solcAddrMask = w := by
+  apply u256_inj
+  show Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 = w.toNat
+  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide,
+    land_mask160 _ (by
+      rw [show EVM.addressModulus = 2 ^ 160 from by decide] at hcanon
+      exact hcanon)]
+  exact Nat.mod_eq_of_lt (by
+    change w.val.val < EVM.twoPow 256
+    exact w.val.isLt)
+
+/-- Same, with the mask on the left (`AND` is commutative). -/
+theorem solcAddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
+    UInt256.land solcAddrMask w = w := by
+  apply u256_inj
+  show Nat.land solcAddrMask.toNat w.toNat % EVM.twoPow 256 = w.toNat
+  rw [show Nat.land solcAddrMask.toNat w.toNat = Nat.land w.toNat solcAddrMask.toNat
+    from Nat.and_comm _ _]
+  show Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 = w.toNat
+  exact congrArg UInt256.toNat (solcAddrMask_clean hcanon)
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
