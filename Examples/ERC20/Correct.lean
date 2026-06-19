@@ -3,6 +3,9 @@ import Examples.ERC20.Spec
 import Examples.ERC20.TotalSupply
 import Examples.ERC20.BalanceOf
 import Examples.ERC20.Allowance
+import Examples.ERC20.Approve
+import Examples.ERC20.Transfer
+import Examples.ERC20.TransferFrom
 import Reasoning.ABIDecode
 import Reasoning.Theory
 import Reasoning.Stepping
@@ -20,7 +23,7 @@ import Mathlib.Tactic.IntervalCases
 guards → selector load → `RD.dispatchTo` over the six arms, reaching the matched function's body
 entry, then hands off to that function's correctness obligation.  `erc20ReachBody` is the *proven*
 machinery driver (one `RD.dispatchTo`); the per-function body proofs and the selector-identification
-/ revert facts are named, sorried stubs.  No axiom.
+/ revert facts are named obligations discharged in ERC20-local helper files.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
@@ -236,9 +239,9 @@ theorem erc20X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run h96rd with [
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-/-! ## Per-function body obligations — sorried stubs (take the dispatcher-reached cursor) -/
+/-! ## Per-function body obligations (take the dispatcher-reached cursor) -/
 
-/-- STUB: from `approve`'s body entry (pc 100), the body refines its Solm transition. -/
+/-- From `approve`'s body entry (pc 100), the body refines its Solm transition. -/
 theorem erc20ApproveBody {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
@@ -246,11 +249,12 @@ theorem erc20ApproveBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20ApproveBodyCore hcode hsize hperm hwv hsel hreach
 
-/-- STUB: `totalSupply` body (pc 148) refines its transition. -/
+/-- `totalSupply` body (pc 148) refines its transition. -/
 theorem erc20TotalSupplyBody {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
+    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [erc20SelWord I]
@@ -258,7 +262,7 @@ theorem erc20TotalSupplyBody {cA gh bl σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
   exact erc20TotalSupplyBodyCore hcode hwv hsel hreach
 
-/-- STUB: `transferFrom` body (pc 178) refines its transition. -/
+/-- `transferFrom` body (pc 178) refines its transition. -/
 theorem erc20TransferFromBody {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
@@ -266,11 +270,12 @@ theorem erc20TransferFromBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20TransferFromBodyCore hcode hsize hperm hwv hsel hreach
 
-/-- STUB: `balanceOf` body (pc 226) refines its transition. -/
+/-- `balanceOf` body (pc 226) refines its transition. -/
 theorem erc20BalanceOfBody {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
+    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [erc20SelWord I]
@@ -278,7 +283,7 @@ theorem erc20BalanceOfBody {cA gh bl σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hsize hwv hsel hreach
 
-/-- STUB: `transfer` body (pc 274) refines its transition. -/
+/-- `transfer` body (pc 274) refines its transition. -/
 theorem erc20TransferBody {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
@@ -286,11 +291,12 @@ theorem erc20TransferBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact erc20TransferBodyCore hcode hsize hperm hwv hsel hreach
 
-/-- STUB: `allowance` body (pc 322) refines its transition. -/
+/-- `allowance` body (pc 322) refines its transition. -/
 theorem erc20AllowanceBody {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
+    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [erc20SelWord I]
@@ -298,13 +304,14 @@ theorem erc20AllowanceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hsize hwv hsel hreach
 
-/-! ## Revert obligations — sorried stubs -/
+/-! ## Revert obligations -/
 
-/-- STUB: every selector misses (so `dispatchMsg = none`) ⇒ the EVM falls through to the no-match
+/-- Every selector misses (so `dispatchMsg = none`) ⇒ the EVM falls through to the no-match
     target and reverts.  `hnm` is the explicit no-match evidence: for each of the six arms, the
     bytecode selector does not equal `calldata[0:4]`. -/
 theorem erc20NoDispatch {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
+    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
@@ -315,17 +322,18 @@ theorem erc20NoDispatch {cA gh bl σ σ₀ A I} {g : UInt256}
     exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hshort).reEquivNoDispatch hcode
       (erc20Dispatch_none_short hshort)
 
-/-- STUB: calldata shorter than a selector (`size < 4`) ⇒ the size guard reverts before dispatch.
+/-- Calldata shorter than a selector (`size < 4`) ⇒ the size guard reverts before dispatch.
     The other no-dispatch path; here no selector can match because `calldata[0:4]` has fewer than
     four bytes. -/
 theorem erc20ShortRevert {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
+    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
   exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc20Dispatch_none_short hsz)
 
-/-- STUB: `callvalue ≠ 0` ⇒ both sides revert (non-payable). -/
+/-- `callvalue ≠ 0` ⇒ both sides revert (non-payable). -/
 theorem erc20NonPayable {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
