@@ -24,5 +24,5 @@ def truthContract : ContractDecl :=
 
 /-- Configuration: empty storage layout and the default external-call ABI. -/
 def truthConfig : Config :=
-  { storage := { layout := fun _ => none }
+  { storage := { layout := fun _ _ => none }
     externalABI := defaultExternalCallABI }

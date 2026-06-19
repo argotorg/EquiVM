@@ -44,7 +44,7 @@ def erc20StorageLayout : StorageLayout where
   layout :=
     match genSolidityLayout [] erc20StorageDecls with
     | some layout => layout
-    | none => fun _ => none
+    | none => fun _ _ => none
 
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "initialSupply", ty := uint256 }]
