@@ -66,16 +66,37 @@ structure CoupledState (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 :
   hworld : cur.world = worldOf evm
   hrel : R cur frame evm
 
-/-- Rebuild a coupled state after one symbolic step or segment has produced a new cursor, Solm
-    frame/state, and relation. -/
+/-- Package a reached cursor and coupled Solm state as a concrete proof state. -/
+def CoupledState.reached {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {R : StateRel} {pc : UInt256}
+    (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = pc) (hRD : RDc code ee g s0 cur k C)
+    (hworld : cur.world = worldOf evm) (hrel : R cur frame evm) :
+    CoupledState code ee g s0 R pc :=
+  { cur := cur, k := k, C := C, frame := frame, evm := evm,
+    hpc := hpc, hRD := hRD, hworld := hworld, hrel := hrel }
+
+/-- Compatibility wrapper for older proof scripts; prefer `CoupledState.reached` at the new state. -/
 def CoupledState.next {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {R R' : StateRel} {pc pc' : UInt256} (_st : CoupledState code ee g s0 R pc)
     (cur' : Cursor) (k' C' : ℕ) (frame' : Frame) (evm' : State)
     (hpc' : cur'.pc = pc') (hRD' : RDc code ee g s0 cur' k' C')
     (hworld' : cur'.world = worldOf evm') (hrel' : R' cur' frame' evm') :
     CoupledState code ee g s0 R' pc' :=
-  { cur := cur', k := k', C := C', frame := frame', evm := evm',
-    hpc := hpc', hRD := hRD', hworld := hworld', hrel := hrel' }
+  CoupledState.reached cur' k' C' frame' evm' hpc' hRD' hworld' hrel'
+
+/-- Convert the cursor-indexed reachability proof stored in a coupled state into the positional
+    `RD` form expected by `evm_run`, after exposing the cursor fields used by the local relation. -/
+theorem CoupledState.toRD {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {R : StateRel} {pc : UInt256} (st : CoupledState code ee g s0 R pc)
+    {stack : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    (hstack : st.cur.stack = stack) (hmem : st.cur.mem = mem)
+    (haw : st.cur.aw = aw) (hrdata : st.cur.rdata = rdata) :
+    RD code ee g s0 pc stack mem aw rdata st.cur.world st.k st.C := by
+  have hRD := st.hRD
+  unfold RDc at hRD
+  rw [st.hpc, hstack, hmem, haw, hrdata] at hRD
+  exact hRD
 
 /-- Concrete statement-list equivalence from one coupled proof state. -/
 def CoupledState.refines {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -168,6 +189,32 @@ theorem CoupledState.refines.consNormal {code : ByteArray} {ee : ExecutionEnv} {
   obtain ⟨frame', evm', cur', k', C', hpc', hstmt, hRD', hw', hR'⟩ := hhead
   obtain ⟨result, hblock, hpost⟩ := hrest cur' k' C' frame' evm' hpc' hRD' hw' hR'
   exact ⟨result, ExecBlock.consNormal hstmt hblock, hpost⟩
+
+/-- Concrete **consNormal** rule when the advanced coupled state has already been packaged. -/
+theorem CoupledState.refines.consNormalAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc pc' : UInt256} {R R' : StateRel}
+    {Post : StmtPost} {s : Stmt} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (st' : CoupledState code ee g s0 R' pc')
+    (hstmt : ExecStmt cfg st.frame st.evm s (.ok st'.frame st'.evm))
+    (hrest : CoupledState.refines st' cfg rest Post) :
+    CoupledState.refines st cfg (s :: rest) Post := by
+  obtain ⟨result, hblock, hpost⟩ := hrest
+  exact ⟨result, ExecBlock.consNormal hstmt hblock, hpost⟩
+
+/-- Concrete **consReturn** rule.  The caller-supplied postcondition decides what a Solm `return`
+    means for this proof context. -/
+theorem CoupledState.refines.consReturn {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {s : Stmt} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hhead :
+      ∃ frame' evm' rv,
+        ExecStmt cfg st.frame st.evm s (.returned frame' evm' rv) ∧
+        Post (.returned frame' evm' rv)) :
+    CoupledState.refines st cfg (s :: rest) Post := by
+  obtain ⟨frame', evm', rv, hstmt, hpost⟩ := hhead
+  exact ⟨.returned frame' evm' rv, ExecBlock.consReturn hstmt, hpost⟩
 
 /-- Postcondition for one loop-body iteration.  Normal fall-through and `continue` return to the
     loop head with the decreased invariant; `break` exits the loop; `return`/`revert` are terminal
@@ -297,6 +344,75 @@ theorem CoupledState.refines.whileLoop {code : ByteArray} {ee : ExecutionEnv} {g
             execBlock_prependWhileContinue hcond hbodyBlock hrecBlock,
             hpost⟩
 
+/-- Concrete **while-loop** rule with a natural variant and variant-indexed body-entry relation.
+
+    This is the scoped-body version of `CoupledState.refines.whileLoop`: when the guard is true at
+    variant `v + 1`, the body-entry relation is `Rbody v`, so the body proof retains the exact
+    target variant it must re-establish. -/
+theorem CoupledState.refines.whileLoopIndexedBody {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {cfg : Config} {loopPc bodyPc exitPc : UInt256}
+    {Rexit : StateRel} {Rloop Rbody : ℕ → StateRel} {Post : StmtPost}
+    {cond : Expr} {body rest : List Stmt}
+    (hfalse : ∀ st : CoupledState code ee g s0 (Rloop 0) loopPc,
+      ∃ curExit kExit CExit,
+        evalExpr? cfg st.frame st.evm cond = .ok (.bool false) ∧
+        curExit.pc = exitPc ∧
+        RDc code ee g s0 curExit kExit CExit ∧
+        curExit.world = worldOf st.evm ∧
+        Rexit curExit st.frame st.evm)
+    (htrue : ∀ v (st : CoupledState code ee g s0 (Rloop (v + 1)) loopPc),
+      ∃ curBody kBody CBody,
+        evalExpr? cfg st.frame st.evm cond = .ok (.bool true) ∧
+        curBody.pc = bodyPc ∧
+        RDc code ee g s0 curBody kBody CBody ∧
+        curBody.world = worldOf st.evm ∧
+        Rbody v curBody st.frame st.evm)
+    (hbody : ∀ v (stBody : CoupledState code ee g s0 (Rbody v) bodyPc),
+      CoupledState.refines stBody cfg body
+        (loopBodyPost code ee g s0 loopPc exitPc Rloop Rexit v Post))
+    (hrest : ∀ stExit : CoupledState code ee g s0 Rexit exitPc,
+      CoupledState.refines stExit cfg rest Post) :
+    ∀ v (st : CoupledState code ee g s0 (Rloop v) loopPc),
+      CoupledState.refines st cfg (.while cond body :: rest) Post := by
+  intro v
+  induction v with
+  | zero =>
+      intro st
+      obtain ⟨curExit, kExit, CExit, hcond, hpcExit, hRDExit, hwExit, hRExit⟩ := hfalse st
+      obtain ⟨result, hrestBlock, hpost⟩ :=
+        hrest (CoupledState.mk curExit kExit CExit st.frame st.evm hpcExit hRDExit hwExit hRExit)
+      exact ⟨result, ExecBlock.consNormal (ExecStmt.whileFalse hcond) hrestBlock, hpost⟩
+  | succ v ih =>
+      intro st
+      obtain ⟨curBody, kBody, CBody, hcond, hpcBody, hRDBody, hwBody, hRBody⟩ := htrue v st
+      obtain ⟨bodyResult, hbodyBlock, hbodyPost⟩ :=
+        hbody v (CoupledState.mk curBody kBody CBody st.frame st.evm hpcBody hRDBody hwBody hRBody)
+      cases bodyResult with
+      | ok frame' evm' =>
+          obtain ⟨curLoop, kLoop, CLoop, hpcLoop, hRDLoop, hwLoop, hRLoop⟩ := hbodyPost
+          obtain ⟨result, hrecBlock, hpost⟩ :=
+            ih (CoupledState.mk curLoop kLoop CLoop frame' evm' hpcLoop hRDLoop hwLoop hRLoop)
+          exact ⟨result,
+            execBlock_prependWhileTrue hcond hbodyBlock hrecBlock,
+            hpost⟩
+      | returned frame' evm' rv =>
+          exact ⟨.returned frame' evm' rv, ExecBlock.consReturn (ExecStmt.whileReturn hcond hbodyBlock),
+            hbodyPost⟩
+      | reverted =>
+          exact ⟨.reverted, ExecBlock.consRevert (ExecStmt.whileRevert hcond hbodyBlock), hbodyPost⟩
+      | «break» frame' evm' =>
+          obtain ⟨curExit, kExit, CExit, hpcExit, hRDExit, hwExit, hRExit⟩ := hbodyPost
+          obtain ⟨result, hrestBlock, hpost⟩ :=
+            hrest (CoupledState.mk curExit kExit CExit frame' evm' hpcExit hRDExit hwExit hRExit)
+          exact ⟨result, ExecBlock.consNormal (ExecStmt.whileBreak hcond hbodyBlock) hrestBlock, hpost⟩
+      | «continue» frame' evm' =>
+          obtain ⟨curLoop, kLoop, CLoop, hpcLoop, hRDLoop, hwLoop, hRLoop⟩ := hbodyPost
+          obtain ⟨result, hrecBlock, hpost⟩ :=
+            ih (CoupledState.mk curLoop kLoop CLoop frame' evm' hpcLoop hRDLoop hwLoop hRLoop)
+          exact ⟨result,
+            execBlock_prependWhileContinue hcond hbodyBlock hrecBlock,
+            hpost⟩
+
 /-- Postcondition used by externally-dispatched transition bodies.  Here a Solm `return` really is
     an EVM `RETURN`; fall-through is left as a cursor for the ABI-encoding epilogue. -/
 def transitionPost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
@@ -310,6 +426,20 @@ def transitionPost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : Sta
       RDrev code g s0
   | .break _ _ | .continue _ _ =>
       False
+
+/-- Close an external-transition proof when the next statement is a Solm `return` and the bytecode
+    side has reached an EVM `RETURN` with ABI-equivalent bytes. -/
+theorem CoupledState.refines.returnTransition {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {cfg : Config} {pc : UInt256} {R Q : StateRel}
+    {returnType : Option ABIType} {expr : Expr} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    {frame' : Frame} {evm' : State} {rv : Option Value} {o : ByteArray}
+    (hstmt : ExecStmt cfg st.frame st.evm (.return expr) (.returned frame' evm' rv))
+    (hret : RDret code g s0 (worldOf evm') o)
+    (hequiv : returnEquiv o rv returnType) :
+    CoupledState.refines st cfg (.return expr :: rest) (transitionPost code ee g s0 returnType Q) := by
+  refine CoupledState.refines.consReturn st ?_
+  exact ⟨frame', evm', rv, hstmt, o, hret, hequiv⟩
 
 /-- Compatibility name for the external-transition interpretation of `equivStmts`. -/
 def equivTransitionStmts (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
@@ -451,6 +581,49 @@ theorem CoupledState.refines.externalCall {code : ByteArray} {ee : ExecutionEnv}
       hpc' hRD' hw' hR'
   exact ⟨result,
     ExecBlock.consNormal (ExecStmt.externalCallSuccess hrec heth hargs hcallEVM hdec) hblock,
+    hpost⟩
+
+/-- Concrete external-call rule for the `z = false` branch.  The statement reverts immediately, so
+    the tail is unreachable and the caller-supplied postcondition must already accept `.reverted`. -/
+theorem CoupledState.refines.externalCallFailure {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {receiver eth : Expr} {name : Ident} {args : List Expr}
+    {retVar : Ident} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hcall :
+      ∃ (target : EVM.Address) (sendVal : ℤ) (argVals : List Value) (evm' : State)
+        (out : ByteArray),
+        evalExpr? cfg st.frame st.evm receiver = .ok (.address target) ∧
+        evalExpr? cfg st.frame st.evm eth = .ok (.int sendVal) ∧
+        evalExprs? cfg st.frame st.evm args = .ok argVals ∧
+        typedCallViaEVM cfg st.evm (EVM.address target) name sendVal argVals (false, evm', out))
+    (hpost : Post .reverted) :
+    CoupledState.refines st cfg (.externalCall receiver name eth args retVar :: rest) Post := by
+  obtain ⟨target, sendVal, argVals, evm', out, hrec, heth, hargs, hcallEVM⟩ := hcall
+  exact ⟨.reverted,
+    ExecBlock.consRevert (ExecStmt.externalCallFailure hrec heth hargs hcallEVM),
+    hpost⟩
+
+/-- Concrete external-call rule for the successful-call / ABI-decode-failure branch.  The statement
+    reverts immediately, so the tail is unreachable. -/
+theorem CoupledState.refines.externalCallDecodeRevert {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {receiver eth : Expr} {name : Ident} {args : List Expr}
+    {retVar : Ident} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hcall :
+      ∃ (target : EVM.Address) (sendVal : ℤ) (argVals : List Value) (evm' : State)
+        (out : ByteArray),
+        evalExpr? cfg st.frame st.evm receiver = .ok (.address target) ∧
+        evalExpr? cfg st.frame st.evm eth = .ok (.int sendVal) ∧
+        evalExprs? cfg st.frame st.evm args = .ok argVals ∧
+        typedCallViaEVM cfg st.evm (EVM.address target) name sendVal argVals (true, evm', out) ∧
+        cfg.externalABI.decode? name out = none)
+    (hpost : Post .reverted) :
+    CoupledState.refines st cfg (.externalCall receiver name eth args retVar :: rest) Post := by
+  obtain ⟨target, sendVal, argVals, evm', out, hrec, heth, hargs, hcallEVM, hdec⟩ := hcall
+  exact ⟨.reverted,
+    ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert hrec heth hargs hcallEVM hdec),
     hpost⟩
 
 theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
