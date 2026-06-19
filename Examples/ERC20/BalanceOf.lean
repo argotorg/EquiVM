@@ -311,62 +311,8 @@ theorem erc20BalanceOfX_dec1874 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     jumpdest, push0, push2 ⟨2212⟩, dup5, dup3, dup6, add, push2 ⟨1874⟩,
     jump erc20_jd ]⟩
 
-/-- The address element decoder loads the owner word and jumps to the canonicality validator
-    at pc 1852. -/
-theorem erc20BalanceOfX_dec1852 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1852⟩
-        [balanceOfOwnerWord I, ⟨1888⟩, balanceOfOwnerWord I, ⟨4⟩ + ⟨0⟩,
-          UInt256.ofNat I.calldata.size, ⟨2212⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
-          UInt256.ofNat I.calldata.size, ⟨247⟩, ⟨252⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1874 (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨1888⟩, dup2,
-    push2 ⟨1852⟩, jump erc20_jd ]⟩
-
-/-- The validator calls the address-cleanup wrapper at pc 1835. -/
-theorem erc20BalanceOfX_dec1835 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1835⟩
-        [balanceOfOwnerWord I, ⟨1861⟩, balanceOfOwnerWord I, ⟨1888⟩,
-          balanceOfOwnerWord I, ⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2212⟩,
-          ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨247⟩, ⟨252⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1852 (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push2 ⟨1861⟩, dup2, push2 ⟨1835⟩, jump erc20_jd ]⟩
-
-/-- The address-cleanup wrapper masks the owner word and returns to the validator's comparison
-    point at pc 1861. -/
-theorem erc20BalanceOfX_dec1861 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
-        [UInt256.land (balanceOfOwnerWord I) erc20AddrMask, balanceOfOwnerWord I, ⟨1888⟩,
-          balanceOfOwnerWord I, ⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2212⟩,
-          ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨247⟩, ⟨252⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1835 (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, push2 ⟨1845⟩, dup3, push2 ⟨1804⟩, jump erc20_jd,
-    jumpdest, push0, push20 erc20AddrMask, dup3, and, swap1, pop, swap2, swap1, pop,
-    jump erc20_jd,
-    jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]⟩
-
-/-- The canonicality check succeeds and the address decoder returns to the one-address tuple
-    decoder at pc 2212. -/
+/-- The `owner` address decode (success): one application of the shared `RD.erc20DecodeAddrOk`
+    routine, replacing the former `dec1852`/`dec1835`/`dec1861`/`dec2212` chain. -/
 theorem erc20BalanceOfX_dec2212 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
@@ -377,15 +323,9 @@ theorem erc20BalanceOfX_dec2212 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
         [balanceOfOwnerWord I, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨247⟩, ⟨252⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have hclean : UInt256.eq (balanceOfOwnerWord I)
-      (UInt256.land (balanceOfOwnerWord I) erc20AddrMask) = ⟨1⟩ :=
-    erc20Canon_eq hcanon
-  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1861 (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1874 (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
-    jumpdest, pop, jump erc20_jd,
-    jumpdest, swap3, swap2, pop, pop, jump erc20_jd ]⟩
+  exact RD.erc20DecodeAddrOk rd hcanon (by jump_dest) (by evm_ov)
 
 /-- The one-address tuple decoder returns to the external wrapper, which jumps to the internal
     `balanceOf` body at pc 1345. -/
@@ -500,12 +440,9 @@ theorem erc20BalanceOfX_noncanon {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1861 (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc20BalanceOfX_dec1874 (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
-  exact (evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiNT (by rw [hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I))
+  exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc20BalanceOfSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :

@@ -471,6 +471,87 @@ theorem RD.erc20RoutineEncodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEn
     jump hret ]
   exact ⟨_, _, rd⟩
 
+-- A merged routine: ~30 opcode steps in one proof, each generating a `decode erc20Bytecode pc`
+-- `decide` over the large bytecode.  The original `dec*` chain spread these across four theorems,
+-- each with its own default budget; one lemma collects them, so it needs a raised budget.
+set_option maxHeartbeats 1000000 in
+/-- ERC20's solc shared `abi_decode_address` load-and-mask routine, entered at pc 1874.
+
+    From `[off, csize, ret] ++ R`, it loads the calldata word at byte-offset `off`, runs the 160-bit
+    address-mask subroutine, and arrives at the canonicality check (pc 1861) with the stack
+    `[mask(word), word, 1888, word, off, csize, ret] ++ R`.  This is the per-address-argument decoder
+    body copied ~14× across the ERC20 function proofs; factoring it here lets each call site supply
+    only the offset and overflow bound.  The single following step — the canonicality compare at pc
+    1861 — is left to the caller because it branches: canonical addresses jump on to `ret`, while
+    non-canonical ones revert.  `csize`, `ret`, and the working scratch are threaded untouched. -/
+theorem RD.erc20DecodeAddrMask {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (hov : R.length + 14 ≤ 1024) :
+    ∃ k' C', RD erc20Bytecode ee g s0 ⟨1861⟩
+        (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+            ERC20.erc20AddrMask
+          :: uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: ⟨1888⟩
+          :: uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)
+          :: off :: csize :: ret :: R) mem aw rdata acc k' C' := by
+  -- load the word and step to the validator (pc 1852)
+  have h1852 := evm_run h with [
+    jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨1888⟩, dup2,
+    push2 ⟨1852⟩, jump (by jump_dest) ]
+  -- enter the mask subroutine dispatch (pc 1835)
+  have h1835 := evm_run h1852 with [
+    jumpdest, push2 ⟨1861⟩, dup2, push2 ⟨1835⟩, jump (by jump_dest) ]
+  -- run the 160-bit mask subroutine, landing at the canonicality check (pc 1861)
+  exact ⟨_, _, evm_run h1835 with [
+    jumpdest, push0, push2 ⟨1845⟩, dup3, push2 ⟨1804⟩, jump (by jump_dest),
+    jumpdest, push0, push20 ERC20.erc20AddrMask, dup3, and, swap1, pop, swap2, swap1, pop,
+    jump (by jump_dest),
+    jumpdest, swap1, pop, swap2, swap1, pop, jump (by jump_dest) ]⟩
+
+set_option maxHeartbeats 400000 in
+/-- Success continuation of the shared address-argument decoder: from pc 1874 with
+    `[off, csize, ret] ++ R`, decode a **canonical** address (`hcanon`) and return the decoded word to
+    the dynamic return address `ret` as `[word] ++ R`.  Built on `erc20DecodeAddrMask` plus the
+    canonicality-pass branch; shared by every successful ERC20 address decode. -/
+theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
+        < EVM.addressModulus)
+    (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
+    ∃ k' C', RD erc20Bytecode ee g s0 ret
+        (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
+  obtain ⟨k', C', rd⟩ := RD.erc20DecodeAddrMask h hov
+  have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+        ERC20.erc20AddrMask) = ⟨1⟩ :=
+    ERC20.erc20Canon_eq hcanon
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) (by jump_dest),
+    jumpdest, pop, jump (by jump_dest),
+    jumpdest, swap3, swap2, pop, pop, jump hret ]⟩
+
+/-- Revert continuation of the shared address-argument decoder: from pc 1874 with
+    `[off, csize, ret] ++ R`, a **non-canonical** address (`hnc`) fails the canonicality check and
+    reverts.  Built on `erc20DecodeAddrMask` plus the canonicality-fail branch; shared by every ERC20
+    address-decode revert. -/
+theorem RD.erc20DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
+    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+        (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+          ERC20.erc20AddrMask) = ⟨0⟩)
+    (hov : R.length + 14 ≤ 1024) :
+    RDrev erc20Bytecode g s0 := by
+  obtain ⟨k', C', rd⟩ := RD.erc20DecodeAddrMask h hov
+  exact (evm_run rd with [
+    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiNT (by rw [hnc]),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
+    RDrev erc20Bytecode g s0)
+
 end Reasoning.Reach
 
 namespace ERC20

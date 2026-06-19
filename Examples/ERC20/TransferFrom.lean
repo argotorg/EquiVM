@@ -1414,57 +1414,8 @@ theorem erc20TransferFromX_dec1874_from {cA gh bl σ σ₀ A I} {g : Sat256} {se
     jumpdest, push0, push2 ⟨2134⟩, dup7, dup3, dup8, add, push2 ⟨1874⟩,
     jump erc20_jd ]⟩
 
-theorem erc20TransferFromX_dec1852_from {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1852⟩
-        [transferFromFromWord I, ⟨1888⟩, transferFromFromWord I, ⟨4⟩ + ⟨0⟩,
-          UInt256.ofNat I.calldata.size, ⟨2134⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
-          ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz100 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨1888⟩, dup2,
-    push2 ⟨1852⟩, jump erc20_jd ]⟩
-
-theorem erc20TransferFromX_dec1835_from {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1835⟩
-        [transferFromFromWord I, ⟨1861⟩, transferFromFromWord I, ⟨1888⟩,
-          transferFromFromWord I, ⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2134⟩,
-          ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩,
-          ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1852_from (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz100 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push2 ⟨1861⟩, dup2, push2 ⟨1835⟩, jump erc20_jd ]⟩
-
-theorem erc20TransferFromX_dec1861_from {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
-        [UInt256.land (transferFromFromWord I) erc20AddrMask, transferFromFromWord I, ⟨1888⟩,
-          transferFromFromWord I, ⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2134⟩,
-          ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩,
-          ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1835_from (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz100 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, push2 ⟨1845⟩, dup3, push2 ⟨1804⟩, jump erc20_jd,
-    jumpdest, push0, push20 erc20AddrMask, dup3, and, swap1, pop, swap2, swap1, pop,
-    jump erc20_jd,
-    jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]⟩
-
+/-- The `from` address decode (success): one application of the shared `RD.erc20DecodeAddrOk`
+    routine, replacing the former `dec1852`/`dec1835`/`dec1861`/`dec2134` from chain. -/
 theorem erc20TransferFromX_dec2134 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
@@ -1475,15 +1426,9 @@ theorem erc20TransferFromX_dec2134 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
         [transferFromFromWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have hclean : UInt256.eq (transferFromFromWord I)
-      (UInt256.land (transferFromFromWord I) erc20AddrMask) = ⟨1⟩ :=
-    erc20Canon_eq hcanonFrom
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1861_from (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz100 hsize hszhi hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
-    jumpdest, pop, jump erc20_jd,
-    jumpdest, swap3, swap2, pop, pop, jump erc20_jd ]⟩
+  exact RD.erc20DecodeAddrOk rd hcanonFrom (by jump_dest) (by evm_ov)
 
 theorem erc20TransferFromX_dec1874_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1503,64 +1448,8 @@ theorem erc20TransferFromX_dec1874_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
     jumpdest, swap4, pop, pop, push1 ⟨32⟩, push2 ⟨2151⟩, dup7, dup3, dup8,
     add, push2 ⟨1874⟩, jump erc20_jd ]⟩
 
-theorem erc20TransferFromX_dec1852_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1852⟩
-        [transferFromToWord I, ⟨1888⟩, transferFromToWord I, ⟨4⟩ + ⟨32⟩,
-          UInt256.ofNat I.calldata.size, ⟨2151⟩, ⟨32⟩, ⟨0⟩, ⟨0⟩,
-          transferFromFromWord I, ⟨4⟩, UInt256.ofNat I.calldata.size,
-          ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz100 hsize hszhi hcanonFrom hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨1888⟩, dup2,
-    push2 ⟨1852⟩, jump erc20_jd ]⟩
-
-theorem erc20TransferFromX_dec1835_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1835⟩
-        [transferFromToWord I, ⟨1861⟩, transferFromToWord I, ⟨1888⟩,
-          transferFromToWord I, ⟨4⟩ + ⟨32⟩, UInt256.ofNat I.calldata.size, ⟨2151⟩,
-          ⟨32⟩, ⟨0⟩, ⟨0⟩, transferFromFromWord I, ⟨4⟩,
-          UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1852_to (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz100 hsize hszhi hcanonFrom hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push2 ⟨1861⟩, dup2, push2 ⟨1835⟩, jump erc20_jd ]⟩
-
-theorem erc20TransferFromX_dec1861_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
-        [UInt256.land (transferFromToWord I) erc20AddrMask, transferFromToWord I, ⟨1888⟩,
-          transferFromToWord I, ⟨4⟩ + ⟨32⟩, UInt256.ofNat I.calldata.size, ⟨2151⟩,
-          ⟨32⟩, ⟨0⟩, ⟨0⟩, transferFromFromWord I, ⟨4⟩,
-          UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1835_to (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz100 hsize hszhi hcanonFrom hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, push2 ⟨1845⟩, dup3, push2 ⟨1804⟩, jump erc20_jd,
-    jumpdest, push0, push20 erc20AddrMask, dup3, and, swap1, pop, swap2, swap1, pop,
-    jump erc20_jd,
-    jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]⟩
-
+/-- The `to` address decode (success): a second application of the shared `RD.erc20DecodeAddrOk`
+    routine, replacing the former `dec1852`/`dec1835`/`dec1861`/`dec2151` to chain. -/
 theorem erc20TransferFromX_dec2151 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
@@ -1572,16 +1461,10 @@ theorem erc20TransferFromX_dec2151 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
         [transferFromToWord I, ⟨32⟩, ⟨0⟩, ⟨0⟩, transferFromFromWord I, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have hclean : UInt256.eq (transferFromToWord I)
-      (UInt256.land (transferFromToWord I) erc20AddrMask) = ⟨1⟩ :=
-    erc20Canon_eq hcanonTo
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1861_to (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hreach
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
-    jumpdest, pop, jump erc20_jd,
-    jumpdest, swap3, swap2, pop, pop, jump erc20_jd ]⟩
+  exact RD.erc20DecodeAddrOk rd hcanonTo (by jump_dest) (by evm_ov)
 
 theorem erc20TransferFromX_dec1925_value {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2247,13 +2130,10 @@ theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256} {s
     (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1861_from (cA := cA) (gh := gh)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hreach
-  exact (evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiNT (by rw [hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I))
+  exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2264,13 +2144,10 @@ theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel
     (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1861_to (cA := cA) (gh := gh)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hreach
-  exact (evm_run rd with [
-    jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiNT (by rw [hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I))
+  exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc20TransferFromSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
