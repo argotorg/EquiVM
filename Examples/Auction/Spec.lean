@@ -107,7 +107,7 @@ def settleAuctionFn : FunctionDecl :=
       [ .require (.binary .ne (.storage (aField "startTime")) (.intLit 0)),
         .require (.unary .not (.storage (aField "settled"))),
         .require (.binary .ge now (.storage (aField "endTime"))),
-        .assign (aField "settled") (.boolLit true),
+        .assign .storage (aField "settled") (.boolLit true),
         .ite (.binary .eq (.storage (aField "bidder")) zeroAddr)
           [ .externalCall (.storage nounsRef) "burn" (.intLit 0)
               [.storage (aField "nounId")] "_burn" ]
@@ -127,17 +127,17 @@ def createAuctionFn : FunctionDecl :=
     body :=
       [ .checkedCall (.storage nounsRef) "mint" (.intLit 0) [] "nounId"
           -- onSuccess (nounId in scope): build the new auction
-          [ .assign (aField "nounId") (.var "nounId"),
-            .assign (aField "amount") (.intLit 0),
-            .assign (aField "startTime") now,
-            .assign (aField "endTime") (u256 (.binary .add now (.storage durationRef))),
-            .assign (aField "bidder") zeroAddr,
-            .assign (aField "settled") (.boolLit false) ]
+          [ .assign .storage (aField "nounId") (.var "nounId"),
+            .assign .storage (aField "amount") (.intLit 0),
+            .assign .storage (aField "startTime") now,
+            .assign .storage (aField "endTime") (u256 (.binary .add now (.storage durationRef))),
+            .assign .storage (aField "bidder") zeroAddr,
+            .assign .storage (aField "settled") (.boolLit false) ]
           -- onFail (err : bytes in scope): catch Error(string) ⇒ pause, else re-revert
           "err"
           [ .ite (.binary .eq (.bytesSlice (.var "err") (.intLit 0) (.intLit 4))
                               (.bytesLit errorStringSelector))
-              [ .assign pausedRef (.boolLit true) ]
+              [ .assign .storage pausedRef (.boolLit true) ]
               [ .require (.boolLit false) ] ] ] }
 
 /-! ## Transitions -/
@@ -150,7 +150,7 @@ def createBidTransition : TransitionDecl :=
     body :=
       [ -- nonReentrant (enter)
         .require (.unary .not (.storage lockedRef)),
-        .assign lockedRef (.boolLit true),
+        .assign .storage lockedRef (.boolLit true),
         -- validations
         .require (.binary .eq (.storage (aField "nounId")) (.var "nounId")),
         .require (.binary .lt now (.storage (aField "endTime"))),
@@ -165,14 +165,14 @@ def createBidTransition : TransitionDecl :=
               [.storage (aField "bidder"), .storage (aField "amount")] "_refund" ]
           [],
         -- record the new high bid
-        .assign (aField "amount") (.env .callvalue),
-        .assign (aField "bidder") sender,
+        .assign .storage (aField "amount") (.env .callvalue),
+        .assign .storage (aField "bidder") sender,
         -- anti-snipe extension
         .ite (.binary .lt (.binary .sub (.storage (aField "endTime")) now) (.storage timeBufferRef))
-          [ .assign (aField "endTime") (u256 (.binary .add now (.storage timeBufferRef))) ]
+          [ .assign .storage (aField "endTime") (u256 (.binary .add now (.storage timeBufferRef))) ]
           [],
         -- nonReentrant (leave)
-        .assign lockedRef (.boolLit false) ] }
+        .assign .storage lockedRef (.boolLit false) ] }
 
 /-- `settleCurrentAndCreateNewAuction()` — nonReentrant, whenNotPaused. -/
 def settleAndCreateTransition : TransitionDecl :=
@@ -181,11 +181,11 @@ def settleAndCreateTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.unary .not (.storage lockedRef)),
-        .assign lockedRef (.boolLit true),
+        .assign .storage lockedRef (.boolLit true),
         .require (.unary .not (.storage pausedRef)),
         .internalCall "_settleAuction" [] "_s",
         .internalCall "_createAuction" [] "_c",
-        .assign lockedRef (.boolLit false) ] }
+        .assign .storage lockedRef (.boolLit false) ] }
 
 /-- `settleAuction()` — whenPaused, nonReentrant. -/
 def settleAuctionTransition : TransitionDecl :=
@@ -194,10 +194,10 @@ def settleAuctionTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.unary .not (.storage lockedRef)),
-        .assign lockedRef (.boolLit true),
+        .assign .storage lockedRef (.boolLit true),
         .require (.storage pausedRef),
         .internalCall "_settleAuction" [] "_s",
-        .assign lockedRef (.boolLit false) ] }
+        .assign .storage lockedRef (.boolLit false) ] }
 
 /-- `pause()` — onlyOwner. -/
 def pauseTransition : TransitionDecl :=
@@ -206,7 +206,7 @@ def pauseTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.binary .eq sender (.storage ownerRef)),
-        .assign pausedRef (.boolLit true) ] }
+        .assign .storage pausedRef (.boolLit true) ] }
 
 /-- `unpause()` — onlyOwner; start a fresh auction if none is live. -/
 def unpauseTransition : TransitionDecl :=
@@ -215,7 +215,7 @@ def unpauseTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.binary .eq sender (.storage ownerRef)),
-        .assign pausedRef (.boolLit false),
+        .assign .storage pausedRef (.boolLit false),
         .ite (.binary .or (.binary .eq (.storage (aField "startTime")) (.intLit 0))
                           (.storage (aField "settled")))
           [ .internalCall "_createAuction" [] "_c" ]
@@ -228,7 +228,7 @@ def setTimeBufferTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.binary .eq sender (.storage ownerRef)),
-        .assign timeBufferRef (.var "_timeBuffer") ] }
+        .assign .storage timeBufferRef (.var "_timeBuffer") ] }
 
 /-- `setReservePrice(uint256)` — onlyOwner. -/
 def setReservePriceTransition : TransitionDecl :=
@@ -237,7 +237,7 @@ def setReservePriceTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.binary .eq sender (.storage ownerRef)),
-        .assign reservePriceRef (.var "_reservePrice") ] }
+        .assign .storage reservePriceRef (.var "_reservePrice") ] }
 
 /-- `setMinBidIncrementPercentage(uint8)` — onlyOwner. -/
 def setMinBidIncTransition : TransitionDecl :=
@@ -246,7 +246,7 @@ def setMinBidIncTransition : TransitionDecl :=
     returnType := none
     body :=
       [ .require (.binary .eq sender (.storage ownerRef)),
-        .assign minBidIncRef (.var "_minBidIncrementPercentage") ] }
+        .assign .storage minBidIncRef (.var "_minBidIncrementPercentage") ] }
 
 /-- `initialize(...)` — modelled as the constructor (sets config, owner = msg.sender, paused). -/
 def constructorDecl : ConstructorDecl :=
@@ -255,14 +255,14 @@ def constructorDecl : ConstructorDecl :=
         { name := "_timeBuffer", ty := uint256 }, { name := "_reservePrice", ty := uint256 },
         { name := "_minBidIncrementPercentage", ty := uint8 }, { name := "_duration", ty := uint256 } ]
     body :=
-      [ .assign ownerRef sender,
-        .assign nounsRef (.var "_nouns"),
-        .assign wethRef (.var "_weth"),
-        .assign timeBufferRef (.var "_timeBuffer"),
-        .assign reservePriceRef (.var "_reservePrice"),
-        .assign minBidIncRef (.var "_minBidIncrementPercentage"),
-        .assign durationRef (.var "_duration"),
-        .assign pausedRef (.boolLit true) ] }
+      [ .assign .storage ownerRef sender,
+        .assign .storage nounsRef (.var "_nouns"),
+        .assign .storage wethRef (.var "_weth"),
+        .assign .storage timeBufferRef (.var "_timeBuffer"),
+        .assign .storage reservePriceRef (.var "_reservePrice"),
+        .assign .storage minBidIncRef (.var "_minBidIncrementPercentage"),
+        .assign .storage durationRef (.var "_duration"),
+        .assign .storage pausedRef (.boolLit true) ] }
 
 def auctionContract : ContractDecl :=
   { name := "NounsAuctionHouse"

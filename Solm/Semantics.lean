@@ -41,11 +41,6 @@ inductive ExecResult where
   | continue : Frame -> EVM.State -> ExecResult
   | reverted : ExecResult
 
-inductive VarOrigin where
-  | local
-  | storage
-  deriving DecidableEq, Repr, Inhabited
-
 structure CallableDecl where
   params : List Param
   returnType : Option ABIType := none
@@ -593,12 +588,16 @@ def updateLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
     all_goals omega
 
 def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
-    (slot : StorageRef) (value : Value) : EvalResult (Frame × EVM.State) :=
-  match solm.locals.get? slot.base with
-  | some root => do
-      let root' <- updateLocalPath? cfg solm evm root slot.steps value
-      pure ({ solm with locals := solm.locals.insert slot.base root' }, evm)
-  | none =>
+    (origin : VarOrigin) (slot : StorageRef) (value : Value) : EvalResult (Frame × EVM.State) :=
+  match origin with
+  | .localVar =>
+    -- in-memory local: functionally update the bound `Value` along the path
+    match solm.locals.get? slot.base with
+    | some root => do
+        let root' <- updateLocalPath? cfg solm evm root slot.steps value
+        pure ({ solm with locals := solm.locals.insert slot.base root' }, evm)
+    | none => .error .unboundVariable
+  | .storage =>
     match evalStorageRef cfg solm evm slot with
     | .ok evaledStorageRef =>
       match value with
@@ -953,15 +952,15 @@ inductive ExecStmt (cfg : Config) :
       ExecStmt cfg solm evm (.letDecl name ty expr) .reverted
   | assign :
       evalExpr? cfg solm evm expr = .ok value ->
-      assignStorageRef? cfg solm evm slot value = .ok (solm', evm') ->
-      ExecStmt cfg solm evm (.assign slot expr) (.ok solm' evm')
+      assignStorageRef? cfg solm evm origin slot value = .ok (solm', evm') ->
+      ExecStmt cfg solm evm (.assign origin slot expr) (.ok solm' evm')
   | assignExprRevert :
       evalExpr? cfg solm evm expr = .revert ->
-      ExecStmt cfg solm evm (.assign slot expr) .reverted
+      ExecStmt cfg solm evm (.assign origin slot expr) .reverted
   | assignStoreRevert :
       evalExpr? cfg solm evm expr = .ok value ->
-      assignStorageRef? cfg solm evm slot value = .revert ->
-      ExecStmt cfg solm evm (.assign slot expr) .reverted
+      assignStorageRef? cfg solm evm origin slot value = .revert ->
+      ExecStmt cfg solm evm (.assign origin slot expr) .reverted
   | pushVal :
       evalExpr? cfg solm evm expr = .ok value ->
       pushArray? cfg solm evm ref (some value) = .ok evm' ->

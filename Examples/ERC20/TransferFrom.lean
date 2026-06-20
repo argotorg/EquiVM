@@ -725,13 +725,12 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
 theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm
-      (allowanceRef (.var "from") sender)
+      .storage (allowanceRef (.var "from") sender)
       (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) =
         .ok ({ contract := erc20Contract, locals := transferFromStoreFromBalance evm I },
           transferFromAfterAllowanceState evm I) := by
   unfold assignStorageRef?
   simp only [allowanceRef]
-  rw [transferFromStoreFromBalance_allowance]
   have href : evalStorageRef erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm
       { base := "allowance", steps := [.mindex (.var "from"), .mindex sender] } =
@@ -848,14 +847,13 @@ theorem evalExpr_transferFrom_balance_debit_revert (evm evm' : EVM.State) (I : E
 theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I }
-      (transferFromAfterAllowanceState evm I) (balanceOfRef (.var "from"))
+      (transferFromAfterAllowanceState evm I) .storage (balanceOfRef (.var "from"))
       (.int (Int.ofNat
         (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm I) I).toNat)) =
         .ok ({ contract := erc20Contract, locals := transferFromStoreFromBalance evm I },
           transferFromAfterBalanceState evm I) := by
   unfold assignStorageRef?
   simp only [balanceOfRef]
-  rw [transferFromStoreFromBalance_balanceOf]
   have href := evalStorageRef_transferFrom_from_balance_fromBalance evm
     (transferFromAfterAllowanceState evm I) I
   simp only [balanceOfRef] at href
@@ -962,13 +960,12 @@ theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromNewToNat evm I < UInt256.size) :
     assignStorageRef? erc20Config
       { contract := erc20Contract, locals := transferFromStoreNewToBalance evm I }
-      (transferFromAfterBalanceState evm I) (balanceOfRef (.var "to"))
+      (transferFromAfterBalanceState evm I) .storage (balanceOfRef (.var "to"))
       (transferFromNewToValue evm I) =
         .ok ({ contract := erc20Contract, locals := transferFromStoreNewToBalance evm I },
           transferFromPostState evm I) := by
   unfold assignStorageRef?
   simp only [balanceOfRef]
-  rw [transferFromStoreNewToBalance_balanceOf]
   have href := evalStorageRef_transferFrom_to_balance_newToBalance evm
     (transferFromAfterBalanceState evm I) I
   simp only [balanceOfRef] at href

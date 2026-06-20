@@ -64,7 +64,7 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hdec : callerConfig.externalABI.decode? "pow2" out = some value)
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
-        { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
+        .storage { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
     ExecTransitionBody callerConfig callerContract evm locals runTransition.body
       (.returned solm'' evm'' none) := by
   refine ExecFuncBody.execBlockOK
@@ -983,11 +983,10 @@ theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
     `stored` is absent, `hbase`), producing the post-`SSTORE` EVM state. -/
 theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.get? "stored" = none) :
     assignStorageRef? callerConfig { contract := callerContract, locals := L } evm'
-        { base := "stored", steps := [] } (.int (Int.ofNat k))
+        .storage { base := "stored", steps := [] } (.int (Int.ofNat k))
       = .ok ({ contract := callerContract, locals := L },
              EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
   unfold assignStorageRef?
-  rw [hbase]
   simp only [evalStorageRef, evalStorageRefSteps, bind, EvalResult.bind, pure,
     EvalResult.ofOption]
   rw [show callerConfig.storage.layout { base := "stored" }

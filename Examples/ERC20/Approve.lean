@@ -117,11 +117,10 @@ theorem evalStorageRef_approve_allowance (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config { contract := erc20Contract, locals := approveStore I } evm
-      (allowanceRef sender (.var "spender")) (approveValueValue I) =
+      .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := erc20Contract, locals := approveStore I }, approvePostState evm I) := by
   unfold assignStorageRef?
   simp only [allowanceRef]
-  rw [approveStore_allowance]
   rw [evalStorageRef_approve_allowance]
   simp [approvePostState, approveSlot, approveEvaledRef, approveValueValue, EvalResult.bind,
     EvalResult.ofOption, bind, pure]

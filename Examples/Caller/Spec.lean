@@ -59,7 +59,7 @@ def runTransition : TransitionDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .externalCall (.var "t") "pow2" (.intLit 0) [.var "n"] "tmp",
-        .assign { base := "stored" } (.var "tmp") ] }
+        .assign .storage { base := "stored" } (.var "tmp") ] }
 
 /-- Solm spec of the `Caller` contract: one `uint256` storage field, no constructor body,
     a single transition. -/

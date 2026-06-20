@@ -107,8 +107,8 @@ def erc20StorageLayout : StorageLayout where
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "initialSupply", ty := uint256 }]
     body :=
-      [ .assign (balanceOfRef sender) (.var "initialSupply"),
-        .assign totalSupplyRef (.var "initialSupply") ] }
+      [ .assign .storage (balanceOfRef sender) (.var "initialSupply"),
+        .assign .storage totalSupplyRef (.var "initialSupply") ] }
 
 def totalSupplyTransition : TransitionDecl :=
   { name := "totalSupply"
@@ -140,7 +140,7 @@ def approveTransition : TransitionDecl :=
     returnType := some (.elem .bool)
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .assign (allowanceRef sender (.var "spender")) (.var "value"),
+        .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
         .return (.boolLit true) ] }
 
 def transferTransition : TransitionDecl :=
@@ -151,11 +151,11 @@ def transferTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
+        .assign .storage (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return (.boolLit true) ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -169,15 +169,15 @@ def transferFromTransition : TransitionDecl :=
         .require (.binary .ge (.var "currentAllowance") (.var "value")),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign (allowanceRef (.var "from") sender)
+        .assign .storage (allowanceRef (.var "from") sender)
           (.binary .sub (.var "currentAllowance") (.var "value")),
-        .assign (balanceOfRef (.var "from"))
+        .assign .storage (balanceOfRef (.var "from"))
           (valueInUInt256
             (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return (.boolLit true) ] }
 
 def erc20Contract : ContractDecl :=

@@ -623,11 +623,19 @@ inductive AssignRhs where
   -- | havoc
   deriving DecidableEq, Repr, Inhabited
 
+/-- Whether an assignment target is a memory **local** or a **storage** variable.  Resolved
+    statically (lexically) by the spec author, exactly as solc resolves the name — not by a runtime
+    `locals` lookup. -/
+inductive VarOrigin where
+  | localVar
+  | storage
+  deriving DecidableEq, Repr, Inhabited
+
 inductive Stmt where
   /- local variable -/
   | letDecl : Ident -> Option ABIType -> Expr -> Stmt
-  /- storage variable assignment -/
-  | assign : StorageRef -> Expr -> Stmt
+  /- assignment to a local (`.local`) or storage (`.storage`) variable path -/
+  | assign : VarOrigin -> StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
   | while : Expr -> List Stmt -> Stmt
   /- conditional: `if cond { thenBranch } else { elseBranch }`; a no-`else` `if` is `elseBranch = []` -/
@@ -666,11 +674,12 @@ mutual
         | isFalse hn, _, _ => isFalse (by intro h; cases h; exact hn rfl)
         | _, isFalse ht, _ => isFalse (by intro h; cases h; exact ht rfl)
         | _, _, isFalse he => isFalse (by intro h; cases h; exact he rfl)
-    | .assign sx ex, .assign sy ey =>
-        match StorageRef.decEq sx sy, Expr.decEq ex ey with
-        | isTrue hs, isTrue he => isTrue (by cases hs; cases he; rfl)
-        | isFalse hs, _ => isFalse (by intro h; cases h; exact hs rfl)
-        | _, isFalse he => isFalse (by intro h; cases h; exact he rfl)
+    | .assign ox sx ex, .assign oy sy ey =>
+        match (inferInstance : Decidable (ox = oy)), StorageRef.decEq sx sy, Expr.decEq ex ey with
+        | isTrue ho, isTrue hs, isTrue he => isTrue (by cases ho; cases hs; cases he; rfl)
+        | isFalse ho, _, _ => isFalse (by intro h; cases h; exact ho rfl)
+        | _, isFalse hs, _ => isFalse (by intro h; cases h; exact hs rfl)
+        | _, _, isFalse he => isFalse (by intro h; cases h; exact he rfl)
     | .require ex, .require ey =>
         match Expr.decEq ex ey with
         | isTrue h => isTrue (by cases h; rfl)
@@ -735,7 +744,7 @@ mutual
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .break, .break => isTrue rfl
     | .continue, .continue => isTrue rfl
-    | .letDecl _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .require _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -744,17 +753,17 @@ mutual
     | .letDecl _ _ _, .return _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .break => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .continue => isFalse (by intro h; cases h)
-    | .assign _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .require _ => isFalse (by intro h; cases h)
-    | .assign _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .return _ => isFalse (by intro h; cases h)
-    | .assign _ _, .break => isFalse (by intro h; cases h)
-    | .assign _ _, .continue => isFalse (by intro h; cases h)
+    | .assign _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .break => isFalse (by intro h; cases h)
+    | .assign _ _ _, .continue => isFalse (by intro h; cases h)
     | .require _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .require _, .assign _ _ => isFalse (by intro h; cases h)
+    | .require _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .require _, .while _ _ => isFalse (by intro h; cases h)
     | .require _, .new _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .internalCall _ _ _ => isFalse (by intro h; cases h)
@@ -763,7 +772,7 @@ mutual
     | .require _, .break => isFalse (by intro h; cases h)
     | .require _, .continue => isFalse (by intro h; cases h)
     | .while _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .while _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .require _ => isFalse (by intro h; cases h)
     | .while _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
@@ -772,7 +781,7 @@ mutual
     | .while _ _, .break => isFalse (by intro h; cases h)
     | .while _ _, .continue => isFalse (by intro h; cases h)
     | .new _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .new _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .new _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .new _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
@@ -781,7 +790,7 @@ mutual
     | .new _ _ _ _, .break => isFalse (by intro h; cases h)
     | .new _ _ _ _, .continue => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .internalCall _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .require _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -790,7 +799,7 @@ mutual
     | .internalCall _ _ _, .break => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .continue => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .externalCall _ _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -799,7 +808,7 @@ mutual
     | .externalCall _ _ _ _ _, .break => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _, .continue => isFalse (by intro h; cases h)
     | .return _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .return _, .assign _ _ => isFalse (by intro h; cases h)
+    | .return _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .return _, .require _ => isFalse (by intro h; cases h)
     | .return _, .while _ _ => isFalse (by intro h; cases h)
     | .return _, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -808,7 +817,7 @@ mutual
     | .return _, .break => isFalse (by intro h; cases h)
     | .return _, .continue => isFalse (by intro h; cases h)
     | .break, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .break, .assign _ _ => isFalse (by intro h; cases h)
+    | .break, .assign _ _ _ => isFalse (by intro h; cases h)
     | .break, .require _ => isFalse (by intro h; cases h)
     | .break, .while _ _ => isFalse (by intro h; cases h)
     | .break, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -817,7 +826,7 @@ mutual
     | .break, .return _ => isFalse (by intro h; cases h)
     | .break, .continue => isFalse (by intro h; cases h)
     | .continue, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .continue, .assign _ _ => isFalse (by intro h; cases h)
+    | .continue, .assign _ _ _ => isFalse (by intro h; cases h)
     | .continue, .require _ => isFalse (by intro h; cases h)
     | .continue, .while _ _ => isFalse (by intro h; cases h)
     | .continue, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -826,7 +835,7 @@ mutual
     | .continue, .return _ => isFalse (by intro h; cases h)
     | .continue, .break => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .require _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .new _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
@@ -836,7 +845,7 @@ mutual
     | .break, .ite _ _ _ => isFalse (by intro h; cases h)
     | .continue, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .ite _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .require _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
@@ -846,7 +855,7 @@ mutual
     | .ite _ _ _, .break => isFalse (by intro h; cases h)
     | .ite _ _ _, .continue => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
@@ -857,7 +866,7 @@ mutual
     | .lowLevelCall _ _ _ _ _, .break => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _, .continue => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -868,7 +877,7 @@ mutual
     | .break, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .checkedCall _ _ _ _ _ _ _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
@@ -880,7 +889,7 @@ mutual
     | .checkedCall _ _ _ _ _ _ _ _, .break => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _, .continue => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -906,8 +915,8 @@ mutual
         | isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
     | .delete _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .delete _ => isFalse (by intro h; cases h)
-    | .delete _, .assign _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .require _ => isFalse (by intro h; cases h)
     | .require _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .while _ _ => isFalse (by intro h; cases h)
@@ -936,8 +945,8 @@ mutual
     | .pop _, .delete _ => isFalse (by intro h; cases h)
     | .push _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .push _ _ => isFalse (by intro h; cases h)
-    | .push _ _, .assign _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .require _ => isFalse (by intro h; cases h)
     | .require _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .while _ _ => isFalse (by intro h; cases h)
@@ -964,8 +973,8 @@ mutual
     | .pop _, .push _ _ => isFalse (by intro h; cases h)
     | .pop _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .pop _ => isFalse (by intro h; cases h)
-    | .pop _, .assign _ _ => isFalse (by intro h; cases h)
-    | .assign _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .require _ => isFalse (by intro h; cases h)
     | .require _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .while _ _ => isFalse (by intro h; cases h)
