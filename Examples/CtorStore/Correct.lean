@@ -138,6 +138,10 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
                 CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          | bytes =>
+              simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
+                CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
+                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
           | struct name fields =>
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
@@ -336,7 +340,7 @@ theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)
     (hx : locals.get? "x" = some (.int i))
     (hbase : locals.get? "stored" = none) :
-    ExecContractBody ctorStoreConfig CtorStore.contract evm locals CtorStore.contract.ctor.body
+    ExecTransitionBody ctorStoreConfig CtorStore.contract evm locals CtorStore.contract.ctor.body
       (.returned { contract := CtorStore.contract, locals := locals }
         (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) none) := by
   refine ExecFuncBody.execBlockOK

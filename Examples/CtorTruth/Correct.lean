@@ -40,14 +40,14 @@ theorem ctorTruthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 /-- With non-zero call value, the Solm body reverts. -/
 theorem ctorTruthBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecContractBody ctorTruthConfig CtorTruth.contract evm locals
+    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals
       CtorTruth.truthTransition.body .reverted := by
   exact bodyReverts_nonPayable h
 
 /-- With zero call value, the Solm body returns `true`. -/
 theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecContractBody ctorTruthConfig CtorTruth.contract evm locals
+    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals
       CtorTruth.truthTransition.body
       (.returned { contract := CtorTruth.contract, locals := locals } evm (some (.bool true))) := by
   exact ExecFuncBody.execBlockRet <|
@@ -254,7 +254,7 @@ theorem ctorTruthInitcodeXiResult
 
 theorem ctorTruthCtorBodyReturns
     (evm : EVM.State) (locals : Store) :
-    ExecContractBody ctorTruthConfig CtorTruth.contract evm locals CtorTruth.contract.ctor.body
+    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals CtorTruth.contract.ctor.body
       (.returned { contract := CtorTruth.contract, locals := locals } evm none) := by
   exact ExecFuncBody.execBlockOK ExecBlock.nil
 
