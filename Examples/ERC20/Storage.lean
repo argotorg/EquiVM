@@ -21,7 +21,7 @@ theorem erc20WordOfInt_ofNat_toNat (a : UInt256) :
 theorem erc20StorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (erc20Uint256Loc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  unfold storageLocStore erc20Uint256Loc
+  unfold storageLocStore storageLocWriteWord erc20Uint256Loc
   simp only [valueToWord, erc20WordOfInt_ofNat_toNat, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2

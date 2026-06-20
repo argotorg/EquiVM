@@ -43,9 +43,10 @@ def callerExternalABI : ExternalCallABI where
 
 /-- Storage layout: `stored` occupies the whole of slot 0. -/
 def callerStorageLayout : StorageLayout where
-  layout := fun ref =>
+  layout := fun ref _ =>
     if ref.base = "stored" ∧ ref.steps = [] then
       some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+             bitOffset := .none,
              type := .int (.uint ⟨256, by decide⟩) }
     else none
 

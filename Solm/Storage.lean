@@ -40,8 +40,6 @@ end EVM
 -- axiom localKEC_ffiKEC : ∀ d, localKEC d = ffi.KEC d
 
 
--- TODO: DYNAMIC ARRAYS need to also have a length field, at least for solidity!
-
 -- Think: maybe have offset/size be optional,
 -- so that whole-slot values
 -- (mapping/dynarray roots) are differentiated?
@@ -52,6 +50,7 @@ structure StorageLoc where
   size    : Fin 33        -- size within that slot in bytes
   hbound  : offset.val + size.val - 1 < 32
                           -- proof that we are withing slot bounds
+  bitOffset : Option (Fin 8) := .none -- offset within byte in bits; Needed for packed bytes
   type    : ElemType      -- A value to be loaded from storage must be a primitive
   deriving Repr
 
@@ -79,8 +78,19 @@ def storageLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
         · simp
         · omega
       · simp
-  let word := ⟨Ethereum.fromBytes' bytes, hresSize⟩
-  wordToElem loc.type word
+  let word : EVM.Word := ⟨Ethereum.fromBytes' bytes, hresSize⟩
+  match loc.bitOffset with
+  | .some bo => wordToElem loc.type (word.shiftRight ⟨Fin.castLE (by simp [Ethereum.UInt256.size]) bo⟩ : EVM.Word)
+  | .none => wordToElem loc.type word
+
+def storageLocWriteWord (slot : EVM.Word) (startByte : Nat)
+    (bitOffset : Option (Fin 8)) (valueWord : EVM.Word) : EVM.Word :=
+  match bitOffset with
+  | .none => valueWord
+  | .some bo =>
+      let lowBits := 2 ^ bo.val
+      let previousLowBits := (slot.toNat / 2 ^ (8 * startByte)) % lowBits
+      EVM.word (valueWord.toNat * lowBits + previousLowBits)
 
 -- TODO: Should the given value be restricted to fit in the location?
 def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State := do
@@ -90,9 +100,10 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   -- store of `v` writes exactly `v` (the EVM `SSTORE` word).
   let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot
   let valueWord <- valueToWord value
-  let ⟨valueBytes, hvalueSize⟩ := EVM.Word.toBytesLEWithSizeProof valueWord
   let startByte := loc.offset.val
   let endByte := loc.offset.val + loc.size.val
+  let writeWord := storageLocWriteWord slot startByte loc.bitOffset valueWord
+  let ⟨valueBytes, hvalueSize⟩ := EVM.Word.toBytesLEWithSizeProof writeWord
 
   let previousStart := slotBytes.take startByte
   let previousEnd := slotBytes.drop endByte
@@ -132,6 +143,7 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
+  | length : EvaledStorageRefStep
   deriving DecidableEq, Inhabited
 
 structure EvaledStorageRef where
@@ -140,15 +152,11 @@ structure EvaledStorageRef where
   deriving DecidableEq, Inhabited
 
 structure StorageLayout where
-  layout : EvaledStorageRef -> Option StorageLoc
+  layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
   -- Note: The above definition may need to also carry some assumptions if
   -- we want have a type system on top of these semantics,
   -- e.g. access within array bounds returns `.some v`
 
-  -- TODO: Note: the above definition would not cover schemas where the
-  -- location in storage would depend on storage values along the way
-  -- which is actually done for compacted bytes and string values..
-  -- Ignoring this for now..
 
 -- TODO: move
 def keyValueToWord : KeyValue -> EVM.Word
@@ -168,4 +176,3 @@ def fixedTypeSize (t : FixedType) : Fin 33 :=
   match t with
   | .ufixed ⟨bw,hbw⟩ _ => ⟨bw/8, by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
   | .fixed ⟨bw,hbw⟩ _ => ⟨bw/8,  by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
-

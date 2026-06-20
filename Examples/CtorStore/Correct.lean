@@ -309,7 +309,7 @@ theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
         { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
           type := .int (.uint ⟨256, by decide⟩) } (.int i)
       = some (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) := by
-  unfold storageLocStore
+  unfold storageLocStore storageLocWriteWord
   simp only [valueToWord, wordOfInt_nonneg i h0, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word i.toNat)).2
@@ -331,7 +331,7 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
   rw [hbase]
   simp only [evalStorageRef, EvalResult.seqList, List.map_nil, bind, EvalResult.bind, pure,
     EvalResult.ofOption]
-  rw [show ctorStoreConfig.storage.layout { base := "stored" }
+  rw [show ctorStoreConfig.storage.layout { base := "stored" } evm
         = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
                  type := .int (.uint ⟨256, by decide⟩) } from rfl]
   simp only [ctorStoreLocStore _ _ h0]

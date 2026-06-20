@@ -63,6 +63,6 @@ end Pow
 
 /-- Verification config: empty storage layout, default external-call ABI. -/
 def powConfig : Config :=
-  { storage := { layout := fun _ => none }
+  { storage := { layout := fun _ _ => none }
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Pow.powContract.ctor.params }

@@ -434,7 +434,7 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
   | none =>
     match evalStorageRef cfg solm evm slot with
     | .ok evaledStorageRef => do
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
+      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
       let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
       pure (solm, evm')
     | .revert => .revert
@@ -465,7 +465,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .storage slot =>
       match evalStorageRef cfg solm evm slot with
       | .ok evaledStorageRef => do
-          let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
+          let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
           pure (storageLocLoad evm loc)
       | .revert => .revert
       | .error e => .error e

@@ -18,7 +18,7 @@ def uint256 : ABIType := .elem (.int (.uint ⟨256, by decide⟩))
 
 /-- Storage layout: `stored` occupies the whole of slot 0. -/
 def storageLayout : StorageLayout where
-  layout := fun ref =>
+  layout := fun ref _ =>
     if ref.base = "stored" ∧ ref.steps = [] then
       some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
              type := .int (.uint ⟨256, by decide⟩) }

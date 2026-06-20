@@ -966,10 +966,11 @@ theorem fromBytesLE_roundtrip (w : UInt256) :
 theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
     storageLocStore evm'
         { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+          bitOffset := .none,
           type := .int (.uint ⟨256, by decide⟩) } (.int (Int.ofNat k))
       = some (EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
   unfold storageLocStore
-  simp only [valueToWord, wordOfInt_ofNat_eq, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_ofNat_eq, bind, Option.bind, pure, storageLocWriteWord]
   have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat k)).2
   congr 2; apply u256_inj
@@ -990,8 +991,9 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
   rw [hbase]
   simp only [evalStorageRef, EvalResult.seqList, List.map_nil, bind, EvalResult.bind, pure,
     EvalResult.ofOption]
-  rw [show callerConfig.storage.layout { base := "stored" }
+  rw [show callerConfig.storage.layout { base := "stored" } evm'
         = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+                 bitOffset := .none,
                  type := .int (.uint ⟨256, by decide⟩) } from rfl]
   simp only [callerLocStore]
 

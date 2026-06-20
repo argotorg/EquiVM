@@ -37,6 +37,6 @@ end CtorTruth
 
 /-- Configuration: empty storage layout and Solidity constructor deployment encoding. -/
 def ctorTruthConfig : Config :=
-  { storage := { layout := fun _ => none }
+  { storage := { layout := fun _ _ => none }
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment CtorTruth.contract.ctor.params }

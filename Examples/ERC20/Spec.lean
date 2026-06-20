@@ -75,7 +75,7 @@ their declaration indices: `balanceOf` at slot 0, `allowance` at slot 1, and `to
 Mapping entries then use Solidity's standard `keccak256(key ++ baseSlot)` slot derivation.
 -/
 def erc20StorageLayout : StorageLayout where
-  layout ref :=
+  layout ref _ :=
     match ref.base, ref.steps with
     | "balanceOf", [.mindex owner] => some (erc20Uint256Loc (erc20BalanceOfSlot owner))
     | "allowance", [.mindex owner, .mindex spender] =>
@@ -84,25 +84,25 @@ def erc20StorageLayout : StorageLayout where
     | _, _ => none
 
 @[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } = some (erc20Uint256Loc ⟨2⟩) :=
+    erc20StorageLayout.layout { base := "totalSupply", steps := [] } = fun _ => some (erc20Uint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
     erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
-      some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
+      fun _ => some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
     erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
+      fun _ => some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf_missingIndex :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = none :=
+    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = fun _ => none :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance_missingSpender (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = none :=
+    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = fun _ => none :=
   rfl
 
 def constructorDecl : ConstructorDecl :=
@@ -202,15 +202,15 @@ def erc20Config : Config :=
 
 @[simp] theorem erc20Config_storage_totalSupply :
     erc20Config.storage.layout { base := "totalSupply", steps := [] } =
-      some (ERC20.erc20Uint256Loc ⟨2⟩) :=
+      fun _ => some (ERC20.erc20Uint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20Config_storage_balanceOf (owner : KeyValue) :
     erc20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
-      some (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner)) :=
+      fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20Config_storage_allowance (owner spender : KeyValue) :
     erc20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      some (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender)) :=
+      fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender)) :=
   rfl
