@@ -1,4 +1,4 @@
-import Examples.ERC20Coupled.Standalone.Transfer
+import Examples.ERC20Coupled.SolidityPatterns
 import Reasoning.Refinement
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
@@ -26,6 +26,22 @@ def TransferDecodedRel {cA : Batteries.RBSet AccountAddress compare} {gh : Block
     cur.aw = UInt256.ofNat 3 ∧
     cur.rdata = ByteArray.empty ∧
     cur.world = (cA, σ)
+
+noncomputable def transferDecodedState {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
+    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate}
+    {I : ExecutionEnv} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (rd1365 : RD erc20Bytecode I g (transferS0 cA gh bl σ σ₀ g A I) ⟨1365⟩
+      [transferValueWord I, transferToWord I, ⟨300⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    CoupledState erc20Bytecode I g (transferS0 cA gh bl σ σ₀ g A I)
+      (TransferDecodedRel (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (A := A) I g sel) ⟨1365⟩ :=
+  CoupledState.ofRD
+    { contract := erc20Contract, locals := transferStore I }
+    (transferS0 cA gh bl σ σ₀ g A I)
+    rd1365
+    (by simp [worldOf, transferS0, initState])
+    (by simp [TransferDecodedRel, cursorOfRD])
 
 /-- Current-cursor segment: transfer's decoded body entry loads `balanceOf[msg.sender]`. -/
 theorem transferLoadSenderBalance {cA : Batteries.RBSet AccountAddress compare}
@@ -454,6 +470,41 @@ theorem erc20TransferBodySuffixCoupled {cA : Batteries.RBSet AccountAddress comp
   obtain ⟨k1429, C1429, rd1429⟩ :=
     transferLoadSenderBalance (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) (sel := sel) rd1365
+  let frame1429 : Frame :=
+    { contract := erc20Contract,
+      locals := transferStoreFromBalance (transferS0 cA gh bl σ σ₀ g A I) I }
+  let evm1429 : State := transferS0 cA gh bl σ σ₀ g A I
+  let st1429 :=
+    st.stepRD frame1429 evm1429 rd1429
+      (by simp [evm1429, worldOf, initState])
+  change CoupledState.refines st erc20Config
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
+      .require (.binary .ge (.var "fromBalance") (.var "value")),
+      .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
+      .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
+      .letDecl "newToBalance" (some uint256)
+        (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
+      .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
+      .return (.boolLit true) ]
+    (transitionPost erc20Bytecode I g (transferS0 cA gh bl σ σ₀ g A I)
+      transferTransition.returnType (fun _ _ _ => False))
+  refine CoupledState.refines.requireTrue st ?_ ?_
+  · rw [hframe, hevm]
+    exact evalCallvalueEq_true (by simp [transferS0, initState, hwv])
+  refine CoupledState.refines.letDeclAt (st := st) (st' := st1429)
+    (value := transferFromBalanceValue (transferS0 cA gh bl σ σ₀ g A I)) ?_ ?_ ?_ ?_
+  · rw [hframe, hevm]
+    exact evalExpr_transfer_sender_balance (transferS0 cA gh bl σ σ₀ g A I) I
+  · change st1429.frame =
+      { st.frame with
+        locals := st.frame.locals.insert "fromBalance"
+          (transferFromBalanceValue (transferS0 cA gh bl σ σ₀ g A I)) }
+    simp [st1429, CoupledState.stepRD, CoupledState.ofRD, CoupledState.reached,
+      cursorOfRD, frame1429, evm1429, transferStoreFromBalance, hframe]
+  · change st1429.evm = st.evm
+    simp [st1429, CoupledState.stepRD, CoupledState.ofRD, CoupledState.reached,
+      cursorOfRD, frame1429, evm1429, hevm]
   by_cases henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (transferS0 cA gh bl σ σ₀ g A I)).toNat
   · by_cases hfit : transferNewToNat (transferS0 cA gh bl σ σ₀ g A I) I < UInt256.size
@@ -478,16 +529,8 @@ theorem erc20TransferBodySuffixCoupled {cA : Batteries.RBSet AccountAddress comp
       let retFrame : Frame :=
         { contract := erc20Contract,
           locals := transferStoreNewToBalance (transferS0 cA gh bl σ σ₀ g A I) I }
-      have hblock : ExecBlock erc20Config st.frame st.evm transferTransition.body
-          (ExecResult.returned retFrame
-            (transferPostState (transferS0 cA gh bl σ σ₀ g A I) I)
-            (some (.bool true))) := by
-        rw [hframe, hevm]
-        change ExecBlock erc20Config { contract := erc20Contract, locals := transferStore I }
-          (transferS0 cA gh bl σ σ₀ g A I)
-          [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-            .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
-            .require (.binary .ge (.var "fromBalance") (.var "value")),
+      have hblock : ExecBlock erc20Config st1429.frame st1429.evm
+          [ .require (.binary .ge (.var "fromBalance") (.var "value")),
             .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
             .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
             .letDecl "newToBalance" (some uint256)
@@ -496,30 +539,11 @@ theorem erc20TransferBodySuffixCoupled {cA : Batteries.RBSet AccountAddress comp
             .return (.boolLit true) ]
           (ExecResult.returned retFrame
             (transferPostState (transferS0 cA gh bl σ σ₀ g A I) I)
-            (some (.bool true)))
-        refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true ?_)) ?_
-        · simp [transferS0, initState, hwv]
-        refine ExecBlock.consNormal
-          (ExecStmt.letDecl (evalExpr_transfer_sender_balance
-            (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.requireTrue (evalExpr_transfer_require_from_true
-            (transferS0 cA gh bl σ σ₀ g A I) I henough)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.assign (evalExpr_transfer_debit
-            (transferS0 cA gh bl σ σ₀ g A I) I henough)
-            (transferAssignSender (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.letDecl (evalExpr_transfer_to_balance
-            (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.letDecl (evalExpr_transfer_newToBalance
-            (transferS0 cA gh bl σ σ₀ g A I) I hfit)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.assign (evalExpr_transfer_newToBalance_var
-            (transferS0 cA gh bl σ σ₀ g A I) I)
-            (transferAssignTo (transferS0 cA gh bl σ σ₀ g A I) I hfit)) ?_
-        exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+            (some (.bool true))) := by
+        simpa [st1429, CoupledState.stepRD, CoupledState.ofRD, CoupledState.reached,
+          cursorOfRD, frame1429, evm1429, retFrame, transferS0] using
+          transferSourceAfterFromBalanceReturns (transferS0 cA gh bl σ σ₀ g A I) I
+            henough hfit
       refine ⟨_, hblock, ?_⟩
       exact ⟨UInt256.toByteArray (⟨1⟩ : UInt256), by
         simpa [worldOf, transferPostState, transferAfterDebitState, transferSenderSlot,
@@ -540,37 +564,18 @@ theorem erc20TransferBodySuffixCoupled {cA : Batteries.RBSet AccountAddress comp
       have hrev :=
         transferCheckedAddOverflow (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (sel := sel) hover rd1641
-      have hblock : ExecBlock erc20Config st.frame st.evm transferTransition.body .reverted := by
-        rw [hframe, hevm]
-        change ExecBlock erc20Config { contract := erc20Contract, locals := transferStore I }
-          (transferS0 cA gh bl σ σ₀ g A I)
-          [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-            .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
-            .require (.binary .ge (.var "fromBalance") (.var "value")),
+      have hblock : ExecBlock erc20Config st1429.frame st1429.evm
+          [ .require (.binary .ge (.var "fromBalance") (.var "value")),
             .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
             .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
             .letDecl "newToBalance" (some uint256)
               (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
             .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
-            .return (.boolLit true) ] .reverted
-        refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true ?_)) ?_
-        · simp [transferS0, initState, hwv]
-        refine ExecBlock.consNormal
-          (ExecStmt.letDecl (evalExpr_transfer_sender_balance
-            (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.requireTrue (evalExpr_transfer_require_from_true
-            (transferS0 cA gh bl σ σ₀ g A I) I henough)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.assign (evalExpr_transfer_debit
-            (transferS0 cA gh bl σ σ₀ g A I) I henough)
-            (transferAssignSender (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        refine ExecBlock.consNormal
-          (ExecStmt.letDecl (evalExpr_transfer_to_balance
-            (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-        exact ExecBlock.consRevert
-          (ExecStmt.letDeclRevert (evalExpr_transfer_newToBalance_revert
-            (transferS0 cA gh bl σ σ₀ g A I) I hover))
+          .return (.boolLit true) ] .reverted := by
+        simpa [st1429, CoupledState.stepRD, CoupledState.ofRD, CoupledState.reached,
+          cursorOfRD, frame1429, evm1429, transferS0] using
+          transferSourceAfterFromBalanceReverts_overflow (transferS0 cA gh bl σ σ₀ g A I) I
+            henough hover
       exact ⟨_, hblock, hrev⟩
   · have hlt : (transferFromBalanceWord (transferS0 cA gh bl σ σ₀ g A I)).toNat <
         (transferValueWord I).toNat := by
@@ -578,27 +583,18 @@ theorem erc20TransferBodySuffixCoupled {cA : Batteries.RBSet AccountAddress comp
     have hrev :=
       transferBalanceRequireFalse (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (sel := sel) hlt rd1429
-    have hblock : ExecBlock erc20Config st.frame st.evm transferTransition.body .reverted := by
-      rw [hframe, hevm]
-      change ExecBlock erc20Config { contract := erc20Contract, locals := transferStore I }
-        (transferS0 cA gh bl σ σ₀ g A I)
-        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-          .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
-          .require (.binary .ge (.var "fromBalance") (.var "value")),
+    have hblock : ExecBlock erc20Config st1429.frame st1429.evm
+        [ .require (.binary .ge (.var "fromBalance") (.var "value")),
           .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
           .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
           .letDecl "newToBalance" (some uint256)
             (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
           .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
-          .return (.boolLit true) ] .reverted
-      refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true ?_)) ?_
-      · simp [transferS0, initState, hwv]
-      refine ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_transfer_sender_balance
-          (transferS0 cA gh bl σ σ₀ g A I) I)) ?_
-      exact ExecBlock.consRevert
-        (ExecStmt.requireFalse (evalExpr_transfer_require_from_false
-          (transferS0 cA gh bl σ σ₀ g A I) I hlt))
+          .return (.boolLit true) ] .reverted := by
+      simpa [st1429, CoupledState.stepRD, CoupledState.ofRD, CoupledState.reached,
+        cursorOfRD, frame1429, evm1429, transferS0] using
+        transferSourceAfterFromBalanceReverts_insufficient (transferS0 cA gh bl σ σ₀ g A I) I
+          hlt
     exact ⟨_, hblock, hrev⟩
 
 theorem erc20TransferBodyCoreCoupled {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -619,30 +615,13 @@ theorem erc20TransferBodyCoreCoupled {cA gh bl σ σ₀ A I} {g : UInt256} {sel 
           erc20TransferX_decoded (cA := cA) (gh := gh) (bl := bl)
             (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) (sel := sel)
             hsz68 hsize hbig hcanonTo hreach
-        let s0 := transferS0 cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
-        let cur1365 : Cursor :=
-          { pc := ⟨1365⟩,
-            stack := [transferValueWord I, transferToWord I, ⟨300⟩, sel],
-            mem := solcFreePtrMem,
-            aw := UInt256.ofNat 3,
-            rdata := ByteArray.empty,
-            world := (cA, σ) }
-        let frame0 : Frame := { contract := erc20Contract, locals := transferStore I }
-        let evm0 : State := s0
-        have hRDc : RDc erc20Bytecode I (Sat256.ofUInt256 g) s0 cur1365 k1365 C1365 := by
-          change RD erc20Bytecode I (Sat256.ofUInt256 g) s0 cur1365.pc cur1365.stack
-            cur1365.mem cur1365.aw cur1365.rdata cur1365.world k1365 C1365
-          simpa [s0, cur1365, transferS0] using rd1365
-        have hworld : cur1365.world = worldOf evm0 := by
-          simp [cur1365, evm0, s0, worldOf, initState]
-        have hrel : TransferDecodedRel (cA := cA) (gh := gh) (bl := bl) (σ := σ)
-            (σ₀ := σ₀) (A := A) I (Sat256.ofUInt256 g) sel cur1365 frame0 evm0 := by
-          simp [TransferDecodedRel, cur1365, frame0, evm0, s0, transferS0]
+        let st1365 :=
+          transferDecodedState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+            (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := sel) rd1365
         obtain ⟨result, hblock, hpost⟩ :=
           erc20TransferBodySuffixCoupled (cA := cA) (gh := gh) (bl := bl) (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := sel)
-            hwv hperm hcanonTo
-            (CoupledState.mk cur1365 k1365 C1365 frame0 evm0 rfl hRDc hworld hrel)
+            hwv hperm hcanonTo st1365
         cases result with
         | ok frame' evm' =>
             obtain ⟨cur', k', C', hRD', hw', hfalse⟩ := hpost
