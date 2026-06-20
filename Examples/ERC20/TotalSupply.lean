@@ -24,7 +24,7 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
         (some (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)))) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      simp only [evalExpr?, evalStorageRef, totalSupplyRef]
+      simp only [evalExpr?, evalStorageRef, evalStorageRefSteps, totalSupplyRef]
       change EvalResult.ok (storageLocLoad evm (erc20Uint256Loc ⟨2⟩)) =
         EvalResult.ok (Value.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))
       rw [erc20StorageLocLoad_uint256])

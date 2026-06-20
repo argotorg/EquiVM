@@ -181,6 +181,10 @@ inductive Expr where
   | unary : UnaryOp -> Expr -> Expr
   | binary : BinaryOp -> Expr -> Expr -> Expr
   | ite : Expr -> Expr -> Expr -> Expr
+  /- `arr.length` of a storage array: `ref` names the array itself (no trailing index).
+     Resolved by reading the array's length slot, which the layout returns for the
+     container ref. -/
+  | arrayLength : StorageRef -> Expr
 
 inductive StorageRefStep where
   | field : Ident -> StorageRefStep
@@ -282,6 +286,10 @@ mutual
         | isFalse hc, _, _ => isFalse (by intro h'; cases h'; exact hc rfl)
         | _, isFalse ht, _ => isFalse (by intro h'; cases h'; exact ht rfl)
         | _, _, isFalse hf => isFalse (by intro h'; cases h'; exact hf rfl)
+    | .arrayLength x, .arrayLength y =>
+        match StorageRef.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .intLit _, .boolLit _ => isFalse (by intro h; cases h)
     | .intLit _, .var _ => isFalse (by intro h; cases h)
     | .intLit _, .env _ => isFalse (by intro h; cases h)
@@ -522,6 +530,38 @@ mutual
     | .unary _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
     | .binary _ _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .intLit _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .boolLit _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .newBytes _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .var _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .env _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .field _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .aindex _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .storage _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .cast _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .addrOf _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .unary _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .intLit _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .boolLit _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .newBytes _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .var _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .env _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .field _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .aindex _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .storage _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .cast _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .addrOf _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .unary _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .arrayLength _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .arrayLength _ => isFalse (by intro h; cases h)
 
   private def StorageRefStep.decEq : (a b : StorageRefStep) -> Decidable (a = b)
     | .field x, .field y =>
@@ -607,6 +647,12 @@ inductive Stmt where
   | return : Expr -> Stmt
   | break : Stmt
   | continue : Stmt
+  /- `arr.push(v?)`: grow a dynamic storage array by one.  `some v` appends scalar `v`; `none` is a
+     grow-only push (structured elements — the new slots are zero, fields set by later writes). -/
+  | push : StorageRef -> Option Expr -> Stmt
+  /- `arr.pop()`: remove the last element of a dynamic storage array (reverts if empty),
+     clearing the slot and shrinking its length by one -/
+  | pop : StorageRef -> Stmt
   deriving Repr, Inhabited
 
 
@@ -843,6 +889,69 @@ mutual
     | .return _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .break, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .push rx vx, .push ry vy =>
+        match StorageRef.decEq rx ry, (inferInstance : Decidable (vx = vy)) with
+        | isTrue hr, isTrue hv => isTrue (by cases hr; cases hv; rfl)
+        | isFalse hr, _ => isFalse (by intro h; cases h; exact hr rfl)
+        | _, isFalse hv => isFalse (by intro h; cases h; exact hv rfl)
+    | .pop rx, .pop ry =>
+        match StorageRef.decEq rx ry with
+        | isTrue hr => isTrue (by cases hr; rfl)
+        | isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .push _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .assign _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .break => isFalse (by intro h; cases h)
+    | .break, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .continue => isFalse (by intro h; cases h)
+    | .continue, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .push _ _ => isFalse (by intro h; cases h)
+    | .pop _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .assign _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .break => isFalse (by intro h; cases h)
+    | .break, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .continue => isFalse (by intro h; cases h)
+    | .continue, .pop _ => isFalse (by intro h; cases h)
 
   private def Stmt.decEqList : (as bs : List Stmt) -> Decidable (as = bs)
     | [], [] => isTrue rfl

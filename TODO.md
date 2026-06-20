@@ -17,3 +17,5 @@
   order they appear in the bytecode. Otherwise, we may need ta add keccak axioms.
 
 - Optimizations on vs off
+
+- Maybe Solidity example with inline assembly

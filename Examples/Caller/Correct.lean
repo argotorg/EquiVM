@@ -988,7 +988,7 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
              EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
   unfold assignStorageRef?
   rw [hbase]
-  simp only [evalStorageRef, EvalResult.seqList, List.map_nil, bind, EvalResult.bind, pure,
+  simp only [evalStorageRef, evalStorageRefSteps, bind, EvalResult.bind, pure,
     EvalResult.ofOption]
   rw [show callerConfig.storage.layout { base := "stored" }
         = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,

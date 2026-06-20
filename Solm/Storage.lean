@@ -132,6 +132,11 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
+  /- Marker for "the length of the array reached so far". A distinct ref the layout
+     resolves to wherever it stores that array's length — the semantics commits to no
+     particular slot convention (solc puts it at the array's base slot; another layout
+     may put it elsewhere). Only the array's length query produces this step. -/
+  | length : EvaledStorageRefStep
   deriving DecidableEq, Inhabited
 
 structure EvaledStorageRef where
