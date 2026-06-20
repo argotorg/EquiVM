@@ -1,5 +1,5 @@
 import Examples.ERC20.Bytecode
-import Reasoning.ABIDecode
+import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Solc
 import Reasoning.SolmBody

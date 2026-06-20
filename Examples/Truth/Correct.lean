@@ -1,6 +1,6 @@
 import Examples.Truth.Bytecode
 import Examples.Truth.Spec
-import Reasoning.ABIDecode
+import Reasoning.ABI
 import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody

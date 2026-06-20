@@ -1,5 +1,4 @@
 import Solm.Semantics
-import Examples.Pow.Spec
 
 /-!
 # Caller — Solm specification for `Caller.sol`'s `run(address t, uint256 n)`
@@ -23,8 +22,8 @@ namespace Caller
 /-- The ABI/Solm type `address`. -/
 def addr : ABIType := .elem .address
 
-/-- The ABI/Solm type `uint256` (shared shape with `Pow.uint256`). -/
-abbrev uint256 : ABIType := Pow.uint256
+/-- The ABI/Solm type `uint256`. -/
+abbrev uint256 : ABIType := .elem (.int (.uint ⟨256, by decide⟩))
 
 /-- `keccak("pow2(uint256)")[0:4]` — the selector of the callee function. -/
 def pow2Selector : ByteArray := ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩

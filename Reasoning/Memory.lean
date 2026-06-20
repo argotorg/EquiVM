@@ -2,15 +2,16 @@ import Reasoning.EVMWord
 import Reasoning.Stepping
 
 /-!
-# Memory — reusable EVM memory + ABI-encoding lemmas
+# Memory — reusable EVM memory / `ByteArray` lemmas
 
-The EVM `MSTORE`/`MLOAD`/`RETURN` and `UInt256.toByteArray`/ABI encoding are *computable*
+The EVM `MSTORE`/`MLOAD`/`RETURN` and the `UInt256.toByteArray` word encoding are *computable*
 `ByteArray` operations — **not** opaque like `D_J`/keccak.  The single genuine opacity is the
 *content* of `ffi.ByteArray.zeroes` (the `memset_zero` extern): evmlean axiomatizes only its
 **size** (`ByteArray_zeroes_size`), not that the bytes are `0`.  We admit that one extern-spec
 fact (`byteArray_zeroes_toList`) and **prove everything else** as generic, contract-agnostic
 lemmas: the big-endian byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
-`MSTORE`-then-`MLOAD`/`RETURN` round-trip, and `encodeReturnValue?` for `bool`.
+`MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
+encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
 -/
 
 open Ethereum Ethereum.EVM Solm ABI
@@ -388,38 +389,6 @@ theorem toByteArray_eq_toBytesBE (v : UInt256) :
   rw [hz, show (BE v.toNat).size = (toBytesBigEndian v.toNat).length from by simp [BE]]
   rfl
 
-/-- ABI-encoding `true` is the one-word value `1` (for `bool`-returning functions). -/
-theorem boolTrueReturnEncoding :
-    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
-  rw [toByteArray_eq_toBytesBE]
-  simp [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, abiTupleHeadSize?,
-    staticABIEncodedSize?, isDynamicABIType, encodeABIValuesFrom?, encodeABIValue?,
-    encodeABIWord?, Bool.toUInt256_true]
-  rfl
-
-/-- ABI-encoding a `uint256` return value is exactly the EVM's returned word bytes. -/
-theorem uint256ReturnEncoding (v : UInt256) :
-    encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat)) =
-      some (UInt256.toByteArray v) := by
-  have hword : EVM.word v.toNat = v := by
-    show UInt256.ofNat v.toNat = v
-    exact u256_ofNat_toNat v
-  have hval : encodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
-                = some (EVM.Word.toBytesBE v) := by
-    have hltNat : v.toNat < EVM.twoPow 256 := by
-      change v.val.val < EVM.twoPow 256
-      exact v.val.isLt
-    simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
-  have hdyn : isDynamicABIType (.elem (.int (.uint ⟨256, by decide⟩))) = false := rfl
-  have hhead : abiTupleHeadSize? [(.elem (.int (.uint ⟨256, by decide⟩)))] = some 32 := by
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  rw [toByteArray_eq_toBytesBE,
-    show encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
-        = encodeReturnValues? [(.elem (.int (.uint ⟨256, by decide⟩)))]
-            [.int (Int.ofNat v.toNat)] from rfl]
-  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
-    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
 
 /-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
 

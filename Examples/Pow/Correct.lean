@@ -1,6 +1,6 @@
 import Examples.Pow.Bytecode
 import Examples.Pow.Spec
-import Reasoning.ABIDecode
+import Reasoning.ABI
 import Reasoning.EVMWord
 import Reasoning.Theory
 import Reasoning.Dispatch

@@ -1,6 +1,6 @@
 import Examples.Caller.Bytecode
 import Examples.Caller.Spec
-import Reasoning.ABIDecode
+import Reasoning.ABI
 import Reasoning.EVMWord
 import Reasoning.Theory
 import Reasoning.Dispatch
@@ -385,7 +385,7 @@ theorem callerDecode_n {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
           (.address (Ethereum.AccountAddress.ofNat (callerArg0 I).toNat))).insert "n"
           (.int (Int.ofNat (callerArg1 I).toNat))) := by
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = _
-  simpa [addr, uint256, Pow.uint256, abiUInt256, calldataWord, callerArg0, callerArg1]
+  simpa [addr, uint256, abiUInt256, calldataWord, callerArg0, callerArg1]
     using decodeCalldata_addr_uint256_ok
       (cd := I.calldata) (x := "t") (y := "n") hsz68 hbig hcanon
 
@@ -394,7 +394,7 @@ theorem callerDecode_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, Pow.uint256, abiUInt256]
+  simpa [addr, uint256, abiUInt256]
     using decodeCalldata_addr_uint256_none_short
       (cd := I.calldata) (x := "t") (y := "n") hsz4 hshort
 
@@ -404,7 +404,7 @@ theorem callerDecode_none_noncanon {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, Pow.uint256, abiUInt256, calldataWord, callerArg0]
+  simpa [addr, uint256, abiUInt256, calldataWord, callerArg0]
     using decodeCalldata_addr_uint256_none_noncanon
       (cd := I.calldata) (x := "t") (y := "n") hsz68 hbig hnc
 
@@ -412,7 +412,7 @@ theorem callerDecode_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.call
     decodeCalldata (runTransition.params.map Param.name)
         (transitionSignature runTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["t", "n"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, Pow.uint256, abiUInt256]
+  simpa [addr, uint256, abiUInt256]
     using decodeCalldata_addr_uint256_none_huge
       (cd := I.calldata) (x := "t") (y := "n") hbig
 

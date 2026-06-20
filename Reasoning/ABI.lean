@@ -2,7 +2,7 @@ import ABI.Decode
 import Reasoning.Memory
 
 /-!
-# ABI decoder facts
+# ABI — calldata decode and return-value encode facts
 
 Small, reusable facts for evaluating the Solm ABI decoder on common static calldata shapes.
 These lemmas keep examples from unfolding the recursive ABI decoder with large `simp` calls.
@@ -768,5 +768,41 @@ theorem decodeCalldata_address_address_none_huge {cd : ByteArray} {x y : Solm.Id
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
   · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+
+
+/-! ## Return-value (`RETURN`) ABI encoding -/
+
+/-- ABI-encoding `true` is the one-word value `1` (for `bool`-returning functions). -/
+theorem boolTrueReturnEncoding :
+    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
+  rw [toByteArray_eq_toBytesBE]
+  simp [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, abiTupleHeadSize?,
+    staticABIEncodedSize?, isDynamicABIType, encodeABIValuesFrom?, encodeABIValue?,
+    encodeABIWord?, Bool.toUInt256_true]
+  rfl
+
+/-- ABI-encoding a `uint256` return value is exactly the EVM's returned word bytes. -/
+theorem uint256ReturnEncoding (v : UInt256) :
+    encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat)) =
+      some (UInt256.toByteArray v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  have hval : encodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
+                = some (EVM.Word.toBytesBE v) := by
+    have hltNat : v.toNat < EVM.twoPow 256 := by
+      change v.val.val < EVM.twoPow 256
+      exact v.val.isLt
+    simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
+  have hdyn : isDynamicABIType (.elem (.int (.uint ⟨256, by decide⟩))) = false := rfl
+  have hhead : abiTupleHeadSize? [(.elem (.int (.uint ⟨256, by decide⟩)))] = some 32 := by
+    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    decide
+  rw [toByteArray_eq_toBytesBE,
+    show encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
+        = encodeReturnValues? [(.elem (.int (.uint ⟨256, by decide⟩)))]
+            [.int (Int.ofNat v.toNat)] from rfl]
+  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
+    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
 
 end Reasoning.Theory
