@@ -62,7 +62,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
         let size := arrayWords*32
         pure (size,
           .indexed
-            (λ word idxVal _ ↦ 
+            (λ word idxVal _ ↦
                 let idxWord := keyValueToWord idxVal
                 -- TODO: maybe go directly to nat?
                 let idxNat := idxWord.toNat
@@ -77,7 +77,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
         let size := arrayWords*32
         pure (size,
           .indexed
-            (λ word idxVal _ ↦ 
+            (λ word idxVal _ ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -100,7 +100,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
         let elemsPerWord := 32 / elemSize
         pure (32,
           .indexed
-            (λ word idxVal _ ↦ 
+            (λ word idxVal _ ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -109,7 +109,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                 size := elemSize
                 bitOffset := .none
               })
-            (.some (λ word _ ↦ 
+            (.some (λ word _ ↦
               { slot := word
                 offset := 0
                 size := 32
@@ -123,7 +123,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
         let wordsPerElem := (elemSize + 32 - 1) / 32
         pure (32,
           .indexed
-            (λ word idxVal _ ↦ 
+            (λ word idxVal _ ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -132,7 +132,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                 size := elemSize
                 bitOffset := .none
               })
-            (.some (λ word _ ↦ 
+            (.some (λ word _ ↦
               { slot := word
                 offset := 0
                 size := 32
@@ -146,9 +146,9 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
       let (elemSize, node) := (1, StorageNode.atomic (.int (.uint ⟨8, (by simp), (by simp)⟩)))
       let elemsPerWord := 32
       pure (32, .indexed
-        (λ word idxVal evm ↦ 
+        (λ word idxVal evm ↦
           let packed := checkBytesPacked word evm
-          if packed then 
+          if packed then
             let idxWord := keyValueToWord idxVal
             -- TODO: maybe go directly to nat?
             let idxNat := idxWord.toNat
@@ -174,7 +174,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
               bitOffset := .none
             }
         )
-        (.some (λ word evm ↦ 
+        (.some (λ word evm ↦
           if checkBytesPacked word evm then
             { slot := word
               offset := 0
@@ -248,7 +248,7 @@ def interToLoc (iloc : IntermediateStorageLoc) (t : ElemType) (h : iloc.offset.v
                 have : iloc.size < 32 - iloc.offset.val + 1 := by omega
                 apply lt_of_lt_of_le this --(b := iloc.size < 32 - iloc.offset.val + 1)
                 suffices hnneg : 0 ≤ iloc.offset from by omega
-                simp 
+                simp
             }
     bitOffset := iloc.bitOffset
     type := t
@@ -275,7 +275,7 @@ def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List E
       let iloc := { slot := iloc'.slot  + loc.slot, offset := iloc'.offset, size := iloc'.size, bitOffset := iloc'.bitOffset }
       followSteps evm iloc steps' node'
     | _, _ => none
-  | [] => 
+  | [] =>
     match node with
     | .atomic t => if h : loc.offset.val + loc.size - 1 < 32 then pure (interToLoc loc t h) else .none
     | _ => .none
