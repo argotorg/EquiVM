@@ -653,6 +653,8 @@ inductive Stmt where
   /- `arr.pop()`: remove the last element of a dynamic storage array (reverts if empty),
      clearing the slot and shrinking its length by one -/
   | pop : StorageRef -> Stmt
+  /- `delete x`: reset the storage at `x` to its zero value (recursively, per its type) -/
+  | delete : StorageRef -> Stmt
   deriving Repr, Inhabited
 
 
@@ -898,6 +900,40 @@ mutual
         match StorageRef.decEq rx ry with
         | isTrue hr => isTrue (by cases hr; rfl)
         | isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .delete rx, .delete ry =>
+        match StorageRef.decEq rx ry with
+        | isTrue hr => isTrue (by cases hr; rfl)
+        | isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .delete _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .assign _ _ => isFalse (by intro h; cases h)
+    | .assign _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .break => isFalse (by intro h; cases h)
+    | .break, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .continue => isFalse (by intro h; cases h)
+    | .continue, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .delete _ => isFalse (by intro h; cases h)
     | .push _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .assign _ _ => isFalse (by intro h; cases h)

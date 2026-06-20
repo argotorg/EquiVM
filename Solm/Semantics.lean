@@ -389,6 +389,140 @@ lemma stepSize_lt_stepsSize : ∀ (slot : StorageRef) step,
       | _, _ => .error .storageError        -- length slot did not hold an integer
   | none => .ok ()                          -- no dynamic length (e.g. fixed-size): nothing to check
 
+/-- The declared `StorageType` reached by following one evaled step from a value of type `t`. -/
+def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
+  | .struct _ fields, .field name => (fields.find? (fun f => f.1 == name)).map (·.2)
+  | .tuple ts, .tupleElem k => ts[k]?
+  | .mapping _ v, .mindex _ => some v
+  | .array t' _, .aindex _ => some t'
+  | .dynamicArray t', .aindex _ => some t'
+  | _, _ => none
+
+/-- The declared `StorageType` of whatever the evaled ref `er` points at, walked from the contract's
+    storage declarations (the type tree carried by the frame, independent of the opaque layout). -/
+def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option StorageType := do
+  let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
+  er.steps.foldlM storageTypeStep? baseTy
+
+/- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
+   `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
+   fields, tuple/fixed-array elements, dynamic-array length + all data) is driven by `t`, so a
+   nested dynamic array is cleared in full (its inner length is read and every inner element
+   recursively cleared).  Mappings are skipped — their keys aren't enumerable, and solc's `delete`
+   on a mapping is likewise a no-op. -/
+mutual
+def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    StorageType -> EvalResult EVM.State
+  | .elem _ | .contract _ =>
+      match cfg.storage.layout er with
+      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc (.int 0))
+      | none => .error .storageError
+  | .mapping _ _ => .ok evm
+  | .struct _ fields => clearFields? cfg evm er fields
+  | .tuple ts => clearTupleElems? cfg evm er 0 ts
+  | .array t' n => clearArrayElems? cfg evm er t' n
+  | .dynamicArray t' =>
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      | some lenLoc =>
+          match storageLocLoad evm lenLoc with
+          | .int len =>
+              match clearArrayElems? cfg evm er t' len.toNat with
+              | .ok evm1 => EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int 0))
+              | r => r
+          | _ => .error .storageError
+      | none => .error .storageError
+  termination_by t => (sizeOf t, 0)
+
+def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    List (Ident × StorageType) -> EvalResult EVM.State
+  | [] => .ok evm
+  | (name, ft) :: rest =>
+      match clearStorage? cfg evm { er with steps := er.steps ++ [.field name] } ft with
+      | .ok evm1 => clearFields? cfg evm1 er rest
+      | r => r
+  termination_by fields => (sizeOf fields, 0)
+
+def clearTupleElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (k : Nat) :
+    List StorageType -> EvalResult EVM.State
+  | [] => .ok evm
+  | tt :: rest =>
+      match clearStorage? cfg evm { er with steps := er.steps ++ [.tupleElem k] } tt with
+      | .ok evm1 => clearTupleElems? cfg evm1 er (k+1) rest
+      | r => r
+  termination_by ts => (sizeOf ts, 0)
+
+def clearArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t' : StorageType) :
+    Nat -> EvalResult EVM.State
+  | 0 => .ok evm
+  | n+1 =>
+      match clearStorage? cfg evm { er with steps := er.steps ++ [.aindex (.int n)] } t' with
+      | .ok evm1 => clearArrayElems? cfg evm1 er t' n
+      | r => r
+  termination_by c => (sizeOf t', c)
+end
+
+/- Recursively write a structured `Value` into the storage of declared type `t` at `er` — the dual
+   of `clearStorage?`.  Leaves go through the opaque `layout` + `storageLocStore`; structure (struct
+   fields, tuple/array elements) is driven by `t`, and a `dynamicArray` target also writes its
+   length.  A type/value mismatch (or a mapping/`bytes` target) is an `.error`, never a partial
+   write. -/
+mutual
+def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    StorageType -> Value -> EvalResult EVM.State
+  | .elem _, v
+  | .contract _, v =>
+      match cfg.storage.layout er with
+      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
+      | none => .error .storageError
+  | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
+  | .tuple ts, .array vs => writeTupleElems? cfg evm er 0 ts vs
+  | .array t' n, .array vs =>
+      if vs.length = n then writeArrayElems? cfg evm er t' 0 vs
+      else .error .typeError
+  | .dynamicArray t', .array vs => do
+      -- clear the existing array first, so old elements beyond the new (possibly shorter) length
+      -- don't linger — matching solc's array-assignment cleanup, and preserving the
+      -- zero-beyond-length invariant that grow-only `push` relies on
+      let evm0 <- clearStorage? cfg evm er (.dynamicArray t')
+      let evm1 <- writeArrayElems? cfg evm0 er t' 0 vs
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+      EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
+  | _, _ => .error .typeError
+  termination_by t => (sizeOf t, 0)
+
+def writeFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    List (Ident × StorageType) -> List (Ident × Value) -> EvalResult EVM.State
+  | [], [] => .ok evm
+  | (name, ft) :: trest, (vname, fv) :: vrest =>
+      if name == vname then
+        match writeStorage? cfg evm { er with steps := er.steps ++ [.field name] } ft fv with
+        | .ok evm1 => writeFields? cfg evm1 er trest vrest
+        | r => r
+      else .error .typeError
+  | _, _ => .error .typeError
+  termination_by ftypes => (sizeOf ftypes, 0)
+
+def writeTupleElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (k : Nat) :
+    List StorageType -> List Value -> EvalResult EVM.State
+  | [], [] => .ok evm
+  | tt :: trest, v :: vrest =>
+      match writeStorage? cfg evm { er with steps := er.steps ++ [.tupleElem k] } tt v with
+      | .ok evm1 => writeTupleElems? cfg evm1 er (k+1) trest vrest
+      | r => r
+  | _, _ => .error .typeError
+  termination_by ts => (sizeOf ts, 0)
+
+def writeArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t' : StorageType)
+    (k : Nat) : List Value -> EvalResult EVM.State
+  | [] => .ok evm
+  | v :: rest =>
+      match writeStorage? cfg evm { er with steps := er.steps ++ [.aindex (.int k)] } t' v with
+      | .ok evm1 => writeArrayElems? cfg evm1 er t' (k+1) rest
+      | r => r
+  termination_by vs => (sizeOf t', sizeOf vs)
+end
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -466,10 +600,19 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
       pure ({ solm with locals := solm.locals.insert slot.base root' }, evm)
   | none =>
     match evalStorageRef cfg solm evm slot with
-    | .ok evaledStorageRef => do
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
-      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
-      pure (solm, evm')
+    | .ok evaledStorageRef =>
+      match value with
+      | .struct _ _ | .array _ => do
+        -- whole-array / whole-struct assignment: write every slot by the declared type
+        let ty <- EvalResult.ofOption .storageError
+          (storageTypeAt? solm.contract.storage evaledStorageRef)
+        let evm' <- writeStorage? cfg evm evaledStorageRef ty value
+        pure (solm, evm')
+      | _ => do
+        -- scalar leaf: a single whole/partial-slot store
+        let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
+        let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
+        pure (solm, evm')
     | .revert => .revert
     | .error e => .error e
 
@@ -731,134 +874,6 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option Va
   let valueToWrite := match value with | some v => v | none => .unit
   { caller with locals := caller.locals.insert retVar valueToWrite }
 
-/-- The declared `StorageType` reached by following one evaled step from a value of type `t`. -/
-def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
-  | .struct _ fields, .field name => (fields.find? (fun f => f.1 == name)).map (·.2)
-  | .tuple ts, .tupleElem k => ts[k]?
-  | .mapping _ v, .mindex _ => some v
-  | .array t' _, .aindex _ => some t'
-  | .dynamicArray t', .aindex _ => some t'
-  | _, _ => none
-
-/-- The declared `StorageType` of whatever the evaled ref `er` points at, walked from the contract's
-    storage declarations (the type tree carried by the frame, independent of the opaque layout). -/
-def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option StorageType := do
-  let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
-  er.steps.foldlM storageTypeStep? baseTy
-
-/- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
-   `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
-   fields, tuple/fixed-array elements, dynamic-array length + all data) is driven by `t`, so a
-   nested dynamic array is cleared in full (its inner length is read and every inner element
-   recursively cleared).  Mappings are skipped — their keys aren't enumerable, and solc's `delete`
-   on a mapping is likewise a no-op. -/
-mutual
-def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    StorageType -> EvalResult EVM.State
-  | .elem _ | .contract _ =>
-      match cfg.storage.layout er with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc (.int 0))
-      | none => .error .storageError
-  | .mapping _ _ => .ok evm
-  | .struct _ fields => clearFields? cfg evm er fields
-  | .tuple ts => clearTupleElems? cfg evm er 0 ts
-  | .array t' n => clearArrayElems? cfg evm er t' n
-  | .dynamicArray t' =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
-      | some lenLoc =>
-          match storageLocLoad evm lenLoc with
-          | .int len =>
-              match clearArrayElems? cfg evm er t' len.toNat with
-              | .ok evm1 => EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int 0))
-              | r => r
-          | _ => .error .storageError
-      | none => .error .storageError
-  termination_by t => (sizeOf t, 0)
-
-def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    List (Ident × StorageType) -> EvalResult EVM.State
-  | [] => .ok evm
-  | (name, ft) :: rest =>
-      match clearStorage? cfg evm { er with steps := er.steps ++ [.field name] } ft with
-      | .ok evm1 => clearFields? cfg evm1 er rest
-      | r => r
-  termination_by fields => (sizeOf fields, 0)
-
-def clearTupleElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (k : Nat) :
-    List StorageType -> EvalResult EVM.State
-  | [] => .ok evm
-  | tt :: rest =>
-      match clearStorage? cfg evm { er with steps := er.steps ++ [.tupleElem k] } tt with
-      | .ok evm1 => clearTupleElems? cfg evm1 er (k+1) rest
-      | r => r
-  termination_by ts => (sizeOf ts, 0)
-
-def clearArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t' : StorageType) :
-    Nat -> EvalResult EVM.State
-  | 0 => .ok evm
-  | n+1 =>
-      match clearStorage? cfg evm { er with steps := er.steps ++ [.aindex (.int n)] } t' with
-      | .ok evm1 => clearArrayElems? cfg evm1 er t' n
-      | r => r
-  termination_by c => (sizeOf t', c)
-end
-
-/- Recursively write a structured `Value` into the storage of declared type `t` at `er` — the dual
-   of `clearStorage?`.  Leaves go through the opaque `layout` + `storageLocStore`; structure (struct
-   fields, tuple/array elements) is driven by `t`, and a `dynamicArray` target also writes its
-   length.  A type/value mismatch (or a mapping/`bytes` target) is an `.error`, never a partial
-   write. -/
-mutual
-def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    StorageType -> Value -> EvalResult EVM.State
-  | .elem _, v
-  | .contract _, v =>
-      match cfg.storage.layout er with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
-      | none => .error .storageError
-  | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
-  | .tuple ts, .array vs => writeTupleElems? cfg evm er 0 ts vs
-  | .array t' _, .array vs => writeArrayElems? cfg evm er t' 0 vs
-  | .dynamicArray t', .array vs => do
-      let evm1 <- writeArrayElems? cfg evm er t' 0 vs
-      let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] })
-      EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
-  | _, _ => .error .typeError
-  termination_by t => (sizeOf t, 0)
-
-def writeFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    List (Ident × StorageType) -> List (Ident × Value) -> EvalResult EVM.State
-  | [], [] => .ok evm
-  | (name, ft) :: trest, (vname, fv) :: vrest =>
-      if name == vname then
-        match writeStorage? cfg evm { er with steps := er.steps ++ [.field name] } ft fv with
-        | .ok evm1 => writeFields? cfg evm1 er trest vrest
-        | r => r
-      else .error .typeError
-  | _, _ => .error .typeError
-  termination_by ftypes => (sizeOf ftypes, 0)
-
-def writeTupleElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (k : Nat) :
-    List StorageType -> List Value -> EvalResult EVM.State
-  | [], [] => .ok evm
-  | tt :: trest, v :: vrest =>
-      match writeStorage? cfg evm { er with steps := er.steps ++ [.tupleElem k] } tt v with
-      | .ok evm1 => writeTupleElems? cfg evm1 er (k+1) trest vrest
-      | r => r
-  | _, _ => .error .typeError
-  termination_by ts => (sizeOf ts, 0)
-
-def writeArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t' : StorageType)
-    (k : Nat) : List Value -> EvalResult EVM.State
-  | [] => .ok evm
-  | v :: rest =>
-      match writeStorage? cfg evm { er with steps := er.steps ++ [.aindex (.int k)] } t' v with
-      | .ok evm1 => writeArrayElems? cfg evm1 er t' (k+1) rest
-      | r => r
-  termination_by vs => (sizeOf t', sizeOf vs)
-end
-
 /-- `arr.push(v?)`: grow the dynamic array named by `ref` by one.  Reads the current length `L`
     (the layout's `.length` query); `some v` writes the value `v` at element `L` via `writeStorage?`
     — so scalar **and** compound (struct / nested array) elements are written in full, bypassing the
@@ -913,6 +928,18 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
   | .revert => .revert
   | .error e => .error e
 
+/-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
+    (`clearStorage?` — a dynamic array becomes empty, a struct/array is fully zeroed).  `.revert`s
+    only if evaluating the ref does; `.error`s on an ill-formed layout/type. -/
+def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
+    : EvalResult EVM.State :=
+  match evalStorageRef cfg solm evm ref with
+  | .ok er => do
+      let ty <- EvalResult.ofOption .storageError (storageTypeAt? solm.contract.storage er)
+      clearStorage? cfg evm er ty
+  | .revert => .revert
+  | .error e => .error e
+
 mutual
 
 inductive ExecStmt (cfg : Config) :
@@ -958,6 +985,12 @@ inductive ExecStmt (cfg : Config) :
   | popRevert :
       popArray? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.pop ref) .reverted
+  | delete :
+      deleteStorage? cfg solm evm ref = .ok evm' ->
+      ExecStmt cfg solm evm (.delete ref) (.ok solm evm')
+  | deleteRevert :
+      deleteStorage? cfg solm evm ref = .revert ->
+      ExecStmt cfg solm evm (.delete ref) .reverted
   | requireTrue {condExpr} :
       evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
       ExecStmt cfg solm evm (.require condExpr) (.ok solm evm)

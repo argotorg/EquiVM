@@ -19,3 +19,6 @@
 - Optimizations on vs off
 
 - Maybe Solidity example with inline assembly
+
+- array assignment? 
+
