@@ -31,6 +31,21 @@ def worldOf (s : State) : Batteries.RBSet AccountAddress compare × AccountMap :
     value).  The structural rules are agnostic to what a `StateRel` actually says. -/
 abbrev StateRel := Cursor → Frame → State → Prop
 
+namespace StateRel
+
+/-- Mechanically transform a relation across one concrete proof step.  The new relation pins the
+    new cursor/frame/EVM state exactly and retains the old relation fact at the old state. -/
+def stepFrom (R : StateRel) (cur0 : Cursor) (frame0 : Frame) (evm0 : State)
+    (cur1 : Cursor) (frame1 : Frame) (evm1 : State) : StateRel :=
+  fun cur frame evm => cur = cur1 ∧ frame = frame1 ∧ evm = evm1 ∧ R cur0 frame0 evm0
+
+theorem stepFrom_here {R : StateRel} {cur0 cur1 : Cursor} {frame0 frame1 : Frame}
+    {evm0 evm1 : State} (hrel : R cur0 frame0 evm0) :
+    StateRel.stepFrom R cur0 frame0 evm0 cur1 frame1 evm1 cur1 frame1 evm1 := by
+  exact ⟨rfl, rfl, rfl, hrel⟩
+
+end StateRel
+
 /-- A locals-only variant of `StateRel`.  This is useful for internal/callable bodies: their entry
     and exit frames may differ in the surrounding contract context, but most coupling facts only
     mention the local store. -/
@@ -66,6 +81,12 @@ structure CoupledState (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 :
   hworld : cur.world = worldOf evm
   hrel : R cur frame evm
 
+/-- Cursor packaging for positional `RD` facts. -/
+def cursorOfRD (pc : UInt256) (stack : List UInt256) (mem : ByteArray)
+    (aw : UInt256) (rdata : ByteArray)
+    (world : Batteries.RBSet AccountAddress compare × AccountMap) : Cursor :=
+  { pc := pc, stack := stack, mem := mem, aw := aw, rdata := rdata, world := world }
+
 /-- Package a reached cursor and coupled Solm state as a concrete proof state. -/
 def CoupledState.reached {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {R : StateRel} {pc : UInt256}
@@ -75,6 +96,40 @@ def CoupledState.reached {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     CoupledState code ee g s0 R pc :=
   { cur := cur, k := k, C := C, frame := frame, evm := evm,
     hpc := hpc, hRD := hRD, hworld := hworld, hrel := hrel }
+
+/-- Package a positional `RD` fact directly as a concrete coupled proof state.  This hides the
+    routine `RD → RDc` conversion at handoff points where bytecode helpers still expose positional
+    reachability. -/
+def CoupledState.ofRD {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {R : StateRel} {pc : UInt256}
+    {stack : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {world : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (frame : Frame) (evm : State)
+    (hRD : RD code ee g s0 pc stack mem aw rdata world k C)
+    (hworld : world = worldOf evm)
+    (hrel : R (cursorOfRD pc stack mem aw rdata world) frame evm) :
+    CoupledState code ee g s0 R pc := by
+  let cur := cursorOfRD pc stack mem aw rdata world
+  have hRDc : RDc code ee g s0 cur k C := by
+    change RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C
+    simpa [cur, cursorOfRD] using hRD
+  have hworld' : cur.world = worldOf evm := by
+    simpa [cur, cursorOfRD] using hworld
+  exact CoupledState.reached cur k C frame evm rfl hRDc hworld' hrel
+
+/-- Advance a coupled state using a positional `RD` fact and a mechanical relation transform. -/
+def CoupledState.stepRD {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {R : StateRel} {pc pc' : UInt256}
+    {stack' : List UInt256} {mem' : ByteArray} {aw' : UInt256} {rdata' : ByteArray}
+    {world' : Batteries.RBSet AccountAddress compare × AccountMap} {k' C' : ℕ}
+    (st : CoupledState code ee g s0 R pc)
+    (frame' : Frame) (evm' : State)
+    (hRD : RD code ee g s0 pc' stack' mem' aw' rdata' world' k' C')
+    (hworld : world' = worldOf evm') :
+    CoupledState code ee g s0
+      (StateRel.stepFrom R st.cur st.frame st.evm
+        (cursorOfRD pc' stack' mem' aw' rdata' world') frame' evm') pc' :=
+  CoupledState.ofRD frame' evm' hRD hworld (StateRel.stepFrom_here st.hrel)
 
 /-- Compatibility wrapper for older proof scripts; prefer `CoupledState.reached` at the new state. -/
 def CoupledState.next {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -202,6 +257,52 @@ theorem CoupledState.refines.consNormalAt {code : ByteArray} {ee : ExecutionEnv}
   obtain ⟨result, hblock, hpost⟩ := hrest
   exact ⟨result, ExecBlock.consNormal hstmt hblock, hpost⟩
 
+/-- Progress a source-only `require` known to evaluate to true.  The EVM cursor/relation are
+    unchanged; this is useful when the corresponding bytecode check has already happened before the
+    current coupled point. -/
+theorem CoupledState.refines.requireTrue {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {cond : Expr} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (heval : evalExpr? cfg st.frame st.evm cond = .ok (.bool true))
+    (hrest : CoupledState.refines st cfg rest Post) :
+    CoupledState.refines st cfg (.require cond :: rest) Post :=
+  CoupledState.refines.consNormalAt st st (ExecStmt.requireTrue heval) hrest
+
+/-- Progress a `letDecl` while advancing to a caller-supplied coupled state.  The bytecode-side
+    progress is intentionally abstracted into `st'`: callers prove whatever cursor/RD/relation facts
+    their compiled pattern establishes, while this rule handles the generic source-frame update. -/
+theorem CoupledState.refines.letDeclAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc pc' : UInt256} {R R' : StateRel}
+    {Post : StmtPost} {name : Ident} {ty : Option ABIType} {expr : Expr} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (st' : CoupledState code ee g s0 R' pc')
+    {value : Value}
+    (heval : evalExpr? cfg st.frame st.evm expr = .ok value)
+    (hframe : st'.frame = { st.frame with locals := st.frame.locals.insert name value })
+    (hevm : st'.evm = st.evm)
+    (hrest : CoupledState.refines st' cfg rest Post) :
+    CoupledState.refines st cfg (.letDecl name ty expr :: rest) Post := by
+  refine CoupledState.refines.consNormalAt st st' ?_ hrest
+  rw [hframe, hevm]
+  exact ExecStmt.letDecl heval
+
+/-- Progress an `assign` while advancing to a caller-supplied coupled state.  As with
+    `letDeclAt`, the EVM reachability and relation update live in `st'`; this rule packages the
+    generic Solm assignment semantics. -/
+theorem CoupledState.refines.assignAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc pc' : UInt256} {R R' : StateRel}
+    {Post : StmtPost} {slot : StorageRef} {expr : Expr} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (st' : CoupledState code ee g s0 R' pc')
+    {value : Value}
+    (heval : evalExpr? cfg st.frame st.evm expr = .ok value)
+    (hassign : assignStorageRef? cfg st.frame st.evm slot value = .ok (st'.frame, st'.evm))
+    (hrest : CoupledState.refines st' cfg rest Post) :
+    CoupledState.refines st cfg (.assign slot expr :: rest) Post := by
+  refine CoupledState.refines.consNormalAt st st' ?_ hrest
+  exact ExecStmt.assign heval hassign
+
 /-- Concrete **consReturn** rule.  The caller-supplied postcondition decides what a Solm `return`
     means for this proof context. -/
 theorem CoupledState.refines.consReturn {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -215,6 +316,42 @@ theorem CoupledState.refines.consReturn {code : ByteArray} {ee : ExecutionEnv} {
     CoupledState.refines st cfg (s :: rest) Post := by
   obtain ⟨frame', evm', rv, hstmt, hpost⟩ := hhead
   exact ⟨.returned frame' evm' rv, ExecBlock.consReturn hstmt, hpost⟩
+
+/-- Concrete **consRevert** rule.  The tail is never reached. -/
+theorem CoupledState.refines.consRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {s : Stmt} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hhead : ExecStmt cfg st.frame st.evm s .reverted ∧ Post .reverted) :
+    CoupledState.refines st cfg (s :: rest) Post := by
+  obtain ⟨hstmt, hpost⟩ := hhead
+  exact ⟨.reverted, ExecBlock.consRevert hstmt, hpost⟩
+
+/-- Concrete **consBreak** rule.  The tail is never reached. -/
+theorem CoupledState.refines.consBreak {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {s : Stmt} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hhead :
+      ∃ frame' evm',
+        ExecStmt cfg st.frame st.evm s (.break frame' evm') ∧
+        Post (.break frame' evm')) :
+    CoupledState.refines st cfg (s :: rest) Post := by
+  obtain ⟨frame', evm', hstmt, hpost⟩ := hhead
+  exact ⟨.break frame' evm', ExecBlock.consBreak hstmt, hpost⟩
+
+/-- Concrete **consContinue** rule.  The tail is never reached. -/
+theorem CoupledState.refines.consContinue {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc : UInt256} {R : StateRel}
+    {Post : StmtPost} {s : Stmt} {rest : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (hhead :
+      ∃ frame' evm',
+        ExecStmt cfg st.frame st.evm s (.continue frame' evm') ∧
+        Post (.continue frame' evm')) :
+    CoupledState.refines st cfg (s :: rest) Post := by
+  obtain ⟨frame', evm', hstmt, hpost⟩ := hhead
+  exact ⟨.continue frame' evm', ExecBlock.consContinue hstmt, hpost⟩
 
 /-- Postcondition for one loop-body iteration.  Normal fall-through and `continue` return to the
     loop head with the decreased invariant; `break` exits the loop; `return`/`revert` are terminal
@@ -718,6 +855,35 @@ def seqPost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
       Post (.break frame' evm')
   | .continue frame' evm' =>
       Post (.continue frame' evm')
+
+/-- Concrete **seq (chunk composition)** for coupled proof states.  The first chunk is proved from
+    the current state using `seqPost`; on fall-through, the midpoint facts are repackaged as the
+    coupled state consumed by the second chunk. -/
+theorem CoupledState.refines.seq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {cfg : Config} {pc pcmid : UInt256} {R S : StateRel} {Post : StmtPost}
+    {s1 s2 : List Stmt}
+    (st : CoupledState code ee g s0 R pc)
+    (h1 : CoupledState.refines st cfg s1 (seqPost code ee g s0 pcmid S Post))
+    (h2 : ∀ st' : CoupledState code ee g s0 S pcmid,
+      CoupledState.refines st' cfg s2 Post) :
+    CoupledState.refines st cfg (s1 ++ s2) Post := by
+  obtain ⟨result1, hblock1, hmatch1⟩ := h1
+  cases result1 with
+  | ok frame1 evm1 =>
+      obtain ⟨cur1, k1, C1, hpc1, hRD1, hw1, hS⟩ := hmatch1
+      let st1 : CoupledState code ee g s0 S pcmid :=
+        { cur := cur1, k := k1, C := C1, frame := frame1, evm := evm1,
+          hpc := hpc1, hRD := hRD1, hworld := hw1, hrel := hS }
+      obtain ⟨result2, hblock2, hmatch2⟩ := h2 st1
+      exact ⟨result2, execBlock_append hblock1 hblock2, hmatch2⟩
+  | returned frame1 evm1 rv =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
+  | reverted =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
+  | «break» frame1 evm1 =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
+  | «continue» frame1 evm1 =>
+      exact ⟨_, execBlock_append_term hblock1 (by intro f' e' h; simp at h), hmatch1⟩
 
 /-- **seq (chunk composition).**  Glue two chunks at a chosen boundary `pcmid`.  If `s1` falls
     through, its `seqPost` supplies the `RDc` cursor and relation for `s2`; if `s1` returns,
