@@ -39,28 +39,51 @@ inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : 
 
 inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
-  (actRes : ExecResult) (t : Option ABIType) : Prop where
+  (solmRes : ExecResult) (t : Option ABIType) : Prop where
   | success :
     evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
-    actRes = .returned _ actState retVal →
-    createdAccounts' = actState.createdAccounts →
-    σ' = actState.accountMap →
-    -- A' = actState.substate → /- We ignore the substate -/
+    solmRes = .returned _ solmState retVal →
+    createdAccounts' = solmState.createdAccounts →
+    σ' = solmState.accountMap →
+    -- A' = solmState.substate → /- We ignore the substate -/
     returnEquiv o retVal t →
-    execResultsEquiv evmRes actRes t
+    execResultsEquiv evmRes solmRes t
   | revert :
     evmRes = .ok (.revert g o) →
-    actRes = .reverted →
-    execResultsEquiv evmRes actRes t
+    solmRes = .reverted →
+    execResultsEquiv evmRes solmRes t
   -- There is intentionally no case for `evmRes = .error e`: bytecode that refines a Solm spec
   -- must never halt exceptionally.  A Solm `.reverted` is matched only by a clean `REVERT`
   -- (the `revert` case above); a real EVM exception leaves `execResultsEquiv` unmatchable, so the
   -- equivalence fails rather than silently equating a crash with a revert.  (Out-of-gas is handled
   -- separately by `runtimeEquivalenceFor.outOfGas`, not here.)
+  -- Note: the static mode error can actually happen for valid contracts, but that is very specific
 
+inductive ctorResultEquiv
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (solmRes : ExecResult) (runtimeCode : ByteArray) : Prop where
+  | success :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned _ solmState .none →
+    createdAccounts' = solmState.createdAccounts →
+    σ' = solmState.accountMap →
+    -- A' = solmState.substate → /- We ignore the substate -/
+    o = runtimeCode →
+    ctorResultEquiv evmRes solmRes runtimeCode
+  | revert :
+    evmRes = .ok (.revert g o) →
+    solmRes = .reverted →
+    -- TODO: something like: decode o = retVal
+    ctorResultEquiv evmRes solmRes runtimeCode
+  | error :
+    -- TODO: is this what needs to happen?
+    -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
+    evmRes = .error e →
+    solmRes = .reverted →
+    ctorResultEquiv evmRes solmRes runtimeCode
 
 -- Solm transaction dispatch and execution.
-inductive actExec
+inductive solmExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
@@ -71,7 +94,7 @@ inductive actExec
     (g : Ethereum.UInt256)
     (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
-    (actRes : ExecResult)
+    (solmRes : ExecResult)
 : Option ABIType -> Prop where
   | intro :
     /- Solm transition dispatch -/
@@ -89,8 +112,42 @@ inductive actExec
           blocks := blocks
           genesisBlockHeader := genesisBlockHeader
       } →
-    ExecTransitionBody conf contract evmState callargs transition.body actRes →
-    actExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I actRes transition.returnType
+    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
+    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes transition.returnType
+
+-- Solm constructor execution.
+inductive solmCtorExec
+    (conf : Config)
+    (contract : ContractDecl) /- Spec -/
+    (args : List Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ : Ethereum.AccountMap)
+    (σ₀ : Ethereum.AccountMap)
+    (g : Ethereum.UInt256)
+    (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv)
+    (solmRes : ExecResult)
+: Prop where
+  | intro :
+    evmState =
+      { (default : EVM.State) with
+          accountMap := σ
+          σ₀ := σ₀
+          executionEnv := I
+          substate := A
+          createdAccounts := createdAccounts
+          machineState.gasAvailable := .ofUInt256 g
+          blocks := blocks
+          genesisBlockHeader := genesisBlockHeader
+      } →
+    -- This may be redundant when `cfg.selfDeployment` already enforces valid constructor ABI
+    -- encoding, but it keeps the parameter store from relying on `List.zip` truncation.
+    args.length = contract.ctor.params.length →
+    argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
+    ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
+    solmCtorExec conf contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
 
 inductive runtimeEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
@@ -103,13 +160,13 @@ inductive runtimeEquivalenceFor (cfg : Config)
     (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) /- contains the EVM bytecode -/
 : Prop where
-  | execution {Ξ_res actRes returnType} : /- Both executions return -/
+  | execution {Ξ_res solmRes returnType} : /- Both executions return -/
     /- Execute EVM transaction-/
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = Ξ_res →
     /- Solm transition dispatch + execution -/
-    actExec cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I actRes returnType →
+    solmExec cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes returnType →
     /- Resulting states and return must be equivalent equivalence -/
-    execResultsEquiv Ξ_res actRes returnType →
+    execResultsEquiv Ξ_res solmRes returnType →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
   | noDispatch : /- Dispatch fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .none →
@@ -147,3 +204,73 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I
     ) →
     runtimeEquivalence!?! cfg bytecode contract
+
+inductive constructorEquivalenceFor (cfg : Config)
+    (contract : ContractDecl) /- Spec -/
+    (args : List Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ : Ethereum.AccountMap)
+    (σ₀ : Ethereum.AccountMap)
+    (g : Ethereum.UInt256)
+    (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv) /- contains the EVM bytecode -/
+    (runtimeCode : ByteArray)
+: Prop where
+  | execution {Ξ_res solmRes} : /- Both executions return -/
+    /- Execute EVM transaction-/
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = Ξ_res →
+    /- Solm constructor + execution -/
+    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes →
+    /- Resulting states must be equivalent, and the EVM return bytes should equal the runtime code -/
+    ctorResultEquiv Ξ_res solmRes runtimeCode →
+    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I runtimeCode 
+  | outOfGas : /- EVM runs out of gas -/
+    /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I runtimeCode
+
+
+inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) (runtimeCode : ByteArray) : Prop where
+  | intro :
+    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+      (genesisBlockHeader : Ethereum.BlockHeader)
+      (blocks : Ethereum.ProcessedBlocks)
+      (σ : Ethereum.AccountMap)
+      (σ₀ : Ethereum.AccountMap)
+      (g : Ethereum.UInt256)
+      (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv)
+      (args : List Value)
+      (deployedInitcode : ByteArray),
+    -- This should handle creating the initcode ++ arguments,
+    -- and also enforce that we are only checking equivalence for valid argument values.
+    -- We do not need to check for arbitraty given values, because the Solidity compiler
+    -- does not perform the same ABI decoding checks as for message calldata. The reason behind
+    -- this is that create calls are generated by the compiler itself, and so they are trusted.
+    -- Thus, we have the opposite situation from runtime messages, where the Solm spec
+    -- defines the arguments to check, instead of checking for arbitrary bytearray inputs.
+    cfg.selfDeployment initcode args = .some deployedInitcode →
+    I.code = deployedInitcode →
+    I.calldata = .empty →
+    -- A top-level message call is never executed in static (read-only) mode: the EVM's
+    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
+    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
+    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
+    I.perm = true →
+    -- We need to enforce that all successful execution paths return the same runtime code
+    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I runtimeCode
+    ) →
+    constructorEquivalence cfg initcode contract runtimeCode
+
+-- Technically could give only initcode and derive runtime code from it, but lets be explicit.
+-- Note: right now we are only comparing code execution i.e. EVM.Ξ with solmExec.
+-- We do not have a model of message calls (Θ) for the spec (which would handle balance transfer for example)
+-- If it were implemented however it would likely exactly mirror the EVM version except for calling solmExec
+-- instead of EVM.Ξ, so on the equivalence checking level it is uninteresting
+inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalence!?! cfg runtimeCode contract →
+    contractEquivalence cfg initcode runtimeCode contract

@@ -869,6 +869,23 @@ def sstoreAccountMap (Iₐ : AccountAddress) (σ : AccountMap) (slot val : UInt2
         (if val == default then {acc with storage := acc.storage.erase slot}
          else {acc with storage := acc.storage.insert slot val}))
 
+/-- `EVM.storageStore` updates the account map exactly as `sstoreAccountMap` does. -/
+theorem storageStore_accountMap (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
+    (EVM.storageStore evm a slot val).accountMap = sstoreAccountMap a evm.accountMap slot val := by
+  simp only [EVM.storageStore, sstoreAccountMap, State.lookupAccount]
+  cases evm.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
+
+/-- `EVM.storageStore` does not change the created-account set. -/
+theorem storageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
+    (slot val : UInt256) :
+    (EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
+  simp only [EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? a with
+  | none => rfl
+  | some acc => simp only [Option.option, State.setAccount]
+
 @[simp] theorem stSStore_accountMap (s : State) (slot val : UInt256) (t : List UInt256) :
     (stSStore s slot val t).accountMap
       = sstoreAccountMap s.executionEnv.codeOwner s.accountMap slot val := rfl
@@ -931,6 +948,33 @@ theorem returndatasize_xstep {s : State} {code : ByteArray} {pcv : UInt256} {res
     rw [if_neg hg, if_neg hov', if_neg hg2]
     simp only [GasConstants.Gbase, stReturndatasize]
 
+/-! ### CODESIZE (cost 2, pushes `|code|`) -/
+
+def stCodesize (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat s.executionEnv.code.size :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem codesize_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CODESIZE, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stCodesize s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CODESIZE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_codesize s hd]
+  by_cases hg : s.machineState.gasAvailable.toNat < GasConstants.Gbase
+  · have : s.machineState.gasAvailable.toNat < 2 := by simpa [GasConstants.Gbase] using hg
+    rw [if_pos hg, if_pos this]
+  · have hg2 : ¬ s.machineState.gasAvailable.toNat < 2 := by simpa [GasConstants.Gbase] using hg
+    have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+    rw [if_neg hg, if_neg hov', if_neg hg2]
+    simp only [GasConstants.Gbase, stCodesize]
+
 /-! ### RETURNDATACOPY (`a :: b :: c :: t ↦ t`, copy `returnData[b .. b+c]` to `mem[a .. a+c]`;
     two-stage gas `memCost` then `Gverylow + Gcopy·⌈c/32⌉`, plus the `b + c ≤ |returnData|` guard) -/
 
@@ -971,6 +1015,45 @@ theorem returndatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256
     · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
         simp only [List.length_cons]; omega
       simp only [hg1, hg2, hmemok, hov', if_false, stReturndatacopy]
+
+/-! ### CODECOPY (`a :: b :: c :: t ↦ t`, copy `code[b .. b+c]` to `mem[a .. a+c]`) -/
+
+def stCodecopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      memory := s.executionEnv.code.write b.toNat s.machineState.memory a.toNat c.toNat,
+      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat c.toNat),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CODECOPY)).subNat
+          (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) } }
+
+theorem codecopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CODECOPY, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: t)
+    (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .CODECOPY
+         then .error .OutOfGass
+         else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CODECOPY)).toNat
+                < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+              then .error .OutOfGass
+              else .ok (stCodecopy s a b c t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CODECOPY, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_codecopy s hd, hstk]
+  by_cases hg1 : s.machineState.gasAvailable.toNat < memoryExpansionCost s .CODECOPY
+  · simp only [hg1, if_true]
+  · by_cases hg2 : (s.machineState.gasAvailable.subNat
+        (memoryExpansionCost s .CODECOPY)).toNat
+        < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+    · simp only [hg1, hg2, if_true, if_false]
+    · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
+        simp only [List.length_cons]; omega
+      simp only [hg1, hg2, hov', if_false, stCodecopy]
 
 /-! ### STOP (halt *success*, empty output, cost `Gzero = 0`) -/
 

@@ -1,5 +1,6 @@
 import EVM.Types
 import ABI.Types
+import ABI.Encode
 import Solm.Value
 import Solm.Storage
 
@@ -201,3 +202,10 @@ def genSolidityLayout (structs : List StructDecl) (decls : List StorageDecl) : O
   pure $ λ evaledStorageRef ↦ do
     let (iloc, node') <- indirector evaledStorageRef.base
     followSteps iloc evaledStorageRef.steps node'
+
+
+-- TODO Maybe move this, or make the file be for general solidity specific components
+def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
+  let args ← ABI.encodeABIValues? (params.map Param.ty) values
+  pureInit ++ args.toByteArray
+

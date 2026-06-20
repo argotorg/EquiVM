@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.SolidityLayout
 
 /-!
 # ERC20 — Solm specification for `ERC20.sol`
@@ -196,7 +197,8 @@ end ERC20
 
 def erc20Config : Config :=
   { storage := ERC20.erc20StorageLayout
-    externalABI := defaultExternalCallABI }
+    externalABI := defaultExternalCallABI
+    selfDeployment := genSolidityConstructorDeployment ERC20.erc20Contract.ctor.params }
 
 @[simp] theorem erc20Config_storage_totalSupply :
     erc20Config.storage.layout { base := "totalSupply", steps := [] } =

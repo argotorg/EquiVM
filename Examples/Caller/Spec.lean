@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.SolidityLayout
 import Examples.Pow.Spec
 
 /-!
@@ -75,4 +76,5 @@ end Caller
 /-- Verification config: `stored` at slot 0, and the `pow2` external-call ABI. -/
 def callerConfig : Config :=
   { storage := Caller.callerStorageLayout
-    externalABI := Caller.callerExternalABI }
+    externalABI := Caller.callerExternalABI
+    selfDeployment := genSolidityConstructorDeployment Caller.callerContract.ctor.params }

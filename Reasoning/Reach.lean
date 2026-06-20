@@ -487,6 +487,35 @@ theorem RD.returndatasize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
       · exact hee
       · exact hworld
 
+/-- `CODESIZE` pushes the size of the current code bytearray. -/
+theorem RD.codesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.CODESIZE, .none)) (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat code.size :: stk) mem aw rdata acc
+      (k + 1) (C + 2) := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact (by unfold RD; exact Or.inl hoog)
+  · have st := codesize_xstep hcode hpc hdec hstk hov
+    rw [show UInt256.ofNat code.size = UInt256.ofNat s.executionEnv.code.size from by rw [hcode]]
+    unfold RD
+    by_cases gg : g.toNat < C + 2
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stCodesize s,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stCodesize]; exact hcode
+      · simp only [stCodesize]; rw [hpc]
+      · simp only [stCodesize]; rw [hcode, hstk]
+      · simp only [stCodesize]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stCodesize]; exact hmem
+      · simp only [stCodesize]; exact haw
+      · simp only [stCodesize]; exact hrdata
+      · simp only [stCodesize]; exact hacc
+      · exact hee
+      · exact hworld
+
 /-- The four-opcode idiom `RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY` — copy the *entire* return
     data to `mem[0]`.  Done as one combinator so the `RETURNDATACOPY` length argument stays tied to
     `|returnData|` (the size just pushed), discharging its `b + c ≤ |returnData|` guard internally
@@ -984,6 +1013,47 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       · simp only [stMStore]; rw [haw, hawout]
       · simp only [stMStore]; exact hrdata
       · simp only [stMStore]; exact hacc
+      · exact hee
+      · exact hworld
+
+/-- `CODECOPY`: pops destination, code offset, and length; copies code bytes into memory. -/
+theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
+    (memout : ByteArray) (awout : UInt256)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.CODECOPY, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
+        memoryExpansionCost s .CODECOPY = mcost)
+    (hmemout : code.write b.toNat mem a.toNat c.toNat = memout)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+      (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .CODECOPY = mcost := hmc s haw hstk
+    have st := codecopy_xstep hcode hpc hdec hstk hov
+    rw [hmcS] at st
+    rw [collapse_two_stage] at st
+    by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · have hcost_pos :
+          0 < mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) := by
+        simp [GasConstants.Gverylow]
+      refine Or.inr ⟨stCodecopy s a b c t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stCodecopy]; exact hcode
+      · simp only [stCodecopy]; rw [hpc]
+      · rfl
+      · simp only [stCodecopy, hmcS]
+        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stCodecopy]; rw [hcode, hmem, hmemout]
+      · simp only [stCodecopy]; rw [haw, hawout]
+      · simp only [stCodecopy]; exact hrdata
+      · simp only [stCodecopy]; exact hacc
       · exact hee
       · exact hworld
 
