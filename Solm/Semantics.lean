@@ -436,6 +436,7 @@ mutual
     | .newArray _ lenExpr => exprEvalSize lenExpr + 1
     | .structLit _ fields => structFieldsEvalSize fields + 1
     | .arrayLit elems => exprListEvalSize elems + 1
+    | .tupleLit elems => exprListEvalSize elems + 1
     | .bytesSlice baseE startE endE =>
         exprEvalSize baseE + exprEvalSize startE + exprEvalSize endE + 1
     | .var _ => 1
@@ -993,6 +994,9 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .arrayLit elems => do
       let vals <- evalExprList? cfg solm evm elems
       pure (.array vals)
+  | .tupleLit elems => do
+      let vals <- evalExprList? cfg solm evm elems
+      pure (.tuple vals)
   | .bytesSlice baseE startE endE => do
       let baseV <- evalExpr? cfg solm evm baseE
       let startV <- evalExpr? cfg solm evm startE

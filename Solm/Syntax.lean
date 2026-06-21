@@ -241,9 +241,12 @@ inductive Expr where
   /- struct literal `S({field₁: e₁, …})`: builds a `Value.struct` from the named field expressions
      (e.g. `Proposal({name: x, voteCount: 0})`). -/
   | structLit : Ident -> List (Ident × Expr) -> Expr
-  /- array / tuple literal `[e₁, …]`: builds a `Value.array` from the element expressions.  Also used
-     to assemble a multi-value (tuple) return, whose value representation is `Value.array`. -/
+  /- array literal `[e₁, …]`: builds a `Value.array` from the element expressions. -/
   | arrayLit : List Expr -> Expr
+  /- tuple literal: builds a `Value.tuple` from the element expressions.  Used to assemble a
+     multi-value (tuple) return (e.g. a struct getter returning `(a, b)`); its value representation
+     is `Value.tuple`, distinct from `Value.array`. -/
+  | tupleLit : List Expr -> Expr
   /- `b[start:end]`: byte slice of dynamic bytes `b` over `[start, end)` -/
   | bytesSlice : Expr /- base -/ -> Expr /- start -/ -> Expr /- end -/ -> Expr
   | var : Ident -> Expr
@@ -761,6 +764,50 @@ mutual
     | .arrayLength _ _, .arrayLit _ => isFalse (by intro h; cases h)
     | .structLit _ _, .arrayLit _ => isFalse (by intro h; cases h)
     | .arrayLit _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .tupleLit xs, .tupleLit ys =>
+        match Expr.decEqList xs ys with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .tupleLit _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .tupleLit _ => isFalse (by intro h; cases h)
 
   private def Expr.decEqList : (as bs : List Expr) -> Decidable (as = bs)
     | [], [] => isTrue rfl
