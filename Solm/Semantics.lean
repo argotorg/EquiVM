@@ -434,6 +434,8 @@ mutual
     | .bytesLit _ => 1
     | .newBytes lenExpr => exprEvalSize lenExpr + 1
     | .newArray _ lenExpr => exprEvalSize lenExpr + 1
+    | .structLit _ fields => structFieldsEvalSize fields + 1
+    | .arrayLit elems => exprListEvalSize elems + 1
     | .bytesSlice baseE startE endE =>
         exprEvalSize baseE + exprEvalSize startE + exprEvalSize endE + 1
     | .var _ => 1
@@ -473,6 +475,22 @@ mutual
     | [] => 1
     | step :: rest => slotStepEvalSize step + slotStepsEvalSize rest + 1
   termination_by steps => (sizeOf steps, 0)
+  decreasing_by
+    all_goals simp_wf
+    all_goals decreasing_tactic
+
+  def exprListEvalSize : List Expr → Nat
+    | [] => 1
+    | e :: rest => exprEvalSize e + exprListEvalSize rest + 1
+  termination_by es => (sizeOf es, 0)
+  decreasing_by
+    all_goals simp_wf
+    all_goals decreasing_tactic
+
+  def structFieldsEvalSize : List (Ident × Expr) → Nat
+    | [] => 1
+    | (_, e) :: rest => exprEvalSize e + structFieldsEvalSize rest + 1
+  termination_by fs => (sizeOf fs, 0)
   decreasing_by
     all_goals simp_wf
     all_goals decreasing_tactic
@@ -969,6 +987,12 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
             let defaultValue <- defaultValue? elemTy
             pure (.array (List.replicate n.toNat defaultValue))
       | _ => .error .typeError
+  | .structLit name fields => do
+      let fvals <- evalStructFields? cfg solm evm fields
+      pure (.struct name fvals)
+  | .arrayLit elems => do
+      let vals <- evalExprList? cfg solm evm elems
+      pure (.array vals)
   | .bytesSlice baseE startE endE => do
       let baseV <- evalExpr? cfg solm evm baseE
       let startV <- evalExpr? cfg solm evm startE
@@ -1043,6 +1067,34 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]
+  all_goals omega
+
+/-- Evaluate a list of expressions left to right (for `arrayLit` / tuple returns), short-circuiting
+    on the first `revert`/`error`. -/
+def evalExprList? (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    List Expr -> EvalResult (List Value)
+  | [] => pure []
+  | e :: rest => do
+      let v <- evalExpr? cfg solm evm e
+      let vs <- evalExprList? cfg solm evm rest
+      pure (v :: vs)
+termination_by es => (exprListEvalSize es, 0)
+decreasing_by
+  all_goals simp [exprListEvalSize]
+  all_goals omega
+
+/-- Evaluate a struct literal's named field expressions left to right (for `structLit`),
+    short-circuiting on the first `revert`/`error`. -/
+def evalStructFields? (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    List (Ident × Expr) -> EvalResult (List (Ident × Value))
+  | [] => pure []
+  | (name, e) :: rest => do
+      let v <- evalExpr? cfg solm evm e
+      let vs <- evalStructFields? cfg solm evm rest
+      pure ((name, v) :: vs)
+termination_by fs => (structFieldsEvalSize fs, 0)
+decreasing_by
+  all_goals simp [structFieldsEvalSize]
   all_goals omega
 
 end

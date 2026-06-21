@@ -238,6 +238,12 @@ inductive Expr where
   | newBytes : Expr -> Expr
   /- `new T[](len)`: a fresh memory array with `len` default-initialized elements of type `T` -/
   | newArray : StorageType -> Expr -> Expr
+  /- struct literal `S({field₁: e₁, …})`: builds a `Value.struct` from the named field expressions
+     (e.g. `Proposal({name: x, voteCount: 0})`). -/
+  | structLit : Ident -> List (Ident × Expr) -> Expr
+  /- array / tuple literal `[e₁, …]`: builds a `Value.array` from the element expressions.  Also used
+     to assemble a multi-value (tuple) return, whose value representation is `Value.array`. -/
+  | arrayLit : List Expr -> Expr
   /- `b[start:end]`: byte slice of dynamic bytes `b` over `[start, end)` -/
   | bytesSlice : Expr /- base -/ -> Expr /- start -/ -> Expr /- end -/ -> Expr
   | var : Ident -> Expr
@@ -672,6 +678,110 @@ mutual
     | .binary _ _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
     | .index _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .structLit nx fx, .structLit ny fy =>
+        match (inferInstance : Decidable (nx = ny)), Expr.decEqNamedList fx fy with
+        | isTrue hn, isTrue hf => isTrue (by cases hn; cases hf; rfl)
+        | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse hf => isFalse (by intro h; cases h; exact hf rfl)
+    | .arrayLit xs, .arrayLit ys =>
+        match Expr.decEqList xs ys with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .structLit _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .structLit _ _ => isFalse (by intro h; cases h)
+
+  private def Expr.decEqList : (as bs : List Expr) -> Decidable (as = bs)
+    | [], [] => isTrue rfl
+    | a :: as, b :: bs =>
+        match Expr.decEq a b, Expr.decEqList as bs with
+        | isTrue ha, isTrue hs => isTrue (by cases ha; cases hs; rfl)
+        | isFalse ha, _ => isFalse (by intro h; cases h; exact ha rfl)
+        | _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
+    | [], _ :: _ => isFalse (by intro h; cases h)
+    | _ :: _, [] => isFalse (by intro h; cases h)
+
+  private def Expr.decEqNamedList : (as bs : List (Ident × Expr)) -> Decidable (as = bs)
+    | [], [] => isTrue rfl
+    | (nx, ex) :: as, (ny, ey) :: bs =>
+        match (inferInstance : Decidable (nx = ny)), Expr.decEq ex ey, Expr.decEqNamedList as bs with
+        | isTrue hn, isTrue he, isTrue hs => isTrue (by cases hn; cases he; cases hs; rfl)
+        | isFalse hn, _, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse he, _ => isFalse (by intro h; cases h; exact he rfl)
+        | _, _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
+    | [], _ :: _ => isFalse (by intro h; cases h)
+    | _ :: _, [] => isFalse (by intro h; cases h)
 
   private def StorageRefStep.decEq : (a b : StorageRefStep) -> Decidable (a = b)
     | .field x, .field y =>
