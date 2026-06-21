@@ -73,14 +73,6 @@ def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   | .elem (.int (.sint _)), .int i => some (EVM.wordOfInt i)
   | _, _ => none
 
-def abiWordToValue? (ty : ABIType) (word : EVM.Word) : Option Value :=
-  match ty with
-  | .elem .bool => some (.bool (word != ⟨0⟩))
-  | .elem .address => some (.address (.ofNat word.val))
-  | .elem (.int (.uint _)) => some (.int (Int.ofNat word.val))
-  | .elem (.int (.sint _)) => some (.int (EVM.signed word))
-  | _ => none
-
 def slotValueToWord? (ty : StorageType) (value : Value) : Option EVM.Word :=
   match ty with
   | .elem primTy => abiValueToWord? (.elem primTy) value
@@ -88,12 +80,6 @@ def slotValueToWord? (ty : StorageType) (value : Value) : Option EVM.Word :=
       match value with
       | .address a => some (EVM.word a)
       | _ => none
-  | _ => none
-
-def slotWordToValue? (ty : StorageType) (word : EVM.Word) : Option Value :=
-  match ty with
-  | .elem primTy => abiWordToValue? (.elem primTy) word
-  | .contract _ => some (.address (.ofNat word.val))
   | _ => none
 
 def slotPushStep (slot : StorageRef) (step : StorageRefStep) : StorageRef :=
@@ -174,6 +160,23 @@ def lookupIndex? (container key : Value) : Option Value :=
           let idx <- intToNat? i
           lookupNth? elems idx
       | _ => none
+  | .fixedBytes n bytes =>
+      match key with
+      | .int i => do
+          if bytes.length = n.val + 1 then
+            let idx <- intToNat? i
+            let b <- lookupNth? bytes idx
+            pure (.fixedBytes ⟨0, by decide⟩ [b])
+          else
+            none
+      | _ => none
+  | .bytes bytes =>
+      match key with
+      | .int i => do
+          let idx <- intToNat? i
+          let b <- lookupNth? bytes.toList idx
+          pure (.fixedBytes ⟨0, by decide⟩ [b])
+      | _ => none
   | _ => none
 
 def updateIndex? (container key value : Value) : Option Value :=
@@ -191,6 +194,8 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   match ty, v with
   | .elem (.bool), .bool _ => some v
   | .elem (.address), .address _ => some v
+  | .elem (.bytes expected), .fixedBytes actual _ =>
+      if expected = actual then some v else none
   -- `address(n)`: an integer cast to `address` (e.g. `address(0)`), truncated to the address width.
   | .elem (.address), .int n => some (.address (.ofNat n.toNat))
   | .elem (.int _), .int _ => some v
@@ -245,10 +250,57 @@ def seqList : List (EvalResult α) -> EvalResult (List α)
 
 end EvalResult
 
+def fixedBytesSize (n : Fin 32) : Nat :=
+  n.val + 1
+
+def fixedBytesValid (n : Fin 32) (bytes : List UInt8) : Bool :=
+  bytes.length = fixedBytesSize n
+
+def fixedBytesToNat? (n : Fin 32) (bytes : List UInt8) : Option Nat :=
+  if fixedBytesValid n bytes then some (Ethereum.fromBytesBigEndian bytes) else none
+
+def fixedBytesFromNat (n : Fin 32) (value : Nat) : Value :=
+  .fixedBytes n ((EVM.Word.ofNat value).toBytesBE.drop (32 - fixedBytesSize n))
+
+def fixedBytesBytewise? (f : UInt8 -> UInt8 -> UInt8) :
+    List UInt8 -> List UInt8 -> Option (List UInt8)
+  | [], [] => some []
+  | x :: xs, y :: ys => do
+      let rest <- fixedBytesBytewise? f xs ys
+      some (f x y :: rest)
+  | _, _ => none
+
+def evalByteIndex? (bytes : List UInt8) (i : Int) : EvalResult Value :=
+  if i < 0 then
+    .revert
+  else
+    let idx := i.toNat
+    if idx < bytes.length then
+      EvalResult.ofOption .typeError
+        (Option.map (fun b => Value.fixedBytes ⟨0, by decide⟩ [b]) (lookupNth? bytes idx))
+    else
+      .revert
+
+def evalFixedBytesIndex? (n : Fin 32) (bytes : List UInt8) (i : Int) : EvalResult Value :=
+  if fixedBytesValid n bytes then evalByteIndex? bytes i else .error .typeError
+
+def evalIndex? (container key : Value) : EvalResult Value :=
+  match container, key with
+  | .array elems, .int i =>
+      if 0 ≤ i ∧ i < elems.length then
+        EvalResult.ofOption .typeError (lookupNth? elems i.toNat)
+      else
+        .revert
+  | .fixedBytes n bytes, .int i => evalFixedBytesIndex? n bytes i
+  | .bytes bytes, .int i => evalByteIndex? bytes.toList i
+  | _, _ => .error .typeError
+
 def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   match op, v with
   | .not, .bool b => some (.bool (!b))
   | .neg, .int i => some (.int (-i))
+  | .bitNot, .fixedBytes n bytes =>
+      if fixedBytesValid n bytes then some (.fixedBytes n (bytes.map (fun b => ~~~b))) else none
   | _, _ => none
 
 def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
@@ -269,8 +321,74 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   | .le, .int x, .int y => .ok (.bool (x <= y))
   | .gt, .int x, .int y => .ok (.bool (x > y))
   | .ge, .int x, .int y => .ok (.bool (x >= y))
+  | .lt, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
+        | some x, some y => .ok (.bool (x < y))
+        | _, _ => .error .typeError
+      else .error .typeError
+  | .le, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
+        | some x, some y => .ok (.bool (x <= y))
+        | _, _ => .error .typeError
+      else .error .typeError
+  | .gt, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
+        | some x, some y => .ok (.bool (x > y))
+        | _, _ => .error .typeError
+      else .error .typeError
+  | .ge, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
+        | some x, some y => .ok (.bool (x >= y))
+        | _, _ => .error .typeError
+      else .error .typeError
   | .and, .bool x, .bool y => .ok (.bool (x && y))
   | .or, .bool x, .bool y => .ok (.bool (x || y))
+  | .bitAnd, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        if fixedBytesValid n xs && fixedBytesValid m ys then
+          match fixedBytesBytewise? (· &&& ·) xs ys with
+          | some zs => .ok (.fixedBytes n zs)
+          | none => .error .typeError
+        else .error .typeError
+      else .error .typeError
+  | .bitOr, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        if fixedBytesValid n xs && fixedBytesValid m ys then
+          match fixedBytesBytewise? (· ||| ·) xs ys with
+          | some zs => .ok (.fixedBytes n zs)
+          | none => .error .typeError
+        else .error .typeError
+      else .error .typeError
+  | .bitXor, .fixedBytes n xs, .fixedBytes m ys =>
+      if n = m then
+        if fixedBytesValid n xs && fixedBytesValid m ys then
+          match fixedBytesBytewise? (· ^^^ ·) xs ys with
+          | some zs => .ok (.fixedBytes n zs)
+          | none => .error .typeError
+        else .error .typeError
+      else .error .typeError
+  | .shl, .fixedBytes n xs, .int s =>
+      if s < 0 then .error .typeError
+      else
+        match fixedBytesToNat? n xs with
+        | some x =>
+            let width := 8 * fixedBytesSize n
+            if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
+            else .ok (fixedBytesFromNat n (x * 2 ^ s.toNat))
+        | none => .error .typeError
+  | .shr, .fixedBytes n xs, .int s =>
+      if s < 0 then .error .typeError
+      else
+        match fixedBytesToNat? n xs with
+        | some x =>
+            let width := 8 * fixedBytesSize n
+            if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
+            else .ok (fixedBytesFromNat n (x / 2 ^ s.toNat))
+        | none => .error .typeError
   | _, _, _ => .error .typeError
 
 def bindParams? (params : List Param) (args : List Value) : Option Store :=
@@ -328,6 +446,7 @@ mutual
     | .addrOf expr => exprEvalSize expr + 1
     | .unary _ expr => exprEvalSize expr + 1
     | .binary _ lhs rhs => exprEvalSize lhs + exprEvalSize rhs + 1
+    | .index base idx => exprEvalSize base + exprEvalSize idx + 1
     | .ite cond thenExpr elseExpr =>
         exprEvalSize cond + exprEvalSize thenExpr + exprEvalSize elseExpr + 1
   termination_by expr => (sizeOf expr, 0)
@@ -602,6 +721,7 @@ end
 def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
     : StorageType -> EvalResult Value
   | .array _ n => pure (.int n)
+  | .elem (.bytes n) => pure (.int (fixedBytesSize n))
   | .dynamicArray _ =>
       match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
       | some lenLoc =>
@@ -615,6 +735,7 @@ mutual
 def defaultValue? : StorageType -> EvalResult Value
   | .elem (.bool) => pure (.bool false)
   | .elem (.address) => pure (.address (.ofNat 0))
+  | .elem (.bytes n) => pure (.fixedBytes n (List.replicate (n.val + 1) 0))
   | .elem _ => pure (.int 0)
   | .contract _ => pure (.address (.ofNat 0))
   | .mapping _ _ => .error .typeError
@@ -755,6 +876,16 @@ def readLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
             let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
             readLocalPath? cfg solm evm child rest
           else .revert
+      | .fixedBytes n bytes, .int i =>
+          match evalFixedBytesIndex? n bytes i with
+          | .ok child => readLocalPath? cfg solm evm child rest
+          | .revert => .revert
+          | .error e => .error e
+      | .bytes bytes, .int i =>
+          match evalByteIndex? bytes.toList i with
+          | .ok child => readLocalPath? cfg solm evm child rest
+          | .revert => .revert
+          | .error e => .error e
       | _, _ =>
           let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
           readLocalPath? cfg solm evm child rest
@@ -864,6 +995,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
               match v with
               | .array vs => pure (.int vs.length)
               | .bytes b => pure (.int (Int.ofNat b.size))
+              | .fixedBytes n _ => pure (.int (fixedBytesSize n))
               | _ => .error .typeError
           | none => .error .unboundVariable
   | .field base name => do
@@ -889,6 +1021,10 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       let lhsValue <- evalExpr? cfg solm evm lhs
       let rhsValue <- evalExpr? cfg solm evm rhs
       evalBinaryOp? op lhsValue rhsValue
+  | .index base idx => do
+      let baseValue <- evalExpr? cfg solm evm base
+      let idxValue <- evalExpr? cfg solm evm idx
+      evalIndex? baseValue idxValue
   | .ite cond thenExpr elseExpr => do
       let condValue <- evalExpr? cfg solm evm cond
       match condValue with

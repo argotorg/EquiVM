@@ -1,3 +1,6 @@
 # cache and other artifacts produced by Lean's Lake build tool
 .lake/
 /.lake
+
+# lean-lsp MCP scratch snippets
+_mcp_snippet_*.lean

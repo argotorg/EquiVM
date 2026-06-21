@@ -14,6 +14,8 @@ inductive Value where
   | address : EVM.Address -> Value
   | struct : Ident -> List (Ident × Value) -> Value
   | array : List Value -> Value /- arrays can be copied to memory, so we need array values -/
+  /- Fixed-size `bytesN`, carrying the ABI type index and the bytes in Solidity order. -/
+  | fixedBytes : Fin 32 -> List UInt8 -> Value
   /- dynamic `bytes` (arbitrary-length byte string), e.g. low-level `.call` calldata -/
   | bytes : ByteArray -> Value
   /- Internal-only local alias for Solidity `storage` variables. Not ABI-encodable or storable. -/
@@ -47,6 +49,11 @@ mutual
         match Value.decEqList xs ys with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .fixedBytes n bs, .fixedBytes m bs' =>
+        match (inferInstance : Decidable (n = m)), (inferInstance : Decidable (bs = bs')) with
+        | isTrue hn, isTrue hbytes => isTrue (by cases hn; cases hbytes; rfl)
+        | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse hbytes => isFalse (by intro h; cases h; exact hbytes rfl)
     | .unit, .unit => isTrue rfl
     | .bytes x, .bytes y =>
         match (inferInstance : Decidable (x = y)) with
@@ -61,43 +68,57 @@ mutual
     | .int _, .address _ => isFalse (by intro h; cases h)
     | .int _, .struct _ _ => isFalse (by intro h; cases h)
     | .int _, .array _ => isFalse (by intro h; cases h)
+    | .int _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .int _, .unit => isFalse (by intro h; cases h)
     | .bool _, .int _ => isFalse (by intro h; cases h)
     | .bool _, .address _ => isFalse (by intro h; cases h)
     | .bool _, .struct _ _ => isFalse (by intro h; cases h)
     | .bool _, .array _ => isFalse (by intro h; cases h)
+    | .bool _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .bool _, .unit => isFalse (by intro h; cases h)
     | .address _, .int _ => isFalse (by intro h; cases h)
     | .address _, .bool _ => isFalse (by intro h; cases h)
     | .address _, .struct _ _ => isFalse (by intro h; cases h)
     | .address _, .array _ => isFalse (by intro h; cases h)
+    | .address _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .address _, .unit => isFalse (by intro h; cases h)
     | .struct _ _, .int _ => isFalse (by intro h; cases h)
     | .struct _ _, .bool _ => isFalse (by intro h; cases h)
     | .struct _ _, .address _ => isFalse (by intro h; cases h)
     | .struct _ _, .array _ => isFalse (by intro h; cases h)
+    | .struct _ _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .struct _ _, .unit => isFalse (by intro h; cases h)
     | .array _, .int _ => isFalse (by intro h; cases h)
     | .array _, .bool _ => isFalse (by intro h; cases h)
     | .array _, .address _ => isFalse (by intro h; cases h)
     | .array _, .struct _ _ => isFalse (by intro h; cases h)
+    | .array _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .array _, .unit => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .int _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .bool _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .address _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .struct _ _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .array _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .unit => isFalse (by intro h; cases h)
     | .unit, .int _ => isFalse (by intro h; cases h)
     | .unit, .bool _ => isFalse (by intro h; cases h)
     | .unit, .address _ => isFalse (by intro h; cases h)
     | .unit, .struct _ _ => isFalse (by intro h; cases h)
     | .unit, .array _ => isFalse (by intro h; cases h)
+    | .unit, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .int _, .bytes _ => isFalse (by intro h; cases h)
     | .bool _, .bytes _ => isFalse (by intro h; cases h)
     | .address _, .bytes _ => isFalse (by intro h; cases h)
     | .struct _ _, .bytes _ => isFalse (by intro h; cases h)
     | .array _, .bytes _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .bytes _ => isFalse (by intro h; cases h)
     | .unit, .bytes _ => isFalse (by intro h; cases h)
     | .bytes _, .int _ => isFalse (by intro h; cases h)
     | .bytes _, .bool _ => isFalse (by intro h; cases h)
     | .bytes _, .address _ => isFalse (by intro h; cases h)
     | .bytes _, .struct _ _ => isFalse (by intro h; cases h)
     | .bytes _, .array _ => isFalse (by intro h; cases h)
+    | .bytes _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .bytes _, .unit => isFalse (by intro h; cases h)
     | .storageRef _ _, .int _ => isFalse (by intro h; cases h)
     | .int _, .storageRef _ _ => isFalse (by intro h; cases h)
@@ -109,6 +130,8 @@ mutual
     | .struct _ _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .array _ => isFalse (by intro h; cases h)
     | .array _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .fixedBytes _ _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .bytes _ => isFalse (by intro h; cases h)
     | .bytes _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .unit => isFalse (by intro h; cases h)
@@ -169,6 +192,11 @@ def valueToWord : Value -> Option EVM.Word
   | .array _ => .none
   | .struct _ _ => .none
   | .bytes _ => .none
+  | .fixedBytes n bs =>
+      if bs.length = n.val + 1 then
+        some (.ofNat (Ethereum.fromBytesBigEndian bs))
+      else
+        none
   | .storageRef _ _ => .none
 
 def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
@@ -177,9 +205,9 @@ def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   | .int (.sint _) => .int (EVM.signed w)
   | .bool => if w.val == 0 then .bool false else .bool true
   | .address => .address (.ofNat $ w.toNat)
+  | .bytes n => .fixedBytes n (w.toBytesBE.drop (32 - (n.val + 1)))
   -- TODO: implement
   | .function => panic! "TODO: wordToElem: implement function"
-  | .bytes _ => panic! "TODO: wordToElem: implement bytes"
   | .fixed _ => panic! "TODO: wordToElem: implement fixed"
 
 abbrev Store := Std.HashMap Ident Value

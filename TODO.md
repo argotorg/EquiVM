@@ -5,7 +5,7 @@
   + Option 1: wrap-around arithmetic and explicit overflow checks in the spec
   + Option 2: parameterize with the checked arith semantics of the language
   + [CURRENT] Option 3: unbounded arith, explicit inRange checks, and truncation to bounded arith when storing to storage
-- [ ] Add low level call in Solm 
+- [X] Add low level call in Solm 
 - [ ] Study locals (esp. arrays, mappings and structs) and how to model them in Solm
 - [ ] Dynamic data (arrays and strings)
  
@@ -20,16 +20,13 @@
 
 - Maybe Solidity example with inline assembly
 
-- array assignment? 
-
 - StorageRef 
   + probably rename with something else, since it is used for locals too. 
 
 - We need to remove the huge eqDec definitions somewhere else so our syntax/semantics files remain readable.
 
-
 - What we do not have (and may be fine for now)
-  + memory references
+  + 
   + no delete for memory arrays
 
 - Solidity out-of-scope
@@ -40,3 +37,10 @@
   + Memory references
   + Transient storage
   + Revert reasons 
+  + memory references
+
+
+- Still TODOs
+  + string/bytes handling
+  + delete for memory arrays
+  + StorageRef is not a good name as it is used for locals too.

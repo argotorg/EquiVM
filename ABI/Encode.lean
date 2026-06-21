@@ -59,10 +59,9 @@ mutual
     match ty with
     | .elem elemTy =>
         match elemTy, value with
-        | .bytes n, .array values => do
-            let bytes <- valuesToBytes? values
+        | .bytes n, .fixedBytes m bytes =>
             let size := n.val + 1
-            if bytes.length = size then
+            if m = n ∧ bytes.length = size then
               some (bytes ++ zeroBytes (32 - size))
             else
               none

@@ -72,7 +72,7 @@ mutual
             let wordBytes <- readBytes? bytes start 32
             let size := n.val + 1
             zeroPadding? wordBytes size (32 - size)
-            some (.array (bytesToValues (wordBytes.take size)), start + 32)
+            some (.fixedBytes n (wordBytes.take size), start + 32)
         | .elem .function => do
             let wordBytes <- readBytes? bytes start 32
             zeroPadding? wordBytes 24 8

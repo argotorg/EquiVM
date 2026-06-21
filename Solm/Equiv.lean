@@ -13,6 +13,7 @@ def defaultAbiValue : ABIType -> Option Value
   | .elem .bool    => some (.bool false)
   | .elem .address => some (.address (.ofNat 0))
   | .elem (.int _) => some (.int 0)
+  | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none
 
 inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : Prop where
@@ -75,12 +76,13 @@ inductive ctorResultEquiv
     solmRes = .reverted →
     -- TODO: something like: decode o = retVal
     ctorResultEquiv evmRes solmRes runtimeCode
-  | error :
-    -- TODO: is this what needs to happen?
-    -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
-    evmRes = .error e →
-    solmRes = .reverted →
-    ctorResultEquiv evmRes solmRes runtimeCode
+  -- Zoe: commenting out so that it matches execResultsEquiv
+  -- | error :
+  --   -- TODO: is this what needs to happen?
+  --   -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
+  --   evmRes = .error e →
+  --   solmRes = .reverted →
+  --   ctorResultEquiv evmRes solmRes runtimeCode
 
 -- Solm transaction dispatch and execution.
 inductive solmExec
@@ -225,7 +227,7 @@ inductive constructorEquivalenceFor (cfg : Config)
     solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes →
     /- Resulting states must be equivalent, and the EVM return bytes should equal the runtime code -/
     ctorResultEquiv Ξ_res solmRes runtimeCode →
-    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I runtimeCode 
+    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I runtimeCode
   | outOfGas : /- EVM runs out of gas -/
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error .OutOfGass →
