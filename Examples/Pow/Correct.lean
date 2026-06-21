@@ -671,28 +671,16 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## Dispatch -/
 
-/-- Dispatch reduces (via `powSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
-theorem powDispatch_eq (cd : ByteArray) :
-    dispatchMsg Pow.powContract cd
-      = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4)
-        then some Pow.powTransition else none :=
-  dispatch_eq rfl powSelectorBytes cd
+/-- Single-selector dispatch bundle (via `powSelectorBytes`): `.eq` is the 4-byte calldata-prefix
+    comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
+theorem powDispatch :
+    SingleSelectorDispatch Pow.powContract Pow.powTransition ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ :=
+  singleSelectorDispatch rfl powSelectorBytes rfl
 
 /-- `powContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem powDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg Pow.powContract cd = some t) : t = Pow.powTransition :=
   dispatch_unique rfl h
-
-/-- Short calldata (< 4 bytes) ⇒ dispatch fails. -/
-theorem powDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg Pow.powContract cd = none :=
-  dispatch_none_short rfl powSelectorBytes rfl h
-
-/-- Selector mismatch ⇒ dispatch fails. -/
-theorem powDispatch_none_nomatch {cd : ByteArray}
-    (h : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg Pow.powContract cd = none :=
-  dispatch_none_nomatch rfl powSelectorBytes h
 
 /-! ## Store / expression-evaluation helpers -/
 
@@ -828,11 +816,6 @@ theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
 
 /-! ## The Solm body reverts (callvalue ≠ 0, or n ≥ 256) -/
 
-/-- Non-zero call value ⇒ `require(callvalue == 0)` fails, body reverts. -/
-theorem powBodyReverts_cv (evm : EVM.State) (locals : Solm.Store)
-    (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody powConfig Pow.powContract evm locals Pow.powTransition.body .reverted :=
-  bodyReverts_nonPayable h
 
 /-- `n ≥ 256` (with zero call value) ⇒ `require(n < 256)` fails, body reverts. -/
 theorem powBodyReverts_n (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
@@ -869,11 +852,7 @@ theorem powReturnEncoding {N : ℕ} (hN : N < 256) :
     simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, Pow.uint256, bind,
       Option.bind]
     decide
-  rw [toByteArray_eq_toBytesBE,
-    show encodeReturnValue? Pow.uint256 (.int (Int.ofNat (2 ^ N)))
-        = encodeReturnValues? [Pow.uint256] [.int (Int.ofNat (2 ^ N))] from rfl]
-  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
-    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
+  exact scalarReturnEncoding hdyn hhead hval
 
 /-! ## The runtime-equivalence assembly -/
 
@@ -890,11 +869,11 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : Sat256}
     runtimeEquivalenceFor powConfig Pow.powContract cA gh bl σ σ₀ g.toUInt256 A I := by
   by_cases hsz4 : I.calldata.size < 4
   · -- short calldata ⇒ noDispatch
-    exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch_none_short hsz4)
+    exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch.none_short hsz4)
   · rw [not_lt] at hsz4
     by_cases hmatch : ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · have hd : dispatchMsg Pow.powContract I.calldata = some Pow.powTransition := by
-        rw [powDispatch_eq, if_pos hmatch]
+        rw [powDispatch.eq, if_pos hmatch]
       by_cases hsz36 : I.calldata.size < 36
       · -- decode fails ⇒ decodingFailed
         exact (powX_shortarg hcode hwv hsz4 hsz36 hmatch).reEquivDecodingFailed hcode hd
@@ -920,7 +899,7 @@ theorem powReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : Sat256}
     · -- wrong selector ⇒ noDispatch
       rw [Bool.not_eq_true] at hmatch
       exact (powX_nomatch hcode hwv hsz4 hsize hmatch).reEquivNoDispatch hcode
-        (powDispatch_none_nomatch hmatch)
+        (powDispatch.none_nomatch hmatch)
 
 /-! ## (Kept pending cleanup) Pow's `Ξ`-success, exposed via `RDret.xiResult`.
 
@@ -946,6 +925,6 @@ theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (powX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
-      fun ca => powBodyReverts_cv _ ca (by simp only [initState]; exact hwv)
+      fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 end Pow

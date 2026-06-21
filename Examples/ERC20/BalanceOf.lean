@@ -465,18 +465,16 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
     dispatchMsg erc20Contract cd = some balanceOfTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
     (erc20ByteArray_eq_of_beq hsel).symm
-  rw [dispatchMsg_eq_dispatchList]
-  change dispatchList
-    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
-      transferTransition, allowanceTransition] cd = some balanceOfTransition
-  rw [dispatchList_cons, selectorOf, erc20ApproveSelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20TotalSupplySelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20TransferFromSelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20BalanceOfSelectorBytes]
-  rw [if_pos (by rw [hcd]; decide)]
+  refine dispatchMsg_eq_some_of_split
+    (pre := [approveTransition, totalSupplyTransition, transferFromTransition])
+    (post := [transferTransition, allowanceTransition])
+    rfl ?_ (by rw [selectorOf, erc20BalanceOfSelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl | rfl
+  · rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20TotalSupplySelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20TransferFromSelectorBytes, hcd]; decide
 
 theorem erc20BalanceOfBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)

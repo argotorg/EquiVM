@@ -2221,16 +2221,14 @@ theorem erc20Dispatch_transferFrom {cd : ByteArray}
     dispatchMsg erc20Contract cd = some transferFromTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) :=
     (erc20ByteArray_eq_of_beq hsel).symm
-  rw [dispatchMsg_eq_dispatchList]
-  change dispatchList
-    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
-      transferTransition, allowanceTransition] cd = some transferFromTransition
-  rw [dispatchList_cons, selectorOf, erc20ApproveSelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20TotalSupplySelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20TransferFromSelectorBytes]
-  rw [if_pos (by rw [hcd]; decide)]
+  refine dispatchMsg_eq_some_of_split (pre := [approveTransition, totalSupplyTransition])
+    (post := [balanceOfTransition, transferTransition, allowanceTransition])
+    rfl ?_ (by rw [selectorOf, erc20TransferFromSelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl
+  · rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20TotalSupplySelectorBytes, hcd]; decide
 
 /-- ERC20-local trace fact for the `require(currentAllowance >= value)` failure path.
     The branch builds `Error("ERC20: insufficient allowance")` and reverts. -/

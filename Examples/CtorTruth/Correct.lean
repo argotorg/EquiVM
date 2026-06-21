@@ -25,24 +25,16 @@ theorem ctorTruthRuntime_eq_truthBytecode :
 
 /-! ## Runtime side -/
 
-/-- Dispatch reduces to the `truth()` selector comparison. -/
-theorem ctorTruthDispatch_eq (cd : ByteArray) :
-    dispatchMsg CtorTruth.contract cd
-      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4)
-        then some CtorTruth.truthTransition else none :=
-  dispatch_eq rfl ctorTruthSelectorBytes cd
+/-- Single-selector dispatch bundle for the `truth()` selector. -/
+theorem ctorTruthDispatch :
+    SingleSelectorDispatch CtorTruth.contract CtorTruth.truthTransition ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ :=
+  singleSelectorDispatch rfl ctorTruthSelectorBytes rfl
 
 /-- `CtorTruth` has exactly one transition, so any successful dispatch yields it. -/
 theorem ctorTruthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg CtorTruth.contract cd = some t) : t = CtorTruth.truthTransition :=
   dispatch_unique rfl h
 
-/-- With non-zero call value, the Solm body reverts. -/
-theorem ctorTruthBodyReverts (evm : EVM.State) (locals : Store)
-    (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals
-      CtorTruth.truthTransition.body .reverted := by
-  exact bodyReverts_nonPayable h
 
 /-- With zero call value, the Solm body returns `true`. -/
 theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
@@ -70,15 +62,6 @@ theorem ctorTruthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldat
       (transitionSignature CtorTruth.truthTransition).paramTypes I.calldata = some ∅ := by
   simpa [CtorTruth.truthTransition] using truthDecode_empty (I := I) hsz
 
-theorem ctorTruthDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg CtorTruth.contract cd = none :=
-  dispatch_none_short rfl ctorTruthSelectorBytes rfl h
-
-theorem ctorTruthDispatch_none_nomatch {cd : ByteArray}
-    (h : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg CtorTruth.contract cd = none :=
-  dispatch_none_nomatch rfl ctorTruthSelectorBytes h
-
 theorem ctorTruthReEquiv_callvalueZero
     {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthRuntimeBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
@@ -89,11 +72,11 @@ theorem ctorTruthReEquiv_callvalueZero
     exact hcode
   by_cases hsz : I.calldata.size < 4
   · exact (truthX_cvz_short hcode' hwv hsz).reEquivNoDispatch hcode'
-      (ctorTruthDispatch_none_short hsz)
+      (ctorTruthDispatch.none_short hsz)
   · rw [not_lt] at hsz
     by_cases hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · have hd : dispatchMsg CtorTruth.contract I.calldata = some CtorTruth.truthTransition := by
-        rw [ctorTruthDispatch_eq, if_pos hmatch]
+        rw [ctorTruthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode' hwv hsz hsize hmatch).reEquivExecution hcode' hd
         (ctorTruthDecode_empty hsz)
         (ctorTruthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅
@@ -101,7 +84,7 @@ theorem ctorTruthReEquiv_callvalueZero
         (returnEquiv_of_encode ctorTruthReturnEncoding)
     · rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode' hwv hsz hsize hmatch).reEquivNoDispatch hcode'
-        (ctorTruthDispatch_none_nomatch hmatch)
+        (ctorTruthDispatch.none_nomatch hmatch)
 
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
@@ -113,7 +96,7 @@ theorem ctorTruthRuntimeCorrect :
       rw [← ctorTruthRuntime_eq_truthBytecode]
       exact hcode
     exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode' hwv).reEquivNonPayable hcode' rfl
-      fun ca => ctorTruthBodyReverts _ ca (by simp only [initState]; exact hwv)
+      fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 /-! ## Constructor side -/
 
@@ -189,17 +172,7 @@ theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
   have rd0 :
       RD ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         (createdAccounts, σ) 0 0 := by
-    apply RD.start (s0 := s0) (s := s0) (code := ctorTruthInitcode) (g := g)
-    · simp [hs0, initState, hcode]
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-    · omega
-    · omega
-    · simp
-    · simp [RDWorld]
+    rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [
     raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
     raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),

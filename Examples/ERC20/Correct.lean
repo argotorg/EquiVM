@@ -126,39 +126,19 @@ theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     · rw [selectorOf, erc20TransferSelectorBytes]; rfl
     · rw [selectorOf, erc20AllowanceSelectorBytes]; rfl) h
 
-theorem dispatchList_some_mem {ts : List TransitionDecl} {cd : ByteArray} {t : TransitionDecl}
-    (h : dispatchList ts cd = some t) : t ∈ ts := by
-  induction ts with
-  | nil => simp [dispatchList] at h
-  | cons head tail ih =>
-      rw [dispatchList_cons] at h
-      by_cases hb : (selectorOf head == cd.extract 0 4) = true
-      · rw [if_pos hb] at h
-        cases h
-        simp
-      · rw [if_neg hb] at h
-        exact List.mem_cons_of_mem head (ih h)
-
 theorem erc20Dispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == cd.extract 0 4) = false) :
     dispatchMsg erc20Contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
-  change dispatchList
-    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
-      transferTransition, allowanceTransition] cd = none
-  rw [dispatchList_cons, selectorOf, erc20ApproveSelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 0 (by omega))]
-  rw [dispatchList_cons, selectorOf, erc20TotalSupplySelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 1 (by omega))]
-  rw [dispatchList_cons, selectorOf, erc20TransferFromSelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 2 (by omega))]
-  rw [dispatchList_cons, selectorOf, erc20BalanceOfSelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 3 (by omega))]
-  rw [dispatchList_cons, selectorOf, erc20TransferSelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 4 (by omega))]
-  rw [dispatchList_cons, selectorOf, erc20AllowanceSelectorBytes]
-  rw [if_neg (by simpa [erc20SelBytes] using hnm 5 (by omega))]
-  rw [dispatchList_nil]
+  apply dispatchMsg_none_of_all_ne
+  intro t ht
+  simp [erc20Contract] at ht
+  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
+  · rw [selectorOf, erc20ApproveSelectorBytes]; simpa [erc20SelBytes] using hnm 0 (by omega)
+  · rw [selectorOf, erc20TotalSupplySelectorBytes]; simpa [erc20SelBytes] using hnm 1 (by omega)
+  · rw [selectorOf, erc20TransferFromSelectorBytes]; simpa [erc20SelBytes] using hnm 2 (by omega)
+  · rw [selectorOf, erc20BalanceOfSelectorBytes]; simpa [erc20SelBytes] using hnm 3 (by omega)
+  · rw [selectorOf, erc20TransferSelectorBytes]; simpa [erc20SelBytes] using hnm 4 (by omega)
+  · rw [selectorOf, erc20AllowanceSelectorBytes]; simpa [erc20SelBytes] using hnm 5 (by omega)
 
 theorem erc20BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ erc20Contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :

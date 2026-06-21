@@ -32,17 +32,7 @@ theorem ctorStoreRuntimeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd0 :
       RD ctorStoreRuntimeBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
         ByteArray.empty (cA, σ) 0 0 := by
-    apply RD.start (s0 := s0) (s := s0) (code := ctorStoreRuntimeBytecode) (g := g)
-    · simp [hs0, initState, hcode]
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-    · omega
-    · omega
-    · simp
-    · simp [RDWorld]
+    rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [
     push1 ⟨128⟩,
     push1 ⟨64⟩,
@@ -263,17 +253,7 @@ theorem ctorStoreInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
   have rd0 :
       RD code I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
         (createdAccounts, σ) 0 0 := by
-    apply RD.start (s0 := s0) (s := s0) (code := code) (g := g)
-    · simp [hs0, initState, hcodeDef, hcode]
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-      rfl
-    · simp [hs0, initState]
-    · omega
-    · omega
-    · simp
-    · simp [RDWorld]
+    rw [hs0]; exact RD.initState hcode
   have rdBeforeStore : RD code I g s0 ⟨9⟩ [⟨0⟩, w] (ctorStoreArgMem w) (UInt256.ofNat 1)
       ByteArray.empty (createdAccounts, σ) 7 24 := by
     subst code

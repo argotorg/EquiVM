@@ -24,23 +24,17 @@ set_option maxRecDepth 10000
 
 /-! ## 4. Truth-specific Solm-side facts -/
 
-/-- Dispatch reduces (via `truthSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
-theorem truthDispatch_eq (cd : ByteArray) :
-    dispatchMsg truthContract cd
-      = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4)
-        then some truthTransition else none :=
-  dispatch_eq rfl truthSelectorBytes cd
+/-- Single-selector dispatch bundle (via `truthSelectorBytes`): `.eq` is the 4-byte calldata-prefix
+    comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
+theorem truthDispatch :
+    SingleSelectorDispatch truthContract truthTransition ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ :=
+  singleSelectorDispatch rfl truthSelectorBytes rfl
 
 /-- `truthContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg truthContract cd = some t) : t = truthTransition :=
   dispatch_unique rfl h
 
-/-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
-theorem truthBodyReverts (evm : EVM.State) (locals : Store)
-    (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody truthConfig truthContract evm locals truthTransition.body .reverted :=
-  bodyReverts_nonPayable h
 
 /-- With zero call value, the Solm body returns `true`: `require(callvalue == 0)` passes and
     `return true` yields `(.bool true)` with the frame/EVM-state unchanged. -/
@@ -51,17 +45,6 @@ theorem truthBodyReturns (evm : EVM.State) (locals : Store)
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
 
-/-- **ABI encoding of the `truth()` return.**  `encodeReturnValue?` of `(.bool true)` is the
-    32-byte big-endian word `1` — definitionally the EVM `RETURN`/`MSTORE` value
-    `UInt256.toByteArray ⟨1⟩` (the opaque `ffi.zeroes` pad cancels; see
-    `Reasoning.Theory.toByteArray_eq_toBytesBE`). -/
-theorem truthReturnEncoding :
-    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
-  rw [Reasoning.Theory.toByteArray_eq_toBytesBE]
-  simp [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, abiTupleHeadSize?,
-    staticABIEncodedSize?, isDynamicABIType, encodeABIValuesFrom?, encodeABIValue?,
-    encodeABIWord?, Bool.toUInt256_true]
-  rfl
 
 /-! ## 5. The Ξ traces (per scenario) -/
 
@@ -163,17 +146,6 @@ theorem truthX_cvz_short
     jumpiT (lt_four_ne_zero_of_lt hsz) truthContains38,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-/-- Short calldata (`< 4` bytes) cannot match the 4-byte selector ⇒ dispatch fails. -/
-theorem truthDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg truthContract cd = none :=
-  dispatch_none_short rfl truthSelectorBytes rfl h
-
-/-- Selector mismatch ⇒ dispatch fails. -/
-theorem truthDispatch_none_nomatch {cd : ByteArray}
-    (h : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg truthContract cd = none :=
-  dispatch_none_nomatch rfl truthSelectorBytes h
-
 /-- **calldatasize ≥ 4, wrong selector**: the dispatcher continues past the `0x16` JUMPI
     (not taken), decodes & compares the selector (`EQ = 0` via `truthEvmSelector`), and reverts
     at `0x26`.  Built compositionally off the prefix as one `RDrev`. -/
@@ -253,20 +225,20 @@ theorem truthReEquiv_callvalueZero
     runtimeEquivalenceFor truthConfig truthContract cA gh bl σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
-    exact (truthX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (truthDispatch_none_short hsz)
+    exact (truthX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (truthDispatch.none_short hsz)
   · rw [not_lt] at hsz
     by_cases hmatch : ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · -- matching selector → `truth()` runs and returns `true`
       have hd : dispatchMsg truthContract I.calldata = some truthTransition := by
-        rw [truthDispatch_eq, if_pos hmatch]
+        rw [truthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode hwv hsz hsize hmatch).reEquivExecution hcode hd
         (truthDecode_empty hsz)
         (truthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅ (by simp only [initState]; exact hwv))
-        (returnEquiv_of_encode truthReturnEncoding)
+        (returnEquiv_of_encode boolTrueReturnEncoding)
     · -- wrong selector → EVM reverts at `0x26`, Solm fails to dispatch
       rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode hwv hsz hsize hmatch).reEquivNoDispatch hcode
-        (truthDispatch_none_nomatch hmatch)
+        (truthDispatch.none_nomatch hmatch)
 
 /-! ## 6. The correctness statement -/
 
@@ -278,4 +250,4 @@ theorem truthCorrect :
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
-      fun ca => truthBodyReverts _ ca (by simp only [initState]; exact hwv)
+      fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)

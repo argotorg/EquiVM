@@ -84,14 +84,12 @@ theorem erc20Dispatch_totalSupply {cd : ByteArray}
     dispatchMsg erc20Contract cd = some totalSupplyTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) :=
     (erc20ByteArray_eq_of_beq hsel).symm
-  rw [dispatchMsg_eq_dispatchList]
-  change dispatchList
-    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
-      transferTransition, allowanceTransition] cd = some totalSupplyTransition
-  rw [dispatchList_cons, selectorOf, erc20ApproveSelectorBytes]
-  rw [if_neg (by rw [hcd]; decide)]
-  rw [dispatchList_cons, selectorOf, erc20TotalSupplySelectorBytes]
-  rw [if_pos (by rw [hcd]; decide)]
+  refine dispatchMsg_eq_some_of_split (pre := [approveTransition])
+    (post := [transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
+    rfl ?_ (by rw [selectorOf, erc20TotalSupplySelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_singleton] at ht; subst ht
+  rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
 
 theorem erc20Decode_totalSupply {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldata (totalSupplyTransition.params.map Param.name)

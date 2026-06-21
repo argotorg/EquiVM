@@ -28,27 +28,12 @@ namespace Caller
 
 /-! ## Solm-side dispatch facts (mirror `Truth`) -/
 
-/-- Dispatch reduces (via `callerSelectorBytes`) to a 4-byte calldata-prefix comparison. -/
-theorem callerDispatch_eq (cd : ByteArray) :
-    dispatchMsg callerContract cd
-      = if ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4)
-        then some runTransition else none :=
-  dispatch_eq rfl callerSelectorBytes cd
+/-- Single-selector dispatch bundle (via `callerSelectorBytes`): `.eq` is the 4-byte
+    calldata-prefix comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
+theorem callerDispatch :
+    SingleSelectorDispatch callerContract runTransition ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ :=
+  singleSelectorDispatch rfl callerSelectorBytes rfl
 
-theorem callerDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
-    dispatchMsg callerContract cd = none :=
-  dispatch_none_short rfl callerSelectorBytes rfl h
-
-theorem callerDispatch_none_nomatch {cd : ByteArray}
-    (h : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    dispatchMsg callerContract cd = none :=
-  dispatch_none_nomatch rfl callerSelectorBytes h
-
-/-- With non-zero call value, the Solm body reverts: `require(callvalue == 0)` fails. -/
-theorem callerBodyReverts (evm : EVM.State) (locals : Store)
-    (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody callerConfig callerContract evm locals runTransition.body .reverted :=
-  bodyReverts_nonPayable h
 
 /-- **The Solm body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
     `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `value`, and the
@@ -1148,7 +1133,7 @@ theorem callerExec_canonical {cA gh bl σ σ₀ A I} {g : Sat256}
     runtimeEquivalenceFor callerConfig callerContract cA gh bl σ σ₀ g.toUInt256 A I := by
   have hcanon := callerArg0_canonical hclean
   have hd : dispatchMsg callerContract I.calldata = some runTransition := by
-    rw [callerDispatch_eq, if_pos hmatch]
+    rw [callerDispatch.eq, if_pos hmatch]
   have hdec := callerDecode_n hsz68 hbig hcanon
   obtain ⟨cA', σ', z, o, A', k', C', rd144, hcoin, ho255⟩ :=
     callerX_postCall hcode hwv (by omega) hsize hsz68 hbig hmatch hclean hperm hdepth
@@ -1229,12 +1214,12 @@ theorem callerReEquiv_callvalueZero
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) :
     runtimeEquivalenceFor callerConfig callerContract cA gh bl σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
-  · exact (callerX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (callerDispatch_none_short hsz)
+  · exact (callerX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (callerDispatch.none_short hsz)
   · rw [not_lt] at hsz
     by_cases hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true
     · -- matching selector → dispatch succeeds
       have hd : dispatchMsg callerContract I.calldata = some runTransition := by
-        rw [callerDispatch_eq, if_pos hmatch]
+        rw [callerDispatch.eq, if_pos hmatch]
       by_cases hsz68 : 68 ≤ I.calldata.size
       · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
         · by_cases hcanon : (callerArg0 I).toNat < EVM.addressModulus
@@ -1261,7 +1246,7 @@ theorem callerReEquiv_callvalueZero
           hcode hd (callerDecode_none_short hsz hsz68)
     · rw [Bool.not_eq_true] at hmatch
       exact (callerX_cvz_revertB hcode hwv hsz hsize hmatch).reEquivNoDispatch hcode
-        (callerDispatch_none_nomatch hmatch)
+        (callerDispatch.none_nomatch hmatch)
 
 /-! ## The correctness statement -/
 
@@ -1272,6 +1257,6 @@ theorem callerCorrect :
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hperm
   · exact (callerX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
-      fun ca => callerBodyReverts _ ca (by simp only [initState]; exact hwv)
+      fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 end Caller
