@@ -119,25 +119,16 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config { contract := erc20Contract, locals := approveStore I } evm
       .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := erc20Contract, locals := approveStore I }, approvePostState evm I) := by
-  unfold assignStorageRef?
   simp only [allowanceRef]
-  rw [evalStorageRef_approve_allowance]
-  simp [approvePostState, approveSlot, approveEvaledRef, approveValueValue, EvalResult.bind,
-    EvalResult.ofOption, bind, pure]
-  change (match
-      match storageLocStore evm (erc20Uint256Loc (approveSlot evm I))
-          (.int (Int.ofNat (approveValueWord I).toNat)) with
-      | some a => EvalResult.ok a
-      | none => EvalResult.error EvalError.storageError,
-      fun evm' =>
-        EvalResult.ok (({ contract := erc20Contract, locals := approveStore I } : Frame), evm') with
-    | EvalResult.ok a, f => f a
-    | EvalResult.revert, _ => EvalResult.revert
-    | EvalResult.error e, _ => EvalResult.error e) =
-      EvalResult.ok (({ contract := erc20Contract, locals := approveStore I } : Frame),
-        approvePostState evm I)
+  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+      (hbase := approveStore_allowance I)
+      (her := evalStorageRef_approve_allowance evm I)
+      (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract, erc20StorageDecls,
+                       uint256Storage, storageTypeStep?])
+      (hloc := erc20Config_storage_allowance (.address evm.executionEnv.source)
+          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
   rw [erc20StorageLocStore_uint256]
-  simp [approvePostState]
+  simp [approvePostState, approveSlot, approveEvaledRef]
 
 theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :

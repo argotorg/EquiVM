@@ -127,23 +127,6 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
-inductive EvaledStorageRefStep where
-  | field : Ident -> EvaledStorageRefStep
-  | tupleElem : Nat -> EvaledStorageRefStep
-  | mindex : KeyValue -> EvaledStorageRefStep
-  | aindex : KeyValue -> EvaledStorageRefStep
-  /- Marker for "the length of the array reached so far". A distinct ref the layout
-     resolves to wherever it stores that array's length — the semantics commits to no
-     particular slot convention (solc puts it at the array's base slot; another layout
-     may put it elsewhere). Only the array's length query produces this step. -/
-  | length : EvaledStorageRefStep
-  deriving DecidableEq, Inhabited
-
-structure EvaledStorageRef where
-  base : Ident
-  steps : List EvaledStorageRefStep := []
-  deriving DecidableEq, Inhabited
-
 structure StorageLayout where
   layout : EvaledStorageRef -> Option StorageLoc
   -- Note: The above definition may need to also carry some assumptions if
@@ -173,4 +156,3 @@ def fixedTypeSize (t : FixedType) : Fin 33 :=
   match t with
   | .ufixed ⟨bw,hbw⟩ _ => ⟨bw/8, by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
   | .fixed ⟨bw,hbw⟩ _ => ⟨bw/8,  by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
-

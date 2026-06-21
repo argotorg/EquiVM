@@ -255,6 +255,10 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   -- division/modulo by zero reverts (Solidity Panic 0x12)
   | .div, .int x, .int y => if y = 0 then .revert else .ok (.int (x / y))
   | .mod, .int x, .int y => if y = 0 then .revert else .ok (.int (x % y))
+  | .eq, .storageRef _ _, _ => .error .typeError
+  | .eq, _, .storageRef _ _ => .error .typeError
+  | .ne, .storageRef _ _, _ => .error .typeError
+  | .ne, _, .storageRef _ _ => .error .typeError
   | .eq, x, y => .ok (.bool (x == y))
   | .ne, x, y => .ok (.bool (!(x == y)))
   | .lt, .int x, .int y => .ok (.bool (x < y))
@@ -307,14 +311,14 @@ mutual
     | .boolLit _ => 1
     | .bytesLit _ => 1
     | .newBytes lenExpr => exprEvalSize lenExpr + 1
+    | .newArray _ lenExpr => exprEvalSize lenExpr + 1
     | .bytesSlice baseE startE endE =>
         exprEvalSize baseE + exprEvalSize startE + exprEvalSize endE + 1
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
-    | .arrayLength slot => slotEvalSize slot + 1
+    | .arrayLength _ slot => slotEvalSize slot + 1
     | .field base _ => exprEvalSize base + 1
-    | .aindex base idx => exprEvalSize base + exprEvalSize idx + 1
     | .cast expr _ => exprEvalSize expr + 1
     | .inRange _ expr => exprEvalSize expr + 1
     | .addrOf expr => exprEvalSize expr + 1
@@ -365,25 +369,6 @@ lemma stepSize_lt_stepsSize : ∀ (slot : StorageRef) step,
         simp [slotStepsEvalSize]
         apply lt_trans (b:= slotStepsEvalSize tail) (tail_ih hin); omega
 
-/-- Bounds-check a single array index `i` against the array reached by the evaled prefix `pre`.
-    The array's length is asked of the layout through the distinct `.length` query
-    `layout {base, pre ++ [.length]}` (so the check commits to no slot convention) and loaded from
-    storage; an `i` outside `[0, length)` ⇒ `.revert` (solc's `Panic(0x32)`).
-
-    A `none` length query means the array carries no dynamic length (e.g. a fixed-size array, whose
-    bound is statically known) — the check is skipped, not an error.  This is invoked from
-    `evalStorageRefStep` as each `.aindex` is evaluated, so the check is interleaved with index
-    evaluation exactly as solc emits it. -/
-@[simp] def arrayIndexInBounds? (cfg : Config) (evm : EVM.State)
-    (base : Ident) (pre : List EvaledStorageRefStep) (i : KeyValue) : EvalResult Unit :=
-  match cfg.storage.layout { base := base, steps := pre ++ [.length] } with
-  | some lenLoc =>
-      match storageLocLoad evm lenLoc, i with
-      | .int len, .int iv => if 0 ≤ iv ∧ iv < len then .ok () else .revert
-      | .int _, _ => .error .typeError      -- array index is not an integer
-      | _, _ => .error .storageError        -- length slot did not hold an integer
-  | none => .ok ()                          -- no dynamic length (e.g. fixed-size): nothing to check
-
 /-- The declared `StorageType` reached by following one evaled step from a value of type `t`. -/
 def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
   | .struct _ fields, .field name => (fields.find? (fun f => f.1 == name)).map (·.2)
@@ -398,6 +383,32 @@ def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
 def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option StorageType := do
   let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
   er.steps.foldlM storageTypeStep? baseTy
+
+/-- Bounds-check a single array index `i` against the array reached by the evaled prefix `pre`.
+    Fixed arrays are checked against their declared static bound. Dynamic arrays are checked by
+    asking the layout for the distinct `.length` ref `layout {base, pre ++ [.length]}` and reading
+    the stored length. In both cases, an index outside `[0, length)` reverts, matching Solidity's
+    `Panic(0x32)`.
+
+    This is invoked from `evalStorageRefStep` as each `.aindex` is evaluated, so the check is
+    interleaved with index evaluation exactly as solc emits it. -/
+@[simp] def arrayIndexInBounds? (cfg : Config) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep) (i : KeyValue) :
+    EvalResult Unit :=
+  match storageTypeAt? decls { base := base, steps := pre }, i with
+  | some (.array _ n), .int iv =>
+      if 0 ≤ iv ∧ iv < n then .ok () else .revert
+  | some (.array _ _), _ => .error .typeError
+  | some (.dynamicArray _), .int iv =>
+      match cfg.storage.layout { base := base, steps := pre ++ [.length] } with
+      | some lenLoc =>
+          match storageLocLoad evm lenLoc with
+          | .int len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
+          | _ => .error .storageError
+      | none => .error .storageError
+  | some (.dynamicArray _), _ => .error .typeError
+  | some _, _ => .error .typeError
+  | none, _ => .error .storageError
 
 /- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
    `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
@@ -580,6 +591,54 @@ def readArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t'
   termination_by c => (sizeOf t', c)
 end
 
+def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
+    : StorageType -> EvalResult Value
+  | .array _ n => pure (.int n)
+  | .dynamicArray _ =>
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      | some lenLoc =>
+          match storageLocLoad evm lenLoc with
+          | .int n => pure (.int n)
+          | _ => .error .storageError
+      | none => .error .storageError
+  | _ => .error .typeError
+
+mutual
+def defaultValue? : StorageType -> EvalResult Value
+  | .elem (.bool) => pure (.bool false)
+  | .elem (.address) => pure (.address (.ofNat 0))
+  | .elem _ => pure (.int 0)
+  | .contract _ => pure (.address (.ofNat 0))
+  | .mapping _ _ => .error .typeError
+  | .struct name fields => do
+      let values <- defaultFields? fields
+      pure (.struct name values)
+  | .tuple ts => do
+      let values <- defaultValues? ts
+      pure (.array values)
+  | .array elemTy n => do
+      let value <- defaultValue? elemTy
+      pure (.array (List.replicate n value))
+  | .dynamicArray _ => pure (.array [])
+  termination_by t => (sizeOf t, 0)
+
+def defaultFields? : List (Ident × StorageType) -> EvalResult (List (Ident × Value))
+  | [] => pure []
+  | (name, ty) :: rest => do
+      let value <- defaultValue? ty
+      let values <- defaultFields? rest
+      pure ((name, value) :: values)
+  termination_by fields => (sizeOf fields, 0)
+
+def defaultValues? : List StorageType -> EvalResult (List Value)
+  | [] => pure []
+  | ty :: rest => do
+      let value <- defaultValue? ty
+      let values <- defaultValues? rest
+      pure (value :: values)
+  termination_by ts => (sizeOf ts, 0)
+end
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -595,7 +654,7 @@ def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
     -- check this index in bounds against the array reached by `pre`, *before* descending —
     -- interleaved with index evaluation exactly as solc emits it
-    let _ <- arrayIndexInBounds? cfg evm base pre indexKey
+    let _ <- arrayIndexInBounds? cfg evm solm.contract.storage base pre indexKey
     pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
@@ -626,6 +685,75 @@ def evalStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State) (slot : Stora
     apply Prod.Lex.left
     omega
 
+/-- Follow unevaluated storage-ref steps from an already-evaluated storage root, threading both the
+    concrete evaluated path and its declared storage type. This is the workhorse for local
+    `storage` aliases. -/
+def evalStorageRefFrom? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    List StorageRefStep -> EvalResult (EvaledStorageRef × StorageType)
+  | [] => pure (er, ty)
+  | step :: rest => do
+      let estep <- evalStorageRefStep cfg solm evm er.base er.steps step
+      let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty estep)
+      evalStorageRefFrom? cfg solm evm { er with steps := er.steps ++ [estep] } ty' rest
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize]
+    all_goals omega
+
+/-- Resolve a storage lvalue. The base may be a contract storage declaration or a local
+    `Value.storageRef` alias; in the latter case we append the unevaluated suffix to the stored,
+    already-evaluated reference. -/
+def resolveStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult (EvaledStorageRef × StorageType) :=
+  match solm.locals.get? slot.base with
+  | some (.storageRef er ty) => evalStorageRefFrom? cfg solm evm er ty slot.steps
+  | _ =>
+      match evalStorageRef cfg solm evm slot with
+      | .ok er => do
+          let ty <- EvalResult.ofOption .storageError (storageTypeAt? solm.contract.storage er)
+          pure (er, ty)
+      | .revert => .revert
+      | .error e => .error e
+  termination_by (slotEvalSize slot, 1)
+  decreasing_by
+    all_goals simp [slotEvalSize]
+    all_goals omega
+
+def resolveDynamicArrayRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (ref : StorageRef) : EvalResult (EvaledStorageRef × StorageType) := do
+  let (er, ty) <- resolveStorageRef? cfg solm evm ref
+  match ty with
+  | .dynamicArray elemTy => pure (er, elemTy)
+  | _ => .error .storageError
+
+def readLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (root : Value) : List StorageRefStep -> EvalResult Value
+  | [] => pure root
+  | .field name :: rest => do
+      let child <- EvalResult.ofOption .typeError (lookupField? root name)
+      readLocalPath? cfg solm evm child rest
+  | .mindex expr :: rest => do
+      let idx <- evalExpr? cfg solm evm expr
+      let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
+      readLocalPath? cfg solm evm child rest
+  | .aindex expr :: rest => do
+      let idx <- evalExpr? cfg solm evm expr
+      match root, idx with
+      | .array elems, .int i =>
+          -- memory array index read: out of bounds reverts (solc's `Panic(0x32)`)
+          if 0 ≤ i ∧ i < elems.length then
+            let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
+            readLocalPath? cfg solm evm child rest
+          else .revert
+      | _, _ =>
+          let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
+          readLocalPath? cfg solm evm child rest
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize, slotStepEvalSize]
+    all_goals omega
+
 def updateLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (root : Value) (steps : List StorageRefStep) (value : Value) : EvalResult Value :=
   match steps with
@@ -641,9 +769,18 @@ def updateLocalPath? (cfg : Config) (solm : Frame) (evm : EVM.State)
       EvalResult.ofOption .typeError (updateIndex? root idx child')
   | .aindex expr :: rest => do
       let idx <- evalExpr? cfg solm evm expr
-      let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
-      let child' <- updateLocalPath? cfg solm evm child rest value
-      EvalResult.ofOption .typeError (updateIndex? root idx child')
+      match root, idx with
+      | .array elems, .int i =>
+          -- memory array index write: out of bounds reverts (solc's `Panic(0x32)`)
+          if 0 ≤ i ∧ i < elems.length then
+            let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
+            let child' <- updateLocalPath? cfg solm evm child rest value
+            EvalResult.ofOption .typeError (updateIndex? root idx child')
+          else .revert
+      | _, _ =>
+          let child <- EvalResult.ofOption .typeError (lookupIndex? root idx)
+          let child' <- updateLocalPath? cfg solm evm child rest value
+          EvalResult.ofOption .typeError (updateIndex? root idx child')
   termination_by (slotStepsEvalSize steps, 0)
   decreasing_by
     all_goals simp [slotStepsEvalSize, slotStepEvalSize]
@@ -659,23 +796,18 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
         let root' <- updateLocalPath? cfg solm evm root slot.steps value
         pure ({ solm with locals := solm.locals.insert slot.base root' }, evm)
     | none => .error .unboundVariable
-  | .storage =>
-    match evalStorageRef cfg solm evm slot with
-    | .ok evaledStorageRef =>
-      match value with
-      | .struct _ _ | .array _ => do
-        -- whole-array / whole-struct assignment: write every slot by the declared type
-        let ty <- EvalResult.ofOption .storageError
-          (storageTypeAt? solm.contract.storage evaledStorageRef)
-        let evm' <- writeStorage? cfg evm evaledStorageRef ty value
-        pure (solm, evm')
-      | _ => do
-        -- scalar leaf: a single whole/partial-slot store
-        let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
-        let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
-        pure (solm, evm')
-    | .revert => .revert
-    | .error e => .error e
+  | .storage => do
+    let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
+    match value with
+    | .struct _ _ | .array _ => do
+      -- whole-array / whole-struct assignment: write every slot by the declared type
+      let evm' <- writeStorage? cfg evm evaledStorageRef ty value
+      pure (solm, evm')
+    | _ => do
+      -- scalar leaf: a single whole/partial-slot store
+      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
+      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
+      pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -688,6 +820,15 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | .int n => if n < 0 then .error .typeError
                   else pure (.bytes (ByteArray.mk (Array.replicate n.toNat (0 : UInt8))))
       | _ => .error .typeError
+  | .newArray elemTy lenExpr => do
+      let lenVal <- evalExpr? cfg solm evm lenExpr
+      match lenVal with
+      | .int n =>
+          if n < 0 then .error .typeError
+          else do
+            let defaultValue <- defaultValue? elemTy
+            pure (.array (List.replicate n.toNat defaultValue))
+      | _ => .error .typeError
   | .bytesSlice baseE startE endE => do
       let baseV <- evalExpr? cfg solm evm baseE
       let startV <- evalExpr? cfg solm evm startE
@@ -699,38 +840,31 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | _, _, _ => .error .typeError
   | .var name => EvalResult.ofOption .unboundVariable (solm.locals.get? name)
   | .env var => pure (envValue evm var)
-  | .storage slot =>
-      match evalStorageRef cfg solm evm slot with
-      | .ok evaledStorageRef =>
-          match cfg.storage.layout evaledStorageRef with
-          | some loc => pure (storageLocLoad evm loc)
-          | none =>
-              -- no single slot ⇒ an aggregate (struct / array): read it in full by declared type
-              match storageTypeAt? solm.contract.storage evaledStorageRef with
-              | some ty => readStorage? cfg evm evaledStorageRef ty
-              | none => .error .storageError
-      | .revert => .revert
-      | .error e => .error e
-  | .arrayLength ref =>
-      -- `ref` names the array; we ask the layout a *distinct* question — the location of
-      -- that array's length — by appending the `.length` marker. The semantics commits to
-      -- no slot convention: where the length lives is entirely the layout's choice.
-      match evalStorageRef cfg solm evm ref with
-      | .ok evaledStorageRef => do
-          let lengthRef := { evaledStorageRef with steps := evaledStorageRef.steps ++ [.length] }
-          let loc <- EvalResult.ofOption .storageError (cfg.storage.layout lengthRef)
-          match storageLocLoad evm loc with
-          | .int n => pure (.int n)
-          | _ => .error .storageError
-      | .revert => .revert
-      | .error e => .error e
+  | .storage slot => do
+      let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
+      readStorage? cfg evm evaledStorageRef ty
+  | .arrayLength origin slot => do
+      match origin with
+      | .storage => do
+          let (er, ty) <- resolveStorageRef? cfg solm evm slot
+          readStorageArrayLength? cfg evm er ty
+      | .localVar =>
+          match solm.locals.get? slot.base with
+          | some root => do
+              let v <- readLocalPath? cfg solm evm root slot.steps
+              match v with
+              | .array vs => pure (.int vs.length)
+              | .bytes b => pure (.int (Int.ofNat b.size))
+              | _ => .error .typeError
+          | none => .error .unboundVariable
   | .field base name => do
       let baseValue <- evalExpr? cfg solm evm base
-      EvalResult.ofOption .typeError (lookupField? baseValue name)
-  | .aindex base idxExpr => do
-      let baseValue <- evalExpr? cfg solm evm base
-      let idx <- evalExpr? cfg solm evm idxExpr
-      EvalResult.ofOption .typeError (lookupIndex? baseValue idx)
+      match baseValue with
+      | .storageRef er ty => do
+          let step := EvaledStorageRefStep.field name
+          let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty step)
+          readStorage? cfg evm { er with steps := er.steps ++ [step] } ty'
+      | _ => EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
       let value <- evalExpr? cfg solm evm expr
       EvalResult.ofOption .typeError (castValue? value ty)
@@ -950,61 +1084,45 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option Va
     length slot doesn't hold an integer, or a compound value's shape doesn't match the element type —
     i.e. for a well-formed layout + matching value, `.revert` is the only non-`.ok` outcome. -/
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    (value : Option Value) : EvalResult EVM.State :=
-  match evalStorageRef cfg solm evm ref with
-  | .ok er =>
-      match storageTypeAt? solm.contract.storage er with
-      | some (.dynamicArray elemTy) => do
-          let lenLoc <- EvalResult.ofOption .storageError
-            (cfg.storage.layout { er with steps := er.steps ++ [.length] })
-          match storageLocLoad evm lenLoc with
-          | .int len => do
-              let evm1 <- match value with
-                | some v =>
-                    writeStorage? cfg evm
-                      { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
-                | none => pure evm
-              EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len + 1)))
-          | _ => .error .storageError
-      | _ => .error .storageError   -- push target is not a dynamic array
-  | .revert => .revert
-  | .error e => .error e
+    (value : Option Value) : EvalResult EVM.State := do
+  let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
+  let lenLoc <- EvalResult.ofOption .storageError
+    (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+  match storageLocLoad evm lenLoc with
+  | .int len => do
+      let evm1 <- match value with
+        | some v =>
+            writeStorage? cfg evm
+              { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
+        | none => pure evm
+      EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len + 1)))
+  | _ => .error .storageError
 
 /-- `arr.pop()`: remove the last element of the dynamic array named by `ref`.  Reverts when the
     array is empty (solc's `Panic(0x31)`).  Otherwise recursively clears the whole last element
     (per its declared type, via `clearStorage?` — so nested arrays/structs are fully zeroed) and
     sets the length to `L-1`. -/
 def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    : EvalResult EVM.State :=
-  match evalStorageRef cfg solm evm ref with
-  | .ok er => do
-      let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] })
-      match storageLocLoad evm lenLoc with
-      | .int len =>
-          if len ≤ 0 then .revert
-          else
-            match storageTypeAt? solm.contract.storage er with
-            | some (.dynamicArray elemTy) => do
-                let evm1 <- clearStorage? cfg evm
-                  { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
-                EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
-            | _ => .error .storageError   -- pop target is not a dynamic array
-      | _ => .error .storageError
-  | .revert => .revert
-  | .error e => .error e
+    : EvalResult EVM.State := do
+  let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
+  let lenLoc <- EvalResult.ofOption .storageError
+    (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+  match storageLocLoad evm lenLoc with
+  | .int len =>
+      if len ≤ 0 then .revert
+      else do
+        let evm1 <- clearStorage? cfg evm
+          { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
+        EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
+  | _ => .error .storageError
 
 /-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
     (`clearStorage?` — a dynamic array becomes empty, a struct/array is fully zeroed).  `.revert`s
     only if evaluating the ref does; `.error`s on an ill-formed layout/type. -/
 def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    : EvalResult EVM.State :=
-  match evalStorageRef cfg solm evm ref with
-  | .ok er => do
-      let ty <- EvalResult.ofOption .storageError (storageTypeAt? solm.contract.storage er)
-      clearStorage? cfg evm er ty
-  | .revert => .revert
-  | .error e => .error e
+    : EvalResult EVM.State := do
+  let (er, ty) <- resolveStorageRef? cfg solm evm ref
+  clearStorage? cfg evm er ty
 
 mutual
 
@@ -1017,6 +1135,13 @@ inductive ExecStmt (cfg : Config) :
   | letDeclRevert :
       evalExpr? cfg solm evm expr = .revert ->
       ExecStmt cfg solm evm (.letDecl name ty expr) .reverted
+  | letStorage :
+      resolveStorageRef? cfg solm evm ref = .ok (er, ty) ->
+      ExecStmt cfg solm evm (.letStorage name ref)
+        (.ok { solm with locals := solm.locals.insert name (.storageRef er ty) } evm)
+  | letStorageRevert :
+      resolveStorageRef? cfg solm evm ref = .revert ->
+      ExecStmt cfg solm evm (.letStorage name ref) .reverted
   | assign :
       evalExpr? cfg solm evm expr = .ok value ->
       assignStorageRef? cfg solm evm origin slot value = .ok (solm', evm') ->

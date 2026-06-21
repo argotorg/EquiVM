@@ -22,3 +22,21 @@
 
 - array assignment? 
 
+- StorageRef 
+  + probably rename with something else, since it is used for locals too. 
+
+- We need to remove the huge eqDec definitions somewhere else so our syntax/semantics files remain readable.
+
+
+- What we do not have (and may be fine for now)
+  + memory references
+  + no delete for memory arrays
+
+- Solidity out-of-scope
+  + Checked arithmetic (we have unbounded arithmetic with explicit inRange checks)
+  + Events
+  + Multiple returns 
+  + Inheritance and interfaces
+  + Memory references
+  + Transient storage
+  + Revert reasons 

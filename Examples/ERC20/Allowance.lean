@@ -117,11 +117,37 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (allowanceRef (.var "owner") (.var "spender"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  simp [allowanceSlot, evalStorageRef, evalStorageRefStep, allowanceRef,
-    evalExpr_allowance_owner, evalExpr_allowance_spender,
-    allowanceOwnerValue, allowanceSpenderValue, valueToKey?, EvalResult.seqList,
-    EvalResult.bind, EvalResult.ofOption, bind, pure, erc20StorageLocLoad_uint256]
+  have hgowner := allowanceStore_owner_getElem? I
+  have hgspender := allowanceStore_spender_getElem? I
+  have her : evalStorageRef erc20Config { contract := erc20Contract, locals := allowanceStore I }
+      evm (allowanceRef (.var "owner") (.var "spender")) =
+      .ok { base := "allowance",
+            steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
+                      .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } := by
+    simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, allowanceRef, evalExpr?,
+      EvalResult.bind, EvalResult.ofOption, bind, pure, valueToKey?,
+      Std.HashMap.get?_eq_getElem?, hgowner, hgspender,
+      allowanceOwnerValue, allowanceSpenderValue]
+  have hty : storageTypeAt? erc20Contract.storage
+      { base := "allowance",
+        steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
+                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
+      some (.elem (.int uint256Int)) := by
+    simp [storageTypeAt?, erc20Contract, erc20StorageDecls, uint256Storage,
+          List.find?, List.foldlM, storageTypeStep?]
+  have hloc : erc20Config.storage.layout
+      { base := "allowance",
+        steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
+                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
+      some (erc20Uint256Loc (allowanceSlot I)) := by
+    simp [allowanceSlot, erc20Config_storage_allowance, allowanceOwnerValue, allowanceSpenderValue,
+          erc20AllowanceSlot]
+  rw [evalExpr_storage_scalar
+    (hbase := by rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)];
+                 simp)
+    (her := her) (hty := hty) (hloc := hloc)]
+  congr 1
+  exact erc20StorageLocLoad_uint256 evm (allowanceSlot I)
 
 theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :

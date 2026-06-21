@@ -5,7 +5,7 @@ import Solm.Value
 namespace ABI
 
 def natBytes (n : Nat) : List UInt8 :=
-  (EVM.Word.ofNat n).toBytesLE
+  (EVM.Word.ofNat n).toBytesBE
 
 def zeroBytes (n : Nat) : List UInt8 :=
   List.replicate n 0
@@ -159,4 +159,3 @@ def encodeReturnValues? (types : List ABIType) (values : List Solm.Value) : Opti
 
 def encodeReturnValue? (ty : ABIType) (value : Solm.Value) : Option ByteArray :=
   encodeReturnValues? [ty] [value]
-

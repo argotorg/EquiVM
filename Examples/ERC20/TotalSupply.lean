@@ -18,16 +18,20 @@ theorem totalSupplyWord_eq_storageLoad_init {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- The Solm `totalSupply()` body returns the word stored in slot 2. -/
 theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
-    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hlocals : locals.get? "totalSupply" = none) :
     ExecTransitionBody erc20Config erc20Contract evm locals totalSupplyTransition.body
       (.returned { contract := erc20Contract, locals := locals } evm
         (some (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)))) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      simp only [evalExpr?, evalStorageRef, evalStorageRefSteps, totalSupplyRef]
-      change EvalResult.ok (storageLocLoad evm (erc20Uint256Loc ⟨2⟩)) =
-        EvalResult.ok (Value.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))
-      rw [erc20StorageLocLoad_uint256])
+      have her : evalStorageRef erc20Config { contract := erc20Contract, locals := locals } evm
+          totalSupplyRef = .ok { base := "totalSupply", steps := [] } := by
+        simp [evalStorageRef, evalStorageRefSteps, totalSupplyRef, EvalResult.bind, pure, bind]
+      have hty : storageTypeAt? erc20Contract.storage ({ base := "totalSupply", steps := [] } : EvaledStorageRef)
+          = some (.elem (.int uint256Int)) := by decide
+      rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
+        (hty := hty) (hloc := erc20Config_storage_totalSupply), erc20StorageLocLoad_uint256])
 
 /-- The EVM `totalSupply()` wrapper loads slot 2 and returns it as a single ABI word. -/
 theorem erc20X_totalSupply {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -107,6 +111,7 @@ theorem erc20TotalSupplyBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UI
   have hdec := erc20Decode_totalSupply (I := I) hsz
   have hbody₀ := erc20TotalSupplyBodyReturns
     (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ (by simp only [initState]; exact hwv)
+    (by simp)
   have hbody :
       ExecTransitionBody erc20Config erc20Contract
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body

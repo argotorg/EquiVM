@@ -16,6 +16,8 @@ inductive Value where
   | array : List Value -> Value /- arrays can be copied to memory, so we need array values -/
   /- dynamic `bytes` (arbitrary-length byte string), e.g. low-level `.call` calldata -/
   | bytes : ByteArray -> Value
+  /- Internal-only local alias for Solidity `storage` variables. Not ABI-encodable or storable. -/
+  | storageRef : EvaledStorageRef -> StorageType -> Value
   | unit : Value
   deriving Inhabited
 
@@ -50,6 +52,11 @@ mutual
         match (inferInstance : Decidable (x = y)) with
         | isTrue h => isTrue (by subst y; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .storageRef rx tx, .storageRef ry ty =>
+        match (inferInstance : Decidable (rx = ry)), (inferInstance : Decidable (tx = ty)) with
+        | isTrue hr, isTrue ht => isTrue (by cases hr; cases ht; rfl)
+        | isFalse hr, _ => isFalse (by intro h; cases h; exact hr rfl)
+        | _, isFalse ht => isFalse (by intro h; cases h; exact ht rfl)
     | .int _, .bool _ => isFalse (by intro h; cases h)
     | .int _, .address _ => isFalse (by intro h; cases h)
     | .int _, .struct _ _ => isFalse (by intro h; cases h)
@@ -92,6 +99,20 @@ mutual
     | .bytes _, .struct _ _ => isFalse (by intro h; cases h)
     | .bytes _, .array _ => isFalse (by intro h; cases h)
     | .bytes _, .unit => isFalse (by intro h; cases h)
+    | .storageRef _ _, .int _ => isFalse (by intro h; cases h)
+    | .int _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .bool _ => isFalse (by intro h; cases h)
+    | .bool _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .address _ => isFalse (by intro h; cases h)
+    | .address _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .struct _ _ => isFalse (by intro h; cases h)
+    | .struct _ _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .array _ => isFalse (by intro h; cases h)
+    | .array _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .bytes _ => isFalse (by intro h; cases h)
+    | .bytes _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .unit => isFalse (by intro h; cases h)
+    | .unit, .storageRef _ _ => isFalse (by intro h; cases h)
 
   private def Value.decEqList : (as bs : List Value) -> Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -140,14 +161,6 @@ end
 instance : DecidableEq Value :=
   Value.decEq
 
-/- Basically all values that can be a key for a mapping.
-  In other words all types that can fit in a word -/
-inductive KeyValue where
-  | int : Int -> KeyValue
-  | bool : Bool -> KeyValue
-  | address : EVM.Address -> KeyValue
-  deriving DecidableEq, Inhabited
-
 def valueToWord : Value -> Option EVM.Word
   | .int i => pure $ EVM.wordOfInt i
   | .unit => .none
@@ -156,6 +169,7 @@ def valueToWord : Value -> Option EVM.Word
   | .array _ => .none
   | .struct _ _ => .none
   | .bytes _ => .none
+  | .storageRef _ _ => .none
 
 def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   match t with

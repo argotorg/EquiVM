@@ -986,13 +986,16 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
         .storage { base := "stored", steps := [] } (.int (Int.ofNat k))
       = .ok ({ contract := callerContract, locals := L },
              EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
-  unfold assignStorageRef?
-  simp only [evalStorageRef, evalStorageRefSteps, bind, EvalResult.bind, pure,
-    EvalResult.ofOption]
-  rw [show callerConfig.storage.layout { base := "stored" }
-        = some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
-                 type := .int (.uint ⟨256, by decide⟩) } from rfl]
-  simp only [callerLocStore]
+  have her : evalStorageRef callerConfig { contract := callerContract, locals := L } evm'
+      { base := "stored", steps := [] } = .ok { base := "stored", steps := [] } := by
+    simp [evalStorageRef, bind, EvalResult.bind, pure]
+  have hty : storageTypeAt? callerContract.storage { base := "stored", steps := [] } =
+      some (.elem (.int (.uint ⟨256, by decide⟩))) := by
+    simp [storageTypeAt?, callerContract]
+  have hloc : callerConfig.storage.layout { base := "stored", steps := [] } =
+      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+             type := .int (.uint ⟨256, by decide⟩) } := rfl
+  exact assignStorageRef_storage_scalar hbase her hty hloc (callerLocStore evm' k)
 
 /-- `EVM.storageStore`'s `accountMap` is exactly the `sstoreAccountMap` the `RD` `SSTORE` carries. -/
 theorem storageStore_accountMap (evm' : EVM.State) (a : AccountAddress) (s v : UInt256) :
