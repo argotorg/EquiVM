@@ -72,6 +72,35 @@ theorem execWhile_var {cfg : Config} {C : ContractDecl} {evm : EVM.State}
     obtain ⟨L', hwhile, hP'⟩ := ih L1 hP1
     exact ⟨L', ExecStmt.whileTrue (htrue v L hP) hbody hwhile, hP'⟩
 
+/-- **Hoare for-loop rule** — the `for` analog of `execWhile_var`, for the loop body `ExecForLoop`
+    (after `init` has already run).  A variant-indexed invariant `P` that makes the condition false
+    at variant `0`, true at `v+1`, and is preserved by **one iteration of `body` followed by `post`**
+    (`hstep`), drives the loop to a final store satisfying `P 0`.  Wrap with `ExecStmt.for hinit …`
+    (running `init`) to get a full `ExecStmt (.for …)`.  As in `execWhile_var`, the EVM state and
+    contract are loop-invariant; only the locals change. -/
+theorem execFor_var {cfg : Config} {C : ContractDecl} {evm : EVM.State}
+    {condExpr : Expr} {post body : List Stmt} (P : ℕ → Solm.Store → Prop)
+    (hfalse : ∀ L, P 0 L →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool false))
+    (htrue : ∀ v L, P (v + 1) L →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool true))
+    (hstep : ∀ v L, P (v + 1) L →
+        ∃ L1, ExecBlock cfg { contract := C, locals := L } evm body
+                (.ok { contract := C, locals := L1 } evm) ∧
+              ∃ L', ExecBlock cfg { contract := C, locals := L1 } evm post
+                (.ok { contract := C, locals := L' } evm) ∧ P v L') :
+    ∀ v L, P v L → ∃ L',
+      ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
+        (.ok { contract := C, locals := L' } evm) ∧ P 0 L' := by
+  intro v
+  induction v with
+  | zero => intro L hP; exact ⟨L, ExecForLoop.falseDone (hfalse L hP), hP⟩
+  | succ v ih =>
+    intro L hP
+    obtain ⟨L1, hbody, L2, hpost, hP1⟩ := hstep v L hP
+    obtain ⟨L', hloop, hP'⟩ := ih L2 hP1
+    exact ⟨L', ExecForLoop.iterate (htrue v L hP) hbody hpost hloop, hP'⟩
+
 /-! ## Forward block builder
 
 `ExecBlock` is built tail-first (`consNormal` needs the rest), so a straight-line body reads
@@ -110,6 +139,14 @@ theorem ABlock.whileStep {cfg evm solm₀ stmts₀ solm solm' rest} {cond body}
     (hwhile : ExecStmt cfg solm evm (.while cond body) (.ok solm' evm)) :
     ABlock cfg evm solm₀ stmts₀ solm' rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal hwhile h)⟩
+
+/-- A `for` loop that runs to `.ok` at frame `solm'` (supply the loop fact, e.g. `ExecStmt.for`
+    composing `init` with `execFor_var`).  The `for` analog of `ABlock.whileStep`. -/
+theorem ABlock.forStep {cfg evm solm₀ stmts₀ solm solm' rest} {init cond post body}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.for init cond post body :: rest))
+    (hfor : ExecStmt cfg solm evm (.for init cond post body) (.ok solm' evm)) :
+    ABlock cfg evm solm₀ stmts₀ solm' rest :=
+  ⟨fun h => prev.run (ExecBlock.consNormal hfor h)⟩
 
 /-- Close with a `return` ⇒ the block returns `value`. -/
 theorem ABlock.returns {cfg evm solm₀ stmts₀ solm rest} {expr value}

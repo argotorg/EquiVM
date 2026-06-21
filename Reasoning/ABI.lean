@@ -772,14 +772,28 @@ theorem decodeCalldata_address_address_none_huge {cd : ByteArray} {x y : Solm.Id
 
 /-! ## Return-value (`RETURN`) ABI encoding -/
 
+/-- **Scalar RETURN-encoding core.**  Given a scalar value `v` whose ABI encoding is the 32
+    big-endian bytes of the word `w` (`hval`), a single-value `RETURN` encodes to exactly `w`'s
+    32-byte word.  This is the shared tail of every scalar return-encoding proof; each scalar type
+    (`bool`, `uint256`, `address`, …) supplies only its per-type word fact `hval` (plus the trivial
+    `hdyn`/`hhead`). -/
+theorem scalarReturnEncoding {t : ABI.ElemType} {v : Solm.Value} {w : EVM.Word}
+    (hdyn : isDynamicABIType (.elem t) = false)
+    (hhead : abiTupleHeadSize? [(.elem t)] = some 32)
+    (hval : encodeABIValue? (.elem t) v = some (EVM.Word.toBytesBE w)) :
+    encodeReturnValue? (.elem t) v = some (UInt256.toByteArray w) := by
+  rw [toByteArray_eq_toBytesBE,
+    show encodeReturnValue? (.elem t) v = encodeReturnValues? [(.elem t)] [v] from rfl]
+  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
+    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
+
 /-- ABI-encoding `true` is the one-word value `1` (for `bool`-returning functions). -/
 theorem boolTrueReturnEncoding :
-    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
-  rw [toByteArray_eq_toBytesBE]
-  simp [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, abiTupleHeadSize?,
-    staticABIEncodedSize?, isDynamicABIType, encodeABIValuesFrom?, encodeABIValue?,
-    encodeABIWord?, Bool.toUInt256_true]
-  rfl
+    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) :=
+  scalarReturnEncoding (t := .bool) (w := ⟨1⟩) rfl
+    (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+        decide)
+    (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_true]; rfl)
 
 /-- ABI-encoding a `uint256` return value is exactly the EVM's returned word bytes. -/
 theorem uint256ReturnEncoding (v : UInt256) :
@@ -788,21 +802,12 @@ theorem uint256ReturnEncoding (v : UInt256) :
   have hword : EVM.word v.toNat = v := by
     show UInt256.ofNat v.toNat = v
     exact u256_ofNat_toNat v
-  have hval : encodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
-                = some (EVM.Word.toBytesBE v) := by
-    have hltNat : v.toNat < EVM.twoPow 256 := by
-      change v.val.val < EVM.twoPow 256
-      exact v.val.isLt
-    simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
-  have hdyn : isDynamicABIType (.elem (.int (.uint ⟨256, by decide⟩))) = false := rfl
-  have hhead : abiTupleHeadSize? [(.elem (.int (.uint ⟨256, by decide⟩)))] = some 32 := by
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+  have hltNat : v.toNat < EVM.twoPow 256 := by
+    change v.val.val < EVM.twoPow 256
+    exact v.val.isLt
+  refine scalarReturnEncoding (t := (.int (.uint ⟨256, by decide⟩))) (w := v) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
     decide
-  rw [toByteArray_eq_toBytesBE,
-    show encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat))
-        = encodeReturnValues? [(.elem (.int (.uint ⟨256, by decide⟩)))]
-            [.int (Int.ofNat v.toNat)] from rfl]
-  simp only [encodeReturnValues?, encodeABIValues?, hhead, encodeABIValuesFrom?, hval, hdyn,
-    bind, Option.bind, if_false, Bool.false_eq_true, List.nil_append, List.append_nil]
+  · simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
 
 end Reasoning.Theory

@@ -112,6 +112,27 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 s :
   unfold RD
   exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
 
+/-- Open the `RD` fold at a transaction's `initState`: the entry cursor at pc 0 with an empty stack,
+    empty memory / return-data, zero active words, gas fully available (`C = 0`), and the genesis
+    accounts `(cA, σ)`.  Every contract (runtime or constructor) begins its `evm_run` chain here;
+    supersedes the hand-written `RD.start (s := initState …)` setup. -/
+theorem RD.initState {code : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hcode : I.code = code) :
+    RD code I g (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 := by
+  apply RD.start (s0 := Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    (s := Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (code := code) (g := g)
+  · simp [Reasoning.Theory.initState, hcode]
+  · simp [Reasoning.Theory.initState]; rfl
+  · simp [Reasoning.Theory.initState]; rfl
+  · simp [Reasoning.Theory.initState]
+  · omega
+  · omega
+  · simp
+  · simp [RDWorld]
+
 /-- Repackage the invariant into the `∃ k' C' s'` conclusion the segment lemmas
     state (the explicit step/gas indices become the existential witnesses). -/
 theorem RD.conclude {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
