@@ -742,6 +742,10 @@ inductive Stmt where
   | assign : VarOrigin -> StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
   | while : Expr -> List Stmt -> Stmt
+  /- `for (init; cond; post) { body }`, modelled as Yul's `for {init} cond {post} {body}`:
+     `init` runs once, then each iteration checks `cond`, runs `body`, then `post`.  A `continue`
+     in `body` skips to `post` (re-checking `cond` after); a `break` exits without running `post`. -/
+  | for : List Stmt /- init -/ -> Expr /- cond -/ -> List Stmt /- post -/ -> List Stmt /- body -/ -> Stmt
   /- conditional: `if cond { thenBranch } else { elseBranch }`; a no-`else` `if` is `elseBranch = []` -/
   | ite : Expr -> List Stmt -> List Stmt -> Stmt
   /- constructor call -/
@@ -1138,6 +1142,47 @@ mutual
     | .break, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .continue => isFalse (by intro h; cases h)
     | .continue, .pop _ => isFalse (by intro h; cases h)
+    | .for ix cx px bx, .for iy cy py by_ =>
+        match Stmt.decEqList ix iy, Expr.decEq cx cy, Stmt.decEqList px py, Stmt.decEqList bx by_ with
+        | isTrue hi, isTrue hc, isTrue hp, isTrue hb => isTrue (by cases hi; cases hc; cases hp; cases hb; rfl)
+        | isFalse hi, _, _, _ => isFalse (by intro h; cases h; exact hi rfl)
+        | _, isFalse hc, _, _ => isFalse (by intro h; cases h; exact hc rfl)
+        | _, _, isFalse hp, _ => isFalse (by intro h; cases h; exact hp rfl)
+        | _, _, _, isFalse hb => isFalse (by intro h; cases h; exact hb rfl)
+    | .for _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .externalCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .break => isFalse (by intro h; cases h)
+    | .break, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .continue => isFalse (by intro h; cases h)
+    | .continue, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .for _ _ _ _ => isFalse (by intro h; cases h)
 
   private def Stmt.decEqList : (as bs : List Stmt) -> Decidable (as = bs)
     | [], [] => isTrue rfl

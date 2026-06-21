@@ -1364,6 +1364,17 @@ inductive ExecStmt (cfg : Config) :
       ExecBlock cfg solm evm body (.continue solm' evm') ->
       ExecStmt cfg solm' evm' (.while condExpr body) result ->
       ExecStmt cfg solm evm (.while condExpr body) result
+  -- `for (init; cond; post) { body }`: run `init` once, then loop via `ExecForLoop`.
+  | for :
+      ExecBlock cfg solm evm init (.ok solm1 evm1) ->
+      ExecForLoop cfg solm1 evm1 condExpr post body result ->
+      ExecStmt cfg solm evm (.for init condExpr post body) result
+  | forInitReturn :
+      ExecBlock cfg solm evm init (.returned solm1 evm1 value) ->
+      ExecStmt cfg solm evm (.for init condExpr post body) (.returned solm1 evm1 value)
+  | forInitRevert :
+      ExecBlock cfg solm evm init .reverted ->
+      ExecStmt cfg solm evm (.for init condExpr post body) .reverted
   | iteTrue {condExpr} :
       evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
       ExecBlock cfg solm evm thenB result ->
@@ -1512,6 +1523,54 @@ inductive ExecStmt (cfg : Config) :
       ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
       ExecStmt cfg solm evm .continue (.continue solm evm)
+
+/-- The loop part of a `for (init; cond; post) { body }`, after `init` has run.  Each iteration
+    checks `cond`; on `true` it runs `body` then `post` and loops.  A `break` in `body` exits the
+    loop with `.ok` (skipping `post`); a `continue` runs `post` and loops; `return`/`revert`
+    propagate.  `post` may only fall through (`.ok`) or revert. -/
+inductive ExecForLoop (cfg : Config) :
+    Frame -> EVM.State -> Expr /- cond -/ -> List Stmt /- post -/ -> List Stmt /- body -/ ->
+    ExecResult -> Prop where
+  | falseDone {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool false) ->
+      ExecForLoop cfg solm evm condExpr post body (.ok solm evm)
+  | condRevert {condExpr} :
+      evalExpr? cfg solm evm condExpr =.revert ->
+      ExecForLoop cfg solm evm condExpr post body .reverted
+  | bodyReturn {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.returned solm' evm' value) ->
+      ExecForLoop cfg solm evm condExpr post body (.returned solm' evm' value)
+  | bodyRevert {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body .reverted ->
+      ExecForLoop cfg solm evm condExpr post body .reverted
+  | bodyBreak {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.break solm' evm') ->
+      ExecForLoop cfg solm evm condExpr post body (.ok solm' evm')
+  | iterate {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.ok solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post (.ok solm2 evm2) ->
+      ExecForLoop cfg solm2 evm2 condExpr post body result ->
+      ExecForLoop cfg solm evm condExpr post body result
+  | iteratePostRevert {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.ok solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post .reverted ->
+      ExecForLoop cfg solm evm condExpr post body .reverted
+  | continueIter {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.continue solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post (.ok solm2 evm2) ->
+      ExecForLoop cfg solm2 evm2 condExpr post body result ->
+      ExecForLoop cfg solm evm condExpr post body result
+  | continuePostRevert {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.continue solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post .reverted ->
+      ExecForLoop cfg solm evm condExpr post body .reverted
 
 inductive ExecBlock (cfg : Config) :
     Frame -> EVM.State -> List Stmt -> ExecResult -> Prop where
