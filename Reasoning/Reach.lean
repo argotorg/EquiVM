@@ -780,6 +780,15 @@ theorem RD.lt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.lt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => lt_xstep hc hp hdec hs hov)
 
+theorem RD.gt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.GT, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.gt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => gt_xstep hc hp hdec hs hov)
+
 theorem RD.slt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1528,6 +1537,95 @@ theorem RD.selectorArmNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : S
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorArmNotTaken hdup hpush4 heq hopT hpushT hjumpi hb hov
+
+/-! ### Selector split — one `DUP1; PUSH4 pivot; GT; PUSHk tgt; JUMPI`
+
+Solc switches from a linear selector chain to a binary-search split for larger contracts.  The
+shape is identical to a selector arm except the comparison is `GT` rather than `EQ`; the boolean is
+therefore `UInt256.gt pivot selWord`. -/
+
+/-- A binary-search selector split at `splitPc` is well-formed:
+    `DUP1; PUSH4 pivot; GT; PUSHk tgt; JUMPI`. -/
+@[reducible] def selectorSplitWellFormed (code : ByteArray) (splitPc : UInt256) : Prop :=
+  decode code splitPc = some (.DUP1, .none)
+  ∧ decode code (selArmPush4Pc splitPc)
+      = some (.Push .PUSH4, some (armSelNat code splitPc, 4))
+  ∧ decode code (selArmEqPc splitPc) = some (.GT, .none)
+  ∧ armTgtOp code splitPc ≠ .PUSH0
+  ∧ decode code (selArmPushTgtPc splitPc)
+      = some (.Push (armTgtOp code splitPc), some (armTgt code splitPc, armTgtWidth code splitPc))
+  ∧ decode code (selArmJumpiPc splitPc (armTgtWidth code splitPc)) = some (.JUMPI, .none)
+
+/-- Selector split **taken** (`pivot > selWord`): jump to the low-half target. -/
+theorem RD.selectorSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {width : ℕ} {op : Operation.POp} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code splitPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
+    (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
+    (hop : op ≠ .PUSH0)
+    (hpushT : decode code (selArmPushTgtPc splitPc) = some (.Push op, some (tgt, width)))
+    (hjumpi : decode code (selArmJumpiPc splitPc width) = some (.JUMPI, .none))
+    (hb : UInt256.gt pivot selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+  h.dup1 hdup (by omega)
+   |>.push4 pivot hpush4 (by simp only [List.length_cons]; omega)
+   |>.gt hgt (by simp only [List.length_cons]; omega)
+   |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
+   |>.jumpiT hjumpi hb hjd (by simp only [List.length_cons]; omega)
+
+/-- Selector split **not taken** (`pivot > selWord = 0`): fall through to the high half. -/
+theorem RD.selectorSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {width : ℕ} {op : Operation.POp} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code splitPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
+    (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
+    (hop : op ≠ .PUSH0)
+    (hpushT : decode code (selArmPushTgtPc splitPc) = some (.Push op, some (tgt, width)))
+    (hjumpi : decode code (selArmJumpiPc splitPc width) = some (.JUMPI, .none))
+    (hb : UInt256.gt pivot selWord = ⟨0⟩) (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (selArmNextPc splitPc width) (selWord :: rest)
+      mem aw rdata acc (k + 5) (C + 22) :=
+  h.dup1 hdup (by omega)
+   |>.push4 pivot hpush4 (by simp only [List.length_cons]; omega)
+   |>.gt hgt (by simp only [List.length_cons]; omega)
+   |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
+   |>.jumpiNT hjumpi hb (by simp only [List.length_cons]; omega)
+
+/-- Selector split **taken**, with opcode facts bundled as `selectorSplitWellFormed`. -/
+theorem RD.selectorSplitTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : selectorSplitWellFormed code splitPc)
+    (hb : UInt256.gt (armSelNat code splitPc) selWord ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains (armTgt code splitPc) = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (armTgt code splitPc) (selWord :: rest)
+      mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.selectorSplitTaken hdup hpush4 hgt hopT hpushT hjumpi hb hjd hov
+
+/-- Selector split **not taken**, with opcode facts bundled as `selectorSplitWellFormed`. -/
+theorem RD.selectorSplitNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : selectorSplitWellFormed code splitPc)
+    (hb : UInt256.gt (armSelNat code splitPc) selWord = ⟨0⟩)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (selArmNextPc splitPc (armTgtWidth code splitPc)) (selWord :: rest)
+      mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hpush4, hgt, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.selectorSplitNotTaken hdup hpush4 hgt hopT hpushT hjumpi hb hov
 
 /-- The pc of the `n`-th arm from `start`, each arm's width read from the bytecode (so it threads
     `PUSH1` and `PUSH2` target arms alike). -/

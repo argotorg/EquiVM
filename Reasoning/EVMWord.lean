@@ -123,6 +123,18 @@ theorem ult_zero {a b : UInt256} (h : b.toNat ≤ a.toNat) : UInt256.lt a b = �
   rw [decide_eq_false (show ¬ (a < b) from by show ¬ (a.toNat < b.toNat); omega)]
   rfl
 
+/-- `GT` returns `1` when the strict order holds. -/
+theorem ugt_one {a b : UInt256} (h : b.toNat < a.toNat) : UInt256.gt a b = ⟨1⟩ := by
+  show UInt256.fromBool (decide (a > b)) = ⟨1⟩
+  rw [decide_eq_true (show a > b from h)]
+  rfl
+
+/-- `GT` returns `0` when the strict order fails. -/
+theorem ugt_zero {a b : UInt256} (h : a.toNat ≤ b.toNat) : UInt256.gt a b = ⟨0⟩ := by
+  show UInt256.fromBool (decide (a > b)) = ⟨0⟩
+  rw [decide_eq_false (show ¬ (a > b) from by show ¬ (a.toNat > b.toNat); omega)]
+  rfl
+
 /-- `2^m` stays below `2^256 = UInt256.size` for `m < 256`. -/
 theorem pow_lt_size {m : ℕ} (h : m < 256) : (2:ℕ) ^ m < UInt256.size := by
   have : (2:ℕ)^m < 2^256 := Nat.pow_lt_pow_right (by norm_num) h
