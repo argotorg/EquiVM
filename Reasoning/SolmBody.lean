@@ -41,6 +41,44 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
+/-! ## Internal calls -/
+
+/-- Run an internal call to a transition and bind its returned value in the caller's frame.
+
+This packages `ExecStmt.internalCallReturn` for the common case where an externally callable
+`TransitionDecl` is also the target of an internal call.  The callee body proof can be reused as an
+`ExecTransitionBody`, while the conclusion exposes the caller-local `retVar` update directly. -/
+theorem internalCallTransitionReturn {cfg : Config} {caller : Frame} {evm calleeEvm : EVM.State}
+    {name retVar : Ident} {args : List Expr} {argVals : List Value}
+    {callee : TransitionDecl} {locals : Store} {calleeSolm : Frame} {value : Value}
+    (hargs : evalExprs? cfg caller evm args = .ok argVals)
+    (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
+    (hbind : bindParams? callee.params argVals = some locals)
+    (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body
+      (.returned calleeSolm calleeEvm (some value))) :
+    ExecStmt cfg caller evm (.internalCall name args retVar)
+      (.ok { caller with locals := caller.locals.insert retVar value } calleeEvm) := by
+  simpa [TransitionDecl.toCallable, ExecTransitionBody, resumeAfterInternalCall] using
+    ExecStmt.internalCallReturn (cfg := cfg) (solm := caller) (evm := evm) (name := name)
+      (args := args) (retVar := retVar) (argVals := argVals) (callee := callee.toCallable)
+      (locals := locals) (calleeSolm := calleeSolm) (calleeEvm := calleeEvm)
+      (value := some value) hargs hlookup (by simpa [TransitionDecl.toCallable] using hbind)
+      (by simpa [ExecTransitionBody, TransitionDecl.toCallable] using hbody)
+
+/-- If an internal call's transition body reverts, the internal-call statement reverts. -/
+theorem internalCallTransitionRevert {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {name retVar : Ident} {args : List Expr} {argVals : List Value}
+    {callee : TransitionDecl} {locals : Store}
+    (hargs : evalExprs? cfg caller evm args = .ok argVals)
+    (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
+    (hbind : bindParams? callee.params argVals = some locals)
+    (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body .reverted) :
+    ExecStmt cfg caller evm (.internalCall name args retVar) .reverted := by
+  exact ExecStmt.internalCallRevert (cfg := cfg) (solm := caller) (evm := evm) (name := name)
+    (args := args) (retVar := retVar) (argVals := argVals) (callee := callee.toCallable)
+    (locals := locals) hargs hlookup (by simpa [TransitionDecl.toCallable] using hbind)
+    (by simpa [ExecTransitionBody, TransitionDecl.toCallable] using hbody)
+
 /-- **Hoare while-rule for the Solm semantics** — the loop analog of the EVM `RD.loop`.
 
     A variant-indexed invariant `P : ℕ → Store → Prop` (`P v L` = "invariant holds with `v`

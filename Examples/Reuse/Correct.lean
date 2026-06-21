@@ -1073,18 +1073,15 @@ theorem cGBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   have hcall : ExecStmt cConfig { contract := Reuse.cContract, locals := cArgStore I } evm
       (.internalCall "f" [.var "v"] "r")
       (.ok { contract := Reuse.cContract, locals := cGStoreAfterF I } evm) := by
-    refine
-      ExecStmt.internalCallReturn
-        (cfg := cConfig)
-        (solm := { contract := Reuse.cContract, locals := cArgStore I })
-        (evm := evm) (name := "f") (args := [.var "v"]) (retVar := "r")
-        (argVals := [cArgValue I]) (callee := Reuse.fTransition.toCallable)
+    simpa [cGStoreAfterF] using
+      internalCallTransitionReturn (cfg := cConfig)
+        (caller := { contract := Reuse.cContract, locals := cArgStore I })
+        (evm := evm) (calleeEvm := evm) (name := "f") (args := [.var "v"])
+        (retVar := "r") (argVals := [cArgValue I]) (callee := Reuse.fTransition)
         (locals := cArgStore I)
         (calleeSolm := { contract := Reuse.cContract, locals := cArgStore I })
-        (calleeEvm := evm) (value := some (cFResultValue I))
-        (cEvalArgs_v evm I) cLookupF (cBindFArg I) ?_
-    simpa [ExecTransitionBody, TransitionDecl.toCallable, cFResultValue] using
-      cFBodyReturns evm I hwv hbound
+        (value := cFResultValue I)
+        (cEvalArgs_v evm I) cLookupF (cBindFArg I) (cFBodyReturns evm I hwv hbound)
   refine ExecBlock.consNormal hcall ?_
   exact ExecBlock.consNormal (ExecStmt.assign (cEvalR evm I) (cAssignS evm I)) ExecBlock.nil
 
@@ -1096,10 +1093,11 @@ theorem cGBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert <|
-    ExecStmt.internalCallRevert (cEvalArgs_v evm I) cLookupF (cBindFArg I) <|
-      by
-        simpa [ExecTransitionBody, TransitionDecl.toCallable] using
-          cFBodyReverts_overflow evm I hwv hover
+    internalCallTransitionRevert (cfg := cConfig)
+      (caller := { contract := Reuse.cContract, locals := cArgStore I })
+      (evm := evm) (name := "f") (args := [.var "v"]) (retVar := "r")
+      (argVals := [cArgValue I]) (callee := Reuse.fTransition) (locals := cArgStore I)
+      (cEvalArgs_v evm I) cLookupF (cBindFArg I) (cFBodyReverts_overflow evm I hwv hover)
 
 theorem cUint256ReturnEncoding (I : ExecutionEnv) :
     encodeReturnValue? Reuse.uint256 (cFResultValue I) =
