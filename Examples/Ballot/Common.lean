@@ -69,7 +69,7 @@ theorem ballotStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) 
             solcAddrMask).toNat) := by
   unfold storageLocLoad wordToElem
   simp only [Fin.val_zero, Nat.zero_add]
-  change .address (AccountAddress.ofNat
+  change Value.address (AccountAddress.ofNat
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
   rw [List.extract_eq_take_drop, List.drop_zero]
