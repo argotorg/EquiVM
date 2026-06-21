@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
+// Compiled with the OPTIMIZER ON (this is the realistic target):
+//   solc --optimize --evm-version shanghai --bin-runtime Examples/Ballot/Ballot.sol
+// (solc 0.8.35, Shanghai ⇒ PUSH0).  Runtime bytecode + selector/jump facts live in Bytecode.lean.
 pragma solidity >=0.7.0 <0.9.0;
 /// @title Voting with delegation.
 contract Ballot {
