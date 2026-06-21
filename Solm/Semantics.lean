@@ -518,6 +518,68 @@ def writeArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t
   termination_by vs => (sizeOf t', sizeOf vs)
 end
 
+/- Recursively read a value of declared type `t` out of storage at `er` into a `Value` — the read
+   dual of `writeStorage?`/`clearStorage?`.  Leaves come from the opaque `layout` + `storageLocLoad`;
+   structure (struct fields, tuple/fixed-array elements, dynamic-array length + all data) is driven
+   by `t`, so a nested dynamic array is read in full.  A mapping has no enumerable contents, so a
+   whole-mapping read is an `.error`. -/
+mutual
+def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    StorageType -> EvalResult Value
+  | .elem _
+  | .contract _ =>
+      match cfg.storage.layout er with
+      | some loc => .ok (storageLocLoad evm loc)
+      | none => .error .storageError
+  | .mapping _ _ => .error .typeError
+  | .struct name fields => do
+      let fvals <- readFields? cfg evm er fields
+      pure (.struct name fvals)
+  | .tuple ts => do
+      let vs <- readTupleElems? cfg evm er 0 ts
+      pure (.array vs)
+  | .array t' n => do
+      let vs <- readArrayElems? cfg evm er t' 0 n
+      pure (.array vs)
+  | .dynamicArray t' =>
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      | some lenLoc =>
+          match storageLocLoad evm lenLoc with
+          | .int len => do
+              let vs <- readArrayElems? cfg evm er t' 0 len.toNat
+              pure (.array vs)
+          | _ => .error .storageError
+      | none => .error .storageError
+  termination_by t => (sizeOf t, 0)
+
+def readFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    List (Ident × StorageType) -> EvalResult (List (Ident × Value))
+  | [] => .ok []
+  | (name, ft) :: rest => do
+      let v <- readStorage? cfg evm { er with steps := er.steps ++ [.field name] } ft
+      let vrest <- readFields? cfg evm er rest
+      pure ((name, v) :: vrest)
+  termination_by fields => (sizeOf fields, 0)
+
+def readTupleElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (k : Nat) :
+    List StorageType -> EvalResult (List Value)
+  | [] => .ok []
+  | tt :: rest => do
+      let v <- readStorage? cfg evm { er with steps := er.steps ++ [.tupleElem k] } tt
+      let vrest <- readTupleElems? cfg evm er (k+1) rest
+      pure (v :: vrest)
+  termination_by ts => (sizeOf ts, 0)
+
+def readArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t' : StorageType)
+    (k : Nat) : Nat -> EvalResult (List Value)
+  | 0 => .ok []
+  | c+1 => do
+      let v <- readStorage? cfg evm { er with steps := er.steps ++ [.aindex (.int k)] } t'
+      let vrest <- readArrayElems? cfg evm er t' (k+1) c
+      pure (v :: vrest)
+  termination_by c => (sizeOf t', c)
+end
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -639,9 +701,14 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .env var => pure (envValue evm var)
   | .storage slot =>
       match evalStorageRef cfg solm evm slot with
-      | .ok evaledStorageRef => do
-          let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
-          pure (storageLocLoad evm loc)
+      | .ok evaledStorageRef =>
+          match cfg.storage.layout evaledStorageRef with
+          | some loc => pure (storageLocLoad evm loc)
+          | none =>
+              -- no single slot ⇒ an aggregate (struct / array): read it in full by declared type
+              match storageTypeAt? solm.contract.storage evaledStorageRef with
+              | some ty => readStorage? cfg evm evaledStorageRef ty
+              | none => .error .storageError
       | .revert => .revert
       | .error e => .error e
   | .arrayLength ref =>
