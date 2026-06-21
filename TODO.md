@@ -38,7 +38,8 @@
   + Transient storage
   + Revert reasons 
   + memory references
-
+  + fixed-point decimals
+  + function pointers
 
 - Still TODOs
   + string/bytes handling

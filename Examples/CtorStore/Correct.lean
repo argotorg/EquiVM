@@ -138,6 +138,10 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
                 CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          | tuple xs =>
+              simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
+                CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
+                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
           | fixedBytes n bs =>
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,

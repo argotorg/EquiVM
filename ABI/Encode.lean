@@ -84,14 +84,14 @@ mutual
         | _ => none
     | .tuple elemTys =>
         match value with
-        | .array values => encodeABIValues? elemTys values
+        | .tuple values => encodeABIValues? elemTys values
         | _ => none
-    | .bytes | .string =>
+    | .bytes =>
         match value with
-        | .array values => do
-            let bytes <- valuesToBytes? values
-            some (natBytes bytes.length ++ padRightToWord bytes)
+        | .bytes bytes =>
+            some (natBytes bytes.size ++ padRightToWord bytes.toList)
         | _ => none
+    | .string => none
     | .dynamicArray elemTy =>
         match value with
         | .array values => do

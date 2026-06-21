@@ -93,14 +93,15 @@ mutual
         let headSize <- abiTupleHeadSize? elemTys
         let (values, endOffset) <-
           decodeABIValues? elemTys bytes start 0 headSize (start + headSize)
-        some (.array values, endOffset)
-    | .bytes | .string => do
+        some (.tuple values, endOffset)
+    | .bytes => do
         let size <- readNat? bytes start
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
         zeroPadding? bytes (payloadStart + size) (paddedSize size - size)
-        some (.array (bytesToValues payload), endOffset)
+        some (.bytes (ByteArray.mk payload.toArray), endOffset)
+    | .string => none
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
         let elemsStart := start + 32

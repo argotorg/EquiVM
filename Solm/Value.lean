@@ -14,6 +14,7 @@ inductive Value where
   | address : EVM.Address -> Value
   | struct : Ident -> List (Ident × Value) -> Value
   | array : List Value -> Value /- arrays can be copied to memory, so we need array values -/
+  | tuple : List Value -> Value
   /- Fixed-size `bytesN`, carrying the ABI type index and the bytes in Solidity order. -/
   | fixedBytes : Fin 32 -> List UInt8 -> Value
   /- dynamic `bytes` (arbitrary-length byte string), e.g. low-level `.call` calldata -/
@@ -49,6 +50,10 @@ mutual
         match Value.decEqList xs ys with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .tuple xs, .tuple ys =>
+        match Value.decEqList xs ys with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .fixedBytes n bs, .fixedBytes m bs' =>
         match (inferInstance : Decidable (n = m)), (inferInstance : Decidable (bs = bs')) with
         | isTrue hn, isTrue hbytes => isTrue (by cases hn; cases hbytes; rfl)
@@ -68,49 +73,64 @@ mutual
     | .int _, .address _ => isFalse (by intro h; cases h)
     | .int _, .struct _ _ => isFalse (by intro h; cases h)
     | .int _, .array _ => isFalse (by intro h; cases h)
+    | .int _, .tuple _ => isFalse (by intro h; cases h)
     | .int _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .int _, .unit => isFalse (by intro h; cases h)
     | .bool _, .int _ => isFalse (by intro h; cases h)
     | .bool _, .address _ => isFalse (by intro h; cases h)
     | .bool _, .struct _ _ => isFalse (by intro h; cases h)
     | .bool _, .array _ => isFalse (by intro h; cases h)
+    | .bool _, .tuple _ => isFalse (by intro h; cases h)
     | .bool _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .bool _, .unit => isFalse (by intro h; cases h)
     | .address _, .int _ => isFalse (by intro h; cases h)
     | .address _, .bool _ => isFalse (by intro h; cases h)
     | .address _, .struct _ _ => isFalse (by intro h; cases h)
     | .address _, .array _ => isFalse (by intro h; cases h)
+    | .address _, .tuple _ => isFalse (by intro h; cases h)
     | .address _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .address _, .unit => isFalse (by intro h; cases h)
     | .struct _ _, .int _ => isFalse (by intro h; cases h)
     | .struct _ _, .bool _ => isFalse (by intro h; cases h)
     | .struct _ _, .address _ => isFalse (by intro h; cases h)
     | .struct _ _, .array _ => isFalse (by intro h; cases h)
+    | .struct _ _, .tuple _ => isFalse (by intro h; cases h)
     | .struct _ _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .struct _ _, .unit => isFalse (by intro h; cases h)
     | .array _, .int _ => isFalse (by intro h; cases h)
     | .array _, .bool _ => isFalse (by intro h; cases h)
     | .array _, .address _ => isFalse (by intro h; cases h)
     | .array _, .struct _ _ => isFalse (by intro h; cases h)
+    | .array _, .tuple _ => isFalse (by intro h; cases h)
     | .array _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .array _, .unit => isFalse (by intro h; cases h)
+    | .tuple _, .int _ => isFalse (by intro h; cases h)
+    | .tuple _, .bool _ => isFalse (by intro h; cases h)
+    | .tuple _, .address _ => isFalse (by intro h; cases h)
+    | .tuple _, .struct _ _ => isFalse (by intro h; cases h)
+    | .tuple _, .array _ => isFalse (by intro h; cases h)
+    | .tuple _, .fixedBytes _ _ => isFalse (by intro h; cases h)
+    | .tuple _, .unit => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .int _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .bool _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .address _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .struct _ _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .array _ => isFalse (by intro h; cases h)
+    | .fixedBytes _ _, .tuple _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .unit => isFalse (by intro h; cases h)
     | .unit, .int _ => isFalse (by intro h; cases h)
     | .unit, .bool _ => isFalse (by intro h; cases h)
     | .unit, .address _ => isFalse (by intro h; cases h)
     | .unit, .struct _ _ => isFalse (by intro h; cases h)
     | .unit, .array _ => isFalse (by intro h; cases h)
+    | .unit, .tuple _ => isFalse (by intro h; cases h)
     | .unit, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .int _, .bytes _ => isFalse (by intro h; cases h)
     | .bool _, .bytes _ => isFalse (by intro h; cases h)
     | .address _, .bytes _ => isFalse (by intro h; cases h)
     | .struct _ _, .bytes _ => isFalse (by intro h; cases h)
     | .array _, .bytes _ => isFalse (by intro h; cases h)
+    | .tuple _, .bytes _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .bytes _ => isFalse (by intro h; cases h)
     | .unit, .bytes _ => isFalse (by intro h; cases h)
     | .bytes _, .int _ => isFalse (by intro h; cases h)
@@ -118,6 +138,7 @@ mutual
     | .bytes _, .address _ => isFalse (by intro h; cases h)
     | .bytes _, .struct _ _ => isFalse (by intro h; cases h)
     | .bytes _, .array _ => isFalse (by intro h; cases h)
+    | .bytes _, .tuple _ => isFalse (by intro h; cases h)
     | .bytes _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .bytes _, .unit => isFalse (by intro h; cases h)
     | .storageRef _ _, .int _ => isFalse (by intro h; cases h)
@@ -130,6 +151,8 @@ mutual
     | .struct _ _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .array _ => isFalse (by intro h; cases h)
     | .array _, .storageRef _ _ => isFalse (by intro h; cases h)
+    | .storageRef _ _, .tuple _ => isFalse (by intro h; cases h)
+    | .tuple _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .fixedBytes _ _ => isFalse (by intro h; cases h)
     | .fixedBytes _ _, .storageRef _ _ => isFalse (by intro h; cases h)
     | .storageRef _ _, .bytes _ => isFalse (by intro h; cases h)
@@ -190,6 +213,7 @@ def valueToWord : Value -> Option EVM.Word
   | .bool b => b.toUInt256
   | .address a => pure $ .ofNat $ a.toNat
   | .array _ => .none
+  | .tuple _ => .none
   | .struct _ _ => .none
   | .bytes _ => .none
   | .fixedBytes n bs =>

@@ -606,7 +606,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
       | none => .error .storageError
   | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
-  | .tuple ts, .array vs => writeTupleElems? cfg evm er 0 ts vs
+  | .tuple ts, .tuple vs => writeTupleElems? cfg evm er 0 ts vs
   | .array t' n, .array vs =>
       if vs.length = n then writeArrayElems? cfg evm er t' 0 vs
       else .error .typeError
@@ -673,7 +673,7 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       pure (.struct name fvals)
   | .tuple ts => do
       let vs <- readTupleElems? cfg evm er 0 ts
-      pure (.array vs)
+      pure (.tuple vs)
   | .array t' n => do
       let vs <- readArrayElems? cfg evm er t' 0 n
       pure (.array vs)
@@ -744,7 +744,7 @@ def defaultValue? : StorageType -> EvalResult Value
       pure (.struct name values)
   | .tuple ts => do
       let values <- defaultValues? ts
-      pure (.array values)
+      pure (.tuple values)
   | .array elemTy n => do
       let value <- defaultValue? elemTy
       pure (.array (List.replicate n value))
