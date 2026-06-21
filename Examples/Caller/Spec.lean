@@ -1,4 +1,6 @@
 import Solm.Semantics
+import Solm.SolidityLayout
+import Examples.Pow.Spec
 
 /-!
 # Caller — Solm specification for `Caller.sol`'s `run(address t, uint256 n)`
@@ -41,9 +43,10 @@ def callerExternalABI : ExternalCallABI where
 
 /-- Storage layout: `stored` occupies the whole of slot 0. -/
 def callerStorageLayout : StorageLayout where
-  layout := fun ref =>
+  layout := fun ref _ =>
     if ref.base = "stored" ∧ ref.steps = [] then
       some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+             bitOffset := .none,
              type := .int (.uint ⟨256, by decide⟩) }
     else none
 
@@ -74,4 +77,5 @@ end Caller
 /-- Verification config: `stored` at slot 0, and the `pow2` external-call ABI. -/
 def callerConfig : Config :=
   { storage := Caller.callerStorageLayout
-    externalABI := Caller.callerExternalABI }
+    externalABI := Caller.callerExternalABI
+    selfDeployment := genSolidityConstructorDeployment Caller.callerContract.ctor.params }

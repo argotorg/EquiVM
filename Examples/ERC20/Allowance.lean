@@ -139,7 +139,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
       { base := "allowance",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
-      some (erc20Uint256Loc (allowanceSlot I)) := by
+      fun _ => some (erc20Uint256Loc (allowanceSlot I)) := by
     simp [allowanceSlot, erc20Config_storage_allowance, allowanceOwnerValue, allowanceSpenderValue,
           erc20AllowanceSlot]
   rw [evalExpr_storage_scalar

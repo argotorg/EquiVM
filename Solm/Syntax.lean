@@ -36,8 +36,6 @@ structure EvaledStorageRef where
 -- Note: name changed from StorageRefType, because in Solidity terminology
 -- a slot is a storage word, not a location for an item in storage
 -- of which there may be multiple in a given word
--- TODO: separate handling for bytes and string (both dynamicArrays), because of Solidity compacting
---       Or should we have that be implemented at "runtime" within the code?
 inductive StorageType where
   | elem : ElemType -> StorageType
   | mapping : ElemType -> StorageType -> StorageType  -- Check more on Keytype here
@@ -48,6 +46,9 @@ inductive StorageType where
   | tuple : List StorageType -> StorageType
   | array : StorageType -> Nat -> StorageType
   | dynamicArray : StorageType -> StorageType
+  -- Conditionally compact layout used by solidity for bytes and strings
+  | bytes : StorageType
+  | string : StorageType
   deriving Repr, Inhabited
 
 mutual
@@ -83,48 +84,80 @@ mutual
         match StorageType.decEq t u with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .bytes, .bytes => isTrue rfl
+    | .string, .string => isTrue rfl
     | .elem _, .mapping _ _ => isFalse (by intro h; cases h)
     | .elem _, .contract _ => isFalse (by intro h; cases h)
     | .elem _, .struct _ _ => isFalse (by intro h; cases h)
     | .elem _, .tuple _ => isFalse (by intro h; cases h)
     | .elem _, .array _ _ => isFalse (by intro h; cases h)
     | .elem _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .elem _, .bytes => isFalse (by intro h; cases h)
+    | .elem _, .string => isFalse (by intro h; cases h)
     | .mapping _ _, .elem _ => isFalse (by intro h; cases h)
     | .mapping _ _, .contract _ => isFalse (by intro h; cases h)
     | .mapping _ _, .struct _ _ => isFalse (by intro h; cases h)
     | .mapping _ _, .tuple _ => isFalse (by intro h; cases h)
     | .mapping _ _, .array _ _ => isFalse (by intro h; cases h)
     | .mapping _ _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .mapping _ _, .bytes => isFalse (by intro h; cases h)
+    | .mapping _ _, .string => isFalse (by intro h; cases h)
     | .contract _, .elem _ => isFalse (by intro h; cases h)
     | .contract _, .mapping _ _ => isFalse (by intro h; cases h)
     | .contract _, .struct _ _ => isFalse (by intro h; cases h)
     | .contract _, .tuple _ => isFalse (by intro h; cases h)
     | .contract _, .array _ _ => isFalse (by intro h; cases h)
     | .contract _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .contract _, .bytes => isFalse (by intro h; cases h)
+    | .contract _, .string => isFalse (by intro h; cases h)
     | .struct _ _, .elem _ => isFalse (by intro h; cases h)
     | .struct _ _, .mapping _ _ => isFalse (by intro h; cases h)
     | .struct _ _, .contract _ => isFalse (by intro h; cases h)
     | .struct _ _, .tuple _ => isFalse (by intro h; cases h)
     | .struct _ _, .array _ _ => isFalse (by intro h; cases h)
     | .struct _ _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .struct _ _, .bytes => isFalse (by intro h; cases h)
+    | .struct _ _, .string => isFalse (by intro h; cases h)
     | .tuple _, .elem _ => isFalse (by intro h; cases h)
     | .tuple _, .mapping _ _ => isFalse (by intro h; cases h)
     | .tuple _, .contract _ => isFalse (by intro h; cases h)
     | .tuple _, .struct _ _ => isFalse (by intro h; cases h)
     | .tuple _, .array _ _ => isFalse (by intro h; cases h)
     | .tuple _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .tuple _, .bytes => isFalse (by intro h; cases h)
+    | .tuple _, .string => isFalse (by intro h; cases h)
     | .array _ _, .elem _ => isFalse (by intro h; cases h)
     | .array _ _, .mapping _ _ => isFalse (by intro h; cases h)
     | .array _ _, .contract _ => isFalse (by intro h; cases h)
     | .array _ _, .struct _ _ => isFalse (by intro h; cases h)
     | .array _ _, .tuple _ => isFalse (by intro h; cases h)
     | .array _ _, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .array _ _, .bytes => isFalse (by intro h; cases h)
+    | .array _ _, .string => isFalse (by intro h; cases h)
     | .dynamicArray _, .elem _ => isFalse (by intro h; cases h)
     | .dynamicArray _, .mapping _ _ => isFalse (by intro h; cases h)
     | .dynamicArray _, .contract _ => isFalse (by intro h; cases h)
     | .dynamicArray _, .struct _ _ => isFalse (by intro h; cases h)
     | .dynamicArray _, .tuple _ => isFalse (by intro h; cases h)
     | .dynamicArray _, .array _ _ => isFalse (by intro h; cases h)
+    | .dynamicArray _, .bytes => isFalse (by intro h; cases h)
+    | .dynamicArray _, .string => isFalse (by intro h; cases h)
+    | .bytes, .elem _ => isFalse (by intro h; cases h)
+    | .bytes, .mapping _ _ => isFalse (by intro h; cases h)
+    | .bytes, .contract _ => isFalse (by intro h; cases h)
+    | .bytes, .struct _ _ => isFalse (by intro h; cases h)
+    | .bytes, .tuple _ => isFalse (by intro h; cases h)
+    | .bytes, .array _ _ => isFalse (by intro h; cases h)
+    | .bytes, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .bytes, .string => isFalse (by intro h; cases h)
+    | .string, .elem _ => isFalse (by intro h; cases h)
+    | .string, .mapping _ _ => isFalse (by intro h; cases h)
+    | .string, .contract _ => isFalse (by intro h; cases h)
+    | .string, .struct _ _ => isFalse (by intro h; cases h)
+    | .string, .tuple _ => isFalse (by intro h; cases h)
+    | .string, .array _ _ => isFalse (by intro h; cases h)
+    | .string, .dynamicArray _ => isFalse (by intro h; cases h)
+    | .string, .bytes => isFalse (by intro h; cases h)
 
   private def StorageType.decEqList : (as bs : List StorageType) -> Decidable (as = bs)
     | [], [] => isTrue rfl

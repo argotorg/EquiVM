@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.SolidityLayout
 
 /-!
 # Pow — the Solm specification for `Pow.sol`'s `pow2(uint256 n)`
@@ -62,5 +63,6 @@ end Pow
 
 /-- Verification config: empty storage layout, default external-call ABI. -/
 def powConfig : Config :=
-  { storage := { layout := fun _ => none }
-    externalABI := defaultExternalCallABI }
+  { storage := { layout := fun _ _ => none }
+    externalABI := defaultExternalCallABI
+    selfDeployment := genSolidityConstructorDeployment Pow.powContract.ctor.params }

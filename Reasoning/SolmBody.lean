@@ -157,7 +157,7 @@ theorem resolveStorageRef?_ok {cfg : Config} {solm : Frame} {evm : EVM.State} {s
 
 /-- `readStorage?` at a scalar type is exactly the single-slot `storageLocLoad`. -/
 theorem readStorage?_elem {cfg : Config} {evm : EVM.State} {er : EvaledStorageRef}
-    {t : ABI.ElemType} {loc : StorageLoc} (hloc : cfg.storage.layout er = some loc) :
+    {t : ABI.ElemType} {loc : StorageLoc} (hloc : cfg.storage.layout er = fun _ => some loc) :
     readStorage? cfg evm er (.elem t) = .ok (storageLocLoad evm loc) := by
   rw [readStorage?]
   simp only [hloc]
@@ -168,7 +168,7 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
-    (hloc : cfg.storage.layout er = some loc) :
+    (hloc : cfg.storage.layout er = fun _ => some loc) :
     evalExpr? cfg solm evm (.storage slot) = .ok (storageLocLoad evm loc) := by
   rw [evalExpr?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind,
@@ -180,7 +180,7 @@ theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' 
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = some loc)
+    (hloc : cfg.storage.layout er = fun _ => some loc)
     (hstore : storageLocStore evm loc (.int n) = some evm') :
     assignStorageRef? cfg solm evm .storage slot (.int n) = .ok (solm, evm') := by
   rw [assignStorageRef?]

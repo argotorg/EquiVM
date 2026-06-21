@@ -16,6 +16,10 @@ structure Config where
      `new` of the named contract. -/
   creationCode : Ident -> List Value -> Option EVM.Bytes := fun _ _ => none
 
+  /- Scheme for initialisation code (creation bytecode ++ ABI-encoded constructor args) for
+     deployment of the contract's constructor -/
+  selfDeployment : EVM.Bytes → List Value → Option EVM.Bytes
+
 structure ContractInstance where
   contract : Ident
   contractCode : ContractDecl
@@ -400,7 +404,7 @@ def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option S
       if 0 ≤ iv ∧ iv < n then .ok () else .revert
   | some (.array _ _), _ => .error .typeError
   | some (.dynamicArray _), .int iv =>
-      match cfg.storage.layout { base := base, steps := pre ++ [.length] } with
+      match cfg.storage.layout { base := base, steps := pre ++ [.length] } evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
@@ -420,7 +424,7 @@ mutual
 def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> EvalResult EVM.State
   | .elem _ | .contract _ =>
-      match cfg.storage.layout er with
+      match cfg.storage.layout er evm with
       | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc (.int 0))
       | none => .error .storageError
   | .mapping _ _ => .ok evm
@@ -428,7 +432,7 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
   | .tuple ts => clearTupleElems? cfg evm er 0 ts
   | .array t' n => clearArrayElems? cfg evm er t' n
   | .dynamicArray t' =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len =>
@@ -437,6 +441,8 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               | r => r
           | _ => .error .storageError
       | none => .error .storageError
+  -- bytes/string use solc's conditional compaction; not modeled at the type-recursion level yet
+  | .bytes | .string => .error .typeError
   termination_by t => (sizeOf t, 0)
 
 def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -477,7 +483,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> Value -> EvalResult EVM.State
   | .elem _, v
   | .contract _, v =>
-      match cfg.storage.layout er with
+      match cfg.storage.layout er evm with
       | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
       | none => .error .storageError
   | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
@@ -492,7 +498,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let evm0 <- clearStorage? cfg evm er (.dynamicArray t')
       let evm1 <- writeArrayElems? cfg evm0 er t' 0 vs
       let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
       EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
   | _, _ => .error .typeError
   termination_by t => (sizeOf t, 0)
@@ -539,7 +545,7 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> EvalResult Value
   | .elem _
   | .contract _ =>
-      match cfg.storage.layout er with
+      match cfg.storage.layout er evm with
       | some loc => .ok (storageLocLoad evm loc)
       | none => .error .storageError
   | .mapping _ _ => .error .typeError
@@ -553,7 +559,7 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let vs <- readArrayElems? cfg evm er t' 0 n
       pure (.array vs)
   | .dynamicArray t' =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len => do
@@ -561,6 +567,8 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               pure (.array vs)
           | _ => .error .storageError
       | none => .error .storageError
+  -- bytes/string use solc's conditional compaction; not modeled at the type-recursion level yet
+  | .bytes | .string => .error .typeError
   termination_by t => (sizeOf t, 0)
 
 def readFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -595,7 +603,7 @@ def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
     : StorageType -> EvalResult Value
   | .array _ n => pure (.int n)
   | .dynamicArray _ =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } with
+      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int n => pure (.int n)
@@ -620,6 +628,7 @@ def defaultValue? : StorageType -> EvalResult Value
       let value <- defaultValue? elemTy
       pure (.array (List.replicate n value))
   | .dynamicArray _ => pure (.array [])
+  | .bytes | .string => pure (.bytes ByteArray.empty)
   termination_by t => (sizeOf t, 0)
 
 def defaultFields? : List (Ident × StorageType) -> EvalResult (List (Ident × Value))
@@ -805,7 +814,7 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
       pure (solm, evm')
     | _ => do
       -- scalar leaf: a single whole/partial-slot store
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef)
+      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
       let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
       pure (solm, evm')
 
@@ -1087,7 +1096,7 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
     (value : Option Value) : EvalResult EVM.State := do
   let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
   let lenLoc <- EvalResult.ofOption .storageError
-    (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+    (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
   match storageLocLoad evm lenLoc with
   | .int len => do
       let evm1 <- match value with
@@ -1106,7 +1115,7 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
   let lenLoc <- EvalResult.ofOption .storageError
-    (cfg.storage.layout { er with steps := er.steps ++ [.length] })
+    (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
   match storageLocLoad evm lenLoc with
   | .int len =>
       if len ≤ 0 then .revert

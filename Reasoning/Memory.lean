@@ -56,6 +56,18 @@ theorem fromBytesBigEndian_toBytesBigEndian (x : ℕ) :
   simp only [fromBytesBigEndian, toBytesBigEndian, Function.comp, List.reverse_reverse]
   exact fromBytes'_toBytes' x
 
+/-- Nonnegative integers are embedded as their natural-value EVM word. -/
+theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
+    EVM.wordOfInt i = EVM.word i.toNat := by
+  rw [EVM.wordOfInt, if_neg (by omega)]
+
+/-- Little-endian word-byte round-trip for `EVM.Word.toBytesLEWithSizeProof`. -/
+theorem fromBytes'_toBytesLEWithSizeProof (w : UInt256) :
+    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
+  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
+  rw [fromBytes'_append_zeros, fromBytes'_toBytes']
+  rfl
+
 /-! ## 2. `ByteArray.toList` = `data.toList`, and the `fromByteArrayBigEndian ∘ toByteArray` round-trip -/
 
 /-- `ByteArray.toList` (the reversing `loop`) equals `data.toList`. -/
@@ -77,6 +89,19 @@ theorem byteArray_toList_eq (b : ByteArray) : b.toList = b.data.toList := by
     rw [ByteArray.toList.loop, if_neg hge]
     have : b.data.toList.length ≤ i := by rw [Array.length_toList]; exact Nat.le_of_not_lt hge
     rw [List.drop_eq_nil_of_le this, List.append_nil]
+
+/-- Size of the internal accumulator used by `List.toByteArray`. -/
+theorem list_toByteArray_loop_size (xs : List UInt8) (acc : ByteArray) :
+    (List.toByteArray.loop xs acc).size = acc.size + xs.length := by
+  induction xs generalizing acc with
+  | nil => simp [List.toByteArray.loop]
+  | cons x xs ih =>
+    rw [List.toByteArray.loop]
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih (acc.push x)
+
+/-- Turning a byte list into a `ByteArray` preserves length. -/
+theorem list_toByteArray_size (xs : List UInt8) : xs.toByteArray.size = xs.length := by
+  simpa [List.toByteArray] using list_toByteArray_loop_size xs ByteArray.empty
 
 /-- **MLOAD round-trip.**  Big-endian-decoding the 32-byte encoding of `v` recovers `v.toNat`.
     The only opacity (the `ffi.zeroes` leading padding) cancels because it is zero. -/
@@ -167,7 +192,7 @@ theorem write32_eq (src base : ByteArray) (destAddr : ℕ)
     zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
-    hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
+    hsize, hpL, hsp, Nat.zero_add, show base.data.size = base.size from rfl]
 
 /-- Extracting a window `[i,j)` from a prefix `b[0..n]` (with `j ≤ n`) is the same as extracting it
     from `b` directly. -/
@@ -285,6 +310,146 @@ theorem write_eq_gen (src base : ByteArray) (destAddr len : ℕ)
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
 
+/-- **`write` of an arbitrary source window, in bounds.**  This is `write_eq_gen` with a nonzero
+    source offset. -/
+theorem write_eq_gen_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hin : destAddr + len ≤ base.size) :
+    src.write srcAddr base destAddr len
+      = base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + len)
+          ++ base.extract (destAddr + len) base.size := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (srcAddr ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - srcAddr) = len := by omega
+  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 :=
+    Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
+  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le (by omega)
+  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty := zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
+    show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
+    hsize, hpL, hsp, Nat.add_zero, show base.data.size = base.size from rfl]
+
+/-- Data shape of a write to destination offset `0` that may extend the destination. -/
+theorem write0_data (src base : ByteArray) (len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) :
+    (src.write 0 base 0 len).data = src.data.extract 0 len ++ base.data.extract len base.data.size := by
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  simp only [show min len (src.size - 0) = len from by omega,
+    show min base.size (0 + len) - (0 + len) = 0 from by omega,
+    show 0 - base.size = 0 from by omega]
+  have hz : (ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize)).data = (#[] : Array UInt8) := by
+    rw [zeroes_zero (n := ⟨↑(0:ℕ)⟩) (by rfl)]
+    rfl
+  simp only [ByteArray.data_copySlice, ByteArray.data_append, hz, Array.append_empty, Nat.zero_add]
+  rw [show min (len + 0) (src.data.size - 0) = len from by
+    have : src.data.size = src.size := rfl
+    omega]
+  simp only [Nat.add_zero]
+  rw [Array.extract_eq_empty_of_le (by omega), Array.empty_append]
+
+/-- Data shape of a write from an arbitrary source offset to destination offset `0`,
+    possibly extending the destination. -/
+theorem write0_data_from (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
+    (src.write srcAddr base 0 len).data =
+      src.data.extract srcAddr (srcAddr + len) ++ base.data.extract len base.data.size := by
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (srcAddr ≥ src.size) from by omega)]
+  simp only [show min len (src.size - srcAddr) = len from by omega,
+    show min base.size (0 + len) - (0 + len) = 0 from by omega,
+    show 0 - base.size = 0 from by omega]
+  have hz : (ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize)).data = (#[] : Array UInt8) := by
+    rw [zeroes_zero (n := ⟨↑(0:ℕ)⟩) (by rfl)]
+    rfl
+  simp only [ByteArray.data_copySlice, ByteArray.data_append, hz, Array.append_empty, Nat.zero_add]
+  rw [show min (len + 0) (src.data.size - srcAddr) = len from by
+    have : src.data.size = src.size := rfl
+    omega]
+  simp only [Nat.add_zero]
+  rw [Array.extract_eq_empty_of_le (by omega), Array.empty_append]
+
+/-- Read back a write at destination offset `0`, even when the write extends the destination. -/
+theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hlen64 : len < 2 ^ 64) :
+    (src.write 0 base 0 len).readWithPadding 0 len = src.extract 0 len := by
+  apply ByteArray.ext
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
+  have hdata := write0_data src base len hlen hsrc
+  have hsize : (src.write 0 base 0 len).size ≥ len := by
+    show (src.write 0 base 0 len).data.size ≥ len
+    rw [hdata, Array.size_append]
+    have : (src.data.extract 0 len).size = len := by
+      rw [Array.size_extract]
+      have : src.data.size = src.size := rfl
+      omega
+    omega
+  rw [if_neg (by omega : ¬ 0 ≥ (src.write 0 base 0 len).size)]
+  simp only [show min len (src.write 0 base 0 len).size = len from by omega, Nat.zero_add]
+  have hextract_size : ((src.write 0 base 0 len).extract 0 len).size = len := by
+    rw [ByteArray.size_extract]
+    omega
+  rw [ByteArray.data_append]
+  rw [show (ffi.ByteArray.zeroes { toBitVec := ↑len - ↑((src.write 0 base 0 len).extract 0 len).size }).data
+      = (#[] : Array UInt8) from by
+    rw [show { toBitVec := ↑len - ↑((src.write 0 base 0 len).extract 0 len).size } = (⟨↑(0:ℕ)⟩ : USize) from by
+      rw [hextract_size]
+      apply congrArg USize.ofBitVec
+      exact BitVec.sub_self _]
+    rw [zeroes_zero (n := ⟨↑(0:ℕ)⟩) (by rfl)]
+    rfl]
+  simp only [ByteArray.data_extract, Array.append_empty]
+  rw [hdata]
+  rw [Array.extract_append_of_stop_le_size_left]
+  · rw [Array.extract_extract]
+    simp
+  · rw [Array.size_extract]
+    have : src.data.size = src.size := rfl
+    omega
+
+/-- Read back a destination-0 write from an arbitrary source offset, even when the write extends
+    the destination. -/
+theorem write0_read_back_from_gen (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hlen64 : len < 2 ^ 64) :
+    (src.write srcAddr base 0 len).readWithPadding 0 len = src.extract srcAddr (srcAddr + len) := by
+  apply ByteArray.ext
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
+  have hdata := write0_data_from src base srcAddr len hlen hsrc
+  have hsize : (src.write srcAddr base 0 len).size ≥ len := by
+    show (src.write srcAddr base 0 len).data.size ≥ len
+    rw [hdata, Array.size_append]
+    have : (src.data.extract srcAddr (srcAddr + len)).size = len := by
+      rw [Array.size_extract]
+      have : src.data.size = src.size := rfl
+      omega
+    omega
+  rw [if_neg (by omega : ¬ 0 ≥ (src.write srcAddr base 0 len).size)]
+  simp only [show min len (src.write srcAddr base 0 len).size = len from by omega, Nat.zero_add]
+  have hextract_size : ((src.write srcAddr base 0 len).extract 0 len).size = len := by
+    rw [ByteArray.size_extract]
+    omega
+  rw [ByteArray.data_append]
+  rw [show (ffi.ByteArray.zeroes { toBitVec := ↑len - ↑((src.write srcAddr base 0 len).extract 0 len).size }).data
+      = (#[] : Array UInt8) from by
+    rw [show { toBitVec := ↑len - ↑((src.write srcAddr base 0 len).extract 0 len).size }
+        = (⟨↑(0:ℕ)⟩ : USize) from by
+      rw [hextract_size]
+      apply congrArg USize.ofBitVec
+      exact BitVec.sub_self _]
+    rw [zeroes_zero (n := ⟨↑(0:ℕ)⟩) (by rfl)]
+    rfl]
+  simp only [ByteArray.data_extract, Array.append_empty]
+  rw [hdata]
+  rw [Array.extract_append_of_stop_le_size_left]
+  · rw [Array.extract_extract]
+    simp
+  · rw [Array.size_extract]
+    have : src.data.size = src.size := rfl
+    omega
+
 /-- **Read below an arbitrary-length write.**  A 32-byte read strictly below an in-bounds write of
     any length is unaffected. -/
 theorem write_read_below_gen (src base : ByteArray) (destAddr len readAddr : ℕ)
@@ -389,6 +554,19 @@ theorem toByteArray_eq_toBytesBE (v : UInt256) :
   rw [hz, show (BE v.toNat).size = (toBytesBigEndian v.toNat).length from by simp [BE]]
   rfl
 
+/-- Turning `EVM.Word.toBytesBE` into a `ByteArray` gives the same 32-byte word encoding as
+    `UInt256.toByteArray`. -/
+theorem word_toBytesBE_toByteArray_eq_toByteArray (w : UInt256) :
+    (EVM.Word.toBytesBE w).toByteArray = UInt256.toByteArray w := by
+  rw [toByteArray_eq_toBytesBE]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  simp
+
+/-- `EVM.Word.toBytesBE` as a `ByteArray` is 32 bytes. -/
+theorem word_toBytesBE_toByteArray_size (w : UInt256) :
+    (EVM.Word.toBytesBE w).toByteArray.size = 32 := by
+  rw [word_toBytesBE_toByteArray_eq_toByteArray, toByteArray_size]
 
 /-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
 
