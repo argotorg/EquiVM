@@ -1,4 +1,6 @@
 import Examples.Reuse.Spec
+import Solm.Dispatch
+import Reasoning.JumpDest
 
 open Solm Ethereum Ethereum.EVM
 
@@ -9,11 +11,8 @@ Produced by `solc --optimize --evm-version shanghai --bin-runtime Examples/Reuse
 
 Function selectors (in the dispatcher): `f(uint256) = 0xb3de648b`, `g(uint256) = 0xe420264a`.
 
-For the eventual proof this file should also gain (as in `Truth`/`Caller`):
-* `@[valid_jumps] theorem cValidJumps : D_J cBytecode 0 = #[…] := by native_decide`;
-* the trusted keccak selector axioms for `f`/`g`.
-
-Both are deferred — the correctness *statement* (`Correct.lean`) only needs the bytes. -/
+For the proof, this file also records the two trusted keccak selector facts and the bytecode-derived
+valid jump set, matching the convention used by `Truth`/`Pow`. -/
 
 def cBytecode : ByteArray :=
   ⟨#[96, 128, 96, 64, 82, 52, 128, 21, 96, 14, 87, 95, 95, 253, 91, 80, 96, 4, 54, 16, 96, 48, 87,
@@ -29,3 +28,20 @@ def cBytecode : ByteArray :=
     34, 18, 32, 165, 172, 97, 247, 152, 119, 232, 219, 38, 134, 212, 34, 234, 60, 14, 203, 119, 198,
     66, 74, 143, 158, 1, 199, 216, 56, 223, 231, 10, 214, 105, 28, 100, 115, 111, 108, 99, 67, 0, 8,
     35, 0, 51]⟩
+
+/-- `keccak("f(uint256)")[0:4] = 0xb3de648b`. -/
+axiom cFSelectorBytes :
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Reuse.fTransition))).extract 0 4
+      = ⟨#[0xb3, 0xde, 0x64, 0x8b]⟩
+
+/-- `keccak("g(uint256)")[0:4] = 0xe420264a`. -/
+axiom cGSelectorBytes :
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Reuse.gTransition))).extract 0 4
+      = ⟨#[0xe4, 0x20, 0x26, 0x4a]⟩
+
+/-- The `JUMPDEST` set of `cBytecode` (confirmed from the bytecode disassembly). -/
+@[valid_jumps] theorem cValidJumps :
+    Ethereum.EVM.D_J cBytecode 0
+      = #[⟨14⟩, ⟨48⟩, ⟨52⟩, ⟨63⟩, ⟨67⟩, ⟨85⟩, ⟨96⟩, ⟨100⟩, ⟨102⟩, ⟨112⟩,
+          ⟨121⟩, ⟨127⟩, ⟨134⟩, ⟨139⟩, ⟨154⟩, ⟨161⟩, ⟨181⟩, ⟨201⟩]
+  := by native_decide

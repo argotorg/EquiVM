@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.SolidityLayout
 
 /-!
 # Reuse — Solm spec for `C.sol`
@@ -10,10 +11,9 @@ once as a shared routine reached from both the external dispatcher and `g`'s int
 
 This is spec-level data only (the bytecode and proof live in `Bytecode.lean` / `Correct.lean`).
 
-**Faithfulness note (for the eventual proof, not the stub):** `f` returns `v * 2 + 1`, which solc
-compiles with *checked* `mul`/`add` (reverts on overflow), whereas Solm's `evalBinaryOp?` is
-unbounded `Int`.  A faithful body therefore needs an overflow guard (`require(v < (2^256-1)/2)` or
-similar), exactly as `Pow`'s `require(n < 256)` does.  Elided here since the proof is deferred.
+`f` returns `v * 2 + 1`, which solc compiles with *checked* `mul`/`add` (reverts on overflow).
+Solm's arithmetic is unbounded `Int`, so the return expression is range-checked back into
+`uint256` to model Solidity's checked-arithmetic revert.
 -/
 
 open Solm ABI
@@ -39,7 +39,8 @@ def fTransition : TransitionDecl :=
     body :=
       [ -- non-payable guard (mirrors solc's global `CALLVALUE; ISZERO; …` prologue)
         .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1)) ] }
+        .return (.inRange uint256Int
+          (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1))) ] }
 
 /-- `g(uint256 v) external { s = f(v); }` — invokes `f` as an **internal call**, then stores. -/
 def gTransition : TransitionDecl :=
@@ -65,6 +66,7 @@ def cConfig : Config :=
   { storage :=
       { layout := fun ref =>
           match ref.base, ref.steps with
-          | "s", [] => some Reuse.sLoc
-          | _, _ => none }
-    externalABI := defaultExternalCallABI }
+          | "s", [] => fun _ => some Reuse.sLoc
+          | _, _ => fun _ => none }
+    externalABI := defaultExternalCallABI
+    selfDeployment := genSolidityConstructorDeployment Reuse.cContract.ctor.params }
