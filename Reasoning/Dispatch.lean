@@ -78,6 +78,58 @@ theorem dispatchList_none_short (ts : List TransitionDecl)
     rw [if_neg (by rw [hfalse]; simp)]
     exact ih (fun t' ht' => hsz t' (List.mem_cons_of_mem _ ht'))
 
+/-- A transition returned by `dispatchList` is a member of the scanned list. -/
+theorem dispatchList_some_mem {ts : List TransitionDecl} {cd : ByteArray} {t : TransitionDecl}
+    (h : dispatchList ts cd = some t) : t ∈ ts := by
+  induction ts with
+  | nil => simp [dispatchList] at h
+  | cons head tail ih =>
+      rw [dispatchList_cons] at h
+      by_cases hb : (selectorOf head == cd.extract 0 4) = true
+      · rw [if_pos hb] at h; cases h; simp
+      · rw [if_neg hb] at h; exact List.mem_cons_of_mem head (ih h)
+
+/-- If **no** transition's selector matches the calldata prefix, dispatch yields nothing — the
+    n-ary form of `dispatch_none_nomatch`. -/
+theorem dispatchList_none_of_all_ne {ts : List TransitionDecl} {cd : ByteArray}
+    (h : ∀ t ∈ ts, (selectorOf t == cd.extract 0 4) = false) :
+    dispatchList ts cd = none := by
+  induction ts with
+  | nil => rfl
+  | cons head tail ih =>
+      rw [dispatchList_cons, if_neg (by rw [h head (by simp)]; simp)]
+      exact ih (fun t ht => h t (List.mem_cons_of_mem _ ht))
+
+/-- **First-match dispatch** (n-ary positive form): every transition before `ti` misses the
+    calldata prefix and `ti` hits it, so dispatch returns `ti`.  Subsumes the `dispatch_eq`/`if_pos`
+    positive case (`pre = []`) and the per-arm `dispatchList_cons` folds. -/
+theorem dispatchList_eq_some_of_split {pre post : List TransitionDecl} {ti : TransitionDecl}
+    {cd : ByteArray}
+    (hpre : ∀ t ∈ pre, (selectorOf t == cd.extract 0 4) = false)
+    (hhit : (selectorOf ti == cd.extract 0 4) = true) :
+    dispatchList (pre ++ ti :: post) cd = some ti := by
+  induction pre with
+  | nil => rw [List.nil_append, dispatchList_cons, if_pos hhit]
+  | cons head tail ih =>
+      rw [List.cons_append, dispatchList_cons, if_neg (by rw [hpre head (by simp)]; simp)]
+      exact ih (fun t ht => hpre t (List.mem_cons_of_mem _ ht))
+
+/-- `dispatchMsg` no-match, n-ary: no transition selector matches ⇒ no dispatch. -/
+theorem dispatchMsg_none_of_all_ne {contract : ContractDecl} {cd : ByteArray}
+    (h : ∀ t ∈ contract.transitions, (selectorOf t == cd.extract 0 4) = false) :
+    dispatchMsg contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList]; exact dispatchList_none_of_all_ne h
+
+/-- `dispatchMsg` first-match, n-ary: the transitions split as `pre ++ ti :: post`, every `pre`
+    selector misses and `ti`'s hits ⇒ dispatch returns `ti`. -/
+theorem dispatchMsg_eq_some_of_split {contract : ContractDecl} {pre post : List TransitionDecl}
+    {ti : TransitionDecl} {cd : ByteArray}
+    (htr : contract.transitions = pre ++ ti :: post)
+    (hpre : ∀ t ∈ pre, (selectorOf t == cd.extract 0 4) = false)
+    (hhit : (selectorOf ti == cd.extract 0 4) = true) :
+    dispatchMsg contract cd = some ti := by
+  rw [dispatchMsg_eq_dispatchList, htr]; exact dispatchList_eq_some_of_split hpre hhit
+
 /-- `dispatchMsg` of a single-transition contract is the selector compare — the `n = 1` instance of
     the `dispatchList` framework above. -/
 theorem dispatch_eq
@@ -124,6 +176,33 @@ theorem dispatch_none_nomatch
     {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
   rw [dispatch_eq htr hsel]; simp [h]
+
+/-! ## Single-selector bundle
+
+The three single-transition facts (`dispatch_eq` / `dispatch_none_short` / `dispatch_none_nomatch`)
+packaged into one record.  A single-function example builds it once from its `transitions = [t]`
+proof and selector axiom (`singleSelectorDispatch`), then uses `.eq` / `.none_short` / `.none_nomatch`
+in place of the hand-written per-contract dispatch triple. -/
+
+/-- Bundle of the three single-selector dispatch facts for a one-transition contract. -/
+structure SingleSelectorDispatch (contract : ContractDecl) (transition : TransitionDecl)
+    (selBytes : ByteArray) : Prop where
+  eq : ∀ cd : ByteArray, dispatchMsg contract cd
+        = if (selBytes == cd.extract 0 4) then some transition else none
+  none_short : ∀ {cd : ByteArray}, cd.size < 4 → dispatchMsg contract cd = none
+  none_nomatch : ∀ {cd : ByteArray}, (selBytes == cd.extract 0 4) = false →
+        dispatchMsg contract cd = none
+
+/-- Build the single-selector bundle from a single-transition contract proof (`htr`), its selector
+    axiom (`hsel`, the usual `keccak(sig)[0:4] = selBytes`), and `selBytes.size = 4`. -/
+theorem singleSelectorDispatch
+    (htr : contract.transitions = [transition])
+    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsize : selBytes.size = 4) :
+    SingleSelectorDispatch contract transition selBytes where
+  eq cd := dispatch_eq htr hsel cd
+  none_short h := dispatch_none_short htr hsel hsize h
+  none_nomatch h := dispatch_none_nomatch htr hsel h
 
 /-- The EVM return bytes `o` couple to the Solm return value `rv` whenever `o` is `rv`'s ABI
     encoding (the `returned` case of `returnEquiv`). -/
