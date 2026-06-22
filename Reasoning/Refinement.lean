@@ -241,37 +241,46 @@ theorem equivStmts.seq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
 
 /-! ### Up to the function and the contract -/
 
-/-- Per-function equivalence: from `initState`, the EVM body and the Solm body `t.body` (run with
-    `callargs`) reach a matching terminal result — both return ABI-coupled values with matching final
-    world, or both revert. -/
+/-- Per-function equivalence: from possibly representation-different initial maps, the EVM body and
+    the Solm body `t.body` (run with `callargs`) reach a matching terminal result — both return
+    ABI-coupled values with equivalent final worlds, or both revert. -/
 inductive equivTransition (cfg : Config) (contract : ContractDecl) (t : TransitionDecl)
     (cA : Batteries.RBSet AccountAddress compare) (gh : BlockHeader) (bl : ProcessedBlocks)
-    (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) (g : Sat256)
+    (σ_evm σ₀_evm σ_solm σ₀_solm : AccountMap) (A : Substate) (I : ExecutionEnv)
+    (g : Sat256)
     (code : ByteArray) (callargs : Store) : Prop where
   | returns {o : ByteArray} {cs : Frame} {retVal} {evm'' : State}
       {world : Batteries.RBSet AccountAddress compare × AccountMap} :
-      RDret code g (initState cA gh bl σ σ₀ g A I) world o →
-      ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+      RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) world o →
+      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
         (.returned cs evm'' retVal) →
-      world = (evm''.createdAccounts, evm''.accountMap) →
+      world.1 = evm''.createdAccounts →
+      accountMapEquiv world.2 evm''.accountMap →
       returnEquiv o retVal t.returnType →
-      equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs
+      equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+        callargs
   | reverts :
-      RDrev code g (initState cA gh bl σ σ₀ g A I) →
-      ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body .reverted →
-      equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs
+      RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I) →
+      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀_solm g A I)
+        callargs t.body .reverted →
+      equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+        callargs
 
 /-- `equivTransition` + the selector dispatches to `t` + its args decode ⟹ `runtimeEquivalenceFor`. -/
 theorem equivTransition.toRuntime {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray} {callargs : Store}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256} {code : ByteArray}
+    {callargs : Store}
     (hcode : I.code = code)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
-    (h : equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I := by
+    (h : equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+      callargs) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+      g.toUInt256 A I := by
   cases h with
-  | returns hret hbody hAcc henc => exact hret.reEquivExecutionGen hcode hd hdec hbody hAcc henc
+  | returns hret hbody hCreated hAccounts henc =>
+      exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody hCreated hAccounts henc
   | reverts hrev hbody => exact hrev.reEquivExecutionRevert hcode hd hdec hbody
 
 /-- **Bridge** — the body-level `equivStmts` ⟹ `equivTransition`.  The dispatcher reached the body
@@ -292,7 +301,7 @@ theorem equivStmts.toTransition {cfg : Config} {contract : ContractDecl} {t : Tr
         Q cur' frame' evm' →
         ∃ o, RDret code g (initState cA gh bl σ σ₀ g A I) (worldOf evm') o
           ∧ returnEquiv o none t.returnType) :
-    equivTransition cfg contract t cA gh bl σ σ₀ A I g code callargs := by
+    equivTransition cfg contract t cA gh bl σ σ₀ σ σ₀ A I g code callargs := by
   obtain ⟨result, hbody, hmatch⟩ :=
     h entry kE CE { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I)
       hpc hRD hworld hR
@@ -300,10 +309,12 @@ theorem equivStmts.toTransition {cfg : Config} {contract : ContractDecl} {t : Tr
   | ok frame' evm' =>
       obtain ⟨cur', k', C', hRD', hw', hQ⟩ := hmatch
       obtain ⟨o, hRDret, henc⟩ := hfall cur' k' C' frame' evm' hRD' hw' hQ
-      exact .returns hRDret (ExecFuncBody.execBlockOK hbody) rfl henc
+      exact .returns hRDret (ExecFuncBody.execBlockOK hbody) rfl
+        (accountMapEquiv.refl evm'.accountMap) henc
   | returned cs evm' rv =>
       obtain ⟨o, hRDret, henc⟩ := hmatch
-      exact .returns hRDret (ExecFuncBody.execBlockRet hbody) rfl henc
+      exact .returns hRDret (ExecFuncBody.execBlockRet hbody) rfl
+        (accountMapEquiv.refl evm'.accountMap) henc
   | reverted => exact .reverts hmatch (ExecFuncBody.execBlockRevert hbody)
   | «break» _ _ => exact hmatch.elim
   | «continue» _ _ => exact hmatch.elim

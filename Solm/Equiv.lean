@@ -38,15 +38,15 @@ inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : 
     returnEquiv o r t
 
 /-- Account equality up to storage-map representation.  The non-storage account fields must match
-    structurally, while persistent storage is compared by observable `findD` reads at every slot. -/
+    structurally, while persistent storage is compared by `find?` at every slot.  This abstracts
+    over `RBMap` tree shape without equating absent storage slots with explicitly stored zeroes. -/
 def accountEquiv (a b : Ethereum.Account) : Prop :=
   a.nonce = b.nonce ∧
   a.balance = b.balance ∧
   a.code = b.code ∧
   a.tstorage = b.tstorage ∧
   ∀ slot : Ethereum.UInt256,
-    a.storage.findD slot (default : Ethereum.UInt256) =
-      b.storage.findD slot (default : Ethereum.UInt256)
+    a.storage.find? slot = b.storage.find? slot
 
 /-- Account-map equality up to the internal representation of each account's persistent storage
     map.  Account presence is still exact. -/
@@ -57,19 +57,26 @@ def accountMapEquiv (σ τ : Ethereum.AccountMap) : Prop :=
     | some a, some b => accountEquiv a b
     | _, _ => False
 
+theorem accountEquiv.refl (a : Ethereum.Account) : accountEquiv a a := by
+  exact ⟨rfl, rfl, rfl, rfl, fun _ => rfl⟩
+
+theorem accountMapEquiv.refl (σ : Ethereum.AccountMap) : accountMapEquiv σ σ := by
+  intro addr
+  cases σ.find? addr <;> simp [accountEquiv.refl]
+
+theorem accountMapEquiv.of_eq {σ τ : Ethereum.AccountMap} (h : σ = τ) :
+    accountMapEquiv σ τ := by
+  subst h
+  exact accountMapEquiv.refl σ
+
 
 inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (t : Option ABIType) : Prop where
   | success :
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
-    solmRes = .returned _ solmState retVal →
-    createdAccounts' = solmState.createdAccounts →
-    σ' = solmState.accountMap →
-    -- A' = solmState.substate → /- We ignore the substate -/
-    returnEquiv o retVal t →
-    execResultsEquiv evmRes solmRes t
-  | successAccountMapEquiv :
+    -- Resulting states are compared up to storage-map representation (`accountMapEquiv`), the
+    -- sound notion given `SSTORE` zero-canonicalization / `RBMap` non-extensionality. Syntactic
+    -- equality is a special case, so this single constructor subsumes it.
     evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
     solmRes = .returned _ solmState retVal →
     createdAccounts' = solmState.createdAccounts →
@@ -92,14 +99,8 @@ inductive ctorResultEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (runtimeCode : ByteArray) : Prop where
   | success :
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
-    solmRes = .returned _ solmState .none →
-    createdAccounts' = solmState.createdAccounts →
-    σ' = solmState.accountMap →
-    -- A' = solmState.substate → /- We ignore the substate -/
-    o = runtimeCode →
-    ctorResultEquiv evmRes solmRes runtimeCode
-  | successAccountMapEquiv :
+    -- Resulting states compared up to storage-map representation (`accountMapEquiv`); syntactic
+    -- equality is a special case, so this single constructor subsumes it.
     evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
     solmRes = .returned _ solmState .none →
     createdAccounts' = solmState.createdAccounts →

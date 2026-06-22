@@ -200,34 +200,43 @@ theorem stepHaltRevert {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g :
 /-! ## 3¾. Coverage helpers — build a `runtimeEquivalenceFor` case from a `Ξ` outcome -/
 
 /-- `Ξ` runs out of gas ⇒ the `outOfGas` case. -/
-theorem reEquiv_outOfGas {cfg contract cA gh bl σ σ₀ g A I}
-    (h : Ξ cA gh bl σ σ₀ g A I = .error .OutOfGass) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := .outOfGas h
+theorem reEquiv_outOfGas {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I}
+    (h : Ξ cA gh bl σ_evm σ₀_evm g A I = .error .OutOfGass) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I :=
+  .outOfGas h
 
-/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case. -/
-theorem reEquiv_noDispatch {cfg contract cA gh bl σ σ₀ g A I} {g' o}
+/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case.  The Solm-side maps are
+    unconstrained — this path never runs `solmExec`. -/
+theorem reEquiv_noDispatch {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
-    (h : Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o)) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I := .noDispatch hd h
+    (h : Ξ cA gh bl σ_evm σ₀_evm g A I = .ok (.revert g' o)) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I :=
+  .noDispatch hd h
 
-/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ the `decodingFailed` case. -/
-theorem reEquiv_decodingFailed {cfg contract cA gh bl σ σ₀ g A I} {t g' o}
+/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. Solm-side maps
+    unconstrained. -/
+theorem reEquiv_decodingFailed
+    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I} {t g' o}
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata = none)
-    (h : Ξ cA gh bl σ σ₀ g A I = .ok (.revert g' o)) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = none)
+    (h : Ξ cA gh bl σ_evm σ₀_evm g A I = .ok (.revert g' o)) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I :=
   .decodingFailed hd rfl hdec h
 
-/-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution`
-    case.  `actExec` is assembled from dispatch + decode + an `ExecTransitionBody` over the
-    canonical `initState`. -/
-theorem reEquiv_execution {cfg contract cA gh bl σ σ₀ A I} {t callargs actRes} {g : UInt256}
+/-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
+    The EVM runs from `σ_evm`, the Solm body from `σ_solm` (genuinely distinct maps); `hequiv`
+    carries the up-to-`accountMapEquiv` coupling of their results. -/
+theorem reEquiv_execution
+    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {t callargs actRes}
+    {g : UInt256}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata
               = some callargs)
-    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
-    (hequiv : execResultsEquiv (Ξ cA gh bl σ σ₀ g A I) actRes t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g A I :=
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀_solm (.ofUInt256 g) A I) callargs t.body actRes)
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀_evm g A I) actRes t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I :=
   .execution rfl (.intro hd rfl hdec rfl hbody) hequiv
 
 /-! ## 4. Fuel monotonicity -/
