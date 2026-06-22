@@ -264,6 +264,14 @@ inductive Expr where
   /- `arr.length`. The origin is explicit, matching assignment: storage paths read the declared
      storage array length; local paths read the in-memory value and return its array/byte count. -/
   | arrayLength : VarOrigin -> StorageRef -> Expr
+  /- `keccak256(b)`: the Keccak-256 hash of the dynamic bytes `b`, as a `bytes32` value.  The hash
+     primitive is the same `ffi.KEC` the EVM's `KECCAK256` opcode uses, so equivalence reduces to
+     equality of the hashed bytes. -/
+  | keccak256 : Expr -> Expr
+  /- `abi.encodePacked(e₁, …)`: the non-padded ("packed") ABI encoding of the listed values, as a
+     dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed
+     width (`uintN`→N/8 bytes, `bool`→1, `address`→20, `bytesN`→N, with no length prefixes). -/
+  | abiEncodePacked : List (ABIType × Expr) -> Expr
 
 inductive StorageRefStep where
   | field : Ident -> StorageRefStep
@@ -288,6 +296,10 @@ deriving instance Inhabited for StorageRefStep
 deriving instance Repr for StorageRef
 deriving instance Inhabited for StorageRef
 
+-- The hand-written structural `DecidableEq` is an O(n²) match over `Expr`'s constructors; with the
+-- `keccak256`/`abiEncodePacked` additions it exceeds the default heartbeat budget during the equation
+-- compiler's `simp` pass, so the limit is raised for this block.
+set_option maxHeartbeats 1000000 in
 mutual
   private def Expr.decEq : (a b : Expr) -> Decidable (a = b)
     | .intLit x, .intLit y =>
@@ -808,6 +820,100 @@ mutual
     | .ite _ _ _, .tupleLit _ => isFalse (by intro h; cases h)
     | .tupleLit _, .arrayLength _ _ => isFalse (by intro h; cases h)
     | .arrayLength _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .keccak256 x, .keccak256 y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .keccak256 _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked xs, .abiEncodePacked ys =>
+        match Expr.decEqTypedList xs ys with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .abiEncodePacked _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
 
   private def Expr.decEqList : (as bs : List Expr) -> Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -825,6 +931,17 @@ mutual
         match (inferInstance : Decidable (nx = ny)), Expr.decEq ex ey, Expr.decEqNamedList as bs with
         | isTrue hn, isTrue he, isTrue hs => isTrue (by cases hn; cases he; cases hs; rfl)
         | isFalse hn, _, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse he, _ => isFalse (by intro h; cases h; exact he rfl)
+        | _, _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
+    | [], _ :: _ => isFalse (by intro h; cases h)
+    | _ :: _, [] => isFalse (by intro h; cases h)
+
+  private def Expr.decEqTypedList : (as bs : List (ABIType × Expr)) -> Decidable (as = bs)
+    | [], [] => isTrue rfl
+    | (tx, ex) :: as, (ty, ey) :: bs =>
+        match (inferInstance : Decidable (tx = ty)), Expr.decEq ex ey, Expr.decEqTypedList as bs with
+        | isTrue ht, isTrue he, isTrue hs => isTrue (by cases ht; cases he; cases hs; rfl)
+        | isFalse ht, _, _ => isFalse (by intro h; cases h; exact ht rfl)
         | _, isFalse he, _ => isFalse (by intro h; cases h; exact he rfl)
         | _, _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
     | [], _ :: _ => isFalse (by intro h; cases h)
