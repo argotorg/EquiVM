@@ -274,6 +274,47 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl} {t : 
       hsacc.trans hAcc
     exact execResultsEquiv.success rfl rfl (congrArg Prod.fst heq) (congrArg Prod.snd heq) henc
 
+/-- `RDret ⇒ execution` (success), state-changing form with account maps compared up to
+    observable account/storage reads.  This is useful when bytecode coalesces packed storage writes
+    that Solm performs as multiple same-slot updates, which can leave `RBMap`s with different
+    internal shapes but identical account presence, account metadata, and storage lookups. -/
+theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : ContractDecl}
+    {t : TransitionDecl}
+    {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray} {callargs cs retVal}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract (initState cA gh bl σ σ₀ g A I) callargs t.body
+              (.returned cs evm'' retVal))
+    (hCreated : acc.1 = evm''.createdAccounts)
+    (hAccounts : accountMapEquiv acc.2 evm''.accountMap)
+    (henc : returnEquiv o retVal t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ σ₀ g.toUInt256 A I := by
+  rcases h with hoog | ⟨s, hX, hsacc⟩
+  · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hoog
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
+  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hX
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
+    have hbody' :
+        ExecTransitionBody cfg contract
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
+          callargs t.body (.returned cs evm'' retVal) := by
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
+    refine reEquiv_execution hd hdec hbody' ?_
+    rw [hxi]
+    have hcreated : s.createdAccounts = evm''.createdAccounts := by
+      exact (congrArg Prod.fst hsacc).trans hCreated
+    have haccounts : accountMapEquiv s.accountMap evm''.accountMap := by
+      change accountMapEquiv (s.createdAccounts, s.accountMap).2 evm''.accountMap
+      rw [congrArg Prod.snd hsacc]
+      exact hAccounts
+    exact execResultsEquiv.successAccountMapEquiv rfl rfl hcreated haccounts henc
+
 /-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`).
     The non-mutating special case of `reEquivExecutionGen` (`evm'' = initState …`). -/

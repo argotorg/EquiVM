@@ -254,10 +254,260 @@ theorem storage_findD_update_ne (storage : Storage) (readSlot writeSlot val defa
   · simpa [hzero] using storage_findD_erase_ne storage readSlot writeSlot default hne
   · simpa [hzero] using storage_findD_insert_ne storage readSlot writeSlot val default hne
 
+/-- Lookup-level same-key overwrite for `RBMap.insert`.
+
+The structurally stronger equality of `RBMap`s is false in general, because inserting a missing key
+and then overwriting it can recolor the root differently from a single insert.  Lookup equivalence
+is the reusable form for simplifying reads after double writes. -/
+theorem rbmap_find?_insert_insert_self {α : Type u} {β : Type v}
+    {cmp : α → α → Ordering} [Std.TransCmp cmp]
+    (m : Batteries.RBMap α β cmp) (write read : α) (v1 v2 : β) :
+    ((m.insert write v1).insert write v2).find? read =
+      (m.insert write v2).find? read := by
+  by_cases h : cmp read write = .eq
+  · rw [Batteries.RBMap.find?_insert_of_eq (t := m.insert write v1) (k := write)
+      (v := v2) (k' := read) h,
+      Batteries.RBMap.find?_insert_of_eq (t := m) (k := write) (v := v2) (k' := read) h]
+  · rw [Batteries.RBMap.find?_insert_of_ne (t := m.insert write v1) (k := write)
+      (v := v2) (k' := read) h,
+      Batteries.RBMap.find?_insert_of_ne (t := m) (k := write) (v := v1)
+        (k' := read) h,
+      Batteries.RBMap.find?_insert_of_ne (t := m) (k := write) (v := v2)
+        (k' := read) h]
+
+/-- `findD` version of same-key overwrite for `RBMap.insert`. -/
+theorem rbmap_findD_insert_insert_self {α : Type u} {β : Type v}
+    {cmp : α → α → Ordering} [Std.TransCmp cmp]
+    (m : Batteries.RBMap α β cmp) (write read : α) (v1 v2 default : β) :
+    ((m.insert write v1).insert write v2).findD read default =
+      (m.insert write v2).findD read default := by
+  unfold Batteries.RBMap.findD
+  rw [rbmap_find?_insert_insert_self]
+
+/-- Storage-slot lookup after two same-slot writes is the same as after the final write. -/
+theorem storage_findD_insert_insert_self (storage : Storage)
+    (writeSlot readSlot val1 val2 default : UInt256) :
+    ((storage.insert writeSlot val1).insert writeSlot val2).findD readSlot default =
+      (storage.insert writeSlot val2).findD readSlot default :=
+  rbmap_findD_insert_insert_self storage writeSlot readSlot val1 val2 default
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- Reading after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
+    the same as reading after just the final insert. -/
+theorem storage_findD_update_insert_self (storage : Storage)
+    (writeSlot readSlot val1 val2 : UInt256) :
+    (((if val1 = (default : UInt256) then storage.erase writeSlot
+        else storage.insert writeSlot val1).insert writeSlot val2).findD readSlot
+        (default : UInt256)) =
+      (storage.insert writeSlot val2).findD readSlot (default : UInt256) := by
+  by_cases hread : readSlot = writeSlot
+  · subst readSlot
+    unfold Batteries.RBMap.findD
+    rw [Batteries.RBMap.find?_insert_of_eq
+      (t := if val1 = (default : UInt256) then storage.erase writeSlot
+        else storage.insert writeSlot val1)
+      (k := writeSlot) (v := val2) (k' := writeSlot) Std.ReflCmp.compare_self]
+    rw [Batteries.RBMap.find?_insert_of_eq (t := storage) (k := writeSlot) (v := val2)
+      (k' := writeSlot) Std.ReflCmp.compare_self]
+  · by_cases hzero : val1 = (default : UInt256)
+    · simp only [hzero, if_true]
+      rw [storage_findD_insert_ne (storage.erase writeSlot) readSlot writeSlot val2 default hread]
+      rw [storage_findD_insert_ne storage readSlot writeSlot val2 default hread]
+      rw [storage_findD_erase_ne storage readSlot writeSlot default hread]
+    · simp only [hzero, if_false]
+      rw [storage_findD_insert_insert_self]
+
+/-- Account lookup after two same-address writes is the same as after the final write. -/
+theorem accountMap_find?_insert_insert_self (σ : AccountMap)
+    (write read : AccountAddress) (acc1 acc2 : Account) :
+    ((σ.insert write acc1).insert write acc2).find? read =
+      (σ.insert write acc2).find? read :=
+  rbmap_find?_insert_insert_self σ write read acc1 acc2
+
+/-- Inserting one account preserves lookup at a different address. -/
+theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddress)
+    (acc : Account) (hne : read ≠ write) :
+    (σ.insert write acc).find? read = σ.find? read := by
+  rw [Batteries.RBMap.find?_insert_of_ne]
+  intro hcmp
+  exact hne (Std.LawfulEqCmp.eq_of_compare hcmp)
+
 /-- Looking up the account just inserted at its own address returns that account. -/
 theorem accountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) (acc : Account) :
     (σ.insert a acc).find? a = some acc := by
   rw [Batteries.RBMap.find?_insert_of_eq]
   exact Std.ReflCmp.compare_self
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- A zero-aware `SSTORE` to one storage slot preserves an observable read from a different slot
+    of the same account. -/
+theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
+    (readSlot writeSlot val : UInt256) (hne : readSlot ≠ writeSlot) :
+    (((sstoreAccountMap a σ writeSlot val).find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) =
+      ((σ.find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) := by
+  unfold sstoreAccountMap
+  cases hσ : σ.find? a with
+  | none =>
+      simp [hσ, Option.option]
+  | some acc =>
+      simp [hσ, Option.option, accountMap_find_insert_self]
+      by_cases hzero : val = (default : UInt256)
+      · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
+      · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
+
+theorem accountEquiv_refl (acc : Account) : accountEquiv acc acc := by
+  exact ⟨rfl, rfl, rfl, rfl, fun _ => rfl⟩
+
+theorem accountMapEquiv_refl (σ : AccountMap) : accountMapEquiv σ σ := by
+  intro addr
+  cases σ.find? addr <;> simp [accountEquiv_refl]
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- Inserting the same nonzero storage word into equivalent accounts preserves account
+    equivalence. -/
+theorem accountEquiv_insert_storage_of_equiv {acc₁ acc₂ : Account} (slot val : UInt256)
+    (hacc : accountEquiv acc₁ acc₂) :
+    accountEquiv {acc₁ with storage := acc₁.storage.insert slot val}
+      {acc₂ with storage := acc₂.storage.insert slot val} := by
+  rcases hacc with ⟨hn, hb, hc, ht, hs⟩
+  refine ⟨hn, hb, hc, ht, ?_⟩
+  intro readSlot
+  by_cases hread : readSlot = slot
+  · subst readSlot
+    unfold Batteries.RBMap.findD
+    rw [Batteries.RBMap.find?_insert_of_eq (t := acc₁.storage) (k := slot) (v := val)
+      (k' := slot) Std.ReflCmp.compare_self]
+    rw [Batteries.RBMap.find?_insert_of_eq (t := acc₂.storage) (k := slot) (v := val)
+      (k' := slot) Std.ReflCmp.compare_self]
+  · rw [storage_findD_insert_ne acc₁.storage readSlot slot val default hread]
+    rw [storage_findD_insert_ne acc₂.storage readSlot slot val default hread]
+    exact hs readSlot
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- `accountMapEquiv` is preserved by the same nonzero `SSTORE` on both maps. -/
+theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
+    (a : AccountAddress) (slot val : UInt256)
+    (hστ : accountMapEquiv σ τ) (hval : (val == (default : UInt256)) = false) :
+    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) := by
+  intro addr
+  by_cases haddr : addr = a
+  · subst addr
+    unfold sstoreAccountMap
+    specialize hστ a
+    cases hσ : σ.find? a with
+    | none =>
+        cases hτ : τ.find? a with
+        | none =>
+            simp [hσ, hτ, Option.option]
+        | some accτ =>
+            have hbad : False := by simpa [hσ, hτ] using hστ
+            exact False.elim hbad
+    | some accσ =>
+        cases hτ : τ.find? a with
+        | none =>
+            have hbad : False := by simpa [hσ, hτ] using hστ
+            exact False.elim hbad
+        | some accτ =>
+            have hacc : accountEquiv accσ accτ := by simpa [hσ, hτ] using hστ
+            simpa [hσ, hτ, Option.option, hval, accountMap_find_insert_self] using
+              accountEquiv_insert_storage_of_equiv slot val hacc
+  · unfold sstoreAccountMap
+    specialize hστ addr
+    cases hσa : σ.find? a <;> cases hτa : τ.find? a <;>
+      simp only [hσa, hτa, Option.option]
+    · exact hστ
+    · rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- A single nonzero `SSTORE` is account-map equivalent to a zero-aware write followed by the same
+    final same-slot nonzero `SSTORE`. -/
+theorem accountMapEquiv_sstoreAccountMap_self_update_insert
+    (σ : AccountMap) (a : AccountAddress) (slot val1 val2 : UInt256)
+    (hfinal : (val2 == (default : UInt256)) = false) :
+    accountMapEquiv (sstoreAccountMap a σ slot val2)
+      (sstoreAccountMap a (sstoreAccountMap a σ slot val1) slot val2) := by
+  intro addr
+  by_cases haddr : addr = a
+  · subst addr
+    unfold sstoreAccountMap
+    cases hσ : σ.find? a with
+    | none =>
+        simp [hσ, Option.option]
+    | some acc =>
+        simp [hσ, hfinal, accountMap_find_insert_self, Option.option]
+        by_cases hzero : val1 = (default : UInt256)
+        · simp [hzero]
+          refine ⟨rfl, rfl, rfl, rfl, ?_⟩
+          intro readSlot
+          simpa [hzero] using
+            (storage_findD_update_insert_self acc.storage slot readSlot val1 val2).symm
+        · simp [hzero]
+          refine ⟨rfl, rfl, rfl, rfl, ?_⟩
+          intro readSlot
+          simpa [hzero] using
+            (storage_findD_update_insert_self acc.storage slot readSlot val1 val2).symm
+  · unfold sstoreAccountMap
+    cases hσ : σ.find? a
+    · simp only [hσ, Option.option]
+      cases σ.find? addr <;> simp [accountEquiv_refl]
+    · simp only [hσ, Option.option, hfinal, Bool.false_eq_true, if_false]
+      rw [accountMap_find_insert_self]
+      rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      rw [accountMap_find?_insert_ne (σ.insert a _) addr a _ haddr]
+      rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      cases σ.find? addr <;> simp [accountEquiv_refl]
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- Same-account/same-slot overwrite at the lookup level for `sstoreAccountMap` when the final write
+    is nonzero.  This is the EVM/Solidity storage-update analogue of
+    `storage_findD_update_insert_self`. -/
+theorem sstoreAccountMap_self_storage_findD_update_insert_self
+    (σ : AccountMap) (a : AccountAddress) (writeSlot readSlot val1 val2 : UInt256)
+    (hfinal : (val2 == (default : UInt256)) = false) :
+    (((sstoreAccountMap a (sstoreAccountMap a σ writeSlot val1) writeSlot val2).find? a).option
+        (default : UInt256) (fun acc => acc.storage.findD readSlot default)) =
+      (((sstoreAccountMap a σ writeSlot val2).find? a).option
+        (default : UInt256) (fun acc => acc.storage.findD readSlot default)) := by
+  cases hacc : σ.find? a with
+  | none =>
+      have hfirst : sstoreAccountMap a σ writeSlot val1 = σ := by
+        simp only [sstoreAccountMap, hacc, Option.option]
+      have hsecond : sstoreAccountMap a σ writeSlot val2 = σ := by
+        simp only [sstoreAccountMap, hacc, Option.option]
+      rw [hfirst, hsecond]
+  | some acc =>
+      let acc1 : Account :=
+        if val1 == (default : UInt256) then {acc with storage := acc.storage.erase writeSlot}
+        else {acc with storage := acc.storage.insert writeSlot val1}
+      let acc2 : Account := {acc with storage := acc.storage.insert writeSlot val2}
+      have hfirst : sstoreAccountMap a σ writeSlot val1 = σ.insert a acc1 := by
+        simp only [sstoreAccountMap, hacc, Option.option, acc1]
+      have hsecond :
+          sstoreAccountMap a (sstoreAccountMap a σ writeSlot val1) writeSlot val2 =
+            (σ.insert a acc1).insert a
+              {acc1 with storage := acc1.storage.insert writeSlot val2} := by
+        rw [hfirst]
+        simp only [sstoreAccountMap, accountMap_find_insert_self, Option.option, hfinal,
+          Bool.false_eq_true, if_false]
+      have hright : sstoreAccountMap a σ writeSlot val2 = σ.insert a acc2 := by
+        simp only [sstoreAccountMap, hacc, hfinal, Option.option, Bool.false_eq_true, if_false,
+          acc2]
+      rw [hsecond, hright]
+      rw [accountMap_find_insert_self, accountMap_find_insert_self]
+      change (acc1.storage.insert writeSlot val2).findD readSlot default =
+        (acc.storage.insert writeSlot val2).findD readSlot default
+      by_cases hzero : val1 = (default : UInt256)
+      · simpa [acc1, hzero] using
+          storage_findD_update_insert_self acc.storage writeSlot readSlot val1 val2
+      · simpa [acc1, hzero] using
+          storage_findD_update_insert_self acc.storage writeSlot readSlot val1 val2
 
 end Reasoning.Theory

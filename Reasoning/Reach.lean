@@ -1981,6 +1981,50 @@ theorem RD.whileLoop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     obtain ⟨a', k', C', hInv', h'⟩ := hbody v a hInv k C h
     exact ih a' hInv' k' C' h'
 
+/-- Variant-indexed `RD` while-rule for loops whose carried state changes the stack and scratch
+    memory.  This is the same induction principle as `RD.whileLoop`, but `mem` and `aw` are read
+    from the loop-carried state `α`; the exit cursor is returned with the final state. -/
+theorem RD.whileLoopCarry {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {α : Type}
+    (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256)
+    (mem : α → ByteArray) (aw : α → UInt256) (exitStk : α → List UInt256)
+    (hexit : ∀ a, Inv 0 a → ∀ k C,
+        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata acc k' C')
+    (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
+        RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+        ∃ a' k' C',
+          Inv v a' ∧ RD code ee g s0 header (stk a') (mem a') (aw a') rdata acc k' C') :
+    ∀ v a, Inv v a → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata acc k C →
+      ∃ a' k' C',
+        Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata acc k' C' := by
+  intro v
+  induction v with
+  | zero =>
+    intro a hInv k C h
+    obtain ⟨k', C', h'⟩ := hexit a hInv k C h
+    exact ⟨a, k', C', hInv, h'⟩
+  | succ v ih =>
+    intro a hInv k C h
+    obtain ⟨a', k', C', hInv', h'⟩ := hbody v a hInv k C h
+    exact ih a' hInv' k' C' h'
+
+-- LIBRARY CANDIDATE: `Reasoning.Reach`.
+/-- If an `RD` cursor is claimed with consumed gas above the initial gas budget, the only possible
+    branch of `RD` is the out-of-gas branch. -/
+theorem RD.oog_of_cost_gt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C) (hgt : g.toNat < C) :
+    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
+      hacc, hee, hworld⟩
+  · exact hoog
+  · omega
+
 /-! ## Halting terminals (`RETURN` ⇒ success, `REVERT` ⇒ revert)
 
 `RDret`/`RDrev` are the **terminal** analogues of `RD`: instead of a reached cursor, they record
