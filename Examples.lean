@@ -4,3 +4,4 @@ import Examples.Caller.Correct
 import Examples.ERC20.Correct
 import Examples.CtorTruth.Correct
 import Examples.CtorStore.Correct
+import Examples.Ballot.Correct
