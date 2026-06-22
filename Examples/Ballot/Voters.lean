@@ -1142,10 +1142,8 @@ theorem ballotVotersBodyCore
       · have hdec := ballotDecode_voters_ok (I := I) hsz36 hbig hcanon
         have hweight : votersWeightWord σ_solm I = votersWeightWord σ_evm I :=
           (votersWeightWord_accountMapEquiv hAccounts).symm
-        have hvoted : votersVotedWord σ_solm I = votersVotedWord σ_evm I :=
-          (votersVotedWord_accountMapEquiv hAccounts).symm
-        have hdelegate : votersDelegateWord σ_solm I = votersDelegateWord σ_evm I :=
-          (votersDelegateWord_accountMapEquiv hAccounts).symm
+        have hpacked : votersPackedWord σ_solm I = votersPackedWord σ_evm I :=
+          (votersPackedWord_accountMapEquiv hAccounts).symm
         have hvote : votersVoteWord σ_solm I = votersVoteWord σ_evm I :=
           (votersVoteWord_accountMapEquiv hAccounts).symm
         have hbody :
@@ -1164,7 +1162,7 @@ theorem ballotVotersBodyCore
             (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
         exact (ballotX_voters_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody
-            (by simp [hweight, hvoted, hdelegate, hvote])
+            (by simp [hweight, hpacked, hvote, votersVotedWord, votersDelegateWord])
             hAccounts
             (returnEquiv_of_encode
               (ballotVotersReturnEncoding (votersWeightWord σ_evm I)

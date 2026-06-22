@@ -788,19 +788,24 @@ theorem erc20ApproveBodyCore
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_approve_ok (I := I) hsz68 hbig hcanonSpender
-        have hbody := erc20ApproveBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
-          (by simp only [initState]; exact hwv)
+        let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
+        let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+        have hσ : EVMStateEquiv evmE evmS := by
+          simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
+        have hbody := erc20ApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
+        have hσPost : EVMStateEquiv (approvePostState evmE I) (approvePostState evmS I) := by
+          unfold approvePostState approveSlot
+          rw [hσ.executionEnv]
+          exact hσ.storageStore_codeOwner
+            (erc20AllowanceSlot (.address evmS.executionEnv.source)
+              (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))) rfl
         exact (erc20X_approve (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hperm hcanonSpender hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+          |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
             (by
-              simp [approvePostState, initState, erc20StorageStore_createdAccounts])
-            (by
-              simp [approvePostState, approveSlot, approveSlotI, initState,
-                erc20StorageStore_accountMap]
-              exact accountMapEquiv_sstoreAccountMap I.codeOwner (approveSlotI I)
-                (approveValueWord I) hAccounts)
+              simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
+                erc20StorageStore_createdAccounts, erc20StorageStore_accountMap])
+            hσPost
             (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
       · have hdec := erc20Decode_approve_none_noncanon (I := I) hsz68 hbig hcanonSpender
         have hnc : UInt256.eq (approveSpenderWord I)
