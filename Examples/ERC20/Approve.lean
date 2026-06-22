@@ -771,14 +771,17 @@ theorem erc20Dispatch_approve {cd : ByteArray}
       transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
     rfl (by simp) (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
 
-theorem erc20ApproveBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem erc20ApproveBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := erc20ApproveSelector_size hsel
   have hd := erc20Dispatch_approve (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -786,14 +789,18 @@ theorem erc20ApproveBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt25
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_approve_ok (I := I) hsz68 hbig hcanonSpender
         have hbody := erc20ApproveBodyReturns
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
         exact (erc20X_approve (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hperm hcanonSpender hreach)
-          |>.reEquivExecutionGen hcode hd hdec hbody
+          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            (by
+              simp [approvePostState, initState, erc20StorageStore_createdAccounts])
             (by
               simp [approvePostState, approveSlot, approveSlotI, initState,
-                erc20StorageStore_createdAccounts, erc20StorageStore_accountMap])
+                erc20StorageStore_accountMap]
+              exact accountMapEquiv_sstoreAccountMap I.codeOwner (approveSlotI I)
+                (approveValueWord I) hAccounts)
             (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
       · have hdec := erc20Decode_approve_none_noncanon (I := I) hsz68 hbig hcanonSpender
         have hnc : UInt256.eq (approveSpenderWord I)

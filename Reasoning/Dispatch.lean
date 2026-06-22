@@ -1,5 +1,6 @@
 import Solm.Dispatch
 import Reasoning.Reach
+import Reasoning.Storage
 
 /-!
 # Dispatch — generic Solm `dispatchMsg` facts for a single-transition contract
@@ -323,6 +324,30 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
       rw [congrArg Prod.snd hsacc]
       exact hAccounts
     exact execResultsEquiv.success rfl rfl hcreated haccounts henc
+
+theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : ContractDecl}
+    {t : TransitionDecl}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {code o : ByteArray} {callargs cs retVal}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {evm'_evm evm'_solm : EVM.State}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) acc o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
+              (.returned cs evm'_solm retVal))
+    (hAcc : acc = (evm'_evm.createdAccounts, evm'_evm.accountMap))
+    (hState : EVMStateEquiv evm'_evm evm'_solm)
+    (henc : returnEquiv o retVal t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+      g.toUInt256 A I :=
+  h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    (by rw [hAcc]; exact hState.createdAccounts)
+    (by rw [hAcc]; exact hState.accountMap)
+    henc
 
 /-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`).

@@ -68,6 +68,64 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
     callViaEVM.callMade wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
       (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth⟩
 
+/-- Trusted bridge: `Θ` respects observationally equivalent account maps.
+
+If a typed external call is possible from an EVM state, and a Solm-side state differs only by
+`accountMapEquiv`-equivalent current/original account maps, then the same success flag and return
+data are possible on the Solm side, with a post-call account map equivalent to the EVM post-call
+map.  This is the narrow interface needed by examples; it should be replaced by the direct proof
+about `Ethereum.EVM.Θ` once that proof lands. -/
+axiom typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {name : Ident} {args : List Value} {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm_evm tgt name 0 args (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : accountMapEquiv evm_evm.σ₀ evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (hSubstate : evm_solm.substate = evm_evm.substate)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      typedCallViaEVM cfg evm_solm tgt name 0 args
+        (z,
+          { evm_solm with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm
+
+/-- `initState`-specialized form of `typedCallViaEVM_accountMapEquiv`.
+
+This is the shape runtime-equivalence examples usually need: the EVM and Solm runs start from
+split-but-equivalent account maps while all other transaction fields are shared. -/
+theorem typedCallViaEVM_initState_accountMapEquiv {cfg : Config}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name 0 args
+      (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name 0 args
+        (z,
+          { initState cA gh bl σ_solm σ₀_solm g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm :=
+  typedCallViaEVM_accountMapEquiv
+    (evm_solm := initState cA gh bl σ_solm σ₀_solm g A I) hcall
+    (by simpa [initState] using hAccounts)
+    (by simpa [initState] using hOriginalAccounts)
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching
     `callNotMade` branch — `(false, evm[substate], ∅)` — independent of value/balance.  Generic over

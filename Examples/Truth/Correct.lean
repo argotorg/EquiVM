@@ -219,10 +219,11 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
       (by evm_ov) ]
 
 theorem truthReEquiv_callvalueZero
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ σ₀ g.toUInt256 A I := by
+    (hwv : I.weiValue = ⟨0⟩) (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+      g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
     exact (truthX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (truthDispatch.none_short hsz)
@@ -233,7 +234,9 @@ theorem truthReEquiv_callvalueZero
         rw [truthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode hwv hsz hsize hmatch).reEquivExecution hcode hd
         (truthDecode_empty hsz)
-        (truthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅ (by simp only [initState]; exact hwv))
+        (truthBodyReturns (initState cA gh bl σ_solm σ₀_solm g A I) ∅
+          (by simp only [initState]; exact hwv))
+        hAccounts
         (returnEquiv_of_encode boolTrueReturnEncoding)
     · -- wrong selector → EVM reverts at `0x26`, Solm fails to dispatch
       rw [Bool.not_eq_true] at hmatch
@@ -245,9 +248,9 @@ theorem truthReEquiv_callvalueZero
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
     runtimeEquivalence!?! truthConfig truthBytecode truthContract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize _hperm hσ _hσ₀ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
+  · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)

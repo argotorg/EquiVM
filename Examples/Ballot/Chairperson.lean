@@ -1,6 +1,7 @@
 import Examples.Ballot.Common
 import Reasoning.Refinement
 import Reasoning.SolmBody
+import Reasoning.Storage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -89,27 +90,43 @@ theorem ballotDecode_chairperson {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem ballotChairpersonBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem ballotChairpersonBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x2e, 0x41, 0x76, 0xcf]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨203⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz := ballotChairpersonSelector_size hsel
   have hd := ballotDispatch_chairperson (cd := I.calldata) hsel
   have hdec := ballotDecode_chairperson (I := I) hsz
+  have hword : chairpersonWord σ_evm I = chairpersonWord σ_solm I :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
   have hbody₀ := ballotChairpersonBodyReturns
-    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
     (by simp only [initState]; exact hwv) (by simp)
+  have hbody_solm :
+      ExecTransitionBody ballotConfig ballotContract
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
+        (.returned { contract := ballotContract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ_solm I).toNat)))) := by
+    simpa [chairpersonWord, chairpersonReturnWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using hbody₀
   have hbody :
       ExecTransitionBody ballotConfig ballotContract
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
         (.returned { contract := ballotContract, locals := ∅ }
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ I).toNat)))) := by
-    simpa [chairpersonWord, chairpersonReturnWord] using hbody₀
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ_evm I).toNat)))) := by
+    rw [show chairpersonReturnWord σ_evm I = chairpersonReturnWord σ_solm I by
+      simp [chairpersonReturnWord, hword]]
+    exact hbody_solm
   exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecution hcode hd hdec
-    hbody (returnEquiv_of_encode (ballotAddressReturnEncoding (chairpersonWord σ I)))
+    hbody hAccounts
+    (returnEquiv_of_encode (ballotAddressReturnEncoding (chairpersonWord σ_evm I)))
 
 end Ballot

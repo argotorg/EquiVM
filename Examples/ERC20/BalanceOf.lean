@@ -1,5 +1,6 @@
 import Examples.ERC20.Common
 import Reasoning.Refinement
+import Reasoning.Storage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -476,34 +477,52 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
   · rw [selectorOf, erc20TotalSupplySelectorBytes, hcd]; decide
   · rw [selectorOf, erc20TransferFromSelectorBytes, hcd]; decide
 
-theorem erc20BalanceOfBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem erc20BalanceOfBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := erc20BalanceOfSelector_size hsel
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_balanceOf_ok (I := I) hsz36 hbig hcanon
+        have hword : balanceOfWord σ_evm I = balanceOfWord σ_solm I :=
+          accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
         have hbody₀ := erc20BalanceOfBodyReturns
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
-        have hbody :
+        have hbody_solm :
             ExecTransitionBody erc20Config erc20Contract
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (balanceOfStore I)
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (balanceOfStore I)
               balanceOfTransition.body
               (.returned { contract := erc20Contract, locals := balanceOfStore I }
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-                (some (.int (Int.ofNat (balanceOfWord σ I).toNat)))) := by
-          simpa [balanceOfWord, balanceOfSlot] using hbody₀
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
+          simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
+            State.lookupAccount] using hbody₀
+        have hbody :
+            ExecTransitionBody erc20Config erc20Contract
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (balanceOfStore I)
+              balanceOfTransition.body
+              (.returned { contract := erc20Contract, locals := balanceOfStore I }
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (some (.int (Int.ofNat (balanceOfWord σ_evm I).toNat)))) := by
+          rw [hword]
+          exact hbody_solm
         exact (erc20X_balanceOf (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecution hcode hd hdec hbody
-            (returnEquiv_of_encode (erc20Uint256ReturnEncoding (balanceOfWord σ I)))
+            hAccounts
+            (returnEquiv_of_encode (erc20Uint256ReturnEncoding (balanceOfWord σ_evm I)))
       · have hdec := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hbig hcanon
         have hnc : UInt256.eq (balanceOfOwnerWord I)
             (UInt256.land (balanceOfOwnerWord I) erc20AddrMask) = ⟨0⟩ :=

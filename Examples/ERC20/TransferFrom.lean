@@ -2464,16 +2464,69 @@ theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
     dup1, swap2, sub, swap1 ]
   exact rd923.rev 0 (by decide) mem_cost (by evm_ov)
 
-theorem erc20TransferFromBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem erc20TransferFromBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := erc20TransferFromSelector_size hsel
   have hd := erc20Dispatch_transferFrom (cd := I.calldata) hsel
+  let σ := σ_evm
+  let σ₀ := σ₀_evm
+  let evmE := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  have hσ : EVMStateEquiv evmE evmS := by
+    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
+  have hAllowance :
+      transferFromCurrentAllowanceWord evmE I = transferFromCurrentAllowanceWord evmS I := by
+    simpa [transferFromCurrentAllowanceWord, transferFromAllowanceSlot, evmE, evmS, initState]
+      using hσ.storageLoad_codeOwner
+      (erc20AllowanceSlot (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
+        (.address I.source))
+  have hσAllowance : EVMStateEquiv (transferFromAfterAllowanceState evmE I)
+      (transferFromAfterAllowanceState evmS I) := by
+    simpa [transferFromAfterAllowanceState, transferFromAllowanceSlot, evmE, evmS, initState]
+      using hσ.storageStore_codeOwner
+      (erc20AllowanceSlot (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
+        (.address I.source)) (by
+          simpa [transferFromAllowanceDebitWord, evmE, evmS] using
+            congrArg
+              (fun w : UInt256 =>
+                UInt256.ofNat (w.toNat - (transferFromValueWord I).toNat))
+              hAllowance)
+  have hFromBalance :
+      transferFromFromBalanceWord evmE I = transferFromFromBalanceWord evmS I := by
+    simpa [transferFromFromBalanceWord] using
+      hσ.storageLoad_codeOwner (transferFromFromSlot I)
+  have hAfterAllowanceFromBalance :
+      transferFromFromBalanceWord (transferFromAfterAllowanceState evmE I) I =
+        transferFromFromBalanceWord (transferFromAfterAllowanceState evmS I) I := by
+    simpa [transferFromFromBalanceWord] using
+      hσAllowance.storageLoad_codeOwner (transferFromFromSlot I)
+  have hσBalance : EVMStateEquiv (transferFromAfterBalanceState evmE I)
+      (transferFromAfterBalanceState evmS I) := by
+    simpa [transferFromAfterBalanceState] using
+      hσAllowance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+        (transferFromFromSlot I)
+      (by simp [transferFromBalanceDebitWord, hAfterAllowanceFromBalance])
+  have hToBalance :
+      transferFromToBalanceWord evmE I = transferFromToBalanceWord evmS I := by
+    simpa [transferFromToBalanceWord] using
+      hσBalance.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+        (transferFromToSlot I)
+  have hNewToNat : transferFromNewToNat evmE I = transferFromNewToNat evmS I := by
+    simp [transferFromNewToNat, hToBalance]
+  have hσPost : EVMStateEquiv (transferFromPostState evmE I) (transferFromPostState evmS I) := by
+    simpa [transferFromPostState] using
+      hσBalance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+        (transferFromToSlot I)
+      (by simp [transferFromNewToWord, hNewToNat])
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
@@ -2494,31 +2547,35 @@ theorem erc20TransferFromBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : U
                 transferFromNewToNat
                     (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I <
                   UInt256.size
-                · have hbody :=
-                    erc20TransferFromBodyReturns
-                      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
-                      (by simp only [initState]; exact hwv) hallowance hbalance hbalanceDebit hfit
+                · have hbody := erc20TransferFromBodyReturns evmS I
+                      (by simp only [evmS, initState]; exact hwv)
+                      (by simpa [evmE, hAllowance] using hallowance)
+                      (by simpa [evmE, hFromBalance] using hbalance)
+                      (by simpa [evmE, hAfterAllowanceFromBalance] using hbalanceDebit)
+                      (by simpa [evmE, hNewToNat] using hfit)
                   exact (erc20X_transferFrom (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance
                     hbalanceDebit hfit
                     hreach)
-                  |>.reEquivExecutionGen hcode hd hdec hbody
+                  |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
                     (by
-                      simp [transferFromPostState, transferFromAfterBalanceState,
+                      simp [evmE, transferFromPostState, transferFromAfterBalanceState,
                         transferFromAfterAllowanceState, transferFromAllowanceSlot,
                         transferFromAllowanceSlotI, initState, erc20StorageStore_createdAccounts,
-                        erc20StorageStore_accountMap, transferFromAfterAllowance_codeOwner,
-                        transferFromAfterBalance_codeOwner])
+                        erc20StorageStore_accountMap])
+                    hσPost
                     (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
                 · have hover :
                     UInt256.size ≤
                       transferFromNewToNat
                         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I := by
                     omega
-                  have hbody :=
-                    erc20TransferFromBodyReverts_overflow
-                      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
-                      (by simp only [initState]; exact hwv) hallowance hbalance hbalanceDebit hover
+                  have hbody := erc20TransferFromBodyReverts_overflow evmS I
+                      (by simp only [evmS, initState]; exact hwv)
+                      (by simpa [evmE, hAllowance] using hallowance)
+                      (by simpa [evmE, hFromBalance] using hbalance)
+                      (by simpa [evmE, hAfterAllowanceFromBalance] using hbalanceDebit)
+                      (by simpa [evmE, hNewToNat] using hover)
                   exact (erc20TransferFromX_overflow (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance
                     hbalanceDebit hover
@@ -2530,9 +2587,11 @@ theorem erc20TransferFromBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : U
                       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat <
                     (transferFromValueWord I).toNat := by
                   omega
-                have hbody := erc20TransferFromBodyReverts_balanceDebit
-                  (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
-                  (by simp only [initState]; exact hwv) hallowance hbalance hltDebit
+                have hbody := erc20TransferFromBodyReverts_balanceDebit evmS I
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmE, hAllowance] using hallowance)
+                  (by simpa [evmE, hFromBalance] using hbalance)
+                  (by simpa [evmE, hAfterAllowanceFromBalance] using hltDebit)
                 exact (erc20TransferFromX_balanceDebitUnderflow (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance hltDebit
                     hreach)
@@ -2542,9 +2601,10 @@ theorem erc20TransferFromBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : U
                     (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
                   (transferFromValueWord I).toNat := by
                 omega
-              have hbody := erc20TransferFromBodyReverts_balance
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
-                (by simp only [initState]; exact hwv) hallowance hlt
+              have hbody := erc20TransferFromBodyReverts_balance evmS I
+                (by simp only [evmS, initState]; exact hwv)
+                (by simpa [evmE, hAllowance] using hallowance)
+                (by simpa [evmE, hFromBalance] using hlt)
               exact (erc20TransferFromX_insufficientBalance (g := Sat256.ofUInt256 g)
                   hsz100 hsize hbig hcanonFrom hcanonTo hallowance hlt hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
@@ -2553,9 +2613,9 @@ theorem erc20TransferFromBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : U
                   (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
                 (transferFromValueWord I).toNat := by
               omega
-            have hbody := erc20TransferFromBodyReverts_allowance
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
-              (by simp only [initState]; exact hwv) hlt
+            have hbody := erc20TransferFromBodyReverts_allowance evmS I
+              (by simp only [evmS, initState]; exact hwv)
+              (by simpa [evmE, hAllowance] using hlt)
             exact (erc20TransferFromX_insufficientAllowance (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hcanonFrom hcanonTo hlt hreach)
               |>.reEquivExecutionRevert hcode hd hdec hbody

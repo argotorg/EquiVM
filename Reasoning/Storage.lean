@@ -417,6 +417,27 @@ theorem accountMapEquiv_refl (σ : AccountMap) : accountMapEquiv σ σ := by
   intro addr
   cases σ.find? addr <;> simp [accountEquiv_refl]
 
+theorem accountEquiv_storage_findD {acc₁ acc₂ : Account} (slot default : UInt256)
+    (hacc : accountEquiv acc₁ acc₂) :
+    acc₁.storage.findD slot default = acc₂.storage.findD slot default := by
+  unfold Batteries.RBMap.findD
+  rw [hacc.2.2.2.2 slot]
+
+theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) (slot default : UInt256) :
+    ((σ.find? addr).option default (fun acc => acc.storage.findD slot default)) =
+      ((τ.find? addr).option default (fun acc => acc.storage.findD slot default)) := by
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
+  exact accountEquiv_storage_findD slot default hστ
+
+theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
+    (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
+    (addr : AccountAddress) (slot : UInt256) :
+    Solm.EVM.storageLoad evm1 addr slot = Solm.EVM.storageLoad evm2 addr slot := by
+  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+  exact accountMapEquiv_storage_findD hAccounts addr slot (default : UInt256)
+
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Inserting the same nonzero storage word into equivalent accounts preserves account
     equivalence. -/
@@ -488,6 +509,107 @@ theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
     · rw [accountMap_find?_insert_ne σ addr a _ haddr]
       rw [accountMap_find?_insert_ne τ addr a _ haddr]
       exact hστ
+
+-- TODO: prove the zero-write branch from a reusable `RBMap.erase` same-key lookup theorem.
+-- The nonzero branch is `accountMapEquiv_sstoreAccountMap_insert`; the zero branch is the
+-- corresponding erase-on-both-sides fact.  This is the statement examples should consume.
+axiom accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
+    (a : AccountAddress) (slot val : UInt256)
+    (hστ : accountMapEquiv σ τ) :
+    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val)
+
+theorem storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
+    (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
+    (addr : AccountAddress) (slot val : UInt256) :
+    accountMapEquiv (Solm.EVM.storageStore evm1 addr slot val).accountMap
+      (Solm.EVM.storageStore evm2 addr slot val).accountMap := by
+  simp [storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap addr slot val hAccounts
+
+theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
+    (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+
+structure EVMStateEquiv (evm₁ evm₂ : EVM.State) : Prop where
+  executionEnv : evm₁.executionEnv = evm₂.executionEnv
+  createdAccounts : evm₁.createdAccounts = evm₂.createdAccounts
+  accountMap : accountMapEquiv evm₁.accountMap evm₂.accountMap
+
+namespace EVMStateEquiv
+
+theorem initState {cA gh bl σ₁ σ₀₁ σ₂ σ₀₂ A I g}
+    (hAccounts : accountMapEquiv σ₁ σ₂) :
+    EVMStateEquiv (initState cA gh bl σ₁ σ₀₁ g A I)
+      (initState cA gh bl σ₂ σ₀₂ g A I) :=
+  ⟨rfl, rfl, by simpa [initState] using hAccounts⟩
+
+theorem storageLoad {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
+    {addr₁ addr₂ : AccountAddress} (haddr : addr₁ = addr₂) (slot : UInt256) :
+    Solm.EVM.storageLoad evm₁ addr₁ slot = Solm.EVM.storageLoad evm₂ addr₂ slot := by
+  subst addr₂
+  exact storageLoad_accountMapEquiv h.accountMap addr₁ slot
+
+theorem storageLoad_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
+    (slot : UInt256) :
+    Solm.EVM.storageLoad evm₁ evm₁.executionEnv.codeOwner slot =
+      Solm.EVM.storageLoad evm₂ evm₂.executionEnv.codeOwner slot := by
+  rw [h.executionEnv]
+  exact storageLoad_accountMapEquiv h.accountMap evm₂.executionEnv.codeOwner slot
+
+theorem storageStore {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
+    {addr₁ addr₂ : AccountAddress} (haddr : addr₁ = addr₂) (slot : UInt256)
+    {val₁ val₂ : UInt256} (hval : val₁ = val₂) :
+    EVMStateEquiv (Solm.EVM.storageStore evm₁ addr₁ slot val₁)
+      (Solm.EVM.storageStore evm₂ addr₂ slot val₂) := by
+  subst addr₂
+  subst val₂
+  refine ⟨?_, ?_, ?_⟩
+  · rw [storageStore_executionEnv, storageStore_executionEnv]
+    exact h.executionEnv
+  · rw [storageStore_createdAccounts, storageStore_createdAccounts]
+    exact h.createdAccounts
+  · exact storageStore_accountMapEquiv h.accountMap addr₁ slot val₁
+
+theorem storageStore_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
+    (slot : UInt256) {val₁ val₂ : UInt256} (hval : val₁ = val₂) :
+    EVMStateEquiv
+      (Solm.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot val₁)
+      (Solm.EVM.storageStore evm₂ evm₂.executionEnv.codeOwner slot val₂) :=
+  h.storageStore (congrArg ExecutionEnv.codeOwner h.executionEnv) slot hval
+
+end EVMStateEquiv
+
+theorem storageLoad_storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
+    (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
+    (addr : AccountAddress) (writeSlot val1 val2 readSlot : UInt256)
+    (hval : val1 = val2) :
+    Solm.EVM.storageLoad (Solm.EVM.storageStore evm1 addr writeSlot val1) addr readSlot =
+      Solm.EVM.storageLoad (Solm.EVM.storageStore evm2 addr writeSlot val2) addr readSlot := by
+  subst val2
+  exact storageLoad_accountMapEquiv
+    (storageStore_accountMapEquiv hAccounts addr writeSlot val1) addr readSlot
+
+theorem accountMapEquiv_sstoreAccountMap_two {σ τ : AccountMap}
+    (a1 a2 : AccountAddress) (slot1 val1 slot2 val2 : UInt256)
+    (hστ : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap a2 (sstoreAccountMap a1 σ slot1 val1) slot2 val2)
+      (sstoreAccountMap a2 (sstoreAccountMap a1 τ slot1 val1) slot2 val2) := by
+  exact accountMapEquiv_sstoreAccountMap a2 slot2 val2
+    (accountMapEquiv_sstoreAccountMap a1 slot1 val1 hστ)
+
+theorem accountMapEquiv_sstoreAccountMap_three {σ τ : AccountMap}
+    (a1 a2 a3 : AccountAddress) (slot1 val1 slot2 val2 slot3 val3 : UInt256)
+    (hστ : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap a3
+        (sstoreAccountMap a2 (sstoreAccountMap a1 σ slot1 val1) slot2 val2) slot3 val3)
+      (sstoreAccountMap a3
+        (sstoreAccountMap a2 (sstoreAccountMap a1 τ slot1 val1) slot2 val2) slot3 val3) := by
+  exact accountMapEquiv_sstoreAccountMap a3 slot3 val3
+    (accountMapEquiv_sstoreAccountMap_two a1 a2 slot1 val1 slot2 val2 hστ)
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- A single nonzero `SSTORE` is account-map equivalent to a zero-aware write followed by the same

@@ -47,7 +47,7 @@ theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
 
 theorem ctorTruthReturnEncoding :
     encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) :=
-  truthReturnEncoding
+  boolTrueReturnEncoding
 
 /-- The EVM selector test agrees with the dispatcher comparison. -/
 theorem ctorTruthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
@@ -63,10 +63,11 @@ theorem ctorTruthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldat
   simpa [CtorTruth.truthTransition] using truthDecode_empty (I := I) hsz
 
 theorem ctorTruthReEquiv_callvalueZero
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
     (hcode : I.code = ctorTruthRuntimeBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor ctorTruthConfig CtorTruth.contract cA gh bl σ σ₀ g.toUInt256 A I := by
+    (hwv : I.weiValue = ⟨0⟩) (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ctorTruthConfig CtorTruth.contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g.toUInt256 A I := by
   have hcode' : I.code = truthBytecode := by
     rw [← ctorTruthRuntime_eq_truthBytecode]
     exact hcode
@@ -79,8 +80,9 @@ theorem ctorTruthReEquiv_callvalueZero
         rw [ctorTruthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode' hwv hsz hsize hmatch).reEquivExecution hcode' hd
         (ctorTruthDecode_empty hsz)
-        (ctorTruthBodyReturns (initState cA gh bl σ σ₀ g A I) ∅
+        (ctorTruthBodyReturns (initState cA gh bl σ_solm σ₀_solm g A I) ∅
           (by simp only [initState]; exact hwv))
+        hAccounts
         (returnEquiv_of_encode ctorTruthReturnEncoding)
     · rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode' hwv hsz hsize hmatch).reEquivNoDispatch hcode'
@@ -89,9 +91,9 @@ theorem ctorTruthReEquiv_callvalueZero
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
     runtimeEquivalence!?! ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize _hperm hσ _hσ₀ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
+  · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ
   · have hcode' : I.code = truthBytecode := by
       rw [← ctorTruthRuntime_eq_truthBytecode]
       exact hcode
@@ -262,16 +264,16 @@ theorem ctorTruthConstructorCorrect :
     constructorEquivalence ctorTruthConfig ctorTruthInitcode CtorTruth.contract
       ctorTruthRuntimeBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ σ₀ g A I args deployedInitcode
-      hdeploy hcode hcalldata hperm
-  rcases ctorTruthInitcodeXiResult createdAccounts genesisBlockHeader blocks σ σ₀ g A I args
+  intro createdAccounts genesisBlockHeader blocks σ_evm σ₀_evm σ_solm σ₀_solm g A I
+      args deployedInitcode hdeploy hcode hcalldata hperm hσ _hσ₀
+  rcases ctorTruthInitcodeXiResult createdAccounts genesisBlockHeader blocks σ_evm σ₀_evm g A I args
       deployedInitcode hdeploy hcode hcalldata hperm with hoog | ⟨g', A', hsuccess⟩
   · exact constructorEquivalenceFor.outOfGas hoog
   · refine constructorEquivalenceFor.execution hsuccess
       (ctorTruthSolmCtorExec (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀_solm) (g := g) (A := A) (I := I)
         (args := args) hdeploy) ?_
-    exact ctorResultEquiv.success rfl rfl rfl rfl rfl
+    exact ctorResultEquiv.success rfl rfl rfl hσ rfl
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorTruthCorrect :

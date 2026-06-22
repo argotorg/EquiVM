@@ -1,5 +1,6 @@
 import Examples.ERC20.Common
 import Reasoning.Refinement
+import Reasoning.Storage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -97,27 +98,41 @@ theorem erc20Decode_totalSupply {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem erc20TotalSupplyBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem erc20TotalSupplyBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel
   have hdec := erc20Decode_totalSupply (I := I) hsz
+  have hword : totalSupplyWord σ_evm I = totalSupplyWord σ_solm I :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
   have hbody₀ := erc20TotalSupplyBodyReturns
-    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ (by simp only [initState]; exact hwv)
-    (by simp)
+    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+    (by simp only [initState]; exact hwv) (by simp)
+  have hbody_solm :
+      ExecTransitionBody erc20Config erc20Contract
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
+        (.returned { contract := erc20Contract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
+    simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using hbody₀
   have hbody :
       ExecTransitionBody erc20Config erc20Contract
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (totalSupplyWord σ I).toNat)))) := by
-    simpa [totalSupplyWord] using hbody₀
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (some (.int (Int.ofNat (totalSupplyWord σ_evm I).toNat)))) := by
+    rw [hword]
+    exact hbody_solm
   exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecution hcode hd hdec
-    hbody (returnEquiv_of_encode (erc20Uint256ReturnEncoding (totalSupplyWord σ I)))
+    hbody hAccounts
+    (returnEquiv_of_encode (erc20Uint256ReturnEncoding (totalSupplyWord σ_evm I)))
 
 end ERC20
