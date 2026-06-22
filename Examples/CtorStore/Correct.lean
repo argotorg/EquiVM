@@ -46,8 +46,10 @@ theorem ctorStoreRuntimeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem ctorStoreRuntimeCorrect :
     runtimeEquivalence!?! ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode _hsize _hperm => ?_⟩
-  exact (ctorStoreRuntimeRevert (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode _hsize _hperm
+      _hσ _hσ₀ => ?_⟩
+  exact (ctorStoreRuntimeRevert (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    (σ₀ := σ₀_evm)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
       (ctorStoreDispatch_none I.calldata)
 
@@ -375,13 +377,14 @@ theorem ctorStoreConstructorCorrect :
     constructorEquivalence ctorStoreConfig ctorStoreInitcode CtorStore.contract
       ctorStoreRuntimeBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ σ₀ g A I args deployedInitcode
-      hdeploy hcode _hcalldata hperm
+  intro createdAccounts genesisBlockHeader blocks σ_evm σ₀_evm σ_solm σ₀_solm g A I
+      args deployedInitcode hdeploy hcode _hcalldata hperm hσ _hσ₀
   rcases ctorStoreDeployment_shape hdeploy with ⟨i, hargs, h0, _hlt, hdeployed⟩
   subst args
   rw [hdeployed] at hcode
   have hrd := ctorStoreInitcodeRun (createdAccounts := createdAccounts)
-      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ := σ) (σ₀ := σ₀)
+      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ := σ_evm)
+      (σ₀ := σ₀_evm)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (w := EVM.word i.toNat) hcode hperm
   rcases hrd with hoog | ⟨s, hX, hacc⟩
   · exact constructorEquivalenceFor.outOfGas
@@ -392,15 +395,17 @@ theorem ctorStoreConstructorCorrect :
       rw [← hcode] at hX
       simpa [Sat256.ofUInt256] using hX)
     have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
-    have hσ : s.accountMap = sstoreAccountMap I.codeOwner σ ⟨0⟩ (EVM.word i.toNat) :=
+    have hσ' : s.accountMap = sstoreAccountMap I.codeOwner σ_evm ⟨0⟩ (EVM.word i.toNat) :=
       congrArg Prod.snd hacc
-    rw [hcA, hσ] at hsuccess
+    rw [hcA, hσ'] at hsuccess
     refine constructorEquivalenceFor.execution hsuccess
       (ctorStoreSolmCtorExec (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I) i h0) ?_
+        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀_solm) (g := g) (A := A) (I := I)
+        i h0) ?_
     refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
     · simp only [storageStore_createdAccounts, initState]
     · simp only [storageStore_accountMap, initState]
+      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ (EVM.word i.toNat) hσ
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorStoreCorrect :

@@ -47,6 +47,27 @@ def giveRightWeightWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 def giveRightPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (giveRightVoterSlot I) ⟨1⟩
 
+theorem giveRightChairWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    giveRightChairWord σ I = giveRightChairWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner ⟨0⟩ ⟨0⟩
+
+theorem giveRightVotedPackedWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    giveRightVotedPackedWord σ I = giveRightVotedPackedWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (giveRightVotedSlot I) ⟨0⟩
+
+theorem giveRightVotedByte_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    giveRightVotedByte σ I = giveRightVotedByte τ I := by
+  unfold giveRightVotedByte
+  rw [giveRightVotedPackedWord_accountMapEquiv hστ]
+
+theorem giveRightWeightWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    giveRightWeightWord σ I = giveRightWeightWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (giveRightVoterSlot I) ⟨0⟩
+
 theorem giveRightStore_voter (I : ExecutionEnv) :
     (giveRightStore I).get? "voter" = some (giveRightVoterValue I) := by
   simp [giveRightStore, giveRightVoterValue]
@@ -1507,63 +1528,104 @@ theorem ballotDispatch_giveRightToVote {cd : ByteArray}
   · rw [selectorOf, ballotDelegateSelectorBytes, hcd]; decide
   · rw [selectorOf, ballotWinningProposalSelectorBytes, hcd]; decide
 
-theorem ballotGiveRightToVoteBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem ballotGiveRightToVoteBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨286⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := ballotGiveRightToVoteSelector_size hsel
   have hd := ballotDispatch_giveRightToVote (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (giveRightVoterWord I).toNat < EVM.addressModulus
       · have hdec := ballotDecode_giveRightToVote_ok (I := I) hsz36 hbig hcanon
-        by_cases hchair : UInt256.land (giveRightChairWord σ I) solcAddrMask = giveRightSourceWord I
-        · by_cases hvoted : giveRightVotedByte σ I = ⟨0⟩
-          · by_cases hweight : giveRightWeightWord σ I = ⟨0⟩
+        by_cases hchair :
+            UInt256.land (giveRightChairWord σ_evm I) solcAddrMask = giveRightSourceWord I
+        · by_cases hvoted : giveRightVotedByte σ_evm I = ⟨0⟩
+          · by_cases hweight : giveRightWeightWord σ_evm I = ⟨0⟩
             · have hbody := ballotGiveRightToVoteBodyReturns
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
-                (by simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
                 (by
+                  have hchairSolm :
+                      UInt256.land (giveRightChairWord σ_solm I) solcAddrMask =
+                        giveRightSourceWord I := by
+                    simpa [← giveRightChairWord_accountMapEquiv hAccounts] using hchair
+                  simpa [giveRightChairWord, giveRightSourceWord, initState] using hchairSolm)
+                (by
+                  have hvotedSolm : giveRightVotedByte σ_solm I = ⟨0⟩ := by
+                    simpa [← giveRightVotedByte_accountMapEquiv hAccounts] using hvoted
                   simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
-                    giveRightVoterSlot, u256_land_comm, initState] using hvoted)
-                (by simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
+                    giveRightVoterSlot, u256_land_comm, initState] using hvotedSolm)
+                (by
+                  have hweightSolm : giveRightWeightWord σ_solm I = ⟨0⟩ := by
+                    simpa [← giveRightWeightWord_accountMapEquiv hAccounts] using hweight
+                  simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweightSolm)
               exact (ballotGiveRightToVoteX_success (g := Sat256.ofUInt256 g)
                   hsz36 hsize hbig hperm hcanon hchair hvoted hweight hreach)
-                |>.reEquivExecutionGen hcode hd hdec hbody
+                |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                 (by
-                    simp [giveRightPostState, giveRightVoterSlot, initState,
-                      storageStore_createdAccounts, storageStore_accountMap])
+                  simp [giveRightPostState, giveRightVoterSlot, initState,
+                    storageStore_createdAccounts])
+                (by
+                  simp [giveRightPostState, giveRightVoterSlot, initState,
+                    storageStore_accountMap]
+                  exact accountMapEquiv_sstoreAccountMap I.codeOwner (giveRightVoterSlot I) ⟨1⟩
+                    hAccounts)
                   (returnEquiv.void rfl rfl rfl)
             · have hbody := ballotGiveRightToVoteBodyReverts_weight
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
-                (by simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
                 (by
+                  have hchairSolm :
+                      UInt256.land (giveRightChairWord σ_solm I) solcAddrMask =
+                        giveRightSourceWord I := by
+                    simpa [← giveRightChairWord_accountMapEquiv hAccounts] using hchair
+                  simpa [giveRightChairWord, giveRightSourceWord, initState] using hchairSolm)
+                (by
+                  have hvotedSolm : giveRightVotedByte σ_solm I = ⟨0⟩ := by
+                    simpa [← giveRightVotedByte_accountMapEquiv hAccounts] using hvoted
                   simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
-                    giveRightVoterSlot, u256_land_comm, initState] using hvoted)
-                (by simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
+                    giveRightVoterSlot, u256_land_comm, initState] using hvotedSolm)
+                (by
+                  have hweightSolm : giveRightWeightWord σ_solm I ≠ ⟨0⟩ := by
+                    simpa [← giveRightWeightWord_accountMapEquiv hAccounts] using hweight
+                  simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweightSolm)
               exact (ballotGiveRightToVoteX_weightRevert (g := Sat256.ofUInt256 g)
                   hsz36 hsize hbig hcanon hchair hvoted hweight hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
           · have hbody := ballotGiveRightToVoteBodyReverts_voted
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
-              (by simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
               (by
+                have hchairSolm :
+                    UInt256.land (giveRightChairWord σ_solm I) solcAddrMask =
+                      giveRightSourceWord I := by
+                  simpa [← giveRightChairWord_accountMapEquiv hAccounts] using hchair
+                simpa [giveRightChairWord, giveRightSourceWord, initState] using hchairSolm)
+              (by
+                have hvotedSolm : giveRightVotedByte σ_solm I ≠ ⟨0⟩ := by
+                  simpa [← giveRightVotedByte_accountMapEquiv hAccounts] using hvoted
                 simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
-                  giveRightVoterSlot, u256_land_comm, initState] using hvoted)
+                  giveRightVoterSlot, u256_land_comm, initState] using hvotedSolm)
             exact (ballotGiveRightToVoteX_votedRevert (g := Sat256.ofUInt256 g)
                 hsz36 hsize hbig hcanon hchair hvoted hreach)
               |>.reEquivExecutionRevert hcode hd hdec hbody
         · have hbody := ballotGiveRightToVoteBodyReverts_chair
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv)
-            (by simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
+            (by
+              have hchairSolm :
+                  UInt256.land (giveRightChairWord σ_solm I) solcAddrMask ≠
+                    giveRightSourceWord I := by
+                simpa [← giveRightChairWord_accountMapEquiv hAccounts] using hchair
+              simpa [giveRightChairWord, giveRightSourceWord, initState] using hchairSolm)
           exact (ballotGiveRightToVoteX_chairRevert (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hcanon hchair hreach)
             |>.reEquivExecutionRevert hcode hd hdec hbody

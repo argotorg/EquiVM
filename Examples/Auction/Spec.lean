@@ -281,7 +281,7 @@ def auctionStorageLayout : StorageLayout where
   layout :=
     match genSolidityLayout [] storageDecls with
     | some layout => layout
-    | none => fun _ => none
+    | none => fun _ _ => none
 
 /-- External-call ABI: `mint` returns a `uint256`; the other callees (`burn`/`transferFrom`/
     `deposit`/`transfer`) are treated as void here (return `unit`), so `externalCall` succeeds with a
@@ -294,4 +294,5 @@ end Auction
 
 def auctionConfig : Config :=
   { storage := Auction.auctionStorageLayout
-    externalABI := Auction.auctionExternalABI }
+    externalABI := Auction.auctionExternalABI
+    selfDeployment := genSolidityConstructorDeployment Auction.auctionContract.ctor.params }

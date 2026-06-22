@@ -1107,11 +1107,12 @@ theorem cUint256ReturnEncoding (I : ExecutionEnv) :
 /-! ## Top-level revert obligations -/
 
 /-- No selector matches: the EVM falls through to the no-match revert and Solm does not dispatch. -/
-theorem cNoDispatch {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 2 → (cSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl σ σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (cX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
       hcode (cDispatch_none_nomatch hnm)
@@ -1120,17 +1121,19 @@ theorem cNoDispatch {cA gh bl σ σ₀ A I} {g : UInt256}
       (cDispatch_none_short hshort)
 
 /-- Calldata shorter than a selector: the size guard reverts before dispatch. -/
-theorem cShortRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
     (hcode : I.code = cBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl σ σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   exact (cX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (cDispatch_none_short hsz)
 
 /-- Non-zero callvalue: both Solm transition bodies and the bytecode revert as non-payable. -/
-theorem cNonPayable {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl σ σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   exact (cX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg Reuse.cContract I.calldata = none
@@ -1144,15 +1147,18 @@ theorem cNonPayable {cA gh bl σ σ₀ A I} {g : UInt256}
         · exact reEquiv_decodingFailed ht hdec hrev
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
-            (cBodyReverts_nonPayable t htmem (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-              callargs (by simp only [initState]; exact hwv))
+            (cBodyReverts_nonPayable t htmem
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) callargs
+              (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Runtime equivalence when the global non-payable guard accepts the call. -/
-theorem cReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl σ σ₀ g A I := by
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   by_cases hselShort : I.calldata.size < 4
   · exact cShortRevert hcode hsize hperm hwv hselShort
   · have hsz4 : 4 ≤ I.calldata.size := by omega
@@ -1163,14 +1169,15 @@ theorem cReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
         · have hdec := cDecode_f_ok (I := I) hsz36 hbig
           by_cases hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size
           · have hbody := cFBodyReturns
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv) hbound
             exact (cX_f_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hf
                 hbound).reEquivExecution hcode hd hdec hbody
+              hAccounts
               (returnEquiv_of_encode (cUint256ReturnEncoding I))
           · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
             have hbody := cFBodyReverts_overflow
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv) hover
             exact (cX_f_overflow (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hf
                 hover).reEquivExecutionRevert hcode hd hdec hbody
@@ -1190,17 +1197,22 @@ theorem cReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
           · have hdec := cDecode_g_ok (I := I) hsz36 hbig
             by_cases hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size
             · have hbody := cGBodyReturns
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hbound
               exact (cX_g_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
-                  hperm hf hg hbound).reEquivExecutionGen hcode hd hdec hbody
+                  hperm hf hg hbound).reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                 (by
-                  rw [storageStore_createdAccounts, storageStore_accountMap]
+                  rw [storageStore_createdAccounts]
                   simp [initState])
+                (by
+                  rw [storageStore_accountMap]
+                  simp only [initState]
+                  exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ (cFResultWord I)
+                    hAccounts)
                 (returnEquiv.void rfl rfl rfl)
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
               have hbody := cGBodyReverts_overflow
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hover
               exact (cX_g_overflow (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
                   hf hg hover).reEquivExecutionRevert hcode hd hdec hbody
@@ -1222,7 +1234,8 @@ theorem cReEquiv_callvalueZero {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- **Correctness of `C`.** -/
 theorem cCorrect : runtimeEquivalence!?! cConfig cBytecode Reuse.cContract := by
-  refine ⟨fun cA gh bl σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm hσ
+      _hσ₀ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact cReEquiv_callvalueZero hcode hsize hperm hwv
+  · exact cReEquiv_callvalueZero hcode hsize hperm hwv hσ
   · exact cNonPayable hcode hwv

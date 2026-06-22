@@ -39,6 +39,14 @@ theorem winnerNameNameCurrent_init {cA gh bl σ σ₀ A I} {g : Sat256} :
   rw [winningProposalResultCurrent_init]
   rfl
 
+theorem winnerNameNameWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    winnerNameNameWord σ I = winnerNameNameWord τ I := by
+  unfold winnerNameNameWord
+  rw [winningProposalResultWord_accountMapEquiv hστ]
+  exact accountMapEquiv_storage_findD hστ I.codeOwner
+    (winnerNameNameSlot (winningProposalResultWord τ I)) ⟨0⟩
+
 theorem winnerNameNameSlot_spec (w : UInt256) :
     winnerNameNameSlot w = proposalElemSlot (.int (Int.ofNat w.toNat)) := by
   unfold winnerNameNameSlot proposalElemSlot
@@ -393,69 +401,84 @@ theorem ballotDecode_winnerName {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem ballotWinnerNameBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
+theorem ballotWinnerNameBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = ballotBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xe2, 0xba, 0x53, 0xf0]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨417⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := ballotWinnerNameSelector_size hsel
   have hd := ballotDispatch_winnerName (cd := I.calldata) hsel
   have hdec := ballotDecode_winnerName (I := I) hsz4
-  by_cases hbound : (winningProposalResultWord σ I).toNat < (winningProposalLengthWord σ I).toNat
+  by_cases hbound :
+      (winningProposalResultWord σ_evm I).toNat < (winningProposalLengthWord σ_evm I).toNat
   · have hboundCurrent :
         (winningProposalResultCurrent
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)).toNat <
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)).toNat <
           (winningProposalLengthCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)).toNat := by
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)).toNat := by
       have hres :
           winningProposalResultCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) =
-              winningProposalResultWord σ I :=
-        winningProposalResultCurrent_init
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+              winningProposalResultWord σ_evm I := by
+        rw [winningProposalResultCurrent_init]
+        exact (winningProposalResultWord_accountMapEquiv hAccounts).symm
       have hlen :
           winningProposalLengthCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) =
-              winningProposalLengthWord σ I := by
-        exact (winningProposalLengthWord_eq_current_init (g := Sat256.ofUInt256 g)).symm
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+              winningProposalLengthWord σ_evm I := by
+        exact (winningProposalLengthWord_eq_current_init (g := Sat256.ofUInt256 g)).symm.trans
+          (winningProposalLengthWord_accountMapEquiv hAccounts).symm
       rw [hres, hlen]
       exact hbound
     obtain ⟨locals', hbody₀⟩ := ballotWinnerNameBodyReturns
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv) hboundCurrent
+    have hname :
+        winnerNameNameCurrent
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+          winnerNameNameWord σ_evm I := by
+      rw [winnerNameNameCurrent_init]
+      exact (winnerNameNameWord_accountMapEquiv hAccounts).symm
     have hbody :
         ExecTransitionBody ballotConfig ballotContract
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
           winnerNameTransition.body
           (.returned { contract := ballotContract, locals := locals' }
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
             (some (.fixedBytes ⟨31, by decide⟩
-              (EVM.Word.toBytesBE (winnerNameNameWord σ I))))) := by
-      simpa [winnerNameNameCurrent_init] using hbody₀
+              (EVM.Word.toBytesBE (winnerNameNameWord σ_evm I))))) := by
+      simpa [hname] using hbody₀
     exact (ballotX_winnerName_ok (g := Sat256.ofUInt256 g) hbound hreach)
       |>.reEquivExecution hcode hd hdec hbody
-        (returnEquiv_of_encode (ballotBytes32ReturnEncoding (winnerNameNameWord σ I)))
+        hAccounts
+        (returnEquiv_of_encode (ballotBytes32ReturnEncoding (winnerNameNameWord σ_evm I)))
   · have hboundCurrent :
         ¬ (winningProposalResultCurrent
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)).toNat <
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)).toNat <
           (winningProposalLengthCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)).toNat := by
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)).toNat := by
       have hres :
           winningProposalResultCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) =
-              winningProposalResultWord σ I :=
-        winningProposalResultCurrent_init
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+              winningProposalResultWord σ_evm I := by
+        rw [winningProposalResultCurrent_init]
+        exact (winningProposalResultWord_accountMapEquiv hAccounts).symm
       have hlen :
           winningProposalLengthCurrent
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) =
-              winningProposalLengthWord σ I := by
-        exact (winningProposalLengthWord_eq_current_init (g := Sat256.ofUInt256 g)).symm
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+              winningProposalLengthWord σ_evm I := by
+        exact (winningProposalLengthWord_eq_current_init (g := Sat256.ofUInt256 g)).symm.trans
+          (winningProposalLengthWord_accountMapEquiv hAccounts).symm
       rw [hres, hlen]
       exact hbound
     have hbody := ballotWinnerNameBodyReverts_oob
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv) hboundCurrent
     exact (ballotX_winnerName_oob (g := Sat256.ofUInt256 g) hbound hreach)
       |>.reEquivExecutionRevert hcode hd hdec hbody

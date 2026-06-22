@@ -61,6 +61,33 @@ theorem votersDelegateWord_doubleMask (w : UInt256) :
 abbrev votersBoolWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.isZero (UInt256.isZero (votersVotedWord σ I))
 
+theorem votersWeightWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    votersWeightWord σ I = votersWeightWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (votersBaseSlot I) ⟨0⟩
+
+theorem votersPackedWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    votersPackedWord σ I = votersPackedWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (votersPackedSlot I) ⟨0⟩
+
+theorem votersVoteWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    votersVoteWord σ I = votersVoteWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (votersVoteSlot I) ⟨0⟩
+
+theorem votersVotedWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    votersVotedWord σ I = votersVotedWord τ I := by
+  unfold votersVotedWord
+  rw [votersPackedWord_accountMapEquiv hστ]
+
+theorem votersDelegateWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    votersDelegateWord σ I = votersDelegateWord τ I := by
+  unfold votersDelegateWord
+  rw [votersPackedWord_accountMapEquiv hστ]
+
 -- SHARED-HELPER CANDIDATE: duplicate of ERC20's canonical address-key bridge.
 theorem ballotKeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
@@ -1096,14 +1123,17 @@ theorem ballotDecode_voters_none_huge {I : ExecutionEnv}
   show decodeCalldata ["a"] [addr] I.calldata = none
   simpa [addr] using decodeCalldata_address_none_huge (cd := I.calldata) (x := "a") hbig
 
-theorem ballotVotersBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem ballotVotersBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := ballotVotersSelector_size hsel
   have hd := ballotDispatch_voters (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1111,26 +1141,34 @@ theorem ballotVotersBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt25
     · by_cases hcanon : (votersArgWord I).toNat < EVM.addressModulus
       · have hdec := ballotDecode_voters_ok (I := I) hsz36 hbig hcanon
         have hbody₀ := ballotVotersBodyReturns
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
+        have hweight : votersWeightWord σ_solm I = votersWeightWord σ_evm I :=
+          (votersWeightWord_accountMapEquiv hAccounts).symm
+        have hvoted : votersVotedWord σ_solm I = votersVotedWord σ_evm I :=
+          (votersVotedWord_accountMapEquiv hAccounts).symm
+        have hdelegate : votersDelegateWord σ_solm I = votersDelegateWord σ_evm I :=
+          (votersDelegateWord_accountMapEquiv hAccounts).symm
+        have hvote : votersVoteWord σ_solm I = votersVoteWord σ_evm I :=
+          (votersVoteWord_accountMapEquiv hAccounts).symm
         have hbody :
             ExecTransitionBody ballotConfig ballotContract
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (votersStore I)
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (votersStore I)
               votersGetter.body
               (.returned { contract := ballotContract, locals := votersStore I }
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                 (some (.tuple [
-                  .int (Int.ofNat (votersWeightWord σ I).toNat),
-                  wordToElem .bool (votersVotedWord σ I),
-                  .address (AccountAddress.ofNat (votersDelegateWord σ I).toNat),
-                  .int (Int.ofNat (votersVoteWord σ I).toNat)]))) := by
-          simpa [votersWeightWord, votersPackedWord, votersVoteWord, votersBaseSlot,
-            votersPackedSlot, votersVoteSlot, votersVotedWord, votersDelegateWord] using hbody₀
+                  .int (Int.ofNat (votersWeightWord σ_evm I).toNat),
+                  wordToElem .bool (votersVotedWord σ_evm I),
+                  .address (AccountAddress.ofNat (votersDelegateWord σ_evm I).toNat),
+                  .int (Int.ofNat (votersVoteWord σ_evm I).toNat)]))) := by
+          simpa [initState, hweight, hvoted, hdelegate, hvote] using hbody₀
         exact (ballotX_voters_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecution hcode hd hdec hbody
+            hAccounts
             (returnEquiv_of_encode
-              (ballotVotersReturnEncoding (votersWeightWord σ I) (votersPackedWord σ I)
-                (votersVoteWord σ I)))
+              (ballotVotersReturnEncoding (votersWeightWord σ_evm I)
+                (votersPackedWord σ_evm I) (votersVoteWord σ_evm I)))
       · have hdec := ballotDecode_voters_none_noncanon (I := I) hsz36 hbig hcanon
         have hnc : UInt256.eq (votersArgWord I)
             (UInt256.land (votersArgWord I) solcAddrMask) = ⟨0⟩ :=

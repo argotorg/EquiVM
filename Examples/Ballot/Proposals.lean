@@ -54,6 +54,21 @@ def proposalNameCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
 def proposalCountCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (proposalCountSlot I)
 
+theorem proposalsLengthWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    proposalsLengthWord σ I = proposalsLengthWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner ⟨2⟩ ⟨0⟩
+
+theorem proposalNameWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    proposalNameWord σ I = proposalNameWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (proposalNameSlot I) ⟨0⟩
+
+theorem proposalCountWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
+    (hστ : accountMapEquiv σ τ) :
+    proposalCountWord σ I = proposalCountWord τ I := by
+  exact accountMapEquiv_storage_findD hστ I.codeOwner (proposalCountSlot I) ⟨0⟩
+
 theorem proposalNameSlot_spec (I : ExecutionEnv) :
     proposalNameSlot I = proposalElemSlot (.int (Int.ofNat (proposalsIndexWord I).toNat)) := by
   unfold proposalNameSlot proposalElemSlot
@@ -608,44 +623,66 @@ theorem ballotDecode_proposals_none_huge {I : ExecutionEnv}
   show decodeCalldata ["i"] [uint256] I.calldata = none
   simpa [uint256] using decodeCalldata_uint256_none_huge (cd := I.calldata) (x := "i") hbig
 
-theorem ballotProposalsBodyCore {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+theorem ballotProposalsBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
   have hsz4 := ballotProposalsSelector_size hsel
   have hd := ballotDispatch_proposals (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · have hdec := ballotDecode_proposals_ok (I := I) hsz36 hbig
-      by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ I).toNat
+      have hlen :
+          proposalsLengthCurrent
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+            proposalsLengthWord σ_evm I := by
+        simpa [proposalsLengthCurrent, proposalsLengthWord, initState] using
+          (proposalsLengthWord_accountMapEquiv hAccounts).symm
+      by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ_evm I).toNat
       · have hbody₀ := ballotProposalsBodyReturns
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
-          (by simpa [initState, proposalsLengthCurrent, proposalsLengthWord] using hbound)
+          (by rw [hlen]; exact hbound)
+        have hname :
+            proposalNameCurrent
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I =
+              proposalNameWord σ_evm I := by
+          simpa [proposalNameCurrent, proposalNameWord, initState] using
+            (proposalNameWord_accountMapEquiv hAccounts).symm
+        have hcount :
+            proposalCountCurrent
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I =
+              proposalCountWord σ_evm I := by
+          simpa [proposalCountCurrent, proposalCountWord, initState] using
+            (proposalCountWord_accountMapEquiv hAccounts).symm
         have hbody :
             ExecTransitionBody ballotConfig ballotContract
-              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (proposalsStore I)
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (proposalsStore I)
               proposalsGetter.body
               (.returned { contract := ballotContract, locals := proposalsStore I }
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                 (some (.tuple [
                   .fixedBytes ⟨31, by decide⟩
-                    (EVM.Word.toBytesBE (proposalNameWord σ I)),
-                  .int (Int.ofNat (proposalCountWord σ I).toNat)]))) := by
-          simpa [proposalNameCurrent, proposalCountCurrent, proposalNameWord, proposalCountWord,
-            proposalsLengthCurrent, initState] using hbody₀
+                    (EVM.Word.toBytesBE (proposalNameWord σ_evm I)),
+                  .int (Int.ofNat (proposalCountWord σ_evm I).toNat)]))) := by
+          simpa [hname, hcount] using hbody₀
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecution hcode hd hdec hbody
+            hAccounts
             (returnEquiv_of_encode
-              (ballotProposalReturnEncoding (proposalNameWord σ I) (proposalCountWord σ I)))
+              (ballotProposalReturnEncoding (proposalNameWord σ_evm I)
+                (proposalCountWord σ_evm I)))
       · have hbody := ballotProposalsBodyReverts_oob
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
-          (by simpa [initState, proposalsLengthCurrent, proposalsLengthWord] using hbound)
+          (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_oob (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecutionRevert hcode hd hdec hbody
     · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega

@@ -69,6 +69,22 @@ theorem accountMapEquiv.of_eq {σ τ : Ethereum.AccountMap} (h : σ = τ) :
   subst h
   exact accountMapEquiv.refl σ
 
+theorem accountEquiv.trans {a b c : Ethereum.Account}
+    (hab : accountEquiv a b) (hbc : accountEquiv b c) : accountEquiv a c := by
+  rcases hab with ⟨hn₁, hb₁, hc₁, ht₁, hs₁⟩
+  rcases hbc with ⟨hn₂, hb₂, hc₂, ht₂, hs₂⟩
+  exact ⟨hn₁.trans hn₂, hb₁.trans hb₂, hc₁.trans hc₂, ht₁.trans ht₂,
+    fun slot => (hs₁ slot).trans (hs₂ slot)⟩
+
+theorem accountMapEquiv.trans {σ τ υ : Ethereum.AccountMap}
+    (hστ : accountMapEquiv σ τ) (hτυ : accountMapEquiv τ υ) : accountMapEquiv σ υ := by
+  intro addr
+  specialize hστ addr
+  specialize hτυ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> cases hυ : υ.find? addr <;>
+    simp [hσ, hτ, hυ] at hστ hτυ ⊢
+  exact accountEquiv.trans hστ hτυ
+
 
 inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
