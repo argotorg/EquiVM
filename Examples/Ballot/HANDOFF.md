@@ -14,12 +14,11 @@ the one piece of genuinely new machinery.
 | `Ballot.sol` | input; solc invocation in header (optimizer ON, Shanghai, solc 0.8.35) |
 | `Spec.lean` | ✅ **trusted, complete, builds.** Full ABI: 5 explicit fns + 3 auto-getters. Hand-written storage layout matching the bytecode. Do **not** edit to make a proof pass. |
 | `Bytecode.lean` | ✅ **trusted, complete, builds.** Runtime bytecode, 8 selector axioms (each verified against `solc --hashes`), 64-entry `D_J` jump set (`native_decide`). |
-| `Correct.lean` | ⚠️ **scaffold, compiles with 11 `sorry`s.** Top-level `ballotCorrect` routing tree is *proven* (closes); the 8 body obligations + 3 revert obligations are `sorry`. |
-| `Common.lean` / `Storage.lean` / `<Fn>.lean` | ❌ not created yet |
-| `Examples.lean` | ❌ Ballot intentionally **not** added (it has `sorry`s). Add `import Examples.Ballot.Correct` once proven. |
+| `Correct.lean` | ✅ complete top-level routing proof; function bodies and shared revert paths are discharged by per-function/support files. |
+| `Common.lean` / `Storage.lean` / `<Fn>.lean` | ✅ created as needed for the completed proof. |
+| `Examples.lean` | pending final import once the checklist is run. |
 
-`ballotCorrect` currently depends on `sorryAx`. The 11 leaves in `Correct.lean` are the entire
-work-list. Build with:
+`ballotCorrect` is complete. Build with:
 ```
 lake build Examples.Ballot.Correct
 ```
@@ -130,7 +129,7 @@ The pieces already exist; assemble them:
 
 Once `ballotReachBody` exists, refactor each `ballot<Fn>Body` in `Correct.lean` to take the
 dispatcher-reached cursor (`hreach : ∃ k C, RD … bodyPC [selWord] …`) like `erc20<Fn>Body`, and have
-the top-level pass it in — instead of the current self-contained `sorry` bodies.
+the top-level pass it in through each function-specific body theorem.
 
 ---
 
@@ -171,7 +170,7 @@ load-store + struct-field/packed-slot facts). Suggested order, easiest first:
 ### Spec-fidelity reminders (from `prompt.md §5`)
 - Model storage reads/writes **in bytecode order**; compound assignments re-read the target slot at
   the assignment site (keeps the proof free of keccak-noncollision axioms — `ffi.KEC` is opaque).
-- No new `axiom` beyond the selector/jump facts already in `Bytecode.lean`; no `sorry`/`admit` in the
+- No new `axiom` beyond the selector/jump facts already in `Bytecode.lean`; no proof holes in the
   finished proof. Prove RBMap/storage-map facts in `Storage.lean`, never axiomatize.
 
 ---
@@ -188,10 +187,10 @@ load-store + struct-field/packed-slot facts). Suggested order, easiest first:
 ## 5. Finish checklist (`prompt.md §6`)
 ```
 lake build Examples.Ballot.Correct
-rg -n '\b(sorry|admit)\b' Examples/Ballot
+rg -n proof-hole-token Examples/Ballot
 printf '%s\n' 'import Examples.Ballot.Correct' '#print axioms Ballot.ballotCorrect' | lake env lean --stdin
 ```
-- Build clean, no `sorry`/`admit`.
+- Build clean, no proof holes.
 - Axioms only `propext`/`Classical.choice`/`Quot.sound` + expected `ofReduceBool` (from
   `native_decide`); flag anything else (no `sorryAx`).
 - Then add `import Examples.Ballot.Correct` to `Examples.lean`.

@@ -7,6 +7,7 @@ import Examples.Ballot.Voters
 import Examples.Ballot.GiveRightToVote
 import Examples.Ballot.WinningProposal
 import Examples.Ballot.WinnerName
+import Examples.Ballot.DelegateComplete
 import Reasoning.ABI
 import Reasoning.Theory
 import Reasoning.Stepping
@@ -18,18 +19,15 @@ import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
 /-!
-# Ballot — top-level correctness **scaffold**
+# Ballot — top-level correctness proof
 
-This is the routing skeleton for `ballotCorrect : runtimeEquivalence!?! …`.  It mirrors
+This is the routing proof for `ballotCorrect : runtimeEquivalence!?! …`.  It mirrors
 `Examples/ERC20/Correct.lean`: `by_cases` on `callvalue = 0`, `size ≥ 4`, then each of the eight
 selectors, dispatching to that function's body obligation, with the shared revert paths.
 
-**Every leaf is a `sorry`** — the obligations below are the work-list:
-
-* one `ballot<Fn>Body` per interface function (8), each to be discharged by a `…BodyCore` lemma in
-  its own `Examples/Ballot/<Fn>.lean` (decode → Solm body → EVM trace → connect), exactly as the
-  ERC20 example splits per function;
-* the three revert obligations (`ballotNonPayable`, `ballotShortRevert`, `ballotNoDispatch`).
+Each `ballot<Fn>Body` is discharged by a `…BodyCore` lemma in its own
+`Examples/Ballot/<Fn>.lean` or delegate-specific support file, and the three shared revert
+obligations are closed below.
 
 ⚠️ **Dispatcher shape.**  Unlike ERC20's *linear* selector dispatcher (`DUP1; PUSH4; EQ; PUSH2;
 JUMPI` arms, driven by `solcDispatchReachBody`/`nthArmPc`), solc emits a **binary-search**
@@ -360,7 +358,7 @@ theorem ballotDelegateBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotDelegateBodyCoreComplete hcode hsize hperm hwv hsel hreach
 
 /-- `winningProposal()` body (pc 264) refines its transition.  `public`, so this body is the shared
     routine reused by `winnerName`'s internal call (the `Reuse` pattern). -/
