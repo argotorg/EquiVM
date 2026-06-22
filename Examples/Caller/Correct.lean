@@ -1106,8 +1106,9 @@ theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L 
   · rw [write_read_below_gen o (callerCalldataMem I) 128 L 64 (by omega) hLo
       (by rw [callerCalldataMem_size]; omega) (by omega), callerCalldataMem_read64]
 
--- The state-changing return bridge `RDret.reEquivExecutionGen` now lives next to
--- `RDret.reEquivExecution` in `Reasoning/Dispatch.lean`.
+-- The state-changing return bridges (`RDret.reEquivExecutionGenAccountMapEquiv`,
+-- `RDret.reEquivExecutionGenEVMStateEquiv`) live next to `RDret.reEquivExecution` in
+-- `Reasoning/Dispatch.lean`.
 
 set_option maxHeartbeats 1000000 in
 theorem callerExec_canonical {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}

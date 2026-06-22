@@ -1567,18 +1567,22 @@ theorem ballotGiveRightToVoteBodyCore
                   have hweightSolm : giveRightWeightWord σ_solm I = ⟨0⟩ := by
                     simpa [← giveRightWeightWord_accountMapEquiv hAccounts] using hweight
                   simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweightSolm)
+              have hσPost : EVMStateEquiv
+                  (giveRightPostState (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I)
+                  (giveRightPostState (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I) := by
+                unfold giveRightPostState
+                exact (EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts).storageStore_codeOwner
+                  (giveRightVoterSlot I) rfl
               exact (ballotGiveRightToVoteX_success (g := Sat256.ofUInt256 g)
                   hsz36 hsize hbig hperm hcanon hchair hvoted hweight hreach)
-                |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                (by
+                |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                (by simp [giveRightPostState, giveRightVoterSlot, initState,
+                  storageStore_createdAccounts])
+                (accountMapEquiv.of_eq (by
                   simp [giveRightPostState, giveRightVoterSlot, initState,
-                    storageStore_createdAccounts])
-                (by
-                  simp [giveRightPostState, giveRightVoterSlot, initState,
-                    storageStore_accountMap]
-                  exact accountMapEquiv_sstoreAccountMap I.codeOwner (giveRightVoterSlot I) ⟨1⟩
-                    hAccounts)
-                  (returnEquiv.void rfl rfl rfl)
+                    storageStore_accountMap]))
+                hσPost
+                (returnEquiv.void rfl rfl rfl)
             · have hbody := ballotGiveRightToVoteBodyReverts_weight
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)

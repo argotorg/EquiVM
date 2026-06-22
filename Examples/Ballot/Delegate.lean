@@ -175,21 +175,10 @@ theorem delegateAfterSenderMap_accountMapEquiv {σ τ : AccountMap} {I : Executi
   exact accountMapEquiv_sstoreAccountMap I.codeOwner (delegateSenderPackedSlot I)
     (delegateSenderPackedStoreWord τ I) hστ
 
-theorem delegateUpdatedVoterWeight_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    delegateUpdatedVoterWeight σ I = delegateUpdatedVoterWeight τ I := by
-  unfold delegateUpdatedVoterWeight
-  have hmaps := delegateAfterSenderMap_accountMapEquiv (I := I) hστ
-  rw [delegateVoterWeightWord_accountMapEquiv hmaps (delegateToWord I),
-    delegateSenderWeightWord_accountMapEquiv hmaps]
-
-theorem delegateFalseSuccessMap_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (delegateFalseSuccessMap σ I) (delegateFalseSuccessMap τ I) := by
-  rw [delegateFalseSuccessMap, delegateFalseSuccessMap,
-    delegateUpdatedVoterWeight_accountMapEquiv hστ]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (delegateVoterSlot (delegateToWord I))
-    (delegateUpdatedVoterWeight τ I) (delegateAfterSenderMap_accountMapEquiv hστ)
+-- `delegateUpdatedVoterWeight_accountMapEquiv` / `delegateFalseSuccessMap_accountMapEquiv` were
+-- retired when the false-success connect moved to the `EVMStateEquiv` chain
+-- (`delegateFalseSuccessState_EVMStateEquiv`), which carries the account-map agreement through the
+-- writes; the connect now uses `delegateFalseSuccessState_accountMapEquiv_init` directly on σ_evm.
 
 theorem delegateProposalsLengthWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hστ : accountMapEquiv σ τ) :
@@ -212,20 +201,10 @@ theorem delegateProposalCountWord_accountMapEquiv {σ τ : AccountMap} {I : Exec
   exact accountMapEquiv_storage_findD (delegateAfterSenderMap_accountMapEquiv (I := I) hστ)
     I.codeOwner (delegateProposalCountSlot τ I) ⟨0⟩
 
-theorem delegateUpdatedProposalCount_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    delegateUpdatedProposalCount σ I = delegateUpdatedProposalCount τ I := by
-  unfold delegateUpdatedProposalCount
-  have hmaps := delegateAfterSenderMap_accountMapEquiv (I := I) hστ
-  rw [delegateProposalCountWord_accountMapEquiv hστ, delegateSenderWeightWord_accountMapEquiv hmaps]
-
-theorem delegateTrueSuccessMap_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (delegateTrueSuccessMap σ I) (delegateTrueSuccessMap τ I) := by
-  rw [delegateTrueSuccessMap, delegateTrueSuccessMap, delegateProposalCountSlot_accountMapEquiv hστ,
-    delegateUpdatedProposalCount_accountMapEquiv hστ]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (delegateProposalCountSlot τ I)
-    (delegateUpdatedProposalCount τ I) (delegateAfterSenderMap_accountMapEquiv hστ)
+-- `delegateUpdatedProposalCount_accountMapEquiv` / `delegateTrueSuccessMap_accountMapEquiv` were
+-- retired when the true-success connect moved to the `EVMStateEquiv` chain
+-- (`delegateTrueSuccessState_EVMStateEquiv`); the connect now uses
+-- `delegateTrueSuccessState_accountMapEquiv_init` directly on σ_evm.
 
 abbrev delegateWithSenderStore (I : ExecutionEnv) : Store :=
   (delegateStore I).insert "sender" (.storageRef (delegateSenderRef I) voterStructTy)
@@ -2053,6 +2032,76 @@ theorem delegateTrueSuccessState_accountMapEquiv_init {cA gh bl σ σ₀ A I} {g
     delegateSenderWeightCurrent_afterSenderState_init, delegateProposalCountSlot,
     delegateProposalCountSlotCurrent, delegateVoterVoteCurrent_afterSenderState_init,
     storageStore_accountMap, voteStorageStore_executionEnv] using h
+
+/-! ### `EVMStateEquiv` simulation chains for the delegate success states
+
+These carry the simulation relation compositionally through the writes, with the value/slot
+agreements for σ-dependent writes coming from the chain's own `storageLoad` agreement.  They are
+the delegate analogue of `voteFinalState_EVMStateEquiv` and feed the relaxed
+`reEquivExecutionGenEVMStateEquiv` connect (its `acc.2` side is up to `accountMapEquiv`, which
+absorbs the packed same-slot double write in `delegateAfterSenderState`). -/
+
+theorem delegateAfterSenderState_EVMStateEquiv
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    EVMStateEquiv (delegateAfterSenderState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (delegateAfterSenderState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+  have hσ : EVMStateEquiv (initState cA gh bl σ_evm σ₀_evm g A I)
+      (initState cA gh bl σ_solm σ₀_solm g A I) := EVMStateEquiv.initState hAccounts
+  have hVoted : delegateSenderVotedStoreCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      delegateSenderVotedStoreCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold delegateSenderVotedStoreCurrent delegateSenderPackedCurrent
+    rw [hσ.storageLoad_codeOwner (delegateSenderPackedSlot I)]
+  have hσVoted : EVMStateEquiv (delegateAfterVotedState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (delegateAfterVotedState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+    unfold delegateAfterVotedState
+    exact hσ.storageStore_codeOwner (delegateSenderPackedSlot I) hVoted
+  have hSender : delegateSenderPackedStoreCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      delegateSenderPackedStoreCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold delegateSenderPackedStoreCurrent delegateSenderPackedCurrent
+    rw [hσ.storageLoad_codeOwner (delegateSenderPackedSlot I)]
+  unfold delegateAfterSenderState
+  exact hσVoted.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+    (delegateSenderPackedSlot I) hSender
+
+theorem delegateFalseSuccessState_EVMStateEquiv
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    EVMStateEquiv (delegateFalseSuccessState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (delegateFalseSuccessState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+  have hσS := delegateAfterSenderState_EVMStateEquiv
+    (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+    (A := A) (I := I) (g := g) hAccounts
+  have hW : delegateUpdatedVoterWeightCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      delegateUpdatedVoterWeightCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold delegateUpdatedVoterWeightCurrent delegateVoterWeightCurrent delegateSenderWeightCurrent
+    rw [hσS.storageLoad_codeOwner (delegateVoterSlot (delegateToWord I)),
+      hσS.storageLoad_codeOwner (delegateSenderSlot I)]
+  unfold delegateFalseSuccessState
+  exact hσS.storageStore_codeOwner (delegateVoterSlot (delegateToWord I)) hW
+
+theorem delegateTrueSuccessState_EVMStateEquiv
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    EVMStateEquiv (delegateTrueSuccessState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (delegateTrueSuccessState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+  have hσS := delegateAfterSenderState_EVMStateEquiv
+    (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+    (A := A) (I := I) (g := g) hAccounts
+  have hSlot : delegateProposalCountSlotCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      delegateProposalCountSlotCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold delegateProposalCountSlotCurrent delegateVoterVoteCurrent
+    rw [hσS.storageLoad_codeOwner (delegateVoterVoteSlot (delegateToWord I))]
+  have hCount : delegateUpdatedProposalCountCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      delegateUpdatedProposalCountCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold delegateUpdatedProposalCountCurrent delegateProposalCountCurrent delegateSenderWeightCurrent
+    rw [hSlot, hσS.storageLoad_codeOwner (delegateProposalCountSlotCurrent
+        (initState cA gh bl σ_solm σ₀_solm g A I) I),
+      hσS.storageLoad_codeOwner (delegateSenderSlot I)]
+  unfold delegateTrueSuccessState
+  rw [hSlot]
+  exact hσS.storageStore_codeOwner
+    (delegateProposalCountSlotCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I) hCount
 
 /-! ### Memory helpers for the sender mapping slot -/
 
@@ -4317,12 +4366,14 @@ theorem ballotDelegateNotVotedSuccessEquiv
   exact (ballotDelegateX_delegateNotVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateNotVoted hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateFalseSuccessState_created_init (g := Sat256.ofUInt256 g))
-      (accountMapEquiv.trans (delegateFalseSuccessMap_accountMapEquiv (I := I) hAccounts)
-        (delegateFalseSuccessState_accountMapEquiv_init
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g) hweightSolm hfitSolm))
+    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+      (delegateFalseSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm))
+      (delegateFalseSuccessState_accountMapEquiv_init
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hweight hfit)
+      (delegateFalseSuccessState_EVMStateEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts)
       (returnEquiv.void rfl rfl rfl)
 
 theorem ballotDelegateVotedSuccessEquiv
@@ -4405,12 +4456,14 @@ theorem ballotDelegateVotedSuccessEquiv
   exact (ballotDelegateX_delegateVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateVoted hbound hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTrueSuccessState_created_init (g := Sat256.ofUInt256 g))
-      (accountMapEquiv.trans (delegateTrueSuccessMap_accountMapEquiv (I := I) hAccounts)
-        (delegateTrueSuccessState_accountMapEquiv_init
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g) hweightSolm hfitSolm))
+    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+      (delegateTrueSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm))
+      (delegateTrueSuccessState_accountMapEquiv_init
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hweight hfit)
+      (delegateTrueSuccessState_EVMStateEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts)
       (returnEquiv.void rfl rfl rfl)
 
 theorem ballotDelegateNotVotedOverflowEquiv

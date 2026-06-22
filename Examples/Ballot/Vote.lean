@@ -148,19 +148,9 @@ theorem voteAfterVoteMap_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
   exact accountMapEquiv_sstoreAccountMap I.codeOwner (voteSenderVoteSlot I) (voteProposalWord I)
     (voteAfterVotedMap_accountMapEquiv hστ)
 
-theorem voteUpdatedProposalCount_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    voteUpdatedProposalCount σ I = voteUpdatedProposalCount τ I := by
-  unfold voteUpdatedProposalCount
-  have hmaps := voteAfterVoteMap_accountMapEquiv (I := I) hστ
-  rw [voteProposalCountWord_accountMapEquiv hmaps, voteSenderWeightWord_accountMapEquiv hmaps]
-
-theorem voteSuccessMap_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (voteSuccessMap σ I) (voteSuccessMap τ I) := by
-  rw [voteSuccessMap, voteSuccessMap, voteUpdatedProposalCount_accountMapEquiv hστ]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (voteProposalCountSlot I)
-    (voteUpdatedProposalCount τ I) (voteAfterVoteMap_accountMapEquiv hστ)
+-- `voteUpdatedProposalCount_accountMapEquiv` / `voteSuccessMap_accountMapEquiv` were retired when
+-- the success connect moved to the `EVMStateEquiv` chain (`voteFinalState_EVMStateEquiv`), which
+-- carries the account-map agreement compositionally through the three `SSTORE`s.
 
 def voteSenderEvaledRef (I : ExecutionEnv) (field : Ident) : EvaledStorageRef :=
   { base := "voters", steps := [.mindex (.address I.source), .field field] }
@@ -1951,6 +1941,36 @@ theorem voteFinalState_acc_init {cA gh bl σ σ₀ A I} {g : Sat256} :
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     storageStore_createdAccounts, storageStore_accountMap]
 
+/-- The vote success post-state is the same on both sides up to `EVMStateEquiv`: the three
+    `SSTORE`s (packed `voted`, `vote` slot, proposal `voteCount`) preserve the simulation relation,
+    with the value-level agreements for the two `σ`-dependent writes coming from the chain's own
+    `storageLoad` agreement.  This is the multi-write analogue of the Transfer chain. -/
+theorem voteFinalState_EVMStateEquiv {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    EVMStateEquiv (voteFinalState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (voteFinalState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+  have hσ : EVMStateEquiv (initState cA gh bl σ_evm σ₀_evm g A I)
+      (initState cA gh bl σ_solm σ₀_solm g A I) := EVMStateEquiv.initState hAccounts
+  have hVoted : voteSenderVotedStoreCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      voteSenderVotedStoreCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold voteSenderVotedStoreCurrent voteSenderPackedCurrent
+    rw [hσ.storageLoad_codeOwner (voteSenderPackedSlot I)]
+  have hσVoted : EVMStateEquiv (voteAfterVotedState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (voteAfterVotedState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+    unfold voteAfterVotedState
+    exact hσ.storageStore_codeOwner (voteSenderPackedSlot I) hVoted
+  have hσVote : EVMStateEquiv (voteAfterVoteState (initState cA gh bl σ_evm σ₀_evm g A I) I)
+      (voteAfterVoteState (initState cA gh bl σ_solm σ₀_solm g A I) I) := by
+    unfold voteAfterVoteState
+    exact hσVoted.storageStore_codeOwner (voteSenderVoteSlot I) rfl
+  have hUpdated : voteUpdatedProposalCountCurrent (initState cA gh bl σ_evm σ₀_evm g A I) I =
+      voteUpdatedProposalCountCurrent (initState cA gh bl σ_solm σ₀_solm g A I) I := by
+    unfold voteUpdatedProposalCountCurrent voteProposalCountCurrent voteSenderWeightCurrent
+    rw [hσVote.storageLoad_codeOwner (voteProposalCountSlot I),
+      hσVote.storageLoad_codeOwner (voteSenderSlot I)]
+  unfold voteFinalState
+  exact hσVote.storageStore_codeOwner (voteProposalCountSlot I) hUpdated
+
 /-! ## Dispatch/decode glue -/
 
 theorem ballotVoteSelector_size {I : ExecutionEnv}
@@ -2073,20 +2093,17 @@ theorem ballotVoteBodyCore_success
       have hmaps := voteAfterVoteMap_accountMapEquiv (I := I) hAccounts
       simpa [← voteProposalCountWord_accountMapEquiv hmaps,
         ← voteSenderWeightWord_accountMapEquiv hmaps] using hfit)
+  have hacc := voteFinalState_acc_init
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+    (A := A) (I := I) (g := Sat256.ofUInt256 g)
   exact (ballotVoteX_success (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hweight hvoted hbound hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (congrArg Prod.fst (voteFinalState_acc_init
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g)))
-      (by
-        have hfinal : voteSuccessMap σ_solm I =
-            (voteFinalState (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I).accountMap := by
-          simpa using congrArg Prod.snd (voteFinalState_acc_init
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g))
-        rw [← hfinal]
-        exact voteSuccessMap_accountMapEquiv (I := I) hAccounts)
+    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+      (congrArg Prod.fst hacc)
+      (accountMapEquiv.of_eq (congrArg Prod.snd hacc))
+      (voteFinalState_EVMStateEquiv (cA := cA) (gh := gh) (bl := bl)
+        (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm) (A := A) (I := I)
+        (g := Sat256.ofUInt256 g) hAccounts)
       (returnEquiv.void rfl rfl rfl)
 
 theorem ballotVoteBodyCore_overflow

@@ -802,9 +802,11 @@ theorem erc20ApproveBodyCore
         exact (erc20X_approve (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hperm hcanonSpender hreach)
           |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-            (by
+            (by simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
+              erc20StorageStore_createdAccounts])
+            (accountMapEquiv.of_eq (by
               simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
-                erc20StorageStore_createdAccounts, erc20StorageStore_accountMap])
+                erc20StorageStore_accountMap]))
             hσPost
             (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
       · have hdec := erc20Decode_approve_none_noncanon (I := I) hsz68 hbig hcanonSpender

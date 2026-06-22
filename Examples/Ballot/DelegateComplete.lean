@@ -135,12 +135,14 @@ theorem ballotDelegateTailNotVotedSuccessEquiv_general
   exact (ballotDelegateX_tailNotVotedSuccessFrom1211 (cA := cA) (gh := gh) (bl := bl)
       (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailFalseSuccessState_created_init (g := Sat256.ofUInt256 g) w)
-      (accountMapEquiv.trans (delegateTailFalseSuccessMap_accountMapEquiv (I := I) hAccounts w)
-        (delegateTailFalseSuccessState_accountMapEquiv_init
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweightSolm hfitSolm))
+    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+      (delegateTailFalseSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm) w)
+      (delegateTailFalseSuccessState_accountMapEquiv_init
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+      (delegateTailFalseSuccessState_EVMStateEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
       (returnEquiv.void rfl rfl rfl)
 
 theorem ballotDelegateTailNotVotedOverflowEquiv_general
@@ -303,12 +305,14 @@ theorem ballotDelegateTailVotedSuccessEquiv_general
   exact (ballotDelegateX_tailVotedSuccessFrom1211 (cA := cA) (gh := gh) (bl := bl)
       (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailTrueSuccessState_created_init (g := Sat256.ofUInt256 g) w)
-      (accountMapEquiv.trans (delegateTailTrueSuccessMap_accountMapEquiv (I := I) hAccounts w)
-        (delegateTailTrueSuccessState_accountMapEquiv_init
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀_solm)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweightSolm hfitSolm))
+    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+      (delegateTailTrueSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm) w)
+      (delegateTailTrueSuccessState_accountMapEquiv_init
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+      (delegateTailTrueSuccessState_EVMStateEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀_evm := σ₀_evm) (σ₀_solm := σ₀_solm)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
       (returnEquiv.void rfl rfl rfl)
 
 theorem ballotDelegateTailVotedOobEquiv_general

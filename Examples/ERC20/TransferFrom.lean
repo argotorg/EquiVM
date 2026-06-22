@@ -2558,11 +2558,13 @@ theorem erc20TransferFromBodyCore
                     hbalanceDebit hfit
                     hreach)
                   |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                    (by
+                    (by simp [evmE, transferFromPostState, transferFromAfterBalanceState,
+                      transferFromAfterAllowanceState, transferFromAllowanceSlot,
+                      transferFromAllowanceSlotI, initState, erc20StorageStore_createdAccounts])
+                    (accountMapEquiv.of_eq (by
                       simp [evmE, transferFromPostState, transferFromAfterBalanceState,
                         transferFromAfterAllowanceState, transferFromAllowanceSlot,
-                        transferFromAllowanceSlotI, initState, erc20StorageStore_createdAccounts,
-                        erc20StorageStore_accountMap])
+                        transferFromAllowanceSlotI, initState, erc20StorageStore_accountMap]))
                     hσPost
                     (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
                 · have hover :

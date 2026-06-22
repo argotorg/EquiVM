@@ -1746,10 +1746,11 @@ theorem erc20TransferBodyCore
             exact (erc20X_transfer (g := Sat256.ofUInt256 g)
                 hsz68 hsize hbig hperm hcanonTo henough hfit hreach)
               |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                (by
+                (by simp [evmE, initState, transferPostState, transferAfterDebitState,
+                  transferSenderSlot, transferSenderSlotI, erc20StorageStore_createdAccounts])
+                (accountMapEquiv.of_eq (by
                   simp [evmE, initState, transferPostState, transferAfterDebitState,
-                    transferSenderSlot, transferSenderSlotI, erc20StorageStore_createdAccounts,
-                    erc20StorageStore_accountMap])
+                    transferSenderSlot, transferSenderSlotI, erc20StorageStore_accountMap]))
                 hσPost
                 (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
           · have hover :
