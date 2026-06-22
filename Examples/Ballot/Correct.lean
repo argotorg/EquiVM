@@ -1,5 +1,12 @@
 import Examples.Ballot.Bytecode
 import Examples.Ballot.Spec
+import Examples.Ballot.Vote
+import Examples.Ballot.Chairperson
+import Examples.Ballot.Proposals
+import Examples.Ballot.Voters
+import Examples.Ballot.GiveRightToVote
+import Examples.Ballot.WinningProposal
+import Examples.Ballot.WinnerName
 import Reasoning.ABI
 import Reasoning.Theory
 import Reasoning.Stepping
@@ -323,7 +330,7 @@ theorem ballotVoteBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotVoteBodyCore hcode hsize hperm hwv hsel hreach
 
 /-- `proposals(uint256)` getter body (pc 158) refines its transition. -/
 theorem ballotProposalsBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -333,7 +340,7 @@ theorem ballotProposalsBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotProposalsBodyCore hcode hsize hwv hsel hreach
 
 /-- `chairperson()` getter body (pc 203) refines its transition. -/
 theorem ballotChairpersonBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -343,7 +350,7 @@ theorem ballotChairpersonBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotChairpersonBodyCore hcode hwv hsel hreach
 
 /-- `delegate(address)` body (pc 245) refines its transition. -/
 theorem ballotDelegateBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -364,7 +371,7 @@ theorem ballotWinningProposalBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotWinningProposalBodyCore hcode hsize hwv hsel hreach
 
 /-- `giveRightToVote(address)` body (pc 286) refines its transition. -/
 theorem ballotGiveRightToVoteBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -374,7 +381,7 @@ theorem ballotGiveRightToVoteBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotGiveRightToVoteBodyCore hcode hsize hperm hwv hsel hreach
 
 /-- `voters(address)` getter body (pc 305) refines its transition. -/
 theorem ballotVotersBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -384,7 +391,7 @@ theorem ballotVotersBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotVotersBodyCore hcode hsize hwv hsel hreach
 
 /-- `winnerName()` body (pc 417) refines its transition (calls `winningProposal` internally). -/
 theorem ballotWinnerNameBody {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -394,7 +401,7 @@ theorem ballotWinnerNameBody {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl σ σ₀ g A I := by
-  sorry
+  exact ballotWinnerNameBodyCore hcode hsize hwv hsel hreach
 
 /-! ## Revert obligations -/
 
