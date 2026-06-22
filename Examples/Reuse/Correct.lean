@@ -1199,16 +1199,20 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I
             · have hbody := cGBodyReturns
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hbound
+              have hσPost : EVMStateEquiv
+                  (Solm.EVM.storageStore (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                    (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                    ⟨0⟩ (cFResultWord I))
+                  (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                    ⟨0⟩ (cFResultWord I)) :=
+                (EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts).storageStore_codeOwner
+                  ⟨0⟩ rfl
               exact (cX_g_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
-                  hperm hf hg hbound).reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                (by
-                  rw [storageStore_createdAccounts]
-                  simp [initState])
-                (by
-                  rw [storageStore_accountMap]
-                  simp only [initState]
-                  exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ (cFResultWord I)
-                    hAccounts)
+                  hperm hf hg hbound).reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                (by rw [storageStore_createdAccounts]; simp [initState])
+                (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
+                hσPost
                 (returnEquiv.void rfl rfl rfl)
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
               have hbody := cGBodyReverts_overflow

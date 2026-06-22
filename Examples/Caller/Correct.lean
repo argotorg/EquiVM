@@ -1129,8 +1129,8 @@ theorem callerExec_canonical {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} 
     callerX_postCall (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
       (A := A) (I := I) (g := g) hcode hwv (by omega) hsize hsz68 hbig hmatch hclean
       hperm hdepth
-  obtain ⟨σ'_solm, A'_solm, hcoin_solm, hσ'⟩ :=
-    typedCallViaEVM_initState_accountMapEquiv hcoin hAccounts hOriginalAccounts
+  obtain ⟨σ'_solm, A'_solm, hcoin_solm, hStateCall⟩ :=
+    typedCallViaEVM_initState_EVMStateEquiv hcoin (by simp [initState]) hAccounts hOriginalAccounts
   cases z
   · -- z = false: external call failed ⇒ revert
     simp only [Bool.false_eq_true, if_false] at rd144 hcoin hcoin_solm
@@ -1166,13 +1166,11 @@ theorem callerExec_canonical {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} 
       have hbody := callerBodySuccess (initState cA gh bl σ_solm σ₀_solm g A I)
         (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
         hcoin_solm hdecv hassign
-      refine RDret.reEquivExecutionGenAccountMapEquiv hcode hrd hd hdec hbody ?_ ?_
+      exact RDret.reEquivExecutionGenEVMStateEquiv hcode hrd hd hdec hbody
+        (by rw [storageStore_createdAccounts])
+        (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
+        (hStateCall.storageStore_codeOwner ⟨0⟩ rfl)
         (returnEquiv.void rfl rfl rfl)
-      · rw [storageStore_createdAccounts]
-      · rw [storageStore_accountMap]
-        simp only [hevmP]
-        exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-          (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) hσ'
     · -- |o| < 32: decode reverts
       rw [not_le] at ho32
       rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
