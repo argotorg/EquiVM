@@ -1,4 +1,5 @@
 import Reasoning.SolmBody
+import Reasoning.Storage
 
 /-!
 # ExternalCall — the `CALL` ↔ `externalCall` coupling
@@ -125,6 +126,41 @@ theorem typedCallViaEVM_initState_accountMapEquiv {cfg : Config}
     (by simp [initState])
     (by simp [initState])
     (by simp [initState])
+
+/-- `EVMStateEquiv`-returning form of `typedCallViaEVM_initState_accountMapEquiv`.
+
+The opaque external call carries the simulation relation: from `initState`s that agree up to
+`accountMapEquiv` on the current/original maps, the same `(z, out)` is possible on the Solm side, and
+the two post-call states are related by `EVMStateEquiv` (executionEnv/createdAccounts equal, accounts
+up to `accountMapEquiv`).  `hEnv` records that the EVM post-call state keeps `initState`'s
+execution environment — true whenever it is a field update of `initState …` (e.g. the `callCoincides`
+result).  This is the external-call peer of the storage-write `EVMStateEquiv` chains, so a body that
+ends in `SSTORE`s after a call can stay entirely within the `EVMStateEquiv` simulation relation. -/
+theorem typedCallViaEVM_initState_EVMStateEquiv {cfg : Config}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name 0 args
+      (z, evm'_evm, out))
+    (hEnv : evm'_evm.executionEnv = (initState cA gh bl σ_solm σ₀_solm g A I).executionEnv)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name 0 args
+        (z,
+          { initState cA gh bl σ_solm σ₀_solm g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      EVMStateEquiv evm'_evm
+        { initState cA gh bl σ_solm σ₀_solm g A I with
+            accountMap := σ'_solm
+            substate := A'_solm
+            createdAccounts := evm'_evm.createdAccounts } := by
+  obtain ⟨σ'_solm, A'_solm, hcoin_solm, hσ'⟩ :=
+    typedCallViaEVM_initState_accountMapEquiv hcall hAccounts hOriginalAccounts
+  exact ⟨σ'_solm, A'_solm, hcoin_solm, hEnv, rfl, hσ'⟩
 
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching
