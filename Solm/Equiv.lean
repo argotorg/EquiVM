@@ -102,7 +102,6 @@ inductive ctorResultEquiv
   | revert :
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →
-    -- TODO: something like: decode o = retVal
     ctorResultEquiv evmRes solmRes runtimeCode
   -- Zoe: commenting out so that it matches execResultsEquiv
   -- | error :

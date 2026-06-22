@@ -32,11 +32,9 @@ obligations are closed below.
 ⚠️ **Dispatcher shape.**  Unlike ERC20's *linear* selector dispatcher (`DUP1; PUSH4; EQ; PUSH2;
 JUMPI` arms, driven by `solcDispatchReachBody`/`nthArmPc`), solc emits a **binary-search**
 dispatcher for Ballot's 8 selectors (a `GT`-pivot tree: at pc 36 `DUP1; PUSH4 0x609ff1bd; GT;
-PUSH2 0x58; JUMPI` splits the low/high halves).  The generic `Reach`/`Solc` dispatch driver does
-**not** yet cover this, so the body obligations fold reachability in (rather than taking an
-`hreach` cursor).  A reusable `RD`-level binary-search-dispatch driver is a **LIBRARY CANDIDATE**
-(proposed `Reasoning/Solc.lean` or `Reasoning/Reach.lean`); once it exists, refactor each
-`ballot<Fn>Body` to take the dispatcher-reached cursor like `erc20<Fn>Body`.
+PUSH2 0x58; JUMPI` splits the low/high halves).  `Reasoning.Solc` now provides the shared one-level
+binary selector drivers; this file supplies only Ballot's concrete split/arm well-formedness facts
+and selector-byte coupling.
 
 Body entry PCs (dispatch targets), read off the bytecode disassembly:
 | selector | function | body PC |
@@ -235,25 +233,9 @@ theorem ballotReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
     solc_dispatch_prefix
-  obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
-    hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
-    hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
-    hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
-  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
-    (ctgt := solcGuardTgt ballotBytecode) (opC := solcGuardTgtOp ballotBytecode)
-    (wC := solcGuardTgtWidth ballotBytecode) h0 hwv hguardOp hguardPush hguardJumpi
-    hguardDest hguardPop (by jump_dest)
-  obtain ⟨_, _, h2⟩ := solcCalldataOk
-    (selLoadTgt := solcCalldataRevertTgt ballotBytecode)
-    (opR := solcCalldataRevertTgtOp ballotBytecode)
-    (wR := solcCalldataRevertTgtWidth ballotBytecode)
-    h1 hsz hsize hcdPush4 hcdSize hcdLt hcdOp hcdPushRevert hcdJumpi
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 hselPush0 hselLoad hselPush224 hselShr (by simp)
-  refine ⟨k3, C3, ?_⟩
-  simpa [ballotSplitPc, ballotSelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
-    solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc, hfirst] using h3
+  simpa [ballotSelWord, solcSelectorWord] using
+    (solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix (by jump_dest))
 
 /-- Reach a body in Ballot's high selector half. -/
 theorem ballotReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -272,17 +254,30 @@ theorem ballotReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody : armTgt ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc i) = bodyPC) :
     ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨kS, CS, hsplit⟩ := ballotReachSplit (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h41 : RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ballotHighFirstArmPc
-      [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ)
-      (kS + 5) (CS + 22) := by
-    simpa [ballotHighFirstArmPc, ballotSplitPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
-      selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-        (RD.selectorSplitNotTakenAuto hsplit ballotSplitWellFormed hpivot (by simp))
-  exact RD.dispatchTo bodyPC i h41
-    (fun j hj => ballotHighArmsWellFormed j (le_trans hj hi)) heq0 htake
-    (by rw [hbody]; exact hjd) hbody (by simp)
+  have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
+    solc_dispatch_prefix
+  simpa [ballotSelWord, solcSelectorWord] using
+    (solcBinaryDispatchReachHighBody (cA := cA) (gh := gh) (bl := bl)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (code := ballotBytecode) (splitPc := ballotSplitPc) (bodyPC := bodyPC) (i := i)
+      hcode hwv hsz hsize hprefix (by jump_dest) ballotSplitWellFormed
+      (by simpa [ballotSelWord, solcSelectorWord] using hpivot)
+      (fun j hj => by
+        simpa [ballotHighFirstArmPc, ballotSplitPc, selArmNextPc, armTgtWidth,
+          selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+          ballotHighArmsWellFormed j (le_trans hj hi))
+      (fun j hj => by
+        simpa [ballotSelWord, solcSelectorWord, ballotHighFirstArmPc, ballotSplitPc,
+          selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc,
+          selArmPush4Pc] using heq0 j hj)
+      (by
+        simpa [ballotSelWord, solcSelectorWord, ballotHighFirstArmPc, ballotSplitPc,
+          selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc,
+          selArmPush4Pc] using htake)
+      hjd
+      (by
+        simpa [ballotHighFirstArmPc, ballotSplitPc, selArmNextPc, armTgtWidth,
+          selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using hbody))
 
 /-- Reach a body in Ballot's low selector half. -/
 theorem ballotReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -301,22 +296,29 @@ theorem ballotReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody : armTgt ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc i) = bodyPC) :
     ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨kS, CS, hsplit⟩ := ballotReachSplit (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h88 : RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ballotLowJumpdestPc
-      [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ)
-      (kS + 5) (CS + 22) := by
-    simpa [ballotLowJumpdestPc, ballotSplitPc, armTgt, pushAt, selArmPushTgtPc,
-      selArmEqPc, selArmPush4Pc] using
-        (RD.selectorSplitTakenAuto hsplit ballotSplitWellFormed hpivot (by jump_dest) (by simp))
-  have h89 : RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ballotLowFirstArmPc
-      [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ)
-      (kS + 5 + 1) (CS + 22 + 1) := by
-    simpa [ballotLowFirstArmPc, ballotLowJumpdestPc] using
-      (h88.jumpdest (by decide) (by simp))
-  exact RD.dispatchTo bodyPC i h89
-    (fun j hj => ballotLowArmsWellFormed j (le_trans hj hi)) heq0 htake
-    (by rw [hbody]; exact hjd) hbody (by simp)
+  have hprefix : solcDispatchPrefixWellFormed ballotBytecode ballotSplitPc := by
+    solc_dispatch_prefix
+  simpa [ballotSelWord, solcSelectorWord] using
+    (solcBinaryDispatchReachLowBody (cA := cA) (gh := gh) (bl := bl)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (code := ballotBytecode) (splitPc := ballotSplitPc) (bodyPC := bodyPC) (i := i)
+      hcode hwv hsz hsize hprefix (by jump_dest) ballotSplitWellFormed
+      (by simpa [ballotSelWord, solcSelectorWord] using hpivot) (by jump_dest) (by decide)
+      (fun j hj => by
+        simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, armTgt, pushAt,
+          selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+          ballotLowArmsWellFormed j (le_trans hj hi))
+      (fun j hj => by
+        simpa [ballotSelWord, solcSelectorWord, ballotLowFirstArmPc, ballotLowJumpdestPc,
+          ballotSplitPc, armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+          heq0 j hj)
+      (by
+        simpa [ballotSelWord, solcSelectorWord, ballotLowFirstArmPc, ballotLowJumpdestPc,
+          ballotSplitPc, armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using htake)
+      hjd
+      (by
+        simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, armTgt, pushAt,
+          selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using hbody))
 
 /-! ## Per-function body obligations (one `…BodyCore` per `Examples/Ballot/<Fn>.lean`, TODO) -/
 

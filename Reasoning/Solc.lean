@@ -18,6 +18,12 @@ namespace Reasoning.Theory
 
 open Ethereum Ethereum.EVM Reasoning.Reach
 
+/-! ## Selector word -/
+
+/-- The 4-byte selector word computed by solc's `CALLDATALOAD(0); SHR 224` sequence. -/
+abbrev solcSelectorWord (ee : ExecutionEnv) : UInt256 :=
+  UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩
+
 /-! ## Generic `UInt256.eq` facts -/
 
 /-- `EQ` of equal words is `1`. -/
@@ -733,6 +739,38 @@ theorem solcSelectorLoad {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     |>.push1 ⟨224⟩ hp1 (by simp only [List.length]; omega)
     |>.shr hshr (by omega)⟩
 
+/-- **Standard solc dispatcher prefix.**  From `initState`, with zero callvalue and enough calldata
+    for selector dispatch, run the free-pointer prologue, non-payable guard, calldata-size guard,
+    and selector load, stopping at the first selector-dispatch pc with the selector word on stack.
+
+This is the shared front half for both linear `EQ` selector chains and solc's one-level binary
+`GT` split dispatcher. -/
+theorem solcDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
+    {firstPc : UInt256}
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hprefix : solcDispatchPrefixWellFormed code firstPc)
+    (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) firstPc
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
+    hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
+    hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
+    hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
+  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
+    (ctgt := solcGuardTgt code) (opC := solcGuardTgtOp code) (wC := solcGuardTgtWidth code)
+    h0 hwv hguardOp hguardPush hguardJumpi hguardDest hguardPop hguardJd
+  obtain ⟨_, _, h2⟩ := solcCalldataOk
+    (selLoadTgt := solcCalldataRevertTgt code)
+    (opR := solcCalldataRevertTgtOp code) (wR := solcCalldataRevertTgtWidth code)
+    h1 hsz hsize hcdPush4 hcdSize hcdLt hcdOp hcdPushRevert hcdJumpi
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 hselPush0 hselLoad hselPush224 hselShr (by simp)
+  refine ⟨k3, C3, ?_⟩
+  simpa [solcSelectorWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
+    solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc, hfirst] using h3
+
 /-- **Standard solc dispatcher reach.**  From `initState`, with `callvalue = 0`, enough calldata for
     selector dispatch, and a matching selector arm `i`, run the whole external-entry scaffold:
     free-pointer prologue, callvalue guard, calldata-size guard, selector load, and `RD.dispatchTo`.
@@ -755,27 +793,92 @@ theorem solcDispatchReachBody {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteA
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code firstArmPc i) = bodyPC) :
     ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
+        [solcSelectorWord I]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
-    hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
-    hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
-    hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
-  obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
-    (ctgt := solcGuardTgt code) (opC := solcGuardTgtOp code) (wC := solcGuardTgtWidth code)
-    h0 hwv hguardOp hguardPush hguardJumpi hguardDest hguardPop hguardJd
-  obtain ⟨_, _, h2⟩ := solcCalldataOk
-    (selLoadTgt := solcCalldataRevertTgt code)
-    (opR := solcCalldataRevertTgtOp code) (wR := solcCalldataRevertTgtWidth code)
-    h1 hsz hsize hcdPush4 hcdSize hcdLt hcdOp hcdPushRevert hcdJumpi
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 hselPush0 hselLoad hselPush224 hselShr (by simp)
-  have h3' : RD code I g (initState cA gh bl σ σ₀ g A I) firstArmPc
-      [UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := by
-    simpa [solcFirstArmPcFromPrefix, solcSelectorLoadPc, solcCalldataJumpiPc,
-      solcCalldataRevertPushPc, solcDispatchBodyPc, hfirst] using h3
+  obtain ⟨_, _, h3'⟩ := solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hwv hsz hsize hprefix hguardJd
   exact RD.dispatchTo bodyPC i h3' hwf heq0 htake (by rw [hbody]; exact hjd) hbody (by simp)
+
+/-! ### One-level binary selector dispatch
+
+For larger contracts, solc may replace the single linear `EQ` chain with one `GT` pivot split whose
+taken and fall-through branches are ordinary linear selector chains.  These two drivers share the
+same prefix as `solcDispatchReachBody`, then perform the pivot split and finish with `RD.dispatchTo`
+inside the selected half.
+-/
+
+/-- Reach a body through the **fall-through/high** half of a one-level binary selector dispatcher.
+    The split pc has shape `DUP1; PUSH4 pivot; GT; PUSHk low; JUMPI`, the pivot `GT` is false, and
+    the high half begins at the split fall-through pc. -/
+theorem solcBinaryDispatchReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    {code : ByteArray} {splitPc bodyPC : UInt256} {i : ℕ}
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hprefix : solcDispatchPrefixWellFormed code splitPc)
+    (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true)
+    (hsplit : selectorSplitWellFormed code splitPc)
+    (hpivot : UInt256.gt (armSelNat code splitPc) (solcSelectorWord I) = ⟨0⟩)
+    (hwf : ∀ j, j ≤ i →
+      armWellFormed code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) j))
+    (heq0 : ∀ j, j < i →
+      UInt256.eq
+        (armSelNat code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) j))
+        (solcSelectorWord I) = ⟨0⟩)
+    (htake : UInt256.eq
+        (armSelNat code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) i))
+        (solcSelectorWord I) ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains bodyPC = true)
+    (hbody : armTgt code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) i)
+        = bodyPC) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) bodyPC
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, hsplitPc⟩ := solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hwv hsz hsize hprefix hguardJd
+  have hfirst : RD code I g (initState cA gh bl σ σ₀ g A I)
+      (selArmNextPc splitPc (armTgtWidth code splitPc)) [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ :=
+    RD.selectorSplitNotTakenAuto hsplitPc hsplit hpivot (by simp)
+  exact RD.dispatchTo bodyPC i hfirst hwf heq0 htake (by rw [hbody]; exact hjd) hbody
+    (by simp)
+
+/-- Reach a body through the **taken/low** half of a one-level binary selector dispatcher.  The
+    split pc has shape `DUP1; PUSH4 pivot; GT; PUSHk lowJumpdest; JUMPI`; after the taken jump, the
+    driver steps the low-half `JUMPDEST` and then runs the linear `EQ` chain beginning at
+    `armTgt code splitPc + 1`. -/
+theorem solcBinaryDispatchReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    {code : ByteArray} {splitPc bodyPC : UInt256} {i : ℕ}
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hprefix : solcDispatchPrefixWellFormed code splitPc)
+    (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true)
+    (hsplit : selectorSplitWellFormed code splitPc)
+    (hpivot : UInt256.gt (armSelNat code splitPc) (solcSelectorWord I) ≠ ⟨0⟩)
+    (hsplitJd : (D_J code 0).contains (armTgt code splitPc) = true)
+    (hlowJumpdest : decode code (armTgt code splitPc) = some (.JUMPDEST, .none))
+    (hwf : ∀ j, j ≤ i →
+      armWellFormed code (nthArmPc code (armTgt code splitPc + ⟨1⟩) j))
+    (heq0 : ∀ j, j < i →
+      UInt256.eq (armSelNat code (nthArmPc code (armTgt code splitPc + ⟨1⟩) j))
+        (solcSelectorWord I) = ⟨0⟩)
+    (htake : UInt256.eq (armSelNat code (nthArmPc code (armTgt code splitPc + ⟨1⟩) i))
+        (solcSelectorWord I) ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains bodyPC = true)
+    (hbody : armTgt code (nthArmPc code (armTgt code splitPc + ⟨1⟩) i) = bodyPC) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) bodyPC
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, hsplitPc⟩ := solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hwv hsz hsize hprefix hguardJd
+  have hlowJd : RD code I g (initState cA gh bl σ σ₀ g A I) (armTgt code splitPc)
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ :=
+    RD.selectorSplitTakenAuto hsplitPc hsplit hpivot hsplitJd (by simp)
+  have hfirst : RD code I g (initState cA gh bl σ σ₀ g A I)
+      (armTgt code splitPc + ⟨1⟩) [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ :=
+    hlowJd.jumpdest hlowJumpdest (by simp)
+  exact RD.dispatchTo bodyPC i hfirst hwf heq0 htake (by rw [hbody]; exact hjd) hbody
+    (by simp)
 
 end Reasoning.Reach
