@@ -646,11 +646,7 @@ theorem ballotProposalsBodyCore
         simpa [proposalsLengthCurrent, proposalsLengthWord, initState] using
           (proposalsLengthWord_accountMapEquiv hAccounts).symm
       by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ_evm I).toNat
-      · have hbody₀ := ballotProposalsBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
-          (by simp only [initState]; exact hwv)
-          (by rw [hlen]; exact hbound)
-        have hname :
+      · have hname :
             proposalNameCurrent
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I =
               proposalNameWord σ_evm I := by
@@ -662,19 +658,12 @@ theorem ballotProposalsBodyCore
               proposalCountWord σ_evm I := by
           simpa [proposalCountCurrent, proposalCountWord, initState] using
             (proposalCountWord_accountMapEquiv hAccounts).symm
-        have hbody :
-            ExecTransitionBody ballotConfig ballotContract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (proposalsStore I)
-              proposalsGetter.body
-              (.returned { contract := ballotContract, locals := proposalsStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-                (some (.tuple [
-                  .fixedBytes ⟨31, by decide⟩
-                    (EVM.Word.toBytesBE (proposalNameWord σ_evm I)),
-                  .int (Int.ofNat (proposalCountWord σ_evm I).toNat)]))) := by
-          simpa [hname, hcount] using hbody₀
+        have hbody := ballotProposalsBodyReturns
+          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+          (by simp only [initState]; exact hwv)
+          (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
-          |>.reEquivExecution hcode hd hdec hbody
+          |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname, hcount])
             hAccounts
             (returnEquiv_of_encode
               (ballotProposalReturnEncoding (proposalNameWord σ_evm I)

@@ -1140,9 +1140,6 @@ theorem ballotVotersBodyCore
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (votersArgWord I).toNat < EVM.addressModulus
       · have hdec := ballotDecode_voters_ok (I := I) hsz36 hbig hcanon
-        have hbody₀ := ballotVotersBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
-          (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
         have hweight : votersWeightWord σ_solm I = votersWeightWord σ_evm I :=
           (votersWeightWord_accountMapEquiv hAccounts).symm
         have hvoted : votersVotedWord σ_solm I = votersVotedWord σ_evm I :=
@@ -1158,13 +1155,16 @@ theorem ballotVotersBodyCore
               (.returned { contract := ballotContract, locals := votersStore I }
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                 (some (.tuple [
-                  .int (Int.ofNat (votersWeightWord σ_evm I).toNat),
-                  wordToElem .bool (votersVotedWord σ_evm I),
-                  .address (AccountAddress.ofNat (votersDelegateWord σ_evm I).toNat),
-                  .int (Int.ofNat (votersVoteWord σ_evm I).toNat)]))) := by
-          simpa [initState, hweight, hvoted, hdelegate, hvote] using hbody₀
+                  .int (Int.ofNat (votersWeightWord σ_solm I).toNat),
+                  wordToElem .bool (votersVotedWord σ_solm I),
+                  .address (AccountAddress.ofNat (votersDelegateWord σ_solm I).toNat),
+                  .int (Int.ofNat (votersVoteWord σ_solm I).toNat)]))) := by
+          simpa [initState] using ballotVotersBodyReturns
+            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+            (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
         exact (ballotX_voters_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
-          |>.reEquivExecution hcode hd hdec hbody
+          |>.reEquivExecutionTransport hcode hd hdec hbody
+            (by simp [hweight, hvoted, hdelegate, hvote])
             hAccounts
             (returnEquiv_of_encode
               (ballotVotersReturnEncoding (votersWeightWord σ_evm I)

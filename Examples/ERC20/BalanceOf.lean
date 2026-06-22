@@ -496,10 +496,7 @@ theorem erc20BalanceOfBodyCore
       · have hdec := erc20Decode_balanceOf_ok (I := I) hsz36 hbig hcanon
         have hword : balanceOfWord σ_evm I = balanceOfWord σ_solm I :=
           accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
-        have hbody₀ := erc20BalanceOfBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
-          (by simp only [initState]; exact hwv)
-        have hbody_solm :
+        have hbody :
             ExecTransitionBody erc20Config erc20Contract
               (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
               (balanceOfStore I)
@@ -508,19 +505,11 @@ theorem erc20BalanceOfBodyCore
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                 (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
           simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
-            State.lookupAccount] using hbody₀
-        have hbody :
-            ExecTransitionBody erc20Config erc20Contract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-              (balanceOfStore I)
-              balanceOfTransition.body
-              (.returned { contract := erc20Contract, locals := balanceOfStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-                (some (.int (Int.ofNat (balanceOfWord σ_evm I).toNat)))) := by
-          rw [hword]
-          exact hbody_solm
+            State.lookupAccount] using erc20BalanceOfBodyReturns
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (by simp only [initState]; exact hwv)
         exact (erc20X_balanceOf (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
-          |>.reEquivExecution hcode hd hdec hbody
+          |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword])
             hAccounts
             (returnEquiv_of_encode (erc20Uint256ReturnEncoding (balanceOfWord σ_evm I)))
       · have hdec := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hbig hcanon

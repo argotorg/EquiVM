@@ -105,28 +105,18 @@ theorem ballotChairpersonBodyCore
   have hdec := ballotDecode_chairperson (I := I) hsz
   have hword : chairpersonWord σ_evm I = chairpersonWord σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
-  have hbody₀ := ballotChairpersonBodyReturns
-    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
-    (by simp only [initState]; exact hwv) (by simp)
-  have hbody_solm :
+  have hbody :
       ExecTransitionBody ballotConfig ballotContract
         (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
         (.returned { contract := ballotContract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
           (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ_solm I).toNat)))) := by
     simpa [chairpersonWord, chairpersonReturnWord, initState, Solm.EVM.storageLoad,
-      State.lookupAccount] using hbody₀
-  have hbody :
-      ExecTransitionBody ballotConfig ballotContract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
-        (.returned { contract := ballotContract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ_evm I).toNat)))) := by
-    rw [show chairpersonReturnWord σ_evm I = chairpersonReturnWord σ_solm I by
-      simp [chairpersonReturnWord, hword]]
-    exact hbody_solm
-  exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecution hcode hd hdec
-    hbody hAccounts
+      State.lookupAccount] using ballotChairpersonBodyReturns
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (by simp only [initState]; exact hwv) (by simp)
+  exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport hcode hd hdec
+    hbody (by simp [chairpersonReturnWord, hword]) hAccounts
     (returnEquiv_of_encode (ballotAddressReturnEncoding (chairpersonWord σ_evm I)))
 
 end Ballot

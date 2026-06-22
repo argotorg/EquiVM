@@ -436,7 +436,7 @@ theorem ballotWinnerNameBodyCore
           (winningProposalLengthWord_accountMapEquiv hAccounts).symm
       rw [hres, hlen]
       exact hbound
-    obtain ⟨locals', hbody₀⟩ := ballotWinnerNameBodyReturns
+    obtain ⟨locals', hbody⟩ := ballotWinnerNameBodyReturns
       (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv) hboundCurrent
     have hname :
@@ -445,17 +445,8 @@ theorem ballotWinnerNameBodyCore
           winnerNameNameWord σ_evm I := by
       rw [winnerNameNameCurrent_init]
       exact (winnerNameNameWord_accountMapEquiv hAccounts).symm
-    have hbody :
-        ExecTransitionBody ballotConfig ballotContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
-          winnerNameTransition.body
-          (.returned { contract := ballotContract, locals := locals' }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-            (some (.fixedBytes ⟨31, by decide⟩
-              (EVM.Word.toBytesBE (winnerNameNameWord σ_evm I))))) := by
-      simpa [hname] using hbody₀
     exact (ballotX_winnerName_ok (g := Sat256.ofUInt256 g) hbound hreach)
-      |>.reEquivExecution hcode hd hdec hbody
+      |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname])
         hAccounts
         (returnEquiv_of_encode (ballotBytes32ReturnEncoding (winnerNameNameWord σ_evm I)))
   · have hboundCurrent :

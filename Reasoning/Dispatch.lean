@@ -370,6 +370,30 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
   h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [initState]) (by simpa [initState] using hAccounts) henc
 
+/-- `RDret ⇒ execution` (success), **read-only/getter form**: the Solm body naturally returns the
+    value read from `σ_solm` (`rvSolm`), while the EVM output `o` encodes the value read from `σ_evm`
+    (`rvEvm`).  The caller supplies the value-level coupling `hval : rvSolm = rvEvm` — typically the
+    `accountMapEquiv` read-agreement lifted to the returned value — so the body is passed in its
+    natural `σ_solm` form, with no second restatement transported to `σ_evm`. -/
+theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {code o : ByteArray} {callargs cs rvSolm rvEvm}
+    (hcode : I.code = code)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) (cA, σ_evm) o)
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
+              I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
+              (.returned cs (initState cA gh bl σ_solm σ₀_solm g A I) rvSolm))
+    (hval : rvSolm = rvEvm)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (henc : returnEquiv o rvEvm t.returnType) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+      g.toUInt256 A I := by
+  subst hval
+  exact h.reEquivExecution hcode hd hdec hbody hAccounts henc
+
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256} {code : ByteArray}

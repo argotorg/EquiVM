@@ -779,10 +779,7 @@ theorem erc20AllowanceBodyCore
         · have hdec := erc20Decode_allowance_ok (I := I) hsz68 hbig hcanonOwner hcanonSpender
           have hword : allowanceWord σ_evm I = allowanceWord σ_solm I :=
             accountMapEquiv_storage_findD hAccounts I.codeOwner (allowanceSlot I) ⟨0⟩
-          have hbody₀ := erc20AllowanceBodyReturns
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
-            (by simp only [initState]; exact hwv)
-          have hbody_solm :
+          have hbody :
               ExecTransitionBody erc20Config erc20Contract
                 (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                 (allowanceStore I)
@@ -791,20 +788,12 @@ theorem erc20AllowanceBodyCore
                   (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
                   (some (.int (Int.ofNat (allowanceWord σ_solm I).toNat)))) := by
             simpa [allowanceWord, allowanceSlot, initState, Solm.EVM.storageLoad,
-              State.lookupAccount] using hbody₀
-          have hbody :
-              ExecTransitionBody erc20Config erc20Contract
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-                (allowanceStore I)
-                allowanceTransition.body
-                (.returned { contract := erc20Contract, locals := allowanceStore I }
-                  (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-                  (some (.int (Int.ofNat (allowanceWord σ_evm I).toNat)))) := by
-            rw [hword]
-            exact hbody_solm
+              State.lookupAccount] using erc20AllowanceBodyReturns
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+                (by simp only [initState]; exact hwv)
           exact (erc20X_allowance (g := Sat256.ofUInt256 g)
               hsz68 hsize hbig hcanonOwner hcanonSpender hreach)
-            |>.reEquivExecution hcode hd hdec hbody
+            |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword])
               hAccounts
               (returnEquiv_of_encode (erc20Uint256ReturnEncoding (allowanceWord σ_evm I)))
         · have hdec := erc20Decode_allowance_none_noncanon_spender

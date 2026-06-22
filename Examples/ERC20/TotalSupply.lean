@@ -113,26 +113,18 @@ theorem erc20TotalSupplyBodyCore
   have hdec := erc20Decode_totalSupply (I := I) hsz
   have hword : totalSupplyWord σ_evm I = totalSupplyWord σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hbody₀ := erc20TotalSupplyBodyReturns
-    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
-    (by simp only [initState]; exact hwv) (by simp)
-  have hbody_solm :
-      ExecTransitionBody erc20Config erc20Contract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
-        (.returned { contract := erc20Contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
-    simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using hbody₀
   have hbody :
       ExecTransitionBody erc20Config erc20Contract
         (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (totalSupplyWord σ_evm I).toNat)))) := by
-    rw [hword]
-    exact hbody_solm
-  exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecution hcode hd hdec
-    hbody hAccounts
+          (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
+    simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+      erc20TotalSupplyBodyReturns
+        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (by simp only [initState]; exact hwv) (by simp)
+  exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport hcode hd hdec
+    hbody (by rw [hword]) hAccounts
     (returnEquiv_of_encode (erc20Uint256ReturnEncoding (totalSupplyWord σ_evm I)))
 
 end ERC20

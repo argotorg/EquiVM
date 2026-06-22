@@ -1191,7 +1191,7 @@ theorem ballotWinningProposalBodyCore
   have hsz4 := ballotWinningProposalSelector_size hsel
   have hd := ballotDispatch_winningProposal (cd := I.calldata) hsel
   have hdec := ballotDecode_winningProposal (I := I) hsz4
-  obtain ⟨locals', hbody₀⟩ := ballotWinningProposalBodyReturns
+  obtain ⟨locals', hbody⟩ := ballotWinningProposalBodyReturns
     (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
     (by simp only [initState]; exact hwv) (by simp)
   have hresult :
@@ -1200,16 +1200,8 @@ theorem ballotWinningProposalBodyCore
         winningProposalResultWord σ_evm I := by
     rw [winningProposalResultCurrent_init]
     exact (winningProposalResultWord_accountMapEquiv hAccounts).symm
-  have hbody :
-      ExecTransitionBody ballotConfig ballotContract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
-        winningProposalTransition.body
-        (.returned { contract := ballotContract, locals := locals' }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (winningProposalResultWord σ_evm I).toNat)))) := by
-    simpa [hresult] using hbody₀
   exact (ballotX_winningProposal_ok (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecution hcode hd hdec hbody
+    |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hresult])
       hAccounts
       (returnEquiv_of_encode (uint256ReturnEncoding (winningProposalResultWord σ_evm I)))
 
