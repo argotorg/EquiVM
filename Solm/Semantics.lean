@@ -1,5 +1,6 @@
 import Solm.Storage
 import Solm.Value
+import ABI.Encode
 
 namespace Solm
 
@@ -452,6 +453,8 @@ mutual
     | .index base idx => exprEvalSize base + exprEvalSize idx + 1
     | .ite cond thenExpr elseExpr =>
         exprEvalSize cond + exprEvalSize thenExpr + exprEvalSize elseExpr + 1
+    | .keccak256 e => exprEvalSize e + 1
+    | .abiEncodePacked args => typedArgsEvalSize args + 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
     all_goals simp_wf
@@ -492,6 +495,14 @@ mutual
     | [] => 1
     | (_, e) :: rest => exprEvalSize e + structFieldsEvalSize rest + 1
   termination_by fs => (sizeOf fs, 0)
+  decreasing_by
+    all_goals simp_wf
+    all_goals decreasing_tactic
+
+  def typedArgsEvalSize : List (ABIType × Expr) → Nat
+    | [] => 1
+    | (_, e) :: rest => exprEvalSize e + typedArgsEvalSize rest + 1
+  termination_by as => (sizeOf as, 0)
   decreasing_by
     all_goals simp_wf
     all_goals decreasing_tactic
@@ -788,6 +799,26 @@ def defaultValues? : List StorageType -> EvalResult (List Value)
   termination_by ts => (sizeOf ts, 0)
 end
 
+/-- Packed ("non-padded") ABI encoding of a single value, per Solidity's `abi.encodePacked`: each
+    value takes its natural byte width with no left/right padding and no length prefix — `uintN`/`intN`
+    are `N/8` big-endian bytes, `bool` is one byte, `address` is its 20 bytes, `bytesN` is its `N`
+    bytes, and dynamic `bytes` is its raw contents.  Only the cases needed by current specs are
+    handled; anything else returns `none` rather than risk a silent mis-encoding. -/
+def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
+  match ty, v with
+  | .elem .bool, .bool b => some [if b then (1 : UInt8) else 0]
+  | .elem .address, .address a => some ((EVM.word a).toBytesBE.drop 12)
+  | .elem (.int (.uint bits)), .int _ => do
+      let w <- encodeABIWord? ty v
+      some (w.toBytesBE.drop (32 - bits.val / 8))
+  | .elem (.int (.sint bits)), .int _ => do
+      let w <- encodeABIWord? ty v
+      some (w.toBytesBE.drop (32 - bits.val / 8))
+  | .elem (.bytes n), .fixedBytes m bytes =>
+      if m = n ∧ bytes.length = fixedBytesSize n then some bytes else none
+  | .bytes, .bytes ba => some ba.toList
+  | _, _ => none
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -1068,6 +1099,15 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
           let bound : Int := 2^(n.val - 1)
           if i < -bound || i >= bound then .revert else pure value
       | _, _ => .error .typeError
+  | .keccak256 e => do
+      let value <- evalExpr? cfg solm evm e
+      match value with
+      -- Keccak-256 of the dynamic bytes, as a `bytes32` value; same `ffi.KEC` as the EVM opcode.
+      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ba).toList)
+      | _ => .error .typeError
+  | .abiEncodePacked args => do
+      let bytes <- evalPackedArgs? cfg solm evm args
+      pure (.bytes (ByteArray.mk bytes.toArray))
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]
@@ -1099,6 +1139,21 @@ def evalStructFields? (cfg : Config) (solm : Frame) (evm : EVM.State) :
 termination_by fs => (structFieldsEvalSize fs, 0)
 decreasing_by
   all_goals simp [structFieldsEvalSize]
+  all_goals omega
+
+/-- Evaluate each `abi.encodePacked` operand left to right and concatenate its packed encoding,
+    short-circuiting on the first `revert`/`error` (or a `.typeError` if a value cannot be packed). -/
+def evalPackedArgs? (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    List (ABIType × Expr) -> EvalResult (List UInt8)
+  | [] => pure []
+  | (ty, e) :: rest => do
+      let v <- evalExpr? cfg solm evm e
+      let head <- EvalResult.ofOption .typeError (encodePackedValue? ty v)
+      let tail <- evalPackedArgs? cfg solm evm rest
+      pure (head ++ tail)
+termination_by as => (typedArgsEvalSize as, 0)
+decreasing_by
+  all_goals simp [typedArgsEvalSize]
   all_goals omega
 
 end
