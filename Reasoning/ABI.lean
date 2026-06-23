@@ -50,9 +50,76 @@ def decodeScalarWords? : List ABIType → List UInt8 → Nat → Option (List So
       let values <- decodeScalarWords? tys bytes (cursor + 32)
       some (value :: values)
 
+theorem readWord?_some_length {bytes : List UInt8} {offset : Nat} {word : EVM.Word}
+    (h : readWord? bytes offset = some word) : offset + 32 ≤ bytes.length := by
+  unfold readWord? at h
+  cases hread : readBytes? bytes offset 32 with
+  | none => simp [hread] at h
+  | some slice =>
+      unfold readBytes? at hread
+      by_cases hlen : ((bytes.drop offset).take 32).length = 32
+      · have hmin : min 32 (bytes.length - offset) = 32 := by
+          simpa [List.length_take, List.length_drop] using hlen
+        have hle : 32 ≤ bytes.length - offset := by
+          by_cases hle : 32 ≤ bytes.length - offset
+          · exact hle
+          · have hlt : bytes.length - offset < 32 := Nat.lt_of_not_ge hle
+            have hmin' : min 32 (bytes.length - offset) = bytes.length - offset :=
+              Nat.min_eq_right (Nat.le_of_lt hlt)
+            rw [hmin'] at hmin
+            omega
+        omega
+      · change
+          (if ((bytes.drop offset).take 32).length = 32 then
+            some ((bytes.drop offset).take 32)
+          else none) = some slice at hread
+        simp at hread
+        omega
+
+theorem decodeScalarWord?_some_length {ty : ABIType} {bytes : List UInt8} {cursor : Nat}
+    {value : Solm.Value × Nat}
+    (h : decodeScalarWord? ty bytes cursor = some value) : cursor + 32 ≤ bytes.length := by
+  unfold decodeScalarWord? at h
+  cases hread : readWord? bytes cursor with
+  | none => simp [hread] at h
+  | some word => exact readWord?_some_length hread
+
+theorem decodeScalarWords?_some_length {types : List ABIType} {bytes : List UInt8}
+    {cursor : Nat} {values : List Solm.Value}
+    (hcursor : cursor ≤ bytes.length)
+    (h : decodeScalarWords? types bytes cursor = some values) :
+    cursor + 32 * types.length ≤ bytes.length := by
+  induction types generalizing cursor values with
+  | nil =>
+      simp [decodeScalarWords?] at h
+      simpa using hcursor
+  | cons ty tys ih =>
+      unfold decodeScalarWords? at h
+      cases hword : decodeScalarWord? ty bytes cursor with
+      | none => simp [hword] at h
+      | some value =>
+          cases hrest : decodeScalarWords? tys bytes (cursor + 32) with
+          | none => simp [hword, hrest] at h
+          | some restValues =>
+              have hhead := decodeScalarWord?_some_length hword
+              have htail := ih hhead hrest
+              simp [hword, hrest] at h
+              simpa [List.length_cons, Nat.mul_add, Nat.add_assoc, Nat.add_comm,
+                Nat.add_left_comm] using htail
+
 theorem isABIScalarWordType_dynamic {ty : ABIType} (h : isABIScalarWordType ty = true) :
     isDynamicABIType ty = false := by
   cases ty <;> simp [isABIScalarWordType, isDynamicABIType] at h ⊢
+
+theorem isABIScalarWordTypes_any_dynamic_false {types : List ABIType}
+    (h : types.all isABIScalarWordType = true) :
+    types.any isDynamicABIType = false := by
+  induction types with
+  | nil => rfl
+  | cons ty tys ih =>
+      simp only [List.all_cons, Bool.and_eq_true] at h
+      rcases h with ⟨hty, htys⟩
+      simp [isABIScalarWordType_dynamic hty, ih htys]
 
 theorem isABIScalarWordType_size {ty : ABIType} (h : isABIScalarWordType ty = true) :
     staticABIEncodedSize? ty = some 32 := by
@@ -151,6 +218,9 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
     conv_rhs => rw [if_pos hlt]
   · conv_lhs => rw [if_neg hlt]
     conv_rhs => rw [if_neg hlt]
+    have hdynFalse : types.any isDynamicABIType = false :=
+      isABIScalarWordTypes_any_dynamic_false hscalar
+    conv_lhs => rw [if_neg (by simp [hdynFalse])]
     cases types with
     | nil =>
         simp [decodeCalldata.decodeArgs, decodeScalarWords?]
@@ -169,9 +239,16 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
             (bytes := cd.toList.drop 4) (cursor := 0) (total := 32 * (ty :: tys).length)
             hscalar (by simp)
           rw [hvals]
-          cases decodeScalarWords? (ty :: tys) (cd.toList.drop 4) 0 with
-          | none => rfl
+          cases hscal : decodeScalarWords? (ty :: tys) (cd.toList.drop 4) 0 with
+          | none =>
+              by_cases hshort : (cd.toList.drop 4).length < 32 * (ty :: tys).length
+              · rw [if_pos hshort]
+              · rw [if_neg hshort]
           | some values =>
+              have hnotShort : ¬(cd.toList.drop 4).length < 32 * (ty :: tys).length := by
+                have hlen := decodeScalarWords?_some_length (Nat.zero_le _) hscal
+                omega
+              rw [if_neg hnotShort]
               simp only
               cases decodeCalldata.insertValues names values ∅ <;> rfl
 
