@@ -2500,48 +2500,51 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
           · simp [h0, hmax0] at hdec
           · by_cases hoff0 : off0 < 96
             · simp [h0, hmax0, hoff0] at hdec
-            · simp [h0, hmax0, hoff0] at hdec
-            cases hval0 : decodeABIValue? (.dynamicArray uint256)
-                (List.drop 4 I.calldata.toList) off0 with
-            | none => simp [hval0] at hdec
-            | some p0 =>
-                rcases p0 with ⟨v0, _⟩
-                rcases decodeABIValue_dynamicArray_is_array hval0 with ⟨values, rfl⟩
-                simp [hval0] at hdec
-                cases h1 : readNat? (List.drop 4 I.calldata.toList) 32 with
-                | none => simp [h1] at hdec
-                | some off1 =>
-                    by_cases hmax1 : solcMaxU64 < off1
-                    · simp [h1, hmax1] at hdec
-                    · by_cases hoff1 : off1 < 96
-                      · simp [h1, hmax1, hoff1] at hdec
-                      · simp [h1, hmax1, hoff1] at hdec
-                      cases hval1 : decodeABIValue? (.dynamicArray boolTy)
-                          (List.drop 4 I.calldata.toList) off1 with
-                      | none => simp [hval1] at hdec
-                      | some p1 =>
-                          rcases p1 with ⟨v1, _⟩
-                          rcases decodeABIValue_dynamicArray_is_array hval1 with ⟨fakes, rfl⟩
-                          simp [hval1] at hdec
-                          cases h2 : readNat? (List.drop 4 I.calldata.toList) 64 with
-                          | none => simp [h2] at hdec
-                          | some off2 =>
-                              by_cases hmax2 : solcMaxU64 < off2
-                              · simp [h2, hmax2] at hdec
-                              · by_cases hoff2 : off2 < 96
-                                · simp [h2, hmax2, hoff2] at hdec
-                                · simp [h2, hmax2, hoff2] at hdec
-                                cases hval2 : decodeABIValue? (.dynamicArray bytes32)
-                                    (List.drop 4 I.calldata.toList) off2 with
-                                | none => simp [hval2] at hdec
-                                | some p2 =>
-                                    rcases p2 with ⟨v2, _⟩
-                                    rcases decodeABIValue_dynamicArray_is_array hval2 with
-                                      ⟨secrets, rfl⟩
-                                    simp [hval2] at hdec
-                                    simp [decodeCalldata.insertValues] at hdec
-                                    cases hdec
-                                    exact ⟨values, fakes, secrets, rfl⟩
+            ·
+              simp [h0, hmax0, hoff0] at hdec
+              cases hval0 : decodeABIValue? (.dynamicArray uint256)
+                  (List.drop 4 I.calldata.toList) off0 with
+              | none => simp [hval0] at hdec
+              | some p0 =>
+                  rcases p0 with ⟨v0, _⟩
+                  rcases decodeABIValue_dynamicArray_is_array hval0 with ⟨values, rfl⟩
+                  simp [hval0] at hdec
+                  cases h1 : readNat? (List.drop 4 I.calldata.toList) 32 with
+                  | none => simp [h1] at hdec
+                  | some off1 =>
+                      by_cases hmax1 : solcMaxU64 < off1
+                      · simp [h1, hmax1] at hdec
+                      · by_cases hoff1 : off1 < 96
+                        · simp [h1, hmax1, hoff1] at hdec
+                        ·
+                          simp [h1, hmax1, hoff1] at hdec
+                          cases hval1 : decodeABIValue? (.dynamicArray boolTy)
+                              (List.drop 4 I.calldata.toList) off1 with
+                          | none => simp [hval1] at hdec
+                          | some p1 =>
+                              rcases p1 with ⟨v1, _⟩
+                              rcases decodeABIValue_dynamicArray_is_array hval1 with ⟨fakes, rfl⟩
+                              simp [hval1] at hdec
+                              cases h2 : readNat? (List.drop 4 I.calldata.toList) 64 with
+                              | none => simp [h2] at hdec
+                              | some off2 =>
+                                  by_cases hmax2 : solcMaxU64 < off2
+                                  · simp [h2, hmax2] at hdec
+                                  · by_cases hoff2 : off2 < 96
+                                    · simp [h2, hmax2, hoff2] at hdec
+                                    ·
+                                      simp [h2, hmax2, hoff2] at hdec
+                                      cases hval2 : decodeABIValue? (.dynamicArray bytes32)
+                                          (List.drop 4 I.calldata.toList) off2 with
+                                      | none => simp [hval2] at hdec
+                                      | some p2 =>
+                                          rcases p2 with ⟨v2, _⟩
+                                          rcases decodeABIValue_dynamicArray_is_array hval2 with
+                                            ⟨secrets, rfl⟩
+                                          simp [hval2] at hdec
+                                          simp [decodeCalldata.insertValues] at hdec
+                                          cases hdec
+                                          exact ⟨values, fakes, secrets, rfl⟩
 
 theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs : Store}
     {name : Ident}
