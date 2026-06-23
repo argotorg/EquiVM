@@ -19,8 +19,9 @@ Notable Solm features exercised:
 * the four solc-generated public getters (`beneficiary`, `auctionEndTime`, `highestBidder`,
   `highestBid`).
 
-The storage layout and the (empty) external-call ABI are taken from the generic Solidity helpers;
-they are a sketch to be pinned when proving runtime equivalence against the deployed bytecode.
+The storage layout below is hand-written to match the deployed solc bytecode: scalar slots 0..3,
+`pendingReturns` uses mapping base slot 4, and `ended` is packed at slot 5, byte offset 0.  The
+external-call ABI uses the generic empty-call helper.
 -/
 
 open Solm ABI
@@ -166,12 +167,38 @@ def simpleAuctionContract : ContractDecl :=
       [ bidTransition, withdrawTransition, auctionEndTransition,
         beneficiaryGetter, auctionEndTimeGetter, highestBidderGetter, highestBidGetter ] }
 
-/-- Storage layout (sketch — refine the slot details when proving). -/
+/-! ## Hand-written storage layout
+
+The generated Solidity-layout helper currently places the scalar after a mapping one slot too late
+for this contract.  The deployed bytecode uses Solidity's standard layout:
+`pendingReturns` reserves only base slot 4 and `ended` is packed at slot 5, byte offset 0.
+-/
+
+def simpleAuctionUint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
+
+def simpleAuctionAddrLoc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
+
+def simpleAuctionBoolLoc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
+
+def simpleAuctionMappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
+  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+
+def pendingReturnsSlot (owner : KeyValue) : Ethereum.UInt256 :=
+  simpleAuctionMappingSlot (keyValueToWord owner) ⟨4⟩
+
 def simpleAuctionStorageLayout : StorageLayout where
-  layout :=
-    match genSolidityLayout [] storageDecls with
-    | some layout => layout
-    | none => fun _ _ => none
+  layout ref _ :=
+    match ref.base, ref.steps with
+    | "beneficiary", [] => some (simpleAuctionAddrLoc ⟨0⟩)
+    | "auctionEndTime", [] => some (simpleAuctionUint256Loc ⟨1⟩)
+    | "highestBidder", [] => some (simpleAuctionAddrLoc ⟨2⟩)
+    | "highestBid", [] => some (simpleAuctionUint256Loc ⟨3⟩)
+    | "pendingReturns", [.mindex owner] => some (simpleAuctionUint256Loc (pendingReturnsSlot owner))
+    | "ended", [] => some (simpleAuctionBoolLoc ⟨5⟩)
+    | _, _ => none
 
 end SimpleAuction
 
@@ -180,3 +207,33 @@ def simpleAuctionConfig : Config :=
     externalABI := defaultExternalCallABI
     selfDeployment :=
       genSolidityConstructorDeployment SimpleAuction.simpleAuctionContract.ctor.params }
+
+@[simp] theorem simpleAuctionConfig_storage_beneficiary :
+    simpleAuctionConfig.storage.layout { base := "beneficiary", steps := [] } =
+      fun _ => some (SimpleAuction.simpleAuctionAddrLoc ⟨0⟩) :=
+  rfl
+
+@[simp] theorem simpleAuctionConfig_storage_auctionEndTime :
+    simpleAuctionConfig.storage.layout { base := "auctionEndTime", steps := [] } =
+      fun _ => some (SimpleAuction.simpleAuctionUint256Loc ⟨1⟩) :=
+  rfl
+
+@[simp] theorem simpleAuctionConfig_storage_highestBidder :
+    simpleAuctionConfig.storage.layout { base := "highestBidder", steps := [] } =
+      fun _ => some (SimpleAuction.simpleAuctionAddrLoc ⟨2⟩) :=
+  rfl
+
+@[simp] theorem simpleAuctionConfig_storage_highestBid :
+    simpleAuctionConfig.storage.layout { base := "highestBid", steps := [] } =
+      fun _ => some (SimpleAuction.simpleAuctionUint256Loc ⟨3⟩) :=
+  rfl
+
+@[simp] theorem simpleAuctionConfig_storage_pendingReturns (owner : KeyValue) :
+    simpleAuctionConfig.storage.layout { base := "pendingReturns", steps := [.mindex owner] } =
+      fun _ => some (SimpleAuction.simpleAuctionUint256Loc (SimpleAuction.pendingReturnsSlot owner)) :=
+  rfl
+
+@[simp] theorem simpleAuctionConfig_storage_ended :
+    simpleAuctionConfig.storage.layout { base := "ended", steps := [] } =
+      fun _ => some (SimpleAuction.simpleAuctionBoolLoc ⟨5⟩) :=
+  rfl

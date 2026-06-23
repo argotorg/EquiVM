@@ -25,8 +25,9 @@ Notable Solm features exercised:
   reduces to equality of the hashed bytes — i.e. that our packed encoding matches what solc lays out
   in memory before hashing.
 
-The storage layout and the (empty) external ABI are sketches from the generic Solidity helpers, to
-be pinned when proving.
+The storage layout is **hand-written** to match the deployed bytecode (the nested
+`mapping → Bid[] → struct` defeats `genSolidityLayout`); the (empty) external ABI is the generic
+default.
 -/
 
 open Solm ABI
@@ -282,12 +283,59 @@ def blindAuctionContract : ContractDecl :=
         beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter,
         highestBidderGetter, highestBidGetter, bidsGetter ] }
 
-/-- Storage layout (sketch — refine the slot details when proving). -/
+/-! ## Hand-written storage layout
+
+`genSolidityLayout`'s nested `mapping → dynamic-array → struct` handling is still WIP, so the layout is
+written by hand to match the deployed bytecode (as `Ballot` does).  Solidity's standard layout:
+scalars at their declaration slots (`beneficiary`@0 … `pendingReturns`@7), `ended` packed at slot 3
+byte offset 0; a mapping entry `m[k]` at `keccak256(k ‖ baseSlot)`; and the dynamic array `bids[a]`
+keeps its **length** at its base slot `M = keccak256(a ‖ 4)` with elements (each `Bid` = two words) at
+`keccak256(M) + 2·i` (`.blindedBid` at `+0`, `.deposit` at `+1`).
+-/
+
+def blindAuctionUint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
+
+def blindAuctionAddrLoc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
+
+def blindAuctionBoolLoc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
+
+def blindAuctionBytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes ⟨31, by decide⟩ }
+
+def blindAuctionMappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
+  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+
+/-- Base slot of `bids[a]` (mapping at decl slot 4); the array **length** lives here. -/
+def bidsBase (a : KeyValue) : Ethereum.UInt256 :=
+  blindAuctionMappingSlot (keyValueToWord a) ⟨4⟩
+
+/-- Slot of `bids[a][i]` — data region `keccak256(base)` plus `2·i` (each `Bid` is two words). -/
+def bidsElemSlot (a i : KeyValue) : Ethereum.UInt256 :=
+  Ethereum.uInt256OfByteArray (ffi.KEC (bidsBase a).toByteArray)
+    + Ethereum.UInt256.ofNat ((keyValueToWord i).toNat * 2)
+
+def pendingReturnsSlot (a : KeyValue) : Ethereum.UInt256 :=
+  blindAuctionMappingSlot (keyValueToWord a) ⟨7⟩
+
 def blindAuctionStorageLayout : StorageLayout where
-  layout :=
-    match genSolidityLayout [] storageDecls with
-    | some layout => layout
-    | none => fun _ _ => none
+  layout ref _ :=
+    match ref.base, ref.steps with
+    | "beneficiary", [] => some (blindAuctionAddrLoc ⟨0⟩)
+    | "biddingEnd", [] => some (blindAuctionUint256Loc ⟨1⟩)
+    | "revealEnd", [] => some (blindAuctionUint256Loc ⟨2⟩)
+    | "ended", [] => some (blindAuctionBoolLoc ⟨3⟩)
+    | "bids", [.mindex a, .length] => some (blindAuctionUint256Loc (bidsBase a))
+    | "bids", [.mindex a, .aindex i, .field "blindedBid"] =>
+        some (blindAuctionBytes32Loc (bidsElemSlot a i))
+    | "bids", [.mindex a, .aindex i, .field "deposit"] =>
+        some (blindAuctionUint256Loc (bidsElemSlot a i + ⟨1⟩))
+    | "highestBidder", [] => some (blindAuctionAddrLoc ⟨5⟩)
+    | "highestBid", [] => some (blindAuctionUint256Loc ⟨6⟩)
+    | "pendingReturns", [.mindex a] => some (blindAuctionUint256Loc (pendingReturnsSlot a))
+    | _, _ => none
 
 end BlindAuction
 
@@ -296,3 +344,55 @@ def blindAuctionConfig : Config :=
     externalABI := defaultExternalCallABI
     selfDeployment :=
       genSolidityConstructorDeployment BlindAuction.blindAuctionContract.ctor.params }
+
+@[simp] theorem blindAuctionConfig_storage_beneficiary :
+    blindAuctionConfig.storage.layout { base := "beneficiary", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionAddrLoc ⟨0⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_biddingEnd :
+    blindAuctionConfig.storage.layout { base := "biddingEnd", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc ⟨1⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_revealEnd :
+    blindAuctionConfig.storage.layout { base := "revealEnd", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc ⟨2⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_ended :
+    blindAuctionConfig.storage.layout { base := "ended", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionBoolLoc ⟨3⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_bids_length (a : KeyValue) :
+    blindAuctionConfig.storage.layout { base := "bids", steps := [.mindex a, .length] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc (BlindAuction.bidsBase a)) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_bids_blindedBid (a i : KeyValue) :
+    blindAuctionConfig.storage.layout
+        { base := "bids", steps := [.mindex a, .aindex i, .field "blindedBid"] } =
+      fun _ => some (BlindAuction.blindAuctionBytes32Loc (BlindAuction.bidsElemSlot a i)) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_bids_deposit (a i : KeyValue) :
+    blindAuctionConfig.storage.layout
+        { base := "bids", steps := [.mindex a, .aindex i, .field "deposit"] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc (BlindAuction.bidsElemSlot a i + ⟨1⟩)) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_highestBidder :
+    blindAuctionConfig.storage.layout { base := "highestBidder", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionAddrLoc ⟨5⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_highestBid :
+    blindAuctionConfig.storage.layout { base := "highestBid", steps := [] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc ⟨6⟩) :=
+  rfl
+
+@[simp] theorem blindAuctionConfig_storage_pendingReturns (a : KeyValue) :
+    blindAuctionConfig.storage.layout { base := "pendingReturns", steps := [.mindex a] } =
+      fun _ => some (BlindAuction.blindAuctionUint256Loc (BlindAuction.pendingReturnsSlot a)) :=
+  rfl
