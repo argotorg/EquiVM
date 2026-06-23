@@ -13,6 +13,7 @@ inductive KeyValue where
   | int : Int -> KeyValue
   | bool : Bool -> KeyValue
   | address : EVM.Address -> KeyValue
+  | fixedBytes : Fin 32 -> List UInt8 -> KeyValue
   deriving DecidableEq, Repr, Inhabited
 
 inductive EvaledStorageRefStep where
@@ -190,6 +191,7 @@ inductive EnvVar where
   | callvalue
   | this
   | timestamp
+  | selfbalance
   deriving DecidableEq, Repr, Inhabited
 
 inductive UnaryOp where
@@ -272,6 +274,15 @@ inductive Expr where
      dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed
      width (`uintN`→N/8 bytes, `bool`→1, `address`→20, `bytesN`→N, with no length prefixes). -/
   | abiEncodePacked : List (ABIType × Expr) -> Expr
+  /- `addr.code.length` (EXTCODESIZE): the size in bytes of the code deployed at address `addr`.
+     Matches `Ethereum.State.extCodeSize` — a non-existent account or an EOA (no code) has size 0.
+     Used by ERC721 `safeTransferFrom`'s `to.code.length == 0` contract-detection guard. -/
+  | extCodeSize : Expr -> Expr
+  /- Fixed-size `bytesN` literal: the ABI type index (`n : Fin 32` ⇒ width `n+1`) and the bytes in
+     Solidity order.  Models compile-time `bytesN` constants — hex `bytesN` literals, a function's
+     `.selector` (`bytes4`), and `type(I).interfaceId` (`bytes4`) — all of which solc bakes as PUSH
+     immediates.  Evaluates to `Value.fixedBytes n bs`; `==`/comparisons already act on `fixedBytes`. -/
+  | fixedBytesLit : Fin 32 -> List UInt8 -> Expr
 
 inductive StorageRefStep where
   | field : Ident -> StorageRefStep
@@ -914,6 +925,109 @@ mutual
     | .ite _ _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
     | .abiEncodePacked _, .arrayLength _ _ => isFalse (by intro h; cases h)
     | .arrayLength _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .extCodeSize x, .extCodeSize y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .fixedBytesLit nx bx, .fixedBytesLit ny byy =>
+        match (inferInstance : Decidable (nx = ny)), (inferInstance : Decidable (bx = byy)) with
+        | isTrue hn, isTrue hb => isTrue (by cases hn; cases hb; rfl)
+        | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse hb => isFalse (by intro h; cases h; exact hb rfl)
+    | .extCodeSize _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
 
   private def Expr.decEqList : (as bs : List Expr) -> Decidable (as = bs)
     | [], [] => isTrue rfl

@@ -64,6 +64,9 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .callvalue => .int (Int.ofNat evm.executionEnv.weiValue.val)
   | .this => .address evm.executionEnv.codeOwner
   | .timestamp => .int (Int.ofNat (Ethereum.UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+  | .selfbalance =>
+      .int (Int.ofNat ((evm.lookupAccount evm.executionEnv.codeOwner).option
+        (EVM.Word.ofNat 0) (·.balance)).toNat)
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -91,6 +94,7 @@ def valueToKey? (v : Value) : Option KeyValue :=
   | .int i => pure $ .int i
   | .bool b => pure $ .bool b
   | .address a => pure $ .address a
+  | .fixedBytes n bs => pure $ .fixedBytes n bs
   | _ => .none
 
 def lookupAssoc [DecidableEq α] (entries : List (α × β)) (key : α) : Option β :=
@@ -457,6 +461,8 @@ mutual
         exprEvalSize cond + exprEvalSize thenExpr + exprEvalSize elseExpr + 1
     | .keccak256 e => exprEvalSize e + 1
     | .abiEncodePacked args => typedArgsEvalSize args + 1
+    | .extCodeSize e => exprEvalSize e + 1
+    | .fixedBytesLit _ _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
     all_goals simp_wf
@@ -1110,6 +1116,14 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .abiEncodePacked args => do
       let bytes <- evalPackedArgs? cfg solm evm args
       pure (.bytes (ByteArray.mk bytes.toArray))
+  | .extCodeSize e => do
+      let value <- evalExpr? cfg solm evm e
+      match value with
+      -- EXTCODESIZE: the deployed code size at `a`; 0 for a non-existent account or an EOA.
+      -- Mirrors `Ethereum.State.extCodeSize` (which the EVM's EXTCODESIZE opcode dispatches to).
+      | .address a => pure (.int (Int.ofNat ((evm.lookupAccount a).option 0 (fun acc => acc.code.size))))
+      | _ => .error .typeError
+  | .fixedBytesLit n bs => pure (.fixedBytes n bs)
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]
