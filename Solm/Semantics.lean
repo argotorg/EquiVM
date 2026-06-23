@@ -63,7 +63,7 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .origin => .address evm.executionEnv.sender
   | .callvalue => .int (Int.ofNat evm.executionEnv.weiValue.val)
   | .this => .address evm.executionEnv.codeOwner
-  | .timestamp => .int (Int.ofNat evm.executionEnv.header.timestamp)
+  | .timestamp => .int (Int.ofNat (Ethereum.UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -197,6 +197,8 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .elem (.address), .address _ => some v
   | .elem (.bytes expected), .fixedBytes actual _ =>
       if expected = actual then some v else none
+  | .elem (.bytes expected), .int n =>
+      some (.fixedBytes expected ((EVM.Word.ofNat n.toNat).toBytesBE.drop (32 - (expected.val + 1))))
   -- `address(n)`: an integer cast to `address` (e.g. `address(0)`), truncated to the address width.
   | .elem (.address), .int n => some (.address (.ofNat n.toNat))
   | .elem (.int _), .int _ => some v
@@ -1331,14 +1333,14 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option Va
   { caller with locals := caller.locals.insert retVar valueToWrite }
 
 /-- `arr.push(v?)`: grow the dynamic array named by `ref` by one.  Reads the current length `L`
-    (the layout's `.length` query); `some v` writes the value `v` at element `L` via `writeStorage?`
-    — so scalar **and** compound (struct / nested array) elements are written in full, bypassing the
-    bounds check (appending at the currently-out-of-range index `L` is the point).  `none` is a
-    grow-only push (the new slots are already zero by storage default).  Then sets length to `L+1`.
-    `.revert`s only if evaluating the array ref does.  It `.error`s (a stuck, ill-formed program)
-    when the target isn't a dynamic array, the layout has no `.length`/element slot for it, the
-    length slot doesn't hold an integer, or a compound value's shape doesn't match the element type —
-    i.e. for a well-formed layout + matching value, `.revert` is the only non-`.ok` outcome. -/
+    (the layout's `.length` query), stores length `L+1`, then `some v` writes the value at element
+    `L` via `writeStorage?`.  Writing the length first mirrors solc's generated storage order and
+    also makes the new index in-bounds for the ordinary storage writer.  `none` is a grow-only push
+    (the new slots are already zero by storage default).  `.revert`s only if evaluating the array ref
+    does.  It `.error`s (a stuck, ill-formed program) when the target isn't a dynamic array, the
+    layout has no `.length`/element slot for it, the length slot doesn't hold an integer, or a
+    compound value's shape doesn't match the element type — i.e. for a well-formed layout + matching
+    value, `.revert` is the only non-`.ok` outcome. -/
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     (value : Option Value) : EvalResult EVM.State := do
   let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
@@ -1346,12 +1348,12 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
     (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
   match storageLocLoad evm lenLoc with
   | .int len => do
-      let evm1 <- match value with
+      let evmLen <- EvalResult.ofOption .storageError (storageLocStore evm lenLoc (.int (len + 1)))
+      match value with
         | some v =>
-            writeStorage? cfg evm
+            writeStorage? cfg evmLen
               { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
-        | none => pure evm
-      EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len + 1)))
+        | none => pure evmLen
   | _ => .error .storageError
 
 /-- `arr.pop()`: remove the last element of the dynamic array named by `ref`.  Reverts when the
