@@ -77,8 +77,9 @@ data are possible on the Solm side, with a post-call account map equivalent to t
 map.  This is the narrow interface needed by examples; it should be replaced by the direct proof
 about `Ethereum.EVM.Θ` once that proof lands. -/
 axiom typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_evm : EVM.State}
-    {tgt : EVM.Address} {name : Ident} {args : List Value} {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg evm_evm tgt name 0 args (z, evm'_evm, out))
+    {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
+    {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out))
     (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
     (hOriginalAccounts : accountMapEquiv evm_evm.σ₀ evm_solm.σ₀)
     (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
@@ -87,7 +88,7 @@ axiom typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_evm 
     (hSubstate : evm_solm.substate = evm_evm.substate)
     (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-      typedCallViaEVM cfg evm_solm tgt name 0 args
+      typedCallViaEVM cfg evm_solm tgt name value args
         (z,
           { evm_solm with
               accountMap := σ'_solm
@@ -102,14 +103,14 @@ This is the shape runtime-equivalence examples usually need: the EVM and Solm ru
 split-but-equivalent account maps while all other transaction fields are shared. -/
 theorem typedCallViaEVM_initState_accountMapEquiv {cfg : Config}
     {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
-    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name 0 args
-      (z, evm'_evm, out))
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {value : ℤ}
+    {args : List Value} {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name value
+      args (z, evm'_evm, out))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name 0 args
+      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name value args
         (z,
           { initState cA gh bl σ_solm σ₀_solm g A I with
               accountMap := σ'_solm
@@ -138,15 +139,15 @@ result).  This is the external-call peer of the storage-write `EVMStateEquiv` ch
 ends in `SSTORE`s after a call can stay entirely within the `EVMStateEquiv` simulation relation. -/
 theorem typedCallViaEVM_initState_EVMStateEquiv {cfg : Config}
     {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
-    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name 0 args
-      (z, evm'_evm, out))
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {value : ℤ}
+    {args : List Value} {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg (initState cA gh bl σ_evm σ₀_evm g A I) tgt name value
+      args (z, evm'_evm, out))
     (hEnv : evm'_evm.executionEnv = (initState cA gh bl σ_solm σ₀_solm g A I).executionEnv)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name 0 args
+      typedCallViaEVM cfg (initState cA gh bl σ_solm σ₀_solm g A I) tgt name value args
         (z,
           { initState cA gh bl σ_solm σ₀_solm g A I with
               accountMap := σ'_solm
@@ -161,6 +162,102 @@ theorem typedCallViaEVM_initState_EVMStateEquiv {cfg : Config}
   obtain ⟨σ'_solm, A'_solm, hcoin_solm, hσ'⟩ :=
     typedCallViaEVM_initState_accountMapEquiv hcall hAccounts hOriginalAccounts
   exact ⟨σ'_solm, A'_solm, hcoin_solm, hEnv, rfl, hσ'⟩
+
+/-- A synthetic ABI that always encodes the chosen raw calldata.  This lets raw `callViaEVM`
+    transport reuse the typed-call account-map bridge without adding a second trusted axiom. -/
+def rawCallTransportConfig (storage : StorageLayout) (calldata : ByteArray) : Config :=
+  { storage := storage
+    externalABI :=
+      { encode? := fun _ _ => some calldata
+        decode? := fun _ _ => none }
+    selfDeployment := fun _ _ => none }
+
+/-- Raw low-level call transport across observationally equivalent account maps. -/
+theorem callViaEVM_accountMapEquiv {storage : StorageLayout}
+    {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray} {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM evm_evm tgt value calldata (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : accountMapEquiv evm_evm.σ₀ evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (hSubstate : evm_solm.substate = evm_evm.substate)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM evm_solm tgt value calldata
+        (z,
+          { evm_solm with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm := by
+  let cfg := rawCallTransportConfig storage calldata
+  have htyped : typedCallViaEVM cfg evm_evm tgt "" value [] (z, evm'_evm, out) :=
+    ⟨calldata, rfl, hcall⟩
+  obtain ⟨σ'_solm, A'_solm, htyped_solm, hσ'⟩ :=
+    typedCallViaEVM_accountMapEquiv htyped hAccounts hOriginalAccounts hCreated hGenesis hBlocks
+      hSubstate hEnv
+  rcases htyped_solm with ⟨calldata', henc, hraw⟩
+  simp only [cfg, rawCallTransportConfig] at henc
+  cases henc
+  exact ⟨σ'_solm, A'_solm, hraw, hσ'⟩
+
+/-- `initState`-specialized raw low-level call transport. -/
+theorem callViaEVM_initState_accountMapEquiv {storage : StorageLayout}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM (initState cA gh bl σ_evm σ₀_evm g A I) tgt value calldata
+      (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM (initState cA gh bl σ_solm σ₀_solm g A I) tgt value calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀_solm g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm :=
+  callViaEVM_accountMapEquiv (storage := storage)
+    (evm_solm := initState cA gh bl σ_solm σ₀_solm g A I) hcall
+    (by simpa [initState] using hAccounts)
+    (by simpa [initState] using hOriginalAccounts)
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+
+/-- `EVMStateEquiv`-returning form of raw low-level call transport. -/
+theorem callViaEVM_initState_EVMStateEquiv {storage : StorageLayout}
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM (initState cA gh bl σ_evm σ₀_evm g A I) tgt value calldata
+      (z, evm'_evm, out))
+    (hEnv : evm'_evm.executionEnv = (initState cA gh bl σ_solm σ₀_solm g A I).executionEnv)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM (initState cA gh bl σ_solm σ₀_solm g A I) tgt value calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀_solm g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      EVMStateEquiv evm'_evm
+        { initState cA gh bl σ_solm σ₀_solm g A I with
+            accountMap := σ'_solm
+            substate := A'_solm
+            createdAccounts := evm'_evm.createdAccounts } := by
+  obtain ⟨σ'_solm, A'_solm, hcall_solm, hσ'⟩ :=
+    callViaEVM_initState_accountMapEquiv (storage := storage) hcall hAccounts hOriginalAccounts
+  exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
 
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching

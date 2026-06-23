@@ -139,6 +139,43 @@ theorem execFor_var {cfg : Config} {C : ContractDecl} {evm : EVM.State}
     obtain ⟨L', hloop, hP'⟩ := ih L2 hP1
     exact ⟨L', ExecForLoop.iterate (htrue v L hP) hbody hpost hloop, hP'⟩
 
+/-- **State-threading, continue-aware Hoare for-loop rule.**
+
+This is the `execFor_var` variant needed by loops whose body may either fall through or execute
+`continue`, and whose body/post can update the EVM state.  A body `continue` still runs `post`, as
+Solidity `for` loops do. -/
+theorem execFor_var_state_continue {cfg : Config} {C : ContractDecl}
+    {condExpr : Expr} {post body : List Stmt} (P : ℕ → Solm.Store → EVM.State → Prop)
+    (hfalse : ∀ L evm, P 0 L evm →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool false))
+    (htrue : ∀ v L evm, P (v + 1) L evm →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool true))
+    (hstep : ∀ v L evm, P (v + 1) L evm →
+        ∃ L1 evm1,
+          (ExecBlock cfg { contract := C, locals := L } evm body
+              (.ok { contract := C, locals := L1 } evm1) ∨
+            ExecBlock cfg { contract := C, locals := L } evm body
+              (.continue { contract := C, locals := L1 } evm1)) ∧
+          ∃ L2 evm2,
+            ExecBlock cfg { contract := C, locals := L1 } evm1 post
+              (.ok { contract := C, locals := L2 } evm2) ∧
+            P v L2 evm2) :
+    ∀ v L evm, P v L evm → ∃ L' evm',
+      ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
+        (.ok { contract := C, locals := L' } evm') ∧ P 0 L' evm' := by
+  intro v
+  induction v with
+  | zero =>
+      intro L evm hP
+      exact ⟨L, evm, ExecForLoop.falseDone (hfalse L evm hP), hP⟩
+  | succ v ih =>
+      intro L evm hP
+      obtain ⟨L1, evm1, hbody, L2, evm2, hpost, hP1⟩ := hstep v L evm hP
+      obtain ⟨L', evm', hloop, hP'⟩ := ih L2 evm2 hP1
+      rcases hbody with hbody | hbody
+      · exact ⟨L', evm', ExecForLoop.iterate (htrue v L evm hP) hbody hpost hloop, hP'⟩
+      · exact ⟨L', evm', ExecForLoop.continueIter (htrue v L evm hP) hbody hpost hloop, hP'⟩
+
 /-! ## Forward block builder
 
 `ExecBlock` is built tail-first (`consNormal` needs the rest), so a straight-line body reads
@@ -250,6 +287,21 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
     readStorage?_elem hloc]
 
 /-- A scalar storage write collapses to a single `storageLocStore`. -/
+theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {value : Value}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some ty)
+    (hloc : cfg.storage.layout er = fun _ => some loc)
+    (hscalar : match value with | .struct _ _ | .array _ => False | _ => True)
+    (hstore : storageLocStore evm loc value = some evm') :
+    assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
+  rw [assignStorageRef?]
+  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, EvalResult.ofOption,
+    hloc, hstore, pure]
+  cases value <;> simp at hscalar ⊢
+
+/-- A scalar integer storage write collapses to a single `storageLocStore`. -/
 theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
     {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {n : Int}
     (hbase : solm.locals.get? slot.base = none)
@@ -258,8 +310,6 @@ theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' 
     (hloc : cfg.storage.layout er = fun _ => some loc)
     (hstore : storageLocStore evm loc (.int n) = some evm') :
     assignStorageRef? cfg solm evm .storage slot (.int n) = .ok (solm, evm') := by
-  rw [assignStorageRef?]
-  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, EvalResult.ofOption,
-    hloc, hstore, pure]
+  exact assignStorageRef_storage_scalar_value hbase her hty hloc (by trivial) hstore
 
 end Reasoning.Theory

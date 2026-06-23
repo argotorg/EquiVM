@@ -1209,7 +1209,37 @@ theorem sload_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List U
     simp only [List.length_cons]; omega
   simp only [if_neg hov', stSload]
 
-/-! ### LOG3 (two-stage cost `memExp + logCost`, pops 5, appends a log; needs `perm`) -/
+/-! ### LOG1/LOG3 (two-stage cost `memExp + logCost`, appends a log; needs `perm`) -/
+
+def stLog1 (s : State) (a b c : UInt256) (t : List UInt256) : State :=
+  {s with
+    substate.logSeries := s.substate.logSeries.push
+      ⟨s.executionEnv.codeOwner, #[c], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
+    machineState.stack := t
+    machineState.activeWords :=
+      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
+    machineState.gasAvailable :=
+      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG1)).subNat
+        (GasConstants.Glog + GasConstants.Glogdata * b.toNat + GasConstants.Glogtopic)
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1 }
+
+theorem log1_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.LOG1, .none)) (hperm : s.executionEnv.perm = true)
+    (hstk : s.machineState.stack = a :: b :: c :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat
+            < memoryExpansionCost s .LOG1
+              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + GasConstants.Glogtopic)
+         then .error .OutOfGass else .ok (stLog1 s a b c t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG1, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_log1 s hd, hstk]
+  have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
+    simp only [List.length_cons]; omega
+  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
+  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, stLog1]
 
 def stLog3 (s : State) (a b c d e : UInt256) (t : List UInt256) : State :=
   {s with
