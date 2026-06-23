@@ -4,6 +4,8 @@ import Solm.Value
 
 namespace ABI
 
+def solcMaxU64 : Nat := 18446744073709551615
+
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
 
@@ -96,6 +98,9 @@ mutual
         some (.tuple values, endOffset)
     | .bytes => do
         let size <- readNat? bytes start
+        if solcMaxU64 < size then
+          none
+        else
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
@@ -104,6 +109,9 @@ mutual
     | .string => none
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
+        if solcMaxU64 < size then
+          none
+        else
         let elemsStart := start + 32
         if isDynamicABIType elemTy then do
           let (values, endOffset) <- decodeABIArrayDynamicElems? elemTy size bytes elemsStart
@@ -138,7 +146,9 @@ mutual
     | 0 => some ([], maxEnd)
     | n + 1 => do
         let relativeOffset <- readNat? bytes (base + headCursor)
-        if relativeOffset < headSize then
+        if solcMaxU64 < relativeOffset then
+          none
+        else if relativeOffset < headSize then
           none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)
@@ -155,7 +165,9 @@ mutual
     | ty :: restTypes => do
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
-          if relativeOffset < headSize then
+          if solcMaxU64 < relativeOffset then
+            none
+          else if relativeOffset < headSize then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)
