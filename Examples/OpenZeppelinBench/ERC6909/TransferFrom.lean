@@ -433,6 +433,20 @@ def transferFromReceiverBalanceSlot (I : ExecutionEnv) : UInt256 :=
   balanceSlot (.address (AccountAddress.ofNat (transferFromReceiverWord I).toNat))
     (.int (Int.ofNat (transferFromIdWord I).toNat))
 
+theorem transferFromSenderBalanceKeccakSlot (I : ExecutionEnv)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus) :
+    transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I) =
+      transferFromSenderBalanceSlot I := by
+  rw [transferOuterKeccakSlot _ _ hcanonSender]
+  rfl
+
+theorem transferFromReceiverBalanceKeccakSlot (I : ExecutionEnv)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus) :
+    transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I) =
+      transferFromReceiverBalanceSlot I := by
+  rw [transferOuterKeccakSlot _ _ hcanonReceiver]
+  rfl
+
 abbrev transferFromCallerWord (I : ExecutionEnv) : UInt256 :=
   approveOwnerWord I
 
@@ -455,6 +469,63 @@ def transferFromOperatorSlotI (I : ExecutionEnv) : UInt256 :=
 def transferFromAllowanceSlotI (I : ExecutionEnv) : UInt256 :=
   allowanceSlot (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
     (.address I.source) (.int (Int.ofNat (transferFromIdWord I).toNat))
+
+theorem transferFromOperatorKeccakSlot (I : ExecutionEnv)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        ((ffi.KEC ((isOperatorOuterHashMem (transferFromSenderWord I)
+          (transferFromCallerWord I)).readWithPadding 0 64)))) =
+      transferFromOperatorSlotI I := by
+  have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by
+    rw [← transferFromCaller_ofNat I]
+    exact erc6909KeyValueToWord_address_of_canonical _
+      (transferFromCallerWord_canonical I)
+  have hinner :
+      isOperatorInnerSlot (transferFromSenderWord I) =
+        mapSlot (transferFromSenderWord I) ⟨1⟩ := by
+    unfold isOperatorInnerSlot mapSlot
+    rw [isOperatorInnerHashMem_read0_64]
+    exact mappingSlot_single (transferFromSenderWord I) ⟨1⟩
+  unfold transferFromOperatorSlotI operatorApprovalSlot mapSlot
+  rw [isOperatorOuterHashMem_read0_64, hinner,
+    erc6909KeyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
+  exact mappingSlot_single (transferFromCallerWord I)
+    (mapSlot (transferFromSenderWord I) ⟨1⟩)
+
+theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        ((ffi.KEC ((approveIdHashMem (transferFromSenderWord I)
+          (transferFromCallerWord I) (transferFromIdWord I)).readWithPadding 0 64)))) =
+      transferFromAllowanceSlotI I := by
+  have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by
+    rw [← transferFromCaller_ofNat I]
+    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+      (transferFromCallerWord_canonical I)
+  have hownerSlot :
+      approveOwnerSlot (transferFromSenderWord I) =
+        mapSlot (transferFromSenderWord I) ⟨2⟩ := by
+    unfold approveOwnerSlot mapSlot
+    rw [approveOwnerHashMem_read0_64]
+    exact mappingSlot_single (transferFromSenderWord I) ⟨2⟩
+  have hspenderSlot :
+      approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I) =
+        mapSlot (transferFromCallerWord I) (mapSlot (transferFromSenderWord I) ⟨2⟩) := by
+    unfold approveSpenderSlot mapSlot
+    rw [approveSpenderHashMem_read0_64, hownerSlot]
+    exact mappingSlot_single (transferFromCallerWord I)
+      (mapSlot (transferFromSenderWord I) ⟨2⟩)
+  unfold transferFromAllowanceSlotI allowanceSlot mapSlot
+  rw [approveIdHashMem_read0_64, hspenderSlot,
+    erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
+  rw [show keyValueToWord (.int (Int.ofNat (transferFromIdWord I).toNat)) =
+      transferFromIdWord I from erc6909WordOfInt_ofNat_toNat (transferFromIdWord I)]
+  exact mappingSlot_single (transferFromIdWord I)
+    (mapSlot (transferFromCallerWord I) (mapSlot (transferFromSenderWord I) ⟨2⟩))
+
+theorem uint256_lnot_zero_max :
+    UInt256.lnot (⟨0⟩ : UInt256) = UInt256.ofNat (UInt256.size - 1) := by
+  decide
 
 theorem transferFromOperatorSlot_init {cA gh bl σ σ₀ A I} {g : Sat256} :
     transferFromOperatorSlot (initState cA gh bl σ σ₀ g A I) I =
@@ -641,6 +712,16 @@ theorem transferFromStoreCurrentAllowance_sender (evm : EVM.State) (I : Executio
     (transferFromStoreCurrentAllowance evm I).get? "sender" =
       some (transferFromSenderValue I) := by
   rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_sender]
+
+theorem transferFromStoreCurrentAllowance_receiver (evm : EVM.State) (I : ExecutionEnv) :
+    (transferFromStoreCurrentAllowance evm I).get? "receiver" =
+      some (transferFromReceiverValue I) := by
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_receiver]
+
+theorem transferFromStoreCurrentAllowance_id (evm : EVM.State) (I : ExecutionEnv) :
+    (transferFromStoreCurrentAllowance evm I).get? "id" =
+      some (transferFromIdValue I) := by
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_id]
 
 theorem transferFromStoreCurrentAllowance_amount (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreCurrentAllowance evm I).get? "amount" =
@@ -931,6 +1012,143 @@ theorem evalExpr_transferFrom_operator (evm : EVM.State) (I : ExecutionEnv) :
     (hloc := by simp [config, storageLayout, transferFromOperatorEvaledRef,
       transferFromOperatorSlot])]
   simp [transferFromOperatorValue, transferFromOperatorWord, erc6909StorageLocLoad_bool_offset0]
+
+theorem evalExpr_transferFrom_env_sender (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm sender =
+      .ok (.address evm.executionEnv.source) := by
+  simp [sender, evalExpr?, envValue, pure]
+
+theorem evalExpr_transferFrom_sender_ne_env_false (evm : EVM.State) (I : ExecutionEnv)
+    (hsource : evm.executionEnv.source = I.source)
+    (haddr : AccountAddress.ofNat (transferFromSenderWord I).toNat = I.source) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.binary .ne (.var "sender") sender) = .ok (.bool false) := by
+  rw [evalExpr?]
+  rw [evalExpr_transferFrom_sender]
+  have hcaller :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm sender =
+        .ok (.address I.source) := by
+    simpa [hsource] using evalExpr_transferFrom_env_sender evm I
+  rw [hcaller]
+  simp only [EvalResult.bind, bind]
+  change evalBinaryOp? .ne (transferFromSenderValue I) (.address I.source) =
+    .ok (.bool false)
+  simp [evalBinaryOp?, transferFromSenderValue, haddr]
+
+theorem evalExpr_transferFrom_sender_ne_env_true (evm : EVM.State) (I : ExecutionEnv)
+    (hsource : evm.executionEnv.source = I.source)
+    (hne : ((transferFromSenderValue I : Value) == .address I.source) = false) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.binary .ne (.var "sender") sender) = .ok (.bool true) := by
+  rw [evalExpr?]
+  rw [evalExpr_transferFrom_sender]
+  have hcaller :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm sender =
+        .ok (.address I.source) := by
+    simpa [hsource] using evalExpr_transferFrom_env_sender evm I
+  rw [hcaller]
+  simp only [EvalResult.bind, bind]
+  simp [evalBinaryOp?, hne]
+
+theorem evalExpr_transferFrom_operator_not_true (evm : EVM.State) (I : ExecutionEnv)
+    (hop : transferFromOperatorWord evm I = ⟨0⟩) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.unary .not (.storage (operatorApprovalRef (.var "sender") sender))) =
+        .ok (.bool true) := by
+  rw [evalExpr?]
+  rw [evalExpr_transferFrom_operator]
+  have hval : ((transferFromOperatorWord evm I).val == 0) = true := by
+    rw [hop]
+    rfl
+  simp only [EvalResult.bind, bind, EvalResult.ofOption]
+  simp [evalUnaryOp?, transferFromOperatorValue, wordToElem, hval]
+
+theorem evalExpr_transferFrom_operator_not_false (evm : EVM.State) (I : ExecutionEnv)
+    (hop : transferFromOperatorWord evm I ≠ ⟨0⟩) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.unary .not (.storage (operatorApprovalRef (.var "sender") sender))) =
+        .ok (.bool false) := by
+  rw [evalExpr?]
+  rw [evalExpr_transferFrom_operator]
+  have hval : ((transferFromOperatorWord evm I).val == 0) = false := by
+    apply beq_eq_false_iff_ne.mpr
+    intro hv
+    apply hop
+    apply u256_inj
+    change (transferFromOperatorWord evm I).val.val = 0
+    exact congrArg Fin.val hv
+  simp only [EvalResult.bind, bind, EvalResult.ofOption]
+  simp [evalUnaryOp?, transferFromOperatorValue, wordToElem, hval]
+
+theorem evalExpr_transferFrom_allowance_gate_false_sender (evm : EVM.State)
+    (I : ExecutionEnv) (hsource : evm.executionEnv.source = I.source)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.binary .and
+        (.binary .ne (.var "sender") sender)
+        (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+        .ok (.bool false) := by
+  have haddr : AccountAddress.ofNat (transferFromSenderWord I).toNat = I.source := by
+    rw [hsenderCaller]
+    exact transferFromCaller_ofNat I
+  have hleft :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .ne (.var "sender") sender) = .ok (.bool false) := by
+    exact evalExpr_transferFrom_sender_ne_env_false evm I hsource haddr
+  rw [evalExpr?]
+  by_cases hop : transferFromOperatorWord evm I = ⟨0⟩
+  · have hright := evalExpr_transferFrom_operator_not_true evm I hop
+    rw [hleft, hright]
+    simp [EvalResult.bind, bind, pure, evalBinaryOp?]
+  · have hright := evalExpr_transferFrom_operator_not_false evm I hop
+    rw [hleft, hright]
+    simp [EvalResult.bind, bind, pure, evalBinaryOp?]
+
+theorem evalExpr_transferFrom_allowance_gate_true (evm : EVM.State)
+    (I : ExecutionEnv) (hsource : evm.executionEnv.source = I.source)
+    (hsenderNe : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ I.source)
+    (hop : transferFromOperatorWord evm I = ⟨0⟩) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.binary .and
+        (.binary .ne (.var "sender") sender)
+        (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+        .ok (.bool true) := by
+  have hne : ((transferFromSenderValue I : Value) == .address I.source) = false := by
+    rw [beq_eq_false_iff_ne]
+    intro h
+    simp only [transferFromSenderValue, Value.address.injEq] at h
+    exact hsenderNe h
+  have hleft :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .ne (.var "sender") sender) = .ok (.bool true) := by
+    exact evalExpr_transferFrom_sender_ne_env_true evm I hsource hne
+  have hright := evalExpr_transferFrom_operator_not_true evm I hop
+  rw [evalExpr?]
+  rw [hleft, hright]
+  simp [EvalResult.bind, bind, pure, evalBinaryOp?]
+
+theorem evalExpr_transferFrom_allowance_gate_false_operator (evm : EVM.State)
+    (I : ExecutionEnv) (hsource : evm.executionEnv.source = I.source)
+    (hsenderNe : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ I.source)
+    (hop : transferFromOperatorWord evm I ≠ ⟨0⟩) :
+    evalExpr? config { contract := contract, locals := transferFromStore I } evm
+      (.binary .and
+        (.binary .ne (.var "sender") sender)
+        (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+        .ok (.bool false) := by
+  have hne : ((transferFromSenderValue I : Value) == .address I.source) = false := by
+    rw [beq_eq_false_iff_ne]
+    intro h
+    simp only [transferFromSenderValue, Value.address.injEq] at h
+    exact hsenderNe h
+  have hleft :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .ne (.var "sender") sender) = .ok (.bool true) := by
+    exact evalExpr_transferFrom_sender_ne_env_true evm I hsource hne
+  have hright := evalExpr_transferFrom_operator_not_false evm I hop
+  rw [evalExpr?]
+  rw [hleft, hright]
+  simp [EvalResult.bind, bind, pure, evalBinaryOp?]
 
 theorem evalStorageRef_transferFrom_allowance_currentAllowance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -1319,6 +1537,20 @@ theorem evalStorageRef_transferFrom_tail_sender_balance_fromBalance
     transferFromSenderBalanceEvaledRef, transferFromSenderValue, transferFromIdValue,
     valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
+theorem evalStorageRef_transferFrom_tail_sender_balance_fromBalance_of_get
+    (locals : Store) (evm evm' : EVM.State) (I : ExecutionEnv)
+    (hsender : locals.get? "sender" = some (transferFromSenderValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I)) :
+    evalStorageRef config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm' (balanceRef (.var "sender") (.var "id")) =
+        .ok (transferFromSenderBalanceEvaledRef I) := by
+  simp [evalStorageRef, evalStorageRefStep, balanceRef,
+    evalExpr_transferFrom_tail_sender_fromBalance locals evm evm' I hsender,
+    evalExpr_transferFrom_tail_id_fromBalance locals evm evm' I hid,
+    transferFromSenderBalanceEvaledRef, transferFromSenderValue, transferFromIdValue,
+    valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+
 theorem transferFromTailAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config
       { contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I }
@@ -1339,6 +1571,53 @@ theorem transferFromTailAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv)
   rw [erc6909StorageLocStore_uint256]
   simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
 
+theorem transferFromTailAssignSenderBalance_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hsender : locals.get? "sender" = some (transferFromSenderValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I))
+    (hbase : "_balances" ∉ locals) :
+    assignStorageRef? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm .storage (balanceRef (.var "sender") (.var "id"))
+      (.int (Int.ofNat (transferFromTailSenderDebitWord evm I).toNat)) =
+        .ok ({ contract := contract, locals := transferFromTailStoreFromBalance locals evm I },
+          transferFromTailAfterSenderBalanceState evm I) := by
+  simp only [balanceRef]
+  apply assignStorageRef_storage_scalar (ty := uint256St)
+      (loc := wordLoc (transferFromSenderBalanceSlot I))
+      (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
+      (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance_of_get
+        locals evm evm I hsender hid)
+      (hty := by
+        simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
+          uint256St, storageTypeStep?])
+      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+        transferFromSenderBalanceSlot])
+  rw [erc6909StorageLocStore_uint256]
+  simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
+
+theorem evalExpr_transferFrom_tail_sender_balance_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hsender : locals.get? "sender" = some (transferFromSenderValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I))
+    (hbase : "_balances" ∉ locals) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I } evm
+      (.storage (balanceRef (.var "sender") (.var "id"))) =
+        .ok (transferFromSenderBalanceValue evm I) := by
+  rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromSenderBalanceSlot I))
+    (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
+    (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance_of_get locals evm evm I
+      hsender hid)
+    (hty := by
+      simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
+        uint256St, storageTypeStep?])
+    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+      transferFromSenderBalanceSlot])]
+  simp [transferFromSenderBalanceValue, transferFromSenderBalanceWord,
+    erc6909StorageLocLoad_uint256]
+
 theorem evalExpr_transferFrom_tail_sender_balance_ge_true (evm : EVM.State)
     (I : ExecutionEnv)
     (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
@@ -1355,6 +1634,57 @@ theorem evalExpr_transferFrom_tail_sender_balance_ge_true (evm : EVM.State)
         transferFromStore_amount]]
   simp [evalBinaryOp?]
   exact henough
+
+theorem evalExpr_transferFrom_tail_sender_balance_ge_true_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm (.binary .ge (.var "fromBalance") (.var "amount")) = .ok (.bool true) := by
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
+      rw [transferFromTailStoreFromBalance, store_get_self]]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
+  simp [evalBinaryOp?]
+  exact henough
+
+theorem evalExpr_transferFrom_tail_sender_balance_ge_false (evm : EVM.State)
+    (I : ExecutionEnv)
+    (hlt : (transferFromSenderBalanceWord evm I).toNat < (transferFromAmountWord I).toNat) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I }
+      evm (.binary .ge (.var "fromBalance") (.var "amount")) = .ok (.bool false) := by
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show (transferFromTailStoreFromBalance (transferFromStore I) evm I).get?
+        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
+      rw [transferFromTailStoreFromBalance, store_get_self]]
+  rw [show (transferFromTailStoreFromBalance (transferFromStore I) evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide),
+        transferFromStore_amount]]
+  simp [evalBinaryOp?]
+  omega
+
+theorem evalExpr_transferFrom_tail_sender_balance_ge_false_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (hlt : (transferFromSenderBalanceWord evm I).toNat < (transferFromAmountWord I).toNat) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm (.binary .ge (.var "fromBalance") (.var "amount")) = .ok (.bool false) := by
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
+      rw [transferFromTailStoreFromBalance, store_get_self]]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
+  simp [evalBinaryOp?]
+  omega
 
 theorem evalExpr_transferFrom_tail_sender_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
@@ -1385,6 +1715,36 @@ theorem evalExpr_transferFrom_tail_sender_debit (evm : EVM.State) (I : Execution
   simp [evalBinaryOp?, htoNat]
   exact hsub
 
+theorem evalExpr_transferFrom_tail_sender_debit_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm (.binary .sub (.var "fromBalance") (.var "amount")) =
+        .ok (.int (Int.ofNat (transferFromTailSenderDebitWord evm I).toNat)) := by
+  have hsub :
+      Int.ofNat (transferFromSenderBalanceWord evm I).toNat -
+          Int.ofNat (transferFromAmountWord I).toNat =
+        Int.ofNat ((transferFromSenderBalanceWord evm I).toNat -
+          (transferFromAmountWord I).toNat) := by
+    exact (Int.ofNat_sub henough).symm
+  have htoNat : (transferFromTailSenderDebitWord evm I).toNat =
+      (transferFromSenderBalanceWord evm I).toNat - (transferFromAmountWord I).toNat := by
+    unfold transferFromTailSenderDebitWord
+    exact ulit_toNat' _ (lt_of_le_of_lt
+      (Nat.sub_le (transferFromSenderBalanceWord evm I).toNat (transferFromAmountWord I).toNat)
+      (transferFromSenderBalanceWord evm I).val.isLt)
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
+      rw [transferFromTailStoreFromBalance, store_get_self]]
+  rw [show (transferFromTailStoreFromBalance locals evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
+  simp [evalBinaryOp?, htoNat]
+  exact hsub
+
 theorem evalStorageRef_transferFrom_tail_receiver_balance_fromBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
     evalStorageRef config
@@ -1399,6 +1759,20 @@ theorem evalStorageRef_transferFrom_tail_receiver_balance_fromBalance
     transferFromReceiverBalanceEvaledRef, transferFromReceiverValue, transferFromIdValue,
     valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
+theorem evalStorageRef_transferFrom_tail_receiver_balance_fromBalance_of_get
+    (locals : Store) (evm evm' : EVM.State) (I : ExecutionEnv)
+    (hreceiver : locals.get? "receiver" = some (transferFromReceiverValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I)) :
+    evalStorageRef config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm' (balanceRef (.var "receiver") (.var "id")) =
+        .ok (transferFromReceiverBalanceEvaledRef I) := by
+  simp [evalStorageRef, evalStorageRefStep, balanceRef,
+    evalExpr_transferFrom_tail_receiver_fromBalance locals evm evm' I hreceiver,
+    evalExpr_transferFrom_tail_id_fromBalance locals evm evm' I hid,
+    transferFromReceiverBalanceEvaledRef, transferFromReceiverValue, transferFromIdValue,
+    valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+
 theorem evalExpr_transferFrom_tail_receiver_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I }
@@ -1410,6 +1784,29 @@ theorem evalExpr_transferFrom_tail_receiver_balance (evm : EVM.State) (I : Execu
     (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, transferFromStore])
     (her := evalStorageRef_transferFrom_tail_receiver_balance_fromBalance evm
       (transferFromTailAfterSenderBalanceState evm I) I)
+    (hty := by
+      simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
+        uint256St, storageTypeStep?])
+    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+      transferFromReceiverBalanceSlot])]
+  simp [transferFromTailReceiverBalanceValue, transferFromTailReceiverBalanceWord,
+    erc6909StorageLocLoad_uint256, transferFromTailAfterSenderBalance_codeOwner]
+
+theorem evalExpr_transferFrom_tail_receiver_balance_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hreceiver : locals.get? "receiver" = some (transferFromReceiverValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I))
+    (hbase : "_balances" ∉ locals) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (.storage (balanceRef (.var "receiver") (.var "id"))) =
+        .ok (transferFromTailReceiverBalanceValue evm I) := by
+  rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromReceiverBalanceSlot I))
+    (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
+    (her := evalStorageRef_transferFrom_tail_receiver_balance_fromBalance_of_get locals evm
+      (transferFromTailAfterSenderBalanceState evm I) I hreceiver hid)
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
@@ -1446,6 +1843,82 @@ theorem evalExpr_transferFrom_tail_receiver_credit (evm : EVM.State) (I : Execut
       simpa [transferFromTailReceiverCreditNat, UInt256.size] using hfit
     omega
 
+theorem evalExpr_transferFrom_tail_receiver_credit_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) =
+        .ok (transferFromTailReceiverCreditValue evm I) := by
+  have hlt : ¬ Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
+    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
+  rw [show (transferFromTailStoreToBalance locals evm I).get?
+        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
+      rw [transferFromTailStoreToBalance, store_get_self]]
+  rw [show (transferFromTailStoreToBalance locals evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
+        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
+  simp [evalBinaryOp?, transferFromTailReceiverCreditValue,
+    transferFromTailReceiverCreditNat, uint256Int]
+  constructor
+  · omega
+  · have hfitNat :
+        (transferFromTailReceiverBalanceWord evm I).toNat +
+            (transferFromAmountWord I).toNat < 2 ^ 256 := by
+      simpa [transferFromTailReceiverCreditNat, UInt256.size] using hfit
+    omega
+
+theorem evalExpr_transferFrom_tail_receiver_credit_revert (evm : EVM.State)
+    (I : ExecutionEnv) (hover : UInt256.size ≤ transferFromTailReceiverCreditNat evm I) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreToBalance (transferFromStore I) evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) = .revert := by
+  have hge : Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
+    rw [UInt256.size] at hover
+    exact Int.ofNat_le.mpr hover
+  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
+  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
+        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
+      rw [transferFromTailStoreToBalance, store_get_self]]
+  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
+        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide),
+        transferFromStore_amount]]
+  simp [evalBinaryOp?, transferFromTailReceiverBalanceValue, transferFromAmountValue,
+    transferFromTailReceiverCreditValue, transferFromTailReceiverCreditNat, uint256Int]
+  intro _
+  simpa [transferFromTailReceiverCreditNat] using hge
+
+theorem evalExpr_transferFrom_tail_receiver_credit_revert_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (hover : UInt256.size ≤ transferFromTailReceiverCreditNat evm I) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) = .revert := by
+  have hge : Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
+    rw [UInt256.size] at hover
+    exact Int.ofNat_le.mpr hover
+  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
+  rw [show (transferFromTailStoreToBalance locals evm I).get?
+        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
+      rw [transferFromTailStoreToBalance, store_get_self]]
+  rw [show (transferFromTailStoreToBalance locals evm I).get?
+        "amount" = some (transferFromAmountValue I) by
+      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
+        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
+  simp [evalBinaryOp?, transferFromTailReceiverBalanceValue, transferFromAmountValue,
+    transferFromTailReceiverCreditValue, transferFromTailReceiverCreditNat, uint256Int]
+  intro _
+  simpa [transferFromTailReceiverCreditNat] using hge
+
 theorem evalStorageRef_transferFrom_tail_receiver_balance_toBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
     evalStorageRef config
@@ -1457,6 +1930,20 @@ theorem evalStorageRef_transferFrom_tail_receiver_balance_toBalance
       (transferFromStore_receiver I),
     evalExpr_transferFrom_tail_id_toBalance (transferFromStore I) evm evm' I
       (transferFromStore_id I),
+    transferFromReceiverBalanceEvaledRef, transferFromReceiverValue, transferFromIdValue,
+    valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+
+theorem evalStorageRef_transferFrom_tail_receiver_balance_toBalance_of_get
+    (locals : Store) (evm evm' : EVM.State) (I : ExecutionEnv)
+    (hreceiver : locals.get? "receiver" = some (transferFromReceiverValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I)) :
+    evalStorageRef config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      evm' (balanceRef (.var "receiver") (.var "id")) =
+        .ok (transferFromReceiverBalanceEvaledRef I) := by
+  simp [evalStorageRef, evalStorageRefStep, balanceRef,
+    evalExpr_transferFrom_tail_receiver_toBalance locals evm evm' I hreceiver,
+    evalExpr_transferFrom_tail_id_toBalance locals evm evm' I hid,
     transferFromReceiverBalanceEvaledRef, transferFromReceiverValue, transferFromIdValue,
     valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
@@ -1486,6 +1973,78 @@ theorem transferFromTailAssignReceiverBalance (evm : EVM.State) (I : ExecutionEn
   simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
     transferFromTailAfterSenderBalance_codeOwner]
 
+theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hreceiver : locals.get? "receiver" = some (transferFromReceiverValue I))
+    (hid : locals.get? "id" = some (transferFromIdValue I))
+    (hbase : "_balances" ∉ locals)
+    (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
+    assignStorageRef? config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I) .storage
+      (balanceRef (.var "receiver") (.var "id"))
+      (transferFromTailReceiverCreditValue evm I) =
+        .ok ({ contract := contract, locals := transferFromTailStoreToBalance locals evm I },
+          transferFromTailPostState evm I) := by
+  simp only [balanceRef]
+  apply assignStorageRef_storage_scalar (ty := uint256St)
+      (loc := wordLoc (transferFromReceiverBalanceSlot I))
+      (hbase := by
+        simp [balanceRef, transferFromTailStoreToBalance, transferFromTailStoreFromBalance,
+          hbase])
+      (her := evalStorageRef_transferFrom_tail_receiver_balance_toBalance_of_get locals evm
+        (transferFromTailAfterSenderBalanceState evm I) I hreceiver hid)
+      (hty := by
+        simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
+          uint256St, storageTypeStep?])
+      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+        transferFromReceiverBalanceSlot])
+  rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
+  rw [erc6909StorageLocStore_uint256]
+  simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
+    transferFromTailAfterSenderBalance_codeOwner]
+
+abbrev transferFromTailReceiverBody : List Stmt :=
+  [ .letDecl "toBalance" (some uint256)
+      (.storage (balanceRef (.var "receiver") (.var "id"))),
+    .assign .storage (balanceRef (.var "receiver") (.var "id"))
+      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
+    .return (.boolLit true) ]
+
+theorem erc6909TransferFromTailReceiverCoreCurrentAllowance
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
+    ExecBlock config
+      { contract := contract,
+        locals := transferFromTailStoreFromBalance (transferFromStoreCurrentAllowance evm I)
+          evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      transferFromTailReceiverBody
+      (.returned
+        { contract := contract,
+          locals := transferFromTailStoreToBalance (transferFromStoreCurrentAllowance evm I)
+            evm I }
+        (transferFromTailPostState evm I) (some (.bool true))) := by
+  have hbase : "_balances" ∉ transferFromStoreCurrentAllowance evm I := by
+    simp [transferFromStoreCurrentAllowance, transferFromStore]
+  dsimp [transferFromTailReceiverBody]
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl
+      (evalExpr_transferFrom_tail_receiver_balance_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_receiver evm I)
+        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign
+      (evalExpr_transferFrom_tail_receiver_credit_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_amount evm I) hfit)
+      (transferFromTailAssignReceiverBalance_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_receiver evm I)
+        (transferFromStoreCurrentAllowance_id evm I) hbase hfit)) ?_
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+
 /-- Source-side core for the allowance-debit success path of
 `transferFrom(address,address,uint256,uint256)`.
 
@@ -1493,7 +2052,7 @@ The hypotheses name the branch guards that the EVM body at pc 388 must establish
 state threading below is deliberately explicit: the sender balance is read from
 `transferFromAfterAllowanceState`, after the allowance write.
 -/
-theorem erc6909TransferFromBodyCore (evm : EVM.State) (I : ExecutionEnv)
+theorem erc6909TransferFromBodyCoreAllowanceDebit (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hallowanceGate :
       evalExpr? config { contract := contract, locals := transferFromStore I } evm
@@ -1606,6 +2165,404 @@ theorem erc6909TransferFromBodyCoreNoAllowance (evm : EVM.State) (I : ExecutionE
     (ExecStmt.assign (evalExpr_transferFrom_tail_receiver_credit evm I hfit)
       (transferFromTailAssignReceiverBalance evm I hfit)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+
+theorem erc6909TransferFromBodyRevertsAllowance_insufficient
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hlt : (transferFromCurrentAllowanceWord evm I).toNat <
+      (transferFromAmountWord I).toNat) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consRevert ?_
+  refine ExecStmt.iteTrue hallowanceGate ?_
+  · refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+    refine ExecBlock.consRevert ?_
+    refine ExecStmt.iteTrue hallowanceNotMax ?_
+    exact ExecBlock.consRevert
+      (ExecStmt.requireFalse (evalExpr_transferFrom_allowance_ge_false evm I hlt))
+
+theorem erc6909TransferFromBodyRevertsAllowance_sender_zero
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hallowanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hz : AccountAddress.ofNat (transferFromSenderWord I).toNat = zeroAccountAddress) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteTrue
+      (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        (transferFromAfterAllowanceState evm I))
+      hallowanceGate ?_) ?_
+  · refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.iteTrue
+        (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+          (transferFromAfterAllowanceState evm I))
+        hallowanceNotMax ?_) ?_
+    · refine ExecBlock.consNormal
+        (ExecStmt.requireTrue
+          (evalExpr_transferFrom_allowance_ge_true evm I hallowanceEnough)) ?_
+      refine ExecBlock.consNormal
+        (ExecStmt.assign
+          (evalExpr_transferFrom_allowance_debit evm I hallowanceEnough)
+          (transferFromAssignAllowance evm I)) ?_
+      exact ExecBlock.nil
+    · exact ExecBlock.nil
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse
+      (evalExpr_transferFrom_sender_nonzero_false_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (transferFromStoreCurrentAllowance_sender evm I) hz))
+
+theorem erc6909TransferFromBodyRevertsAllowance_receiver_zero
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hallowanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hz : AccountAddress.ofNat (transferFromReceiverWord I).toNat = zeroAccountAddress) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteTrue
+      (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        (transferFromAfterAllowanceState evm I))
+      hallowanceGate ?_) ?_
+  · refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.iteTrue
+        (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+          (transferFromAfterAllowanceState evm I))
+        hallowanceNotMax ?_) ?_
+    · refine ExecBlock.consNormal
+        (ExecStmt.requireTrue
+          (evalExpr_transferFrom_allowance_ge_true evm I hallowanceEnough)) ?_
+      refine ExecBlock.consNormal
+        (ExecStmt.assign
+          (evalExpr_transferFrom_allowance_debit evm I hallowanceEnough)
+          (transferFromAssignAllowance evm I)) ?_
+      exact ExecBlock.nil
+    · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (transferFromStoreCurrentAllowance_sender evm I) hsender)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse
+      (evalExpr_transferFrom_receiver_nonzero_false_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (by
+          rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+            transferFromStore_receiver])
+        hz))
+
+theorem erc6909TransferFromBodyRevertsAllowance_insufficient_balance
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hallowanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hreceiver : AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠ zeroAccountAddress)
+    (hlt : (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat <
+      (transferFromAmountWord I).toNat) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteTrue
+      (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        (transferFromAfterAllowanceState evm I))
+      hallowanceGate ?_) ?_
+  · refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.iteTrue
+        (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+          (transferFromAfterAllowanceState evm I))
+        hallowanceNotMax ?_) ?_
+    · refine ExecBlock.consNormal
+        (ExecStmt.requireTrue
+          (evalExpr_transferFrom_allowance_ge_true evm I hallowanceEnough)) ?_
+      refine ExecBlock.consNormal
+        (ExecStmt.assign
+          (evalExpr_transferFrom_allowance_debit evm I hallowanceEnough)
+          (transferFromAssignAllowance evm I)) ?_
+      exact ExecBlock.nil
+    · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (transferFromStoreCurrentAllowance_sender evm I) hsender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_receiver_nonzero_true_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (by
+          rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+            transferFromStore_receiver])
+        hreceiver)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse (evalExpr_transferFrom_sender_balance_ge_false evm I hlt))
+
+theorem erc6909TransferFromBodyRevertsAllowance_overflow
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hallowanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hreceiver : AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠ zeroAccountAddress)
+    (hbalanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat)
+    (hover : UInt256.size ≤ transferFromReceiverCreditNat evm I) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteTrue
+      (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        (transferFromAfterAllowanceState evm I))
+      hallowanceGate ?_) ?_
+  · refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.iteTrue
+        (result := .ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+          (transferFromAfterAllowanceState evm I))
+        hallowanceNotMax ?_) ?_
+    · refine ExecBlock.consNormal
+        (ExecStmt.requireTrue
+          (evalExpr_transferFrom_allowance_ge_true evm I hallowanceEnough)) ?_
+      refine ExecBlock.consNormal
+        (ExecStmt.assign
+          (evalExpr_transferFrom_allowance_debit evm I hallowanceEnough)
+          (transferFromAssignAllowance evm I)) ?_
+      exact ExecBlock.nil
+    · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (transferFromStoreCurrentAllowance_sender evm I) hsender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_receiver_nonzero_true_of_get
+        (transferFromAfterAllowanceState evm I) (transferFromStoreCurrentAllowance evm I) I
+        (by
+          rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+            transferFromStore_receiver])
+        hreceiver)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_balance_ge_true evm I hbalanceEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (evalExpr_transferFrom_sender_debit evm I hbalanceEnough)
+      (transferFromAssignSenderBalance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_receiver_balance evm I)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.assignExprRevert (evalExpr_transferFrom_receiver_credit_revert evm I hover))
+
+theorem erc6909TransferFromBodyRevertsNoAllowance_sender_zero
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool false))
+    (hz : AccountAddress.ofNat (transferFromSenderWord I).toNat = zeroAccountAddress) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse (result := .ok
+      ({ contract := contract, locals := transferFromStore I } : Frame) evm)
+      hallowanceGate ?_) ?_
+  · exact ExecBlock.nil
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse
+      (evalExpr_transferFrom_sender_nonzero_false_of_get evm (transferFromStore I) I
+        (transferFromStore_sender I) hz))
+
+theorem erc6909TransferFromBodyRevertsNoAllowance_receiver_zero
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool false))
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hz : AccountAddress.ofNat (transferFromReceiverWord I).toNat = zeroAccountAddress) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse (result := .ok
+      ({ contract := contract, locals := transferFromStore I } : Frame) evm)
+      hallowanceGate ?_) ?_
+  · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get evm (transferFromStore I) I
+        (transferFromStore_sender I) hsender)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse
+      (evalExpr_transferFrom_receiver_nonzero_false_of_get evm (transferFromStore I) I
+        (transferFromStore_receiver I) hz))
+
+theorem erc6909TransferFromBodyRevertsNoAllowance_insufficient
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool false))
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hreceiver : AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠ zeroAccountAddress)
+    (hlt : (transferFromSenderBalanceWord evm I).toNat < (transferFromAmountWord I).toNat) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse (result := .ok
+      ({ contract := contract, locals := transferFromStore I } : Frame) evm)
+      hallowanceGate ?_) ?_
+  · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get evm (transferFromStore I) I
+        (transferFromStore_sender I) hsender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_receiver_nonzero_true_of_get evm (transferFromStore I) I
+        (transferFromStore_receiver I) hreceiver)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse (evalExpr_transferFrom_tail_sender_balance_ge_false evm I hlt))
+
+theorem erc6909TransferFromBodyRevertsNoAllowance_overflow
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool false))
+    (hsender : AccountAddress.ofNat (transferFromSenderWord I).toNat ≠ zeroAccountAddress)
+    (hreceiver : AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠ zeroAccountAddress)
+    (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat)
+    (hover : UInt256.size ≤ transferFromTailReceiverCreditNat evm I) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse (result := .ok
+      ({ contract := contract, locals := transferFromStore I } : Frame) evm)
+      hallowanceGate ?_) ?_
+  · exact ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_sender_nonzero_true_of_get evm (transferFromStore I) I
+        (transferFromStore_sender I) hsender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_receiver_nonzero_true_of_get evm (transferFromStore I) I
+        (transferFromStore_receiver I) hreceiver)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_tail_sender_balance_ge_true evm I henough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (evalExpr_transferFrom_tail_sender_debit evm I henough)
+      (transferFromTailAssignSenderBalance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_receiver_balance evm I)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.assignExprRevert
+      (evalExpr_transferFrom_tail_receiver_credit_revert evm I hover))
 
 /-! ## EVM ABI decode trace for `transferFrom(address,address,uint256,uint256)` -/
 
@@ -1934,6 +2891,547 @@ theorem erc6909TransferFromX_skipCaller_revert_receiver_zero {cA gh bl σ σ₀ 
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+theorem erc6909TransferFromX_skipCaller_afterLoad {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨193⟩, sel]
+      (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_skipCaller_toUpdateHelper
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ hreach
+  have hslot := transferFromSenderBalanceKeccakSlot I hcanonSender
+  have hcallerWord : UInt256.ofNat ↑I.source = transferFromSenderWord I := by
+    simpa [transferFromCallerWord, approveOwnerWord] using hsenderCaller.symm
+  have rd1340 := evm_run rd1323 with [
+    jumpdest, caller, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and,
+    iszero, push2 ⟨1476⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean hcanonSender]
+      exact isZero_eq_zero_of_ne hsenderNZ) ]
+  have rd1372 := evm_run rd1340 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
+    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I) solcFreePtrMem)
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonSender]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, dup2, dup2,
+    raw mstore 0 (transferInnerHashMem (transferFromSenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    dup7, dup5,
+    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+        (transferInnerHashMem (transferFromSenderWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1, swap2,
+    raw mstore 0 (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1,
+    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  obtain ⟨k1, C1, rd1373₀⟩ := rd1372.sload (by decide) (by evm_ov)
+  exact ⟨k1, C1, by
+    simpa [transferFromSenderBalanceWord, transferFromSenderBalanceSlot,
+      hslot, hcallerWord, initState,
+      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+      using rd1373₀⟩
+
+theorem erc6909TransferFromX_skipCaller_afterRequire {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1437⟩
+      [transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨193⟩, sel]
+      (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_skipCaller_afterLoad
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ hreach
+  have hlt : UInt256.lt
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromAmountWord I) = ⟨0⟩ := ult_zero henough
+  exact ⟨_, _, evm_run rd1373 with [
+    dup3, dup2, lt, iszero, push2 ⟨1437⟩,
+    jumpiT (by rw [hlt]; decide) (by jump_dest) ]⟩
+
+theorem erc6909TransferFromX_skipCaller_insufficientTail {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat <
+      (transferFromAmountWord I).toNat)
+    (rd1373 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨193⟩, sel]
+      (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hltw : UInt256.lt
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromAmountWord I) = ⟨1⟩ := ult_one hlt
+  have rd1381 := evm_run rd1373 with [
+    dup3, dup2, lt, iszero, push2 ⟨1437⟩,
+    jumpiNT (by rw [hltw]; decide) ]
+  exact evm_run rd1381 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+      (transferOuterHashMem_mload64 (transferFromSenderWord I) (transferFromIdWord I))
+      (by decide) (by evm_ov),
+    push4 ⟨0x02c6d3fb⟩, push1 ⟨230⟩, shl, dup2,
+    raw mstore 6 (transferInsufficientBalanceSelectorMem (transferFromSenderWord I)
+        (transferFromIdWord I))
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and,
+    push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (transferInsufficientBalanceSenderMem (transferFromSenderWord I)
+        (transferFromIdWord I))
+      (UInt256.ofNat 6) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonSender]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨36⟩, dup2, add, dup3, swap1,
+    raw mstore 3 (transferInsufficientBalanceBalanceMem (transferFromSenderWord I)
+        (transferFromIdWord I)
+        (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I))
+      (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨68⟩, dup2, add, dup5, swap1,
+    raw mstore 3 (transferInsufficientBalanceAmountMem (transferFromSenderWord I)
+        (transferFromIdWord I)
+        (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+        (transferFromAmountWord I))
+      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨100⟩, dup2, add, dup6, swap1,
+    raw mstore 3 (transferInsufficientBalanceIdMem (transferFromSenderWord I)
+        (transferFromIdWord I)
+        (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+        (transferFromAmountWord I))
+      (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
+      (transferInsufficientBalanceIdMem_mload64 (transferFromSenderWord I)
+        (transferFromIdWord I)
+        (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+        (transferFromAmountWord I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+theorem erc6909TransferFromX_skipCaller_insufficient {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat <
+      (transferFromAmountWord I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_skipCaller_afterLoad
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ hreach
+  exact erc6909TransferFromX_skipCaller_insufficientTail hcanonSender hlt rd1373
+
+theorem erc6909TransferFromX_skipCaller_afterDebit {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1476⟩
+      [transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨193⟩, sel]
+      (transferMapScratchMem
+        (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+        (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+  obtain ⟨_, _, rd1437⟩ := erc6909TransferFromX_skipCaller_afterRequire
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ henough hreach
+  have hslot := transferFromSenderBalanceKeccakSlot I hcanonSender
+  have rd1451 := evm_run rd1437 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and,
+    push0, swap1, dup2,
+    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I)
+        (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonSender]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd1456 := evm_run rd1451 with [
+    push1 ⟨32⟩, dup2, dup2,
+    raw mstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+        (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd1461 := evm_run rd1456 with [
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        unfold transferInnerSlot
+        change UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+                    (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+                  ).readWithPadding 0 64))) =
+          UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+        rw [approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩
+          (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I)),
+          transferInnerHashMem_read0_64])
+      (by decide) (by evm_ov) ]
+  have rd1468 := evm_run rd1461 with [
+    dup8, dup5,
+    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+        (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+          (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1, swap2,
+    raw mstore 0
+      (transferMapScratchMem
+        (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+        (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd1470 := evm_run rd1468 with [
+    swap1,
+    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        unfold transferOuterSlot
+        change UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((transferMapScratchMem
+                    (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+                    (transferFromSenderWord I) (transferFromIdWord I)).readWithPadding 0 64))) =
+          UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)
+                  ).readWithPadding 0 64)))
+        rw [transferMapScratchMem_read0_64 (transferFromSenderWord I) (transferFromIdWord I)
+          (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I)),
+          transferOuterHashMem_read0_64])
+      (by decide) (by evm_ov) ]
+  have hdebit :
+      UInt256.sub
+          (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+          (transferFromAmountWord I) =
+        transferFromTailSenderDebitWord (initState cA gh bl σ σ₀ g A I) I := by
+    apply u256_inj
+    rw [usub_toNat henough]
+    unfold transferFromTailSenderDebitWord
+    rw [ulit_toNat' _ (lt_of_le_of_lt
+      (Nat.sub_le
+        (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat
+        (transferFromAmountWord I).toNat)
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).val.isLt)]
+  have rd1475₀ := evm_run rd1470 with [
+    swap1, dup4, swap1, sub, swap1 ]
+  have rd1475 := rd1475₀
+  rw [hdebit, hslot] at rd1475
+  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
+  exact ⟨_, _, rd1476⟩
+
+theorem erc6909TransferFromX_skipCaller_toCheckedAdd {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2017⟩
+      [transferFromTailReceiverBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromAmountWord I, ⟨1539⟩, ⟨0⟩, transferFromReceiverBalanceSlot I,
+        transferFromAmountWord I, transferFromSenderWord I, transferFromAmountWord I,
+        transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
+        ⟨760⟩, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨649⟩,
+        transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
+        transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
+        ⟨193⟩, sel]
+      (transferMapScratchMem
+        (transferMapScratchMem
+          (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+          (transferFromSenderWord I) (transferFromIdWord I))
+        (transferFromReceiverWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+  obtain ⟨_, _, rd1476⟩ := erc6909TransferFromX_skipCaller_afterDebit
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hperm hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ henough hreach
+  let debitMem :=
+    transferMapScratchMem (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+      (transferFromSenderWord I) (transferFromIdWord I)
+  have hdebitMemSize : debitMem.size = 96 := by
+    dsimp [debitMem]
+    exact transferMapScratchMem_size (transferFromSenderWord I) (transferFromIdWord I)
+      (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I))
+  have hdebitMemRead64 :
+      debitMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    dsimp [debitMem]
+    exact transferMapScratchMem_read64 (transferFromSenderWord I) (transferFromIdWord I)
+      (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I))
+      (transferOuterHashMem_read64 (transferFromSenderWord I) (transferFromIdWord I))
+  have hslot := transferFromReceiverBalanceKeccakSlot I hcanonReceiver
+  have rd1492 := evm_run rd1476 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
+    iszero, push2 ⟨1545⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean hcanonReceiver]
+      exact isZero_eq_zero_of_ne hreceiverNZ) ]
+  have rd1505 := evm_run rd1492 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and, push0, swap1,
+    dup2,
+    raw mstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonReceiver]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd1510 := evm_run rd1505 with [
+    push1 ⟨32⟩, dup2, dup2,
+    raw mstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd1515 := evm_run rd1510 with [
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (transferInnerSlot (transferFromReceiverWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        unfold transferInnerSlot
+        change UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem
+                  ).readWithPadding 0 64))) =
+          UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((transferInnerHashMem (transferFromReceiverWord I)).readWithPadding 0 64)))
+        rw [approveTwoWordHashMem_read0_64 (transferFromReceiverWord I) ⟨0⟩
+          hdebitMemSize, transferInnerHashMem_read0_64])
+      (by decide) (by evm_ov) ]
+  have rd1522 := evm_run rd1515 with [
+    dup7, dup5,
+    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+        (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1, swap2,
+    raw mstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)
+        (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    dup2 ]
+  have rd1524 := evm_run rd1522 with [
+    raw keccak256 0 (transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        unfold transferOuterSlot
+        change UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((transferMapScratchMem debitMem (transferFromReceiverWord I)
+                    (transferFromIdWord I)).readWithPadding 0 64))) =
+          UInt256.ofNat
+            (fromByteArrayBigEndian
+              (ffi.KEC
+                ((transferOuterHashMem (transferFromReceiverWord I) (transferFromIdWord I)
+                  ).readWithPadding 0 64)))
+        rw [transferMapScratchMem_read0_64 (transferFromReceiverWord I)
+          (transferFromIdWord I) hdebitMemSize, transferOuterHashMem_read0_64])
+      (by decide) (by evm_ov),
+    dup1 ]
+  obtain ⟨k1, C1, rd1526₀⟩ := rd1524.sload (by decide) (by evm_ov)
+  have rd1526 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1526⟩
+      [transferFromTailReceiverBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromReceiverBalanceSlot I, ⟨0⟩, transferFromSenderWord I,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
+        transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
+        ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
+        transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
+        ⟨193⟩, sel]
+      (transferMapScratchMem debitMem (transferFromReceiverWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState cA gh bl σ σ₀ g A I) I)) k1 C1 := by
+    simpa [transferFromTailReceiverBalanceWord, transferFromTailAfterSenderBalanceState,
+      transferFromSenderBalanceSlot, hslot, initState, Solm.EVM.storageLoad,
+      State.lookupAccount, Account.lookupStorage, storageStore_accountMap, debitMem]
+      using rd1526₀
+  exact ⟨_, _, evm_run rd1526 with [
+    dup5, swap3, swap1, push2 ⟨1539⟩, swap1, dup5, swap1, push2 ⟨2017⟩,
+    jump (by jump_dest) ]⟩
+
+theorem erc6909TransferFromX_skipCaller_afterCredit {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+    (hfit : transferFromTailReceiverCreditNat (initState cA gh bl σ σ₀ g A I) I <
+      UInt256.size)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+      [transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
+        transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
+        transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
+        transferFromSenderWord I, ⟨193⟩, sel]
+      (transferMapScratchMem
+        (transferMapScratchMem
+          (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+          (transferFromSenderWord I) (transferFromIdWord I))
+        (transferFromReceiverWord I) (transferFromIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
+          (transferFromTailSenderDebitWord (initState cA gh bl σ σ₀ g A I) I))
+        (transferFromReceiverBalanceSlot I)
+        (transferFromTailReceiverCreditWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+  obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_skipCaller_toCheckedAdd
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hperm hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ henough hreach
+  obtain ⟨_, _, rd1539₀⟩ := erc6909RoutineCheckedAdd rd2017
+    (by simpa [transferFromTailReceiverCreditNat] using hfit)
+    (by jump_dest) (by evm_ov)
+  have hnew :
+      transferFromTailReceiverBalanceWord (initState cA gh bl σ σ₀ g A I) I +
+          transferFromAmountWord I =
+        transferFromTailReceiverCreditWord (initState cA gh bl σ σ₀ g A I) I := by
+    apply u256_inj
+    rw [uadd_toNat, Nat.mod_eq_of_lt (by
+      simpa [transferFromTailReceiverCreditNat] using hfit)]
+    unfold transferFromTailReceiverCreditWord
+    rw [ulit_toNat' _ hfit]
+    rfl
+  have rd1539 := rd1539₀
+  rw [hnew] at rd1539
+  have rd1542 := evm_run rd1539 with [
+    jumpdest, swap1, swap2 ]
+  obtain ⟨_, _, rd1543⟩ := rd1542.sstore hperm (by decide) (by evm_ov)
+  exact ⟨_, _, evm_run rd1543 with [ pop, pop ]⟩
+
+theorem erc6909TransferFromX_skipCaller_overflow {cA gh bl σ σ₀ A I}
+    {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+    (hover : UInt256.size ≤
+      transferFromTailReceiverCreditNat (initState cA gh bl σ σ₀ g A I) I)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_skipCaller_toCheckedAdd
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hperm hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ henough hreach
+  exact erc6909RoutineCheckedAdd_overflow rd2017
+    (by simpa [transferFromTailReceiverCreditNat] using hover) (by evm_ov)
 
 theorem erc6909TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}

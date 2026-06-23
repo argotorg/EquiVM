@@ -970,6 +970,38 @@ theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
 
+-- PROMOTE -> Common.lean / Reasoning.Stepping: generic `DUP10` xstep.
+theorem erc6909Dup10_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f h i j l : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.DUP10, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t)
+    (hov : t.length + 11 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok
+          (stSwap s (l :: a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP10, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_dup10 s hd, hstk]
+  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t).length - 10 + 11 >
+      1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+theorem RD.erc6909Dup10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f h i j l : UInt256} {t : List UInt256}
+    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t) mem aw
+      rdata acc k C)
+    (hdec : decode code pc = some (.DUP10, .none)) (hov : t.length + 11 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (l :: a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  rd.stepSwap (fun _ hc hp hs => erc6909Dup10_xstep hc hp hdec hs hov)
+
 noncomputable def transferInnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨0⟩ solcFreePtrMem
 
@@ -2376,20 +2408,25 @@ theorem erc6909X_transfer {cA gh bl σ σ₀ A I} {g : Sat256}
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
-        rw [solcAddrMask_clean (transferSenderWord_canonical I)]
+        change (UInt256.toByteArray (UInt256.land solcAddrMask (transferSenderWord I))).write 0
+          creditMem 128 32 = transferEventFromBaseMem creditMem (transferSenderWord I)
+        rw [solcAddrMask_clean_left (transferSenderWord_canonical I)]
         rfl)
       (by decide) (by evm_ov) ]
   have rd1570 := evm_run rd1563 with [
     push1 ⟨32⟩, dup3, add, dup6, swap1,
     raw mstore 3 (transferEventBaseMem creditMem (transferSenderWord I) (transferAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
-  have rd1580₀ := evm_run rd1570 with [
-    dup6, swap3, dup2, dup9, and, swap3, swap2, dup10, and, swap2 ]
+  have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
+  have rd1574 := RD.erc6909Dup9 rd1573 (by decide) (by evm_ov)
+  have rd1577 := evm_run rd1574 with [and, swap3, swap2]
+  have rd1578 := RD.erc6909Dup10 rd1577 (by decide) (by evm_ov)
+  have rd1580₀ := evm_run rd1578 with [and, swap2]
   have rd1580 := rd1580₀
-  rw [show UInt256.land (transferSenderWord I) solcAddrMask = transferSenderWord I by
-      rw [UInt256.land_comm, solcAddrMask_clean (transferSenderWord_canonical I)],
-    show UInt256.land (transferReceiverWord I) solcAddrMask = transferReceiverWord I by
-      rw [UInt256.land_comm, solcAddrMask_clean hcanonReceiver]] at rd1580
+  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide,
+    solcAddrMask_clean (transferSenderWord_canonical I),
+    solcAddrMask_clean hcanonReceiver] at rd1580
   have rd1613 := rd1580.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
@@ -2440,5 +2477,151 @@ theorem erc6909X_transfer {cA gh bl σ σ₀ A I} {g : Sat256}
         exact transferReturnBaseMem_read128 (transferSenderWord I) (transferAmountWord I)
           hcreditMemSize)
       (by evm_ov) ]
+
+theorem erc6909TransferBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (erc6909SelBytes 2))
+    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨209⟩
+      [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+  have hsz4 := erc6909TransferSelector_size hsel
+  have hd := erc6909Dispatch_transfer (cd := I.calldata) hsel
+  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  have hσ : EVMStateEquiv evmE evmS := by
+    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
+      hAccounts
+  have hFromBalance : transferFromBalanceWord evmE I = transferFromBalanceWord evmS I := by
+    unfold transferFromBalanceWord transferFromSlot
+    rw [hσ.executionEnv]
+    exact hσ.storageLoad_codeOwner
+      (balanceSlot (.address evmS.executionEnv.source)
+        (.int (Int.ofNat (transferIdWord I).toNat)))
+  have hDebit : transferDebitWord evmE I = transferDebitWord evmS I := by
+    simp [transferDebitWord, hFromBalance]
+  have hσDebit : EVMStateEquiv (transferAfterDebitState evmE I)
+      (transferAfterDebitState evmS I) := by
+    unfold transferAfterDebitState transferFromSlot
+    rw [hσ.executionEnv, hDebit]
+    exact hσ.storageStore_codeOwner
+      (balanceSlot (.address evmS.executionEnv.source)
+        (.int (Int.ofNat (transferIdWord I).toNat))) rfl
+  have hToBalance : transferToBalanceWord evmE I = transferToBalanceWord evmS I := by
+    unfold transferToBalanceWord
+    exact hσDebit.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+      (transferToSlot I)
+  have hNewToNat : transferNewToNat evmE I = transferNewToNat evmS I := by
+    simp [transferNewToNat, hToBalance]
+  have hNewToWord : transferNewToWord evmE I = transferNewToWord evmS I := by
+    simp [transferNewToWord, hNewToNat]
+  have hσPost : EVMStateEquiv (transferPostState evmE I) (transferPostState evmS I) := by
+    unfold transferPostState
+    exact hσDebit.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+      (transferToSlot I) hNewToWord
+  by_cases hsz100 : 100 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonReceiver : (transferReceiverWord I).toNat < EVM.addressModulus
+      · have hdec := erc6909Decode_transfer_ok (I := I) hsz100 hbig hcanonReceiver
+        by_cases hsource : I.source = AccountAddress.ofNat 0
+        · have hbody := erc6909TransferBodyReverts_sender_zero evmS I
+            (by simp only [evmS, initState]; exact hwv)
+            (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+          exact (erc6909TransferX_revert_sender_zero (g := Sat256.ofUInt256 g)
+              hsz100 hsize hbig hcanonReceiver hsource hreach)
+            |>.reEquivExecutionRevert hcode hd hdec hbody
+        · by_cases hreceiver :
+            AccountAddress.ofNat (transferReceiverWord I).toNat = AccountAddress.ofNat 0
+          · have hbody := erc6909TransferBodyReverts_receiver_zero evmS I
+              (by simp only [evmS, initState]; exact hwv)
+              (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+              (by simpa [zeroAccountAddress] using hreceiver)
+            exact (erc6909TransferX_revert_receiver_zero (g := Sat256.ofUInt256 g)
+                hsz100 hsize hbig hcanonReceiver hsource hreceiver hreach)
+              |>.reEquivExecutionRevert hcode hd hdec hbody
+          · by_cases henough : (transferAmountWord I).toNat ≤
+              (transferFromBalanceWord
+                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I).toNat
+            · by_cases hfit :
+                transferNewToNat
+                    (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I <
+                  UInt256.size
+              · have henoughS :
+                    (transferAmountWord I).toNat ≤ (transferFromBalanceWord evmS I).toNat := by
+                  simpa [evmE, hFromBalance] using henough
+                have hfitS : transferNewToNat evmS I < UInt256.size := by
+                  simpa [evmE, hNewToNat] using hfit
+                have hbody := erc6909TransferBodyReturns evmS I
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+                  (by simpa [zeroAccountAddress] using hreceiver) henoughS hfitS
+                exact (erc6909X_transfer (g := Sat256.ofUInt256 g)
+                    hsz100 hsize hbig hperm hcanonReceiver hsource hreceiver henough hfit
+                    hreach)
+                  |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                    (by simp [evmE, initState, transferPostState, transferAfterDebitState,
+                      transferFromSlot, transferFromSlotI, storageStore_createdAccounts])
+                    (accountMapEquiv.of_eq (by
+                      simp [evmE, initState, transferPostState, transferAfterDebitState,
+                        transferFromSlot, transferFromSlotI, storageStore_accountMap]))
+                    hσPost
+                    (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+              · have hover :
+                    UInt256.size ≤
+                      transferNewToNat
+                        (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I := by
+                  omega
+                have henoughS :
+                    (transferAmountWord I).toNat ≤ (transferFromBalanceWord evmS I).toNat := by
+                  simpa [evmE, hFromBalance] using henough
+                have hoverS : UInt256.size ≤ transferNewToNat evmS I := by
+                  simpa [evmE, hNewToNat] using hover
+                have hbody := erc6909TransferBodyReverts_overflow evmS I
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+                  (by simpa [zeroAccountAddress] using hreceiver) henoughS hoverS
+                exact (erc6909TransferX_overflow (g := Sat256.ofUInt256 g)
+                    hsz100 hsize hbig hperm hcanonReceiver hsource hreceiver henough hover
+                    hreach)
+                  |>.reEquivExecutionRevert hcode hd hdec hbody
+            · have hlt :
+                  (transferFromBalanceWord
+                      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I).toNat <
+                    (transferAmountWord I).toNat := by
+                omega
+              have hltS :
+                  (transferFromBalanceWord evmS I).toNat < (transferAmountWord I).toNat := by
+                simpa [evmE, hFromBalance] using hlt
+              have hbody := erc6909TransferBodyReverts_insufficient evmS I
+                (by simp only [evmS, initState]; exact hwv)
+                (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+                (by simpa [zeroAccountAddress] using hreceiver) hltS
+              exact (erc6909TransferX_insufficient (g := Sat256.ofUInt256 g)
+                  hsz100 hsize hbig hcanonReceiver hsource hreceiver hlt hreach)
+                |>.reEquivExecutionRevert hcode hd hdec hbody
+      · have hdec := erc6909Decode_transfer_none_noncanon_receiver (I := I)
+          hsz100 hbig hcanonReceiver
+        have hnc : UInt256.eq (transferReceiverWord I)
+            (UInt256.land (transferReceiverWord I) solcAddrMask) = ⟨0⟩ :=
+          uInt256_eq_zero_of_ne
+            (fun he => hcanonReceiver (solcAddrCanonical_of_clean he))
+        exact (erc6909TransferX_noncanon_receiver (g := Sat256.ofUInt256 g)
+            hsz100 hsize hbig hnc hreach)
+          |>.reEquivDecodingFailed hcode hd hdec
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := erc6909Decode_transfer_none_huge (I := I) hbigge
+      exact (erc6909TransferX_hugearg (g := Sat256.ofUInt256 g)
+          hsize hbigge hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 100 := by omega
+    have hdec := erc6909Decode_transfer_none_short (I := I) hsz4 hshort
+    exact (erc6909TransferX_shortarg (g := Sat256.ofUInt256 g)
+        hsz4 hsize hshort hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
 
 end OpenZeppelinBench.ERC6909

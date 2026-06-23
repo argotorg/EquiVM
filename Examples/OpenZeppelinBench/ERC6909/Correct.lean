@@ -1,4 +1,12 @@
+import Examples.OpenZeppelinBench.ERC6909.Allowance
+import Examples.OpenZeppelinBench.ERC6909.Approve
+import Examples.OpenZeppelinBench.ERC6909.BalanceOf
+import Examples.OpenZeppelinBench.ERC6909.IsOperator
+import Examples.OpenZeppelinBench.ERC6909.SetOperator
 import Examples.OpenZeppelinBench.ERC6909.Storage
+import Examples.OpenZeppelinBench.ERC6909.SupportsInterface
+import Examples.OpenZeppelinBench.ERC6909.Transfer
+import Examples.OpenZeppelinBench.ERC6909.TransferFrom
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -212,5 +220,126 @@ theorem erc6909NoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g 
   · have hshort : I.calldata.size < 4 := by omega
     exact (erc6909X_short (g := Sat256.ofUInt256 g) hcode hwv hshort)
       |>.reEquivNoDispatch hcode (erc6909Dispatch_none_short hshort)
+
+/-- The deployed ERC6909 benchmark runtime bytecode refines the Solm specification. -/
+theorem erc6909Correct :
+    runtimeEquivalence!?! config erc6909BenchBytecode contract := by
+  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm
+      hAccounts _hOriginalAccounts => ?_⟩
+  by_cases hwv : I.weiValue = ⟨0⟩
+  · by_cases hsz : 4 ≤ I.calldata.size
+    · by_cases h0 : selIs I (erc6909SelBytes 0)
+      · have hbalanceTake :
+            UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc)
+                (erc6909SelWord I) ≠ ⟨0⟩ := by
+          rw [erc6909BalanceArmEq I hsz]
+          rw [show (erc6909SelBytes 0 == I.calldata.extract 0 4) = true by
+            simpa [selIs] using h0]
+          decide
+        exact erc6909BalanceOfBodyCore hcode hsize hwv
+          (by simpa [selIs, erc6909SelBytes] using h0)
+          (erc6909ReachBalanceBody hcode hwv hsz hsize
+            (erc6909PivotTaken 0 (by omega) hsz (by simpa [selIs] using h0))
+            hbalanceTake)
+          hAccounts
+      · have hbalance0 :
+            UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc)
+                (erc6909SelWord I) = ⟨0⟩ := by
+          rw [erc6909BalanceArmEq I hsz]
+          have hb : (erc6909SelBytes 0 == I.calldata.extract 0 4) = false := by
+            cases hbeq : (erc6909SelBytes 0 == I.calldata.extract 0 4) <;>
+              simp [selIs, hbeq] at h0 ⊢
+          rw [hb]
+          rfl
+        by_cases h1 : selIs I (erc6909SelBytes 1)
+        · exact erc6909SupportsInterfaceBodyCore hcode hsize hperm hwv h1
+            (erc6909ReachLowRestBody 0 (by omega) ⟨174⟩ hcode hwv hsz hsize
+              (erc6909PivotTaken 1 (by omega) hsz (by simpa [selIs] using h1))
+              hbalance0
+              (erc6909LowRestMatches 0 (by omega) hsz
+                (by simpa [selIs] using h1)).1
+              (erc6909LowRestMatches 0 (by omega) hsz
+                (by simpa [selIs] using h1)).2
+              (by jump_dest) (by decide))
+            hAccounts
+        · by_cases h2 : selIs I (erc6909SelBytes 2)
+          · exact erc6909TransferBodyCore hcode hsize hperm hwv h2
+              (erc6909ReachLowRestBody 1 (by omega) ⟨209⟩ hcode hwv hsz hsize
+                (erc6909PivotTaken 2 (by omega) hsz (by simpa [selIs] using h2))
+                hbalance0
+                (erc6909LowRestMatches 1 (by omega) hsz
+                  (by simpa [selIs] using h2)).1
+                (erc6909LowRestMatches 1 (by omega) hsz
+                  (by simpa [selIs] using h2)).2
+                (by jump_dest) (by decide))
+              hAccounts
+          · by_cases h3 : selIs I (erc6909SelBytes 3)
+            · exact erc6909ApproveBodyCore hcode hsize hperm hwv h3
+                (erc6909ReachLowRestBody 2 (by omega) ⟨228⟩ hcode hwv hsz hsize
+                  (erc6909PivotTaken 3 (by omega) hsz (by simpa [selIs] using h3))
+                  hbalance0
+                  (erc6909LowRestMatches 2 (by omega) hsz
+                    (by simpa [selIs] using h3)).1
+                  (erc6909LowRestMatches 2 (by omega) hsz
+                    (by simpa [selIs] using h3)).2
+                  (by jump_dest) (by decide))
+                hAccounts
+            · by_cases h4 : selIs I (erc6909SelBytes 4)
+              · exact erc6909SetOperatorBodyCore hcode hsize hperm hwv h4
+                  (erc6909ReachHighBody 0 (by omega) ⟨247⟩ hcode hwv hsz hsize
+                    (erc6909PivotNotTaken 0 (by omega) hsz (by simpa [selIs] using h4))
+                    (erc6909HighMatches 0 (by omega) hsz
+                      (by simpa [selIs] using h4)).1
+                    (erc6909HighMatches 0 (by omega) hsz
+                      (by simpa [selIs] using h4)).2
+                    (by jump_dest) (by decide))
+                  hAccounts
+              · by_cases h5 : selIs I (erc6909SelBytes 5)
+                · exact erc6909AllowanceBodyCore hcode hsize hwv
+                    (by simpa [selIs, erc6909SelBytes] using h5)
+                    (erc6909ReachHighBody 1 (by omega) ⟨266⟩ hcode hwv hsz hsize
+                      (erc6909PivotNotTaken 1 (by omega) hsz (by simpa [selIs] using h5))
+                      (erc6909HighMatches 1 (by omega) hsz
+                        (by simpa [selIs] using h5)).1
+                      (erc6909HighMatches 1 (by omega) hsz
+                        (by simpa [selIs] using h5)).2
+                      (by jump_dest) (by decide))
+                    hAccounts
+                · by_cases h6 : selIs I (erc6909SelBytes 6)
+                  · exact erc6909IsOperatorBodyCore hcode hsize hwv
+                      (by simpa [selIs, erc6909SelBytes] using h6)
+                      (erc6909ReachHighBody 2 (by omega) ⟨329⟩ hcode hwv hsz hsize
+                        (erc6909PivotNotTaken 2 (by omega) hsz
+                          (by simpa [selIs] using h6))
+                        (erc6909HighMatches 2 (by omega) hsz
+                          (by simpa [selIs] using h6)).1
+                        (erc6909HighMatches 2 (by omega) hsz
+                          (by simpa [selIs] using h6)).2
+                        (by jump_dest) (by decide))
+                      hAccounts
+                  · by_cases h7 : selIs I (erc6909SelBytes 7)
+                    · exact erc6909TransferFromBodyCore hcode hsize hperm hwv h7
+                        (erc6909ReachHighBody 3 (by omega) ⟨388⟩ hcode hwv hsz hsize
+                          (erc6909PivotNotTaken 3 (by omega) hsz
+                            (by simpa [selIs] using h7))
+                          (erc6909HighMatches 3 (by omega) hsz
+                            (by simpa [selIs] using h7)).1
+                          (erc6909HighMatches 3 (by omega) hsz
+                            (by simpa [selIs] using h7)).2
+                          (by jump_dest) (by decide))
+                        hAccounts
+                    · refine erc6909NoDispatch hcode hsize hperm hwv ?_
+                      intro i hi
+                      interval_cases i
+                      · simpa [selIs, erc6909SelBytes] using h0
+                      · simpa [selIs, erc6909SelBytes] using h1
+                      · simpa [selIs, erc6909SelBytes] using h2
+                      · simpa [selIs, erc6909SelBytes] using h3
+                      · simpa [selIs, erc6909SelBytes] using h4
+                      · simpa [selIs, erc6909SelBytes] using h5
+                      · simpa [selIs, erc6909SelBytes] using h6
+                      · simpa [selIs, erc6909SelBytes] using h7
+    · exact erc6909ShortRevert hcode hsize hperm hwv (by omega)
+  · exact erc6909NonPayable hcode hwv
 
 end OpenZeppelinBench.ERC6909

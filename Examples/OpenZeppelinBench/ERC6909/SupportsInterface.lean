@@ -109,7 +109,7 @@ theorem erc6909Decode_supportsInterface_ok {I : ExecutionEnv}
     omega
   simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, bytes4, ABI.decodeABIValues?,
     ABI.decodeABIValue?, isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad,
-    supportsInterfaceStore, supportsInterfaceArgBytes, bytes4Width, hblen, hnotArgShort]
+    supportsInterfaceStore, supportsInterfaceArgBytes, bytes4Width, hnotArgShort]
 
 theorem erc6909Decode_supportsInterface_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -195,12 +195,8 @@ theorem erc6909Decode_supportsInterface_none_pad {I : ExecutionEnv}
       rw [List.drop_zero, List.length_take, List.length_drop, htlen]
       omega
     rw [if_pos hlen, List.drop_zero]
-  have hnotArgShort : ¬ I.calldata.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
   simp [decodeCalldata.decodeArgs, bytes4, ABI.decodeABIValues?, ABI.decodeABIValue?,
-    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad, bytes4Width,
-    hnotArgShort]
+    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad, bytes4Width]
 
 theorem erc6909Decide_eq_list_beq_uint8 (xs ys : List UInt8) :
     decide (xs = ys) = (xs == ys) := by
@@ -586,7 +582,7 @@ theorem erc6909SupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat256}
         (UInt256.land (supportsInterfaceWord I)
           (UInt256.lnot
             (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩))) = ⟨0⟩
-      simpa [supportsInterfaceMask, hclean]),
+      simp [hclean]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem erc6909SupportsInterfaceBodyCore
