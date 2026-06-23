@@ -6,3 +6,4 @@ import Examples.CtorTruth.Correct
 import Examples.CtorStore.Correct
 import Examples.Ballot.Correct
 import Examples.SimpleAuction.Correct
+import Examples.OpenZeppelinBench.Ownable2Step.Correct

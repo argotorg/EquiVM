@@ -291,11 +291,23 @@ def evalByteIndex? (bytes : List UInt8) (i : Int) : EvalResult Value :=
 def evalFixedBytesIndex? (n : Fin 32) (bytes : List UInt8) (i : Int) : EvalResult Value :=
   if fixedBytesValid n bytes then evalByteIndex? bytes i else .error .typeError
 
+def normalizeRawBoolWord? : Value -> EvalResult Value
+  | .tuple [.unit, .int n] =>
+      if n = 0 then
+        .ok (.bool false)
+      else if n = 1 then
+        .ok (.bool true)
+      else
+        .revert
+  | v => .ok v
+
 def evalIndex? (container key : Value) : EvalResult Value :=
   match container, key with
   | .array elems, .int i =>
       if 0 ≤ i ∧ i < elems.length then
-        EvalResult.ofOption .typeError (lookupNth? elems i.toNat)
+        match lookupNth? elems i.toNat with
+        | some v => normalizeRawBoolWord? v
+        | none => .error .typeError
       else
         .revert
   | .fixedBytes n bytes, .int i => evalFixedBytesIndex? n bytes i

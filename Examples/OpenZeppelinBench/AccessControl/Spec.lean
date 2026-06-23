@@ -121,7 +121,10 @@ def grantRoleTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "adminRole" (some bytes32) (.storage (roleAdminRef (.var "role"))),
         .require (.storage (roleHasRoleRef (.var "adminRole") sender)),
-        .assign .storage (roleHasRoleRef (.var "role") (.var "account")) (.boolLit true) ] }
+        .ite
+          (.unary .not (.storage (roleHasRoleRef (.var "role") (.var "account"))))
+          [ .assign .storage (roleHasRoleRef (.var "role") (.var "account")) (.boolLit true) ]
+          [] ] }
 
 def revokeRoleTransition : TransitionDecl :=
   { name := "revokeRole"
@@ -131,7 +134,10 @@ def revokeRoleTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "adminRole" (some bytes32) (.storage (roleAdminRef (.var "role"))),
         .require (.storage (roleHasRoleRef (.var "adminRole") sender)),
-        .assign .storage (roleHasRoleRef (.var "role") (.var "account")) (.boolLit false) ] }
+        .ite
+          (.storage (roleHasRoleRef (.var "role") (.var "account")))
+          [ .assign .storage (roleHasRoleRef (.var "role") (.var "account")) (.boolLit false) ]
+          [] ] }
 
 def renounceRoleTransition : TransitionDecl :=
   { name := "renounceRole"

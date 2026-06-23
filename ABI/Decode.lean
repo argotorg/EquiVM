@@ -24,6 +24,18 @@ def readNat? (bytes : List UInt8) (offset : Nat) : Option Nat := do
   let word <- readWord? bytes offset
   some word.val
 
+def rawBoolWordValue (n : Nat) : Solm.Value :=
+  .tuple [.unit, .int (Int.ofNat n)]
+
+def decodeABIRawBoolArrayElems? (n : Nat) (bytes : List UInt8) (start : Nat) :
+    Option (List Solm.Value × Nat) :=
+  match n with
+  | 0 => some ([], start)
+  | n + 1 => do
+      let word <- readNat? bytes start
+      let (values, restEnd) <- decodeABIRawBoolArrayElems? n bytes (start + 32)
+      some (rawBoolWordValue word :: values, restEnd)
+
 def zeroPadding? (bytes : List UInt8) (offset size : Nat) : Option Unit := do
   let padding <- readBytes? bytes offset size
   if padding.all (· == 0) then some () else none
@@ -113,12 +125,17 @@ mutual
           none
         else
         let elemsStart := start + 32
-        if isDynamicABIType elemTy then do
-          let (values, endOffset) <- decodeABIArrayDynamicElems? elemTy size bytes elemsStart
+        match elemTy with
+        | .elem .bool => do
+          let (values, endOffset) <- decodeABIRawBoolArrayElems? size bytes elemsStart
+          some (.array values, endOffset)
+        | elemTy' =>
+        if isDynamicABIType elemTy' then do
+          let (values, endOffset) <- decodeABIArrayDynamicElems? elemTy' size bytes elemsStart
           some (.array values, endOffset)
         else do
-          let elemSize <- staticABIEncodedSize? elemTy
-          let (values, endOffset) <- decodeABIArrayStaticElems? elemTy size elemSize bytes elemsStart
+          let elemSize <- staticABIEncodedSize? elemTy'
+          let (values, endOffset) <- decodeABIArrayStaticElems? elemTy' size elemSize bytes elemsStart
           some (.array values, endOffset)
   termination_by (sizeOf ty, 0, 0)
 

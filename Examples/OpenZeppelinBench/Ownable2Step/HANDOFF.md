@@ -17,13 +17,17 @@ Optimizer-ON (`solc --optimize`, 0.8.35). This is the **easiest** OZ bench: 2 ad
 mappings, no loops, no external calls.
 
 ## Global rules (full text in `Examples/SimpleAuction/HANDOFF.md`)
-1. Never duplicate — search `Reasoning/*` + this dir's `Common.lean` and **apply**; reuse → flag as
-   refactor.
-2. Respect/extend the library — a missing general lemma goes (proved) in `Common.lean` tagged
-   `-- LIBRARY CANDIDATE …`, or additively into the right `Reasoning/` module if genuinely library-general.
+1. Never duplicate — search `Reasoning/*`, this dir's `Common.lean`, **and the already-proved examples**
+   (Ballot/ERC20/Caller/…), and **apply**; reuse → flag as refactor. **Reusing a lemma from another
+   example → flag it as a generalization candidate** (cross-example use ⇒ belongs in the library).
+2. Respect/extend the library — a missing general lemma goes (proved) in **this example's own
+   `Common.lean`**, tagged `-- LIBRARY CANDIDATE …`. **Never edit `Reasoning/`** — a later, separate pass
+   promotes candidates from `Common.lean` into the library safely.
 3. One file per ABI function, agents run in parallel; each writes **only its own `<Fn>.lean`**.
-4. Sandbox: write only under `Examples/OpenZeppelinBench/Ownable2Step/`; never edit `Spec.lean` /
-   `Bytecode.lean` / another file (shared helpers → report for the Phase-1.5 reconcile agent).
+4. Sandbox — **everything outside `Examples/OpenZeppelinBench/Ownable2Step/` is READ-ONLY** (`Reasoning/`,
+   `Solm/`, `ABI/`, `Ethereum/`, `prompt.md`, other examples — read, never write). Write only your own
+   `<Fn>.lean`; never edit `Spec.lean`/`Bytecode.lean`/another file (shared helpers → report for the
+   Phase-1.5 reconcile agent).
 5. Spec/Bytecode are trusted — if the spec looks wrong, **stop and report to the user**, don't edit.
    No new axiom; no `sorry`/`admit`.
 

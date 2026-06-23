@@ -16,12 +16,16 @@ no `sorry`/`admit`; axioms only `propext`/`Classical.choice`/`Quot.sound`/`ofRed
 The bench fixes `start = 0`, `duration = 365 days (31536000)` as immutables patched into the runtime.
 
 ## Global rules (full text in `Examples/SimpleAuction/HANDOFF.md`)
-1. Never duplicate — search `Reasoning/*` + `Common.lean`, **apply**; reuse → flag as refactor.
-2. Respect/extend the library — missing general lemma → `Common.lean` (`-- LIBRARY CANDIDATE …`) or
-   additively into `Reasoning/` if genuinely library-general.
+1. Never duplicate — search `Reasoning/*`, `Common.lean`, **and the already-proved examples**
+   (Ballot/ERC20/Caller/…), **apply**; reuse → flag as refactor. **Reusing a lemma from another example
+   → flag it as a generalization candidate** (cross-example use ⇒ belongs in the library).
+2. Respect/extend the library — a missing general lemma goes (proved) in **this example's own
+   `Common.lean`**, tagged `-- LIBRARY CANDIDATE …`. **Never edit `Reasoning/`** — a later, separate pass
+   promotes candidates from `Common.lean` into the library safely.
 3. One file per ABI function, parallel agents; each writes **only its own `<Fn>.lean`**.
-4. Sandbox: only under `Examples/OpenZeppelinBench/VestingWallet/`; never edit `Spec.lean`/`Bytecode.lean`/
-   another file (shared helpers → report for Phase 1.5).
+4. Sandbox — **everything outside `Examples/OpenZeppelinBench/VestingWallet/` is READ-ONLY** (`Reasoning/`,
+   `Solm/`, `ABI/`, `Ethereum/`, `prompt.md`, other examples — read, never write). Write only your own
+   `<Fn>.lean`; never edit `Spec.lean`/`Bytecode.lean`/another file (shared helpers → report for Phase 1.5).
 5. Spec/Bytecode trusted — **if a body needs something the spec doesn't model (an opcode/expr that
    looks missing), STOP and report to the user**; don't edit `Spec.lean`. No new axiom; no `sorry`/`admit`.
 
@@ -61,9 +65,20 @@ selector facts (new `Trusted.lean`). Full selector → body-PC map (verified):
 | `ReleaseToken.lean` | `amount = releasable(token)`; `_erc20Released[token] += amount`; **`SafeERC20.safeTransfer(token, owner(), amount)`** (`externalCall` + return-data success check / `SafeERC20FailedOperation`). Hardest. |
 
 The vesting curve and `releasable = vestedAmount(now) − released` are shared by the ETH and token
-paths — factor each as a reusable lemma in `Common.lean` and apply on both sides (`prompt.md §3`). The
-`CALL` coupling for `balanceOf`/`transfer`/value-send goes through `Reasoning.ExternalCall` with the
-external-call ABI from `Spec.lean`'s `config`.
+paths — factor each as a reusable lemma in `Common.lean` and apply on both sides (`prompt.md §3`).
+
+**Treat every external call OPAQUELY — exactly the `Examples/Caller` pattern (`prompt.md §5`).** The
+ERC20 `token.balanceOf(this)` / `token.transfer(...)` and the ETH `sendValue` are black boxes: couple
+the EVM `CALL` to the Solm `externalCall`/`lowLevelCall` via `Reasoning.ExternalCall` as a single
+opaque step whose `(success, σ', returndata)` coincides **by construction**. Do **not** model what
+`balanceOf`/`transfer`/the recipient does, and do **not** case-split on the callee — the proof must
+hold for *any* callee behaviour. The only obligations are the two trace couplings (masked target
+address; calldata in memory = `config.externalABI.encode?` of the call), then use only the bound
+success/returndata. `Caller` is the worked example (its `Pow` callee is never modelled).
+**The external-call coupling pulls in two pre-existing library axioms**
+(`Reasoning.Theory.typedCallViaEVM_accountMapEquiv`, `Reasoning.Reach.Theta_returnData_size_lt`) — these
+are a **known, tolerated trusted base that someone is removing separately. Expect them in your axiom
+footprint and do NOT block on them** (they are not yours and not a failure); only flag a *new* axiom.
 
 > ⚠ **First check (any agent touching `Release*`/`VestedAmountToken`):** confirm `Spec.lean` already
 > models `address(this).balance` (SELFBALANCE), `block.timestamp`, the immutable reads, and the ERC20
