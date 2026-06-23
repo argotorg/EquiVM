@@ -649,6 +649,192 @@ theorem blindAuctionRevealDecodeValuesCall1806_to_1713
   have rd1839 := evm_run rd1835 with [add, push2 ⟨1713⟩, jump (by jump_dest)]
   exact ⟨_, _, by simpa [revealValuesOffsetWord, calldataWord] using rd1839⟩
 
+theorem uslt_eq_zero_of_ne_one {a b : UInt256}
+    (h : ¬ UInt256.slt a b = ⟨1⟩) : UInt256.slt a b = ⟨0⟩ := by
+  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+  by_cases ha : a.toNat ≥ 2 ^ 255
+  · rw [if_pos ha]
+    by_cases hb : b.toNat ≥ 2 ^ 255
+    · rw [if_pos hb]
+      by_cases hab : a < b
+      · exfalso
+        apply h
+        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+        rw [if_pos ha, if_pos hb, if_pos (decide_eq_true hab)]
+        native_decide
+      · have hdf : ¬ decide (a < b) = true := by
+          rw [decide_eq_false hab]
+          decide
+        rw [if_neg hdf]
+        native_decide
+    · rw [if_neg hb]
+      exfalso
+      apply h
+      unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+      rw [if_pos ha, if_neg hb]
+      native_decide
+  · rw [if_neg ha]
+    by_cases hb : b.toNat ≥ 2 ^ 255
+    · rw [if_pos hb]
+      native_decide
+    · rw [if_neg hb]
+      by_cases hab : a < b
+      · exfalso
+        apply h
+        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+        rw [if_neg ha, if_neg hb, if_pos (decide_eq_true hab)]
+        native_decide
+      · have hdf : ¬ decide (a < b) = true := by
+          rw [decide_eq_false hab]
+          decide
+        rw [if_neg hdf]
+        native_decide
+
+theorem blindAuctionRevealDecodeFakesOffset1840_reverts
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {I} {g : Sat256}
+    {s0 : State} {k C : Nat}
+    {valuesLen valuesEnd : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1840⟩
+      [valuesLen, valuesEnd, revealValuesOffsetWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
+        ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩,
+        blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hfakesGt : UInt256.gt (revealFakesOffsetWord I) revealMaxU64 = ⟨1⟩) :
+    RDrev blindAuctionBytecode g s0 := by
+  have rd1841 := evm_run rd with [jumpdest, swap1]
+  have rd1843 := RD.swap8 rd1841 (by decide) (by simp)
+  have rd1844 := evm_run rd1843 with [pop]
+  have rd1845 := RD.swap6 rd1844 (by decide) (by simp)
+  have rd1847 := evm_run rd1845 with [pop, pop]
+  have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
+  have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
+    (by decide) (by native_decide) (by evm_ov)
+  exact evm_run rd1861 with [
+    dup2, gt, iszero, push2 ⟨1871⟩, jumpiNT
+      (by
+        have hgt' :
+            UInt256.gt
+                (uInt256OfByteArray
+                  (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨32⟩).toNat 32))
+                revealMaxU64 = ⟨1⟩ := by
+          simpa [revealFakesOffsetWord, calldataWord] using hfakesGt
+        rw [hgt']
+        decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov)]
+
+theorem blindAuctionRevealDecodeFakesCall1840_to_1713
+    {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
+    {valuesLen valuesEnd sel : UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (rd : RD blindAuctionBytecode ee g s0 ⟨1840⟩
+      [valuesLen, valuesEnd, revealValuesOffsetWord ee, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
+        ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
+      mem aw rdata acc k C)
+    (hfakesGt : UInt256.gt (revealFakesOffsetWord ee) revealMaxU64 = ⟨0⟩) :
+    ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨1713⟩
+      [⟨4⟩ + revealFakesOffsetWord ee, UInt256.ofNat ee.calldata.size, ⟨1883⟩,
+        revealFakesOffsetWord ee, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, valuesLen, valuesEnd,
+        ⟨4⟩, UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
+      mem aw rdata acc k' C' := by
+  have rd1841 := evm_run rd with [jumpdest, swap1]
+  have rd1843 := RD.swap8 rd1841 (by decide) (by simp)
+  have rd1844 := evm_run rd1843 with [pop]
+  have rd1845 := RD.swap6 rd1844 (by decide) (by simp)
+  have rd1847 := evm_run rd1845 with [pop, pop]
+  have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
+  have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
+    (by decide) (by native_decide) (by evm_ov)
+  have rd1871 := evm_run rd1861 with [
+    dup2, gt, iszero, push2 ⟨1871⟩, jumpiT
+      (by
+        have hgt' :
+            UInt256.gt
+                (uInt256OfByteArray
+                  (ee.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨32⟩).toNat 32))
+                revealMaxU64 = ⟨0⟩ := by
+          simpa [revealFakesOffsetWord, calldataWord] using hfakesGt
+        rw [hgt']
+        decide)
+      (by jump_dest)]
+  have rd1875 := evm_run rd1871 with [jumpdest, push2 ⟨1883⟩]
+  have rd1876 := RD.dup10 rd1875 (by decide) (by simp)
+  have rd1877 := evm_run rd1876 with [dup3]
+  have rd1878 := RD.dup11 rd1877 (by decide) (by simp)
+  have rd1882 := evm_run rd1878 with [add, push2 ⟨1713⟩, jump (by jump_dest)]
+  exact ⟨_, _, by simpa [revealFakesOffsetWord, calldataWord] using rd1882⟩
+
+theorem blindAuctionRevealDecodeSecretsOffset1883_reverts
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {I} {g : Sat256}
+    {s0 : State} {k C : Nat}
+    {valuesLen valuesEnd fakesLen fakesEnd : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1883⟩
+      [fakesLen, fakesEnd, revealFakesOffsetWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩,
+        ⟨0⟩, valuesLen, valuesEnd, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hsecretsGt : UInt256.gt (revealSecretsOffsetWord I) revealMaxU64 = ⟨1⟩) :
+    RDrev blindAuctionBytecode g s0 := by
+  have rd1884 := evm_run rd with [jumpdest, swap1]
+  have rd1885 := RD.swap6 rd1884 (by decide) (by simp)
+  have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
+  have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
+  have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
+    (by decide) (by native_decide) (by evm_ov)
+  exact evm_run rd1904 with [
+    dup2, gt, iszero, push2 ⟨1914⟩, jumpiNT
+      (by
+        have hgt' :
+            UInt256.gt
+                (uInt256OfByteArray
+                  (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨64⟩).toNat 32))
+                revealMaxU64 = ⟨1⟩ := by
+          simpa [revealSecretsOffsetWord, calldataWord] using hsecretsGt
+        rw [hgt']
+        decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov)]
+
+theorem blindAuctionRevealDecodeSecretsCall1883_to_1713
+    {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
+    {valuesLen valuesEnd fakesLen fakesEnd sel : UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (rd : RD blindAuctionBytecode ee g s0 ⟨1883⟩
+      [fakesLen, fakesEnd, revealFakesOffsetWord ee, ⟨0⟩, ⟨0⟩, ⟨0⟩,
+        ⟨0⟩, valuesLen, valuesEnd, ⟨4⟩, UInt256.ofNat ee.calldata.size,
+        ⟨413⟩, ⟨276⟩, sel]
+      mem aw rdata acc k C)
+    (hsecretsGt : UInt256.gt (revealSecretsOffsetWord ee) revealMaxU64 = ⟨0⟩) :
+    ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨1713⟩
+      [⟨4⟩ + revealSecretsOffsetWord ee, UInt256.ofNat ee.calldata.size, ⟨1926⟩,
+        revealSecretsOffsetWord ee, ⟨0⟩, ⟨0⟩, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨4⟩, UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
+      mem aw rdata acc k' C' := by
+  have rd1884 := evm_run rd with [jumpdest, swap1]
+  have rd1885 := RD.swap6 rd1884 (by decide) (by simp)
+  have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
+  have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
+  have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
+    (by decide) (by native_decide) (by evm_ov)
+  have rd1914 := evm_run rd1904 with [
+    dup2, gt, iszero, push2 ⟨1914⟩, jumpiT
+      (by
+        have hgt' :
+            UInt256.gt
+                (uInt256OfByteArray
+                  (ee.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨64⟩).toNat 32))
+                revealMaxU64 = ⟨0⟩ := by
+          simpa [revealSecretsOffsetWord, calldataWord] using hsecretsGt
+        rw [hgt']
+        decide)
+      (by jump_dest)]
+  have rd1918 := evm_run rd1914 with [jumpdest, push2 ⟨1926⟩]
+  have rd1919 := RD.dup10 rd1918 (by decide) (by simp)
+  have rd1920 := evm_run rd1919 with [dup3]
+  have rd1921 := RD.dup11 rd1920 (by decide) (by simp)
+  have rd1925 := evm_run rd1921 with [add, push2 ⟨1713⟩, jump (by jump_dest)]
+  exact ⟨_, _, by simpa [revealSecretsOffsetWord, calldataWord] using rd1925⟩
+
 theorem blindAuctionRevealDecode1806_hugeDynamic_reverts
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : Nat}
     (rd : RD blindAuctionBytecode I g
@@ -2523,25 +2709,34 @@ theorem decodeABIValue_dynamicArray_is_array {elemTy : ABIType} {bytes : List UI
   | some size =>
       by_cases hmax : solcMaxU64 < size
       · simp [hsize, hmax] at h
-      · by_cases hdyn : isDynamicABIType elemTy
-        · simp [hsize, hmax, hdyn] at h
-          cases helems : decodeABIArrayDynamicElems? elemTy size bytes (start + 32) with
+      · by_cases hbool : elemTy = .elem .bool
+        · subst elemTy
+          simp [hsize, hmax] at h
+          cases helems : decodeABIRawBoolArrayElems? size bytes (start + 32) with
           | none => simp [helems] at h
           | some p =>
               rcases p with ⟨xs, _⟩
               simp [helems] at h
               exact ⟨xs, h.1.symm⟩
-        · simp [hsize, hmax, hdyn] at h
-          cases hstatic : staticABIEncodedSize? elemTy with
-          | none => simp [hstatic] at h
-          | some elemSize =>
-              simp [hstatic] at h
-              cases helems : decodeABIArrayStaticElems? elemTy size elemSize bytes (start + 32) with
-              | none => simp [helems] at h
-              | some p =>
-                  rcases p with ⟨xs, _⟩
-                  simp [helems] at h
-                  exact ⟨xs, h.1.symm⟩
+        · by_cases hdyn : isDynamicABIType elemTy
+          · simp [hsize, hmax, hdyn] at h
+            cases helems : decodeABIArrayDynamicElems? elemTy size bytes (start + 32) with
+            | none => simp [helems] at h
+            | some p =>
+                rcases p with ⟨xs, _⟩
+                simp [helems] at h
+                exact ⟨xs, h.1.symm⟩
+          · simp [hsize, hmax, hdyn] at h
+            cases hstatic : staticABIEncodedSize? elemTy with
+            | none => simp [hstatic] at h
+            | some elemSize =>
+                simp [hstatic] at h
+                cases helems : decodeABIArrayStaticElems? elemTy size elemSize bytes (start + 32) with
+                | none => simp [helems] at h
+                | some p =>
+                    rcases p with ⟨xs, _⟩
+                    simp [helems] at h
+                    exact ⟨xs, h.1.symm⟩
 
 theorem readBytes32_some_length {bytes : List UInt8} {off : Nat} {out : List UInt8}
     (h : readBytes? bytes off 32 = some out) : off + 32 ≤ bytes.length := by
@@ -2564,6 +2759,14 @@ theorem readNat?_some_length {bytes : List UInt8} {off n : Nat}
   | none => simp [hbytes] at h
   | some _ => exact readBytes32_some_length hbytes
 
+theorem readNat?_exists_of_length {bytes : List UInt8} {off : Nat}
+    (h : off + 32 ≤ bytes.length) : ∃ n, readNat? bytes off = some n := by
+  unfold readNat? readWord? readBytes?
+  have hlen : ((bytes.drop off).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop]
+    omega
+  simp [hlen]
+
 theorem readNat?_some_bytesToWord {bytes : List UInt8} {off n : Nat}
     (h : readNat? bytes off = some n) :
     ABI.bytesToWord ((bytes.drop off).take 32) = UInt256.ofNat n := by
@@ -2573,6 +2776,27 @@ theorem readNat?_some_bytesToWord {bytes : List UInt8} {off n : Nat}
     cases h
     exact (u256_ofNat_toNat _).symm
   · simp [hle] at h
+
+theorem decodeABIValue_uint256_exists {bytes : List UInt8} {start : Nat}
+    (h : start + 32 ≤ bytes.length) :
+    ∃ v, decodeABIValue? uint256 bytes start = some (v, start + 32) := by
+  have hlen : ((bytes.drop start).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop]
+    omega
+  refine ⟨.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), ?_⟩
+  simpa [uint256, uint256Int, abiUInt256] using
+    decodeABIValue_uint256_ok (bytes := bytes) (start := start) hlen
+
+theorem decodeABIValue_bytes32_exists {bytes : List UInt8} {start : Nat}
+    (h : start + 32 ≤ bytes.length) :
+    ∃ v, decodeABIValue? bytes32 bytes start = some (v, start + 32) := by
+  unfold decodeABIValue? bytes32
+  unfold readBytes?
+  have hlen : ((bytes.drop start).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop]
+    omega
+  refine ⟨.fixedBytes ⟨31, by decide⟩ ((bytes.drop start).take 32), ?_⟩
+  simp [hlen, zeroPadding?, readBytes?]
 
 theorem decode_word_at_eq_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) :
     ABI.bytesToWord ((cd.toList.drop off).take 32) =
@@ -2703,6 +2927,138 @@ theorem decodeABIArrayStaticElems_elem32_facts {elem : ElemType} {n : Nat}
               obtain ⟨ihEq, ihLe, ihLen⟩ := ih (by omega) hrest
               exact ⟨by omega, ihLe, by simp [ihLen]⟩
 
+theorem decodeABIArrayStaticElems_uint256_exists_of_length {n : Nat}
+    {bytes : List UInt8} {start : Nat} (h : start + 32 * n ≤ bytes.length) :
+    ∃ values, decodeABIArrayStaticElems? uint256 n 32 bytes start =
+        some (values, start + 32 * n) ∧ values.length = n := by
+  induction n generalizing start with
+  | zero =>
+      refine ⟨[], ?_, rfl⟩
+      simp [decodeABIArrayStaticElems?]
+  | succ n ih =>
+      obtain ⟨v, hv⟩ := decodeABIValue_uint256_exists (bytes := bytes) (start := start) (by omega)
+      obtain ⟨values, hvalues, hlen⟩ := ih (start := start + 32) (by omega)
+      refine ⟨v :: values, ?_, by simp [hlen]⟩
+      rw [decodeABIArrayStaticElems?, hv]
+      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
+      simpa [hvalues, hmul, Nat.add_assoc]
+
+theorem decodeABIArrayStaticElems_bytes32_exists_of_length {n : Nat}
+    {bytes : List UInt8} {start : Nat} (h : start + 32 * n ≤ bytes.length) :
+    ∃ values, decodeABIArrayStaticElems? bytes32 n 32 bytes start =
+        some (values, start + 32 * n) ∧ values.length = n := by
+  induction n generalizing start with
+  | zero =>
+      refine ⟨[], ?_, rfl⟩
+      simp [decodeABIArrayStaticElems?]
+  | succ n ih =>
+      obtain ⟨v, hv⟩ := decodeABIValue_bytes32_exists (bytes := bytes) (start := start) (by omega)
+      obtain ⟨values, hvalues, hlen⟩ := ih (start := start + 32) (by omega)
+      refine ⟨v :: values, ?_, by simp [hlen]⟩
+      rw [decodeABIArrayStaticElems?, hv]
+      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
+      simpa [hvalues, hmul, Nat.add_assoc]
+
+theorem decodeABIRawBoolArrayElems_facts {n : Nat} {bytes : List UInt8}
+    {start : Nat} {values : List Value} {endOffset : Nat}
+    (hstart : start ≤ bytes.length)
+    (h : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset)) :
+    endOffset = start + 32 * n ∧ endOffset ≤ bytes.length ∧ values.length = n := by
+  induction n generalizing start values endOffset with
+  | zero =>
+      simp [decodeABIRawBoolArrayElems?] at h
+      rcases h with ⟨hvalues, hend⟩
+      cases hvalues
+      cases hend
+      exact ⟨by omega, hstart, rfl⟩
+  | succ n ih =>
+      rw [decodeABIRawBoolArrayElems?] at h
+      cases hread : readNat? bytes start with
+      | none => simp [hread] at h
+      | some word =>
+          simp [hread] at h
+          cases hrest : decodeABIRawBoolArrayElems? n bytes (start + 32) with
+          | none => simp [hrest] at h
+          | some p =>
+              rcases p with ⟨valuesRest, restEnd⟩
+              simp [hrest] at h
+              rcases h with ⟨hvalues, hend⟩
+              cases hvalues
+              cases hend
+              obtain ⟨ihEq, ihLe, ihLen⟩ :=
+                ih (readNat?_some_length hread) hrest
+              exact ⟨by omega, ihLe, by simp [ihLen]⟩
+
+theorem decodeABIRawBoolArrayElems_exists_of_length {n : Nat} {bytes : List UInt8}
+    {start : Nat} (h : start + 32 * n ≤ bytes.length) :
+    ∃ values, decodeABIRawBoolArrayElems? n bytes start =
+        some (values, start + 32 * n) ∧ values.length = n := by
+  induction n generalizing start with
+  | zero =>
+      refine ⟨[], ?_, rfl⟩
+      simp [decodeABIRawBoolArrayElems?]
+  | succ n ih =>
+      have hreadLen : start + 32 ≤ bytes.length := by omega
+      obtain ⟨word, hread⟩ := readNat?_exists_of_length hreadLen
+      have htail : start + 32 + 32 * n ≤ bytes.length := by omega
+      obtain ⟨values, hvalues, hlen⟩ := ih htail
+      refine ⟨rawBoolWordValue word :: values, ?_, by simp [hlen]⟩
+      rw [decodeABIRawBoolArrayElems?, hread, hvalues]
+      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
+      simpa [hmul, Nat.add_assoc]
+
+theorem decodeABIValue_dynamicArray_uint256_exists {bytes : List UInt8}
+    {start len : Nat}
+    (hread : readNat? bytes start = some len)
+    (hmax : ¬ solcMaxU64 < len)
+    (hend : start + 32 + 32 * len ≤ bytes.length) :
+    ∃ values, decodeABIValue? (.dynamicArray uint256) bytes start =
+        some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
+  obtain ⟨values, hvalues, hlen⟩ :=
+    decodeABIArrayStaticElems_uint256_exists_of_length (bytes := bytes) (start := start + 32)
+      (n := len) (by omega)
+  refine ⟨values, ?_, hlen⟩
+  have hvalues' :
+      decodeABIArrayStaticElems? (.elem (.int uint256Int)) len 32 bytes (start + 32) =
+        some (values, start + 32 + 32 * len) := by
+    simpa [uint256] using hvalues
+  unfold decodeABIValue? uint256
+  simp [hread, hmax, isDynamicABIType, staticABIEncodedSize?, hvalues', Nat.add_assoc]
+
+theorem decodeABIValue_dynamicArray_bool_exists {bytes : List UInt8}
+    {start len : Nat}
+    (hread : readNat? bytes start = some len)
+    (hmax : ¬ solcMaxU64 < len)
+    (hend : start + 32 + 32 * len ≤ bytes.length) :
+    ∃ values, decodeABIValue? (.dynamicArray boolTy) bytes start =
+        some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
+  obtain ⟨values, hvalues, hlen⟩ :=
+    decodeABIRawBoolArrayElems_exists_of_length (bytes := bytes) (start := start + 32)
+      (n := len) (by omega)
+  refine ⟨values, ?_, hlen⟩
+  unfold decodeABIValue? boolTy
+  simp [hread, hmax, hvalues, Nat.add_assoc]
+
+theorem decodeABIValue_dynamicArray_bytes32_exists {bytes : List UInt8}
+    {start len : Nat}
+    (hread : readNat? bytes start = some len)
+    (hmax : ¬ solcMaxU64 < len)
+    (hend : start + 32 + 32 * len ≤ bytes.length) :
+    ∃ values, decodeABIValue? (.dynamicArray bytes32) bytes start =
+        some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
+  obtain ⟨values, hvalues, hlen⟩ :=
+    decodeABIArrayStaticElems_bytes32_exists_of_length (bytes := bytes) (start := start + 32)
+      (n := len) (by omega)
+  refine ⟨values, ?_, hlen⟩
+  unfold bytes32 at hvalues
+  unfold decodeABIValue? bytes32
+  simp [hread, hmax, isDynamicABIType, staticABIEncodedSize?]
+  rw [show (ABIType.elem (ElemType.bytes 31)) =
+      (ABIType.elem (ElemType.bytes ⟨31, bytes32._proof_1⟩)) by
+    congr]
+  rw [hvalues]
+  simp [Nat.add_assoc]
+
 theorem decodeABIValue_dynamicArray_elem32_facts {elem : ElemType}
     {bytes : List UInt8} {start : Nat} {values : List Value} {endOffset : Nat}
     (h : decodeABIValue? (.dynamicArray (.elem elem)) bytes start =
@@ -2715,20 +3071,36 @@ theorem decodeABIValue_dynamicArray_elem32_facts {elem : ElemType}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at h
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at h
-        cases hstatic : decodeABIArrayStaticElems? (.elem elem) len 32 bytes (start + 32) with
-        | none => simp [hstatic] at h
-        | some p =>
-            rcases p with ⟨values', end'⟩
-            simp [hstatic] at h
-            rcases h with ⟨hvalues, hendOffset⟩
-            obtain ⟨hend, hle, hlen⟩ :=
-              decodeABIArrayStaticElems_elem32_facts (readNat?_some_length hread) hstatic
-            refine ⟨len, rfl, hmax, ?_, ?_, ?_⟩
-            · rw [← hendOffset]
-              exact hend
-            · rwa [hendOffset] at hle
-            · rwa [hvalues] at hlen
+      · by_cases hbool : elem = .bool
+        · subst elem
+          simp [hread, hmax] at h
+          cases hraw : decodeABIRawBoolArrayElems? len bytes (start + 32) with
+          | none => simp [hraw] at h
+          | some p =>
+              rcases p with ⟨values', end'⟩
+              simp [hraw] at h
+              rcases h with ⟨hvalues, hendOffset⟩
+              obtain ⟨hend, hle, hlen⟩ :=
+                decodeABIRawBoolArrayElems_facts (readNat?_some_length hread) hraw
+              refine ⟨len, rfl, hmax, ?_, ?_, ?_⟩
+              · rw [← hendOffset]
+                exact hend
+              · rwa [hendOffset] at hle
+              · rwa [hvalues] at hlen
+        · simp [hread, hmax, hbool, staticABIEncodedSize?, isDynamicABIType] at h
+          cases hstatic : decodeABIArrayStaticElems? (.elem elem) len 32 bytes (start + 32) with
+          | none => simp [hstatic] at h
+          | some p =>
+              rcases p with ⟨values', end'⟩
+              simp [hstatic] at h
+              rcases h with ⟨hvalues, hendOffset⟩
+              obtain ⟨hend, hle, hlen⟩ :=
+                decodeABIArrayStaticElems_elem32_facts (readNat?_some_length hread) hstatic
+              refine ⟨len, rfl, hmax, ?_, ?_, ?_⟩
+              · rw [← hendOffset]
+                exact hend
+              · rwa [hendOffset] at hle
+              · rwa [hvalues] at hlen
 
 theorem uadd3_ofNat_toNat {a b c : Nat}
     (ha : a < UInt256.size) (hb : b < UInt256.size) (hc : c < UInt256.size)
@@ -3476,7 +3848,8 @@ theorem evalExpr_reveal_local_array_index_any (evm : EVM.State) (locals : Store)
     (harr : locals.get? name = some (.array xs))
     (hi : locals.get? "i" = some (.int (Int.ofNat idx.toNat)))
     (hbound : idx.toNat < xs.length)
-    (hlookup : lookupNth? xs idx.toNat = some v) :
+    (hlookup : lookupNth? xs idx.toNat = some v)
+    (hnorm : normalizeRawBoolWord? v = .ok v) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
       (.index (.var name) (.var "i")) = .ok v := by
   rw [evalExpr?]
@@ -3486,7 +3859,7 @@ theorem evalExpr_reveal_local_array_index_any (evm : EVM.State) (locals : Store)
   unfold evalIndex?
   simp only
   rw [if_pos]
-  · simp [EvalResult.ofOption, hlookup]
+  · simp [hlookup, hnorm]
   · constructor
     · exact Int.natCast_nonneg idx.toNat
     · simpa using hbound
