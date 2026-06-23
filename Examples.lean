@@ -8,3 +8,4 @@ import Examples.Ballot.Correct
 import Examples.SimpleAuction.Correct
 import Examples.OpenZeppelinBench.Ownable2Step.Correct
 import Examples.OpenZeppelinBench.AccessControl.Correct
+import Examples.OpenZeppelinBench.Pausable.Correct

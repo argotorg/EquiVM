@@ -8,54 +8,8 @@ namespace OpenZeppelinBench.Pausable
 
 /-! ## `pause()` -/
 
-def pauseSenderWord (I : ExecutionEnv) : UInt256 :=
-  UInt256.ofNat I.source.val
-
-theorem pauseSenderWord_toNat (I : ExecutionEnv) :
-    (pauseSenderWord I).toNat = I.source.val := by
-  unfold pauseSenderWord
-  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
-
-theorem pauseSenderWord_canonical (I : ExecutionEnv) :
-    (pauseSenderWord I).toNat < EVM.addressModulus := by
-  rw [pauseSenderWord_toNat]
-  exact I.source.isLt
-
--- PROMOTE -> Reasoning.EVMWord.
-theorem pausableNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- PROMOTE -> Reasoning.EVMWord.
-theorem pausableU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [pausableNat_lor_comm]
-
 def pausedTopic : UInt256 :=
   ⟨0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258⟩
-
-noncomputable def pauseEventMem (I : ExecutionEnv) : ByteArray :=
-  (UInt256.toByteArray (pauseSenderWord I)).write 0 solcFreePtrMem 128 32
-
-theorem pauseEventMem_size (I : ExecutionEnv) : (pauseEventMem I).size = 160 := by
-  simpa [pauseEventMem, solcReturnMem] using solcReturnMem_size (pauseSenderWord I)
-
-theorem pauseEventMem_read64 (I : ExecutionEnv) :
-    (pauseEventMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  simpa [pauseEventMem, solcReturnMem] using solcReturnMem_read64 (pauseSenderWord I)
-
-theorem pauseEventMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pauseEventMem I).size ∨
-        (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian ((pauseEventMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
-      (⟨128⟩ : UInt256) := by
-  exact mloadFreePtrValue (by rw [pauseEventMem_size]; decide) (by decide) (pauseEventMem_read64 I)
 
 theorem pausablePauseSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x84, 0x56, 0xcb, 0x59]⟩) :
@@ -85,45 +39,6 @@ theorem pausableDecode_pause {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
       (transitionSignature pauseTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
-
-theorem evalExpr_pause_paused (evm : EVM.State) :
-    evalExpr? config { contract := contract, locals := ∅ } evm (.storage pausedRef) =
-      .ok (wordToElem .bool
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩)) := by
-  have her : evalStorageRef config { contract := contract, locals := ∅ } evm
-      pausedRef = .ok { base := "_paused", steps := [] } := by
-    simp [evalStorageRef, evalStorageRefSteps, pausedRef, EvalResult.bind, pure, bind]
-  have hty : storageTypeAt? contract.storage
-      ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
-    decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := by rfl), pausableStorageLocLoad_bool_offset0]
-
-theorem evalExpr_pause_whenNotPaused_true (evm : EVM.State)
-    (hzero :
-      UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ =
-        ⟨0⟩) :
-    evalExpr? config { contract := contract, locals := ∅ } evm
-      (.unary .not (.storage pausedRef)) = .ok (.bool true) := by
-  simp only [evalExpr?, evalExpr_pause_paused, EvalResult.bind, bind]
-  rw [hzero]
-  rfl
-
-theorem evalExpr_pause_whenNotPaused_false (evm : EVM.State)
-    (hnz :
-      UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ ≠
-        ⟨0⟩) :
-    evalExpr? config { contract := contract, locals := ∅ } evm
-      (.unary .not (.storage pausedRef)) = .ok (.bool false) := by
-  simp only [evalExpr?, evalExpr_pause_paused, EvalResult.bind, bind]
-  have hbeq :
-      ((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩).val == 0) =
-        false := by
-    rw [beq_eq_false_iff_ne]
-    intro h
-    exact hnz (uint256_toNat_eq_zero (by simpa [UInt256.toNat] using congrArg Fin.val h))
-  rw [wordToElem, hbeq]
-  rfl
 
 theorem evalExpr_pause_true (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := ∅ } evm (.boolLit true) =
@@ -158,8 +73,10 @@ theorem pausablePauseBodyReturns (evm : EVM.State)
       (.returned { contract := contract, locals := ∅ } (pausePostState evm) none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  have hzeroPaused : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩ := by
+    simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad] using hzero
   refine ExecBlock.consNormal
-    (ExecStmt.requireTrue (evalExpr_pause_whenNotPaused_true evm hzero)) ?_
+    (ExecStmt.requireTrue (pausableEvalWhenNotPausedTrue evm ∅ hzeroPaused (by simp))) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (evalExpr_pause_true evm) (pauseAssign evm))
     ExecBlock.nil
 
@@ -171,36 +88,10 @@ theorem pausablePauseBodyReverts_paused (evm : EVM.State)
     ExecTransitionBody config contract evm ∅ pauseTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  have hnzPaused : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ := by
+    simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad] using hnz
   exact ExecBlock.consRevert
-    (ExecStmt.requireFalse (evalExpr_pause_whenNotPaused_false evm hnz))
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic OR combinator.
-theorem pausableOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
--- PROMOTE -> Reasoning.Reach: generic OR combinator.
-theorem pausableRDOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => pausableOr_xstep hc hp hdec hs hov)
+    (ExecStmt.requireFalse (pausableEvalWhenNotPausedFalse evm ∅ hnzPaused (by simp)))
 
 theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
@@ -260,17 +151,17 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
       solcAddrMask := by
     decide
   rw [haddrMask] at rd258
-  have hcaller : UInt256.land (UInt256.ofNat I.source.val) solcAddrMask = pauseSenderWord I := by
+  have hcaller : UInt256.land (UInt256.ofNat I.source.val) solcAddrMask = pausableSenderWord I := by
     rw [pausableU256_land_comm]
-    simpa [pauseSenderWord] using solcAddrMask_clean_left (pauseSenderWord_canonical I)
+    simpa [pausableSenderWord] using solcAddrMask_clean_left (pausableSenderWord_canonical I)
   rw [hcaller] at rd258
   have rd260 := evm_run rd258 with [
-    raw mstore 6 (pauseEventMem I) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (pausableEventMem I) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd270 := evm_run rd260 with [
     push1 ⟨32⟩, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost (pauseEventMem_mload64 I) (by decide) (by evm_ov),
+      mem_cost (pausableEventMem_mload64 I) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen32 : ((⟨32⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨32⟩ := by
     decide
@@ -337,7 +228,7 @@ theorem pausablePauseBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
           (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
           (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) := by
         exact EVMStateEquiv.initState hAccounts
-      exact hσ.storageStore_codeOwner ⟨0⟩ (by
+      exact pausableEVMStateEquiv_storageStore_codeOwner hσ ⟨0⟩ (by
         have hraw :
             pausedRawWord σ_evm I = pausedRawWord σ_solm I := by
           unfold pausedRawWord

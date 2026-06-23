@@ -11,33 +11,6 @@ namespace OpenZeppelinBench.Pausable
 abbrev pausedReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.isZero (UInt256.isZero (pausedWord σ I))
 
--- PROMOTE -> Common.lean: ABI-encoding `false` as a one-word bool return.
-theorem pausableBoolFalseReturnEncoding :
-    encodeReturnValue? boolTy (.bool false) = some (UInt256.toByteArray ⟨0⟩) := by
-  simpa [boolTy] using
-    scalarReturnEncoding (t := .bool) (w := (⟨0⟩ : UInt256)) rfl
-      (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind,
-        Option.bind]; decide)
-      (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
-
--- PROMOTE -> Common.lean: ABI-encoding a packed storage bool loaded from byte offset 0.
-theorem pausableBoolReturnEncoding (w : UInt256) :
-    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
-      some (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
-  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
-  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
-      apply u256_inj
-      exact congrArg Fin.val hval
-    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [wordToElem, hz, hnorm] using pausableBoolFalseReturnEncoding
-  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
-      intro hx
-      apply hval
-      rw [hx]
-    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
-    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
-    simpa [boolTy, wordToElem, hval, hiz, hnorm] using boolTrueReturnEncoding
-
 theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "_paused" = none) :

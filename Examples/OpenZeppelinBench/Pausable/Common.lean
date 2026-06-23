@@ -50,6 +50,162 @@ theorem pausableByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a 
 theorem pausableU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a :=
   SimpleAuction.simpleAuctionU256_land_comm a b
 
+-- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
+theorem pausableNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (a ||| b).testBit i = (b ||| a).testBit i
+  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
+
+-- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
+theorem pausableU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
+  apply u256_inj
+  show Nat.lor a.toNat b.toNat % UInt256.size =
+    Nat.lor b.toNat a.toNat % UInt256.size
+  rw [pausableNat_lor_comm]
+
+/-! ### Shared source-level storage and ABI helpers -/
+
+def pausableSenderWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.ofNat I.source.val
+
+theorem pausableSenderWord_toNat (I : ExecutionEnv) :
+    (pausableSenderWord I).toNat = I.source.val := by
+  unfold pausableSenderWord
+  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
+    (show AccountAddress.size ≤ UInt256.size from by decide))
+
+theorem pausableSenderWord_canonical (I : ExecutionEnv) :
+    (pausableSenderWord I).toNat < EVM.addressModulus := by
+  rw [pausableSenderWord_toNat]
+  exact I.source.isLt
+
+noncomputable def pausableEventMem (I : ExecutionEnv) : ByteArray :=
+  (UInt256.toByteArray (pausableSenderWord I)).write 0 solcFreePtrMem 128 32
+
+theorem pausableEventMem_size (I : ExecutionEnv) : (pausableEventMem I).size = 160 := by
+  simpa [pausableEventMem, solcReturnMem] using solcReturnMem_size (pausableSenderWord I)
+
+theorem pausableEventMem_read64 (I : ExecutionEnv) :
+    (pausableEventMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  simpa [pausableEventMem, solcReturnMem] using solcReturnMem_read64 (pausableSenderWord I)
+
+theorem pausableEventMem_mload64 (I : ExecutionEnv) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (pausableEventMem I).size ∨
+        (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian ((pausableEventMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+      (⟨128⟩ : UInt256) := by
+  exact mloadFreePtrValue (by rw [pausableEventMem_size]; decide) (by decide)
+    (pausableEventMem_read64 I)
+
+theorem pausableBoolFalseReturnEncoding :
+    encodeReturnValue? boolTy (.bool false) = some (UInt256.toByteArray ⟨0⟩) := by
+  simpa [boolTy] using
+    scalarReturnEncoding (t := .bool) (w := (⟨0⟩ : UInt256)) rfl
+      (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind,
+        Option.bind]; decide)
+      (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
+
+theorem pausableBoolReturnEncoding (w : UInt256) :
+    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
+      some (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
+  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
+  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
+      apply u256_inj
+      exact congrArg Fin.val hval
+    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
+    simpa [wordToElem, hz, hnorm] using pausableBoolFalseReturnEncoding
+  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
+      intro hx
+      apply hval
+      rw [hx]
+    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
+    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
+    simpa [boolTy, wordToElem, hval, hiz, hnorm] using boolTrueReturnEncoding
+
+theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
+    (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩)
+    (hlocals : locals.get? "_paused" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage pausedRef) =
+      .ok (.bool false) := by
+  have hstorageZero :
+      UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ =
+        ⟨0⟩ := by
+    simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad] using hzero
+  have her : evalStorageRef config { contract := contract, locals := locals } evm pausedRef =
+      .ok { base := "_paused", steps := [] } := by
+    simp [evalStorageRef, evalStorageRefSteps, pausedRef, EvalResult.bind, pure, bind]
+  have hty : storageTypeAt? contract.storage
+      ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
+    decide
+  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
+
+theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
+    (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
+    (hlocals : locals.get? "_paused" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage pausedRef) =
+      .ok (.bool true) := by
+  have hstorageNz :
+      UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩ ≠
+        ⟨0⟩ := by
+    simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad] using hnz
+  have her : evalStorageRef config { contract := contract, locals := locals } evm pausedRef =
+      .ok { base := "_paused", steps := [] } := by
+    simp [evalStorageRef, evalStorageRefSteps, pausedRef, EvalResult.bind, pure, bind]
+  have hty : storageTypeAt? contract.storage
+      ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
+    decide
+  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
+
+theorem pausableEvalWhenNotPausedTrue (evm : EVM.State) (locals : Store)
+    (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩)
+    (hlocals : locals.get? "_paused" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.unary .not (.storage pausedRef)) = .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, pausableEvalPausedFalse evm locals hzero hlocals,
+    evalUnaryOp?]
+  rfl
+
+theorem pausableEvalWhenNotPausedFalse (evm : EVM.State) (locals : Store)
+    (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
+    (hlocals : locals.get? "_paused" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.unary .not (.storage pausedRef)) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind, pausableEvalPausedTrue evm locals hnz hlocals,
+    evalUnaryOp?]
+  rfl
+
+-- LIBRARY CANDIDATE: `Reasoning.Stepping` / `Reasoning.Reach`, generic OR combinator.
+theorem pausableOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.OR, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_or s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
+-- LIBRARY CANDIDATE: `Reasoning.Reach`, generic OR combinator.
+theorem pausableRDOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => pausableOr_xstep hc hp hdec hs hov)
+
 /-- Arm `j`'s selector equality agrees with the calldata byte comparison. -/
 theorem pausableArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -284,6 +440,35 @@ namespace Reasoning.Reach
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory OpenZeppelinBench.Pausable
 
 /-! ## PausableBench shared modifier routines -/
+
+set_option maxHeartbeats 1000000 in
+theorem RD.pausableReturnBoolTrue105 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD pausableBenchBytecode ee g s0 ⟨105⟩ (⟨1⟩ :: R) solcFreePtrMem
+        (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 8 ≤ 1024) :
+    RDret pausableBenchBytecode g s0 acc (UInt256.toByteArray ⟨1⟩) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    swap1, iszero, iszero, dup2,
+    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (by rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost (solcReturnMem_mload64 ⟨1⟩) (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
+          solcReturnMem_read128])
+      (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenNotPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}

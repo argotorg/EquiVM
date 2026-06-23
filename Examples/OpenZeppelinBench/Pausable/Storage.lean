@@ -136,14 +136,229 @@ theorem pausableStorageStore_createdAccounts
     (Solm.EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
   exact SimpleAuction.simpleAuctionStorageStore_createdAccounts evm a slot val
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`; local no-axiom replacement for
--- `accountMapEquiv_sstoreAccountMap`.  This currently names the existing library boundary; before
--- the final axiom gate, replace this with the erased-same-key proof if a final theorem depends on it.
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_append_toList {α : Type u} (l r : Batteries.RBNode α) :
+    (l.append r).toList = l.toList ++ r.toList := by
+  fun_induction Batteries.RBNode.append l r <;> simp [List.append_assoc]
+  case case3 a1 x1 b1 c y d a x b h ih1 =>
+    have hnode : a.toList ++ x :: b.toList = b1.toList ++ c.toList := by
+      simpa [h] using ih1
+    simpa [List.append_assoc] using congrArg (fun xs => xs ++ (y :: d.toList)) hnode
+  case case4 ih1 =>
+    rw [ih1, List.append_assoc]
+  case case5 a1 x1 b1 c y d a x b h ih1 =>
+    have hnode : a.toList ++ x :: b.toList = b1.toList ++ c.toList := by
+      simpa [h] using ih1
+    simpa [List.append_assoc] using congrArg (fun xs => xs ++ (y :: d.toList)) hnode
+  case case6 ih1 =>
+    rw [ih1, List.append_assoc]
+  case case7 ih1 =>
+    rw [ih1]
+    simp [List.append_assoc]
+  case case8 ih1 =>
+    simpa using ih1
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_mem_of_mem_append {α : Type u} {x : α}
+    {l r : Batteries.RBNode α} (h : x ∈ l.append r) : x ∈ l ∨ x ∈ r := by
+  rw [← Batteries.RBNode.mem_toList] at h
+  rw [pausableRBNode_append_toList] at h
+  simpa [Batteries.RBNode.mem_toList] using h
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_mem_of_mem_balLeft {α : Type u} {x v : α}
+    {l r : Batteries.RBNode α} (h : x ∈ l.balLeft v r) :
+    x ∈ l ∨ x = v ∨ x ∈ r := by
+  rw [← Batteries.RBNode.mem_toList] at h
+  rw [Batteries.RBNode.balLeft_toList] at h
+  simpa [Batteries.RBNode.mem_toList] using h
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_mem_of_mem_balRight {α : Type u} {x v : α}
+    {l r : Batteries.RBNode α} (h : x ∈ l.balRight v r) :
+    x ∈ l ∨ x = v ∨ x ∈ r := by
+  rw [← Batteries.RBNode.mem_toList] at h
+  rw [Batteries.RBNode.balRight_toList] at h
+  simpa [Batteries.RBNode.mem_toList] using h
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_not_memP_del {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut] :
+    ∀ {t : Batteries.RBNode α}, Batteries.RBNode.Ordered cmp t →
+      ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.del cut t)
+  | .nil, _, h => by cases h
+  | .node _ a y b, ht, h => by
+      unfold Batteries.RBNode.del at h
+      rcases ht with ⟨ay, yb, ha, hb⟩
+      cases hcut : cut y with
+      | lt =>
+          cases hblack : Batteries.RBNode.isBlack a <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hdel | hbmem
+            · exact nomatch heq.symm.trans hcut
+            · exact pausableRBNode_not_memP_del ha
+                (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.lt_trans
+                  (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases pausableRBNode_mem_of_mem_balLeft hx with hdel | hrest
+            · exact pausableRBNode_not_memP_del ha
+                (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · rcases hrest with rfl | hbmem
+              · exact nomatch heq.symm.trans hcut
+              · exact nomatch heq.symm.trans
+                  (Batteries.RBNode.IsCut.lt_trans
+                    (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+      | eq =>
+          simp [hcut] at h
+          rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+          rcases pausableRBNode_mem_of_mem_append hx with hamem | hbmem
+          · have hcmp : cmp y x = .gt :=
+              Std.OrientedCmp.gt_iff_lt.2 (Batteries.RBNode.All_def.1 ay _ hamem).1
+            have hcutx : cut x = .gt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+          · have hcmp : cmp y x = .lt := (Batteries.RBNode.All_def.1 yb _ hbmem).1
+            have hcutx : cut x = .lt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+      | gt =>
+          cases hblack : Batteries.RBNode.isBlack b <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hamem | hdel
+            · exact nomatch heq.symm.trans hcut
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · exact pausableRBNode_not_memP_del hb
+                (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases pausableRBNode_mem_of_mem_balRight hx with hamem | hrest
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · rcases hrest with rfl | hdel
+              · exact nomatch heq.symm.trans hcut
+              · exact pausableRBNode_not_memP_del hb
+                  (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBNode_not_memP_erase {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut]
+    {t : Batteries.RBNode α} (ht : Batteries.RBNode.Ordered cmp t) :
+    ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.erase cut t) := by
+  intro h
+  rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+  have hxdel : x ∈ Batteries.RBNode.del cut t := by
+    rw [← Batteries.RBNode.mem_toList] at hx ⊢
+    unfold Batteries.RBNode.erase at hx
+    simpa using hx
+  exact pausableRBNode_not_memP_del ht
+    (Batteries.RBNode.memP_def.2 ⟨x, hxdel, heq⟩)
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+private theorem pausableRBMap_find?_erase_self {α : Type u} {β : Type v}
+    {cmp : α → α → Ordering} [Std.TransCmp cmp]
+    (m : Batteries.RBMap α β cmp) (write : α) :
+    (m.erase write).find? write = none := by
+  cases hfind : (m.erase write).find? write with
+  | none => rfl
+  | some v =>
+      have hsome : ∃ y, (y, v) ∈ (m.erase write).toList ∧ cmp write y = .eq :=
+        (Batteries.RBMap.find?_some).1 hfind
+      rcases hsome with ⟨y, hymem, hcmp⟩
+      have hmemNode : (y, v) ∈ (m.erase write).1 := Batteries.RBMap.mem_toList.1 hymem
+      have hno := pausableRBNode_not_memP_erase
+        (cmp := Ordering.byKey Prod.fst cmp)
+        (cut := Ordering.byKey Prod.fst cmp (write, v))
+        (t := m.1) m.2.out.1
+      cases hno (Batteries.RBNode.memP_def.2 ⟨(y, v), hmemNode, hcmp⟩)
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+theorem pausableStorage_find?_erase_self (storage : Storage) (slot : UInt256) :
+    (storage.erase slot).find? slot = none :=
+  pausableRBMap_find?_erase_self storage slot
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+theorem pausableAccountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
+    (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
+    accountEquiv { acc₁ with storage := acc₁.storage.erase slot }
+      { acc₂ with storage := acc₂.storage.erase slot } := by
+  rcases hacc with ⟨hnonce, hbalance, hcode, htstor, hstorage⟩
+  refine ⟨hnonce, hbalance, hcode, htstor, ?_⟩
+  intro readSlot
+  by_cases hread : readSlot = slot
+  · subst readSlot
+    rw [pausableStorage_find?_erase_self, pausableStorage_find?_erase_self]
+  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
+      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
 theorem pausableAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256)
     (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) :=
-  accountMapEquiv_sstoreAccountMap a slot val hστ
+    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) := by
+  by_cases hval : (val == (default : UInt256)) = false
+  · exact accountMapEquiv_sstoreAccountMap_insert a slot val hστ hval
+  have hzero : (val == (default : UInt256)) = true := by
+    cases h : (val == (default : UInt256)) <;> simp [h] at hval ⊢
+  intro addr
+  by_cases haddr : addr = a
+  · subst addr
+    unfold sstoreAccountMap
+    specialize hστ a
+    cases hσ : σ.find? a with
+    | none =>
+        cases hτ : τ.find? a with
+        | none =>
+            simp [hσ, hτ, Option.option]
+        | some accτ =>
+            have hbad : False := by
+              simp [hσ, hτ] at hστ
+            exact False.elim hbad
+    | some accσ =>
+        cases hτ : τ.find? a with
+        | none =>
+            have hbad : False := by
+              simp [hσ, hτ] at hστ
+            exact False.elim hbad
+        | some accτ =>
+            have hacc : accountEquiv accσ accτ := by simpa [hσ, hτ] using hστ
+            simpa [hσ, hτ, Option.option, hzero, accountMap_find_insert_self] using
+              pausableAccountEquiv_erase_storage_of_equiv slot hacc
+  · unfold sstoreAccountMap
+    specialize hστ addr
+    cases hσa : σ.find? a <;> cases hτa : τ.find? a <;> simp only [Option.option]
+    · exact hστ
+    · rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+theorem pausableEVMStateEquiv_storageStore_codeOwner {evm₁ evm₂ : EVM.State}
+    (h : EVMStateEquiv evm₁ evm₂) (slot : UInt256) {val₁ val₂ : UInt256}
+    (hval : val₁ = val₂) :
+    EVMStateEquiv
+      (Solm.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot val₁)
+      (Solm.EVM.storageStore evm₂ evm₂.executionEnv.codeOwner slot val₂) := by
+  subst val₂
+  refine ⟨?_, ?_, ?_⟩
+  · rw [storageStore_executionEnv, storageStore_executionEnv]
+    exact h.executionEnv
+  · rw [storageStore_createdAccounts, storageStore_createdAccounts]
+    exact h.createdAccounts
+  · rw [storageStore_accountMap, storageStore_accountMap, h.executionEnv]
+    exact pausableAccountMapEquiv_sstoreAccountMap evm₂.executionEnv.codeOwner slot val₁
+      h.accountMap
 
 theorem pausePostState_accountMap (evm : EVM.State) :
     (pausePostState evm).accountMap =

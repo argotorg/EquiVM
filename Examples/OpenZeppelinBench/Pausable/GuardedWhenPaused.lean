@@ -8,38 +8,6 @@ namespace OpenZeppelinBench.Pausable
 
 /-! ## `guardedWhenPaused()` source-side facts -/
 
-theorem evalExpr_guardedWhenPaused_paused_false (evm : EVM.State) (locals : Store)
-    (hlocals : locals.get? "_paused" = none)
-    (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
-    evalExpr? config { contract := contract, locals := locals } evm (.storage pausedRef) =
-      .ok (.bool false) := by
-  have her : evalStorageRef config { contract := contract, locals := locals } evm pausedRef =
-      .ok { base := "_paused", steps := [] } := by
-    simp [evalStorageRef, evalStorageRefSteps, pausedRef, EvalResult.bind, pure, bind]
-  have hty : storageTypeAt? contract.storage
-      ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
-    decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
-    (hty := hty) (hloc := by rfl)]
-  simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad, State.lookupAccount] using
-    pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hzero
-
-theorem evalExpr_guardedWhenPaused_paused_true (evm : EVM.State) (locals : Store)
-    (hlocals : locals.get? "_paused" = none)
-    (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
-    evalExpr? config { contract := contract, locals := locals } evm (.storage pausedRef) =
-      .ok (.bool true) := by
-  have her : evalStorageRef config { contract := contract, locals := locals } evm pausedRef =
-      .ok { base := "_paused", steps := [] } := by
-    simp [evalStorageRef, evalStorageRefSteps, pausedRef, EvalResult.bind, pure, bind]
-  have hty : storageTypeAt? contract.storage
-      ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
-    decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
-    (hty := hty) (hloc := by rfl)]
-  simpa [pausedWord, pausedRawWord, Solm.EVM.storageLoad, State.lookupAccount] using
-    pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hnz
-
 theorem pausableGuardedWhenPausedBodyReturns (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "_paused" = none)
@@ -49,7 +17,7 @@ theorem pausableGuardedWhenPausedBodyReturns (evm : EVM.State) (locals : Store)
   refine ExecFuncBody.execBlockRet ?_
   unfold guardedWhenPausedTransition
   exact ((ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireStep
-    (evalExpr_guardedWhenPaused_paused_true evm locals hlocals hnz)).returns (by
+    (pausableEvalPausedTrue evm locals hnz hlocals)).returns (by
       simp only [evalExpr?]
       rfl)
 
@@ -61,50 +29,7 @@ theorem pausableGuardedWhenPausedBodyReverts (evm : EVM.State)
   unfold guardedWhenPausedTransition
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert
-    (ExecStmt.requireFalse
-      (evalExpr_guardedWhenPaused_paused_false evm ∅ (by simp) hzero))
-
-end OpenZeppelinBench.Pausable
-
-namespace Reasoning.Reach
-
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory OpenZeppelinBench.Pausable
-
-/-! ## Local EVM routines for `guardedWhenPaused()` -/
-
--- PROMOTE -> Common.lean: shared Pausable one-word bool return tail at pc 105.
-set_option maxHeartbeats 1000000 in
-theorem RD.pausableReturnBoolTrue105 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD pausableBenchBytecode ee g s0 ⟨105⟩ (⟨1⟩ :: R) solcFreePtrMem
-        (UInt256.ofNat 3) rdata acc k C)
-    (hov : R.length + 8 ≤ 1024) :
-    RDret pausableBenchBytecode g s0 acc (UInt256.toByteArray ⟨1⟩) := by
-  exact evm_run h with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
-    swap1, iszero, iszero, dup2,
-    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (by rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]; rfl)
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost (solcReturnMem_mload64 ⟨1⟩) (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
-          solcReturnMem_read128])
-      (by evm_ov)]
-
-end Reasoning.Reach
-
-namespace OpenZeppelinBench.Pausable
+    (ExecStmt.requireFalse (pausableEvalPausedFalse evm ∅ hzero (by simp)))
 
 /-! ## `guardedWhenPaused()` EVM traces and refinement -/
 
