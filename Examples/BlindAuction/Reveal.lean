@@ -1,6 +1,7 @@
 import Examples.BlindAuction.Storage
 import Examples.BlindAuction.BiddingEnd
 import Examples.BlindAuction.RevealEnd
+import Examples.SimpleAuction.Withdraw
 import Reasoning.ExternalCall
 import Reasoning.Refinement
 import Reasoning.SolmBody
@@ -597,6 +598,22 @@ theorem blindAuctionRevealX_decode_valuesOffset_ok {cA gh bl σ σ₀ A I} {g : 
       rw [hgt']; decide) (by jump_dest) ]
   exact ⟨_, _, by simpa [revealValuesOffsetWord, calldataWord] using rd1828⟩
 
+theorem ugt_eq_zero_of_ne_one {a b : UInt256}
+    (h : ¬ UInt256.gt a b = ⟨1⟩) : UInt256.gt a b = ⟨0⟩ := by
+  by_cases hab : a > b
+  · exact False.elim (h (by
+      simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
+      decide))
+  · simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
+    decide
+
+theorem slt_zero_low_high {a b : UInt256}
+    (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
+    UInt256.slt a b = ⟨0⟩ := by
+  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+  rw [if_neg (by omega : ¬ a.toNat ≥ 2 ^ 255), if_pos hb]
+  rfl
+
 theorem blindAuctionRevealDecodeValuesCall1806_to_1713
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -631,6 +648,60 @@ theorem blindAuctionRevealDecodeValuesCall1806_to_1713
   have rd1835 := RD.dup11 rd1834 (by decide) (by simp)
   have rd1839 := evm_run rd1835 with [add, push2 ⟨1713⟩, jump (by jump_dest)]
   exact ⟨_, _, by simpa [revealValuesOffsetWord, calldataWord] using rd1839⟩
+
+theorem blindAuctionRevealDecode1806_hugeDynamic_reverts
+    {cA gh bl σ σ₀ A I} {g : Sat256} {k C : Nat}
+    (rd : RD blindAuctionBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1806⟩
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
+        UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hcalldataGe : 2 ^ 255 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size) :
+    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  by_cases hvaluesGt : UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨1⟩
+  · exact blindAuctionRevealX_decode_valuesOffset_revert
+      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g) hvaluesGt ⟨k, C, rd⟩
+  · have hvaluesGt0 :
+        UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨0⟩ :=
+      ugt_eq_zero_of_ne_one hvaluesGt
+    obtain ⟨_, _, rd1713⟩ :=
+      blindAuctionRevealDecodeValuesCall1806_to_1713 rd hvaluesGt0
+    have hoffLe : (revealValuesOffsetWord I).toNat ≤ revealMaxU64.toNat := by
+      by_contra hle
+      have hgt1 : UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨1⟩ := by
+        exact ugt_one (Nat.lt_of_not_ge hle)
+      exact hvaluesGt hgt1
+    have hstartNat :
+        (((⟨4⟩ : UInt256) + revealValuesOffsetWord I) + ⟨31⟩).toNat =
+          4 + (revealValuesOffsetWord I).toNat + 31 := by
+      rw [uadd_toNat, uadd_toNat]
+      rw [show (⟨4⟩ : UInt256).toNat = 4 by decide,
+        show (⟨31⟩ : UInt256).toNat = 31 by decide]
+      have hleft :
+          (4 + (revealValuesOffsetWord I).toNat) % UInt256.size =
+            4 + (revealValuesOffsetWord I).toNat := by
+        apply Nat.mod_eq_of_lt
+        have hmax : revealMaxU64.toNat = 18446744073709551615 := by decide
+        omega
+      rw [hleft]
+      apply Nat.mod_eq_of_lt
+      have hmax : revealMaxU64.toNat = 18446744073709551615 := by decide
+      omega
+    have hstartSmall :
+        (((⟨4⟩ : UInt256) + revealValuesOffsetWord I) + ⟨31⟩).toNat < 2 ^ 255 := by
+      rw [hstartNat]
+      have hmax : revealMaxU64.toNat = 18446744073709551615 := by decide
+      omega
+    have hendHigh : 2 ^ 255 ≤ (UInt256.ofNat I.calldata.size).toNat := by
+      rw [ulit_toNat' I.calldata.size hsize]
+      exact hcalldataGe
+    have hstart :
+        UInt256.slt (((⟨4⟩ : UInt256) + revealValuesOffsetWord I) + ⟨31⟩)
+          (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
+      slt_zero_low_high hstartSmall hendHigh
+    exact RD.blindAuctionRevealDecodeArray1713_startRevert rd1713 hstart (by simp)
 
 theorem blindAuctionRevealDecodeEmptyArrays1806_to_413
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
@@ -1043,6 +1114,19 @@ theorem revealScratchBidsSourceMem_size (I : ExecutionEnv) :
     ByteArray.size_extract, ByteArray.size_extract, solcFreePtrMem_size, toByteArray_size]
   norm_num
 
+theorem revealScratchBidsSourceMem_read0 (I : ExecutionEnv) :
+    (revealScratchBidsSourceMem I).readWithPadding 0 32 =
+      UInt256.toByteArray (UInt256.ofNat I.source.val) := by
+  unfold revealScratchBidsSourceMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [solcFreePtrMem_size]; omega),
+    show (UInt256.toByteArray (UInt256.ofNat I.source.val)).extract 0 32 =
+      UInt256.toByteArray (UInt256.ofNat I.source.val) from by
+        apply ByteArray.ext
+        rw [ByteArray.data_extract]
+        exact Array.extract_eq_self_of_le (by
+          change (UInt256.toByteArray (UInt256.ofNat I.source.val)).size ≤ 32
+          rw [toByteArray_size])]
+
 theorem revealScratchBidsHashMem_size (I : ExecutionEnv) :
     (revealScratchBidsHashMem I).size = 96 := by
   unfold revealScratchBidsHashMem
@@ -1052,6 +1136,36 @@ theorem revealScratchBidsHashMem_size (I : ExecutionEnv) :
     ByteArray.size_extract, ByteArray.size_extract, revealScratchBidsSourceMem_size,
     toByteArray_size]
   norm_num
+
+theorem revealScratchBidsHashMem_read0 (I : ExecutionEnv) :
+    (revealScratchBidsHashMem I).readWithPadding 0 32 =
+      UInt256.toByteArray (UInt256.ofNat I.source.val) := by
+  unfold revealScratchBidsHashMem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [revealScratchBidsSourceMem_size]; omega) (by omega)]
+  unfold revealScratchBidsSourceMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [solcFreePtrMem_size]; omega),
+    show (UInt256.toByteArray (UInt256.ofNat I.source.val)).extract 0 32 =
+      UInt256.toByteArray (UInt256.ofNat I.source.val) from by
+        apply ByteArray.ext
+        rw [ByteArray.data_extract]
+        exact Array.extract_eq_self_of_le (by
+          change (UInt256.toByteArray (UInt256.ofNat I.source.val)).size ≤ 32
+          rw [toByteArray_size])]
+
+theorem revealScratchBidsHashMem_read32 (I : ExecutionEnv) :
+    (revealScratchBidsHashMem I).readWithPadding 32 32 =
+      UInt256.toByteArray (⟨4⟩ : UInt256) := by
+  unfold revealScratchBidsHashMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [revealScratchBidsSourceMem_size]; omega),
+    show (UInt256.toByteArray (⟨4⟩ : UInt256)).extract 0 32 =
+      UInt256.toByteArray (⟨4⟩ : UInt256) from by
+        apply ByteArray.ext
+        rw [ByteArray.data_extract]
+        exact Array.extract_eq_self_of_le (by
+          change (UInt256.toByteArray (⟨4⟩ : UInt256)).size ≤ 32
+          rw [toByteArray_size])]
 
 theorem revealScratchBidsHashMem_read64 (I : ExecutionEnv) :
     (revealScratchBidsHashMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -1073,6 +1187,71 @@ theorem revealScratchBidsHashMem_mload64 (I : ExecutionEnv) :
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
   mloadFreePtrValue (by rw [revealScratchBidsHashMem_size]; decide) (by decide)
     (revealScratchBidsHashMem_read64 I)
+
+theorem revealScratchBidsHashMem_read0_64 (I : ExecutionEnv) :
+    (revealScratchBidsHashMem I).readWithPadding 0 64 =
+      UInt256.toByteArray (UInt256.ofNat I.source.val) ++
+        UInt256.toByteArray (⟨4⟩ : UInt256) := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+    (by rw [revealScratchBidsHashMem_size]; omega)]
+  rw [show 0 + 64 = 64 by norm_num]
+  unfold revealScratchBidsHashMem
+  rw [write32_eq _ _ 32 (by rw [toByteArray_size])
+      (by rw [revealScratchBidsSourceMem_size]; omega)]
+  have hsource :
+      (revealScratchBidsSourceMem I).extract 0 32 =
+        UInt256.toByteArray (UInt256.ofNat I.source.val) := by
+    rw [← readWithPadding_eq_extract (revealScratchBidsSourceMem I) 0
+      (by rw [revealScratchBidsSourceMem_size]; omega)]
+    exact revealScratchBidsSourceMem_read0 I
+  have hslot :
+      (UInt256.toByteArray (⟨4⟩ : UInt256)).extract 0 32 =
+        UInt256.toByteArray (⟨4⟩ : UInt256) := by
+    apply ByteArray.ext
+    rw [ByteArray.data_extract]
+    exact Array.extract_eq_self_of_le (by
+      change (UInt256.toByteArray (⟨4⟩ : UInt256)).size ≤ 32
+      rw [toByteArray_size])
+  rw [hsource, hslot]
+  rw [extract_append_left
+      (UInt256.toByteArray (UInt256.ofNat I.source.val) ++
+        UInt256.toByteArray (⟨4⟩ : UInt256))
+      ((revealScratchBidsSourceMem I).extract (32 + 32) (revealScratchBidsSourceMem I).size)
+      0 64 (by rw [ByteArray.size_append, toByteArray_size, toByteArray_size])]
+  rw [extract_append_span (UInt256.toByteArray (UInt256.ofNat I.source.val))
+      (UInt256.toByteArray (⟨4⟩ : UInt256)) 0 64
+      (by rw [toByteArray_size]; omega)
+      (by rw [toByteArray_size]; omega)]
+  rw [show (UInt256.toByteArray (UInt256.ofNat I.source.val)).extract 0
+      (UInt256.toByteArray (UInt256.ofNat I.source.val)).size =
+        UInt256.toByteArray (UInt256.ofNat I.source.val) by
+    apply ByteArray.ext
+    rw [ByteArray.data_extract]
+    exact Array.extract_eq_self_of_le (by
+      show (UInt256.toByteArray (UInt256.ofNat I.source.val)).data.size ≤
+        (UInt256.toByteArray (UInt256.ofNat I.source.val)).size
+      rfl)]
+  rw [show 64 - (UInt256.toByteArray (UInt256.ofNat I.source.val)).size = 32 by
+    rw [toByteArray_size]]
+  rw [hslot]
+
+theorem revealScratchKeyValueToWord_address_source (I : ExecutionEnv) :
+    keyValueToWord (.address I.source) = UInt256.ofNat I.source.val := by
+  apply u256_inj
+  unfold keyValueToWord UInt256.ofNat
+  change I.source.val = (Fin.ofNat UInt256.size I.source.val).val
+  rw [Fin.val_ofNat]
+  exact (Nat.mod_eq_of_lt
+    (lt_of_lt_of_le I.source.isLt (show AccountAddress.size ≤ UInt256.size from by decide))).symm
+
+theorem revealScratchBidsMappingBaseKeccak (I : ExecutionEnv) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+      revealScratchBidsLengthSlot I := by
+  rw [revealScratchBidsHashMem_read0_64]
+  unfold revealScratchBidsLengthSlot bidsBase blindAuctionMappingSlot
+  rw [revealScratchKeyValueToWord_address_source]
+  exact keccakSlot_eq _
 
 def revealScratchStTimestamp (s : State) : State :=
   { s with machineState := { s.machineState with
@@ -1135,6 +1314,148 @@ theorem RD.revealScratchTimestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sa
         exact hee
       · simp only [revealScratchStTimestamp]
         exact hworld
+
+noncomputable def revealTimeRevertMem (arg errSel : UInt256) : ByteArray :=
+  (UInt256.toByteArray arg).write 0 (solcReturnMem errSel) 132 32
+
+theorem revealTimeRevertMem_size (arg errSel : UInt256) :
+    (revealTimeRevertMem arg errSel).size = 164 := by
+  unfold revealTimeRevertMem
+  rw [write32_eq _ _ 132 (by rw [toByteArray_size])
+      (by rw [solcReturnMem_size]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, solcReturnMem_size, toByteArray_size]
+  rw [show ((solcReturnMem errSel).extract (132 + 32) 160).size = 0 by
+    rw [ByteArray.size_extract, solcReturnMem_size]
+    norm_num]
+  omega
+
+theorem revealTimeRevertMem_mload64 (arg errSel : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (revealTimeRevertMem arg errSel).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian ((revealTimeRevertMem arg errSel).readWithPadding
+         (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [revealTimeRevertMem_size]; decide) (by decide) (by
+    unfold revealTimeRevertMem
+    rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
+      (by rw [solcReturnMem_size]; omega) (by omega)]
+    exact solcReturnMem_read64 errSel)
+
+theorem blindAuctionRevealX_from887_tooEarly {cA σ I} {g : Sat256}
+    {s0 : State} {k C : ℕ} {valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨887⟩
+      (revealDecodedStack I valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (htime :
+      (revealScratchTimestampWord I).toNat ≤
+        (revealScratchBiddingEndWord σ I).toNat) :
+    RDrev blindAuctionBytecode g s0 := by
+  have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
+  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
+      [revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
+        valuesLen, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+    exact ⟨_, _, by simpa [revealScratchBiddingEndWord, revealDecodedStack] using rd891₀⟩
+  have hgt : UInt256.gt (revealScratchTimestampWord I)
+      (revealScratchBiddingEndWord σ I) = ⟨0⟩ :=
+    ugt_zero htime
+  have rd893₀ := RD.revealScratchTimestamp (evm_run rd891 with [dup1]) (by decide) (by evm_ov)
+  have rd894₀ := evm_run rd893₀ with [gt]
+  have rd894 := rd894₀
+  rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (revealScratchBiddingEndWord σ I) =
+      ⟨0⟩ from by simpa [revealScratchTimestampWord] using hgt] at rd894
+  have rd898 := evm_run rd894 with [push2 ⟨925⟩, jumpiNT (by decide)]
+  let errSel : UInt256 := UInt256.shiftLeft (⟨0x0a8d68c9⟩ : UInt256) ⟨226⟩
+  have rd911 := evm_run rd898 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x0a8d68c9⟩, push1 ⟨226⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
+      (by decide) (by evm_ov)]
+  have rd600 := evm_run rd911 with [
+    push1 ⟨4⟩, dup2, add, dup3, swap1,
+    raw mstore 3 (revealTimeRevertMem (revealScratchBiddingEndWord σ I) errSel)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨600⟩, jump (by jump_dest)]
+  have rd608 := evm_run rd600 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (revealTimeRevertMem_mload64 (revealScratchBiddingEndWord σ I) errSel)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1]
+  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
+
+theorem blindAuctionRevealX_from887_tooLate {cA σ I} {g : Sat256}
+    {s0 : State} {k C : ℕ} {valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨887⟩
+      (revealDecodedStack I valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hafter :
+      (revealScratchBiddingEndWord σ I).toNat < (revealScratchTimestampWord I).toNat)
+    (htime :
+      (revealScratchRevealEndWord σ I).toNat ≤
+        (revealScratchTimestampWord I).toNat) :
+    RDrev blindAuctionBytecode g s0 := by
+  have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
+  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
+      [revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
+        valuesLen, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+    exact ⟨_, _, by simpa [revealScratchBiddingEndWord, revealDecodedStack] using rd891₀⟩
+  have hgt : UInt256.gt (revealScratchTimestampWord I)
+      (revealScratchBiddingEndWord σ I) = ⟨1⟩ :=
+    ugt_one hafter
+  have rd893₀ := RD.revealScratchTimestamp (evm_run rd891 with [dup1]) (by decide) (by evm_ov)
+  have rd894₀ := evm_run rd893₀ with [gt]
+  have rd894 := rd894₀
+  rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (revealScratchBiddingEndWord σ I) =
+      ⟨1⟩ from by simpa [revealScratchTimestampWord] using hgt] at rd894
+  have rd925 := evm_run rd894 with [push2 ⟨925⟩, jumpiT one_ne_zero_uint (by jump_dest)]
+  have rd928 := evm_run rd925 with [jumpdest, push1 ⟨2⟩]
+  obtain ⟨_, _, rd929₀⟩ := rd928.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd929⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨929⟩
+      [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
+        secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd,
+        ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+    exact ⟨_, _, by simpa [revealScratchRevealEndWord] using rd929₀⟩
+  have hlt : UInt256.lt (revealScratchTimestampWord I)
+      (revealScratchRevealEndWord σ I) = ⟨0⟩ :=
+    ult_zero htime
+  have rd931₀ := RD.revealScratchTimestamp (evm_run rd929 with [dup1]) (by decide) (by evm_ov)
+  have rd932₀ := evm_run rd931₀ with [lt]
+  have rd932 := rd932₀
+  rw [show UInt256.lt (UInt256.ofNat I.header.timestamp) (revealScratchRevealEndWord σ I) =
+      ⟨0⟩ from by simpa [revealScratchTimestampWord] using hlt] at rd932
+  have rd936 := evm_run rd932 with [push2 ⟨963⟩, jumpiNT (by decide)]
+  let errSel : UInt256 := UInt256.shiftLeft (⟨0x348f2b41⟩ : UInt256) ⟨225⟩
+  have rd949 := evm_run rd936 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x348f2b41⟩, push1 ⟨225⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
+      (by decide) (by evm_ov)]
+  have rd600 := evm_run rd949 with [
+    push1 ⟨4⟩, dup2, add, dup3, swap1,
+    raw mstore 3 (revealTimeRevertMem (revealScratchRevealEndWord σ I) errSel)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨600⟩, jump (by jump_dest)]
+  have rd608 := evm_run rd600 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (revealTimeRevertMem_mload64 (revealScratchRevealEndWord σ I) errSel)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1]
+  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
 
 theorem blindAuctionRevealX_from887_afterTimeGuards_empty {cA σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {valuesEnd fakesEnd secretsEnd : UInt256}
@@ -1730,6 +2051,61 @@ theorem blindAuctionRevealX_from963_lengthsOk_zero_toCall {cA σ I} {g : Sat256}
   exact ⟨gasArg, _, _, by
     simpa [revealScratchSenderWord, hbidsZero, hvaluesEq, hfakesEq, hsecretsEq] using rd1349⟩
 
+theorem blindAuctionRevealX_loopCond_taken {I} {g : Sat256} {s0 : State}
+    {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {i refund len revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
+      valuesEnd sel : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1014⟩
+      [i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd,
+        valuesLen, valuesEnd, ⟨276⟩, sel]
+      mem aw rdata acc k C)
+    (hbound : i.toNat < len.toNat) :
+    ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1023⟩
+      [i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd,
+        valuesLen, valuesEnd, ⟨276⟩, sel]
+      mem aw rdata acc k' C' := by
+  have hlt : UInt256.lt i len = ⟨1⟩ := ult_one hbound
+  have rd1019₀ := evm_run rd with [jumpdest, dup3, dup2, lt, iszero]
+  have rd1019 := rd1019₀
+  rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd1019
+  exact ⟨_, _, evm_run rd1019 with [push2 ⟨1331⟩, jumpiNT (by decide)]⟩
+
+theorem blindAuctionRevealX_from963_lengthsOk_nonzero_toLoopBody {cA σ I}
+    {g : Sat256} {s0 : State} {k C : ℕ}
+    {valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨963⟩
+      [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
+        secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd,
+        ⟨276⟩, blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbidsNonzero : revealScratchBidsLengthWord σ I ≠ ⟨0⟩)
+    (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLen)
+    (hfakesEq : revealScratchBidsLengthWord σ I = fakesLen)
+    (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLen)
+    (hbidsHash :
+      UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+          revealScratchBidsLengthSlot I) :
+    ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1023⟩
+      [⟨0⟩, ⟨0⟩, revealScratchBidsLengthWord σ I,
+        revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
+        secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd,
+        ⟨276⟩, blindAuctionSelWord I]
+      (revealScratchBidsHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨_, _, rd1014⟩ :=
+    blindAuctionRevealX_from963_lengthsOk_toLoopInit (cA := cA) (σ := σ) (I := I)
+      (g := g) (s0 := s0) rd hvaluesEq hfakesEq hsecretsEq hbidsHash
+  have hbound : (⟨0⟩ : UInt256).toNat < (revealScratchBidsLengthWord σ I).toNat := by
+    have hneNat : (revealScratchBidsLengthWord σ I).toNat ≠ 0 := by
+      intro hnat
+      apply hbidsNonzero
+      apply u256_inj
+      change (revealScratchBidsLengthWord σ I).toNat = (⟨0⟩ : UInt256).toNat
+      simpa using hnat
+    simpa using Nat.pos_of_ne_zero hneNat
+  exact blindAuctionRevealX_loopCond_taken rd1014 hbound
+
 set_option maxHeartbeats 1000000 in
 theorem blindAuctionRevealX_from963_empty_toCall {cA σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {valuesEnd fakesEnd secretsEnd : UInt256}
@@ -1937,43 +2313,142 @@ theorem blindAuctionRevealX_postCallEmpty_toRequire {I} {g : Sat256} {s0 : State
       [z, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd,
         ⟨0⟩, valuesEnd, ⟨276⟩, sel]
       mem aw ByteArray.empty acc k' C' := by
-  refine ⟨_, _, evm_run rd with [
-    swap3, pop, pop, pop, returndatasize, dup1, push0, dup2, eq, push2 ⟨1395⟩,
-    jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩, swap2, pop,
-    jumpdest, pop, pop, swap1, pop]⟩
+    refine ⟨_, _, evm_run rd with [
+      swap3, pop, pop, pop, returndatasize, dup1, push0, dup2, eq, push2 ⟨1395⟩,
+      jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩, swap2, pop,
+      jumpdest, pop, pop, swap1, pop]⟩
 
-theorem blindAuctionRevealX_postCallEmpty_success_stop {I} {g : Sat256} {s0 : State}
+set_option maxHeartbeats 1000000 in
+theorem blindAuctionRevealX_postCallNonempty_toRequire {I} {g : Sat256} {s0 : State}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    {mem : ByteArray} {aw : UInt256} {k C : ℕ}
-    {senderWord revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
+    {k C : ℕ} {z senderWord revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
+    {o : ByteArray}
     (rd : RD blindAuctionBytecode I g s0 ⟨1350⟩
-      [⟨1⟩, ⟨128⟩, ⟨0⟩, senderWord, ⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd,
+      [z, ⟨128⟩, ⟨0⟩, senderWord, ⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd,
         ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, sel]
-      mem aw ByteArray.empty acc k C) :
+      (revealScratchBidsHashMem I) (UInt256.ofNat 3) o acc k C)
+    (ho0 : o.size ≠ 0) (hosz : o.size < UInt256.size) :
+    ∃ mem' aw' k' C', RD blindAuctionBytecode I g s0 ⟨1405⟩
+      [z, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd,
+        ⟨0⟩, valuesEnd, ⟨276⟩, sel]
+      mem' aw' o acc k' C' := by
+  let rdsz : UInt256 := UInt256.ofNat o.size
+  have hrdsz_toNat : rdsz.toNat = o.size := by
+    simpa [rdsz] using UInt256.toNat_ofNat_of_lt hosz
+  have hrdsz_ne : rdsz ≠ ⟨0⟩ := by
+    intro h
+    have hnat : rdsz.toNat = 0 := by rw [h]; rfl
+    exact ho0 (by rwa [hrdsz_toNat] at hnat)
+  have heq0 : UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ := u256_eq_of_ne hrdsz_ne
+  have rd1359₀ := evm_run rd with [swap3, pop, pop, pop, returndatasize, dup1, push0, dup2, eq]
+  have rd1359 := rd1359₀
+  change UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ at heq0
+  rw [show UInt256.ofNat o.size = rdsz from rfl, heq0] at rd1359
+  have rd1363 := evm_run rd1359 with [push2 ⟨1395⟩, jumpiNT (by decide)]
+  let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
+  let mem2 : ByteArray :=
+    (UInt256.toByteArray (UInt256.add ⟨128⟩ rounded)).write 0
+      (revealScratchBidsHashMem I) 64 32
+  have rd1381 := evm_run rd1363 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost (revealScratchBidsHashMem_mload64 I) (by decide) (by evm_ov),
+    swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
+    push1 ⟨64⟩,
+    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+      mem_cost (by rfl) (by decide) (by evm_ov)]
+  let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
+  have rd1384 := evm_run rd1381 with [
+    returndatasize, dup3,
+    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+      mem3 (UInt256.ofNat 5) (by decide)
+      (fun s haw hstk => by
+        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+        decide)
+      (by rfl) (by decide) (by evm_ov)]
+  have rd1390 := evm_run rd1384 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
+  let copyDest : UInt256 := (⟨128⟩ : UInt256) + ⟨32⟩
+  let copyLen : UInt256 := UInt256.ofNat o.size
+  have hcopyDest_toNat : copyDest.toNat = 160 := by
+    decide
+  have hcopyLen_toNat : copyLen.toNat = o.size := by
+    simpa [copyLen] using UInt256.toNat_ofNat_of_lt hosz
+  let mem4 : ByteArray := o.write 0 mem3 copyDest.toNat copyLen.toNat
+  have haw4 :
+      UInt256.ofNat (MachineState.M (UInt256.ofNat 5).toNat copyDest.toNat copyLen.toNat) =
+        SimpleAuction.withdrawReturnDataActiveWords o := by
+    simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
+      hcopyLen_toNat]
+  have rd1391 := SimpleAuction.withdrawRDReturndatacopy
+    (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
+    mem4
+    (SimpleAuction.withdrawReturnDataActiveWords o)
+    rd1390 (by decide)
+    (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+        SimpleAuction.withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
+    (by rfl)
+    haw4
+    (by evm_ov)
+  have rd1400 := evm_run rd1391 with [push2 ⟨1400⟩, jump (by jump_dest), jumpdest]
+  exact ⟨_, _, _, _, evm_run rd1400 with [pop, pop, swap1, pop]⟩
+
+theorem blindAuctionRevealX_postCallRequire_success_stop {I} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1405⟩
+      [⟨1⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd,
+        ⟨0⟩, valuesEnd, ⟨276⟩, sel]
+      mem aw rdata acc k C) :
     RDret blindAuctionBytecode g s0 acc ByteArray.empty := by
-  obtain ⟨_, _, rd1405⟩ := blindAuctionRevealX_postCallEmpty_toRequire rd
-  have rd1413 := evm_run rd1405 with [
+  have rd1413 := evm_run rd with [
     dup1, push2 ⟨1413⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd276 := evm_run rd1413 with [
     jumpdest, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop,
     jump (by jump_dest), jumpdest]
   exact rd276.stop (by decide) (by evm_ov)
 
+theorem blindAuctionRevealX_postCallRequire_failure_revert {I} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1405⟩
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd,
+        ⟨0⟩, valuesEnd, ⟨276⟩, sel]
+      mem aw rdata acc k C) :
+    RDrev blindAuctionBytecode g s0 := by
+  have rd1410 := evm_run rd with [
+    dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
+  exact RD.rev _ rd1410 (by decide)
+    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by evm_ov)
+
+theorem blindAuctionRevealX_postCallEmpty_success_stop {I} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem : ByteArray} {aw : UInt256} {k C : ℕ}
+    {senderWord revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
+    (rd : RD blindAuctionBytecode I g s0 ⟨1350⟩
+        [⟨1⟩, ⟨128⟩, ⟨0⟩, senderWord, ⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd,
+          ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, sel]
+        mem aw ByteArray.empty acc k C) :
+      RDret blindAuctionBytecode g s0 acc ByteArray.empty := by
+    obtain ⟨_, _, rd1405⟩ := blindAuctionRevealX_postCallEmpty_toRequire rd
+    exact blindAuctionRevealX_postCallRequire_success_stop rd1405
+
 theorem blindAuctionRevealX_postCallEmpty_failure_revert {I} {g : Sat256} {s0 : State}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem : ByteArray} {aw : UInt256} {k C : ℕ}
     {senderWord revealEnd biddingEnd valuesEnd fakesEnd secretsEnd sel : UInt256}
     (rd : RD blindAuctionBytecode I g s0 ⟨1350⟩
-      [⟨0⟩, ⟨128⟩, ⟨0⟩, senderWord, ⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd,
-        ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, sel]
-      mem aw ByteArray.empty acc k C) :
-    RDrev blindAuctionBytecode g s0 := by
-  obtain ⟨_, _, rd1405⟩ := blindAuctionRevealX_postCallEmpty_toRequire rd
-  have rd1410 := evm_run rd1405 with [
-    dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd1410 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
-    (by evm_ov)
+        [⟨0⟩, ⟨128⟩, ⟨0⟩, senderWord, ⟨0⟩, ⟨0⟩, ⟨0⟩, revealEnd, biddingEnd,
+          ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, sel]
+        mem aw ByteArray.empty acc k C) :
+      RDrev blindAuctionBytecode g s0 := by
+    obtain ⟨_, _, rd1405⟩ := blindAuctionRevealX_postCallEmpty_toRequire rd
+    exact blindAuctionRevealX_postCallRequire_failure_revert rd1405
 
 theorem blindAuctionRevealBodyReverts_nonpayable {evm : EVM.State} {locals : Store}
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
@@ -1989,21 +2464,6 @@ theorem blindAuctionRevealParamTypes :
     (transitionSignature revealTransition).paramTypes =
       [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] := rfl
 
-theorem decodeABIValues_reveal_heads_none_short (bytes : List UInt8) (hshort : bytes.length < 96) :
-    decodeABIValues? [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32]
-      bytes 0 0 96 96 = none := by
-  rw [decodeABIValues?]
-  simp only [isDynamicABIType, reduceIte, zero_add]
-  cases hread : readNat? bytes 0 with
-  | none => rfl
-  | some off =>
-      by_cases hofflt : off < 96
-      · simp [hofflt]
-      · have hreadOff : readNat? bytes off = none := by
-          have hno : ¬ 32 ≤ bytes.length - off := by omega
-          simp [readNat?, readWord?, readBytes?, hno]
-        simp [hofflt, decodeABIValue?, hreadOff]
-
 theorem blindAuctionDecode_reveal_none_short {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
     decodeCalldata (revealTransition.params.map Param.name)
@@ -2016,18 +2476,22 @@ theorem blindAuctionDecode_reveal_none_short {I : ExecutionEnv}
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   simp only [List.isEmpty_cons]
   rw [if_neg]
-  · simp only [decodeCalldata.decodeArgs]
-    have hargsShort : (List.drop 4 I.calldata.toList).length < 96 := by
-      rw [List.length_drop, htlen]
+  · rw [if_neg]
+    · simp only [decodeCalldata.decodeArgs]
+      have hargsShort : (List.drop 4 I.calldata.toList).length < 96 := by
+        rw [List.length_drop, htlen]
+        omega
+      simp only [abiTupleHeadSize?, isDynamicABIType, reduceIte, Option.bind, bind]
+      rw [if_pos hargsShort]
+    · rintro ⟨_, hhuge⟩
+      rw [List.length_drop, htlen] at hhuge
       omega
-    simp only [abiTupleHeadSize?, isDynamicABIType, reduceIte, Option.bind, bind]
-    rw [decodeABIValues_reveal_heads_none_short (List.drop 4 I.calldata.toList) hargsShort]
   · rintro ⟨_, hhuge⟩
-    rw [List.length_drop, htlen] at hhuge
+    rw [htlen] at hhuge
     omega
 
-theorem blindAuctionDecode_reveal_none_huge {I : ExecutionEnv}
-    (hhuge : 2 ^ 255 + 4 ≤ I.calldata.size) :
+theorem blindAuctionDecode_reveal_none_huge_dynamic {I : ExecutionEnv}
+    (hhuge : 2 ^ 255 ≤ I.calldata.size) :
     decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["values", "fakes", "secrets"]
@@ -2036,9 +2500,18 @@ theorem blindAuctionDecode_reveal_none_huge {I : ExecutionEnv}
     rw [byteArray_toList_eq, Array.length_toList]; rfl
   unfold decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  simp only [List.isEmpty_cons]
-  rw [if_pos]
-  exact ⟨trivial, by rw [List.length_drop, htlen]; omega⟩
+  rw [if_pos (show
+    [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32].any
+        isDynamicABIType = true ∧ 2 ^ 255 ≤ I.calldata.toList.length from by
+      constructor
+      · decide
+      · rw [htlen]; exact hhuge)]
+
+theorem blindAuctionDecode_reveal_none_huge {I : ExecutionEnv}
+    (hhuge : 2 ^ 255 + 4 ≤ I.calldata.size) :
+    decodeCalldata (revealTransition.params.map Param.name)
+      (transitionSignature revealTransition).paramTypes I.calldata = none := by
+  exact blindAuctionDecode_reveal_none_huge_dynamic (I := I) (by omega)
 
 theorem decodeABIValue_dynamicArray_is_array {elemTy : ABIType} {bytes : List UInt8}
     {start : Nat} {v : Value} {endOffset : Nat}
@@ -2419,10 +2892,8 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
       | some off0 =>
           by_cases hmax0 : solcMaxU64 < off0
           · simp [h0, hmax0] at hdec
-          · by_cases hoff0 : off0 < 96
-            · simp [h0, hmax0, hoff0] at hdec
-            ·
-              simp [h0, hmax0, hoff0] at hdec
+          ·
+              simp [h0, hmax0] at hdec
               cases hval0 : decodeABIValue? (.dynamicArray uint256)
                   (List.drop 4 I.calldata.toList) off0 with
               | none => simp [hval0] at hdec
@@ -2435,10 +2906,8 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                   | some off1 =>
                       by_cases hmax1 : solcMaxU64 < off1
                       · simp [h1, hmax1] at hdec
-                      · by_cases hoff1 : off1 < 96
-                        · simp [h1, hmax1, hoff1] at hdec
-                        ·
-                          simp [h1, hmax1, hoff1] at hdec
+                      ·
+                          simp [h1, hmax1] at hdec
                           cases hval1 : decodeABIValue? (.dynamicArray boolTy)
                               (List.drop 4 I.calldata.toList) off1 with
                           | none => simp [hval1] at hdec
@@ -2451,10 +2920,8 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                               | some off2 =>
                                   by_cases hmax2 : solcMaxU64 < off2
                                   · simp [h2, hmax2] at hdec
-                                  · by_cases hoff2 : off2 < 96
-                                    · simp [h2, hmax2, hoff2] at hdec
-                                    ·
-                                      simp [h2, hmax2, hoff2] at hdec
+                                  ·
+                                      simp [h2, hmax2] at hdec
                                       cases hval2 : decodeABIValue? (.dynamicArray bytes32)
                                           (List.drop 4 I.calldata.toList) off2 with
                                       | none => simp [hval2] at hdec
@@ -2464,14 +2931,18 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                                             ⟨secrets, rfl⟩
                                           simp [hval2] at hdec
                                           simp [decodeCalldata.insertValues] at hdec
-                                          cases hdec
-                                          refine ⟨values, fakes, secrets, ?_, ?_, ?_⟩
-                                          · rw [store_get_ne, store_get_ne, store_get_self]
-                                            · decide
-                                            · decide
-                                          · rw [store_get_ne, store_get_self]
-                                            decide
-                                          · rw [store_get_self]
+                                          by_cases hargsShort : I.calldata.toList.length - 4 < 96
+                                          · simp [hargsShort] at hdec
+                                          · simp [hargsShort] at hdec
+                                            rcases hdec with ⟨_, hstore⟩
+                                            cases hstore.symm
+                                            refine ⟨values, fakes, secrets, ?_, ?_, ?_⟩
+                                            · rw [store_get_ne, store_get_ne, store_get_self]
+                                              · decide
+                                              · decide
+                                            · rw [store_get_ne, store_get_self]
+                                              decide
+                                            · rw [store_get_self]
 
 theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {callargs : Store}
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
@@ -2498,11 +2969,8 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
       | some off0 =>
           by_cases hmax0 : solcMaxU64 < off0
           · simp [h0, hmax0] at hdec
-          · by_cases hoff0 : off0 < 96
-            · simp [h0, hmax0, hoff0] at hdec
-            ·
-              simp [h0, hmax0, hoff0] at hdec
-              cases hval0 : decodeABIValue? (.dynamicArray uint256)
+          · simp [h0, hmax0] at hdec
+            cases hval0 : decodeABIValue? (.dynamicArray uint256)
                   (List.drop 4 I.calldata.toList) off0 with
               | none => simp [hval0] at hdec
               | some p0 =>
@@ -2514,11 +2982,8 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
                   | some off1 =>
                       by_cases hmax1 : solcMaxU64 < off1
                       · simp [h1, hmax1] at hdec
-                      · by_cases hoff1 : off1 < 96
-                        · simp [h1, hmax1, hoff1] at hdec
-                        ·
-                          simp [h1, hmax1, hoff1] at hdec
-                          cases hval1 : decodeABIValue? (.dynamicArray boolTy)
+                      · simp [h1, hmax1] at hdec
+                        cases hval1 : decodeABIValue? (.dynamicArray boolTy)
                               (List.drop 4 I.calldata.toList) off1 with
                           | none => simp [hval1] at hdec
                           | some p1 =>
@@ -2530,11 +2995,8 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
                               | some off2 =>
                                   by_cases hmax2 : solcMaxU64 < off2
                                   · simp [h2, hmax2] at hdec
-                                  · by_cases hoff2 : off2 < 96
-                                    · simp [h2, hmax2, hoff2] at hdec
-                                    ·
-                                      simp [h2, hmax2, hoff2] at hdec
-                                      cases hval2 : decodeABIValue? (.dynamicArray bytes32)
+                                  · simp [h2, hmax2] at hdec
+                                    cases hval2 : decodeABIValue? (.dynamicArray bytes32)
                                           (List.drop 4 I.calldata.toList) off2 with
                                       | none => simp [hval2] at hdec
                                       | some p2 =>
@@ -2543,8 +3005,122 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
                                             ⟨secrets, rfl⟩
                                           simp [hval2] at hdec
                                           simp [decodeCalldata.insertValues] at hdec
-                                          cases hdec
-                                          exact ⟨values, fakes, secrets, rfl⟩
+                                          by_cases hargsShort : I.calldata.toList.length - 4 < 96
+                                          · simp [hargsShort] at hdec
+                                          · simp [hargsShort] at hdec
+                                            rcases hdec with ⟨_, hstore⟩
+                                            cases hstore.symm
+                                            exact ⟨values, fakes, secrets, rfl⟩
+
+def RevealArrayGuardFacts (I : ExecutionEnv) (headOff : Nat) (xs : List Value) : Prop :=
+  ∃ lenWord : UInt256,
+    xs.length = lenWord.toNat ∧
+    UInt256.gt (calldataWord I.calldata (4 + headOff)) revealMaxU64 = ⟨0⟩ ∧
+    UInt256.slt (((⟨4⟩ : UInt256) + calldataWord I.calldata (4 + headOff)) + ⟨31⟩)
+      (UInt256.ofNat I.calldata.size) = ⟨1⟩ ∧
+    uInt256OfByteArray
+      (I.calldata.readBytes
+        (((⟨4⟩ : UInt256) + calldataWord I.calldata (4 + headOff)).toNat) 32) = lenWord ∧
+    UInt256.gt lenWord revealMaxU64 = ⟨0⟩ ∧
+    UInt256.gt ((((⟨4⟩ : UInt256) + calldataWord I.calldata (4 + headOff)) +
+          UInt256.shiftLeft lenWord ⟨5⟩) + ⟨32⟩)
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩
+
+def RevealDecodeGuardFacts (I : ExecutionEnv)
+    (values fakes secrets : List Value) : Prop :=
+  RevealArrayGuardFacts I 0 values ∧
+  RevealArrayGuardFacts I 32 fakes ∧
+  RevealArrayGuardFacts I 64 secrets
+
+theorem revealArrayGuardFacts_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat}
+    {elem : ElemType} {xs : List Value} {endOffset : Nat}
+    (hcalldataSign : I.calldata.size < 2 ^ 255)
+    (hreadHead : readNat? (List.drop 4 I.calldata.toList) headOff = some off)
+    (hoffMax : ¬ solcMaxU64 < off)
+    (hdecode : decodeABIValue? (.dynamicArray (.elem elem)) (List.drop 4 I.calldata.toList)
+      off = some (.array xs, endOffset)) :
+    RevealArrayGuardFacts I headOff xs := by
+  rcases revealArrayGuards_of_decode_elem32 hcalldataSign hreadHead hoffMax hdecode with
+    ⟨lenWord, hlen, hhead, hstart, hload, hmax, hend⟩
+  exact ⟨lenWord, hlen, hhead, hstart, hload, hmax, hend⟩
+
+theorem blindAuctionDecode_reveal_guard_facts {I : ExecutionEnv} {callargs : Store}
+    (hcalldataSign : I.calldata.size < 2 ^ 255)
+    (hdec : decodeCalldata (revealTransition.params.map Param.name)
+      (transitionSignature revealTransition).paramTypes I.calldata = some callargs) :
+    ∃ values fakes secrets : List Value,
+      callargs =
+        (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
+          "secrets" (.array secrets) ∧
+      RevealDecodeGuardFacts I values fakes secrets := by
+  change decodeCalldata ["values", "fakes", "secrets"]
+    [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
+      some callargs at hdec
+  unfold decodeCalldata at hdec
+  simp only [List.isEmpty_cons] at hdec
+  split at hdec
+  · contradiction
+  next _ =>
+    split at hdec
+    · contradiction
+    next _ =>
+      simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
+        Option.bind, bind] at hdec
+      cases h0 : readNat? (List.drop 4 I.calldata.toList) 0 with
+      | none => simp [h0] at hdec
+      | some off0 =>
+          by_cases hmax0 : solcMaxU64 < off0
+          · simp [h0, hmax0] at hdec
+          · simp [h0, hmax0] at hdec
+            cases hval0 : decodeABIValue? (.dynamicArray uint256)
+                  (List.drop 4 I.calldata.toList) off0 with
+              | none => simp [hval0] at hdec
+              | some p0 =>
+                  rcases p0 with ⟨v0, end0⟩
+                  rcases decodeABIValue_dynamicArray_is_array hval0 with ⟨values, rfl⟩
+                  simp [hval0] at hdec
+                  cases h1 : readNat? (List.drop 4 I.calldata.toList) 32 with
+                  | none => simp [h1] at hdec
+                  | some off1 =>
+                      by_cases hmax1 : solcMaxU64 < off1
+                      · simp [h1, hmax1] at hdec
+                      · simp [h1, hmax1] at hdec
+                        cases hval1 : decodeABIValue? (.dynamicArray boolTy)
+                              (List.drop 4 I.calldata.toList) off1 with
+                          | none => simp [hval1] at hdec
+                          | some p1 =>
+                              rcases p1 with ⟨v1, end1⟩
+                              rcases decodeABIValue_dynamicArray_is_array hval1 with
+                                ⟨fakes, rfl⟩
+                              simp [hval1] at hdec
+                              cases h2 : readNat? (List.drop 4 I.calldata.toList) 64 with
+                              | none => simp [h2] at hdec
+                              | some off2 =>
+                                  by_cases hmax2 : solcMaxU64 < off2
+                                  · simp [h2, hmax2] at hdec
+                                  · simp [h2, hmax2] at hdec
+                                    cases hval2 : decodeABIValue? (.dynamicArray bytes32)
+                                          (List.drop 4 I.calldata.toList) off2 with
+                                      | none => simp [hval2] at hdec
+                                      | some p2 =>
+                                          rcases p2 with ⟨v2, end2⟩
+                                          rcases decodeABIValue_dynamicArray_is_array hval2 with
+                                            ⟨secrets, rfl⟩
+                                          simp [hval2] at hdec
+                                          simp [decodeCalldata.insertValues] at hdec
+                                          by_cases hargsShort : I.calldata.toList.length - 4 < 96
+                                          · simp [hargsShort] at hdec
+                                          · simp [hargsShort] at hdec
+                                            rcases hdec with ⟨_, hstore⟩
+                                            cases hstore.symm
+                                            refine ⟨values, fakes, secrets, rfl, ?_⟩
+                                            exact
+                                              ⟨revealArrayGuardFacts_of_decode_elem32
+                                                  hcalldataSign h0 hmax0 hval0,
+                                                revealArrayGuardFacts_of_decode_elem32
+                                                  hcalldataSign h1 hmax1 hval1,
+                                                revealArrayGuardFacts_of_decode_elem32
+                                                  hcalldataSign h2 hmax2 hval2⟩
 
 theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs : Store}
     {name : Ident}
@@ -2585,12 +3161,16 @@ theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs :
                       cases vals with
                       | nil =>
                           simp [hvals, decodeCalldata.insertValues] at hdec
-                          cases hdec
-                          rw [store_get_ne, store_get_ne, store_get_ne]
-                          · simp
-                          · exact hvalues
-                          · exact hfakes
-                          · exact hsecrets
+                          by_cases hargsShort : I.calldata.toList.length - 4 < 96
+                          · simp [hargsShort] at hdec
+                          · simp [hargsShort] at hdec
+                            rcases hdec with ⟨_, hstore⟩
+                            cases hstore.symm
+                            rw [store_get_ne, store_get_ne, store_get_ne]
+                            · simp
+                            · exact hvalues
+                            · exact hfakes
+                            · exact hsecrets
                       | cons v3 vals =>
                           simp [hvals, decodeCalldata.insertValues] at hdec
 
@@ -3589,7 +4169,436 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
         have hrev := blindAuctionRevealX_decode_head_revert
           (g := Sat256.ofUInt256 g) hslt _hdecodeEntry
         exact hrev.reEquivDecodingFailed hcode hd hdecNone
-      · sorry
+      · have hslt :
+            UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ =
+              ⟨0⟩ := by
+          have h :=
+            solcCalldataStaticLenCheckOk (sz := I.calldata.size) (words := 3)
+              (by omega) (by omega) hsize
+          simpa using h
+        obtain ⟨k1806, C1806, rd1806⟩ :=
+          blindAuctionRevealX_decode_head_ok (g := Sat256.ofUInt256 g) hslt _hdecodeEntry
+        by_cases hcalldataSign : I.calldata.size < 2 ^ 255
+        · by_cases hdecNone :
+              decodeCalldata (revealTransition.params.map Param.name)
+                (transitionSignature revealTransition).paramTypes I.calldata = none
+          · sorry
+          · obtain ⟨callargs, hdec⟩ := Option.ne_none_iff_exists'.mp hdecNone
+            obtain ⟨values, fakes, secrets, hstore, hguards⟩ :=
+              blindAuctionDecode_reveal_guard_facts hcalldataSign hdec
+            rcases hguards with ⟨hvaluesGuards, hfakesGuards, hsecretsGuards⟩
+            rcases hvaluesGuards with
+              ⟨valuesLenWord, hvaluesListLen, hvaluesGt, hvaluesStart, hvaluesLenLoad,
+                hvaluesLenMax, hvaluesEnd⟩
+            rcases hfakesGuards with
+              ⟨fakesLenWord, hfakesListLen, hfakesGt, hfakesStart, hfakesLenLoad,
+                hfakesLenMax, hfakesEnd⟩
+            rcases hsecretsGuards with
+              ⟨secretsLenWord, hsecretsListLen, hsecretsGt, hsecretsStart,
+                hsecretsLenLoad, hsecretsLenMax, hsecretsEnd⟩
+            have hvaluesGet : callargs.get? "values" = some (.array values) := by
+              rw [hstore, store_get_ne, store_get_ne, store_get_self]
+              · decide
+              · decide
+            have hfakesGet : callargs.get? "fakes" = some (.array fakes) := by
+              rw [hstore, store_get_ne, store_get_self]
+              decide
+            have hsecretsGet : callargs.get? "secrets" = some (.array secrets) := by
+              rw [hstore, store_get_self]
+            obtain ⟨_, _, rd887⟩ :=
+              blindAuctionRevealDecodeArrays1806_to_887
+                (ee := I) (g := Sat256.ofUInt256 g)
+                rd1806 hvaluesGt hvaluesStart hvaluesLenLoad hvaluesLenMax hvaluesEnd
+                hfakesGt hfakesStart hfakesLenLoad hfakesLenMax hfakesEnd
+                hsecretsGt hsecretsStart hsecretsLenLoad hsecretsLenMax hsecretsEnd
+            let evmSolm : EVM.State :=
+              initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+            have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
+              simpa [evmSolm, initState] using hwv
+            have hbiddingAbsent : callargs.get? biddingEndRef.base = none :=
+              blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
+            have hrevealAbsent : callargs.get? revealEndRef.base = none :=
+              blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
+            have hbidsEq := revealScratchBidsLengthWord_accountMapEquiv hAccounts I
+            have hbiddingEq := revealScratchBiddingEndWord_accountMapEquiv hAccounts I
+            have hrevealEq := revealScratchRevealEndWord_accountMapEquiv hAccounts I
+            have hbidsHash := revealScratchBidsMappingBaseKeccak I
+            by_cases hafter :
+                (revealScratchBiddingEndWord σ_evm I).toNat <
+                  (revealScratchTimestampWord I).toNat
+            · by_cases hbefore :
+                  (revealScratchTimestampWord I).toNat <
+                    (revealScratchRevealEndWord σ_evm I).toNat
+              · have hafterBody :
+                    (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
+                      (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
+                  change (revealScratchBiddingEndWord σ_solm I).toNat <
+                    (revealScratchTimestampWord I).toNat
+                  rw [← hbiddingEq]
+                  exact hafter
+                have hbeforeBody :
+                    (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat <
+                      (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩).toNat := by
+                  change (revealScratchTimestampWord I).toNat <
+                    (revealScratchRevealEndWord σ_solm I).toNat
+                  rw [← hrevealEq]
+                  exact hbefore
+                have hlenBody :
+                    Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
+                      (bidsBase (.address evmSolm.executionEnv.source)) =
+                        revealScratchBidsLengthWord σ_solm I := by
+                  rfl
+                by_cases hvaluesEq :
+                    revealScratchBidsLengthWord σ_evm I = valuesLenWord
+                · by_cases hfakesEq :
+                      revealScratchBidsLengthWord σ_evm I = fakesLenWord
+                  · by_cases hsecretsEq :
+                        revealScratchBidsLengthWord σ_evm I = secretsLenWord
+                    · have h963 :=
+                        blindAuctionRevealX_from887_afterTimeGuards
+                          (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                          (s0 := initState cA gh bl σ_evm σ₀_evm
+                            (Sat256.ofUInt256 g) A I)
+                          rd887 hafter hbefore
+                      rcases h963 with ⟨_, _, rd963⟩
+                      by_cases hbidsZero :
+                          revealScratchBidsLengthWord σ_evm I = ⟨0⟩
+                      · have hvaluesWordZero : valuesLenWord = ⟨0⟩ := by
+                          rw [← hvaluesEq, hbidsZero]
+                        have hfakesWordZero : fakesLenWord = ⟨0⟩ := by
+                          rw [← hfakesEq, hbidsZero]
+                        have hsecretsWordZero : secretsLenWord = ⟨0⟩ := by
+                          rw [← hsecretsEq, hbidsZero]
+                        have hvaluesLenZero : values.length = 0 := by
+                          rw [hvaluesListLen, hvaluesWordZero]
+                          rfl
+                        have hfakesLenZero : fakes.length = 0 := by
+                          rw [hfakesListLen, hfakesWordZero]
+                          rfl
+                        have hsecretsLenZero : secrets.length = 0 := by
+                          rw [hsecretsListLen, hsecretsWordZero]
+                          rfl
+                        have hvaluesNil : values = [] :=
+                          List.eq_nil_of_length_eq_zero hvaluesLenZero
+                        have hfakesNil : fakes = [] :=
+                          List.eq_nil_of_length_eq_zero hfakesLenZero
+                        have hsecretsNil : secrets = [] :=
+                          List.eq_nil_of_length_eq_zero hsecretsLenZero
+                        have hvaluesGetEmpty :
+                            callargs.get? "values" = some (.array []) := by
+                          simpa [hvaluesNil] using hvaluesGet
+                        have hfakesGetEmpty :
+                            callargs.get? "fakes" = some (.array []) := by
+                          simpa [hfakesNil] using hfakesGet
+                        have hsecretsGetEmpty :
+                            callargs.get? "secrets" = some (.array []) := by
+                          simpa [hsecretsNil] using hsecretsGet
+                        have hcallargsEmpty : callargs = revealEmptyStore :=
+                          blindAuctionDecode_reveal_callargs_empty_eq hdec hvaluesGetEmpty
+                            hfakesGetEmpty hsecretsGetEmpty
+                        have hlenZeroBody :
+                            Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
+                              (bidsBase (.address evmSolm.executionEnv.source)) = ⟨0⟩ := by
+                          rw [hlenBody, ← hbidsEq, hbidsZero]
+                        by_cases hdepthEq : I.depth = 1024
+                        · obtain ⟨_, _, rd1350⟩ :=
+                            blindAuctionRevealX_from963_empty_callDepth
+                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                              (σ₀ := σ₀_evm) (A := A) (I := I)
+                              (g := Sat256.ofUInt256 g)
+                                hdepthEq
+                                (by
+                                  simpa [hvaluesWordZero, hfakesWordZero, hsecretsWordZero]
+                                    using rd963)
+                                hbidsZero hbidsHash
+                          let evmSFail : EVM.State :=
+                            { evmSolm with
+                              substate := (evmSolm.addAccessedAccount
+                                (EVM.address evmSolm.executionEnv.source)).substate }
+                          have hcallS :
+                              callViaEVM evmSolm (EVM.address evmSolm.executionEnv.source)
+                                0 ByteArray.empty (false, evmSFail, ByteArray.empty) := by
+                            apply callViaEVM.callNotMade
+                            · rfl
+                            · rfl
+                            · rintro ⟨_, hdepthNe⟩
+                              exact hdepthNe (by
+                                simpa [evmSolm, initState] using hdepthEq)
+                          have hbody :
+                              ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                                callargs revealTransition.body .reverted := by
+                            have hbodyEmpty :
+                                ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                                  revealEmptyStore revealTransition.body .reverted :=
+                              blindAuctionRevealBodyReverts_empty_callFailure evmSolm evmSFail
+                                ByteArray.empty hwvSolm hafterBody hbeforeBody hlenZeroBody
+                                hcallS
+                            simpa [hcallargsEmpty] using hbodyEmpty
+                          have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+                              (initState cA gh bl σ_evm σ₀_evm
+                                (Sat256.ofUInt256 g) A I) :=
+                            blindAuctionRevealX_postCallEmpty_failure_revert
+                              (by simpa using rd1350)
+                          exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+                        · have hdepthLt : I.depth.val < 1024 := by
+                            have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
+                            have hneVal : I.depth.val ≠ 1024 := by
+                              intro hv
+                              exact hdepthEq (Fin.ext hv)
+                            omega
+                          obtain ⟨cA', σ', z, out, A_in, callGas, _, _, hTheta,
+                              hout255, rd1350⟩ :=
+                            blindAuctionRevealX_from963_empty_callMade
+                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                              (σ₀ := σ₀_evm) (A := A) (I := I)
+                                (g := Sat256.ofUInt256 g)
+                                hdepthLt
+                                (by
+                                  simpa [hvaluesWordZero, hfakesWordZero, hsecretsWordZero]
+                                    using rd963)
+                                hbidsZero hbidsHash
+                          rcases hTheta with ⟨g'', A', hThetaEq⟩
+                          let evmECall : EVM.State :=
+                            { initState cA gh bl σ_evm σ₀_evm
+                                (Sat256.ofUInt256 g) A I with
+                              accountMap := σ',
+                              substate := A',
+                              createdAccounts := cA' }
+                          have hAddressId (a : AccountAddress) : EVM.address a = a := by
+                            apply Fin.ext
+                            simp [EVM.address, EVM.uintN]
+                            exact Nat.mod_eq_of_lt a.isLt
+                          have hcallE :
+                              callViaEVM
+                                (initState cA gh bl σ_evm σ₀_evm
+                                  (Sat256.ofUInt256 g) A I)
+                                (EVM.address I.source) 0 ByteArray.empty
+                                (z, evmECall, out) := by
+                            refine callViaEVM.callMade
+                              (valueWord := (⟨0⟩ : UInt256))
+                              (cA' := cA') (σ' := σ') (g' := g'') (A' := A')
+                              wordOfInt_zero.symm ?_ ?_ ?_ ?_
+                            · refine ⟨callGas, A_in, ?_⟩
+                              simpa [evmECall, initState, hperm, revealScratchSenderWord,
+                                hAddressId, accountAddress_roundtrip] using hThetaEq
+                            · rfl
+                            · show (⟨0⟩ : UInt256) ≤ _
+                              exact Fin.zero_le _
+                            · intro hd'
+                              apply hdepthEq
+                              simpa [initState] using hd'
+                          obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
+                            callViaEVM_initState_accountMapEquiv
+                              (storage := blindAuctionConfig.storage) hcallE hAccounts
+                              hOriginalAccounts
+                          let evmSCall : EVM.State :=
+                            { evmSolm with
+                              accountMap := σ'_solm,
+                              substate := A'_solm,
+                              createdAccounts := evmECall.createdAccounts }
+                          have hcallS :
+                              callViaEVM evmSolm (EVM.address evmSolm.executionEnv.source)
+                                0 ByteArray.empty (z, evmSCall, out) := by
+                            simpa [evmSolm, evmSCall, evmECall, initState] using hcallSRaw
+                          cases z
+                          · have hbody :
+                                ExecTransitionBody blindAuctionConfig blindAuctionContract
+                                  evmSolm callargs revealTransition.body .reverted := by
+                              have hbodyEmpty :
+                                  ExecTransitionBody blindAuctionConfig blindAuctionContract
+                                    evmSolm revealEmptyStore revealTransition.body .reverted :=
+                                blindAuctionRevealBodyReverts_empty_callFailure evmSolm evmSCall
+                                  out hwvSolm hafterBody hbeforeBody hlenZeroBody hcallS
+                              simpa [hcallargsEmpty] using hbodyEmpty
+                            by_cases hout0 : out.size = 0
+                            · have houtEmpty : out = ByteArray.empty := by
+                                apply ByteArray.ext
+                                change out.data = #[]
+                                exact Array.eq_empty_of_size_eq_zero (by
+                                  change out.size = 0
+                                  exact hout0)
+                              have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+                                  (initState cA gh bl σ_evm σ₀_evm
+                                    (Sat256.ofUInt256 g) A I) :=
+                                blindAuctionRevealX_postCallEmpty_failure_revert
+                                  (by simpa [houtEmpty] using rd1350)
+                              exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+                            · obtain ⟨_, _, _, _, rd1405⟩ :=
+                                blindAuctionRevealX_postCallNonempty_toRequire
+                                  (by simpa using rd1350) hout0
+                                  (lt_size_of_lt_sign hout255)
+                              have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+                                  (initState cA gh bl σ_evm σ₀_evm
+                                    (Sat256.ofUInt256 g) A I) :=
+                                blindAuctionRevealX_postCallRequire_failure_revert
+                                  (by simpa using rd1405)
+                              exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+                          · have hbody :
+                                ExecTransitionBody blindAuctionConfig blindAuctionContract
+                                  evmSolm callargs revealTransition.body
+                                (.returned
+                                  { contract := blindAuctionContract,
+                                    locals := revealCallStore ⟨0⟩ ⟨0⟩ true out }
+                                  evmSCall none) := by
+                              have hbodyEmpty :
+                                  ExecTransitionBody blindAuctionConfig blindAuctionContract
+                                    evmSolm revealEmptyStore revealTransition.body
+                                    (.returned
+                                      { contract := blindAuctionContract,
+                                        locals := revealCallStore ⟨0⟩ ⟨0⟩ true out }
+                                      evmSCall none) :=
+                                blindAuctionRevealBodyReturns_empty_callSuccess evmSolm
+                                  evmSCall out hwvSolm hafterBody hbeforeBody hlenZeroBody
+                                  hcallS
+                              simpa [hcallargsEmpty] using hbodyEmpty
+                            by_cases hout0 : out.size = 0
+                            · have houtEmpty : out = ByteArray.empty := by
+                                apply ByteArray.ext
+                                change out.data = #[]
+                                exact Array.eq_empty_of_size_eq_zero (by
+                                  change out.size = 0
+                                  exact hout0)
+                              have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
+                                  (initState cA gh bl σ_evm σ₀_evm
+                                    (Sat256.ofUInt256 g) A I)
+                                  (cA', σ') ByteArray.empty :=
+                                blindAuctionRevealX_postCallEmpty_success_stop
+                                  (by simpa [houtEmpty] using rd1350)
+                              exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+                                hbody
+                                (by rfl)
+                                (by
+                                  change accountMapEquiv σ' σ'_solm
+                                  simpa [evmECall] using hPostAccounts)
+                                (returnEquiv.void rfl rfl rfl)
+                            · obtain ⟨_, _, _, _, rd1405⟩ :=
+                                blindAuctionRevealX_postCallNonempty_toRequire
+                                  (by simpa using rd1350) hout0
+                                  (lt_size_of_lt_sign hout255)
+                              have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
+                                  (initState cA gh bl σ_evm σ₀_evm
+                                    (Sat256.ofUInt256 g) A I)
+                                  (cA', σ') ByteArray.empty :=
+                                blindAuctionRevealX_postCallRequire_success_stop
+                                  (by simpa using rd1405)
+                              exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+                                hbody
+                                (by rfl)
+                                (by
+                                  change accountMapEquiv σ' σ'_solm
+                                  simpa [evmECall] using hPostAccounts)
+                                (returnEquiv.void rfl rfl rfl)
+                      · sorry
+                    · have hrev :=
+                        blindAuctionRevealDecodeArrays1806_secretsLengthMismatch_reverts
+                          (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                        rd1806 hvaluesGt hvaluesStart hvaluesLenLoad hvaluesLenMax
+                        hvaluesEnd hfakesGt hfakesStart hfakesLenLoad hfakesLenMax
+                        hfakesEnd hsecretsGt hsecretsStart hsecretsLenLoad hsecretsLenMax
+                        hsecretsEnd hafter hbefore hvaluesEq hfakesEq hsecretsEq hbidsHash
+                      have hsecretsNeNat :
+                          secrets.length ≠ (revealScratchBidsLengthWord σ_solm I).toNat := by
+                        intro hnat
+                        apply hsecretsEq
+                        apply u256_inj
+                        rw [hbidsEq]
+                        omega
+                      have hbody :
+                          ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                            callargs revealTransition.body .reverted := by
+                        exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
+                          evmSolm hdec hvaluesGet hfakesGet hsecretsGet hwvSolm hafterBody
+                          hbeforeBody hlenBody (Or.inr (Or.inr hsecretsNeNat))
+                      exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+                  · have hrev :=
+                      blindAuctionRevealDecodeArrays1806_fakesLengthMismatch_reverts
+                        (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                        rd1806 hvaluesGt hvaluesStart hvaluesLenLoad hvaluesLenMax
+                        hvaluesEnd hfakesGt hfakesStart hfakesLenLoad hfakesLenMax
+                        hfakesEnd hsecretsGt hsecretsStart hsecretsLenLoad hsecretsLenMax
+                        hsecretsEnd hafter hbefore hvaluesEq hfakesEq hbidsHash
+                    have hfakesNeNat :
+                        fakes.length ≠ (revealScratchBidsLengthWord σ_solm I).toNat := by
+                      intro hnat
+                      apply hfakesEq
+                      apply u256_inj
+                      rw [hbidsEq]
+                      omega
+                    have hbody :
+                        ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                          callargs revealTransition.body .reverted := by
+                      exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
+                        evmSolm hdec hvaluesGet hfakesGet hsecretsGet hwvSolm hafterBody
+                        hbeforeBody hlenBody (Or.inr (Or.inl hfakesNeNat))
+                    exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+                · have hrev :=
+                    blindAuctionRevealDecodeArrays1806_valuesLengthMismatch_reverts
+                      (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                      rd1806 hvaluesGt hvaluesStart hvaluesLenLoad hvaluesLenMax hvaluesEnd
+                      hfakesGt hfakesStart hfakesLenLoad hfakesLenMax hfakesEnd
+                      hsecretsGt hsecretsStart hsecretsLenLoad hsecretsLenMax hsecretsEnd
+                      hafter hbefore hvaluesEq hbidsHash
+                  have hvaluesNeNat :
+                      values.length ≠ (revealScratchBidsLengthWord σ_solm I).toNat := by
+                    intro hnat
+                    apply hvaluesEq
+                    apply u256_inj
+                    rw [hbidsEq]
+                    omega
+                  have hbody :
+                      ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                        callargs revealTransition.body .reverted := by
+                    exact blindAuctionRevealBodyReverts_decoded_lengthMismatch
+                      evmSolm hdec hvaluesGet hfakesGet hsecretsGet hwvSolm hafterBody
+                      hbeforeBody hlenBody (Or.inl hvaluesNeNat)
+                  exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+              · have hrev := blindAuctionRevealX_from887_tooLate
+                    (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                    (s0 := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                    rd887 hafter (Nat.le_of_not_gt hbefore)
+                have hafterBody :
+                    (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
+                      (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
+                  change (revealScratchBiddingEndWord σ_solm I).toNat <
+                    (revealScratchTimestampWord I).toNat
+                  rw [← hbiddingEq]
+                  exact hafter
+                have hlateBody :
+                    (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩).toNat ≤
+                      (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
+                  change (revealScratchRevealEndWord σ_solm I).toNat ≤
+                    (revealScratchTimestampWord I).toNat
+                  rw [← hrevealEq]
+                  exact Nat.le_of_not_gt hbefore
+                have hbody :
+                    ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                      callargs revealTransition.body .reverted := by
+                  exact blindAuctionRevealBodyReverts_tooLate hwvSolm hbiddingAbsent
+                    hrevealAbsent hafterBody hlateBody
+                exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+            · have hrev := blindAuctionRevealX_from887_tooEarly
+                  (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
+                  (s0 := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                  rd887 (Nat.le_of_not_gt hafter)
+              have htimeBody :
+                  (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat ≤
+                    (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat := by
+                change (revealScratchTimestampWord I).toNat ≤
+                  (revealScratchBiddingEndWord σ_solm I).toNat
+                rw [← hbiddingEq]
+                exact Nat.le_of_not_gt hafter
+              have hbody :
+                  ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
+                    callargs revealTransition.body .reverted := by
+                exact blindAuctionRevealBodyReverts_tooEarly hwvSolm hbiddingAbsent htimeBody
+              exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+        · have hcalldataGe : 2 ^ 255 ≤ I.calldata.size := by omega
+          have hdecNone := blindAuctionDecode_reveal_none_huge_dynamic (I := I) hcalldataGe
+          have hrev :=
+            blindAuctionRevealDecode1806_hugeDynamic_reverts
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g) rd1806 hcalldataGe hsize
+          exact hrev.reEquivDecodingFailed hcode hd hdecNone
   · have hrev := blindAuctionX_reveal_nonpayable (g := Sat256.ofUInt256 g) hwv hreach
     by_cases hdecNone :
         decodeCalldata (revealTransition.params.map Param.name)
