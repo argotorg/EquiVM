@@ -156,9 +156,9 @@ def createBidTransition : TransitionDecl :=
         .require (.binary .lt now (.storage (aField "endTime"))),
         .require (.binary .ge (.env .callvalue) (.storage reservePriceRef)),
         .require (.binary .ge (.env .callvalue)
-          (.binary .add (.storage (aField "amount"))
-            (.binary .div (.binary .mul (.storage (aField "amount")) (.storage minBidIncRef))
-              (.intLit 100)))),
+          (u256 (.binary .add (.storage (aField "amount"))
+            (.binary .div (u256 (.binary .mul (.storage (aField "amount")) (.storage minBidIncRef)))
+              (.intLit 100))))),
         -- refund prior bidder, if any
         .ite (.binary .ne (.storage (aField "bidder")) zeroAddr)
           [ .internalCall "_safeTransferETHWithFallback"
@@ -239,6 +239,27 @@ def setReservePriceTransition : TransitionDecl :=
       [ .require (.binary .eq sender (.storage ownerRef)),
         .assign .storage reservePriceRef (.var "_reservePrice") ] }
 
+/-- `transferOwnership(address newOwner)` — onlyOwner; reverts on the zero address
+    (inherited from `OwnableUpgradeable`). -/
+def transferOwnershipTransition : TransitionDecl :=
+  { name := "transferOwnership"
+    params := [{ name := "newOwner", ty := addr }]
+    returnType := none
+    body :=
+      [ .require (.binary .eq sender (.storage ownerRef)),
+        .require (.binary .ne (.var "newOwner") zeroAddr),
+        .assign .storage ownerRef (.var "newOwner") ] }
+
+/-- `renounceOwnership()` — onlyOwner; sets the owner to `address(0)`
+    (inherited from `OwnableUpgradeable`). -/
+def renounceOwnershipTransition : TransitionDecl :=
+  { name := "renounceOwnership"
+    params := []
+    returnType := none
+    body :=
+      [ .require (.binary .eq sender (.storage ownerRef)),
+        .assign .storage ownerRef zeroAddr ] }
+
 /-- `setMinBidIncrementPercentage(uint8)` — onlyOwner. -/
 def setMinBidIncTransition : TransitionDecl :=
   { name := "setMinBidIncrementPercentage"
@@ -273,7 +294,8 @@ def auctionContract : ContractDecl :=
     transitions :=
       [ createBidTransition, settleAndCreateTransition, settleAuctionTransition,
         pauseTransition, unpauseTransition, setTimeBufferTransition,
-        setReservePriceTransition, setMinBidIncTransition ] }
+        setReservePriceTransition, setMinBidIncTransition,
+        transferOwnershipTransition, renounceOwnershipTransition ] }
 
 /-! ## Config (sketch — refine `encode?` and the layout when proving) -/
 
