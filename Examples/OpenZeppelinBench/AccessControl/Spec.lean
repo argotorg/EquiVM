@@ -146,8 +146,11 @@ def renounceRoleTransition : TransitionDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.var "callerConfirmation") sender),
-        .assign .storage (roleHasRoleRef (.var "role") (.var "callerConfirmation"))
-          (.boolLit false) ] }
+        .ite
+          (.storage (roleHasRoleRef (.var "role") (.var "callerConfirmation")))
+          [ .assign .storage (roleHasRoleRef (.var "role") (.var "callerConfirmation"))
+              (.boolLit false) ]
+          [] ] }
 
 def constructorDecl : ConstructorDecl :=
   { params := []

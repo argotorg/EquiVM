@@ -10,6 +10,36 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.R
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
 
+namespace Reasoning.Reach
+
+theorem erc6909Or_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.OR, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+       else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_or s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
+theorem RD.erc6909Lor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => erc6909Or_xstep hc hp hdec hs hov)
+
+end Reasoning.Reach
+
 namespace OpenZeppelinBench.ERC6909
 
 /-! ## ABI decode and source-level body for `setOperator(address,bool)` -/
@@ -407,6 +437,14 @@ theorem erc6909U256_lor_zero (a : UInt256) :
   have hlt : a.toNat < UInt256.size := by
     simpa [UInt256.toNat] using a.val.isLt
   rw [hlor, Nat.mod_eq_of_lt hlt]
+
+-- PROMOTE -> Common.lean / Reasoning.UInt256
+theorem erc6909U256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
+  apply u256_inj
+  show Nat.lor a.toNat b.toNat % UInt256.size =
+    Nat.lor b.toNat a.toNat % UInt256.size
+  rw [show Nat.lor a.toNat b.toNat = Nat.lor b.toNat a.toNat from
+    Nat.lor_comm a.toNat b.toNat]
 
 def setOperatorPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (setOperatorSlot evm I)
@@ -866,5 +904,694 @@ theorem setOperatorFinalKeccakSlot (I : ExecutionEnv)
   exact mappingSlot_single (setOperatorSpenderWord I)
     (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (setOperatorOwnerWord I) ++
       UInt256.toByteArray (⟨1⟩ : UInt256))))
+
+/-! ## EVM trace for `setOperator(address,bool)` -/
+
+def setOperatorApprovalTopic : UInt256 :=
+  ⟨0xceb576d9f15e4e200fdb5096d64d5dfd667e16def20c1eefd14256d8e3faa267⟩
+
+theorem erc6909SetOperatorX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1790⟩
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨261⟩, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨k, C, rd⟩ := hreach
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, push2 ⟨193⟩, push2 ⟨261⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨1790⟩, jump (by jump_dest) ]⟩
+
+theorem erc6909SetOperatorX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨535⟩
+      [setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 2) (by simpa using hsz68) hszhi hsize
+  obtain ⟨k, C, rd1790⟩ := erc6909SetOperatorX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1790 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨1807⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1816⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]
+  obtain ⟨_, _, rd1816⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
+    (by evm_ov)
+  have rd261 := evm_run rd1816 with [
+    jumpdest, swap2, pop, push1 ⟨32⟩, dup4, add, calldataload, dup1, iszero,
+    iszero, dup2, eq, push2 ⟨1836⟩,
+    jumpiT (by
+      simpa [setOperatorApprovedWord, calldataWord] using
+        setOperatorBoolCanonJump (word := setOperatorApprovedWord I) hbool)
+      (by jump_dest),
+    jumpdest, dup1, swap2, pop, pop, swap3, pop, swap3, swap1, pop,
+    jump (by jump_dest) ]
+  exact ⟨_, _, evm_run rd261 with [jumpdest, push2 ⟨535⟩, jump (by jump_dest)]⟩
+
+theorem erc6909SetOperatorX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 68)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcCalldataStaticLenCheckShort (words := 2) hsz4 (by simpa using hshort) hsize
+      (by norm_num)
+  obtain ⟨k, C, rd1790⟩ := erc6909SetOperatorX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1790 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨1807⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909SetOperatorX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcCalldataStaticLenCheckHuge (words := 2) hbig hsize (by norm_num)
+  obtain ⟨k, C, rd1790⟩ := erc6909SetOperatorX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1790 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨1807⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909SetOperatorX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hnc : UInt256.eq (setOperatorSpenderWord I)
+      (UInt256.land (setOperatorSpenderWord I) solcAddrMask) = ⟨0⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 2) (by simpa using hsz68) hszhi hsize
+  obtain ⟨k, C, rd1790⟩ := erc6909SetOperatorX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1790 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨1807⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1816⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]
+  simpa [setOperatorSpenderWord, calldataWord] using
+    erc6909DecodeAddrRevert rd1629 hnc (by evm_ov)
+
+theorem erc6909SetOperatorX_noncanon_approved {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hnz : setOperatorApprovedWord I ≠ ⟨0⟩) (hno : setOperatorApprovedWord I ≠ ⟨1⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 2) (by simpa using hsz68) hszhi hsize
+  obtain ⟨k, C, rd1790⟩ := erc6909SetOperatorX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1790 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨1807⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1816⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]
+  obtain ⟨_, _, rd1816⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
+    (by evm_ov)
+  exact evm_run rd1816 with [
+    jumpdest, swap2, pop, push1 ⟨32⟩, dup4, add, calldataload, dup1, iszero,
+    iszero, dup2, eq, push2 ⟨1836⟩,
+    jumpiNT (by
+      simpa [setOperatorApprovedWord, calldataWord] using
+        setOperatorBoolNoncanonJump (word := setOperatorApprovedWord I) hnz hno),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909SetOperatorX_toHelper {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨957⟩
+      [setOperatorApprovedWord I, setOperatorSpenderWord I, setOperatorOwnerWord I,
+        ⟨547⟩, ⟨0⟩, setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd535⟩ := erc6909SetOperatorX_decoded (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz68 hsize hszhi hcanonSpender hbool hreach
+  exact ⟨_, _, by
+    simpa [setOperatorOwnerWord] using evm_run rd535 with [
+      jumpdest, push0, push2 ⟨547⟩, caller, dup5, dup5, push2 ⟨957⟩,
+      jump (by jump_dest) ]⟩
+
+theorem erc6909SetOperatorX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hsource : I.source = AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd957⟩ := erc6909SetOperatorX_toHelper (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz68 hsize hszhi hcanonSpender hbool hreach
+  have hownerZeroWord : setOperatorOwnerWord I = ⟨0⟩ := (setOperatorSource_zero_iff I).mp hsource
+  have rd972 := evm_run rd957 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
+    push2 ⟨998⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [hownerZeroWord]
+      decide) ]
+  exact evm_run rd972 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x198ecd53⟩, push1 ⟨227⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push0, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (approveErrorMem_mload64 approveInvalidApproverSelectorWord ⟨0⟩)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+theorem erc6909SetOperatorX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (setOperatorSpenderWord I).toNat = AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd957⟩ := erc6909SetOperatorX_toHelper (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz68 hsize hszhi hcanonSpender hbool hreach
+  have hownerWordNZ : setOperatorOwnerWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hsource ((setOperatorSource_zero_iff I).mpr hzero)
+  have hspenderZeroWord : setOperatorSpenderWord I = ⟨0⟩ :=
+    (setOperatorAccountAddress_ofNat_zero_iff hcanonSpender).mp hspender
+  have rd1013 := evm_run rd957 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
+    push2 ⟨998⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean (setOperatorOwnerWord_canonical I)]
+      exact hownerWordNZ)
+      (by jump_dest),
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
+    push2 ⟨1039⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [hspenderZeroWord]
+      decide) ]
+  exact evm_run rd1013 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x6f65f465⟩, push1 ⟨224⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push0, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (approveErrorMem_mload64 approveInvalidSpenderSelectorWord ⟨0⟩)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+def setOperatorStoredSlotStack (I : ExecutionEnv) (sel : UInt256) : List UInt256 :=
+  [setOperatorSlotI I, setOperatorSlotI I, ⟨32⟩, ⟨64⟩,
+    UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
+      (setOperatorOwnerWord I),
+    UInt256.land (setOperatorSpenderWord I)
+      (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩),
+    setOperatorApprovedWord I, setOperatorSpenderWord I, setOperatorOwnerWord I, ⟨547⟩, ⟨0⟩,
+    setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+
+def setOperatorStoredLoadedStack (σ : AccountMap) (I : ExecutionEnv)
+    (sel : UInt256) : List UInt256 :=
+  [setOperatorStorageWord σ I, setOperatorSlotI I, ⟨32⟩, ⟨64⟩,
+    UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
+      (setOperatorOwnerWord I),
+    UInt256.land (setOperatorSpenderWord I)
+      (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩),
+    setOperatorApprovedWord I, setOperatorSpenderWord I, setOperatorOwnerWord I, ⟨547⟩, ⟨0⟩,
+    setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+
+def setOperatorStoredFinalStack (I : ExecutionEnv) (sel : UInt256) : List UInt256 :=
+  [UInt256.isZero (UInt256.isZero (setOperatorApprovedWord I)), ⟨32⟩, ⟨64⟩,
+    setOperatorOwnerWord I, setOperatorSpenderWord I, setOperatorApprovedWord I,
+    setOperatorSpenderWord I, setOperatorOwnerWord I, ⟨547⟩, ⟨0⟩,
+    setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+
+def setOperatorStoredPreStoreStack (σ : AccountMap) (I : ExecutionEnv)
+    (sel : UInt256) : List UInt256 :=
+  [setOperatorSlotI I, setOperatorStoredWord σ I,
+    UInt256.isZero (UInt256.isZero (setOperatorApprovedWord I)), ⟨32⟩, ⟨64⟩,
+    setOperatorOwnerWord I, setOperatorSpenderWord I, setOperatorApprovedWord I,
+    setOperatorSpenderWord I, setOperatorOwnerWord I, ⟨547⟩, ⟨0⟩,
+    setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+
+def setOperatorStoredPostMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
+  sstoreAccountMap I.codeOwner σ (setOperatorSlotI I) (setOperatorStoredWord σ I)
+
+set_option maxHeartbeats 3000000 in
+theorem erc6909SetOperatorX_toStoredSlot {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (setOperatorSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1081⟩
+      (setOperatorStoredSlotStack I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd957⟩ := erc6909SetOperatorX_toHelper (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz68 hsize hszhi hcanonSpender hbool hreach
+  have hownerWordNZ : setOperatorOwnerWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hsource ((setOperatorSource_zero_iff I).mpr hzero)
+  have hspenderWordNZ : setOperatorSpenderWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hspender ((setOperatorAccountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
+  have rd1039 := evm_run rd957 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
+    push2 ⟨998⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean (setOperatorOwnerWord_canonical I)]
+      exact hownerWordNZ)
+      (by jump_dest),
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
+    push2 ⟨1039⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean hcanonSpender]
+      exact hspenderWordNZ)
+      (by jump_dest) ]
+  have hslot := setOperatorFinalKeccakSlot I hcanonSpender
+  have rd1066 := evm_run rd1039 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
+    push0, dup2, dup2,
+    raw mstore 0 (approveWordAt0Mem (setOperatorOwnerWord I) solcFreePtrMem)
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean_left (setOperatorOwnerWord_canonical I)]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨1⟩, push1 ⟨32⟩, swap1, dup2,
+    raw mstore 0 (setOperatorOwnerHashMem (setOperatorOwnerWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (setOperatorOwnerSlot (setOperatorOwnerWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd1067 := RD.erc6909Swap5 rd1066 (by decide) (by evm_ov)
+  have rd1072 := evm_run rd1067 with [
+    dup8, and, dup1, dup5,
+    raw mstore 0 (approveWordAt0Mem (setOperatorSpenderWord I)
+        (setOperatorOwnerHashMem (setOperatorOwnerWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonSpender]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd1073 := RD.erc6909Swap5 rd1072 (by decide) (by evm_ov)
+  have rd1081 := evm_run rd1073 with [
+    dup3,
+    raw mstore 0 (setOperatorSpenderHashMem (setOperatorOwnerWord I)
+        (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap2, dup3, swap1,
+    raw keccak256 0 (setOperatorSlotI I) (UInt256.ofNat 3)
+      (by decide) mem_cost hslot (by decide) (by evm_ov),
+    dup1 ]
+  exact ⟨_, _, by simpa [setOperatorStoredSlotStack] using rd1081⟩
+
+theorem erc6909SetOperatorX_loaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hslotReach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1081⟩ (setOperatorStoredSlotStack I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1082⟩
+      (setOperatorStoredLoadedStack σ I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd1081⟩ := hslotReach
+  obtain ⟨_, _, rd1082raw⟩ := rd1081.sload (by decide) (by evm_ov)
+  exact ⟨_, _, by
+    simpa [setOperatorStoredSlotStack, setOperatorStoredLoadedStack, setOperatorStorageWord,
+      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, initState]
+      using rd1082raw⟩
+
+theorem erc6909SetOperatorX_toPreStore {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hloaded : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1082⟩ (setOperatorStoredLoadedStack σ I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1094⟩
+      (setOperatorStoredPreStoreStack σ I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨k1082, C1082, rd1082⟩ := hloaded
+  have rd1082' :
+      RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1082⟩
+        [setOperatorStorageWord σ I, setOperatorSlotI I, ⟨32⟩, ⟨64⟩,
+          UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
+            (setOperatorOwnerWord I),
+          UInt256.land (setOperatorSpenderWord I)
+            (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩),
+          setOperatorApprovedWord I, setOperatorSpenderWord I, setOperatorOwnerWord I,
+          ⟨547⟩, ⟨0⟩, setOperatorApprovedWord I, setOperatorSpenderWord I, ⟨193⟩, sel]
+        (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1082 C1082 := by
+    simpa [setOperatorStoredLoadedStack] using rd1082
+  have rd1091 := evm_run rd1082' with [
+    push1 ⟨255⟩, not, and, dup7, iszero, iszero, swap1, dup2 ]
+  have rd1092 := RD.erc6909Lor rd1091 (by decide) (by simp)
+  have rd1094 := evm_run rd1092 with [swap1, swap2]
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hownerClean :
+      UInt256.land solcAddrMask (setOperatorOwnerWord I) = setOperatorOwnerWord I :=
+    solcAddrMask_clean_left (setOperatorOwnerWord_canonical I)
+  have hspenderClean :
+      UInt256.land (setOperatorSpenderWord I) solcAddrMask = setOperatorSpenderWord I :=
+    solcAddrMask_clean hcanonSpender
+  have hstoredWord :
+      UInt256.lor (UInt256.isZero (UInt256.isZero (setOperatorApprovedWord I)))
+          (UInt256.land (UInt256.lnot ⟨255⟩) (setOperatorStorageWord σ I)) =
+        setOperatorStoredWord σ I := by
+    unfold setOperatorStoredWord setOperatorBoolWord
+    rw [erc6909U256_lor_comm]
+    rw [SimpleAuction.simpleAuctionU256_land_comm (UInt256.lnot ⟨255⟩)
+      (setOperatorStorageWord σ I)]
+  have rd1094' := rd1094
+  rw [hmask, hownerClean, hspenderClean, hstoredWord] at rd1094'
+  exact ⟨_, _, by
+    simpa [setOperatorStoredPreStoreStack] using rd1094'⟩
+
+theorem erc6909SetOperatorX_sstore {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hpre : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1094⟩ (setOperatorStoredPreStoreStack σ I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1095⟩
+      (setOperatorStoredFinalStack I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, setOperatorStoredPostMap σ I) k C := by
+  obtain ⟨_, _, rd1094⟩ := hpre
+  obtain ⟨k, C, rd1095⟩ := rd1094.sstore hperm (by decide) (by evm_ov)
+  refine ⟨k, C, ?_⟩
+  simpa [setOperatorStoredPreStoreStack, setOperatorStoredPostMap] using rd1095
+
+theorem erc6909SetOperatorX_storeLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hperm : I.perm = true)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hloaded : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1082⟩ (setOperatorStoredLoadedStack σ I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1095⟩
+      (setOperatorStoredFinalStack I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, setOperatorStoredPostMap σ I) k C := by
+  exact erc6909SetOperatorX_sstore (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hperm
+    (erc6909SetOperatorX_toPreStore (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hcanonSpender hloaded)
+
+theorem erc6909SetOperatorX_stored {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hperm : I.perm = true)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (setOperatorSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1095⟩
+      (setOperatorStoredFinalStack I sel)
+      (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (UInt256.ofNat 3) ByteArray.empty (cA, setOperatorStoredPostMap σ I) k C := by
+  exact erc6909SetOperatorX_storeLoaded (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hperm hcanonSpender
+    (erc6909SetOperatorX_loaded
+      (erc6909SetOperatorX_toStoredSlot (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+        (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+        hsz68 hsize hszhi hcanonSpender hbool hsource hspender hreach))
+
+theorem erc6909X_setOperator {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hperm : I.perm = true)
+    (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
+    (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (setOperatorSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨247⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cA, sstoreAccountMap I.codeOwner σ (setOperatorSlotI I) (setOperatorStoredWord σ I))
+      (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
+  obtain ⟨_, _, rd1095⟩ := erc6909SetOperatorX_stored (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz68 hsize hszhi hperm hcanonSpender hbool hsource hspender hreach
+  have rd1142pre := evm_run rd1095 with [
+    swap2,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      (setOperatorSpenderHashMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I))
+      (by decide) (by evm_ov),
+    swap2, dup3,
+    raw mstore 6 (setOperatorEventMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+        (setOperatorApprovedWord I))
+      (UInt256.ofNat 5) (by decide) mem_cost
+      (by
+        rw [show UInt256.isZero (UInt256.isZero (setOperatorApprovedWord I)) =
+          UInt256.isZero (UInt256.isZero (setOperatorApprovedWord I)) from rfl]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd1133 := rd1142pre.pushConst setOperatorApprovalTopic (width := 32) (op := .PUSH32)
+    (by decide) (by decide) (by evm_ov)
+  have rd1142Log := evm_run rd1133 with [
+    swap2, add, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (setOperatorEventMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+        (setOperatorApprovedWord I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1 ]
+  have rd1143 := rd1142Log.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
+    (by decide) (by evm_ov)
+  have rd547 := evm_run rd1143 with [pop, pop, pop, jump (by jump_dest)]
+  have rd193 := evm_run rd547 with [
+    jumpdest, pop, push1 ⟨1⟩, swap3, swap2, pop, pop, jump (by jump_dest) ]
+  have rd165 := evm_run rd193 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (setOperatorEventMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+        (setOperatorApprovedWord I))
+      (by decide) (by evm_ov),
+    swap1, iszero, iszero, dup2,
+    raw mstore 0 (setOperatorReturnMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+        (setOperatorApprovedWord I))
+      (UInt256.ofNat 5) (by decide) mem_cost
+      (by
+        rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
+  exact evm_run rd165 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (setOperatorReturnMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+        (setOperatorApprovedWord I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32
+            from by decide]
+        change (setOperatorReturnMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+            (setOperatorApprovedWord I)).readWithPadding 128 32 =
+          UInt256.toByteArray (⟨1⟩ : UInt256)
+        exact setOperatorReturnMem_read128 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+          (setOperatorApprovedWord I))
+      (by evm_ov) ]
+
+theorem erc6909SetOperatorBodyCore
+    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (erc6909SelBytes 4))
+    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨247⟩
+      [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+  have hsz4 := erc6909SetOperatorSelector_size hsel
+  have hd := erc6909Dispatch_setOperator (cd := I.calldata) hsel
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus
+      · by_cases hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩
+        · have hdec := erc6909Decode_setOperator_ok (I := I) hsz68 hbig hcanonSpender hbool
+          let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
+          let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+          have hσ : EVMStateEquiv evmE evmS := by
+            simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
+              hAccounts
+          by_cases hsource : I.source = AccountAddress.ofNat 0
+          · have hbody :
+                ExecTransitionBody config contract evmS (setOperatorStore I)
+                  setOperatorTransition.body .reverted := by
+              simpa [evmS, initState] using erc6909SetOperatorBodyReverts_sender evmS
+                (by simp only [evmS, initState]; exact hwv)
+                (by simpa [evmS, initState] using hsource)
+            exact (erc6909SetOperatorX_revert_owner (g := Sat256.ofUInt256 g)
+                hsz68 hsize hbig hcanonSpender hbool hsource hreach)
+              |>.reEquivExecutionRevert hcode hd hdec hbody
+          · by_cases hspender :
+              AccountAddress.ofNat (setOperatorSpenderWord I).toNat = AccountAddress.ofNat 0
+            · have hbody :
+                  ExecTransitionBody config contract evmS (setOperatorStore I)
+                    setOperatorTransition.body .reverted := by
+                simpa [evmS, initState] using erc6909SetOperatorBodyReverts_spender evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+              exact (erc6909SetOperatorX_revert_spender (g := Sat256.ofUInt256 g)
+                  hsz68 hsize hbig hcanonSpender hbool hsource hspender hreach)
+                |>.reEquivExecutionRevert hcode hd hdec hbody
+            · have hbody :
+                  ExecTransitionBody config contract evmS (setOperatorStore I)
+                    setOperatorTransition.body
+                    (.returned { contract := contract, locals := setOperatorStore I }
+                      (setOperatorPostState evmS I) (some (.bool true))) := by
+                simpa [evmS, initState] using erc6909SetOperatorBodyReturns evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+              have hσPost :
+                  EVMStateEquiv (setOperatorPostState evmE I) (setOperatorPostState evmS I) := by
+                have hslotEq : setOperatorSlot evmE I = setOperatorSlot evmS I := by
+                  unfold setOperatorSlot
+                  rw [hσ.executionEnv]
+                have hloadEq :
+                    Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner
+                        (setOperatorSlot evmE I) =
+                      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                        (setOperatorSlot evmS I) := by
+                  rw [hslotEq]
+                  exact hσ.storageLoad_codeOwner (setOperatorSlot evmS I)
+                unfold setOperatorPostState
+                exact hσ.storageStore_codeOwner (setOperatorSlot evmS I) (by rw [hloadEq])
+              exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
+                  hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
+                |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                  (by simp [evmE, setOperatorPostState, setOperatorSlot, initState,
+                    storageStore_createdAccounts])
+                  (accountMapEquiv.of_eq (by
+                    simp [evmE, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
+                      setOperatorStoredWord, setOperatorStorageWord, initState,
+                      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                      storageStore_accountMap]))
+                  hσPost
+                  (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+        · have hnz : setOperatorApprovedWord I ≠ ⟨0⟩ := by
+            intro hzero
+            exact hbool (Or.inl hzero)
+          have hno : setOperatorApprovedWord I ≠ ⟨1⟩ := by
+            intro hone
+            exact hbool (Or.inr hone)
+          have hdec := erc6909Decode_setOperator_none_noncanon_approved
+            (I := I) hsz68 hbig hcanonSpender hnz hno
+          exact (erc6909SetOperatorX_noncanon_approved (g := Sat256.ofUInt256 g)
+              hsz68 hsize hbig hcanonSpender hnz hno hreach)
+            |>.reEquivDecodingFailed hcode hd hdec
+      · have hdec := erc6909Decode_setOperator_none_noncanon_spender
+          (I := I) hsz68 hbig hcanonSpender
+        have hnc : UInt256.eq (setOperatorSpenderWord I)
+            (UInt256.land (setOperatorSpenderWord I) solcAddrMask) = ⟨0⟩ :=
+          uInt256_eq_zero_of_ne (fun he => hcanonSpender (solcAddrCanonical_of_clean he))
+        exact (erc6909SetOperatorX_noncanon_spender (g := Sat256.ofUInt256 g)
+            hsz68 hsize hbig hnc hreach)
+          |>.reEquivDecodingFailed hcode hd hdec
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := erc6909Decode_setOperator_none_huge (I := I) hbigge
+      exact (erc6909SetOperatorX_hugearg (g := Sat256.ofUInt256 g)
+          hsize hbigge hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 68 := by omega
+    have hdec := erc6909Decode_setOperator_none_short (I := I) hsz4 hshort
+    exact (erc6909SetOperatorX_shortarg (g := Sat256.ofUInt256 g)
+        hsz4 hsize hshort hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
 
 end OpenZeppelinBench.ERC6909

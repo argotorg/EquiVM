@@ -1,4 +1,5 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
+import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Examples.SimpleAuction.Storage
 import Reasoning.Refinement
 import Reasoning.SolmBody
@@ -6,6 +7,7 @@ import Reasoning.SolmBody
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
 set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
 
 namespace OpenZeppelinBench.AccessControl
 
@@ -23,7 +25,7 @@ abbrev grantRoleAccountWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 36
 
 abbrev grantRoleRoleValue (I : ExecutionEnv) : Value :=
-  .fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I))
+  .fixedBytes bytes32Width ((I.calldata.toList.drop 4).take 32)
 
 abbrev grantRoleAccountValue (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (grantRoleAccountWord I).toNat)
@@ -33,7 +35,7 @@ abbrev grantRoleStore (I : ExecutionEnv) : Store :=
     (grantRoleAccountValue I)
 
 def grantRoleRoleKey (I : ExecutionEnv) : KeyValue :=
-  .fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I))
+  .fixedBytes bytes32Width ((I.calldata.toList.drop 4).take 32)
 
 def grantRoleAccountKey (I : ExecutionEnv) : KeyValue :=
   .address (AccountAddress.ofNat (grantRoleAccountWord I).toNat)
@@ -375,5 +377,1057 @@ theorem accessControlDispatch_grantRole {cd : ByteArray}
   rcases ht with rfl | rfl
   · rw [selectorOf, defaultAdminRoleSelectorBytes, hcd]; decide
   · rw [selectorOf, getRoleAdminSelectorBytes, hcd]; decide
+
+theorem accessControlDecode_grantRole_ok {I : ExecutionEnv}
+    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus) :
+    decodeCalldata (grantRoleTransition.params.map Param.name)
+      (transitionSignature grantRoleTransition).paramTypes I.calldata = some (grantRoleStore I) := by
+  show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = some (grantRoleStore I)
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
+      grantRoleAccountWord I := by
+    simpa [grantRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
+      (by norm_num)
+  unfold decodeCalldata
+  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
+  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  simp only [decodeCalldata.decodeArgs]
+  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_bytes32_address_ok (bytes := I.calldata.toList.drop 4)
+    (by simpa using htake4)
+    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
+    (by
+      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
+          grantRoleAccountWord I from by
+        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
+      exact hcanonAccount)]
+  rw [if_neg (by
+    rw [List.length_drop, htlen]
+    omega : ¬ (I.calldata.toList.drop 4).length < 64)]
+  have hroleValue :
+      (.fixedBytes bytes32Width ((I.calldata.toList.drop 4).take 32) : Value) =
+        grantRoleRoleValue I := by
+    rfl
+  simp [decodeCalldata.insertValues, grantRoleStore, grantRoleAccountValue, hroleValue]
+  rw [hword36]
+
+theorem accessControlDecode_grantRole_none_short {I : ExecutionEnv}
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
+    decodeCalldata (grantRoleTransition.params.map Param.name)
+      (transitionSignature grantRoleTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  unfold decodeCalldata
+  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
+  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  simp only [decodeCalldata.decodeArgs]
+  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_bytes32_address_none_short (bytes := I.calldata.toList.drop 4) (by
+    rw [List.length_drop, htlen]
+    omega)]
+  rw [if_pos (by rw [List.length_drop, htlen]; omega)]
+
+theorem accessControlDecode_grantRole_none_huge {I : ExecutionEnv}
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
+    decodeCalldata (grantRoleTransition.params.map Param.name)
+      (transitionSignature grantRoleTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  unfold decodeCalldata
+  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
+  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
+  rw [if_pos]
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+
+theorem accessControlDecode_grantRole_none_noncanon_account {I : ExecutionEnv}
+    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hncAccount : ¬ (grantRoleAccountWord I).toNat < EVM.addressModulus) :
+    decodeCalldata (grantRoleTransition.params.map Param.name)
+      (transitionSignature grantRoleTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
+      grantRoleAccountWord I := by
+    simpa [grantRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
+      (by norm_num)
+  unfold decodeCalldata
+  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
+  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  simp only [decodeCalldata.decodeArgs]
+  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_bytes32_address_none_noncanon (bytes := I.calldata.toList.drop 4)
+    (by simpa using htake4)
+    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
+    (by
+      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
+          grantRoleAccountWord I from by
+        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
+      exact hncAccount)]
+  rw [if_neg (by rw [List.length_drop, htlen]; omega :
+    ¬ (I.calldata.toList.drop 4).length < 64)]
+
+theorem accessControlGrantRoleX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨214⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨922⟩
+        [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨228⟩, ⟨233⟩, sel]
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd⟩ := hreach
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, push2 ⟨233⟩, push2 ⟨228⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨922⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlGrantRoleX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨214⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨353⟩
+        [grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
+  have hclean : UInt256.eq (grantRoleAccountWord I)
+      (UInt256.land (grantRoleAccountWord I) solcAddrMask) = ⟨1⟩ :=
+    solcAddrCanon_eq hcanonAccount
+  obtain ⟨_, _, rd922⟩ := accessControlGrantRoleX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask := by
+    decide
+  exact ⟨_, _, evm_run rd922 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨939⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, dup3, calldataload, swap2, pop, push1 ⟨32⟩, dup4, add,
+    calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
+    dup2, eq, push2 ⟨968⟩, jumpiT (by
+      rw [hmask]
+      have hc : UInt256.eq
+          (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨32⟩).toNat 32))
+          (UInt256.land
+            (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨32⟩).toNat 32))
+            solcAddrMask) = ⟨1⟩ := by
+        simpa [grantRoleAccountWord, calldataWord] using hclean
+      rw [hc]
+      decide) (by jump_dest),
+    jumpdest, dup1, swap2, pop, pop, swap3, pop, swap3, swap1, pop, jump (by jump_dest),
+    jumpdest, push2 ⟨353⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlGrantRoleX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 68)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨214⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
+    solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
+  obtain ⟨_, _, rd922⟩ := accessControlGrantRoleX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd922 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem accessControlGrantRoleX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨214⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
+    solcDecodeLenCheckHuge_4_64 hbig hsize
+  obtain ⟨_, _, rd922⟩ := accessControlGrantRoleX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd922 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem accessControlGrantRoleX_noncanon_account {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hnc : UInt256.eq (grantRoleAccountWord I)
+      (UInt256.land (grantRoleAccountWord I) solcAddrMask) = ⟨0⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨214⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
+  obtain ⟨_, _, rd922⟩ := accessControlGrantRoleX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask := by
+    decide
+  exact evm_run rd922 with [
+    jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
+    push2 ⟨939⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, dup3, calldataload, swap2, pop, push1 ⟨32⟩, dup4, add,
+    calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
+    dup2, eq, push2 ⟨968⟩, jumpiNT (by
+      rw [hmask]
+      simpa [grantRoleAccountWord, calldataWord] using hnc),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+def grantRoleStorageWordAt (σ : AccountMap) (owner : AccountAddress) (slot : UInt256) : UInt256 :=
+  revokeRoleStorageWordAt σ owner slot
+
+def grantRoleAdminStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  grantRoleStorageWordAt σ I.codeOwner (grantRoleAdminSlot I)
+
+def grantRoleSourceWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.ofNat I.source.val
+
+def grantRoleAdminHasRoleSlotFromWord (adminWord : UInt256) (I : ExecutionEnv) : UInt256 :=
+  roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminWord)) (.address I.source)
+
+def grantRoleAdminHasRoleStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  grantRoleStorageWordAt σ I.codeOwner
+    (grantRoleAdminHasRoleSlotFromWord (grantRoleAdminStorageWord σ I) I)
+
+def grantRoleTargetStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  grantRoleStorageWordAt σ I.codeOwner (grantRoleTargetSlot I)
+
+def grantRolePostMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
+  sstoreAccountMap I.codeOwner σ (grantRoleTargetSlot I)
+    (grantRoleSetTrueWord (grantRoleTargetStorageWord σ I))
+
+theorem grantRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
+    keyValueToWord (grantRoleRoleKey I) = grantRoleRoleWord I := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hlen : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  simp [grantRoleRoleKey, keyValueToWord, bytes32Width, hlen]
+  unfold grantRoleRoleWord calldataWord
+  rw [uInt256OfByteArray_eq]
+  apply congrArg UInt256.ofNat
+  unfold fromByteArrayBigEndian
+  rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
+    readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
+
+theorem grantRoleKeyValueToWord_address_of_canonical (w : UInt256)
+    (hcanon : w.toNat < EVM.addressModulus) :
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
+  revokeRoleKeyValueToWord_address_of_canonical w hcanon
+
+theorem grantRoleSourceWord_toNat (I : ExecutionEnv) :
+    (grantRoleSourceWord I).toNat = I.source.val := by
+  unfold grantRoleSourceWord
+  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
+    (show AccountAddress.size ≤ UInt256.size from by decide))
+
+theorem grantRoleKeyValueToWord_source (I : ExecutionEnv) :
+    keyValueToWord (.address I.source) = grantRoleSourceWord I := by
+  apply u256_inj
+  change I.source.val = (UInt256.ofNat I.source.val).toNat
+  rw [ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
+    (show AccountAddress.size ≤ UInt256.size from by decide))]
+
+theorem grantRoleSourceWord_canonical (I : ExecutionEnv) :
+    (grantRoleSourceWord I).toNat < EVM.addressModulus := by
+  rw [grantRoleSourceWord_toNat]
+  exact I.source.isLt
+
+theorem grantRoleSource_ofNat (I : ExecutionEnv) :
+    AccountAddress.ofNat (grantRoleSourceWord I).toNat = I.source := by
+  unfold AccountAddress.ofNat
+  apply Fin.ext
+  rw [grantRoleSourceWord_toNat, Fin.val_ofNat]
+  exact Nat.mod_eq_of_lt I.source.isLt
+
+theorem grantRoleBaseKeccakSlot (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
+    revokeRoleBaseSlot (grantRoleRoleWord I) =
+      roleDataSlot (grantRoleRoleKey I) := by
+  unfold revokeRoleBaseSlot roleDataSlot mapSlot
+  rw [revokeRoleBaseHashMem_read0_64, grantRoleRoleKeyValueToWord hsz68]
+  exact mappingSlot_single (grantRoleRoleWord I) ⟨0⟩
+
+theorem grantRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
+    grantRoleAdminSlot I = revokeRoleBaseSlot (grantRoleRoleWord I) + ⟨1⟩ := by
+  unfold grantRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
+  rw [grantRoleRoleKeyValueToWord hsz68]
+  rw [revokeRoleAddSlot_eq]
+  unfold revokeRoleBaseSlot
+  rw [revokeRoleBaseHashMem_read0_64]
+  rw [uInt256OfByteArray_eq]
+
+theorem grantRoleTargetKeccakSlotFrom (I : ExecutionEnv) (mem : ByteArray)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hmem : mem.size = 96)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+          (grantRoleAccountWord I) mem).readWithPadding 0 64)))
+      = grantRoleTargetSlot I := by
+  rw [revokeRoleHasRoleSlotHashMemFrom_read0_64 _ _ hmem, grantRoleBaseKeccakSlot I hsz68]
+  unfold grantRoleTargetSlot roleHasRoleSlot mapSlot
+  rw [show keyValueToWord (grantRoleAccountKey I) = grantRoleAccountWord I by
+    simpa [grantRoleAccountKey] using
+      grantRoleKeyValueToWord_address_of_canonical (grantRoleAccountWord I) hcanonAccount]
+  exact mappingSlot_single (grantRoleAccountWord I)
+    (roleDataSlot (grantRoleRoleKey I))
+
+theorem grantRoleTargetSlot_fixedBytes32 (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus) :
+    grantRoleTargetSlot I =
+      roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I)))
+        (.address (AccountAddress.ofNat (grantRoleAccountWord I).toNat)) := by
+  unfold grantRoleTargetSlot roleHasRoleSlot roleDataSlot mapSlot
+  rw [grantRoleRoleKeyValueToWord hsz68, accessControlKeyValueToWord_fixedBytes32]
+  rw [show keyValueToWord (grantRoleAccountKey I) = grantRoleAccountWord I by
+    simpa [grantRoleAccountKey] using
+      grantRoleKeyValueToWord_address_of_canonical (grantRoleAccountWord I) hcanonAccount]
+  rw [grantRoleKeyValueToWord_address_of_canonical _ hcanonAccount]
+
+theorem grantRoleAdminHasRoleKeccakSlotFrom (adminRole account : UInt256) (mem : ByteArray)
+    (hmem : mem.size = 96) (hcanonAccount : account.toNat < EVM.addressModulus) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom adminRole account mem)
+          |>.readWithPadding 0 64)))
+      =
+        roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole))
+          (.address (AccountAddress.ofNat account.toNat)) := by
+  exact revokeRoleAdminHasRoleKeccakSlotFrom adminRole account mem hmem hcanonAccount
+
+theorem accessControlGrantRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨353⟩
+      [grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨527⟩
+      [grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+        grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+      (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C := by
+  obtain ⟨_, _, rd353⟩ := hreach
+  have hslotRaw :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((revokeRoleBaseHashMem (grantRoleRoleWord I)).readWithPadding 0 64))) =
+        revokeRoleBaseSlot (grantRoleRoleWord I) := rfl
+  have rd370pre := evm_run rd353 with [
+    jumpdest, push0, dup3, dup2,
+    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, dup2, swap1,
+    raw mstore 0 (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, swap1,
+    raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost hslotRaw (by decide) (by evm_ov),
+    push1 ⟨1⟩, add]
+  obtain ⟨_, _, rd371₀⟩ := rd370pre.sload (by decide) (by evm_ov)
+  have rd371 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨371⟩
+        [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+          ⟨233⟩, sel]
+        (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [grantRoleAdminStorageWord, grantRoleStorageWordAt, grantRoleAdminSlot_evm I hsz68,
+        revokeRoleU256_add_comm] using rd371₀⟩
+  obtain ⟨_, _, rd371⟩ := rd371
+  exact ⟨_, _, evm_run rd371 with [
+    push2 ⟨379⟩, dup2, push2 ⟨527⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlGrantRoleX_onlyRole_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hadmin :
+      UInt256.land (grantRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨527⟩
+      [grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+        grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+      (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨379⟩
+      [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+        ⟨233⟩, sel]
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+        (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I)))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd527⟩ := hreach
+  have rd788 := evm_run rd527 with [
+    jumpdest, push2 ⟨537⟩, dup2, caller, push2 ⟨788⟩, jump (by jump_dest) ]
+  have rd451 := evm_run rd788 with [
+    jumpdest, push2 ⟨798⟩, dup3, dup3, push2 ⟨451⟩, jump (by jump_dest) ]
+  have rd451' :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+        [grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨798⟩,
+          grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨537⟩,
+          grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+        (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) k C := by
+    exact ⟨_, _, by simpa [grantRoleSourceWord] using rd451⟩
+  have hslot := grantRoleAdminHasRoleKeccakSlotFrom (grantRoleAdminStorageWord σ I)
+    (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I))
+    (revokeRoleBaseHashMem_size _) (grantRoleSourceWord_canonical I)
+  obtain ⟨_, _, rd798₀⟩ := accessControlX_hasRole_internal
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := g) (role := grantRoleAdminStorageWord σ I)
+    (account := grantRoleSourceWord I) (ret := ⟨798⟩)
+    (mem0 := revokeRoleBaseHashMem (grantRoleRoleWord I))
+    (R := [grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨537⟩,
+      grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+      grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel])
+    (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
+    (grantRoleSourceWord_canonical I) (by jump_dest) (by simp) hslot rd451'
+  have rd798 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨798⟩
+        (UInt256.land (grantRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ::
+          grantRoleSourceWord I :: grantRoleAdminStorageWord σ I :: ⟨537⟩ ::
+          grantRoleAdminStorageWord σ I :: ⟨379⟩ :: grantRoleAdminStorageWord σ I ::
+          grantRoleAccountWord I :: grantRoleRoleWord I :: ⟨233⟩ :: sel :: [])
+        (revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+          (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I)))
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [grantRoleAdminHasRoleStorageWord, grantRoleStorageWordAt,
+        grantRoleAdminHasRoleSlotFromWord, grantRoleSource_ofNat I] using rd798₀⟩
+  obtain ⟨_, _, rd798⟩ := rd798
+  have rd849 := evm_run rd798 with [
+    jumpdest, push2 ⟨849⟩, jumpiT hadmin (by jump_dest) ]
+  have rd537 := evm_run rd849 with [
+    jumpdest, pop, pop, jump (by jump_dest) ]
+  exact ⟨_, _, evm_run rd537 with [
+    jumpdest, pop, jump (by jump_dest) ]⟩
+
+theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hadmin :
+      UInt256.land (grantRoleAdminHasRoleStorageWord σ I) ⟨255⟩ = ⟨0⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨527⟩
+      [grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+        grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+      (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd527⟩ := hreach
+  have rd788 := evm_run rd527 with [
+    jumpdest, push2 ⟨537⟩, dup2, caller, push2 ⟨788⟩, jump (by jump_dest) ]
+  have rd451 := evm_run rd788 with [
+    jumpdest, push2 ⟨798⟩, dup3, dup3, push2 ⟨451⟩, jump (by jump_dest) ]
+  let memAdminBase := revokeRoleBaseHashMem (grantRoleRoleWord I)
+  let memAdmin :=
+    revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+      (grantRoleSourceWord I) memAdminBase
+  have rd451' :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+        [grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨798⟩,
+          grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨537⟩,
+          grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+        memAdminBase (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by simpa [memAdminBase, grantRoleSourceWord] using rd451⟩
+  have hslot := grantRoleAdminHasRoleKeccakSlotFrom (grantRoleAdminStorageWord σ I)
+    (grantRoleSourceWord I) memAdminBase
+    (revokeRoleBaseHashMem_size _) (grantRoleSourceWord_canonical I)
+  obtain ⟨_, _, rd798₀⟩ := accessControlX_hasRole_internal
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := g) (role := grantRoleAdminStorageWord σ I)
+    (account := grantRoleSourceWord I) (ret := ⟨798⟩)
+    (mem0 := memAdminBase)
+    (R := [grantRoleSourceWord I, grantRoleAdminStorageWord σ I, ⟨537⟩,
+      grantRoleAdminStorageWord σ I, ⟨379⟩, grantRoleAdminStorageWord σ I,
+      grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel])
+    (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
+    (grantRoleSourceWord_canonical I) (by jump_dest) (by simp) hslot rd451'
+  have rd798 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨798⟩
+        (UInt256.land (grantRoleAdminHasRoleStorageWord σ I) ⟨255⟩ ::
+          grantRoleSourceWord I :: grantRoleAdminStorageWord σ I :: ⟨537⟩ ::
+          grantRoleAdminStorageWord σ I :: ⟨379⟩ :: grantRoleAdminStorageWord σ I ::
+          grantRoleAccountWord I :: grantRoleRoleWord I :: ⟨233⟩ :: sel :: [])
+        memAdmin (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [memAdmin, memAdminBase, grantRoleAdminHasRoleStorageWord,
+        grantRoleStorageWordAt, grantRoleAdminHasRoleSlotFromWord,
+        grantRoleSource_ofNat I] using rd798₀⟩
+  obtain ⟨_, _, rd798⟩ := rd798
+  have hmemAdmin : memAdmin.size = 96 := by
+    exact revokeRoleHasRoleSlotHashMemFrom_size _ _ (revokeRoleBaseHashMem_size _)
+  have hreadAdmin : memAdmin.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _
+      (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
+  have hloadAdmin64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ memAdmin.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (memAdmin.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩ :=
+    mloadFreePtrValue (by rw [hmemAdmin]; decide) (by decide) hreadAdmin
+  have rd803 := evm_run rd798 with [
+    jumpdest, push2 ⟨849⟩, jumpiNT (by rw [hadmin]) ]
+  have rd815 := evm_run rd803 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
+      (by decide) (by evm_ov),
+    push4 ⟨3796991295⟩, push1 ⟨224⟩, shl, dup2,
+    raw mstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd830pre := evm_run rd815 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
+    push1 ⟨4⟩, dup3, add ]
+  have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask := by
+    decide
+  rw [haddrMask] at rd830pre
+  have hsourceMaskComm :
+      UInt256.land (grantRoleSourceWord I) solcAddrMask =
+        UInt256.land solcAddrMask (grantRoleSourceWord I) := by
+    exact SimpleAuction.simpleAuctionU256_land_comm (grantRoleSourceWord I) solcAddrMask
+  have rd830 := evm_run rd830pre with [
+    raw mstore 3 (revokeRoleUnauthorizedAccountMemFrom (grantRoleSourceWord I) memAdmin)
+      (UInt256.ofNat 6) (by decide) mem_cost
+      (by
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide, hsourceMaskComm]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd837 := evm_run rd830 with [
+    push1 ⟨36⟩, dup2, add, dup4, swap1,
+    raw mstore 3
+      (revokeRoleUnauthorizedMemFrom (grantRoleSourceWord I)
+        (grantRoleAdminStorageWord σ I) memAdmin)
+      (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd848 := evm_run rd837 with [
+    push1 ⟨68⟩, add, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
+      (revokeRoleUnauthorizedMemFrom_mload64 (grantRoleSourceWord I)
+        (grantRoleAdminStorageWord σ I) hmemAdmin hreadAdmin)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1]
+  have hlen68 : ((⟨68⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨68⟩ := by
+    decide
+  have rd848' := rd848
+  rw [hlen68] at rd848'
+  exact rd848'.rev 0 (by decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      native_decide)
+    (by simp)
+
+def grantRoleGrantedTopic : UInt256 :=
+  ⟨21498167346302451094516930465084812798900530214793017313261708129848854408973⟩
+
+end OpenZeppelinBench.AccessControl
+
+namespace Reasoning.Reach
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Refinement
+
+theorem grantRoleOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.OR, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+       else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_or s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
+theorem RD.grantRoleLor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => grantRoleOr_xstep hc hp hdec hs hov)
+
+end Reasoning.Reach
+
+namespace OpenZeppelinBench.AccessControl
+
+theorem grantRoleU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
+  apply u256_inj
+  rw [SimpleAuction.simpleAuctionU256_lor_toNat, SimpleAuction.simpleAuctionU256_lor_toNat]
+  exact congrArg (fun n => n % UInt256.size) (Nat.lor_comm a.toNat b.toNat)
+
+theorem accessControlGrantRoleX_grant_noop {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus)
+    (htarget : UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨379⟩
+      [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+        ⟨233⟩, sel]
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+        (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I)))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cA, σ) ByteArray.empty := by
+  obtain ⟨_, _, rd379⟩ := hreach
+  have rd540 := evm_run rd379 with [
+    jumpdest, push2 ⟨389⟩, dup4, dup4, push2 ⟨540⟩, jump (by jump_dest) ]
+  have rd451 := evm_run rd540 with [
+    jumpdest, push0, push2 ⟨551⟩, dup4, dup4, push2 ⟨451⟩, jump (by jump_dest) ]
+  let memOnlyRole :=
+    revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+      (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I))
+  have hmemOnlyRole : memOnlyRole.size = 96 := by
+    exact revokeRoleHasRoleSlotHashMemFrom_size _ _
+      (revokeRoleBaseHashMem_size (grantRoleRoleWord I))
+  have hreadOnlyRole :
+      memOnlyRole.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _
+      (revokeRoleBaseHashMem_size (grantRoleRoleWord I))
+      (revokeRoleBaseHashMem_read64 (grantRoleRoleWord I))
+  have rd451' :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+        [grantRoleAccountWord I, grantRoleRoleWord I, ⟨551⟩, ⟨0⟩,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
+          grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+          ⟨233⟩, sel]
+        memOnlyRole (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by simpa [memOnlyRole] using rd451⟩
+  have hslot := grantRoleTargetKeccakSlotFrom I memOnlyRole hsz68 hmemOnlyRole hcanonAccount
+  have htargetSlotEq := grantRoleTargetSlot_fixedBytes32 I hsz68 hcanonAccount
+  have hslot' :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+            (grantRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
+        roleHasRoleSlot
+          (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I)))
+          (.address (AccountAddress.ofNat (grantRoleAccountWord I).toNat)) := by
+    rw [hslot, htargetSlotEq]
+  obtain ⟨_, _, rd551₀⟩ := accessControlX_hasRole_internal
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := g) (role := grantRoleRoleWord I) (account := grantRoleAccountWord I)
+    (ret := ⟨551⟩) (mem0 := memOnlyRole)
+    (R := [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
+      grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+      ⟨233⟩, sel])
+    hmemOnlyRole hreadOnlyRole hcanonAccount (by jump_dest) (by simp) hslot' rd451'
+  have rd551 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨551⟩
+        (UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ :: ⟨0⟩ ::
+          grantRoleAccountWord I :: grantRoleRoleWord I :: ⟨389⟩ ::
+          grantRoleAdminStorageWord σ I :: grantRoleAccountWord I :: grantRoleRoleWord I ::
+          ⟨233⟩ :: sel :: [])
+        (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+          memOnlyRole)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [grantRoleTargetStorageWord, grantRoleStorageWordAt, ← htargetSlotEq]
+        using rd551₀⟩
+  obtain ⟨_, _, rd551⟩ := rd551
+  have rd233 := evm_run rd551 with [
+    jumpdest, push2 ⟨676⟩, jumpiT htarget (by jump_dest),
+    jumpdest, pop, push0, push2 ⟨347⟩, jump (by jump_dest),
+    jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
+    jumpdest, pop, pop, pop, pop, jump (by jump_dest),
+    jumpdest]
+  exact rd233.stop (by decide) (by evm_ov)
+
+theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus)
+    (htarget : UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ = ⟨0⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨379⟩
+      [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+        ⟨233⟩, sel]
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+        (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I)))
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cA, grantRolePostMap σ I) ByteArray.empty := by
+  obtain ⟨_, _, rd379⟩ := hreach
+  have rd540 := evm_run rd379 with [
+    jumpdest, push2 ⟨389⟩, dup4, dup4, push2 ⟨540⟩, jump (by jump_dest) ]
+  have rd451 := evm_run rd540 with [
+    jumpdest, push0, push2 ⟨551⟩, dup4, dup4, push2 ⟨451⟩, jump (by jump_dest) ]
+  let memOnlyRole :=
+    revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
+      (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I))
+  have hmemOnlyRole : memOnlyRole.size = 96 := by
+    exact revokeRoleHasRoleSlotHashMemFrom_size _ _
+      (revokeRoleBaseHashMem_size (grantRoleRoleWord I))
+  have hreadOnlyRole :
+      memOnlyRole.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _
+      (revokeRoleBaseHashMem_size (grantRoleRoleWord I))
+      (revokeRoleBaseHashMem_read64 (grantRoleRoleWord I))
+  have rd451' :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+        [grantRoleAccountWord I, grantRoleRoleWord I, ⟨551⟩, ⟨0⟩,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
+          grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+          ⟨233⟩, sel]
+        memOnlyRole (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by simpa [memOnlyRole] using rd451⟩
+  have htargetSlotEq := grantRoleTargetSlot_fixedBytes32 I hsz68 hcanonAccount
+  have hslotBase := grantRoleTargetKeccakSlotFrom I memOnlyRole hsz68 hmemOnlyRole hcanonAccount
+  have hslot' :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+            (grantRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
+        roleHasRoleSlot
+          (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I)))
+          (.address (AccountAddress.ofNat (grantRoleAccountWord I).toNat)) := by
+    rw [hslotBase, htargetSlotEq]
+  obtain ⟨_, _, rd551₀⟩ := accessControlX_hasRole_internal
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := g) (role := grantRoleRoleWord I) (account := grantRoleAccountWord I)
+    (ret := ⟨551⟩) (mem0 := memOnlyRole)
+    (R := [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
+      grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
+      ⟨233⟩, sel])
+    hmemOnlyRole hreadOnlyRole hcanonAccount (by jump_dest) (by simp) hslot' rd451'
+  let memTarget :=
+    revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+      memOnlyRole
+  have rd551 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨551⟩
+        (UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ :: ⟨0⟩ ::
+          grantRoleAccountWord I :: grantRoleRoleWord I :: ⟨389⟩ ::
+          grantRoleAdminStorageWord σ I :: grantRoleAccountWord I :: grantRoleRoleWord I ::
+          ⟨233⟩ :: sel :: [])
+        memTarget (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [memTarget, grantRoleTargetStorageWord, grantRoleStorageWordAt, ← htargetSlotEq]
+        using rd551₀⟩
+  obtain ⟨_, _, rd551⟩ := rd551
+  have hmemTarget : memTarget.size = 96 := by
+    exact revokeRoleHasRoleSlotHashMemFrom_size _ _ hmemOnlyRole
+  have hreadTarget : memTarget.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _ hmemOnlyRole hreadOnlyRole
+  have rd556 := evm_run rd551 with [
+    jumpdest, push2 ⟨676⟩, jumpiNT (by rw [htarget]) ]
+  have rd569pre := evm_run rd556 with [
+    push0, dup4, dup2,
+    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) memTarget)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, dup2, dup2,
+    raw mstore 0 (revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, dup1, dup4]
+  have hbaseSlotRaw :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
+            |>.readWithPadding 0 64))) =
+        revokeRoleBaseSlot (grantRoleRoleWord I) := by
+    unfold revokeRoleBaseSlot
+    rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
+  have rd579pre := evm_run rd569pre with [
+    raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
+  have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask := by
+    decide
+  have haccountClean :
+      UInt256.land solcAddrMask (grantRoleAccountWord I) = grantRoleAccountWord I :=
+    solcAddrMask_clean_left hcanonAccount
+  have haccountCleanRight :
+      UInt256.land (grantRoleAccountWord I) solcAddrMask = grantRoleAccountWord I := by
+    rw [SimpleAuction.simpleAuctionU256_land_comm]
+    exact haccountClean
+  rw [haddrMask, haccountCleanRight] at rd579pre
+  have rd585pre := evm_run rd579pre with [
+    dup5,
+    raw mstore 0
+      (revokeRoleHasRoleAccountMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+        memTarget)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1, swap2,
+    raw mstore 0
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+        memTarget)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    swap1]
+  have hslotWrite := grantRoleTargetKeccakSlotFrom I memTarget hsz68 hmemTarget hcanonAccount
+  have rd588 := evm_run rd585pre with [
+    raw keccak256 0 (grantRoleTargetSlot I) (UInt256.ofNat 3)
+      (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
+    dup1]
+  obtain ⟨_, _, rd589₀⟩ := rd588.sload (by decide) (by evm_ov)
+  have rd589 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨589⟩
+        [grantRoleTargetStorageWord σ I, grantRoleTargetSlot I, ⟨0⟩,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩, grantRoleAdminStorageWord σ I,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+        (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+          memTarget)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [grantRoleTargetStorageWord, grantRoleStorageWordAt] using rd589₀⟩
+  obtain ⟨_, _, rd589⟩ := rd589
+  have hsetLandComm :
+      UInt256.land (UInt256.lnot ⟨255⟩) (grantRoleTargetStorageWord σ I) =
+        UInt256.land (grantRoleTargetStorageWord σ I) (UInt256.lnot ⟨255⟩) := by
+    exact SimpleAuction.simpleAuctionU256_land_comm (UInt256.lnot ⟨255⟩)
+      (grantRoleTargetStorageWord σ I)
+  have rd597pre := evm_run rd589 with [
+    push1 ⟨255⟩, not, and, push1 ⟨1⟩, grantRoleLor, swap1]
+  have hsetWord :
+      UInt256.lor ⟨1⟩
+          (UInt256.land (UInt256.lnot ⟨255⟩) (grantRoleTargetStorageWord σ I)) =
+        grantRoleSetTrueWord (grantRoleTargetStorageWord σ I) := by
+    rw [hsetLandComm, grantRoleU256_lor_comm]
+    rfl
+  rw [hsetWord] at rd597pre
+  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hperm (by decide) (by evm_ov)
+  have rd598 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨598⟩
+        [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
+          grantRoleAdminStorageWord σ I,
+          grantRoleAccountWord I, grantRoleRoleWord I, ⟨233⟩, sel]
+        (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+          memTarget)
+        (UInt256.ofNat 3) ByteArray.empty (cA, grantRolePostMap σ I) k C := by
+    exact ⟨_, _, by simpa [grantRolePostMap] using rd598₀⟩
+  obtain ⟨_, _, rd598⟩ := rd598
+  have hmemEvent :
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+        memTarget).size = 96 := by
+    exact revokeRoleHasRoleSlotHashMemFrom_size _ _ hmemTarget
+  have hreadEvent :
+      (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
+        memTarget).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _ hmemTarget hreadTarget
+  have rd604 := evm_run rd598 with [
+    push2 ⟨604⟩, caller, swap1, jump (by jump_dest) ]
+  have rd625pre := evm_run rd604 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup3,
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup5]
+  have rd658 := rd625pre.pushConst grantRoleGrantedTopic (width := 32) (op := .PUSH32)
+    (by decide) (by decide) (by evm_ov)
+  have rd668 := evm_run rd658 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+      (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
+        (grantRoleAccountWord I) hmemTarget hreadTarget)
+      (by decide) (by evm_ov),
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+      (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
+        (grantRoleAccountWord I) hmemTarget hreadTarget)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1]
+  have hlen0 : ((⟨128⟩ : UInt256).sub ⟨128⟩) = ⟨0⟩ := by
+    decide
+  have rd668' := rd668
+  rw [hlen0] at rd668'
+  have rd669 := RD.revokeRoleLog4 0 (UInt256.ofNat 3) rd668' (by decide) hperm
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      native_decide)
+    (by decide) (by simp)
+  have rd233 := evm_run rd669 with [
+    pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
+    jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
+    jumpdest, pop, pop, pop, pop, jump (by jump_dest),
+    jumpdest]
+  exact rd233.stop (by decide) (by evm_ov)
+
+theorem accessControlGrantRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+    {g : UInt256}
+    (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x2f, 0x2f, 0xf1, 0x5d]⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨214⟩
+      [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl
+      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+  have _hperm : I.perm = true := hperm
+  have hsz4 := grantRoleSelector_size (by simpa [selIs] using hsel)
+  have hd := accessControlDispatch_grantRole (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus
+      · have hdec := accessControlDecode_grantRole_ok (I := I) hsz68 hbig hcanonAccount
+        have hadminWord :
+            grantRoleAdminStorageWord σ_evm I = grantRoleAdminStorageWord σ_solm I := by
+          exact accountMapEquiv_storage_findD hAccounts I.codeOwner (grantRoleAdminSlot I) ⟨0⟩
+        have hadminHasRoleWord :
+            grantRoleAdminHasRoleStorageWord σ_evm I =
+              grantRoleAdminHasRoleStorageWord σ_solm I := by
+          unfold grantRoleAdminHasRoleStorageWord grantRoleAdminHasRoleSlotFromWord
+          rw [hadminWord]
+          simpa [grantRoleStorageWordAt, revokeRoleStorageWordAt] using
+            accountMapEquiv_storage_findD hAccounts I.codeOwner
+              (roleHasRoleSlot
+                (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleAdminStorageWord σ_solm I)))
+                (.address I.source)) ⟨0⟩
+        have htargetWord :
+            grantRoleTargetStorageWord σ_evm I = grantRoleTargetStorageWord σ_solm I := by
+          exact accountMapEquiv_storage_findD hAccounts I.codeOwner (grantRoleTargetSlot I) ⟨0⟩
+        have rd353 := accessControlGrantRoleX_decoded (g := Sat256.ofUInt256 g)
+          hsz68 hsize hbig hcanonAccount hreach
+        have rd527 := accessControlGrantRoleX_adminLoaded (g := Sat256.ofUInt256 g)
+          hsz68 rd353
+        by_cases hadmin :
+            UInt256.land (grantRoleAdminHasRoleStorageWord σ_evm I) ⟨255⟩ = ⟨0⟩
+        · have hadminSolm :
+              UInt256.land
+                (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                  (grantRoleAdminHasRoleSlot evmS I)) ⟨255⟩ = ⟨0⟩ := by
+            have hword :
+                UInt256.land (grantRoleAdminHasRoleStorageWord σ_solm I) ⟨255⟩ =
+                  ⟨0⟩ := by
+              simpa [hadminHasRoleWord] using hadmin
+            simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+              grantRoleAdminHasRoleStorageWord, grantRoleStorageWordAt,
+              revokeRoleStorageWordAt, grantRoleAdminHasRoleSlotFromWord,
+              grantRoleAdminHasRoleSlot, grantRoleAdminKey, grantRoleAdminWord,
+              grantRoleAdminStorageWord, grantRoleSenderKey] using hword
+          have hbody := accessControlGrantRoleBodyReverts_admin evmS I
+            (by simp only [evmS, initState]; exact hwv) hadminSolm
+          exact (accessControlGrantRoleX_onlyRole_revert (g := Sat256.ofUInt256 g)
+              hadmin rd527)
+            |>.reEquivExecutionRevert hcode hd hdec hbody
+        · have hadminNonzero :
+              UInt256.land (grantRoleAdminHasRoleStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := hadmin
+          have rd379 := accessControlGrantRoleX_onlyRole_ok (g := Sat256.ofUInt256 g)
+            hadminNonzero rd527
+          have hadminSolm :
+              UInt256.land
+                (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                  (grantRoleAdminHasRoleSlot evmS I)) ⟨255⟩ ≠ ⟨0⟩ := by
+            have hword :
+                UInt256.land (grantRoleAdminHasRoleStorageWord σ_solm I) ⟨255⟩ ≠
+                  ⟨0⟩ := by
+              simpa [hadminHasRoleWord] using hadminNonzero
+            simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+              grantRoleAdminHasRoleStorageWord, grantRoleStorageWordAt,
+              revokeRoleStorageWordAt, grantRoleAdminHasRoleSlotFromWord,
+              grantRoleAdminHasRoleSlot, grantRoleAdminKey, grantRoleAdminWord,
+              grantRoleAdminStorageWord, grantRoleSenderKey] using hword
+          by_cases htarget :
+              UInt256.land (grantRoleTargetStorageWord σ_evm I) ⟨255⟩ = ⟨0⟩
+          · have htargetSolm :
+                UInt256.land
+                  (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                    (grantRoleTargetSlot I)) ⟨255⟩ = ⟨0⟩ := by
+              have hword :
+                  UInt256.land (grantRoleTargetStorageWord σ_solm I) ⟨255⟩ = ⟨0⟩ := by
+                simpa [htargetWord] using htarget
+              simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+                grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
+                  hword
+            have hbody := accessControlGrantRoleBodyReturns_write evmS I
+              (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
+            have hval :
+                grantRoleSetTrueWord
+                    (Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner
+                      (grantRoleTargetSlot I)) =
+                  grantRoleSetTrueWord
+                    (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                      (grantRoleTargetSlot I)) := by
+              have hword :
+                  grantRoleTargetStorageWord σ_evm I =
+                    grantRoleTargetStorageWord σ_solm I := htargetWord
+              simpa [evmE, evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+                grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
+                  congrArg grantRoleSetTrueWord hword
+            have hσPost : EVMStateEquiv (grantRolePostState evmE I) (grantRolePostState evmS I) := by
+              simpa [grantRolePostState] using
+                accessControlEVMStateEquiv_storageStore_codeOwner hσ (grantRoleTargetSlot I) hval
+            exact (accessControlGrantRoleX_grant_write (g := Sat256.ofUInt256 g)
+                hperm hsz68 hcanonAccount htarget rd379)
+              |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                (by simp [grantRolePostState, evmE, initState, storageStore_createdAccounts])
+                (accountMapEquiv.of_eq (by
+                  simp [grantRolePostState, grantRolePostMap, evmE, initState,
+                    storageStore_accountMap,
+                    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                    grantRoleTargetStorageWord, grantRoleStorageWordAt,
+                    revokeRoleStorageWordAt]))
+                hσPost
+                (returnEquiv.void rfl rfl rfl)
+          · have htargetNonzero :
+                UInt256.land (grantRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
+            have htargetSolm :
+                UInt256.land
+                  (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
+                    (grantRoleTargetSlot I)) ⟨255⟩ ≠ ⟨0⟩ := by
+              have hword :
+                  UInt256.land (grantRoleTargetStorageWord σ_solm I) ⟨255⟩ ≠ ⟨0⟩ := by
+                simpa [htargetWord] using htargetNonzero
+              simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+                grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
+                  hword
+            have hbody := accessControlGrantRoleBodyReturns_noop evmS I
+              (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
+            exact (accessControlGrantRoleX_grant_noop (g := Sat256.ofUInt256 g)
+                hsz68 hcanonAccount htargetNonzero rd379)
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+      · have hdec := accessControlDecode_grantRole_none_noncanon_account
+          (I := I) hsz68 hbig hcanonAccount
+        have hnc : UInt256.eq (grantRoleAccountWord I)
+            (UInt256.land (grantRoleAccountWord I) solcAddrMask) = ⟨0⟩ :=
+          uInt256_eq_zero_of_ne (fun he => hcanonAccount (solcAddrCanonical_of_clean he))
+        exact (accessControlGrantRoleX_noncanon_account (g := Sat256.ofUInt256 g)
+            hsz68 hsize hbig hnc hreach)
+          |>.reEquivDecodingFailed hcode hd hdec
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := accessControlDecode_grantRole_none_huge (I := I) hbigge
+      exact (accessControlGrantRoleX_hugearg (g := Sat256.ofUInt256 g)
+          hsz4 hsize hbigge hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 68 := by omega
+    have hdec := accessControlDecode_grantRole_none_short (I := I) hsz4 hshort
+    exact (accessControlGrantRoleX_shortarg (g := Sat256.ofUInt256 g)
+        hsz4 hsize hshort hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
 
 end OpenZeppelinBench.AccessControl
