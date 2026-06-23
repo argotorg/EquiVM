@@ -148,8 +148,6 @@ mutual
         let relativeOffset <- readNat? bytes (base + headCursor)
         if solcMaxU64 < relativeOffset then
           none
-        else if relativeOffset < headSize then
-          none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)
           let (values, restEnd) <-
@@ -166,8 +164,6 @@ mutual
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
           if solcMaxU64 < relativeOffset then
-            none
-          else if relativeOffset < headSize then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)
@@ -194,6 +190,12 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     none
   else
     let argsArray := calldata.toList.drop 4
+    -- Dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
+    -- If it is a negative signed word (`>= 2^255`), the generated decoder reverts before
+    -- accepting any dynamic tail.
+    if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
+      none
+    else
     -- solc's ABI decoder guards the argument region with a **signed** check,
     -- `SLT(calldatasize − 4, headSize)`, reverting when `calldatasize − 4` is a negative
     -- two's-complement word (i.e. `≥ 2^255`).  Model that revert here so the spec agrees with the
@@ -216,11 +218,14 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
           | _ => none
       | _ => do
           let headSize <- abiTupleHeadSize? types
-          match decodeABIValues? types bytes 0 0 headSize headSize with
-          | some (values, endOffset) => do
-              let store <- insertValues names values store
-              some (store, endOffset)
-          | none => none
+          if bytes.length < headSize then
+            none
+          else
+            match decodeABIValues? types bytes 0 0 headSize headSize with
+            | some (values, endOffset) => do
+                let store <- insertValues names values store
+                some (store, endOffset)
+            | none => none
 
     insertValues (names : List Solm.Ident) (values : List Solm.Value) (store : Solm.Store) : Option Solm.Store :=
       match names, values with
