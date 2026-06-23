@@ -1124,16 +1124,16 @@ theorem ballotDecode_voters_none_huge {I : ExecutionEnv}
   simpa [addr] using decodeCalldata_address_none_huge (cd := I.calldata) (x := "a") hbig
 
 theorem ballotVotersBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := ballotVotersSelector_size hsel
   have hd := ballotDispatch_voters (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1148,17 +1148,17 @@ theorem ballotVotersBodyCore
           (votersVoteWord_accountMapEquiv hAccounts).symm
         have hbody :
             ExecTransitionBody ballotConfig ballotContract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (votersStore I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (votersStore I)
               votersGetter.body
               (.returned { contract := ballotContract, locals := votersStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (some (.tuple [
                   .int (Int.ofNat (votersWeightWord σ_solm I).toNat),
                   wordToElem .bool (votersVotedWord σ_solm I),
                   .address (AccountAddress.ofNat (votersDelegateWord σ_solm I).toNat),
                   .int (Int.ofNat (votersVoteWord σ_solm I).toNat)]))) := by
           simpa [initState] using ballotVotersBodyReturns
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
         exact (ballotX_voters_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody

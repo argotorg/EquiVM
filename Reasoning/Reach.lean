@@ -2490,15 +2490,15 @@ eliminators carry that halting fact across the `X → Ξ` bridge (`Xi_*_of_X`) a
 /-- Eliminate an `RDrev` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
     `outOfGas` case automatically, and the continuation `k` receives the `Ξ`-level revert. -/
 theorem RDrev.reEquivElim
-    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code : ByteArray}
     (hcode : I.code = code)
-    (h : RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I))
+    (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (k : ∀ g' o,
-          Ξ cA gh bl σ_evm σ₀_evm g.toUInt256 A I = .ok (.revert g' o) →
-          runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+          Ξ cA gh bl σ_evm σ₀ g.toUInt256 A I = .ok (.revert g' o) →
+          runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
             g.toUInt256 A I) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   rcases h with hoog | ⟨g', o, hX⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
@@ -2506,24 +2506,24 @@ theorem RDrev.reEquivElim
 
 /-- `RDrev ⇒ noDispatch`: revert with Act failing to dispatch. Solm-side maps unconstrained. -/
 theorem RDrev.reEquivNoDispatch
-    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code : ByteArray}
-    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I))
+    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = none) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
 /-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails.  Solm-side maps
     unconstrained. -/
 theorem RDrev.reEquivDecodingFailed
-    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code : ByteArray} {t}
-    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I))
+    (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = none) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev
 
@@ -2531,15 +2531,15 @@ theorem RDrev.reEquivDecodingFailed
     `outOfGas` case automatically; the continuation `k` receives the `Ξ`-level success, with
     accounts already projected back to the carried `(cA, σ_evm)`. -/
 theorem RDret.reEquivElim
-    {cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) (cA, σ_evm) o)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) (cA, σ_evm) o)
     (k : ∀ (g' : UInt256) (A' : Substate),
-          Ξ cA gh bl σ_evm σ₀_evm g.toUInt256 A I = .ok (.success (cA, σ_evm, g', A') o) →
-          runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+          Ξ cA gh bl σ_evm σ₀ g.toUInt256 A I = .ok (.success (cA, σ_evm, g', A') o) →
+          runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
             g.toUInt256 A I) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))

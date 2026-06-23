@@ -411,7 +411,7 @@ theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
 
 theorem accountEquiv_refl (acc : Account) : accountEquiv acc acc := by
-  exact ⟨rfl, rfl, rfl, rfl, fun _ => rfl⟩
+  exact ⟨rfl, rfl, rfl, fun _ => rfl, fun _ => rfl⟩
 
 theorem accountMapEquiv_refl (σ : AccountMap) : accountMapEquiv σ σ := by
   intro addr
@@ -421,7 +421,7 @@ theorem accountEquiv_storage_findD {acc₁ acc₂ : Account} (slot default : UIn
     (hacc : accountEquiv acc₁ acc₂) :
     acc₁.storage.findD slot default = acc₂.storage.findD slot default := by
   unfold Batteries.RBMap.findD
-  rw [hacc.2.2.2.2 slot]
+  rw [hacc.2.2.2.1 slot]
 
 theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
     (hστ : accountMapEquiv σ τ) (addr : AccountAddress) (slot default : UInt256) :
@@ -445,8 +445,8 @@ theorem accountEquiv_insert_storage_of_equiv {acc₁ acc₂ : Account} (slot val
     (hacc : accountEquiv acc₁ acc₂) :
     accountEquiv {acc₁ with storage := acc₁.storage.insert slot val}
       {acc₂ with storage := acc₂.storage.insert slot val} := by
-  rcases hacc with ⟨hn, hb, hc, ht, hs⟩
-  refine ⟨hn, hb, hc, ht, ?_⟩
+  rcases hacc with ⟨hn, hb, hc, hs, ht⟩
+  refine ⟨hn, hb, hc, ?_, ht⟩
   intro readSlot
   by_cases hread : readSlot = slot
   · subst readSlot
@@ -463,9 +463,10 @@ theorem accountEquiv_update_insert_self (acc : Account) (slot val1 val2 : UInt25
       {acc with storage :=
         (if val1 = (default : UInt256) then acc.storage.erase slot
          else acc.storage.insert slot val1).insert slot val2} := by
-  refine ⟨rfl, rfl, rfl, rfl, ?_⟩
-  intro readSlot
-  exact (storage_find?_update_insert_self acc.storage slot readSlot val1 val2).symm
+  refine ⟨rfl, rfl, rfl, ?_, ?_⟩
+  · intro readSlot
+    exact (storage_find?_update_insert_self acc.storage slot readSlot val1 val2).symm
+  · simp
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- `accountMapEquiv` is preserved by the same nonzero `SSTORE` on both maps. -/

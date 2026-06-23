@@ -772,7 +772,7 @@ theorem ballotDelegateBodyReverts_loopSender (evm : EVM.State) (I : ExecutionEnv
                     hnext hcycle
 
 theorem ballotDelegateLoopSenderRevertEquiv
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
@@ -785,11 +785,11 @@ theorem ballotDelegateLoopSenderRevertEquiv
     (hnext : delegateVoterDelegateWord σ_evm I (delegateToWord I) ≠ ⟨0⟩)
     (hcycle : delegateVoterDelegateWord σ_evm I (delegateToWord I) = delegateSourceWord I)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon
   have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
@@ -805,18 +805,18 @@ theorem ballotDelegateLoopSenderRevertEquiv
       using hcycle
   have hnextCurrent :
       delegateCurrentVoterDelegateWordCurrent
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (delegateToWord I) ≠
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (delegateToWord I) ≠
         ⟨0⟩ := by
     rw [delegateCurrentVoterDelegateWordCurrent_init]
     exact hnextSolm
   have hcycleCurrent :
       delegateCurrentVoterDelegateWordCurrent
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) (delegateToWord I) =
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (delegateToWord I) =
         delegateSourceWord I := by
     rw [delegateCurrentVoterDelegateWordCurrent_init]
     exact hcycleSolm
   have hbody := ballotDelegateBodyReverts_loopSender
-    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanon
@@ -829,21 +829,21 @@ theorem ballotDelegateLoopSenderRevertEquiv
     hnextCurrent
     hcycleCurrent
   obtain ⟨_, _, rd972⟩ := ballotDelegateX_afterNotSelf (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := sel) hsz36 hsize hbig hcanon hweight hvoted hnotself hreach
   exact (ballotDelegateX_loopSenderRevertFrom972 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := delegateToWord I) hcanon hnext hcycle ⟨_, _, rd972⟩)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
 theorem ballotDelegateBodyCoreLoopFrontier
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcontinue :
@@ -857,9 +857,9 @@ theorem ballotDelegateBodyCoreLoopFrontier
       delegateVoterDelegateWord σ_evm I (delegateToWord I) ≠ ⟨0⟩ →
       delegateVoterDelegateWord σ_evm I (delegateToWord I) ≠ delegateSourceWord I →
       runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-        σ_evm σ₀_evm σ_solm σ₀_solm g A I) :
+        σ_evm σ_solm σ₀ g A I) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   refine ballotDelegateBodyCoreFrontier hcode hsize hperm hwv hsel hreach hAccounts ?_
   intro hsz36 hbig hcanon hweight hvoted hnotself hperm hnext
   by_cases hcycle : delegateVoterDelegateWord σ_evm I (delegateToWord I) = delegateSourceWord I

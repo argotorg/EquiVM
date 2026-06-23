@@ -1135,21 +1135,21 @@ theorem blindAuctionWithdrawBodyReverts_nonpayable {evm : EVM.State} {locals : S
   exact bodyReverts_nonPayable h
 
 /-- `withdraw()` body (pc 332) refines its transition. -/
-theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨332⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨332⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
       k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+ :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
-  have _hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm := hOriginalAccounts
+
   have hsz := blindAuctionWithdrawSelector_size hsel
   have hd := blindAuctionDispatch_withdraw (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_withdraw (I := I) hsz
@@ -1159,7 +1159,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
         accountMapEquiv_storage_findD hAccounts I.codeOwner (withdrawAmountSlot I) ⟨0⟩
       have hzeroS : withdrawAmountWord σ_solm I = ⟨0⟩ := by
         rw [← hword, hzero]
-      let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+      let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
       have hamountS :
           Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
               (withdrawAmountSlot evmS.executionEnv) =
@@ -1183,7 +1183,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
       have hposS : withdrawAmountWord σ_solm I ≠ ⟨0⟩ := by
         intro hz
         exact hnonzero (by rw [hword]; exact hz)
-      let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+      let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
       let evmSZero := withdrawZeroState evmS
       have hamountS :
           Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
@@ -1236,7 +1236,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
               hzero hbalance hdepthLt
           obtain ⟨g'', A', hThetaEq⟩ := hTheta
           let evmEZero : EVM.State :=
-            { initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I with
+            { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := withdrawZeroMap σ_evm I }
           let evmECall : EVM.State :=
             { evmEZero with accountMap := σ', substate := A', createdAccounts := cA' }
@@ -1265,7 +1265,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
                   using hZeroMap)
               (by
                 simpa [evmEZero, evmSZero, evmS, initState,
-                  withdrawZeroState_originalMap] using hOriginalAccounts)
+                  withdrawZeroState_originalMap])
               (by
                 simp [evmEZero, evmSZero, withdrawZeroState, withdrawClearedState, evmS,
                   initState, blindAuctionStorageStore_createdAccounts])
@@ -1325,7 +1325,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
                 (by simpa [evmS, initState] using hwv) hamountS hposS
                 (by simpa [evmSZero] using hcallS)
             have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                 (cA', σ') ByteArray.empty :=
               blindAuctionX_withdraw_afterCall_return (g := Sat256.ofUInt256 g)
                 (by simpa using rd767) (lt_size_of_lt_sign hout255)
@@ -1376,7 +1376,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
   · have hrev := blindAuctionX_withdraw_nonpayable (g := Sat256.ofUInt256 g) hwv hreach
     have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           withdrawTransition.body .reverted := by
       exact blindAuctionWithdrawBodyReverts_nonpayable
         (by simp only [initState]; exact hwv)

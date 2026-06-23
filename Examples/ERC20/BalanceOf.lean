@@ -478,16 +478,16 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
   · rw [selectorOf, erc20TransferFromSelectorBytes, hcd]; decide
 
 theorem erc20BalanceOfBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc20BalanceOfSelector_size hsel
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -498,15 +498,15 @@ theorem erc20BalanceOfBodyCore
           accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
         have hbody :
             ExecTransitionBody erc20Config erc20Contract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               (balanceOfStore I)
               balanceOfTransition.body
               (.returned { contract := erc20Contract, locals := balanceOfStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
           simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
             State.lookupAccount] using erc20BalanceOfBodyReturns
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
         exact (erc20X_balanceOf (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword])

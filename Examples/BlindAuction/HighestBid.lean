@@ -148,21 +148,21 @@ theorem blindAuctionDecode_highestBid {I : ExecutionEnv} (hsz : 4 ≤ I.calldata
   exact decodeCalldata_empty_ok hsz
 
 /-- `highestBid()` getter body (pc 489) refines its transition. -/
-theorem blindAuctionHighestBidBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem blindAuctionHighestBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨489⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨489⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
       k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+ :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
-  have _hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm := hOriginalAccounts
+
   have hsz := blindAuctionHighestBidSelector_size hsel
   have hd := blindAuctionDispatch_highestBid (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_highestBid (I := I) hsz
@@ -171,25 +171,25 @@ theorem blindAuctionHighestBidBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨6⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidGetter.body
           (.returned { contract := blindAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (some (.int (Int.ofNat (highestBidWord σ_solm I).toNat)))) := by
       simpa [highestBidWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         blindAuctionHighestBidBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (blindAuctionX_highestBid (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
         (returnEquiv_of_encode (uint256ReturnEncoding (highestBidWord σ_evm I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidGetter.body .reverted := by
       simpa [highestBidGetter, initState] using
         (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
           (rest := [.return (.storage highestBidRef)])
           (by simp only [initState]; exact hwv))

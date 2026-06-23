@@ -99,15 +99,15 @@ theorem erc20Decode_totalSupply {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
   exact decodeCalldata_empty_ok hsz
 
 theorem erc20TotalSupplyBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel
   have hdec := erc20Decode_totalSupply (I := I) hsz
@@ -115,13 +115,13 @@ theorem erc20TotalSupplyBodyCore
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
   have hbody :
       ExecTransitionBody erc20Config erc20Contract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
     simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       erc20TotalSupplyBodyReturns
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
   exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport hcode hd hdec
     hbody (by rw [hword]) hAccounts

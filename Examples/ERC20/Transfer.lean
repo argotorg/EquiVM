@@ -1686,20 +1686,20 @@ theorem erc20Dispatch_transfer {cd : ByteArray}
   · rw [selectorOf, erc20BalanceOfSelectorBytes, hcd]; decide
 
 theorem erc20TransferBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨274⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc20TransferSelector_size hsel
   have hd := erc20Dispatch_transfer (cd := I.calldata) hsel
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
   have hFromBalance : transferFromBalanceWord evmE = transferFromBalanceWord evmS := by
@@ -1732,10 +1732,10 @@ theorem erc20TransferBodyCore
       · have hdec := erc20Decode_transfer_ok (I := I) hsz68 hbig hcanonTo
         by_cases henough : (transferValueWord I).toNat ≤
             (transferFromBalanceWord
-              (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)).toNat
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
         · by_cases hfit :
             transferNewToNat
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I <
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
               UInt256.size
           · have henoughS :
                 (transferValueWord I).toNat ≤ (transferFromBalanceWord evmS).toNat := by
@@ -1756,7 +1756,7 @@ theorem erc20TransferBodyCore
           · have hover :
               UInt256.size ≤
                 transferNewToNat
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I := by
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I := by
               omega
             have henoughS :
                 (transferValueWord I).toNat ≤ (transferFromBalanceWord evmS).toNat := by
@@ -1769,7 +1769,7 @@ theorem erc20TransferBodyCore
               |>.reEquivExecutionRevert hcode hd hdec hbody
         · have hlt :
             (transferFromBalanceWord
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)).toNat <
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat <
               (transferValueWord I).toNat := by
             omega
           have hltS : (transferFromBalanceWord evmS).toNat < (transferValueWord I).toNat := by

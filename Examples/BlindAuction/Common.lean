@@ -518,20 +518,20 @@ theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     have h155 := h154rd.jumpdest (by decide) (by simp)
     exact h155.revertStub (by decide) (by decide) (by decide) (by simp)
 
-theorem blindAuctionShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem blindAuctionShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (blindAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
     (blindAuctionDispatch_none_short hsz)
 
-theorem blindAuctionNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem blindAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hnm : ∀ i, i < 11 → (blindAuctionSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (blindAuctionX_noMatch (g := Sat256.ofUInt256 g) hcode hsz hsize hnm)
       |>.reEquivNoDispatch hcode (blindAuctionDispatch_none_nomatch hnm)

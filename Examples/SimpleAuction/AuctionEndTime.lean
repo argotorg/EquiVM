@@ -124,17 +124,17 @@ theorem simpleAuctionDecode_auctionEndTime {I : ExecutionEnv} (hsz : 4 ≤ I.cal
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨239⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz := simpleAuctionAuctionEndTimeSelector_size hsel
   have hd := simpleAuctionDispatch_auctionEndTime (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_auctionEndTime (I := I) hsz
@@ -143,25 +143,25 @@ theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           auctionEndTimeGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (some (.int (Int.ofNat (auctionEndTimeWord σ_solm I).toNat)))) := by
       simpa [auctionEndTimeWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         simpleAuctionAuctionEndTimeBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (simpleAuctionX_auctionEndTime (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
         (returnEquiv_of_encode (uint256ReturnEncoding (auctionEndTimeWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           auctionEndTimeGetter.body .reverted := by
       simpa [auctionEndTimeGetter] using
         bodyReverts_nonPayable (cfg := simpleAuctionConfig) (contract := simpleAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store)) (rest := [.return (.storage auctionEndTimeRef)])
           (by simp only [initState]; exact hwv)
     exact (simpleAuctionX_auctionEndTime_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)

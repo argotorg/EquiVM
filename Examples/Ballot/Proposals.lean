@@ -624,16 +624,16 @@ theorem ballotDecode_proposals_none_huge {I : ExecutionEnv}
   simpa [uint256] using decodeCalldata_uint256_none_huge (cd := I.calldata) (x := "i") hbig
 
 theorem ballotProposalsBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := ballotProposalsSelector_size hsel
   have hd := ballotDispatch_proposals (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -641,25 +641,25 @@ theorem ballotProposalsBodyCore
     · have hdec := ballotDecode_proposals_ok (I := I) hsz36 hbig
       have hlen :
           proposalsLengthCurrent
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) =
             proposalsLengthWord σ_evm I := by
         simpa [proposalsLengthCurrent, proposalsLengthWord, initState] using
           (proposalsLengthWord_accountMapEquiv hAccounts).symm
       by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ_evm I).toNat
       · have hname :
             proposalNameCurrent
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I =
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
               proposalNameWord σ_evm I := by
           simpa [proposalNameCurrent, proposalNameWord, initState] using
             (proposalNameWord_accountMapEquiv hAccounts).symm
         have hcount :
             proposalCountCurrent
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I =
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
               proposalCountWord σ_evm I := by
           simpa [proposalCountCurrent, proposalCountWord, initState] using
             (proposalCountWord_accountMapEquiv hAccounts).symm
         have hbody := ballotProposalsBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
           (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
@@ -669,7 +669,7 @@ theorem ballotProposalsBodyCore
               (ballotProposalReturnEncoding (proposalNameWord σ_evm I)
                 (proposalCountWord σ_evm I)))
       · have hbody := ballotProposalsBodyReverts_oob
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
           (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_oob (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
