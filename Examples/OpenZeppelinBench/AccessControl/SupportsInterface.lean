@@ -6,6 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.R
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
+set_option linter.unnecessarySimpa false
 
 namespace OpenZeppelinBench.AccessControl
 
@@ -77,8 +78,11 @@ theorem accessControlFromBytes'_zero_iff_all_zero (xs : List UInt8) :
       · intro h
         simp only [List.all_cons, Bool.and_eq_true]
         unfold fromBytes' at h
-        have hxnat : x.toNat = 0 := by omega
-        have htail : fromBytes' xs = 0 := by omega
+        have hxnat : x.toNat = 0 := (Nat.add_eq_zero.mp h).1
+        have htail : fromBytes' xs = 0 := by
+          have hprod : UInt8.size * fromBytes' xs = 0 := (Nat.add_eq_zero.mp h).2
+          have hsize : 0 < UInt8.size := by decide
+          omega
         have hx : x = 0 := UInt8.toNat_inj.mp hxnat
         exact ⟨by simpa [hx], ih.mp htail⟩
       · intro h
@@ -220,9 +224,10 @@ theorem supportsInterfaceModZero_of_padding {I : ExecutionEnv}
     have hlen : ((xs.drop 4).take 28).length = 28 := by rw [htailTake, htailLen]
     rw [if_pos hlen] at hpad
     rw [htailTake] at hpad
-    split at hpad
-    · assumption
-    · contradiction
+    by_cases hall : (xs.drop 4).all (· == 0) = true
+    · exact hall
+    · simp [hall] at hpad
+      simpa using hpad
   have htailZero : fromBytesBigEndian (xs.drop 4) = 0 :=
     (accessControlFromBytesBigEndian_zero_iff_all_zero (xs.drop 4)).mpr htailAll
   have hword := supportsInterfaceWord_toNat (I := I) hsz36
@@ -237,8 +242,11 @@ theorem supportsInterfaceEqOne_of_padding {I : ExecutionEnv}
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ()) :
     UInt256.eq (supportsInterfaceWord I)
       (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨1⟩ := by
-  rw [supportsInterfaceClean_of_mod_zero _
-    (supportsInterfaceModZero_of_padding hsz36 hpad)]
+  have hclean :
+      UInt256.land (supportsInterfaceWord I) supportsInterfaceMask = supportsInterfaceWord I :=
+    supportsInterfaceClean_of_mod_zero _
+      (supportsInterfaceModZero_of_padding hsz36 hpad)
+  rw [hclean]
   exact uInt256_eq_self _
 
 theorem supportsInterfaceModNeZero_of_padding_none {I : ExecutionEnv}
@@ -263,8 +271,11 @@ theorem supportsInterfaceModNeZero_of_padding_none {I : ExecutionEnv}
     rw [if_pos hlen] at hpad
     rw [htailTake] at hpad
     by_cases hall : (xs.drop 4).all (· == 0) = true
-    · rw [hall] at hpad
-      contradiction
+    · simp [hall] at hpad
+      exfalso
+      rcases hpad with ⟨x, hxmem, hxne⟩
+      have hallProp : ∀ x ∈ xs.drop 4, x = 0 := by simpa using hall
+      exact hxne (hallProp x hxmem)
     · exact Bool.eq_false_iff.mpr hall
   have htailNZ : fromBytesBigEndian (xs.drop 4) ≠ 0 := by
     intro hz
@@ -292,11 +303,15 @@ theorem supportsInterfaceModZero_of_land_eq (w : UInt256)
     w.toNat % 2 ^ 224 = 0 := by
   have ht := congrArg UInt256.toNat hclean
   change Nat.land w.toNat supportsInterfaceMask.toNat % UInt256.size = w.toNat at ht
-  rw [supportsInterfaceMask_toNat,
-    accessControlNatLandClearLow224 w.toNat (by exact w.val.isLt), Nat.mod_eq_of_lt] at ht
-  · have hdiv := Nat.div_add_mod w.toNat (2 ^ 224)
-    omega
-  · exact lt_of_le_of_lt (Nat.mul_div_le w.toNat (2 ^ 224)) w.val.isLt
+  rw [supportsInterfaceMask_toNat] at ht
+  have hclear := accessControlNatLandClearLow224 w.toNat (by exact w.val.isLt)
+  rw [hclear] at ht
+  have hsmall : w.toNat / 2 ^ 224 * 2 ^ 224 < UInt256.size :=
+    lt_of_le_of_lt (by
+      simpa [Nat.mul_comm] using Nat.mul_div_le w.toNat (2 ^ 224)) w.val.isLt
+  rw [Nat.mod_eq_of_lt hsmall] at ht
+  have hdiv := Nat.div_add_mod w.toNat (2 ^ 224)
+  omega
 
 theorem accessControlUInt256_eq_one_eq {a b : UInt256}
     (h : UInt256.eq a b = ⟨1⟩) : a = b := by
@@ -335,6 +350,10 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
     have hb := accessControlFromBytesBigEndian_bound (xs.drop 4)
     rw [htailLen] at hb
     simpa using hb
+  have hxsBound : fromBytesBigEndian xs < 2 ^ 256 := by
+    have hb := accessControlFromBytesBigEndian_bound xs
+    rw [hxsLen] at hb
+    simpa using hb
   have hword := supportsInterfaceWord_toNat (I := I) hsz36
   change Nat.land (supportsInterfaceWord I).toNat supportsInterfaceMask.toNat % UInt256.size = _
   rw [hword]
@@ -344,11 +363,8 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
   rw [show xs = xs.take 4 ++ xs.drop 4 from (List.take_append_drop 4 xs).symm]
   rw [accessControlFromBytesBigEndian_append, htailLen]
   rw [accessControlNatLandClearLow224 _ (by
-    have hw := (supportsInterfaceWord I).val.isLt
-    rw [hword] at hw
-    change fromBytesBigEndian xs < 2 ^ 256 at hw
     simpa [show xs = xs.take 4 ++ xs.drop 4 from (List.take_append_drop 4 xs).symm,
-      accessControlFromBytesBigEndian_append, htailLen] using hw)]
+      accessControlFromBytesBigEndian_append, htailLen] using hxsBound)]
   have hdiv :
       (fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4)) /
           2 ^ 224 = fromBytesBigEndian (xs.take 4) := by
@@ -637,6 +653,231 @@ theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : Executi
     EvalResult.bind, EvalResult.ofOption, bind, pure, evalBinaryOp?,
     accessControlFixedBytes4_beq]
 
+theorem accessControlSupportsInterfaceX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨853⟩
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨140⟩, ⟨145⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd⟩ := hreach
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, push2 ⟨145⟩, push2 ⟨140⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨853⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlSupportsInterfaceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨299⟩
+      [supportsInterfaceWord I, ⟨145⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
+      ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
+  have hclean : UInt256.eq (supportsInterfaceWord I)
+      (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨1⟩ :=
+    supportsInterfaceEqOne_of_padding hsz36 hpad
+  obtain ⟨_, _, rd853⟩ := accessControlSupportsInterfaceX_toDecoder (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact ⟨_, _, evm_run rd853 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨869⟩,
+    jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, dup2, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub,
+    not, dup2, and, dup2, eq, push2 ⟨892⟩,
+    jumpiT (by
+      change UInt256.eq (supportsInterfaceWord I)
+        (UInt256.land (supportsInterfaceWord I)
+          (UInt256.lnot
+            (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩))) ≠ ⟨0⟩
+      simpa [supportsInterfaceMask, hclean]) (by jump_dest),
+    jumpdest, swap4, swap3, pop, pop, pop, jump (by jump_dest),
+    jumpdest, push2 ⟨299⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlReturnBool145 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {val : UInt256}
+    (h : RD accessControlBenchBytecode ee g s0 ⟨145⟩ (val :: R) solcFreePtrMem
+        (UInt256.ofNat 3) rdata acc k C)
+    (hnorm : UInt256.isZero (UInt256.isZero val) = val)
+    (hov : R.length + 8 ≤ 1024) :
+    RDret accessControlBenchBytecode g s0 acc (UInt256.toByteArray val) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    swap1, iszero, iszero, dup2,
+    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
+      mem_cost (by rw [hnorm]; rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost (solcReturnMem_mload64 val) (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray val) (by decide)
+      mem_cost
+      (by
+        rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32
+          from by decide]
+        exact solcReturnMem_read128 val)
+      (by evm_ov) ]
+
+theorem accessControlSupportsInterfaceX_body {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨299⟩
+      [supportsInterfaceWord I, ⟨145⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨145⟩
+      [supportsInterfaceResultWord I, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd299⟩ := hreach
+  have hmask :
+      UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩) =
+        supportsInterfaceMask := rfl
+  have hac := supportsInterfaceEq_accessControl (I := I) hsz36
+  have herc := supportsInterfaceEq_erc165 (I := I) hsz36
+  by_cases hAC : (supportsInterfaceBytes I == [0x79, 0x65, 0xdb, 0x0b]) = true
+  · have hACeq : UInt256.eq iaccessControlIdWord
+        (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨1⟩ := by
+      simpa [hAC] using hac
+    have hresult : supportsInterfaceResultWord I = ⟨1⟩ := by
+      simp [supportsInterfaceResultWord, supportsInterfaceResult, hAC]
+    have rd347 := evm_run rd299 with [
+      jumpdest, push0, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, not,
+      dup3, and, push4 ⟨0x7965db0b⟩, push1 ⟨224⟩, shl, eq, dup1, push2 ⟨347⟩,
+      jumpiT (by
+        change UInt256.eq iaccessControlIdWord
+          (UInt256.land (supportsInterfaceWord I)
+            (UInt256.lnot
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩))) ≠ ⟨0⟩
+        rw [hmask, hACeq]
+        decide) (by jump_dest) ]
+    exact ⟨_, _, by
+      simpa [hresult] using evm_run rd347 with [
+        jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]⟩
+  · have hACfalse : (supportsInterfaceBytes I == [0x79, 0x65, 0xdb, 0x0b]) = false :=
+      Bool.eq_false_iff.mpr hAC
+    have hACeq : UInt256.eq iaccessControlIdWord
+        (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨0⟩ := by
+      simpa [hACfalse] using hac
+    have rd326 := evm_run rd299 with [
+      jumpdest, push0, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, not,
+      dup3, and, push4 ⟨0x7965db0b⟩, push1 ⟨224⟩, shl, eq, dup1, push2 ⟨347⟩,
+      jumpiNT (by
+        change UInt256.eq iaccessControlIdWord
+          (UInt256.land (supportsInterfaceWord I)
+            (UInt256.lnot
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩))) = ⟨0⟩
+        rw [hmask, hACeq]) ]
+    have rd347 := evm_run rd326 with [
+      pop, push4 ⟨0x01ffc9a7⟩, push1 ⟨224⟩, shl, push1 ⟨1⟩, push1 ⟨1⟩,
+      push1 ⟨224⟩, shl, sub, not, dup4, and, eq ]
+    have hresult :
+        UInt256.eq ierc165IdWord
+            (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) =
+          supportsInterfaceResultWord I := by
+      by_cases h165 : (supportsInterfaceBytes I == [0x01, 0xff, 0xc9, 0xa7]) = true
+      · simp [supportsInterfaceResultWord, supportsInterfaceResult, hACfalse, h165] at *
+        simpa [h165] using herc
+      · have h165false :
+            (supportsInterfaceBytes I == [0x01, 0xff, 0xc9, 0xa7]) = false :=
+          Bool.eq_false_iff.mpr h165
+        simp [supportsInterfaceResultWord, supportsInterfaceResult, hACfalse, h165false] at *
+        simpa [h165false] using herc
+    exact ⟨_, _, by
+      simpa [hmask, hresult] using evm_run rd347 with [
+        jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]⟩
+
+theorem accessControlX_supportsInterface {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (UInt256.toByteArray (supportsInterfaceResultWord I)) := by
+  obtain ⟨_, _, rd299⟩ := accessControlSupportsInterfaceX_decoded (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz36 hsize hszhi hpad hreach
+  obtain ⟨_, _, rd145⟩ := accessControlSupportsInterfaceX_body (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz36 ⟨_, _, rd299⟩
+  exact accessControlReturnBool145 rd145 (supportsInterfaceResultWord_norm I) (by evm_ov)
+
+theorem accessControlSupportsInterfaceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 36)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
+  obtain ⟨_, _, rd853⟩ := accessControlSupportsInterfaceX_toDecoder (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd853 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨869⟩,
+    jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem accessControlSupportsInterfaceX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckHuge_4_32 hbig hsize
+  obtain ⟨_, _, rd853⟩ := accessControlSupportsInterfaceX_toDecoder (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd853 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨869⟩,
+    jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem accessControlSupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = none)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨126⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
+      ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
+  have hclean : UInt256.eq (supportsInterfaceWord I)
+      (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨0⟩ :=
+    supportsInterfaceEqZero_of_padding_none hsz36 hpad
+  obtain ⟨_, _, rd853⟩ := accessControlSupportsInterfaceX_toDecoder (cA := cA)
+    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd853 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨869⟩,
+    jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, dup2, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub,
+    not, dup2, and, dup2, eq, push2 ⟨892⟩,
+    jumpiNT (by
+      change UInt256.eq (supportsInterfaceWord I)
+        (UInt256.land (supportsInterfaceWord I)
+          (UInt256.lnot
+            (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩))) = ⟨0⟩
+      simpa [supportsInterfaceMask, hclean]),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
 theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -649,6 +890,52 @@ theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ₀_evm σ_solm σ
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
       σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
-  sorry
+  have _hperm : I.perm = true := hperm
+  have hsz4 := supportsInterfaceSelector_size (by simpa [selIs] using hsel)
+  have hd := accessControlDispatch_supportsInterface (cd := I.calldata) (by
+    simpa [selIs] using hsel)
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · cases hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 with
+      | none =>
+          have hdec := accessControlDecode_supportsInterface_none_pad
+            (I := I) hsz36 hbig hpad
+          exact (accessControlSupportsInterfaceX_badpad (g := Sat256.ofUInt256 g)
+              hsz36 hsize hbig hpad hreach)
+            |>.reEquivDecodingFailed hcode hd hdec
+      | some _ =>
+          have hpadSome :
+              zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some () := by
+            simpa using hpad
+          have hdec := accessControlDecode_supportsInterface_ok
+            (I := I) hsz36 hbig hpadSome
+          have hbody :
+              ExecTransitionBody config contract
+                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (supportsInterfaceStore I)
+                supportsInterfaceTransition.body
+                (.returned { contract := contract, locals := supportsInterfaceStore I }
+                  (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                  (some (.bool (supportsInterfaceResult I)))) := by
+            exact accessControlSupportsInterfaceBodyReturns
+              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (by simp only [initState]; exact hwv)
+          exact (accessControlX_supportsInterface (g := Sat256.ofUInt256 g)
+              hsz36 hsize hbig hpadSome hreach)
+            |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
+              (returnEquiv_of_encode (by
+                by_cases hr : supportsInterfaceResult I
+                · simpa [supportsInterfaceResultWord, hr] using boolTrueReturnEncodingAC
+                · simpa [supportsInterfaceResultWord, hr] using boolFalseReturnEncoding))
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := accessControlDecode_supportsInterface_none_huge (I := I) hbigge
+      exact (accessControlSupportsInterfaceX_hugearg (g := Sat256.ofUInt256 g)
+          hsz4 hsize hbigge hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 36 := by omega
+    have hdec := accessControlDecode_supportsInterface_none_short (I := I) hsz4 hshort
+    exact (accessControlSupportsInterfaceX_shortarg (g := Sat256.ofUInt256 g)
+        hsz4 hsize hshort hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
 
 end OpenZeppelinBench.AccessControl

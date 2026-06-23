@@ -948,6 +948,27 @@ theorem revokeRoleBaseKeccakSlot (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.s
   rw [revokeRoleBaseHashMem_read0_64, revokeRoleRoleKeyValueToWord hsz68]
   exact mappingSlot_single (revokeRoleRoleWord I) ⟨0⟩
 
+theorem revokeRoleAddSlot_eq (slot : UInt256) :
+    EVM.word (slot.toNat + 1) = slot + (⟨1⟩ : UInt256) := by
+  apply u256_inj
+  rw [uadd_toNat]
+  change (slot.toNat + 1) % UInt256.size = (slot.toNat + 1) % UInt256.size
+  rfl
+
+-- PROMOTE -> Common.lean / Reasoning.EVMWord: `UInt256` addition is commutative.
+theorem revokeRoleU256_add_comm (a b : UInt256) : a + b = b + a := by
+  apply u256_inj
+  simp [uadd_toNat, Nat.add_comm]
+
+theorem revokeRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
+    revokeRoleAdminSlot I = revokeRoleBaseSlot (revokeRoleRoleWord I) + ⟨1⟩ := by
+  unfold revokeRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
+  rw [revokeRoleRoleKeyValueToWord hsz68]
+  rw [revokeRoleAddSlot_eq]
+  unfold revokeRoleBaseSlot
+  rw [revokeRoleBaseHashMem_read0_64]
+  rw [uInt256OfByteArray_eq]
+
 theorem revokeRoleBaseKeccakSlot_fixedBytes32 (role : UInt256) :
     revokeRoleBaseSlot role =
       roleDataSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role)) := by
@@ -987,6 +1008,8 @@ theorem revokeRoleAdminHasRoleKeccakSlot (adminRole account : UInt256)
 theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
     {role account ret : UInt256} {R : List UInt256}
     (hcanonAccount : account.toNat < EVM.addressModulus)
+    (hret : (D_J accessControlBenchBytecode 0).contains ret = true)
+    (hov : R.length + 10 ≤ 1024)
     (hslot : UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((revokeRoleHasRoleSlotHashMem role account).readWithPadding 0 64))) =
       roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
@@ -1042,9 +1065,169 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
             (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
               (.address (AccountAddress.ofNat account.toNat)))) ⟨255⟩ := by
     exact SimpleAuction.simpleAuctionU256_land_comm ⟨255⟩ _
-  have rdret := evm_run rd486 with [push1 ⟨255⟩, and, swap1, jump (by jump_dest)]
+  have rdret := evm_run rd486 with [push1 ⟨255⟩, and, swap1, jump hret]
+  change RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ret
+    (UInt256.land ⟨255⟩
+      (revokeRoleStorageWordAt σ I.codeOwner
+        (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
+          (.address (AccountAddress.ofNat account.toNat)))) :: R)
+    (revokeRoleHasRoleSlotHashMem role account) (UInt256.ofNat 3) ByteArray.empty
+    (cA, σ) _ _ at rdret
+  rw [hmaskComm] at rdret
   exact ⟨_, _, by
-    simpa [revokeRoleStorageWordAt, hmaskComm] using rdret⟩
+    simpa [revokeRoleStorageWordAt] using rdret⟩
+
+theorem revokeRoleSourceWord_canonical (I : ExecutionEnv) :
+    (revokeRoleSourceWord I).toNat < EVM.addressModulus := by
+  rw [revokeRoleSourceWord_toNat]
+  exact I.source.isLt
+
+theorem revokeRoleSource_ofNat (I : ExecutionEnv) :
+    AccountAddress.ofNat (revokeRoleSourceWord I).toNat = I.source := by
+  unfold AccountAddress.ofNat
+  apply Fin.ext
+  rw [revokeRoleSourceWord_toNat, Fin.val_ofNat]
+  exact Nat.mod_eq_of_lt I.source.isLt
+
+-- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
+def revokeRoleStLog4 (s : State) (a b c d e f : UInt256) (t : List UInt256) : State :=
+  {s with
+    substate.logSeries := s.substate.logSeries.push
+      ⟨s.executionEnv.codeOwner, #[c, d, e, f], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
+    machineState.stack := t
+    machineState.activeWords :=
+      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
+    machineState.gasAvailable :=
+      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG4)).subNat
+        (GasConstants.Glog + GasConstants.Glogdata * b.toNat
+            + 4 * GasConstants.Glogtopic)
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1 }
+
+-- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
+theorem revokeRoleLog4_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.LOG4, .none)) (hperm : s.executionEnv.perm = true)
+    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
+    (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat
+            < memoryExpansionCost s .LOG4
+              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic)
+         then .error .OutOfGass else .ok (revokeRoleStLog4 s a b c d e f t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG4, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_log4 s hd, hstk]
+  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 0 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
+  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, revokeRoleStLog4]
+
+-- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
+theorem RD.revokeRoleLog4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
+    (hmc : ∀ s : State, s.machineState.activeWords = aw →
+        s.machineState.stack = a :: b :: c :: d :: e :: f :: t →
+        memoryExpansionCost s .LOG4 = mcost)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
+        + 4 * GasConstants.Glogtopic))) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
+      hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .LOG4 = mcost := hmc s haw hstk
+    have hperms : s.executionEnv.perm = true := by
+      rw [hee]
+      exact hperm
+    have st := revokeRoleLog4_xstep hcode hpc hdec hperms hstk hov
+    rw [hmcS] at st
+    by_cases gg : g.toNat < C + (mcost
+        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic))
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨revokeRoleStLog4 s a b c d e f t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
+          ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [revokeRoleStLog4]
+        exact hcode
+      · simp only [revokeRoleStLog4]
+        rw [hpc]
+      · simp only [revokeRoleStLog4]
+      · simp only [revokeRoleStLog4, hmcS]
+        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [revokeRoleStLog4]
+        exact hmem
+      · simp only [revokeRoleStLog4]
+        rw [haw, hawout]
+      · simp only [revokeRoleStLog4]
+        exact hrdata
+      · simp only [revokeRoleStLog4]
+        exact hacc
+      · simp only [revokeRoleStLog4]
+        exact hee
+      · simp only [revokeRoleStLog4]
+        exact hworld
+
+theorem accessControlRevokeRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨491⟩
+      [revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨527⟩
+      [revokeRoleAdminStorageWord σ I, ⟨517⟩, revokeRoleAdminStorageWord σ I,
+        revokeRoleAccountWord I, revokeRoleRoleWord I, ⟨233⟩, sel]
+      (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C := by
+  obtain ⟨_, _, rd491⟩ := hreach
+  have hslot := revokeRoleBaseKeccakSlot I hsz68
+  have rd508pre := evm_run rd491 with [
+    jumpdest, push0, dup3, dup2,
+    raw mstore 0 (revokeRoleWordAt0Mem (revokeRoleRoleWord I) solcFreePtrMem)
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, dup2, swap1,
+    raw mstore 0 (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, swap1,
+    raw keccak256 0 (revokeRoleBaseSlot (revokeRoleRoleWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost hslot (by decide) (by evm_ov),
+    push1 ⟨1⟩, add]
+  obtain ⟨_, _, rd509₀⟩ := rd508pre.sload (by decide) (by evm_ov)
+  have rd509 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨509⟩
+        [revokeRoleAdminStorageWord σ I, revokeRoleAccountWord I, revokeRoleRoleWord I,
+          ⟨233⟩, sel]
+        (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) k C := by
+    exact ⟨_, _, by
+      have hpc509 :
+          (⟨491⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+                            ⟨1⟩ +
+                          ⟨1⟩ +
+                        ⟨1⟩ +
+                      UInt256.ofNat 2 +
+                    ⟨1⟩ +
+                  ⟨1⟩ +
+                UInt256.ofNat 2 +
+              ⟨1⟩ +
+            ⟨1⟩ : UInt256) = ⟨509⟩ := by
+        decide
+      simpa [hpc509, revokeRoleAdminStorageWord, revokeRoleAdminSlot_evm I hsz68,
+        revokeRoleU256_add_comm] using rd509₀⟩
+  obtain ⟨_, _, rd509⟩ := rd509
+  exact ⟨_, _, evm_run rd509 with [
+    push2 ⟨517⟩, dup2, push2 ⟨527⟩, jump (by jump_dest) ]⟩
 
 theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
     {g : UInt256}

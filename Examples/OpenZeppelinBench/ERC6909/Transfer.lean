@@ -1,3 +1,5 @@
+import Examples.OpenZeppelinBench.ERC6909.BalanceOf
+import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Reasoning.Refinement
 import Reasoning.SolmBody
@@ -335,6 +337,36 @@ theorem erc6909Decode_transfer_none_huge {I : ExecutionEnv}
   simpa [addr, uint256, abiUInt256]
     using decodeCalldata_address_uint256_uint256_none_huge
       (cd := I.calldata) (x := "receiver") (y := "id") (z := "amount") hbig
+
+theorem erc6909TransferSelector_size {I : ExecutionEnv}
+    (hsel : selIs I (erc6909SelBytes 2)) :
+    4 ≤ I.calldata.size := by
+  have hs := byteArray_size_eq_of_beq hsel
+  have hleft : (erc6909SelBytes 2).size = 4 := rfl
+  rw [hleft, ByteArray.size_extract] at hs
+  omega
+
+theorem erc6909Dispatch_transfer {cd : ByteArray}
+    (hsel : (erc6909SelBytes 2 == cd.extract 0 4) = true) :
+    dispatchMsg contract cd = some transferTransition := by
+  have hcd : cd.extract 0 4 = erc6909SelBytes 2 :=
+    (byteArray_eq_of_beq hsel).symm
+  refine dispatchMsg_eq_some_of_split
+    (pre := [allowanceTransition, approveTransition, balanceOfTransition, isOperatorTransition,
+      setOperatorTransition, supportsInterfaceTransition])
+    (post := [transferFromTransition])
+    rfl ?_ (by
+      rw [selectorOf, erc6909TransferSelectorBytes]
+      simpa [erc6909SelBytes] using hsel)
+  intro t ht
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
+  · rw [selectorOf, erc6909AllowanceSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc6909ApproveSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc6909BalanceOfSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc6909IsOperatorSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc6909SetOperatorSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc6909SupportsInterfaceSelectorBytes, hcd]; decide
 
 /-! ### Source expression and storage facts -/
 
@@ -833,5 +865,107 @@ theorem erc6909TransferBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_to_balance evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transfer_newToBalance_revert evm I hover))
+
+/-! ## EVM ABI decode trace for `transfer(address,uint256,uint256)` -/
+
+theorem erc6909TransferX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨209⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1742⟩
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨223⟩, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd⟩ := hreach
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, push2 ⟨193⟩, push2 ⟨223⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨1742⟩, jump (by jump_dest) ]⟩
+
+theorem erc6909TransferX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonReceiver : (transferReceiverWord I).toNat < EVM.addressModulus)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨209⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨499⟩
+      [transferAmountWord I, transferIdWord I, transferReceiverWord I, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
+  obtain ⟨_, _, rd1742⟩ := erc6909TransferX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
+  obtain ⟨_, _, rd1769⟩ := erc6909DecodeAddrOk rd1629 hcanonReceiver (by jump_dest)
+    (by evm_ov)
+  have rd1770 := evm_run rd1769 with [jumpdest]
+  have rd1771 := RD.erc6909Swap6 rd1770 (by decide) (by simp)
+  have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
+  have rd1778 := RD.erc6909Swap6 rd1777 (by decide) (by simp)
+  have rd1781 := evm_run rd1778 with [pop, push1 ⟨64⟩, swap1]
+  have rd1782 := RD.erc6909Swap5 rd1781 (by decide) (by simp)
+  have rd223 := evm_run rd1782 with [
+    add, calldataload, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
+  have rd499 := evm_run rd223 with [jumpdest, push2 ⟨499⟩, jump (by jump_dest)]
+  exact ⟨_, _, by
+    simpa [transferReceiverWord, transferIdWord, transferAmountWord, calldataWord] using rd499⟩
+
+theorem erc6909TransferX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 100)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨209⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt :
+      UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
+    simpa using solcCalldataStaticLenCheckShort (words := 3) hsz4 hshort hsize
+      (by norm_num)
+  obtain ⟨_, _, rd1742⟩ := erc6909TransferX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909TransferX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨209⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt :
+      UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
+    simpa using solcCalldataStaticLenCheckHuge (words := 3) hbig hsize (by norm_num)
+  obtain ⟨_, _, rd1742⟩ := erc6909TransferX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hnc : UInt256.eq (transferReceiverWord I)
+      (UInt256.land (transferReceiverWord I) solcAddrMask) = ⟨0⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨209⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
+  obtain ⟨_, _, rd1742⟩ := erc6909TransferX_toDecoder (cA := cA) (gh := gh)
+    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
+  simpa [transferReceiverWord, calldataWord] using erc6909DecodeAddrRevert rd1629 hnc
+    (by evm_ov)
 
 end OpenZeppelinBench.ERC6909
