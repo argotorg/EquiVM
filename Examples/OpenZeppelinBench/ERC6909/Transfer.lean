@@ -873,7 +873,6 @@ theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
 
--- PROMOTE -> Common.lean / Reasoning.Stepping: generic `DUP10` xstep.
 theorem erc6909Dup10_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f h i j l : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -884,15 +883,7 @@ theorem erc6909Dup10_xstep {s : State} {code : ByteArray}
       = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
          else .ok
           (stSwap s (l :: a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP10, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup10 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t).length - 10 + 11 >
-      1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+  exact dup10_xstep hcode hpc hdec hstk hov
 
 theorem RD.erc6909Dup10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}

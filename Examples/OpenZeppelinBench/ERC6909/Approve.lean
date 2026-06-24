@@ -672,9 +672,6 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
         (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveOwnerWord I) ++
           UInt256.toByteArray (⟨2⟩ : UInt256)))))))
 
-/-! ## Local high-SWAP reachability helpers -/
-
--- PROMOTE -> Common.lean / Reasoning.Stepping: generic `SWAP5` xstep.
 theorem erc6909Swap5_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -684,16 +681,8 @@ theorem erc6909Swap5_xstep {s : State} {code : ByteArray}
     Xstep (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
          else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+  exact swap5_xstep hcode hpc hdec hstk hov
 
--- PROMOTE -> Common.lean / Reasoning.Stepping: generic `SWAP6` xstep.
 theorem erc6909Swap6_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f h : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -703,14 +692,7 @@ theorem erc6909Swap6_xstep {s : State} {code : ByteArray}
     Xstep (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
          else .ok (stSwap s (h :: b :: c :: d :: e :: f :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP6, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap6 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: h :: t).length - 7 + 7 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+  exact swap6_xstep hcode hpc hdec hstk hov
 
 theorem RD.erc6909Swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -732,7 +714,6 @@ theorem RD.erc6909Swap6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
       (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => erc6909Swap6_xstep hc hp hdec hs hov)
 
--- PROMOTE -> Common.lean / Reasoning.Stepping: generic `DUP9` xstep.
 theorem erc6909Dup9_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f h i j : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -742,15 +723,7 @@ theorem erc6909Dup9_xstep {s : State} {code : ByteArray}
     Xstep (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
          else .ok (stSwap s (j :: a :: b :: c :: d :: e :: f :: h :: i :: j :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP9, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup9 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: h :: i :: j :: t).length - 9 + 10 >
-      1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+  exact dup9_xstep hcode hpc hdec hstk hov
 
 theorem RD.erc6909Dup9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
