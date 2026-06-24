@@ -104,9 +104,16 @@ mutual
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
-        zeroPadding? bytes (payloadStart + size) (paddedSize size - size)
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
-    | .string => none
+    | .string => do
+        let size <- readNat? bytes start
+        if solcMaxU64 < size then
+          none
+        else
+        let payloadStart := start + 32
+        let payload <- readBytes? bytes payloadStart size
+        let endOffset := payloadStart + paddedSize size
+        some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
         if solcMaxU64 < size then
@@ -148,8 +155,6 @@ mutual
         let relativeOffset <- readNat? bytes (base + headCursor)
         if solcMaxU64 < relativeOffset then
           none
-        else if relativeOffset < headSize then
-          none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)
           let (values, restEnd) <-
@@ -166,8 +171,6 @@ mutual
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
           if solcMaxU64 < relativeOffset then
-            none
-          else if relativeOffset < headSize then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset)

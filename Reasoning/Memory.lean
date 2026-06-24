@@ -219,6 +219,32 @@ theorem empty_append (A : ByteArray) : ByteArray.empty ++ A = A := by
 theorem lt_usize (n : ℕ) (h : n < 2 ^ 32) : n < USize.size := by
   rcases System.Platform.numBits_eq with he | he <;> rw [USize.size, he] <;> omega
 
+theorem zeroes32_extract_zeroes (n : ℕ) (hn : n ≤ 32) :
+    (ffi.ByteArray.zeroes (USize.ofNat 32)).extract 0 n =
+      ffi.ByteArray.zeroes (USize.ofNat n) := by
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [ByteArray.data_extract, Array.toList_extract, byteArray_zeroes_toList,
+    byteArray_zeroes_toList]
+  have h32 : (USize.ofNat 32).toNat = 32 := by
+    exact USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))
+  have hn' : (USize.ofNat n).toNat = n := by
+    exact USize.toNat_ofNat_of_lt' (lt_usize n (by omega))
+  rw [h32, hn']
+  rw [List.extract_eq_take_drop, List.drop_zero, List.take_replicate]
+  rw [show min (n - 0) 32 = n by omega]
+
+theorem zero_toByteArray_eq_zeroes32 :
+    UInt256.toByteArray (⟨0⟩ : UInt256) = ffi.ByteArray.zeroes (USize.ofNat 32) := by
+  have h32 : (USize.ofNat 32).toNat = 32 :=
+    USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  simp [UInt256.toByteArray, BE, Ethereum.toBytesBigEndian, Ethereum.toBytes',
+    byteArray_zeroes_toList, h32]
+  rw [show (OfNat.ofNat 32 : USize).toNat = 32 by exact h32]
+  rfl
+
 /-- The size of a small `zeroes` block (no `USize` wrap). -/
 theorem zeroes_ofNat_size (n : ℕ) (h : n < 2 ^ 32) :
     (ffi.ByteArray.zeroes (USize.ofNat n)).size = n := by
@@ -329,6 +355,50 @@ theorem write_eq_gen_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, show base.data.size = base.size from rfl]
+
+/-- **`write` appending at the end from an arbitrary source window.**  If the destination offset is
+    exactly `base.size`, the write is the old base followed by the requested source slice. -/
+theorem write_end_eq_from (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
+    src.write srcAddr base base.size len =
+      base ++ src.extract srcAddr (srcAddr + len) := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (srcAddr ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - srcAddr) = len := by omega
+  have hsp : min base.size (base.size + len) - (base.size + len) = 0 :=
+    Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
+  have hdp : base.size - base.size = 0 := by omega
+  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty := zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
+    show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
+    hsize, hpL, hsp, Nat.add_zero, show base.data.size = base.size from rfl]
+  have hprefix : base.data.extract 0 base.size = base.data :=
+    Array.extract_eq_self_of_le (by rfl)
+  have htail : base.data.extract (base.size + len) base.size = #[] :=
+    Array.extract_eq_empty_of_le (by omega)
+  rw [hprefix, htail, Array.append_empty]
+
+/-- Size of an end-append write from an arbitrary source window. -/
+theorem write_end_size_from (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
+    (src.write srcAddr base base.size len).size = base.size + len := by
+  rw [write_end_eq_from src base srcAddr len hlen hsrc, ByteArray.size_append,
+    ByteArray.size_extract]
+  omega
+
+theorem write_end_extract_tail_from (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
+    (src.write srcAddr base base.size len).extract base.size (base.size + len) =
+      src.extract srcAddr (srcAddr + len) := by
+  rw [write_end_eq_from src base srcAddr len hlen hsrc]
+  exact extract_append_right'
+    base (src.extract srcAddr (srcAddr + len)) base.size (base.size + len)
+    rfl
+    (by
+      rw [ByteArray.size_extract]
+      omega)
 
 /-- Data shape of a write to destination offset `0` that may extend the destination. -/
 theorem write0_data (src base : ByteArray) (len : ℕ)
@@ -465,6 +535,19 @@ theorem write_read_below_gen (src base : ByteArray) (destAddr len readAddr : ℕ
       extract_append_left _ _ _ _ (by rw [hbsz]; omega),
       extract_prefix _ _ _ _ (by omega),
       ← readWithPadding_eq_extract _ readAddr (by omega)]
+
+/-- **Read below an end-append write.**  A 32-byte read that fits in the original `base` is
+    unaffected by appending bytes at `base.size`. -/
+theorem write_read_below_end_from (src base : ByteArray) (srcAddr len readAddr : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
+    (hbelow : readAddr + 32 ≤ base.size) :
+    (src.write srcAddr base base.size len).readWithPadding readAddr 32 =
+      base.readWithPadding readAddr 32 := by
+  rw [write_end_eq_from src base srcAddr len hlen hsrc,
+      readWithPadding_eq_extract _ readAddr
+        (by rw [ByteArray.size_append]; omega),
+      extract_append_left _ _ _ _ hbelow,
+      ← readWithPadding_eq_extract _ readAddr hbelow]
 
 /-- **Readback of a write.**  Reading the 32-byte window just written returns the source's first
     word. -/

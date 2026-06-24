@@ -91,7 +91,11 @@ mutual
         | .bytes bytes =>
             some (natBytes bytes.size ++ padRightToWord bytes.toList)
         | _ => none
-    | .string => none
+    | .string =>
+        match value with
+        | .bytes bytes =>
+            some (natBytes bytes.size ++ padRightToWord bytes.toList)
+        | _ => none
     | .dynamicArray elemTy =>
         match value with
         | .array values => do

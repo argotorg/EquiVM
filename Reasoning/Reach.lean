@@ -825,6 +825,15 @@ theorem RD.and {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => and_xstep hc hp hdec hs hov)
 
+theorem RD.or {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => or_xstep hc hp hdec hs hov)
+
 theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -858,6 +867,32 @@ theorem RD.mul {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     by_cases gg : g.toNat < C + 5
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
     · refine Or.inr ⟨stMul s (UInt256.mul a b) t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stMul]; exact hcode
+      · simp only [stMul]; rw [hpc]
+      · rfl
+      · simp only [stMul]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stMul]; exact hmem
+      · simp only [stMul]; exact haw
+      · simp only [stMul]; exact hrdata
+      · simp only [stMul]; exact hacc
+      · exact hee
+      · exact hworld
+
+theorem RD.div {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.DIV, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := div_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 5
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stMul s (UInt256.div a b) t,
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMul]; exact hcode
       · simp only [stMul]; rw [hpc]
@@ -1084,6 +1119,47 @@ theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
       · simp only [stCodecopy]; rw [haw, hawout]
       · simp only [stCodecopy]; exact hrdata
       · simp only [stCodecopy]; exact hacc
+      · exact hee
+      · exact hworld
+
+/-- `CALLDATACOPY`: pops destination, calldata offset, and length; copies calldata into memory. -/
+theorem RD.calldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
+    (memout : ByteArray) (awout : UInt256)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.CALLDATACOPY, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
+        memoryExpansionCost s .CALLDATACOPY = mcost)
+    (hmemout : ee.calldata.write b.toNat mem a.toNat c.toNat = memout)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+      (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .CALLDATACOPY = mcost := hmc s haw hstk
+    have st := calldatacopy_xstep hcode hpc hdec hstk hov
+    rw [hmcS] at st
+    rw [collapse_two_stage] at st
+    by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · have hcost_pos :
+          0 < mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) := by
+        simp [GasConstants.Gverylow]
+      refine Or.inr ⟨stCalldatacopy s a b c t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stCalldatacopy]; exact hcode
+      · simp only [stCalldatacopy]; rw [hpc]
+      · rfl
+      · simp only [stCalldatacopy, hmcS]
+        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stCalldatacopy]; rw [hee, hmem, hmemout]
+      · simp only [stCalldatacopy]; rw [haw, hawout]
+      · simp only [stCalldatacopy]; exact hrdata
+      · simp only [stCalldatacopy]; exact hacc
       · exact hee
       · exact hworld
 

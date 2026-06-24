@@ -54,6 +54,12 @@ structure StorageLoc where
   type    : ElemType      -- A value to be loaded from storage must be a primitive
   deriving Repr
 
+inductive StorageReadResult (α : Type) where
+  | ok : α -> StorageReadResult α
+  | revert : StorageReadResult α
+  | error : StorageReadResult α
+  deriving Repr
+
 
 -- TODO: maybe create lemmas to prove that the following 2 are equivalent to the bitmasking done by solidity?
 -- Or will it prove more convenient to actually define the loads through such bitmasking?
@@ -140,6 +146,19 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
 
 structure StorageLayout where
   layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
+  -- Optional layout-owned read for whole `bytes`/`string` lengths. This is needed for layouts
+  -- such as Solidity's packed short/long representation, where reading the length can validate
+  -- and revert on malformed encodings rather than merely loading a configured location.
+  readBytesLength : EvaledStorageRef -> EVM.State -> Option (StorageReadResult Nat) :=
+    fun _ _ => none
+  -- Prepare the storage representation for a whole `bytes`/`string` write of the given length.
+  -- The generic semantics writes individual bytes afterwards through `layout`.
+  prepareBytesWrite : EvaledStorageRef -> Nat -> EVM.State -> StorageReadResult EVM.State :=
+    fun _ _ _ => .error
+  -- Optional layout-owned whole `bytes`/`string` write. Layouts with compact representations can
+  -- use this to keep representation-specific packing out of the generic byte loop.
+  writeBytes : EvaledStorageRef -> ByteArray -> EVM.State -> Option (StorageReadResult EVM.State) :=
+    fun _ _ _ => none
   -- Note: The above definition may need to also carry some assumptions if
   -- we want have a type system on top of these semantics,
   -- e.g. access within array bounds returns `.some v`

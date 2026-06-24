@@ -46,6 +46,110 @@ def checkBytesPacked (slot : EVM.Word) (state : EVM.State) : Bool :=
   let slot := EVM.storageLoad state state.executionEnv.codeOwner slot
   (slot.val % 2) == 0
 
+def solidityBytesDataBaseSlot (baseSlot : EVM.Word) : EVM.Word :=
+  Ethereum.uInt256OfByteArray (ffi.KEC baseSlot.toByteArray)
+
+def solidityBytesDataSlot (baseSlot : EVM.Word) (wordIndex : Nat) : EVM.Word :=
+  solidityBytesDataBaseSlot baseSlot + Ethereum.UInt256.ofNat wordIndex
+
+def clearSolidityBytesDataWords (evm : EVM.State) (baseSlot : EVM.Word) :
+    Nat -> EVM.State
+  | 0 => evm
+  | n+1 =>
+      let evm1 := EVM.storageStore evm evm.executionEnv.codeOwner
+        (solidityBytesDataSlot baseSlot n) ⟨0⟩
+      clearSolidityBytesDataWords evm1 baseSlot n
+
+def clearSolidityBytesDataWordsFrom (evm : EVM.State) (baseSlot : EVM.Word)
+    (idx : Nat) : Nat -> EVM.State
+  | 0 => evm
+  | n+1 =>
+      let evm1 := EVM.storageStore evm evm.executionEnv.codeOwner
+        (solidityBytesDataSlot baseSlot idx) ⟨0⟩
+      clearSolidityBytesDataWordsFrom evm1 baseSlot (idx + 1) n
+
+def solidityDecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat :=
+  let flag := Ethereum.UInt256.land header ⟨1⟩
+  let rawLen := Ethereum.UInt256.div header ⟨2⟩
+  let lenWord := if flag = ⟨0⟩ then Ethereum.UInt256.land rawLen ⟨127⟩ else rawLen
+  if Ethereum.UInt256.sub flag (Ethereum.UInt256.lt lenWord ⟨32⟩) = ⟨0⟩ then
+    .revert
+  else
+    .ok lenWord.toNat
+
+def solidityBytesBaseSlotAndLength?
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult (EVM.Word × Nat) :=
+  match layout { er with steps := er.steps ++ [.length] } evm with
+  | some lenLoc =>
+      match solidityDecodeBytesLengthHeader (EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot) with
+      | .ok len => .ok (lenLoc.slot, len)
+      | .revert => .revert
+      | .error => .error
+  | none => .error
+
+def solidityReadBytesLength?
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (er : EvaledStorageRef) (evm : EVM.State) : Option (StorageReadResult Nat) := do
+  let lenLoc <- layout { er with steps := er.steps ++ [.length] } evm
+  let header := EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot
+  some (solidityDecodeBytesLengthHeader header)
+
+def solidityBytesHeaderWord (len : Nat) : EVM.Word :=
+  if len < 32 then
+    Ethereum.UInt256.ofNat (len * 2)
+  else
+    Ethereum.UInt256.ofNat (len * 2 + 1)
+
+def solidityShortBytesWord (bytes : ByteArray) : EVM.Word :=
+  Ethereum.UInt256.lor
+    (Ethereum.uInt256OfByteArray (bytes.readWithPadding 0 32))
+    (Ethereum.UInt256.ofNat (bytes.size * 2))
+
+def solidityPrepareBytesWrite?
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (er : EvaledStorageRef) (newLen : Nat) (evm : EVM.State) : StorageReadResult EVM.State :=
+  match solidityBytesBaseSlotAndLength? layout er evm with
+  | .ok (baseSlot, oldLen) =>
+      let oldPacked := checkBytesPacked baseSlot evm
+      let evmLen := EVM.storageStore evm evm.executionEnv.codeOwner baseSlot
+        (solidityBytesHeaderWord newLen)
+      .ok <|
+        if oldPacked then
+          evmLen
+        else
+          clearSolidityBytesDataWordsFrom evmLen baseSlot 0 ((oldLen + 31) / 32)
+  | .revert => .revert
+  | .error => .error
+
+def solidityWriteBytes?
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (er : EvaledStorageRef) (bytes : ByteArray) (evm : EVM.State) :
+    Option (StorageReadResult EVM.State) :=
+  if bytes.size < 32 then
+    some <|
+      match solidityBytesBaseSlotAndLength? layout er evm with
+      | .ok (baseSlot, oldLen) =>
+          let oldPacked := checkBytesPacked baseSlot evm
+          let evmHeader := EVM.storageStore evm evm.executionEnv.codeOwner baseSlot
+            (solidityShortBytesWord bytes)
+          .ok <|
+            if oldPacked then
+              evmHeader
+            else
+              clearSolidityBytesDataWordsFrom evmHeader baseSlot 0 ((oldLen + 31) / 32)
+      | .revert => .revert
+      | .error => .error
+  else
+    none
+
+def solidityStorageLayout
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout where
+  layout := layout
+  readBytesLength := solidityReadBytesLength? layout
+  prepareBytesWrite := solidityPrepareBytesWrite? layout
+  writeBytes := solidityWriteBytes? layout
+
 mutual
 
 -- Returns the node corresponding to the type, plus its size
@@ -290,6 +394,10 @@ def genSolidityLayout (structs : List StructDecl) (decls : List StorageDecl) : O
     let (iloc, node') <- indirector evaledStorageRef.base
     followSteps evm iloc evaledStorageRef.steps node'
 
+def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDecl) :
+    Option StorageLayout := do
+  let layout <- genSolidityLayout structs decls
+  pure (solidityStorageLayout layout)
 
 -- TODO Maybe move this, or make the file be for general solidity specific components
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do

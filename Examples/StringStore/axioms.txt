@@ -1,0 +1,15 @@
+axioms: 
+
+'StringStore.stringStoreClearCurrentRuntime_of_nonzeroHeader' depends on axioms: [ByteArray_zeroes_size,
+ appendToHistorySelectorBytes,
+ clearCurrentSelectorBytes,
+ dropLastSelectorBytes,
+ propext,
+ replaceFromHistorySelectorBytes,
+ setSelectorBytes,
+ Classical.choice,
+ Quot.sound,
+ emptyBytesKeccakReturnEncoding,
+ emptyKeccakWord_toByteArray,
+ byteArray_zeroes_toList,
+

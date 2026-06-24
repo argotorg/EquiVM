@@ -464,6 +464,18 @@ theorem and_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stBinop]
 
+theorem or_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.OR, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_or s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
 theorem shl_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
     (hdec : decode code pcv = some (.SHL, .none))
@@ -493,6 +505,18 @@ theorem mul_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
          else .ok (stMul s (UInt256.mul a b) t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.MUL, .none) := by rw [hcode, hpc]; exact hdec
   rw [← hcode, step_mul s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Glow, stMul]
+
+theorem div_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.DIV, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stMul s (UInt256.div a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.DIV, .none) := by rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_div s hd, hstk]
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Glow, stMul]
 
@@ -1066,6 +1090,45 @@ theorem codecopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
     · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
         simp only [List.length_cons]; omega
       simp only [hg1, hg2, hov', if_false, stCodecopy]
+
+/-! ### CALLDATACOPY (`a :: b :: c :: t ↦ t`, copy `calldata[b .. b+c]` to `mem[a .. a+c]`) -/
+
+def stCalldatacopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      memory := s.executionEnv.calldata.write b.toNat s.machineState.memory a.toNat c.toNat,
+      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat c.toNat),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CALLDATACOPY)).subNat
+          (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) } }
+
+theorem calldatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CALLDATACOPY, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: t)
+    (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .CALLDATACOPY
+         then .error .OutOfGass
+         else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CALLDATACOPY)).toNat
+                < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+              then .error .OutOfGass
+              else .ok (stCalldatacopy s a b c t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CALLDATACOPY, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_calldatacopy s hd, hstk]
+  by_cases hg1 : s.machineState.gasAvailable.toNat < memoryExpansionCost s .CALLDATACOPY
+  · simp only [hg1, if_true]
+  · by_cases hg2 : (s.machineState.gasAvailable.subNat
+        (memoryExpansionCost s .CALLDATACOPY)).toNat
+        < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+    · simp only [hg1, hg2, if_true, if_false]
+    · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
+        simp only [List.length_cons]; omega
+      simp only [hg1, hg2, hov', if_false, stCalldatacopy]
 
 /-! ### STOP (halt *success*, empty output, cost `Gzero = 0`) -/
 
