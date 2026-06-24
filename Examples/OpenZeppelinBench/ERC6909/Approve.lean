@@ -357,11 +357,6 @@ theorem erc6909Dispatch_approve {cd : ByteArray}
 
 /-! ## Local scratch-memory facts for the three-level `_allowances` write -/
 
-theorem erc6909ApproveKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
-  keyValueToWord_address_of_canonical w hcanon
-
 theorem approveAccountAddress_ofNat_zero_iff {w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus) :
     AccountAddress.ofNat w.toNat = AccountAddress.ofNat 0 ↔ w = ⟨0⟩ := by
@@ -621,7 +616,7 @@ theorem approveOwnerKeccakSlot (I : ExecutionEnv) :
       mapSlot (keyValueToWord (.address I.source)) ⟨2⟩ := by
   have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
     rw [← approveOwner_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (approveOwnerWord_canonical I)
   unfold approveOwnerSlot mapSlot
   rw [approveOwnerHashMem_read0_64, hownerKey]
@@ -635,12 +630,12 @@ theorem approveSpenderKeccakSlot (I : ExecutionEnv)
         (mapSlot (keyValueToWord (.address I.source)) ⟨2⟩) := by
   have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
     rw [← approveOwner_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (approveOwnerWord_canonical I)
   have hspenderKey :
       keyValueToWord (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) =
         approveSpenderWord I :=
-    erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSpender
+    keyValueToWord_address_of_canonical _ hcanonSpender
   unfold approveSpenderSlot mapSlot
   rw [approveSpenderHashMem_read0_64, approveOwnerKeccakSlot I]
   rw [hownerKey, hspenderKey]
@@ -658,12 +653,12 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
   rw [approveIdHashMem_read0_64, approveSpenderKeccakSlot I hcanonSpender]
   have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
     rw [← approveOwner_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (approveOwnerWord_canonical I)
   have hspenderKey :
       keyValueToWord (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) =
         approveSpenderWord I :=
-    erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSpender
+    keyValueToWord_address_of_canonical _ hcanonSpender
   rw [hownerKey, hspenderKey]
   rw [keyValueToWord_uint256 (approveIdWord I)]
   exact mappingSlot_single (approveIdWord I)
@@ -673,49 +668,6 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
           UInt256.toByteArray (⟨2⟩ : UInt256)))))))
 
 /-! ## EVM ABI decode traces for the approve body wrapper -/
-
--- PROMOTE -> Common.lean / Reasoning.Solc: ERC6909's optimizer-on inlined address decoder.
-theorem erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat <
-      EVM.addressModulus)
-    (hret : (D_J erc6909BenchBytecode 0).contains ret = true)
-    (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD erc6909BenchBytecode ee g s0 ret
-      (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
-  let word := uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)
-  have hclean : UInt256.eq word (UInt256.land word solcAddrMask) = ⟨1⟩ :=
-    solcAddrCanon_eq hcanon
-  exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩,
-    jumpiT (by
-      have hclean' :
-          UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-            (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-              (UInt256.sub ((⟨1⟩ : UInt256).shiftLeft ⟨160⟩) ⟨1⟩)) = ⟨1⟩ := by
-        simpa [word, solcAddrMask, UInt256.sub] using hclean
-      rw [hclean']
-      decide) (by jump_dest),
-    jumpdest, swap2, swap1, pop, jump hret ]⟩
-
--- PROMOTE -> Common.lean / Reasoning.Solc: revert branch for the same inlined address decoder.
-theorem erc6909DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)) solcAddrMask) =
-        ⟨0⟩)
-    (hov : R.length + 8 ≤ 1024) :
-    RDrev erc6909BenchBytecode g s0 := by
-  exact evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩, jumpiNT (by
-      simpa [solcAddrMask, UInt256.sub] using hnc),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem erc6909ApproveX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
@@ -745,8 +697,8 @@ theorem erc6909ApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd1769⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
-    (by evm_ov)
+  obtain ⟨_, _, rd1769⟩ :=
+    erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest) (by evm_ov)
   have rd1770 := evm_run rd1769 with [jumpdest]
   have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
   have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]

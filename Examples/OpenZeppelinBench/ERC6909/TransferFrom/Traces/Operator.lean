@@ -499,8 +499,8 @@ theorem erc6909TransferFromX_noncanon_sender {cA gh bl σ σ₀ A I}
   obtain ⟨_, _, rd⟩ := erc6909TransferFromX_dec1629_sender (cA := cA)
     (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hreach
-  simpa [transferFromSenderWord, calldataWord] using RD.erc6909DecodeAddrRevert rd hnc
-    (by evm_ov)
+  simpa [transferFromSenderWord, calldataWord] using
+    erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909TransferFromX_noncanon_receiver {cA gh bl σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -516,8 +516,8 @@ theorem erc6909TransferFromX_noncanon_receiver {cA gh bl σ σ₀ A I}
   obtain ⟨_, _, rd⟩ := erc6909TransferFromX_dec1629_receiver (cA := cA)
     (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hcanonSender hreach
-  simpa [transferFromReceiverWord, calldataWord] using RD.erc6909DecodeAddrRevert rd hnc
-    (by evm_ov)
+  simpa [transferFromReceiverWord, calldataWord] using
+    erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 
 end OpenZeppelinBench.ERC6909

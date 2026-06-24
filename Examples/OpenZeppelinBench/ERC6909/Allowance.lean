@@ -425,11 +425,6 @@ theorem toByteArray_extract0_32 (w : UInt256) :
     change (UInt256.toByteArray w).size ≤ 32
     rw [toByteArray_size])
 
-theorem byteArray_extract0_size (b : ByteArray) : b.extract 0 b.size = b := by
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le le_rfl
-
 /-- Memory after storing the `owner` key at scratch offset `0x00`. -/
 noncomputable def allowanceOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
@@ -560,9 +555,9 @@ theorem allowanceOwnerHashMem_read0_64 (owner : UInt256) :
     rw [hslotFull, toByteArray_size]
   rw [ByteArray.append_assoc]
   rw [extract_append_span A0 (B0 ++ C0) 0 64 (by omega) (by rw [hA0]; omega)]
-  rw [byteArray_extract0_size A0, hA0, show 64 - 32 = 32 from rfl]
+  rw [byteArray_extract_self A0, hA0, show 64 - 32 = 32 from rfl]
   rw [extract_append_left B0 C0 0 32 (by rw [hB0])]
-  rw [← hB0, byteArray_extract0_size B0]
+  rw [← hB0, byteArray_extract_self B0]
   dsimp [A0, B0]
   rw [hownerFull, hslotFull]
 
@@ -639,9 +634,9 @@ theorem allowanceSpenderHashMem_read0_64 (owner spender : UInt256) :
     rw [hslotFull, toByteArray_size]
   rw [ByteArray.append_assoc]
   rw [extract_append_span A0 (B0 ++ C0) 0 64 (by omega) (by rw [hA0]; omega)]
-  rw [byteArray_extract0_size A0, hA0, show 64 - 32 = 32 from rfl]
+  rw [byteArray_extract_self A0, hA0, show 64 - 32 = 32 from rfl]
   rw [extract_append_left B0 C0 0 32 (by rw [hB0])]
-  rw [← hB0, byteArray_extract0_size B0]
+  rw [← hB0, byteArray_extract_self B0]
   dsimp [A0, B0]
   rw [hspenderFull, hslotFull]
 
@@ -729,9 +724,9 @@ theorem allowanceIdHashMem_read0_64 (owner spender id : UInt256) :
     rw [hslotFull, toByteArray_size]
   rw [ByteArray.append_assoc]
   rw [extract_append_span A0 (B0 ++ C0) 0 64 (by omega) (by rw [hA0]; omega)]
-  rw [byteArray_extract0_size A0, hA0, show 64 - 32 = 32 from rfl]
+  rw [byteArray_extract_self A0, hA0, show 64 - 32 = 32 from rfl]
   rw [extract_append_left B0 C0 0 32 (by rw [hB0])]
-  rw [← hB0, byteArray_extract0_size B0]
+  rw [← hB0, byteArray_extract_self B0]
   dsimp [A0, B0]
   rw [hidFull, hslotFull]
 

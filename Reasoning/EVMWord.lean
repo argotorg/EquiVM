@@ -1,4 +1,7 @@
 import Reasoning.Theory
+import Mathlib.Data.Nat.Bitwise
+import Mathlib.Data.Nat.Digits.Defs
+import Mathlib.Data.Nat.Digits.Lemmas
 
 /-!
 # EVMWord — arithmetic facts for EVM 256-bit stack words
@@ -56,6 +59,49 @@ theorem usub_toNat_underflow {a b : UInt256} (h : a.toNat < b.toNat) :
   show (a.val - b.val).val = UInt256.size + a.toNat - b.toNat
   rw [Fin.coe_sub_iff_lt.mpr (by rw [Fin.lt_def]; exact h)]
   rfl
+
+/-- Subtracting a word from itself gives zero. -/
+theorem u256_sub_self (w : UInt256) : UInt256.sub w w = ⟨0⟩ := by
+  apply u256_inj
+  rw [usub_toNat (a := w) (b := w) le_rfl, Nat.sub_self]
+  rfl
+
+/-- Subtracting distinct words cannot give zero. -/
+theorem u256_sub_ne_zero_of_ne {a b : UInt256} (h : a ≠ b) :
+    UInt256.sub a b ≠ ⟨0⟩ := by
+  intro hz
+  by_cases hle : b.toNat ≤ a.toNat
+  · have hsub := usub_toNat (a := a) (b := b) hle
+    rw [hz] at hsub
+    have hzero : a.toNat - b.toNat = 0 := hsub.symm
+    have hnat : a.toNat = b.toNat := by omega
+    apply h
+    apply u256_inj
+    exact hnat
+  · have hlt : a.toNat < b.toNat := Nat.lt_of_not_ge hle
+    have hsub := usub_toNat_underflow (a := a) (b := b) hlt
+    rw [hz] at hsub
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    have hzero : UInt256.size + a.toNat - b.toNat = 0 := hsub.symm
+    have hpos : 0 < UInt256.size + a.toNat - b.toNat := by omega
+    omega
+
+/-- Subtracting a nonzero word from zero cannot give zero. -/
+theorem u256_zero_sub_ne_zero {w : UInt256} (h : w ≠ ⟨0⟩) :
+    UInt256.sub ⟨0⟩ w ≠ ⟨0⟩ := by
+  intro hz
+  have htoNat : w.toNat ≠ 0 := by
+    intro hnat
+    apply h
+    apply u256_inj
+    exact hnat
+  have hpos : 0 < w.toNat := Nat.pos_of_ne_zero htoNat
+  have hsub := usub_toNat_underflow (a := (⟨0⟩ : UInt256)) (b := w) hpos
+  rw [hz] at hsub
+  have hwlt : w.toNat < UInt256.size := w.val.isLt
+  have hgt : 0 < UInt256.size + (⟨0⟩ : UInt256).toNat - w.toNat := by
+    omega
+  omega
 
 /-- `ADD` of two in-range naturals does not wrap. -/
 theorem uadd_ofNat_toNat {a b : ℕ}
@@ -119,6 +165,14 @@ theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
   show (a &&& b).testBit i = (b &&& a).testBit i
   rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
 
+/-- Bitwise `AND` is bounded by its right operand. -/
+theorem nat_land_le_right (a b : ℕ) : Nat.land a b ≤ b := by
+  refine Nat.le_of_testBit fun i hi => ?_
+  change (a &&& b).testBit i = true at hi
+  rw [Nat.testBit_and] at hi
+  simp only [Bool.and_eq_true] at hi
+  exact hi.2
+
 theorem u256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
   apply u256_inj
   show Nat.land a.toNat b.toNat % UInt256.size =
@@ -130,6 +184,38 @@ theorem nat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
   intro i
   show (a ||| b).testBit i = (b ||| a).testBit i
   rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
+
+/-- Appending high bits above a bounded low field is ordinary addition. -/
+theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
+    Nat.lor a (b * 2 ^ k) = a + b * 2 ^ k := by
+  induction k generalizing a b with
+  | zero =>
+      have ha0 : a = 0 := by omega
+      subst a
+      norm_num
+      change (0 ||| b) = b
+      simp
+  | succ k ih =>
+      have hdiv : Nat.div2 a < 2 ^ k := by
+        rw [Nat.div2_val]
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 * 2 ^ k = 2 ^ (k + 1) by ring_nf]
+        exact ha
+      nth_rewrite 1 [← Nat.bit_bodd_div2 a]
+      rw [show b * 2 ^ (k + 1) = Nat.bit false (b * 2 ^ k) by
+        rw [Nat.bit_val, Bool.toNat_false, Nat.pow_succ]
+        ring]
+      change (Nat.bit (Nat.bodd a) (Nat.div2 a) ||| Nat.bit false (b * 2 ^ k)) =
+        a + Nat.bit false (b * 2 ^ k)
+      rw [Nat.lor_bit]
+      rw [Bool.or_false]
+      change Nat.bit (Nat.bodd a) (Nat.lor (Nat.div2 a) (b * 2 ^ k)) =
+        a + Nat.bit false (b * 2 ^ k)
+      rw [ih (Nat.div2 a) b hdiv]
+      rw [Nat.bit_val, Nat.bit_val, Bool.toNat_false]
+      have hdecomp : (Nat.bodd a).toNat + Nat.div2 a * 2 = a := by
+        simpa [Nat.mul_comm] using Nat.bodd_add_div2 a
+      omega
 
 theorem u256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
   apply u256_inj
@@ -156,6 +242,11 @@ theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
   apply u256_inj
   simp [uadd_toNat, Nat.add_assoc]
 
+theorem u256_zero_add (a : UInt256) : (⟨0⟩ : UInt256) + a = a := by
+  apply u256_inj
+  show (0 + a.val).val = a.val
+  simp
+
 theorem u256_mul_comm (a b : UInt256) : UInt256.mul a b = UInt256.mul b a := by
   apply u256_inj
   show (a.val * b.val).val = (b.val * a.val).val
@@ -173,6 +264,51 @@ theorem u256_mul_toNat (a b : UInt256) :
   rw [Fin.val_mul]
   rfl
 
+/-- General `HMul.hMul` `toNat` (mod `size`). -/
+theorem u256_mul_op_toNat (a b : UInt256) :
+    (a * b).toNat = a.toNat * b.toNat % UInt256.size := by
+  show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
+  rw [Fin.val_mul]
+  rfl
+
+/-- Multiplication by two agrees with rebuilding the wrapped natural product. -/
+theorem u256_mul_two_ofNat (a : UInt256) :
+    UInt256.mul a ⟨2⟩ = UInt256.ofNat (a.toNat * 2) := by
+  apply u256_inj
+  show (a.val * (⟨2⟩ : UInt256).val).val = (Fin.ofNat UInt256.size (a.toNat * 2)).val
+  rw [Fin.val_mul]
+  rfl
+
+/-- Bit access for a natural left shift, phrased to avoid expanding shift internals at call sites. -/
+theorem testBit_shiftLeft (m k i : Nat) :
+    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
+  induction k generalizing i with
+  | zero => simp
+  | succ k ih =>
+      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
+      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
+      cases i with
+      | zero => simp
+      | succ i =>
+          rw [Nat.testBit_bit_succ]
+          rw [Nat.shiftLeft'_false]
+          rw [ih]
+          by_cases hi : i + 1 < k + 1
+          · have hik : i < k := by omega
+            simp [hi, hik]
+          · have hnk : ¬ i < k := by omega
+            simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
+
+/-- Bit access after dropping the low `k` bits by division. -/
+theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
+    (n / 2 ^ k).testBit (i - k) = n.testBit i := by
+  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
+  rw [Nat.div_div_eq_div_mul]
+  rw [show 2 ^ k * 2 ^ (i - k) = 2 ^ i by
+    rw [← Nat.pow_add]
+    congr
+    omega]
+
 theorem nat_land_mask_eq_mod (n k : Nat) :
     Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
   apply Nat.eq_of_testBit_eq
@@ -184,6 +320,47 @@ theorem nat_land_mask_eq_mod (n k : Nat) :
     simp
   · rw [decide_eq_false hi]
     simp
+
+/-- Clearing the low `k` bits of a 256-bit natural leaves the high field shifted back in place. -/
+theorem natLandClearLow (n k : Nat) (hk : k ≤ 256) (hn : n < 2 ^ 256) :
+    Nat.land n ((2 : Nat) ^ 256 - 2 ^ k) = (n / 2 ^ k) * 2 ^ k := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change (n &&& ((2 : Nat) ^ 256 - 2 ^ k)).testBit i =
+    ((n / 2 ^ k) * 2 ^ k).testBit i
+  rw [Nat.testBit_and]
+  rw [show (2 : Nat) ^ 256 - 2 ^ k = (2 ^ (256 - k) - 1) <<< k by
+    rw [Nat.shiftLeft_eq]
+    rw [Nat.sub_mul]
+    rw [one_mul]
+    rw [show 2 ^ (256 - k) * 2 ^ k = (2 : Nat) ^ 256 by
+      rw [← Nat.pow_add]
+      congr
+      omega]]
+  rw [testBit_shiftLeft]
+  rw [show (n / 2 ^ k) * 2 ^ k = (n / 2 ^ k) <<< k by rw [Nat.shiftLeft_eq]]
+  rw [testBit_shiftLeft]
+  by_cases hik : i < k
+  · simp [hik]
+  · simp [hik]
+    have hki : k ≤ i := Nat.le_of_not_gt hik
+    by_cases hi256 : i < 256
+    · have hlt : i - k < 256 - k := by omega
+      simp [hlt]
+      exact (divPow_testBit n k i hki).symm
+    · have hnlt : ¬ i - k < 256 - k := by omega
+      simp [hnlt]
+      change (n / 2 ^ k).testBit (i - k) = false
+      have hq : n / 2 ^ k < 2 ^ (256 - k) := by
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 ^ k * 2 ^ (256 - k) = (2 : Nat) ^ 256 by
+          rw [← Nat.pow_add]
+          congr
+          omega]
+        exact hn
+      have hpow : n / 2 ^ k < 2 ^ (i - k) := by
+        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
+      exact Nat.testBit_lt_two_pow hpow
 
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by

@@ -167,7 +167,7 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_true
   · exfalso
     apply hnonzero
     apply u256_inj
-    have hcanon := highestBidderSolcAddrMask_result_canonical old
+    have hcanon := solcAddrMask_result_canonical old
     have hmod : (UInt256.land old solcAddrMask).toNat % AccountAddress.size =
         (UInt256.land old solcAddrMask).toNat := by
       apply Nat.mod_eq_of_lt
@@ -177,7 +177,7 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_true
     exact hnat
   · have hnotdiv : ¬ AccountAddress.size ∣ (UInt256.land old solcAddrMask).toNat := by
       intro hdiv
-      have hcanon := highestBidderSolcAddrMask_result_canonical old
+      have hcanon := solcAddrMask_result_canonical old
       have hltSize : (UInt256.land old solcAddrMask).toNat < AccountAddress.size := by
         simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
       obtain ⟨k, hk⟩ := hdiv
@@ -253,7 +253,7 @@ theorem scratch_eval_placeBid_pending_add
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   have hnonneg : ¬ (((pending.toNat : Int) + (high.toNat : Int)) < 0) := by
-    exact not_lt_of_ge (Int.add_nonneg (Int.ofNat_nonneg _) (Int.ofNat_nonneg _))
+    exact not_lt_of_ge (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _))
   have hlt : ¬ ((2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int)) := by
     norm_num [UInt256.size] at hsum ⊢
     omega
@@ -291,7 +291,7 @@ theorem scratch_eval_placeBid_pending_add_revert
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   have hnonneg : ¬ (((pending.toNat : Int) + (high.toNat : Int)) < 0) := by
-    exact not_lt_of_ge (Int.add_nonneg (Int.ofNat_nonneg _) (Int.ofNat_nonneg _))
+    exact not_lt_of_ge (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _))
   have hge : (2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int) := by
     norm_num [UInt256.size] at hover ⊢
     omega
@@ -774,7 +774,7 @@ theorem scratch_blindAuctionRevealX_placeCond_depositLt_toZero {I} {g : Sat256}
   have hdeposit' :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
-    simpa [blindAuctionU256_add_comm] using hdeposit
+    simpa [u256_add_comm] using hdeposit
   have hltw : UInt256.lt deposit value = ⟨1⟩ := ult_one hlt
   have rd1281₀ := evm_run rd1280₀ with [lt]
   have rd1281 := rd1281₀
@@ -807,7 +807,7 @@ theorem scratch_blindAuctionRevealX_placeCond_place_toRoutine {I} {g : Sat256}
   have hdeposit' :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
-    simpa [blindAuctionU256_add_comm] using hdeposit
+    simpa [u256_add_comm] using hdeposit
   have hltw : UInt256.lt deposit value = ⟨0⟩ := ult_zero hge
   have rd1281₀ := evm_run rd1280₀ with [lt]
   have rd1281 := rd1281₀
@@ -901,55 +901,15 @@ theorem scratch_blindAuctionRevealX_placeBidTrue_toNext {I} {g : Sat256}
   have rd1315 := evm_run rd1312 with [jumpdest, swap6, pop]
   exact scratch_blindAuctionRevealX_zeroBlinded_toNext rd1315 hperm
 
--- LIBRARY CANDIDATE: generic OR xstep/RD.or, analogous to the other binary-op wrappers.
-theorem scratchOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
-theorem RD.scratchOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => scratchOr_xstep hc hp hdec hs hov)
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, same proof shape as SimpleAuction's local lemma.
-theorem scratchNat_lor_comm (a b : Nat) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, same proof shape as SimpleAuction's local lemma.
-theorem scratchU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [scratchNat_lor_comm]
-
 theorem scratch_placeBidPackedBidderWord_eq_setAddress (old bidder : UInt256)
     (hcanon : bidder.toNat < EVM.addressModulus) :
     UInt256.lor (UInt256.land bidder solcAddrMask)
         (UInt256.land (UInt256.lnot solcAddrMask) old) =
       SimpleAuction.simpleAuctionSetAddressWord old bidder := by
   unfold SimpleAuction.simpleAuctionSetAddressWord
-  rw [highestBidderU256_land_comm (UInt256.lnot solcAddrMask) old]
+  rw [Reasoning.Theory.u256_land_comm (UInt256.lnot solcAddrMask) old]
   rw [solcAddrMask_clean hcanon]
-  exact scratchU256_lor_comm bidder (UInt256.land old (UInt256.lnot solcAddrMask))
+  exact u256_lor_comm bidder (UInt256.land old (UInt256.lnot solcAddrMask))
 
 set_option maxHeartbeats 1000000 in
 theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEnv}
@@ -992,7 +952,7 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
         (scratch_placeBidHighestBidderWord σ I) = ⟨0⟩ := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) = ⟨0⟩
-    rw [highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
     exact hzero
   rw [hzero'] at rd1564
   have rd1619 := evm_run rd1564 with [
@@ -1013,7 +973,7 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.scratchOr rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
@@ -1101,7 +1061,7 @@ theorem scratch_placeBidPendingHashMem_read0_64 (mem : ByteArray) (key : UInt256
         0 (0 + 64) =
       UInt256.toByteArray key ++ S
   rw [show 0 + 64 = 64 by norm_num]
-  rw [SimpleAuction.withdraw_extract_two_chunks_0]
+  rw [byteArray_extract_two_chunks_0]
   · have hM0 : M.extract 0 32 = UInt256.toByteArray key := by
       dsimp [M]
       rw [← readWithPadding_eq_extract (scratch_placeBidPendingKeyMem mem key) 0
@@ -1110,7 +1070,7 @@ theorem scratch_placeBidPendingHashMem_read0_64 (mem : ByteArray) (key : UInt256
     have hSself : S.extract 0 32 = S := by
       dsimp [S]
       rw [show 32 = (UInt256.toByteArray (⟨7⟩ : UInt256)).size by rw [toByteArray_size]]
-      exact SimpleAuction.withdrawByteArray_extract_self _
+      exact byteArray_extract_self _
     rw [hM0, hSself]
   · rw [ByteArray.size_extract]
     dsimp [M]
@@ -1288,7 +1248,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
         (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩ := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩
-    rw [highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
     exact hnonzero
   have rd1564 := rd1564₀
   have rd1565₀ := evm_run rd1564 with [iszero]
@@ -1315,7 +1275,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
         UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) =
       UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask
-    exact highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
+    exact Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
   have rd1587 := rd1587₀
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
@@ -1340,7 +1300,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, dup2]
-  have hkeyCanon := highestBidderSolcAddrMask_result_canonical
+  have hkeyCanon := solcAddrMask_result_canonical
     (scratch_placeBidHighestBidderWord σ I)
   have hslot := scratch_placeBidPendingKeccak mem
     (UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask) hmem hkeyCanon
@@ -1397,7 +1357,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.scratchOr rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
@@ -1514,7 +1474,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
         (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩ := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩
-    rw [highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
     exact hnonzero
   have rd1564 := rd1564₀
   have rd1565₀ := evm_run rd1564 with [iszero]
@@ -1541,7 +1501,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
         UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) =
       UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask
-    exact highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
+    exact Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
   have rd1587 := rd1587₀
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
@@ -1560,7 +1520,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
         simp [memHash, scratch_placeBidPendingHashMem, memKey])
       (by rfl) (by evm_ov),
     push1 ⟨64⟩, dup2]
-  have hkeyCanon := highestBidderSolcAddrMask_result_canonical
+  have hkeyCanon := solcAddrMask_result_canonical
     (scratch_placeBidHighestBidderWord σ I)
   have hslot := scratch_placeBidPendingKeccak_any mem key hkeyCanon
   have rd1597 := evm_run rd1593 with [
@@ -1615,7 +1575,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.scratchOr rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))

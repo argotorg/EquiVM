@@ -258,7 +258,7 @@ theorem ownable2StepDispatch_renounceOwnership {cd : ByteArray}
     (hsel : ((⟨#[0x71, 0x50, 0x18, 0xa6]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some renounceOwnershipTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x71, 0x50, 0x18, 0xa6]⟩ : ByteArray) :=
-    (ownable2StepByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [acceptOwnershipTransition, ownerTransition, pendingOwnerTransition])
     (post := [transferOwnershipTransition]) rfl ?_
@@ -314,7 +314,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   have hclear :
       UInt256.land (UInt256.lnot solcAddrMask) (renounceOwnershipPendingOwnerWord σ I) =
         renounceOwnershipClearAddressWord (renounceOwnershipPendingOwnerWord σ I) := by
-    rw [ownable2StepU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     exact (renounceOwnershipSetAddressZero_eq (renounceOwnershipPendingOwnerWord σ I)).symm
   have rd446 := rd446₀
   rw [show UInt256.lnot
@@ -341,7 +341,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   have rd478 := evm_run rd455 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, dup4, and, dup2]
-  have rd479₀ := RD.ownable2StepOr rd478 (by decide) (by evm_ov)
+  have rd479₀ := RD.lor rd478 (by decide) (by evm_ov)
   have rd480₀ := evm_run rd479₀ with [dup5]
   have hset :
       UInt256.lor
@@ -350,7 +350,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
         renounceOwnershipSetOwnerWord σ I := by
     unfold renounceOwnershipSetOwnerWord
     rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by decide]
-    rw [ownable2StepU256_lor_comm]
+    rw [u256_lor_comm]
     rw [renounceOwnershipU256_lor_zero]
     exact (renounceOwnershipSetAddressZero_eq (renounceOwnershipOwnerWordAfterPending σ I)).symm
   have rd480 := rd480₀
@@ -403,25 +403,25 @@ theorem ownable2StepX_renounceOwnership_revert_owner {cA gh bl σ σ₀ A I} {g 
       howner)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem ownable2StepRenounceOwnershipBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepRenounceOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x71, 0x50, 0x18, 0xa6]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨89⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨89⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := ownable2StepRenounceOwnershipSelector_size hsel
   have hd := ownable2StepDispatch_renounceOwnership (cd := I.calldata) hsel
   have hdec := ownable2StepDecode_renounceOwnership (I := I) hsz
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
   have hownerWord :
       renounceOwnershipOwnerWord σ_evm I = renounceOwnershipOwnerWord σ_solm I := by

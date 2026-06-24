@@ -79,11 +79,6 @@ theorem accessControlLowArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem accessControlByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 theorem accessControlSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
     (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
@@ -125,7 +120,7 @@ theorem accessControlLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
           (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc i))
         (accessControlSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = accessControlLowSelBytes i :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [accessControlLowArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -145,7 +140,7 @@ theorem accessControlHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
           (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc i))
         (accessControlSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = accessControlHighSelBytes i :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [accessControlHighArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -496,13 +491,6 @@ theorem accessControlX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     exact h123.revertStub (by decide) (by decide) (by decide) (by simp)
 
 /-! ## Scalar return encodings -/
-
-theorem boolFalseReturnEncoding :
-    encodeReturnValue? boolTy (.bool false) = some (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
-  scalarReturnEncoding (t := .bool) (w := ⟨0⟩) rfl
-    (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-        decide)
-    (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
 
 theorem boolTrueReturnEncodingAC :
     encodeReturnValue? boolTy (.bool true) = some (UInt256.toByteArray (⟨1⟩ : UInt256)) := by

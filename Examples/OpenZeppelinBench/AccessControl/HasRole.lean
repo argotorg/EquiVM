@@ -1,5 +1,4 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
-import Examples.SimpleAuction.Storage
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -65,7 +64,7 @@ theorem accessControlDispatch_hasRole {cd : ByteArray}
     (hsel : ((⟨#[0x91, 0xd1, 0x48, 0x54]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some hasRoleTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x91, 0xd1, 0x48, 0x54]⟩ : ByteArray) :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [defaultAdminRoleTransition, getRoleAdminTransition, grantRoleTransition])
     (post := [renounceRoleTransition, revokeRoleTransition, supportsInterfaceTransition])
@@ -77,145 +76,34 @@ theorem accessControlDispatch_hasRole {cd : ByteArray}
   · rw [selectorOf, getRoleAdminSelectorBytes, hcd]; decide
   · rw [selectorOf, grantRoleSelectorBytes, hcd]; decide
 
--- PROMOTE -> Reasoning.ABI: fixed `bytes32,address` calldata decoder.
-theorem hasRoleDecodeABIValues_bytes32_address_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 =
-      some ([.fixedBytes bytes32Width (bytes.take 32),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  have hcanonVal :
-      ↑(ABI.bytesToWord (List.take 32 (List.drop 32 bytes))).val < EVM.addressModulus := by
-    simpa [UInt256.toNat] using hcanon
-  rw [if_pos hcanonVal]
-  simp [UInt256.toNat]
-
-theorem hasRoleDecodeABIValues_bytes32_address_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 = none := by
-  simp only [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, zeroPadding?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, zeroPadding?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
-theorem hasRoleDecodeABIValues_bytes32_address_none_noncanon {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hnc : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 = none := by
-  simp [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  have hncVal :
-      ¬ ↑(ABI.bytesToWord (List.take 32 (List.drop 32 bytes))).val < EVM.addressModulus := by
-    simpa [UInt256.toNat] using hnc
-  rw [if_neg hncVal]
-  simp
-
--- PROMOTE -> Reasoning.ABI: flat fixed-bytes32/address calldata decoder.
 theorem accessControlDecode_hasRole_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus) :
     decodeCalldata (hasRoleTransition.params.map Param.name)
       (transitionSignature hasRoleTransition).paramTypes I.calldata = some (hasRoleStore I) := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = some (hasRoleStore I)
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
-      hasRoleAccountWord I := by
-    simpa [hasRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
-      (by norm_num)
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [hasRoleDecodeABIValues_bytes32_address_ok (bytes := I.calldata.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by
-      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
-          hasRoleAccountWord I from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hcanonAccount)]
-  rw [if_neg (by
-    rw [List.length_drop, htlen]
-    omega : ¬ (I.calldata.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues, hasRoleStore, hasRoleRoleValue, hasRoleAccountValue]
-  rw [hword36]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width, hasRoleStore,
+    hasRoleRoleValue, hasRoleRoleBytes, hasRoleAccountValue, hasRoleAccountWord]
+    using decodeCalldata_bytes32_address_ok (cd := I.calldata) (x := "role")
+      (y := "account") hsz68 hbig hcanonAccount
 
 theorem accessControlDecode_hasRole_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
     decodeCalldata (hasRoleTransition.params.map Param.name)
       (transitionSignature hasRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [hasRoleDecodeABIValues_bytes32_address_none_short (bytes := I.calldata.toList.drop 4) (by
-    rw [List.length_drop, htlen]
-    omega)]
-  rw [if_pos (by rw [List.length_drop, htlen]; omega :
-    (I.calldata.toList.drop 4).length < 64)]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_address_none_short (cd := I.calldata) (x := "role")
+      (y := "account") hsz4 hshort
 
 theorem accessControlDecode_hasRole_none_huge {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (hasRoleTransition.params.map Param.name)
       (transitionSignature hasRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  unfold decodeCalldata
-  by_cases hlt4 : I.calldata.toList.length < 4
-  · rw [if_pos hlt4]
-  · rw [if_neg hlt4]
-    have hnotDyn : ¬ ([bytes32, addr].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length) := by
-      simp [bytes32, addr, isDynamicABIType]
-    rw [if_neg hnotDyn]
-    have hHuge : [bytes32, addr].isEmpty = false ∧
-        2 ^ 255 ≤ (I.calldata.toList.drop 4).length := by
-      have htlen : I.calldata.toList.length = I.calldata.size := by
-        rw [byteArray_toList_eq, Array.length_toList]
-        rfl
-      rw [List.length_drop, htlen]
-      simp
-      omega
-    rw [if_pos hHuge]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_address_none_huge (cd := I.calldata) (x := "role")
+      (y := "account") hbig
 
 theorem accessControlDecode_hasRole_none_noncanon_account {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -223,36 +111,9 @@ theorem accessControlDecode_hasRole_none_noncanon_account {I : ExecutionEnv}
     decodeCalldata (hasRoleTransition.params.map Param.name)
       (transitionSignature hasRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
-      hasRoleAccountWord I := by
-    simpa [hasRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
-      (by norm_num)
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [hasRoleDecodeABIValues_bytes32_address_none_noncanon (bytes := I.calldata.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by
-      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
-          hasRoleAccountWord I from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hncAccount)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (I.calldata.toList.drop 4).length < 64)]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width, hasRoleAccountWord]
+    using decodeCalldata_bytes32_address_none_noncanon (cd := I.calldata) (x := "role")
+      (y := "account") hsz68 hbig hncAccount
 
 theorem hasRoleStore_role (I : ExecutionEnv) :
     (hasRoleStore I).get? "role" = some (hasRoleRoleValue I) := by
@@ -330,7 +191,7 @@ theorem accessControlBoolReturnEncoding (w : UInt256) :
       apply u256_inj
       exact congrArg Fin.val hval
     have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [wordToElem, hz, hnorm] using boolFalseReturnEncoding
+    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
   · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
       intro hx
       apply hval
@@ -338,15 +199,6 @@ theorem accessControlBoolReturnEncoding (w : UInt256) :
     have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
     have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
     simpa [boolTy, wordToElem, hval, hiz, hnorm] using boolTrueReturnEncodingAC
-
--- PROMOTE -> Common.lean: canonical-address keys round-trip through `keyValueToWord`.
-theorem accessControlKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
 
 theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     keyValueToWord (hasRoleRoleKey I) = hasRoleRoleWord I := by
@@ -363,9 +215,6 @@ theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.
   unfold fromByteArrayBigEndian
   rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
     readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
-
-theorem accessControlU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  exact SimpleAuction.simpleAuctionU256_land_comm a b
 
 -- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
 noncomputable def accessControlWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
@@ -628,7 +477,7 @@ theorem hasRoleOuterKeccakSlot (I : ExecutionEnv)
       = hasRoleSlot I := by
   rw [hasRoleSlotHashMem_read0_64, hasRoleBaseKeccakSlot I hsz68]
   unfold hasRoleSlot roleHasRoleSlot mapSlot
-  rw [accessControlKeyValueToWord_address_of_canonical _ hcanonAccount]
+  rw [keyValueToWord_address_of_canonical _ hcanonAccount]
   exact mappingSlot_single (hasRoleAccountWord I)
     (roleDataSlot (hasRoleRoleKey I))
 
@@ -721,7 +570,7 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   obtain ⟨_, _, rd486⟩ := rd485.sload (by decide) (by evm_ov)
   have hmaskComm : UInt256.land ⟨255⟩ (hasRoleStorageWord σ I) =
       UInt256.land (hasRoleStorageWord σ I) ⟨255⟩ := by
-    exact accessControlU256_land_comm ⟨255⟩ (hasRoleStorageWord σ I)
+    exact u256_land_comm ⟨255⟩ (hasRoleStorageWord σ I)
   have rd145 := evm_run rd486 with [
     push1 ⟨255⟩, and, swap1, jump (by jump_dest) ]
   have rd157 := evm_run rd145 with [
@@ -824,18 +673,18 @@ theorem accessControlHasRoleX_noncanon_account {cA gh bl σ σ₀ A I} {g : Sat2
       rw [hmask, hnc]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlHasRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨254⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
@@ -847,16 +696,16 @@ theorem accessControlHasRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A
           accountMapEquiv_storage_findD hAccounts I.codeOwner (hasRoleSlot I) ⟨0⟩
         have hbody :
             ExecTransitionBody config contract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               (hasRoleStore I)
               hasRoleTransition.body
               (.returned { contract := contract, locals := hasRoleStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (some (wordToElem .bool (hasRoleMaskedWord σ_solm I)))) := by
           simpa [hasRoleStorageWord, hasRoleMaskedWord, hasRoleSlot, initState,
             Solm.EVM.storageLoad, State.lookupAccount] using
               accessControlHasRoleBodyReturns
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
         have hretVal :
             (some (wordToElem .bool (hasRoleMaskedWord σ_solm I)) : Option Value) =

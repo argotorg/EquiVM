@@ -19,66 +19,6 @@ def highestBidderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev highestBidderReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (highestBidderWord σ I) solcAddrMask
 
--- PROMOTE -> Common.lean: generic `fromBytes' = Nat.ofDigits 256` bridge.
-theorem highestBidderFromBytes'_eq_ofDigits (bs : List UInt8) :
-    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) := by
-  induction bs with
-  | nil => rfl
-  | cons b bs ih => simp [fromBytes', Nat.ofDigits, ih]
-
--- PROMOTE -> Common.lean / Reasoning.EVMWord: `Nat.land` is commutative.
-theorem highestBidderNat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
-
--- PROMOTE -> Common.lean / Reasoning.EVMWord: `UInt256.land` is commutative.
-theorem highestBidderU256_land_comm (a b : UInt256) :
-    UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show Nat.land a.toNat b.toNat % UInt256.size =
-    Nat.land b.toNat a.toNat % UInt256.size
-  rw [highestBidderNat_land_comm]
-
--- PROMOTE -> Common.lean / Reasoning.EVMWord: low-bit mask as modulus.
-theorem highestBidderNat_land_mask_eq_mod (n k : Nat) :
-    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
-  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  by_cases hi : i < k
-  · rw [decide_eq_true hi]
-    simp
-  · rw [decide_eq_false hi]
-    simp
-
--- PROMOTE -> Common.lean: storage-load helper for full-slot Solidity addresses.
-theorem highestBidderFromBytes'_take20_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =
-      (UInt256.land w solcAddrMask).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← highestBidderFromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 20 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [highestBidderFromBytes'_eq_ofDigits (bs.take 20), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 20 = (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size
-  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [highestBidderNat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 160 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
-
 -- PROMOTE -> Common.lean: full-slot Solidity address `storageLocLoad` helper.
 theorem highestBidderStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionAddrLoc slot) =
@@ -91,40 +31,7 @@ theorem highestBidderStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UI
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
   rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [highestBidderFromBytes'_take20_wordLE]
-
--- PROMOTE -> Common.lean / Reasoning.EVMWord: address-mask result is canonical.
-theorem highestBidderSolcAddrMask_result_canonical (w : UInt256) :
-    (UInt256.land w solcAddrMask).toNat < EVM.addressModulus := by
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
-  show (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size < EVM.addressModulus
-  have hle : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat := hlandle _ _
-  have hltSize : Nat.land w.toNat solcAddrMask.toNat < UInt256.size :=
-    lt_of_le_of_lt hle (by decide)
-  rw [Nat.mod_eq_of_lt hltSize]
-  exact lt_of_le_of_lt hle (by decide)
-
--- PROMOTE -> Common.lean: ABI encoding for a Solidity address return word.
-theorem highestBidderAddressReturnEncoding (w : UInt256) :
-    encodeReturnValue? addr (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
-      some (UInt256.toByteArray (UInt256.land w solcAddrMask)) := by
-  have hcanon := highestBidderSolcAddrMask_result_canonical w
-  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-      (UInt256.land w solcAddrMask).toNat := by
-    apply Nat.mod_eq_of_lt
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-  have hword : EVM.word (UInt256.land w solcAddrMask).toNat = UInt256.land w solcAddrMask :=
-    u256_ofNat_toNat _
-  refine scalarReturnEncoding (t := .address) (w := UInt256.land w solcAddrMask) rfl ?_ ?_
-  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  · simp [encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
+  rw [fromBytes'_take20_wordLE_solcAddrMask]
 
 abbrev highestBidderRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
 
@@ -231,12 +138,12 @@ theorem blindAuctionX_highestBidder {cA gh bl σ σ₀ A I} {g : Sat256}
     (R := [blindAuctionSelWord I]) rd308 (by simp only [List.length_singleton]; omega)
   have hval : UInt256.land solcAddrMask (highestBidderWord σ I) =
       UInt256.land (highestBidderWord σ I) solcAddrMask :=
-    highestBidderU256_land_comm solcAddrMask (highestBidderWord σ I)
+    Reasoning.Theory.u256_land_comm solcAddrMask (highestBidderWord σ I)
   have hclean :
       UInt256.land (UInt256.land solcAddrMask (highestBidderWord σ I)) solcAddrMask =
         UInt256.land (highestBidderWord σ I) solcAddrMask := by
     rw [hval]
-    exact solcAddrMask_clean (highestBidderSolcAddrMask_result_canonical (highestBidderWord σ I))
+    exact solcAddrMask_clean (solcAddrMask_result_canonical (highestBidderWord σ I))
   have hret := highestBidderReturnOneWord206
     (R := [⟨308⟩, blindAuctionSelWord I]) rd206
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -267,7 +174,7 @@ theorem blindAuctionDispatch_highestBidder {cd : ByteArray}
     (hsel : ((⟨#[0x91, 0xf9, 0x01, 0x57]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg blindAuctionContract cd = some highestBidderGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x91, 0xf9, 0x01, 0x57]⟩ : ByteArray) :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter])
@@ -327,7 +234,7 @@ theorem blindAuctionHighestBidderBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     exact (blindAuctionX_highestBidder (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody
         (by simp [highestBidderReturnWord, hword]) hAccounts
-        (returnEquiv_of_encode (highestBidderAddressReturnEncoding (highestBidderWord σ_evm I)))
+        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (highestBidderWord σ_evm I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

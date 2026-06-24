@@ -403,7 +403,7 @@ theorem erc6909SupportsInterfaceX_body {cA gh bl σ σ₀ A I} {g : Sat256}
     have hresultRev :
         UInt256.eq (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) ierc165IdWord =
           supportsInterfaceResultWord I := by
-      rw [OpenZeppelinBench.AccessControl.accessControlUInt256_eq_comm, hresult]
+      rw [uInt256_eq_comm, hresult]
     exact ⟨_, _, by
       simpa [hmask, hresultRev, ierc165IdWord] using evm_run rd441 with [
         jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]⟩
@@ -543,8 +543,8 @@ theorem erc6909SupportsInterfaceBodyCore
                 by_cases hr : supportsInterfaceResult I
                 · simpa [supportsInterfaceResultWord, hr] using
                     OpenZeppelinBench.AccessControl.boolTrueReturnEncodingAC
-                · simpa [supportsInterfaceResultWord, hr] using
-                    OpenZeppelinBench.AccessControl.boolFalseReturnEncoding))
+                · simpa [boolTy, supportsInterfaceResultWord, hr] using
+                    Reasoning.Theory.boolFalseReturnEncoding))
     · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
       have hdec := erc6909Decode_supportsInterface_none_huge (I := I) hbigge
       exact (erc6909SupportsInterfaceX_hugearg (g := Sat256.ofUInt256 g)

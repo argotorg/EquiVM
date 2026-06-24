@@ -64,6 +64,15 @@ theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
     EVM.wordOfInt i = EVM.word i.toNat := by
   rw [EVM.wordOfInt, if_neg (by omega)]
 
+/-- A nonnegative integer built from a word's natural value round-trips to that word. -/
+theorem wordOfInt_ofNat_toNat (a : UInt256) :
+    EVM.wordOfInt (Int.ofNat a.toNat) = a := by
+  rw [EVM.wordOfInt, if_neg (by simp)]
+  apply u256_inj
+  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
+  show a.toNat % EVM.twoPow 256 = a.toNat
+  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
+
 /-- Little-endian word-byte round-trip for `EVM.Word.toBytesLEWithSizeProof`. -/
 theorem fromBytes'_toBytesLEWithSizeProof (w : UInt256) :
     fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
@@ -110,6 +119,10 @@ theorem fromBytes'_drop_wordLE (w : UInt256) (n : Nat) :
     (bs.map (fun b : UInt8 => b.toNat)) hlt
   rw [fromBytes'_eq_ofDigits (bs.drop n), List.map_drop]
   rw [← hdrop, hfull]
+
+theorem fromBytes'_drop1_wordLE (w : UInt256) :
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop 1) = w.toNat / 256 := by
+  simpa using fromBytes'_drop_wordLE w 1
 
 theorem fromBytes'_take_wordLE_land_mask (w : UInt256) (n : Nat) (hbits : 8 * n ≤ 256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take n) =
@@ -193,6 +206,24 @@ theorem extract_append_right (A B : ByteArray) :
   show (A.data ++ B.data).extract A.data.size (A.data.size + B.data.size) = B.data
   rw [Array.extract_append_right]; simp
 
+/-- Extracting the whole bytearray returns it unchanged. -/
+theorem byteArray_extract_self (b : ByteArray) : b.extract 0 b.size = b := by
+  apply ByteArray.ext
+  rw [ByteArray.data_extract, Array.extract_eq_self_of_le]
+  exact le_rfl
+
+/-- A `ByteArray` of size zero is empty. -/
+theorem byteArray_eq_empty_of_size_eq_zero (b : ByteArray) (h : b.size = 0) :
+    b = ByteArray.empty := by
+  apply ByteArray.ext
+  exact Array.eq_empty_of_size_eq_zero (by simpa using h)
+
+/-- Writing zero bytes leaves the destination bytearray unchanged. -/
+theorem byteArray_write_len_zero (src base : ByteArray) (srcOff dstOff : ℕ) :
+    src.write srcOff base dstOff 0 = base := by
+  unfold ByteArray.write
+  simp
+
 /-- `(A ++ B).size = A.size + B.size` for `ByteArray`. -/
 theorem byteArray_size_append (A B : ByteArray) : (A ++ B).size = A.size + B.size :=
   ByteArray.size_append
@@ -202,6 +233,16 @@ theorem zeroes_zero {n : USize} (hn : n.toNat = 0) : ffi.ByteArray.zeroes n = By
   apply ByteArray.ext
   apply Array.toList_inj.mp
   rw [byteArray_zeroes_toList, hn]; rfl
+
+/-- Reading zero bytes with padding returns the empty bytearray. -/
+theorem byteArray_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :
+    mem.readWithPadding addr 0 = ByteArray.empty := by
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  by_cases h : addr ≥ mem.size
+  · simp [h]
+    exact zeroes_zero (n := (OfNat.ofNat 0 : USize)) (by rfl)
+  · simp [h]
+    exact zeroes_zero (n := (OfNat.ofNat 0 : USize)) (by rfl)
 
 /-- **MSTORE write.**  Storing a 32-byte word `v` at offset `off ≥ mem.size` appends it past a
     zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic;
@@ -274,6 +315,14 @@ theorem extract_append_left (A B : ByteArray) (i j : ℕ) (h : j ≤ A.size) :
   apply ByteArray.ext
   rw [ByteArray.data_extract, ByteArray.data_append, ByteArray.data_extract,
       Array.extract_append_of_stop_le_size_left (by rwa [← ByteArray.size_data] at h)]
+
+/-- Extracting the first two 32-byte chunks of `A ++ B ++ C` returns `A ++ B`. -/
+theorem byteArray_extract_two_chunks_0 (A B C : ByteArray) (hA : A.size = 32)
+    (hB : B.size = 32) :
+    (A ++ B ++ C).extract 0 64 = A ++ B := by
+  rw [extract_append_left (A ++ B) C 0 64 (by rw [ByteArray.size_append, hA, hB])]
+  rw [show 64 = (A ++ B).size by rw [ByteArray.size_append, hA, hB]]
+  exact byteArray_extract_self _
 
 /-- `empty ++ A = A`. -/
 theorem empty_append (A : ByteArray) : ByteArray.empty ++ A = A := by
@@ -588,6 +637,83 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
       show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
       show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size = readAddr + 32 from by
         omega]
+
+/-- **Append-shaped write at memory end.**  A nonempty write from source offset `0` to
+    destination offset `base.size` appends the requested source prefix. -/
+theorem write_at_end_eq (src base : ByteArray) (len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) :
+    src.write 0 base base.size len = base ++ src.extract 0 len := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  simp only [ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract]
+  have hcopy : min len (src.size - 0) = len := by omega
+  have htail : min base.size (base.size + len) - (base.size + len) = 0 := by omega
+  have hgap : base.size - base.size = 0 := by omega
+  rw [hcopy, htail, hgap]
+  simp only [Nat.zero_add]
+  rw [show (ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize)).data = (#[] : Array UInt8) from by
+    rw [zeroes_zero (n := (⟨↑(0:ℕ)⟩ : USize)) (by rfl)]
+    rfl]
+  simp only [Array.append_empty, Nat.add_zero]
+  rw [Array.extract_eq_self_of_le (by rfl : base.data.size ≤ base.size)]
+  have hcopy2 : min len (src.data.size - 0) = len := by
+    have : src.data.size = src.size := rfl
+    omega
+  rw [hcopy2]
+  rw [show base.data.extract (base.size + len) = #[] from by
+    apply Array.extract_eq_empty_of_le
+    rw [show base.data.size = base.size from rfl]
+    omega]
+  simp
+
+/-- Reading back a 32-byte word write, allowing the write to extend memory by a zero gap. -/
+theorem toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (off : ℕ)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding off 32 =
+      UInt256.toByteArray b := by
+  by_cases hle : off ≤ mem.size
+  · rw [write32_read_back _ _ off (by rw [toByteArray_size]) hle]
+    rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [readWithPadding_eq_extract _ off (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+      omega)]
+    rw [extract_append_right_window
+      (mem ++ ffi.ByteArray.zeroes (USize.ofNat (off - mem.size)))
+      (UInt256.toByteArray b) off (off + 32) (by
+        rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+        omega)]
+    rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+    rw [show off - (mem.size + (off - mem.size)) = 0 by omega,
+      show off + 32 - (mem.size + (off - mem.size)) = 32 by omega]
+    rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
+      rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
+      exact byteArray_extract_self _]
+
+/-- Reading below a 32-byte word write, allowing the write to extend memory by a zero gap. -/
+theorem toByteArray_write_read_below_of_gap
+    (b : UInt256) (mem : ByteArray) (off read : ℕ)
+    (hread : read + 32 ≤ mem.size) (hbelow : read + 32 ≤ off)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read 32 =
+      mem.readWithPadding read 32 := by
+  by_cases hle : off ≤ mem.size
+  · exact write32_read_below _ _ off read (by rw [toByteArray_size]) hle hbelow
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [readWithPadding_eq_extract _ read (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+      omega)]
+    rw [extract_append_left _ _ _ _ hread]
+    exact (readWithPadding_eq_extract _ read hread).symm
 
 /-! ## 4a. Two-word scratch memory for mapping-slot hashes -/
 

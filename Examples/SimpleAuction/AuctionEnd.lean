@@ -84,160 +84,6 @@ theorem auctionEndEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
   mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide) (by decide)
     (auctionEndEventMem_read64 σ I)
 
-theorem auctionEnd_write_len_zero (src base : ByteArray) (sa da : ℕ) :
-    src.write sa base da 0 = base := by
-  unfold ByteArray.write
-  simp
-
-theorem auctionEnd_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :
-    mem.readWithPadding addr 0 = ByteArray.empty := by
-  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  by_cases h : addr ≥ mem.size
-  · simp [h]
-    exact zeroes_zero (n := (OfNat.ofNat 0 : USize)) (by rfl)
-  · simp [h]
-    exact zeroes_zero (n := (OfNat.ofNat 0 : USize)) (by rfl)
-
--- PROMOTE -> Reasoning.EVMWord.
-theorem auctionEndNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- PROMOTE -> Reasoning.EVMWord.
-theorem auctionEndU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [auctionEndNat_lor_comm]
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic OR combinator.
-theorem auctionEndOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic OR combinator.
-theorem auctionEndRDOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => auctionEndOr_xstep hc hp hdec hs hov)
-
--- PROMOTE -> Reasoning.Reach: one-step RETURNDATACOPY with caller-provided memory shape.
-theorem auctionEndRDReturndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
-    (memout : ByteArray) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.RETURNDATACOPY, .none))
-    (hguard : b.toNat + c.toNat ≤ rdata.size)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .RETURNDATACOPY = mcost)
-    (hmemout : rdata.write b.toNat mem a.toNat c.toNat = memout)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
-      (k + 1) (C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := hmc s haw hstk
-    have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
-      rw [hrdata]
-      omega
-    have st := returndatacopy_xstep hcode hpc hdec hstk hmemok hov
-    rw [hmcS] at st
-    rw [collapse_two_stage] at st
-    by_cases gg : g.toNat < C + (mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · have hcost_pos :
-          0 < mcost + (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) := by
-        simp [GasConstants.Gverylow]
-      refine Or.inr ⟨stReturndatacopy s a b c t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega,
-          by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stReturndatacopy]; exact hcode
-      · simp only [stReturndatacopy]; rw [hpc]
-      · rfl
-      · simp only [stReturndatacopy, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stReturndatacopy]; rw [hmem, hrdata, hmemout]
-      · simp only [stReturndatacopy]; rw [haw, hawout]
-      · simp only [stReturndatacopy]; exact hrdata
-      · simp only [stReturndatacopy]; exact hacc
-      · exact hee
-      · exact hworld
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic TIMESTAMP combinator.
-def auctionEndStTimestamp (s : State) : State :=
-  { s with machineState := { s.machineState with
-      pc := s.machineState.pc + ⟨1⟩,
-      stack := UInt256.ofNat s.executionEnv.header.timestamp :: s.machineState.stack,
-      execLength := s.machineState.execLength + 1,
-      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
-
-theorem auctionEndTimestamp_xstep {s : State} {code : ByteArray} {pcv : UInt256}
-    {rest : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.TIMESTAMP, .none))
-    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
-         else .ok (auctionEndStTimestamp s, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.TIMESTAMP, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by
-    rw [hstk]
-    omega
-  rw [← hcode, step_timestamp s hd, if_neg hov']
-  simp only [GasConstants.Gbase, auctionEndStTimestamp]
-
-theorem auctionEndRDTimestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.TIMESTAMP, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.timestamp :: stk) mem aw rdata acc
-      (k + 1) (C + 2) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := auctionEndTimestamp_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 2
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨auctionEndStTimestamp s,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega,
-          by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [auctionEndStTimestamp]; exact hcode
-      · simp only [auctionEndStTimestamp]; rw [hpc]
-      · simp only [auctionEndStTimestamp]; rw [hee, hstk]
-      · simp only [auctionEndStTimestamp]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [auctionEndStTimestamp]; exact hmem
-      · simp only [auctionEndStTimestamp]; exact haw
-      · simp only [auctionEndStTimestamp]; exact hrdata
-      · simp only [auctionEndStTimestamp]; exact hacc
-      · exact hee
-      · exact hworld
-
 theorem simpleAuctionAuctionEndSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true) :
@@ -251,7 +97,7 @@ theorem simpleAuctionDispatch_auctionEnd {cd : ByteArray}
     (hsel : ((⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg simpleAuctionContract cd = some auctionEndTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩ : ByteArray) :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, withdrawTransition])
     (post := [beneficiaryGetter, auctionEndTimeGetter, highestBidderGetter, highestBidGetter])
@@ -319,7 +165,7 @@ theorem simpleAuctionX_auctionEnd_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256
     exact ⟨_, _, by simpa [auctionEndAuctionEndWord, initState] using rd559₀⟩
   have hlt : UInt256.lt (auctionEndTimestampWord I) (auctionEndAuctionEndWord σ I) = ⟨1⟩ :=
     ult_one htime
-  have rd560 := auctionEndRDTimestamp rd559 (by decide) (by evm_ov)
+  have rd560 := RD.timestamp rd559 (by decide) (by evm_ov)
   have rd562₀ := evm_run rd560 with [lt, iszero]
   have rd562 := rd562₀
   rw [show UInt256.lt (UInt256.ofNat I.header.timestamp) (auctionEndAuctionEndWord σ I) =
@@ -363,7 +209,7 @@ theorem simpleAuctionX_auctionEnd_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [auctionEndAuctionEndWord, initState] using rd559₀⟩
   have hlt : UInt256.lt (auctionEndTimestampWord I) (auctionEndAuctionEndWord σ I) = ⟨0⟩ :=
     ult_zero htime
-  have rd560 := auctionEndRDTimestamp rd559 (by decide) (by evm_ov)
+  have rd560 := RD.timestamp rd559 (by decide) (by evm_ov)
   have rd562₀ := evm_run rd560 with [lt, iszero]
   have rd562 := rd562₀
   rw [show UInt256.lt (UInt256.ofNat I.header.timestamp) (auctionEndAuctionEndWord σ I) =
@@ -392,7 +238,7 @@ theorem simpleAuctionX_auctionEnd_endedRevert {cA gh bl σ σ₀ A I} {g : Sat25
   have rd598 := rd598₀
   have hmask : UInt256.land ⟨255⟩ (auctionEndEndedRawWord σ I) =
       auctionEndEndedWord σ I := by
-    rw [simpleAuctionU256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
+    rw [u256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
     rfl
   rw [hmask, isZero_eq_zero_of_ne hended] at rd598
   have rd602 := evm_run rd598 with [push2 ⟨626⟩, jumpiNT (by decide)]
@@ -436,7 +282,7 @@ theorem simpleAuctionX_auctionEnd_afterNotEnded {cA gh bl σ σ₀ A I} {g : Sat
   have rd598 := rd598₀
   have hmask : UInt256.land ⟨255⟩ (auctionEndEndedRawWord σ I) =
       auctionEndEndedWord σ I := by
-    rw [simpleAuctionU256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
+    rw [u256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
     rfl
   rw [hmask, hended, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd598
   exact ⟨_, _, evm_run rd598 with [push2 ⟨626⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
@@ -465,15 +311,15 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : 
   have rd635 := rd635₀
   have hland : UInt256.land (UInt256.lnot ⟨255⟩) (auctionEndEndedRawWord σ I) =
       UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩) := by
-    exact simpleAuctionU256_land_comm (UInt256.lnot ⟨255⟩) (auctionEndEndedRawWord σ I)
+    exact u256_land_comm (UInt256.lnot ⟨255⟩) (auctionEndEndedRawWord σ I)
   rw [hland] at rd635
-  have rd638₀ := auctionEndRDOr rd635 (by decide) (by evm_ov)
+  have rd638₀ := RD.lor rd635 (by decide) (by evm_ov)
   have rd638 := rd638₀
   have hlor : UInt256.lor ⟨1⟩
         (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩)) =
       auctionEndSetEndedWord (auctionEndEndedRawWord σ I) := by
     unfold auctionEndSetEndedWord
-    exact auctionEndU256_lor_comm ⟨1⟩
+    exact u256_lor_comm ⟨1⟩
       (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩))
   rw [hlor] at rd638
   have rd639 := evm_run rd638 with [swap1]
@@ -650,7 +496,7 @@ theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ 
   have hcopyLen_toNat : copyLen.toNat = o.size := by
     simpa [copyLen] using UInt256.toNat_ofNat_of_lt hosz
   let mem4 : ByteArray := o.write 0 mem3 copyDest.toNat copyLen.toNat
-  have rd784 := auctionEndRDReturndatacopy
+  have rd784 := RD.returndatacopy
     (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 6).toNat
       copyDest.toNat copyLen.toNat)) - Cₘ (UInt256.ofNat 6))
     mem4
@@ -732,7 +578,7 @@ theorem simpleAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
     simp [min, hle]
   have hcd : (auctionEndEventMem (auctionEndAfterEndedMap σ I) I).readWithPadding
       (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact auctionEnd_readWithPadding_zero _ _
+    exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
       (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
         (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
@@ -756,7 +602,7 @@ theorem simpleAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 6) := by
     decide
   refine ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ?_⟩
-  rw [hmin, auctionEnd_write_len_zero, haw] at rd743₀
+  rw [hmin, byteArray_write_len_zero, haw] at rd743₀
   simpa [initState] using rd743₀
 
 theorem simpleAuctionX_auctionEnd_callDepthRevert {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -777,134 +623,6 @@ theorem simpleAuctionX_auctionEnd_callDepthRevert {cA gh bl σ σ₀ A I} {g : S
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) rd743
   exact simpleAuctionX_auctionEnd_requireSuccess_revert rd798
 
--- PROMOTE -> Reasoning.Reach: value-parametric no-call-made branch for insufficient balance.
-set_option maxHeartbeats 1000000 in
-theorem auctionEndRDCallValueInsufficientBalance {code : ByteArray} {ee : ExecutionEnv}
-    {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    {k C : ℕ} {gasArg target value inOffset inSize outOffset outSize : UInt256}
-    {t : List UInt256}
-    (h : RD code ee g s0 pc
-          (gasArg :: target :: value :: inOffset :: inSize :: outOffset :: outSize :: t)
-          mem aw rdata (cA, σ) k C)
-    (hperm : ee.perm = true)
-    (hdec : decode code pc = some (.CALL, .none))
-    (hbalance : ¬ value ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
-    (hdepth : ee.depth.val < 1024)
-    (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
-        (ByteArray.empty.write 0 mem outOffset.toNat
-          (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
-        (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
-          outOffset.toNat outSize.toNat))
-        ByteArray.empty (cA, σ) k' C' := by
-  unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact ⟨k, C, by unfold RD; exact Or.inl hoog⟩
-  · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
-      rw [hcode, hpc]; exact hdec
-    have hperm' : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
-    have st := step_call s hd
-    rw [hstk] at st
-    have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 - 7 + 1 > 1024) = False :=
-      eq_false (by omega)
-    have hstaticF : (¬ s.executionEnv.perm = true ∧ value ≠ ({ val := 0 } : UInt256)) = False :=
-      eq_false (by rintro ⟨hp, _⟩; exact hp hperm')
-    have hdepthLt : s.executionEnv.depth < 1024 := by
-      rw [Fin.lt_def]; exact hdepth'
-    have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
-    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
-    have hbalOpt :
-        (value ≤ Option.option ⟨0⟩ (fun x => x.balance)
-            (Batteries.RBMap.find? s.accountMap s.executionEnv.codeOwner)) = False := by
-      rw [hee, hσ]
-      rw [show Option.option ⟨0⟩ (fun x => x.balance)
-          (Batteries.RBMap.find? σ ee.codeOwner) =
-          (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) by
-        cases Batteries.RBMap.find? σ ee.codeOwner <;> rfl]
-      exact eq_false hbalance
-    have hgtT :
-        (value > (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
-          True := by
-      rw [hee, hσ]
-      exact eq_true (by
-        show ((σ.find? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val < value.val.val
-        exact Nat.lt_of_not_ge hbalance)
-    have hdeqF : (s.executionEnv.depth == 1024) = false := by
-      rw [beq_eq_false_iff_ne]
-      intro hh
-      rw [hh] at hdepth'
-      exact absurd hdepth' (by decide)
-    simp only [List.length_cons, hovF, hstaticF, if_false, hdepthLt, hbalOpt, hgtT,
-      hdeqF] at st
-    rw [collapse_two_stage, hcode] at st
-    have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
-    have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
-    set mc := memoryExpansionCost s Operation.CALL with hmc
-    set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
-      gasArg s.accountMap
-      { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength,
-        gasAvailable := s.machineState.gasAvailable.subNat mc,
-        activeWords := s.machineState.activeWords, memory := s.machineState.memory,
-        returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hgc
-    set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) value
-      gasArg s.accountMap
-      { pc := s.machineState.pc, stack := s.machineState.stack, execLength := s.machineState.execLength + 1,
-        gasAvailable := s.machineState.gasAvailable.subNat mc,
-        activeWords := s.machineState.activeWords, memory := s.machineState.memory,
-        returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate with hG
-    set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - (UInt256.ofNat G).toNat) with hgv
-    split at hXP
-    · exact ⟨k, C, by unfold RD; exact Or.inl hXP⟩
-    · rename_i hP
-      have hPle : mc + gc ≤ s.machineState.gasAvailable.toNat := Nat.le_of_not_lt hP
-      have hcgle : (UInt256.ofNat G).toNat ≤ G := by
-        show G % UInt256.size ≤ G
-        exact Nat.mod_le _ _
-      have hGltgc : G < gc := by
-        rw [hG, hgc]
-        exact Ccallgas_lt_Ccall (AccountAddress.ofUInt256 target)
-          (AccountAddress.ofUInt256 target) value gasArg s.accountMap
-          { pc := s.machineState.pc, stack := s.machineState.stack,
-            execLength := s.machineState.execLength + 1,
-            gasAvailable := s.machineState.gasAvailable.subNat mc,
-            activeWords := s.machineState.activeWords, memory := s.machineState.memory,
-            returnData := s.machineState.returnData, H_return := s.machineState.H_return }
-          s.substate
-      have hgasN : s.machineState.gasAvailable.toNat = g.toNat - C := by
-        rw [hgas, Sat256.subNat_toNat]
-      set callCharge := mc + (gc - (UInt256.ofNat G).toNat) with hcallCharge
-      have hcallChargeLeGas : callCharge ≤ s.machineState.gasAvailable.toNat := by
-        rw [hcallCharge]
-        have hdeltaLe : gc - (UInt256.ofNat G).toNat ≤ gc := Nat.sub_le _ _
-        omega
-      have hCcallCharge : C + callCharge ≤ g.toNat := by
-        rw [hgasN] at hcallChargeLeGas
-        omega
-      have hgvGas : gv = g.subNat (C + callCharge) := by
-        rw [hgv, hgas, hcallCharge]
-        rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
-      refine ⟨k + 1, C + callCharge, ?_⟩
-      unfold RD
-      refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · exact hcode
-      · rw [hpc]
-      · rfl
-      · show gv = g.subNat (C + callCharge)
-        exact hgvGas
-      · show k + 1 ≤ C + callCharge
-        rw [hcallCharge]
-        omega
-      · exact hCcallCharge
-      · simp [hmem]
-      · rw [haw]
-      · rfl
-      · simp [hcA, hσ]
-      · exact hee
-      · exact hworld
-
 theorem simpleAuctionX_auctionEnd_callInsufficientRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I g
@@ -920,7 +638,7 @@ theorem simpleAuctionX_auctionEnd_callInsufficientRevert {cA gh bl σ σ₀ A I}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
   obtain ⟨_, _, rd743⟩ :=
-    auctionEndRDCallValueInsufficientBalance rd742 hperm (by decide) hbalance hdepth (by evm_ov)
+    RD.callValueInsufficientBalance rd742 hperm (by decide) hbalance hdepth (by evm_ov)
   obtain ⟨_, _, rd798⟩ :=
     simpleAuctionX_auctionEnd_postCallEmpty_toRequire (cA := cA) (gh := gh) (bl := bl)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) rd743
@@ -1301,11 +1019,6 @@ theorem auctionEndEVMStateEquiv_balance_codeOwner {evmE evmS : EVM.State}
   rw [hσ.executionEnv]
   exact auctionEndAccountMapEquiv_balance hσ.accountMap evmS.executionEnv.codeOwner
 
-theorem auctionEndByteArray_eq_empty_of_size_zero (b : ByteArray) (h : b.size = 0) :
-    b = ByteArray.empty := by
-  apply ByteArray.ext
-  exact Array.eq_empty_of_size_eq_zero (by simpa using h)
-
 theorem simpleAuctionX_auctionEnd_afterCall_revert {cA gh bl σ σ₀ A I} {g : Sat256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {o : ByteArray} {k C : ℕ}
     (rd : RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨743⟩
@@ -1318,7 +1031,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_revert {cA gh bl σ σ₀ A I} {g : 
     (hosz : o.size < UInt256.size) :
     RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   by_cases ho : o.size = 0
-  · have hoempty : o = ByteArray.empty := auctionEndByteArray_eq_empty_of_size_zero o ho
+  · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
     obtain ⟨_, _, rd798⟩ :=
       simpleAuctionX_auctionEnd_postCallEmpty_toRequire (cA := cA) (gh := gh) (bl := bl)
@@ -1342,7 +1055,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_return {cA gh bl σ σ₀ A I} {g : 
     (hosz : o.size < UInt256.size) :
     RDret simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   by_cases ho : o.size = 0
-  · have hoempty : o = ByteArray.empty := auctionEndByteArray_eq_empty_of_size_zero o ho
+  · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
     obtain ⟨_, _, rd798⟩ :=
       simpleAuctionX_auctionEnd_postCallEmpty_toRequire (cA := cA) (gh := gh) (bl := bl)
@@ -1535,7 +1248,7 @@ theorem simpleAuctionAuctionEndBody {cA gh bl σ_evm σ_solm σ₀ A I}
                 (valueWord := auctionEndHighestBidWord evmEAfter.accountMap evmEAfter.executionEnv)
                 (cA' := cA') (σ' := σ') (g' := g'') (A' := A')
                 ?_ ?_ ?_ ?_ ?_
-              · exact (simpleAuctionWordOfInt_ofNat_toNat
+              · exact (wordOfInt_ofNat_toNat
                   (auctionEndHighestBidWord evmEAfter.accountMap evmEAfter.executionEnv)).symm
               · refine ⟨callGas, A_in, ?_⟩
                 rw [hAfterEnvE, hCreatedE, hGenesisE, hBlocksE, hAfterMapE, hOrigE]
@@ -1711,7 +1424,7 @@ theorem simpleAuctionAuctionEndBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     auctionEndHighestBidWordState evmSAfter ≤
                       (evmSAfter.accountMap.find? evmSAfter.executionEnv.codeOwner |>.elim
                         ⟨0⟩ (·.balance)) := by
-                  rw [simpleAuctionWordOfInt_ofNat_toNat] at hvalueBal
+                  rw [wordOfInt_ofNat_toNat] at hvalueBal
                   exact hvalueBal
                 have hvalueBalE :
                     auctionEndHighestBidWord (auctionEndAfterEndedMap σ_evm I) I ≤

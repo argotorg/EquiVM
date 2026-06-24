@@ -1242,26 +1242,13 @@ theorem scratch_evalExpr_reveal_placeBid_cond_false_deposit (evm : EVM.State) (l
   simp [evalBinaryOp?]
   omega
 
--- LIBRARY CANDIDATE / LOCAL COPY: full-slot bytes32 storage writes, same shape as the
--- non-importable `Bid.lean` helper; promote to `Storage.lean`/`Common.lean` once shared.
 theorem scratch_blindAuctionStorageLocStore_bytes32 (evm : EVM.State)
     (slot word : UInt256) (v : Value)
     (hval : valueToWord v = some word) :
     storageLocStore evm (blindAuctionBytes32Loc slot) v =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
-  unfold storageLocStore storageLocWriteWord blindAuctionBytes32Loc
-  simp only [hval, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof word).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = word.toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+  simpa [blindAuctionBytes32Loc, Reasoning.Theory.bytes32Loc] using
+    storageLocStore_bytes32 evm slot word v hval
 
 def scratch_revealZeroBlindedState (evm : EVM.State) (i : UInt256) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner

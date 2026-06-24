@@ -41,23 +41,6 @@ theorem pausableArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem pausableByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`; reused across Ballot/SimpleAuction/BlindAuction/OZ.
-theorem pausableU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a :=
-  Reasoning.Theory.u256_land_comm a b
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem pausableNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a :=
-  Reasoning.Theory.nat_lor_comm a b
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem pausableU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a :=
-  Reasoning.Theory.u256_lor_comm a b
-
 /-! ### Shared source-level storage and ABI helpers -/
 
 def pausableSenderWord (I : ExecutionEnv) : UInt256 :=
@@ -93,14 +76,6 @@ theorem pausableEventMem_mload64 (I : ExecutionEnv) :
   exact mloadFreePtrValue (by rw [pausableEventMem_size]; decide) (by decide)
     (pausableEventMem_read64 I)
 
-theorem pausableBoolFalseReturnEncoding :
-    encodeReturnValue? boolTy (.bool false) = some (UInt256.toByteArray ⟨0⟩) := by
-  simpa [boolTy] using
-    scalarReturnEncoding (t := .bool) (w := (⟨0⟩ : UInt256)) rfl
-      (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind,
-        Option.bind]; decide)
-      (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
-
 theorem pausableBoolReturnEncoding (w : UInt256) :
     encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
       some (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
@@ -109,7 +84,7 @@ theorem pausableBoolReturnEncoding (w : UInt256) :
       apply u256_inj
       exact congrArg Fin.val hval
     have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [wordToElem, hz, hnorm] using pausableBoolFalseReturnEncoding
+    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
   · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
       intro hx
       apply hval
@@ -172,34 +147,6 @@ theorem pausableEvalWhenNotPausedFalse (evm : EVM.State) (locals : Store)
     evalUnaryOp?]
   rfl
 
--- LIBRARY CANDIDATE: `Reasoning.Stepping` / `Reasoning.Reach`, generic OR combinator.
-theorem pausableOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic OR combinator.
-theorem pausableRDOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => pausableOr_xstep hc hp hdec hs hov)
-
 /-- Arm `j`'s selector equality agrees with the calldata byte comparison. -/
 theorem pausableArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -224,7 +171,7 @@ theorem pausableMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
           (nthArmPc pausableBenchBytecode pausableFirstArmPc i))
         (pausableSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = pausableSelBytes i :=
-    (pausableByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [pausableArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -481,7 +428,7 @@ theorem RD.pausableWhenNotPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEn
     exact ⟨_, _, by simpa [pausedRawWord] using rd335₀⟩
   have rd339₀ := evm_run rd335 with [push1 ⟨255⟩, and, iszero]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     rfl
   have rd339 := rd339₀
   rw [hmask, hzero] at rd339
@@ -506,7 +453,7 @@ theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : Execution
     exact ⟨_, _, by simpa [pausedRawWord] using rd335₀⟩
   have rd339₀ := evm_run rd335 with [push1 ⟨255⟩, and, iszero]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     rfl
   have rd339 := rd339₀
   rw [hmask, isZero_eq_zero_of_ne hnz] at rd339
@@ -545,7 +492,7 @@ theorem RD.pausableWhenPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     exact ⟨_, _, by simpa [pausedRawWord] using rd370₀⟩
   have rd373₀ := evm_run rd370 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     rfl
   have rd373 := rd373₀
   rw [hmask] at rd373
@@ -570,7 +517,7 @@ theorem RD.pausableWhenPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
     exact ⟨_, _, by simpa [pausedRawWord] using rd370₀⟩
   have rd373₀ := evm_run rd370 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     rfl
   have rd373 := rd373₀
   rw [hmask, hzero] at rd373

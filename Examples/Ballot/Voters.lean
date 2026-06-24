@@ -88,94 +88,20 @@ theorem votersDelegateWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEn
   unfold votersDelegateWord
   rw [votersPackedWord_accountMapEquiv hστ]
 
--- SHARED-HELPER CANDIDATE: duplicate of ERC20's canonical address-key bridge.
-theorem ballotKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-
 theorem votersBaseSlot_spec (I : ExecutionEnv)
     (hcanon : (votersArgWord I).toNat < EVM.addressModulus) :
     votersBaseSlot I =
       uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (votersArgWord I) ++
         UInt256.toByteArray (⟨1⟩ : UInt256))) := by
   unfold votersBaseSlot voterBase mapSlot
-  rw [ballotKeyValueToWord_address_of_canonical (votersArgWord I) hcanon]
-
--- LIBRARY CANDIDATE: `Reasoning.Memory`, generalizing `fromBytes'_take20_wordLE`.
-theorem fromBytes'_take1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 1) =
-      (UInt256.land w ⟨255⟩).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits ((EVM.Word.toBytesLEWithSizeProof w).1.take 1)]
-  change Nat.ofDigits 256 ((bs.take 1).map fun b : UInt8 => b.toNat) = _
-  rw [List.map_take, ← htake, hfull]
-  show w.toNat % 256 ^ 1 = (Nat.land w.toNat (⟨255⟩ : UInt256).toNat) % UInt256.size
-  rw [show 256 ^ 1 = 2 ^ 8 by norm_num]
-  rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
-  rw [nat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 8 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
-
--- LIBRARY CANDIDATE: `Reasoning.Memory`, packed address at byte offset 1.
-theorem fromBytes'_drop1_take20_wordLE (w : UInt256) :
-    fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop 1).take 20) =
-      (UInt256.land (UInt256.div w ⟨256⟩) solcAddrMask).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 20 (by decide)
-    ((bs.map (fun b : UInt8 => b.toNat)).drop 1)
-    (fun l hl => hlt l (List.mem_of_mem_drop hl))
-  rw [fromBytes'_eq_ofDigits (((EVM.Word.toBytesLEWithSizeProof w).1.drop 1).take 20)]
-  change Nat.ofDigits 256 ((((bs.drop 1).take 20).map fun b : UInt8 => b.toNat)) = _
-  rw [List.map_take, List.map_drop, ← htake, ← hdrop, hfull]
-  show w.toNat / 256 % 256 ^ 20 =
-    (Nat.land (UInt256.div w ⟨256⟩).toNat solcAddrMask.toNat) % UInt256.size
-  unfold UInt256.div UInt256.toNat
-  simp only
-  change w.toNat / 256 % 256 ^ 20 = Nat.land (w.toNat / 256) solcAddrMask.toNat % UInt256.size
-  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [nat_land_mask_eq_mod]
-  have hsmall : w.toNat / 256 % 2 ^ 160 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  rw [keyValueToWord_address_of_canonical (votersArgWord I) hcanon]
 
 theorem ballotStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm
         { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
       = wordToElem .bool
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  unfold storageLocLoad
-  simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 1) = _
-  rw [fromBytes'_take1_wordLE]
-  rfl
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
 theorem ballotStorageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm
@@ -189,7 +115,7 @@ theorem ballotStorageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256) 
   change Value.address (AccountAddress.ofNat
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
-  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE]
+  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]
 
 theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -723,42 +649,6 @@ namespace Reasoning.Theory
 
 open Ethereum Ethereum.EVM
 
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic `DIV` xstep.
-theorem ballotDiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DIV, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
-         else .ok (stMul s (UInt256.div a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DIV, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_div s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Glow, stMul]
-
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic `SWAP5` xstep.
-theorem ballotSwap5_xstep {s : State} {code : ByteArray} {pcv a b c d e f : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
 -- LIBRARY CANDIDATE: `Reasoning.Memory`, literal-stack `MSTORE` memory expansion costs.
 theorem ballotMstoreCost_of_stack {s : State} {aw off val : UInt256} {t : List UInt256}
     {mcost : ℕ}
@@ -778,45 +668,6 @@ end Reasoning.Theory
 namespace Reasoning.Reach
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic `RD.div`.
-theorem RD.ballotDiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DIV, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := Reasoning.Theory.ballotDiv_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 5
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stMul s (UInt256.div a b) t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stMul]; exact hcode
-      · simp only [stMul]; rw [hpc]
-      · rfl
-      · simp only [stMul]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stMul]; exact hmem
-      · simp only [stMul]; exact haw
-      · simp only [stMul]; exact hrdata
-      · simp only [stMul]; exact hacc
-      · exact hee
-      · exact hworld
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic `RD.swap5`.
-theorem RD.swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => ballotSwap5_xstep hc hp hdec hs hov)
 
 set_option maxHeartbeats 500000 in
 /-- Ballot's shared solc one-address decoder at pc 1770, success branch. -/
@@ -992,7 +843,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd348⟩ := (evm_run rd342 with [
     push1 ⟨2⟩, swap1, swap2, add ]).sload (by decide) (by evm_ov)
   have rd353 := evm_run rd348 with [push1 ⟨255⟩, dup3, and, swap2, push2 ⟨256⟩, swap1]
-  have rd358 := RD.ballotDiv rd353 (by decide) (by evm_ov)
+  have rd358 := RD.div rd353 (by decide) (by evm_ov)
   have rd370 := evm_run rd358 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, swap1, dup5,
     jump (by jump_dest) ]
@@ -1075,7 +926,7 @@ theorem ballotDispatch_voters {cd : ByteArray}
     (hsel : ((⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some votersGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition, giveRightToVoteTransition])

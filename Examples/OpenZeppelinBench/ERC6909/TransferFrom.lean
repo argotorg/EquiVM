@@ -260,14 +260,14 @@ theorem erc6909TransferFromBodyCore
                 transferFromSenderWord I =
                     keyValueToWord
                       (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat)) := by
-                  exact (erc6909ApproveKeyValueToWord_address_of_canonical _
+                  exact (keyValueToWord_address_of_canonical _
                     hcanonSender).symm
                 _ = keyValueToWord (.address I.source) := by rw [haddr]
                 _ = keyValueToWord
                     (.address (AccountAddress.ofNat (transferFromCallerWord I).toNat)) := by
                   rw [← transferFromCaller_ofNat I]
                 _ = transferFromCallerWord I := by
-                  exact erc6909ApproveKeyValueToWord_address_of_canonical _
+                  exact keyValueToWord_address_of_canonical _
                     (transferFromCallerWord_canonical I)
             by_cases hopZero : transferFromOperatorWord evmE I = ⟨0⟩
             · have hgate :=

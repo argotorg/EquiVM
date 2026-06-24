@@ -85,11 +85,6 @@ theorem blindAuctionLowArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem blindAuctionByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 theorem blindAuctionSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
     (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
@@ -131,7 +126,7 @@ theorem blindAuctionLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc i))
         (blindAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = blindAuctionLowSelBytes i :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionLowArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -151,7 +146,7 @@ theorem blindAuctionHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc i))
         (blindAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = blindAuctionHighSelBytes i :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionHighArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide

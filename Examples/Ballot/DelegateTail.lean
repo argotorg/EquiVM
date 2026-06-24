@@ -555,8 +555,8 @@ theorem delegateTailProposalCountSlotCurrent_spec (evm : EVM.State) (I : Executi
             (delegateTailVoterVoteCurrent (delegateTailAfterSenderState evm I w) w).toNat)) +
         ⟨1⟩ := by
   unfold delegateTailProposalCountSlotCurrent proposalElemSlot
-  rw [ballotKeyValueToWord_int_ofNat_toNat,
-    voteU256_mul_comm ⟨2⟩
+  rw [keyValueToWord_uint256,
+    u256_mul_comm ⟨2⟩
       (delegateTailVoterVoteCurrent (delegateTailAfterSenderState evm I w) w),
     u256_mul_two_ofNat]
   rw [u256_add_comm (UInt256.ofNat
@@ -1368,7 +1368,7 @@ theorem delegateHashMem_extract32_tail (senderWord : UInt256) :
     rw [ByteArray.size_append, hprefixSize]
     omega
   rw [hend]
-  exact delegateByteArray_extract_all B
+  exact byteArray_extract_self B
 
 set_option maxHeartbeats 4000000 in
 theorem delegateLoopHashMem_extract32_eq_delegateHashMem (old senderWord : UInt256) :
@@ -1407,7 +1407,7 @@ theorem delegateLoopHashMem_extract32_eq_delegateHashMem (old senderWord : UInt2
     omega
   rw [hend]
   rw [show 32 - 32 = 0 by omega]
-  rw [delegateByteArray_extract_all B]
+  rw [byteArray_extract_self B]
   dsimp [B]
   rw [delegateLoopKeyMem_extract64_eq_delegateHashMem old senderWord]
   have hhash64 :
@@ -1524,7 +1524,7 @@ theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat2
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.delegateDiv rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hzero :
       UInt256.isZero
@@ -1582,7 +1582,7 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.delegateDiv rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hnonzero :
       UInt256.isZero
@@ -1629,7 +1629,7 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
         using rd1042₀⟩
   have rd1045 := evm_run rd1042 with [push2 ⟨256⟩, swap1]
-  have rd1046 := RD.delegateDiv rd1045 (by native_decide) (by norm_num)
+  have rd1046 := RD.div rd1045 (by native_decide) (by norm_num)
   have rd1054 := evm_run rd1046 with [swap1, swap2, and, swap1, caller, dup3, sub]
   have hdiff :
       UInt256.sub
@@ -1691,7 +1691,7 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.delegateDiv rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hnonzero :
       UInt256.isZero
@@ -1738,7 +1738,7 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
         using rd1042₀⟩
   have rd1045 := evm_run rd1042 with [push2 ⟨256⟩, swap1]
-  have rd1046 := RD.delegateDiv rd1045 (by native_decide) (by norm_num)
+  have rd1046 := RD.div rd1045 (by native_decide) (by norm_num)
   have rd1054 := evm_run rd1046 with [swap1, swap2, and, swap1, caller, dup3, sub]
   have hdiff :
       UInt256.sub
@@ -1797,9 +1797,9 @@ theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {cA gh bl σ σ₀ A 
   have rd1205 := evm_run rd1182 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨168⟩, shl, sub, not, and,
     push2 ⟨256⟩, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and, mul ]
-  have rd1207 := RD.delegateOr rd1205 (by decide) (by evm_ov)
+  have rd1207 := RD.lor rd1205 (by decide) (by evm_ov)
   have rd1208 := evm_run rd1207 with [dup3]
-  have rd1209 := RD.delegateOr rd1208 (by decide) (by evm_ov)
+  have rd1209 := RD.lor rd1208 (by decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
   obtain ⟨_, _, rd1211⟩ := rd1210.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by

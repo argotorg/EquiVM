@@ -21,10 +21,10 @@ matched body PC to its per-function proof.
 -/
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
-theorem accessControlNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem accessControlNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (accessControlX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -39,26 +39,26 @@ theorem accessControlNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A 
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (accessControlBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
-theorem accessControlShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem accessControlShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (accessControlX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
     hcode (accessControlDispatch_none_short hsz)
 
 /-- `size ≥ 4` but no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
-theorem accessControlNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem accessControlNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (accessControlX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (accessControlDispatch_none_nomatch hnm)
@@ -69,8 +69,7 @@ theorem accessControlNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A 
 /-- The deployed AccessControl benchmark runtime bytecode refines the Solm specification. -/
 theorem accessControlCorrect :
     runtimeEquivalence!?! config accessControlBenchBytecode contract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm
-      hAccounts _hOriginalAccounts => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩

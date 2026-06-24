@@ -1,5 +1,4 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
-import Examples.SimpleAuction.Storage
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -245,61 +244,6 @@ theorem evalExpr_revokeRole_target_false (evm : EVM.State) (I : ExecutionEnv)
       rfl)]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
--- PROMOTE -> Reasoning.Storage: packed `bool := false` at byte offset 0.
-theorem revokeRolePackedSetFalseWord_eq (w : UInt256) :
-    revokeRoleClearLowByteWord w = UInt256.ofNat (256 * (w.toNat / 256)) := by
-  unfold revokeRoleClearLowByteWord
-  apply u256_inj
-  rw [SimpleAuction.simpleAuctionU256_land_toNat]
-  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
-    native_decide
-  rw [hlnot]
-  have hwlt : w.toNat < 2 ^ 256 := by
-    change w.val.val < 2 ^ 256
-    simpa [UInt256.size] using w.val.isLt
-  rw [SimpleAuction.simpleAuctionNatLandClearLow8 w.toNat hwlt]
-  have hlt : w.toNat / 2 ^ 8 * 2 ^ 8 < UInt256.size :=
-    lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
-  rw [Nat.mod_eq_of_lt hlt]
-  have hlt' : 256 * (w.toNat / 256) < UInt256.size := by
-    simpa [Nat.mul_comm] using hlt
-  rw [show 2 ^ 8 = 256 by norm_num]
-  rw [Nat.mul_comm (w.toNat / 256) 256]
-  rw [ulit_toNat' _ hlt']
-
-theorem revokeRolePackedSetFalseWord_toNat (w : UInt256) :
-    (revokeRoleClearLowByteWord w).toNat = 256 * (w.toNat / 256) := by
-  rw [revokeRolePackedSetFalseWord_eq]
-  have hlt : 256 * (w.toNat / 256) < UInt256.size := by
-    have hle : 256 * (w.toNat / 256) ≤ w.toNat :=
-      Nat.mul_div_le w.toNat 256
-    exact lt_of_le_of_lt hle w.val.isLt
-  exact ulit_toNat' _ hlt
-
-theorem accessControlStorageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocStore evm (boolLoc slot) (.bool false) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (revokeRoleClearLowByteWord
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
-  unfold storageLocStore storageLocWriteWord boolLoc revokeRoleClearLowByteWord
-  simp only [valueToWord, Bool.toUInt256_false, bind, Option.bind]
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          (UInt256.lnot ⟨255⟩)).toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
-    List.take_zero, List.nil_append]
-  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 0)).1 =
-      [0] by native_decide]
-  rw [fromBytes'_append, SimpleAuction.simpleAuctionFromBytes'_drop1_wordLE]
-  simp [fromBytes']
-  simpa [revokeRoleClearLowByteWord] using
-    (revokeRolePackedSetFalseWord_toNat
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).symm
-
 theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       .storage (roleHasRoleRef (.var "role") (.var "account")) (.bool false) =
@@ -319,7 +263,8 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv) :
         simp [config, storageLayout, revokeRoleTargetEvaledRef, revokeRoleTargetSlot])
       (hscalar := by trivial)
       (hstore := by
-        exact accessControlStorageLocStore_bool_false_offset0 evm (revokeRoleTargetSlot I))
+        simpa [boolLoc, boolOffset0Loc, revokeRoleClearLowByteWord] using
+          storageLocStore_bool_false_offset0 evm (revokeRoleTargetSlot I))
 
 theorem accessControlRevokeRoleBodyReturns_write (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -394,7 +339,7 @@ theorem accessControlDispatch_revokeRole {cd : ByteArray}
     (hsel : ((⟨#[0xd5, 0x47, 0x74, 0x1f]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some revokeRoleTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xd5, 0x47, 0x74, 0x1f]⟩ : ByteArray) :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [defaultAdminRoleTransition, getRoleAdminTransition, grantRoleTransition,
       hasRoleTransition, renounceRoleTransition])
@@ -409,149 +354,34 @@ theorem accessControlDispatch_revokeRole {cd : ByteArray}
   · rw [selectorOf, hasRoleSelectorBytes, hcd]; decide
   · rw [selectorOf, renounceRoleSelectorBytes, hcd]; decide
 
--- PROMOTE -> Reasoning.ABI: fixed `bytes32,address` calldata decoder.
-theorem decodeABIValue_bytes32_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? bytes32 bytes start =
-      some (.fixedBytes bytes32Width ((bytes.drop start).take 32), start + 32) := by
-  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-  rw [if_pos hlen]
-  simp [zeroPadding?, readBytes?]
-
-theorem decodeABIValue_bytes32_none_short {bytes : List UInt8} {start : Nat}
-    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? bytes32 bytes start = none := by
-  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-  rw [if_neg hshort]
-
-theorem decodeABIValues_bytes32_address_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 =
-      some ([.fixedBytes bytes32Width (bytes.take 32),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  have hcanonVal :
-      ↑(ABI.bytesToWord (List.take 32 (List.drop 32 bytes))).val < EVM.addressModulus := by
-    simpa [UInt256.toNat] using hcanon
-  rw [if_pos hcanonVal]
-  simp [UInt256.toNat]
-
-theorem decodeABIValues_bytes32_address_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 = none := by
-  simp only [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, zeroPadding?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, zeroPadding?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
-theorem decodeABIValues_bytes32_address_none_noncanon {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hnc : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 = none := by
-  simp [decodeABIValues?, bytes32, addr, bytes32Width, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  have hncVal :
-      ¬ ↑(ABI.bytesToWord (List.take 32 (List.drop 32 bytes))).val < EVM.addressModulus := by
-    simpa [UInt256.toNat] using hnc
-  rw [if_neg hncVal]
-  simp
-
 theorem accessControlDecode_revokeRole_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus) :
     decodeCalldata (revokeRoleTransition.params.map Param.name)
       (transitionSignature revokeRoleTransition).paramTypes I.calldata = some (revokeRoleStore I) := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = some (revokeRoleStore I)
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
-      revokeRoleAccountWord I := by
-    simpa [revokeRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
-      (by norm_num)
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_address_ok (bytes := I.calldata.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by
-      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
-          revokeRoleAccountWord I from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hcanonAccount)]
-  rw [if_neg (by
-    rw [List.length_drop, htlen]
-    omega : ¬ (I.calldata.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues, revokeRoleStore, revokeRoleRoleValue,
-    revokeRoleAccountValue]
-  rw [hword36]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width, revokeRoleStore,
+    revokeRoleRoleValue, revokeRoleAccountValue, revokeRoleAccountWord]
+    using decodeCalldata_bytes32_address_ok (cd := I.calldata) (x := "role")
+      (y := "account") hsz68 hbig hcanonAccount
 
 theorem accessControlDecode_revokeRole_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
     decodeCalldata (revokeRoleTransition.params.map Param.name)
       (transitionSignature revokeRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_address_none_short (bytes := I.calldata.toList.drop 4) (by
-    rw [List.length_drop, htlen]
-    omega)]
-  rw [if_pos (by rw [List.length_drop, htlen]; omega)]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_address_none_short (cd := I.calldata) (x := "role")
+      (y := "account") hsz4 hshort
 
 theorem accessControlDecode_revokeRole_none_huge {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (revokeRoleTransition.params.map Param.name)
       (transitionSignature revokeRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_address_none_huge (cd := I.calldata) (x := "role")
+      (y := "account") hbig
 
 theorem accessControlDecode_revokeRole_none_noncanon_account {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -559,36 +389,9 @@ theorem accessControlDecode_revokeRole_none_noncanon_account {I : ExecutionEnv}
     decodeCalldata (revokeRoleTransition.params.map Param.name)
       (transitionSignature revokeRoleTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role", "account"] [bytes32, addr] I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((I.calldata.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((I.calldata.toList.drop 36).take 32) =
-      revokeRoleAccountWord I := by
-    simpa [revokeRoleAccountWord] using decode_word_at_eq I.calldata 36 (by omega)
-      (by norm_num)
-  unfold decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_address_none_noncanon (bytes := I.calldata.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by
-      rw [show ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
-          revokeRoleAccountWord I from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hncAccount)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (I.calldata.toList.drop 4).length < 64)]
+  simpa [bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width, revokeRoleAccountWord]
+    using decodeCalldata_bytes32_address_none_noncanon (cd := I.calldata) (x := "role")
+      (y := "account") hsz68 hbig hncAccount
 
 theorem accessControlRevokeRoleX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
@@ -738,39 +541,11 @@ theorem revokeRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.callda
   rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
     readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
 
-theorem revokeRoleKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-
-theorem revokeRoleKeyValueToWord_fixedBytes32 (w : UInt256) :
-    keyValueToWord (.fixedBytes bytes32Width (EVM.Word.toBytesBE w)) = w := by
-  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size w
-  simp [keyValueToWord, bytes32Width, hlen]
-  apply u256_inj
-  have hfrom : fromBytesBigEndian (EVM.Word.toBytesBE w) = w.toNat := by
-    have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray w)
-    simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-      h.trans (fromByteArrayBigEndian_toByteArray w)
-  rw [EVM.Word.ofNat, hfrom]
-  exact Nat.mod_eq_of_lt w.val.isLt
-
 theorem revokeRoleSourceWord_toNat (I : ExecutionEnv) :
     (revokeRoleSourceWord I).toNat = I.source.val := by
   unfold revokeRoleSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
     (show AccountAddress.size ≤ UInt256.size from by decide))
-
-theorem revokeRoleKeyValueToWord_source (I : ExecutionEnv) :
-    keyValueToWord (.address I.source) = revokeRoleSourceWord I := by
-  apply u256_inj
-  change I.source.val = (UInt256.ofNat I.source.val).toNat
-  rw [ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))]
 
 noncomputable def revokeRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
@@ -1032,11 +807,6 @@ theorem revokeRoleAddSlot_eq (slot : UInt256) :
   change (slot.toNat + 1) % UInt256.size = (slot.toNat + 1) % UInt256.size
   rfl
 
--- PROMOTE -> Common.lean / Reasoning.EVMWord: `UInt256` addition is commutative.
-theorem revokeRoleU256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  simp [uadd_toNat, Nat.add_comm]
-
 theorem revokeRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
     revokeRoleAdminSlot I = revokeRoleBaseSlot (revokeRoleRoleWord I) + ⟨1⟩ := by
   unfold revokeRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
@@ -1050,7 +820,10 @@ theorem revokeRoleBaseKeccakSlot_fixedBytes32 (role : UInt256) :
     revokeRoleBaseSlot role =
       roleDataSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role)) := by
   unfold revokeRoleBaseSlot roleDataSlot mapSlot
-  rw [revokeRoleBaseHashMem_read0_64, revokeRoleKeyValueToWord_fixedBytes32]
+  rw [revokeRoleBaseHashMem_read0_64]
+  have hkey : keyValueToWord (.fixedBytes bytes32Width (EVM.Word.toBytesBE role)) = role := by
+    simpa [bytes32Width] using keyValueToWord_fixedBytes32 role
+  rw [hkey]
   exact mappingSlot_single role ⟨0⟩
 
 theorem revokeRoleTargetKeccakSlot (I : ExecutionEnv)
@@ -1064,7 +837,7 @@ theorem revokeRoleTargetKeccakSlot (I : ExecutionEnv)
   unfold revokeRoleTargetSlot roleHasRoleSlot mapSlot
   rw [show keyValueToWord (revokeRoleAccountKey I) = revokeRoleAccountWord I by
     simpa [revokeRoleAccountKey] using
-      revokeRoleKeyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
+      keyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
   exact mappingSlot_single (revokeRoleAccountWord I)
     (roleDataSlot (revokeRoleRoleKey I))
 
@@ -1080,7 +853,7 @@ theorem revokeRoleTargetKeccakSlotFrom (I : ExecutionEnv) (mem : ByteArray)
   unfold revokeRoleTargetSlot roleHasRoleSlot mapSlot
   rw [show keyValueToWord (revokeRoleAccountKey I) = revokeRoleAccountWord I by
     simpa [revokeRoleAccountKey] using
-      revokeRoleKeyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
+      keyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
   exact mappingSlot_single (revokeRoleAccountWord I)
     (roleDataSlot (revokeRoleRoleKey I))
 
@@ -1091,11 +864,16 @@ theorem revokeRoleTargetSlot_fixedBytes32 (I : ExecutionEnv)
       roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleRoleWord I)))
         (.address (AccountAddress.ofNat (revokeRoleAccountWord I).toNat)) := by
   unfold revokeRoleTargetSlot roleHasRoleSlot roleDataSlot mapSlot
-  rw [revokeRoleRoleKeyValueToWord hsz68, revokeRoleKeyValueToWord_fixedBytes32]
+  rw [revokeRoleRoleKeyValueToWord hsz68]
+  have hrole :
+      keyValueToWord (.fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleRoleWord I))) =
+        revokeRoleRoleWord I := by
+    simpa [bytes32Width] using keyValueToWord_fixedBytes32 (revokeRoleRoleWord I)
+  rw [hrole]
   rw [show keyValueToWord (revokeRoleAccountKey I) = revokeRoleAccountWord I by
     simpa [revokeRoleAccountKey] using
-      revokeRoleKeyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
-  rw [revokeRoleKeyValueToWord_address_of_canonical _ hcanonAccount]
+      keyValueToWord_address_of_canonical (revokeRoleAccountWord I) hcanonAccount]
+  rw [keyValueToWord_address_of_canonical _ hcanonAccount]
 
 theorem revokeRoleAdminHasRoleKeccakSlot (adminRole account : UInt256)
     (hcanonAccount : account.toNat < EVM.addressModulus) :
@@ -1107,7 +885,7 @@ theorem revokeRoleAdminHasRoleKeccakSlot (adminRole account : UInt256)
           (.address (AccountAddress.ofNat account.toNat)) := by
   rw [revokeRoleHasRoleSlotHashMem_read0_64, revokeRoleBaseKeccakSlot_fixedBytes32]
   unfold roleHasRoleSlot mapSlot
-  rw [revokeRoleKeyValueToWord_address_of_canonical _ hcanonAccount]
+  rw [keyValueToWord_address_of_canonical _ hcanonAccount]
   exact mappingSlot_single account
     (roleDataSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole)))
 
@@ -1122,7 +900,7 @@ theorem revokeRoleAdminHasRoleKeccakSlotFrom (adminRole account : UInt256) (mem 
   rw [revokeRoleHasRoleSlotHashMemFrom_read0_64 _ _ hmem,
     revokeRoleBaseKeccakSlot_fixedBytes32]
   unfold roleHasRoleSlot mapSlot
-  rw [revokeRoleKeyValueToWord_address_of_canonical _ hcanonAccount]
+  rw [keyValueToWord_address_of_canonical _ hcanonAccount]
   exact mappingSlot_single account
     (roleDataSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole)))
 
@@ -1195,7 +973,7 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
           (revokeRoleStorageWordAt σ I.codeOwner
             (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
               (.address (AccountAddress.ofNat account.toNat)))) ⟨255⟩ := by
-    exact SimpleAuction.simpleAuctionU256_land_comm ⟨255⟩ _
+    exact u256_land_comm ⟨255⟩ _
   have rdret := evm_run rd486 with [push1 ⟨255⟩, and, swap1, jump hret]
   change RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ret
     (UInt256.land ⟨255⟩
@@ -1219,95 +997,6 @@ theorem revokeRoleSource_ofNat (I : ExecutionEnv) :
   apply Fin.ext
   rw [revokeRoleSourceWord_toNat, Fin.val_ofNat]
   exact Nat.mod_eq_of_lt I.source.isLt
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
-def revokeRoleStLog4 (s : State) (a b c d e f : UInt256) (t : List UInt256) : State :=
-  {s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d, e, f], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG4)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-            + 4 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
-theorem revokeRoleLog4_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG4, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat
-            < memoryExpansionCost s .LOG4
-              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic)
-         then .error .OutOfGass else .ok (revokeRoleStLog4 s a b c d e f t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG4, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_log4 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 0 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, revokeRoleStLog4]
-
--- PROMOTE -> Reasoning.Stepping / Reasoning.Reach: generic `LOG4` reachability.
-theorem RD.revokeRoleLog4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: e :: f :: t →
-        memoryExpansionCost s .LOG4 = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 4 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
-      hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG4 = mcost := hmc s haw hstk
-    have hperms : s.executionEnv.perm = true := by
-      rw [hee]
-      exact hperm
-    have st := revokeRoleLog4_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨revokeRoleStLog4 s a b c d e f t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [revokeRoleStLog4]
-        exact hcode
-      · simp only [revokeRoleStLog4]
-        rw [hpc]
-      · simp only [revokeRoleStLog4]
-      · simp only [revokeRoleStLog4, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [revokeRoleStLog4]
-        exact hmem
-      · simp only [revokeRoleStLog4]
-        rw [haw, hawout]
-      · simp only [revokeRoleStLog4]
-        exact hrdata
-      · simp only [revokeRoleStLog4]
-        exact hacc
-      · simp only [revokeRoleStLog4]
-        exact hee
-      · simp only [revokeRoleStLog4]
-        exact hworld
 
 def revokeRoleUnauthorizedSelector : UInt256 :=
   UInt256.shiftLeft (⟨0xe2517d3f⟩ : UInt256) ⟨224⟩
@@ -1521,7 +1210,7 @@ theorem accessControlRevokeRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256
         (cA, σ) k C := by
     exact ⟨_, _, by
       simpa [revokeRoleAdminStorageWord, revokeRoleAdminSlot_evm I hsz68,
-        revokeRoleU256_add_comm] using rd509₀⟩
+        u256_add_comm] using rd509₀⟩
   obtain ⟨_, _, rd509⟩ := rd509
   exact ⟨_, _, evm_run rd509 with [
     push2 ⟨517⟩, dup2, push2 ⟨527⟩, jump (by jump_dest) ]⟩
@@ -1672,7 +1361,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
   have hsourceMaskComm :
       UInt256.land (revokeRoleSourceWord I) solcAddrMask =
         UInt256.land solcAddrMask (revokeRoleSourceWord I) := by
-    exact SimpleAuction.simpleAuctionU256_land_comm (revokeRoleSourceWord I) solcAddrMask
+    exact u256_land_comm (revokeRoleSourceWord I) solcAddrMask
   have rd830 := evm_run rd830pre with [
     raw mstore 3 (revokeRoleUnauthorizedAccountMemFrom (revokeRoleSourceWord I) memAdmin)
       (UInt256.ofNat 6) (by decide) mem_cost
@@ -1885,7 +1574,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     solcAddrMask_clean_left hcanonAccount
   have haccountCleanRight :
       UInt256.land (revokeRoleAccountWord I) solcAddrMask = revokeRoleAccountWord I := by
-    rw [SimpleAuction.simpleAuctionU256_land_comm]
+    rw [u256_land_comm]
     exact haccountClean
   rw [haddrMask, haccountCleanRight] at rd723pre
   have rd731pre := evm_run rd723pre with [
@@ -1922,7 +1611,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
       UInt256.land (UInt256.lnot ⟨255⟩) (revokeRoleTargetStorageWord σ I) =
         revokeRoleClearLowByteWord (revokeRoleTargetStorageWord σ I) := by
     unfold revokeRoleClearLowByteWord
-    exact SimpleAuction.simpleAuctionU256_land_comm (UInt256.lnot ⟨255⟩)
+    exact u256_land_comm (UInt256.lnot ⟨255⟩)
       (revokeRoleTargetStorageWord σ I)
   have rd739pre := evm_run rd733 with [push1 ⟨255⟩, not, and, swap1]
   rw [hclearComm] at rd739pre
@@ -1954,7 +1643,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.revokeRoleLog4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
+  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1967,24 +1656,24 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     jumpdest]
   exact rd233.stop (by decide) (by evm_ov)
 
-theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd5, 0x47, 0x74, 0x1f]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨280⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨280⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := revokeRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_revokeRole (cd := I.calldata)
     (by simpa [selIs] using hsel)
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4

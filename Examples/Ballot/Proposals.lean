@@ -72,7 +72,7 @@ theorem proposalCountWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv
 theorem proposalNameSlot_spec (I : ExecutionEnv) :
     proposalNameSlot I = proposalElemSlot (.int (Int.ofNat (proposalsIndexWord I).toNat)) := by
   unfold proposalNameSlot proposalElemSlot
-  rw [ballotKeyValueToWord_int_ofNat_toNat, u256_mul_two_ofNat]
+  rw [keyValueToWord_uint256, u256_mul_two_ofNat]
   exact u256_add_comm _ _
 
 theorem proposalsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
@@ -591,7 +591,7 @@ theorem ballotDispatch_proposals {cd : ByteArray}
     (hsel : ((⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some proposalsGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [voteTransition])
     (post := [chairpersonGetter, delegateTransition, winningProposalTransition,
       giveRightToVoteTransition, votersGetter, winnerNameTransition])

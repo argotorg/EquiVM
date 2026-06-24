@@ -801,8 +801,8 @@ theorem erc6909TransferX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd1769⟩ := erc6909DecodeAddrOk rd1629 hcanonReceiver (by jump_dest)
-    (by evm_ov)
+  obtain ⟨_, _, rd1769⟩ :=
+    erc6909DecodeAddrOk rd1629 hcanonReceiver (by jump_dest) (by evm_ov)
   have rd1770 := evm_run rd1769 with [jumpdest]
   have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
   have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
@@ -868,8 +868,8 @@ theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
-  simpa [transferReceiverWord, calldataWord] using erc6909DecodeAddrRevert rd1629 hnc
-    (by evm_ov)
+  simpa [transferReceiverWord, calldataWord] using
+    erc6909DecodeAddrRevert rd1629 hnc (by evm_ov)
 
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
 
@@ -1222,7 +1222,7 @@ theorem transferInnerKeccakSlot (owner : UInt256)
       mapSlot (keyValueToWord (.address (AccountAddress.ofNat owner.toNat))) ⟨0⟩ := by
   unfold transferInnerSlot mapSlot
   rw [transferInnerHashMem_read0_64]
-  rw [balanceOfKeyValueToWord_address_of_canonical owner hcanon]
+  rw [keyValueToWord_address_of_canonical owner hcanon]
   exact mappingSlot_single owner ⟨0⟩
 
 theorem transferOuterKeccakSlot (owner id : UInt256)
@@ -1232,8 +1232,8 @@ theorem transferOuterKeccakSlot (owner id : UInt256)
         (.int (Int.ofNat id.toNat)) := by
   unfold transferOuterSlot balanceSlot mapSlot
   rw [transferOuterHashMem_read0_64, transferInnerKeccakSlot owner hcanon]
-  rw [balanceOfKeyValueToWord_address_of_canonical owner hcanon,
-    balanceOfKeyValueToWord_uint256 id]
+  rw [keyValueToWord_address_of_canonical owner hcanon,
+    keyValueToWord_uint256 id]
   exact mappingSlot_single id
     (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray owner ++
       UInt256.toByteArray (⟨0⟩ : UInt256))))
@@ -1417,10 +1417,6 @@ noncomputable def transferPanicMem0 (mem : ByteArray) : ByteArray :=
 noncomputable def transferPanicMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨17⟩ : UInt256)).write 0 (transferPanicMem0 mem) 4 32
 
-theorem transferU256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
-
 theorem RD.erc6909PanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1457,7 +1453,7 @@ theorem erc6909RoutineCheckedAdd {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     jumpdest, dup1, dup3, add, dup1, dup3 ]
   have rd2024₀ := evm_run rd2023 with [ gt ]
   have rd2024 := rd2024₀
-  rw [transferU256_add_comm b a] at rd2024
+  rw [u256_add_comm b a] at rd2024
   rw [hgt] at rd2024
   have rd2025₀ := evm_run rd2024 with [ iszero ]
   have rd2025 := rd2025₀
@@ -1496,7 +1492,7 @@ theorem erc6909RoutineCheckedAdd_overflow {g : Sat256} {s0 : State} {ee : Execut
     jumpdest, dup1, dup3, add, dup1, dup3 ]
   have rd2024₀ := evm_run rd2023 with [ gt ]
   have rd2024 := rd2024₀
-  rw [transferU256_add_comm b a] at rd2024
+  rw [u256_add_comm b a] at rd2024
   rw [hgt] at rd2024
   have rd2025₀ := evm_run rd2024 with [ iszero ]
   have rd2025 := rd2025₀

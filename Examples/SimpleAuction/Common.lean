@@ -80,37 +80,7 @@ theorem simpleAuctionLowArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem simpleAuctionByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 /-! ## Shared scalar storage and return helpers -/
-
--- LIBRARY CANDIDATE: `Reasoning.Memory`.
-theorem simpleAuctionFromBytes'_eq_ofDigits (bs : List UInt8) :
-    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) :=
-  Reasoning.Theory.fromBytes'_eq_ofDigits bs
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem simpleAuctionNat_land_mask_eq_mod (n k : Nat) :
-    Nat.land n (2 ^ k - 1) = n % 2 ^ k :=
-  Reasoning.Theory.nat_land_mask_eq_mod n k
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem simpleAuctionNat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a :=
-  Reasoning.Theory.nat_land_comm a b
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem simpleAuctionU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a :=
-  Reasoning.Theory.u256_land_comm a b
-
--- LIBRARY CANDIDATE: `Reasoning.Memory`.
-theorem simpleAuctionFromBytes'_take20_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =
-      (UInt256.land w solcAddrMask).toNat := by
-  simpa [solcAddrMask] using
-    Reasoning.Theory.fromBytes'_take_wordLE_land_mask w 20 (by decide)
 
 theorem simpleAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (simpleAuctionAddrLoc slot) =
@@ -123,57 +93,12 @@ theorem simpleAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UI
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
   rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [simpleAuctionFromBytes'_take20_wordLE]
+  rw [fromBytes'_take20_wordLE_solcAddrMask]
 
 theorem simpleAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (simpleAuctionUint256Loc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad simpleAuctionUint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
-
-theorem simpleAuctionSolcAddrMask_result_canonical (w : UInt256) :
-    (UInt256.land w solcAddrMask).toNat < EVM.addressModulus := by
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
-  show (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size < EVM.addressModulus
-  have hle : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat := hlandle _ _
-  have hltSize : Nat.land w.toNat solcAddrMask.toNat < UInt256.size :=
-    lt_of_le_of_lt hle (by decide)
-  rw [Nat.mod_eq_of_lt hltSize]
-  exact lt_of_le_of_lt hle (by decide)
-
-theorem simpleAuctionAddressReturnEncoding (w : UInt256) :
-    encodeReturnValue? addr (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
-      some (UInt256.toByteArray (UInt256.land w solcAddrMask)) := by
-  have hcanon := simpleAuctionSolcAddrMask_result_canonical w
-  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-      (UInt256.land w solcAddrMask).toNat := by
-    apply Nat.mod_eq_of_lt
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-  have hword : EVM.word (UInt256.land w solcAddrMask).toNat = UInt256.land w solcAddrMask :=
-    u256_ofNat_toNat _
-  refine scalarReturnEncoding (t := .address) (w := UInt256.land w solcAddrMask) rfl ?_ ?_
-  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  · simp [encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
+  simpa [simpleAuctionUint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 abbrev simpleAuctionRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
 
@@ -222,7 +147,7 @@ theorem simpleAuctionLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
           (nthArmPc simpleAuctionBytecode simpleAuctionLowFirstArmPc i))
         (simpleAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = simpleAuctionLowSelBytes i :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [simpleAuctionLowArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -242,7 +167,7 @@ theorem simpleAuctionHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
           (nthArmPc simpleAuctionBytecode simpleAuctionHighFirstArmPc i))
         (simpleAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = simpleAuctionHighSelBytes i :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [simpleAuctionHighArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide

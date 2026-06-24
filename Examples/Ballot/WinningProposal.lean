@@ -62,19 +62,12 @@ def winningProposalForStmt : Stmt :=
   .for [ .letDecl "p" (some uint256) (.intLit 0) ]
     winningProposalLoopCondExpr winningProposalLoopPostStmts winningProposalLoopBodyStmts
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem winningProposal_u256_mul_comm (a b : UInt256) :
-    UInt256.mul a b = UInt256.mul b a := by
-  apply u256_inj
-  show (a.val * b.val).val = (b.val * a.val).val
-  rw [Fin.val_mul, Fin.val_mul, Nat.mul_comm]
-
 theorem winningProposalVoteCountSlot_spec (p : UInt256) :
     winningProposalVoteCountSlot p =
       proposalElemSlot (.int (Int.ofNat p.toNat)) + ⟨1⟩ := by
   unfold winningProposalVoteCountSlot proposalElemSlot
-  rw [ballotKeyValueToWord_int_ofNat_toNat]
-  rw [winningProposal_u256_mul_comm ⟨2⟩ p, u256_mul_two_ofNat]
+  rw [keyValueToWord_uint256]
+  rw [u256_mul_comm ⟨2⟩ p, u256_mul_two_ofNat]
   rw [u256_add_comm (UInt256.ofNat (p.toNat * 2)) proposalsDataBase]
 
 theorem winningProposalArrayIndexInBounds_ok (evm : EVM.State) (p : UInt256)
@@ -657,7 +650,7 @@ theorem ballotDispatch_winningProposal {cd : ByteArray}
     (hsel : ((⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some winningProposalTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition])
     (post := [giveRightToVoteTransition, votersGetter, winnerNameTransition])

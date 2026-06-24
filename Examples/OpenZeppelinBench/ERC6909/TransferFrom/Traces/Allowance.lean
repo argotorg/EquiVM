@@ -100,7 +100,7 @@ theorem erc6909TransferFromX_operatorApproved_toUpdate {cA gh bl σ σ₀ A I}
         (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
           (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
           (transferFromOperatorSlot (initState cA gh bl σ σ₀ g A I) I)) ≠ ⟨0⟩ := by
-    rw [SimpleAuction.simpleAuctionU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     exact hop
   have hopMask :
       UInt256.land ⟨255⟩
@@ -206,7 +206,7 @@ theorem erc6909TransferFromX_operatorFalse_toAllowanceHelper {cA gh bl σ σ₀ 
         (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
           (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
           (transferFromOperatorSlot (initState cA gh bl σ σ₀ g A I) I)) = ⟨0⟩ := by
-    rw [SimpleAuction.simpleAuctionU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     exact hopZero
   have hopMask :
       UInt256.land ⟨255⟩

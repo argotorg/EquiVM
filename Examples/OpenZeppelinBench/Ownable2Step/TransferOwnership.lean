@@ -199,7 +199,7 @@ theorem ownable2StepDispatch_transferOwnership {cd : ByteArray}
     (hsel : ((⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some transferOwnershipTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩ : ByteArray) :=
-    (ownable2StepByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [acceptOwnershipTransition, ownerTransition, pendingOwnerTransition,
       renounceOwnershipTransition])
@@ -442,14 +442,14 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   have rd311₀ := evm_run rd288 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and, push1 ⟨1⟩,
     push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, swap2, and, dup2]
-  have rd312₀ := RD.ownable2StepOr rd311₀ (by decide) (by evm_ov)
+  have rd312₀ := RD.lor rd311₀ (by decide) (by evm_ov)
   have hset :
       UInt256.lor
           (UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask)
           (UInt256.land (transferOwnershipPendingOwnerWord σ I) (UInt256.lnot solcAddrMask)) =
         transferOwnershipSetPendingWord σ I := by
     unfold transferOwnershipSetPendingWord ownable2StepSetAddressWord
-    exact ownable2StepU256_lor_comm
+    exact u256_lor_comm
       (UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask)
       (UInt256.land (transferOwnershipPendingOwnerWord σ I) (UInt256.lnot solcAddrMask))
   have rd312 := rd312₀
@@ -521,18 +521,18 @@ theorem ownable2StepX_transferOwnership_revert_owner {cA gh bl σ σ₀ A I} {g 
     rd387 (by simpa [ownable2StepOnlyOwnerWord, transferOwnershipOwnerWord] using howner)
     (by evm_ov)
 
-theorem ownable2StepTransferOwnershipBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepTransferOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨164⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨164⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz4 := ownable2StepTransferOwnershipSelector_size hsel
@@ -540,8 +540,8 @@ theorem ownable2StepTransferOwnershipBody {cA gh bl σ_evm σ₀_evm σ_solm σ�
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (transferOwnershipNewOwnerWord I).toNat < EVM.addressModulus
-      · let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-        let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+      · let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
         have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
         have hownerWord :
             transferOwnershipOwnerWord σ_evm I = transferOwnershipOwnerWord σ_solm I := by

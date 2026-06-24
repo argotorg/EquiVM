@@ -158,15 +158,6 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/
 
-theorem balanceOfKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
-  keyValueToWord_address_of_canonical w hcanon
-
-theorem balanceOfKeyValueToWord_uint256 (w : UInt256) :
-    keyValueToWord (.int (Int.ofNat w.toNat)) = w :=
-  keyValueToWord_uint256 w
-
 /-- Memory after the body stores the masked owner key at scratch offset `0x00`. -/
 noncomputable def balanceOfOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.land owner solcAddrMask)).write 0 solcFreePtrMem 0 32
@@ -294,7 +285,7 @@ theorem balanceOfInnerKeccakSlot (I : ExecutionEnv)
         (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat))) ⟨0⟩ := by
   unfold balanceOfInnerSlot mapSlot
   rw [balanceOfInnerHashMem_read0_64, solcAddrMask_clean hcanon]
-  rw [balanceOfKeyValueToWord_address_of_canonical _ hcanon]
+  rw [keyValueToWord_address_of_canonical _ hcanon]
   exact mappingSlot_single (balanceOfOwnerWord I) ⟨0⟩
 
 theorem balanceOfOuterIdMem_read0 (owner id : UInt256) :
@@ -382,7 +373,7 @@ theorem balanceOfOuterKeccakSlot (I : ExecutionEnv)
       = balanceOfSlot I := by
   rw [balanceOfOuterHashMem_read0_64, balanceOfInnerKeccakSlot I hcanon]
   unfold balanceOfSlot balanceSlot mapSlot
-  rw [balanceOfKeyValueToWord_address_of_canonical _ hcanon, balanceOfKeyValueToWord_uint256]
+  rw [keyValueToWord_address_of_canonical _ hcanon, keyValueToWord_uint256]
   exact mappingSlot_single (balanceOfIdWord I)
     (uInt256OfByteArray (ffi.KEC ((balanceOfOwnerWord I).toByteArray ++
       (⟨0⟩ : UInt256).toByteArray)))
@@ -461,64 +452,8 @@ theorem balanceOfReturnMem_read128 (owner id val : UInt256) :
     change (UInt256.toByteArray val).size ≤ 32
     rw [toByteArray_size])
 
-end OpenZeppelinBench.ERC6909
-
-namespace Reasoning.Reach
-
-open OpenZeppelinBench.ERC6909
-
--- PROMOTE -> Common.lean
--- GENERALIZES `Examples.ERC20.Common.RD.erc20DecodeAddrOk`: same solc address decoder shape with
--- ERC6909's optimizer-on inlined mask/check routine at pc 1629.
-set_option maxHeartbeats 400000 in
-theorem RD.erc6909BalanceOfDecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat <
-      EVM.addressModulus)
-    (hret : (D_J erc6909BenchBytecode 0).contains ret = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD erc6909BenchBytecode ee g s0 ret
-      (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
-  have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-        solcAddrMask) = ⟨1⟩ :=
-    solcAddrCanon_eq hcanon
-  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask := by
-    decide
-  exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩,
-    jumpiT (by rw [hmask, hclean]; decide) (by jump_dest),
-    jumpdest, swap2, swap1, pop, jump hret ]⟩
-
--- PROMOTE -> Common.lean
-set_option maxHeartbeats 400000 in
-theorem RD.erc6909BalanceOfDecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)) solcAddrMask) =
-        ⟨0⟩)
-    (hov : R.length + 7 ≤ 1024) :
-    RDrev erc6909BenchBytecode g s0 := by
-  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask := by
-    decide
-  exact (evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩, jumpiNT (by rw [hmask, hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc6909BenchBytecode g s0)
-
-end Reasoning.Reach
-
-namespace OpenZeppelinBench.ERC6909
-
 /-! ## EVM trace for `balanceOf(address,uint256)` -/
+
 
 theorem erc6909BalanceOfX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
@@ -569,7 +504,7 @@ theorem erc6909BalanceOfX_dec1682 {cA gh bl σ σ₀ A I} {g : Sat256}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
   simpa [balanceOfOwnerWord, calldataWord] using
-    RD.erc6909BalanceOfDecodeAddrOk rd hcanon (by jump_dest) (by evm_ov)
+    erc6909DecodeAddrOk rd hcanon (by jump_dest) (by evm_ov)
 
 theorem erc6909BalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -717,7 +652,7 @@ theorem erc6909BalanceOfX_noncanon {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
   simpa [balanceOfOwnerWord, calldataWord] using
-    RD.erc6909BalanceOfDecodeAddrRevert rd hnc (by evm_ov)
+    erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909BalanceOfBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

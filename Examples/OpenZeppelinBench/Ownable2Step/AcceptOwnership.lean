@@ -81,7 +81,7 @@ theorem acceptOwnershipWord_eq_of_maskedAddress_eq_source {w : UInt256} {I : Exe
     (h : AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source) :
     UInt256.land w solcAddrMask = acceptOwnershipSourceWord I := by
   apply u256_inj
-  have hcanon := ownable2StepSolcAddrMask_result_canonical w
+  have hcanon := solcAddrMask_result_canonical w
   have hval := congrArg Fin.val h
   unfold AccountAddress.ofNat at hval
   rw [Fin.val_ofNat] at hval
@@ -305,7 +305,7 @@ theorem ownable2StepX_acceptOwnership_success {cA gh bl σ σ₀ A I} {g : Sat25
   have hmask :
       UInt256.land solcAddrMask (acceptOwnershipPendingOwnerWord σ I) =
         ownable2StepSourceWord I := by
-    rw [ownable2StepU256_land_comm, hpending]
+    rw [Reasoning.Theory.u256_land_comm, hpending]
   have heq :
       UInt256.eq (UInt256.ofNat I.source.val)
         (UInt256.land
@@ -332,7 +332,7 @@ theorem ownable2StepX_acceptOwnership_success {cA gh bl σ σ₀ A I} {g : Sat25
   have hclear :
       UInt256.land (UInt256.lnot solcAddrMask) (acceptOwnershipPendingOwnerWord σ I) =
         acceptOwnershipClearPendingWord (acceptOwnershipPendingOwnerWord σ I) := by
-    rw [ownable2StepU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     exact (acceptOwnershipSetAddressZero_eq (acceptOwnershipPendingOwnerWord σ I)).symm
   have rd446 := rd446₀
   rw [show UInt256.lnot
@@ -362,7 +362,7 @@ theorem ownable2StepX_acceptOwnership_success {cA gh bl σ σ₀ A I} {g : Sat25
   have rd478 := evm_run rd455 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, dup4, and, dup2]
-  have rd479₀ := RD.ownable2StepOr rd478 (by decide) (by evm_ov)
+  have rd479₀ := RD.lor rd478 (by decide) (by evm_ov)
   have rd480₀ := evm_run rd479₀ with [dup5]
   have hset :
       UInt256.lor
@@ -371,8 +371,8 @@ theorem ownable2StepX_acceptOwnership_success {cA gh bl σ σ₀ A I} {g : Sat25
         acceptOwnershipSetOwnerWord σ I := by
     unfold acceptOwnershipSetOwnerWord ownable2StepSetAddressWord acceptOwnershipSourceWord
       ownable2StepSourceWord
-    rw [ownable2StepU256_land_comm solcAddrMask (UInt256.ofNat I.source.val)]
-    rw [ownable2StepU256_lor_comm]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (UInt256.ofNat I.source.val)]
+    rw [u256_lor_comm]
   have rd480 := rd480₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask by decide] at rd480
@@ -429,7 +429,7 @@ theorem ownable2StepX_acceptOwnership_revert_pendingOwner {cA gh bl σ σ₀ A I
       UInt256.land solcAddrMask (acceptOwnershipPendingOwnerWord σ I) ≠
         ownable2StepSourceWord I := by
     intro h
-    exact hpending (by rw [ownable2StepU256_land_comm] at h; exact h)
+    exact hpending (by rw [Reasoning.Theory.u256_land_comm] at h; exact h)
   have hneq :
       UInt256.ofNat I.source.val ≠
         UInt256.land
@@ -469,7 +469,7 @@ theorem ownable2StepX_acceptOwnership_revert_pendingOwner {cA gh bl σ σ₀ A I
           solcAddrMask from by decide]
         rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide]
         rw [show (⟨132⟩ : UInt256).toNat = 132 from by decide]
-        rw [ownable2StepU256_land_comm (UInt256.ofNat I.source.val) solcAddrMask]
+        rw [Reasoning.Theory.u256_land_comm (UInt256.ofNat I.source.val) solcAddrMask]
         simp [ownable2StepUnauthorizedMem, ownable2StepSourceWord])
       (by decide) (by evm_ov),
     push1 ⟨36⟩, add]
@@ -505,25 +505,25 @@ theorem ownable2StepDecode_acceptOwnership {I : ExecutionEnv} (hsz : 4 ≤ I.cal
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem ownable2StepAcceptOwnershipBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepAcceptOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x79, 0xba, 0x50, 0x97]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨99⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := ownable2StepAcceptOwnershipSelector_size hsel
   have hd := ownable2StepDispatch_acceptOwnership (cd := I.calldata) hsel
   have hdec := ownable2StepDecode_acceptOwnership (I := I) hsz
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
   have hpendWord :
       acceptOwnershipPendingOwnerWord σ_evm I = acceptOwnershipPendingOwnerWord σ_solm I := by

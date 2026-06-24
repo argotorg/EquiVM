@@ -13,26 +13,10 @@ namespace BlindAuction
 def highestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)
 
--- PROMOTE -> Storage.lean: full-slot BlindAuction uint256 loads.
 theorem blindAuctionHighestBidStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionUint256Loc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
-          (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad blindAuctionUint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
+  exact blindAuctionStorageLocLoad_uint256 evm slot
 
 theorem blindAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -122,7 +106,7 @@ theorem blindAuctionDispatch_highestBid {cd : ByteArray}
     (hsel : ((⟨#[0xd5, 0x7b, 0xde, 0x79]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg blindAuctionContract cd = some highestBidGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0xd5, 0x7b, 0xde, 0x79]⟩ : ByteArray) :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter, highestBidderGetter])

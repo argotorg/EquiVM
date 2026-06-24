@@ -100,18 +100,18 @@ theorem accessControlX_defaultAdminRole {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa using solcReturnMem_read128 defaultAdminRoleWord)
       (by evm_ov) ]
 
-theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨273⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨273⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := accessControlDefaultAdminRoleSelector_size hsel
@@ -120,13 +120,13 @@ theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ₀_evm σ_solm σ�
   have hdec := accessControlDecode_defaultAdminRole (I := I) hsz
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         defaultAdminRoleTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (some defaultAdminRoleValue)) := by
     exact accessControlDefaultAdminRoleBodyReturns
-      (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
   exact (accessControlX_defaultAdminRole (g := Sat256.ofUInt256 g) hreach)
     |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts

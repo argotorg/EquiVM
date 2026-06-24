@@ -543,7 +543,7 @@ theorem setOperatorOwnerKeccakSlot (I : ExecutionEnv) :
       mapSlot (keyValueToWord (.address I.source)) ⟨1⟩ := by
   have hownerKey : keyValueToWord (.address I.source) = setOperatorOwnerWord I := by
     rw [← setOperatorOwner_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (setOperatorOwnerWord_canonical I)
   unfold setOperatorOwnerSlot mapSlot
   rw [setOperatorOwnerHashMem_read0_64, hownerKey]
@@ -555,12 +555,12 @@ theorem setOperatorFinalKeccakSlot (I : ExecutionEnv)
       setOperatorSlotI I := by
   have hownerKey : keyValueToWord (.address I.source) = setOperatorOwnerWord I := by
     rw [← setOperatorOwner_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (setOperatorOwnerWord_canonical I)
   have hspenderKey :
       keyValueToWord (.address (AccountAddress.ofNat (setOperatorSpenderWord I).toNat)) =
         setOperatorSpenderWord I :=
-    erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSpender
+    keyValueToWord_address_of_canonical _ hcanonSpender
   unfold setOperatorSpenderSlot setOperatorSlotI operatorApprovalSlot mapSlot
   rw [setOperatorSpenderHashMem_read0_64, setOperatorOwnerKeccakSlot I]
   rw [hownerKey, hspenderKey]
@@ -605,8 +605,8 @@ theorem erc6909SetOperatorX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1807⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1816⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd1816⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
-    (by evm_ov)
+  obtain ⟨_, _, rd1816⟩ :=
+    erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest) (by evm_ov)
   have rd261 := evm_run rd1816 with [
     jumpdest, swap2, pop, push1 ⟨32⟩, dup4, add, calldataload, dup1, iszero,
     iszero, dup2, eq, push2 ⟨1836⟩,
@@ -694,8 +694,8 @@ theorem erc6909SetOperatorX_noncanon_approved {cA gh bl σ σ₀ A I} {g : Sat25
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1807⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1816⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd1816⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
-    (by evm_ov)
+  obtain ⟨_, _, rd1816⟩ :=
+    erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest) (by evm_ov)
   exact evm_run rd1816 with [
     jumpdest, swap2, pop, push1 ⟨32⟩, dup4, add, calldataload, dup1, iszero,
     iszero, dup2, eq, push2 ⟨1836⟩,
@@ -999,7 +999,7 @@ theorem erc6909SetOperatorX_toPreStore {cA gh bl σ σ₀ A I} {g : Sat256}
         setOperatorStoredWord σ I := by
     unfold setOperatorStoredWord setOperatorBoolWord
     rw [u256_lor_comm]
-    rw [SimpleAuction.simpleAuctionU256_land_comm (UInt256.lnot ⟨255⟩)
+    rw [Reasoning.Theory.u256_land_comm (UInt256.lnot ⟨255⟩)
       (setOperatorStorageWord σ I)]
   have rd1094' := rd1094
   rw [hmask, hownerClean, hspenderClean, hstoredWord] at rd1094'

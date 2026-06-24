@@ -45,7 +45,7 @@ theorem pausableX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [pausedRawWord, initState] using rd102₀⟩
   have rd105₀ := evm_run rd102 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ I) = pausedWord σ I := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     rfl
   have rd105 := rd105₀
   rw [hmask] at rd105
@@ -88,7 +88,7 @@ theorem pausableDispatch_paused {cd : ByteArray}
     (hsel : ((⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some pausedTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩ : ByteArray) :=
-    (pausableByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [guardedWhenNotPausedTransition, guardedWhenPausedTransition, pauseTransition])
     (post := [unpauseTransition]) rfl ?_
@@ -106,18 +106,18 @@ theorem pausableDecode_paused {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem pausablePausedBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem pausablePausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨99⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz := pausablePausedSelector_size hsel
   have hd := pausableDispatch_paused (cd := I.calldata) hsel
   have hdec := pausableDecode_paused (I := I) hsz
@@ -125,14 +125,14 @@ theorem pausablePausedBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         pausedTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (some (wordToElem .bool (pausedWord σ_solm I)))) := by
     simpa [pausedRawWord, pausedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       pausablePausedBodyReturns
-        (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
   have hretVal :
       (some (wordToElem .bool (pausedWord σ_solm I)) : Option Value) =

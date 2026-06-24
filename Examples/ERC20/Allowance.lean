@@ -304,7 +304,7 @@ theorem allowanceInnerKeccakSlot (I : ExecutionEnv)
   unfold allowanceInnerSlot
   rw [allowanceInnerHashMem_read0_64]
   unfold erc20AllowanceOwnerSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanonOwner]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner]
   exact mappingSlot_single (allowanceOwnerWord I) ⟨1⟩
 
 theorem allowanceOuterBaseMem_read32 (owner : UInt256) :
@@ -411,8 +411,8 @@ theorem allowanceOuterKeccakSlot (I : ExecutionEnv)
       = allowanceSlot I := by
   rw [allowanceOuterHashMem_read0_64, allowanceInnerKeccakSlot I hcanonOwner]
   unfold allowanceSlot erc20AllowanceSlot erc20AllowanceOwnerSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanonOwner,
-    erc20KeyValueToWord_address_of_canonical _ hcanonSpender]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner,
+    keyValueToWord_address_of_canonical _ hcanonSpender]
   exact mappingSlot_single (allowanceSpenderWord I)
     (erc20MappingSlot (allowanceOwnerWord I) ⟨1⟩)
 
@@ -744,7 +744,7 @@ theorem erc20Dispatch_allowance {cd : ByteArray}
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some allowanceTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) :=
-    (erc20ByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
       transferTransition])

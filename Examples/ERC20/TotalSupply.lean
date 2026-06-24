@@ -84,7 +84,7 @@ theorem erc20Dispatch_totalSupply {cd : ByteArray}
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some totalSupplyTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) :=
-    (erc20ByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [approveTransition])
     (post := [transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
     rfl ?_ (by rw [selectorOf, erc20TotalSupplySelectorBytes]; exact hsel)

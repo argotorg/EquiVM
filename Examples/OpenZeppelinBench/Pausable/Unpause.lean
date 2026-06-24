@@ -23,7 +23,7 @@ theorem pausableDispatch_unpause {cd : ByteArray}
     (hsel : ((⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some unpauseTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩ : ByteArray) :=
-    (pausableByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [guardedWhenNotPausedTransition, guardedWhenPausedTransition, pauseTransition,
       pausedTransition])
@@ -124,7 +124,7 @@ theorem pausableX_unpause_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have hland : UInt256.land (UInt256.lnot ⟨255⟩) (pausedRawWord σ I) =
       pausedSetFalseWord (pausedRawWord σ I) := by
     unfold pausedSetFalseWord
-    exact pausableU256_land_comm (UInt256.lnot ⟨255⟩) (pausedRawWord σ I)
+    exact Reasoning.Theory.u256_land_comm (UInt256.lnot ⟨255⟩) (pausedRawWord σ I)
   rw [hland] at rd207
   have rd208 := evm_run rd207 with [swap1]
   obtain ⟨_, _, rd209₀⟩ := rd208.sstore hperm (by decide) (by evm_ov)
@@ -148,7 +148,7 @@ theorem pausableX_unpause_success {cA gh bl σ σ₀ A I} {g : Sat256}
     decide
   rw [haddrMask] at rd258
   have hcaller : UInt256.land (UInt256.ofNat I.source.val) solcAddrMask = pausableSenderWord I := by
-    rw [pausableU256_land_comm]
+    rw [Reasoning.Theory.u256_land_comm]
     simpa [pausableSenderWord] using solcAddrMask_clean_left (pausableSenderWord_canonical I)
   rw [hcaller] at rd258
   have rd260 := evm_run rd258 with [
@@ -187,18 +187,18 @@ theorem pausableX_unpause_revert {cA gh bl σ σ₀ A I} {g : Sat256}
     (R := [⟨157⟩, ⟨97⟩, pausableSelWord I]) rd367 hzero
     (by simp)
 
-theorem pausableUnpauseBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem pausableUnpauseBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨89⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨89⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := pausableUnpauseSelector_size hsel
@@ -210,7 +210,7 @@ theorem pausableUnpauseBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
     rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩]
   by_cases hzero : pausedWord σ_evm I = ⟨0⟩
   · have hbody := pausableUnpauseBodyReverts_notPaused
-      (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
       (by
         have hzeroSolm : pausedWord σ_solm I = ⟨0⟩ := by
@@ -220,7 +220,7 @@ theorem pausableUnpauseBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
     exact (pausableX_unpause_revert (g := Sat256.ofUInt256 g) hreach hzero)
       |>.reEquivExecutionRevert hcode hd hdec hbody
   · have hbody := pausableUnpauseBodyReturns
-      (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
       (by
         have hnzSolm : pausedWord σ_solm I ≠ ⟨0⟩ := by
@@ -228,11 +228,11 @@ theorem pausableUnpauseBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
         simpa [pausedWord, pausedRawWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
           using hnzSolm)
     have hσPost : EVMStateEquiv
-        (unpausePostState (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
-        (unpausePostState (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)) := by
+        (unpausePostState (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
+        (unpausePostState (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) := by
       have hσ : EVMStateEquiv
-          (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) := by
+          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) := by
         exact EVMStateEquiv.initState hAccounts
       exact pausableEVMStateEquiv_storageStore_codeOwner hσ ⟨0⟩ (by
         have hraw :

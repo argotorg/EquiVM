@@ -476,7 +476,7 @@ theorem balanceOfKeccakSlot_word (owner : UInt256)
       = erc20BalanceOfSlot (.address (AccountAddress.ofNat owner.toNat)) := by
   rw [balanceOfHashMem_read0_64]
   unfold erc20BalanceOfSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanon]
+  rw [keyValueToWord_address_of_canonical _ hcanon]
   exact mappingSlot_single owner ⟨0⟩
 
 theorem transferSenderKeccakSlot (I : ExecutionEnv) :
@@ -1672,7 +1672,7 @@ theorem erc20Dispatch_transfer {cd : ByteArray}
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some transferTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) :=
-    (erc20ByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition])
     (post := [allowanceTransition])

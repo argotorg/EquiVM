@@ -148,7 +148,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_general {I} {g : 
         SimpleAuction.withdrawReturnDataActiveWords o := by
     simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd1391 := SimpleAuction.withdrawRDReturndatacopy
+  have rd1391 := RD.returndatacopy
     (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (SimpleAuction.withdrawReturnDataActiveWords o)
@@ -271,165 +271,6 @@ theorem scratch_revealBidsElemSlot_eq (I : ExecutionEnv) (i : UInt256) :
   unfold revealScratchBidsLengthSlot bidsElemSlot
   rw [blindAuctionKeyValueToWord_int_ofNat_toNat]
   apply congrArg (fun x => x + UInt256.ofNat (i.toNat * 2)) rfl
-
-end BlindAuction
-
-namespace Reasoning.Theory
-
--- LIBRARY CANDIDATE: generic `DUP9` xstep, matching the existing `DUP` RD pattern.
-theorem scratchDup9_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg h i : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP9, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: gg :: h :: i :: t)
-    (hov : t.length + 10 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok (stSwap s (i :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP9, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup9 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: h :: i :: t).length - 9 + 10 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- LIBRARY CANDIDATE: generic high `DUP13` xstep, matching `DUP10`/`DUP11`.
-theorem scratchDup13_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg h i j k l m : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP13, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: t)
-    (hov : t.length + 14 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s (m :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP13, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup13 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: t).length -
-          13 + 14 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- LIBRARY CANDIDATE: generic high `DUP14` xstep, matching `DUP10`/`DUP11`.
-theorem scratchDup14_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg h i j k l m n : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP14, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: t)
-    (hov : t.length + 15 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (n :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP14, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup14 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: t).length -
-          14 + 15 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- LIBRARY CANDIDATE: generic high `DUP15` xstep, matching `DUP10`/`DUP11`.
-theorem scratchDup15_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg h i j k l m n o : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP15, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: o :: t)
-    (hov : t.length + 16 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (o :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: o :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP15, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup15 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: k :: l :: m :: n :: o :: t).length -
-          15 + 16 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-end Reasoning.Theory
-
-namespace Reasoning.Reach
-
--- LIBRARY CANDIDATE: generic `RD.dup9`, matching `RD.dup10`/`RD.dup11`.
-theorem RD.dup9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f gg h i : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: h :: i :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (i :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.scratchDup9_xstep hc hp hdec hs hov)
-
--- LIBRARY CANDIDATE: generic high `RD.dup13`, matching `RD.dup10`/`RD.dup11`.
-theorem RD.dup13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f gg h i j l m n : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP13, .none)) (hov : t.length + 14 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (n :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.scratchDup13_xstep hc hp hdec hs hov)
-
--- LIBRARY CANDIDATE: generic high `RD.dup14`, matching `RD.dup10`/`RD.dup11`.
-theorem RD.dup14 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f gg h i j l m n o : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: o :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP14, .none)) (hov : t.length + 15 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (o :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: o :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.scratchDup14_xstep hc hp hdec hs hov)
-
--- LIBRARY CANDIDATE: generic high `RD.dup15`, matching `RD.dup10`/`RD.dup11`.
-theorem RD.dup15 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f gg h i j l m n o p : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: o :: p :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP15, .none)) (hov : t.length + 16 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (p :: a :: b :: c :: d :: e :: f :: gg :: h :: i :: j :: l :: m :: n :: o :: p :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.scratchDup15_xstep hc hp hdec hs hov)
-
-end Reasoning.Reach
-
-namespace BlindAuction
 
 theorem scratch_blindAuctionRevealX_loopCond_exit {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1129,7 +970,7 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall {cA gh bl σ σ₀ A I} {g
       exact Nat.zero_le _
     simp [min, hle]
   have hcd : mem.readWithPadding freePtr.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact revealScratch_readWithPadding_zero _ _
+    exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
       (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
         (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
@@ -1158,7 +999,7 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall {cA gh bl σ σ₀ A I} {g
       congrArg (fun t => t.2.2.2.2.2) hΘeq
     rw [ho]
     exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  rw [hmin, revealScratch_write_len_zero, hawCall] at rd1350₀
+  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
   exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
     by simpa [revealScratchSenderWord] using rd1350₀⟩
 
@@ -2615,32 +2456,6 @@ theorem scratch_blindAuctionRevealX_placeBidTrue_toNext {I} {g : Sat256}
   have rd1315 := evm_run rd1312 with [jumpdest, swap6, pop]
   exact scratch_blindAuctionRevealX_zeroBlinded_toNext rd1315 hperm
 
--- LIBRARY CANDIDATE: generic OR xstep/RD.or, analogous to the other binary-op wrappers.
-theorem scratchOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
-theorem RD.scratchOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => scratchOr_xstep hc hp hdec hs hov)
-
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`, same proof shape as SimpleAuction's local lemma.
 theorem scratchNat_lor_comm (a b : Nat) : Nat.lor a b = Nat.lor b a := by
   apply Nat.eq_of_testBit_eq
@@ -2661,7 +2476,7 @@ theorem scratch_placeBidPackedBidderWord_eq_setAddress (old bidder : UInt256)
         (UInt256.land (UInt256.lnot solcAddrMask) old) =
       SimpleAuction.simpleAuctionSetAddressWord old bidder := by
   unfold SimpleAuction.simpleAuctionSetAddressWord
-  rw [highestBidderU256_land_comm (UInt256.lnot solcAddrMask) old]
+  rw [Reasoning.Theory.u256_land_comm (UInt256.lnot solcAddrMask) old]
   rw [solcAddrMask_clean hcanon]
   exact scratchU256_lor_comm bidder (UInt256.land old (UInt256.lnot solcAddrMask))
 
@@ -2706,7 +2521,7 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
         (scratch_placeBidHighestBidderWord σ I) = ⟨0⟩ := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) = ⟨0⟩
-    rw [highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
     exact hzero
   rw [hzero'] at rd1564
   have rd1619 := evm_run rd1564 with [
@@ -2727,7 +2542,7 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.scratchOr rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
@@ -2815,7 +2630,7 @@ theorem scratch_placeBidPendingHashMem_read0_64 (mem : ByteArray) (key : UInt256
         0 (0 + 64) =
       UInt256.toByteArray key ++ S
   rw [show 0 + 64 = 64 by norm_num]
-  rw [SimpleAuction.withdraw_extract_two_chunks_0]
+  rw [byteArray_extract_two_chunks_0]
   · have hM0 : M.extract 0 32 = UInt256.toByteArray key := by
       dsimp [M]
       rw [← readWithPadding_eq_extract (scratch_placeBidPendingKeyMem mem key) 0
@@ -2824,7 +2639,7 @@ theorem scratch_placeBidPendingHashMem_read0_64 (mem : ByteArray) (key : UInt256
     have hSself : S.extract 0 32 = S := by
       dsimp [S]
       rw [show 32 = (UInt256.toByteArray (⟨7⟩ : UInt256)).size by rw [toByteArray_size]]
-      exact SimpleAuction.withdrawByteArray_extract_self _
+      exact byteArray_extract_self _
     rw [hM0, hSself]
   · rw [ByteArray.size_extract]
     dsimp [M]
@@ -2913,7 +2728,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
         (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩ := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) ≠ ⟨0⟩
-    rw [highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
+    rw [Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)]
     exact hnonzero
   have rd1564 := rd1564₀
   have rd1565₀ := evm_run rd1564 with [iszero]
@@ -2940,7 +2755,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
         UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask := by
     change UInt256.land solcAddrMask (scratch_placeBidHighestBidderWord σ I) =
       UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask
-    exact highestBidderU256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
+    exact Reasoning.Theory.u256_land_comm solcAddrMask (scratch_placeBidHighestBidderWord σ I)
   have rd1587 := rd1587₀
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
@@ -3022,7 +2837,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.scratchOr rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))

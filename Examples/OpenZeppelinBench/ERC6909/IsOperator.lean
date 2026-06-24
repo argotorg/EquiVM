@@ -160,11 +160,6 @@ theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [operatorApprovalRef] using evalExpr_isOperator_storage evm I)
 
-theorem erc6909KeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
-  keyValueToWord_address_of_canonical w hcanon
-
 /-! ## EVM scratch memory for the `_operatorApprovals` nested mapping access -/
 
 noncomputable def isOperatorOwnerMem (owner : UInt256) : ByteArray :=
@@ -287,7 +282,7 @@ theorem isOperatorInnerKeccakSlot (I : ExecutionEnv)
       mapSlot (keyValueToWord (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat))) ⟨1⟩ := by
   unfold isOperatorInnerSlot mapSlot
   rw [isOperatorInnerHashMem_read0_64]
-  rw [erc6909KeyValueToWord_address_of_canonical _ hcanonOwner]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner]
   exact mappingSlot_single (isOperatorOwnerWord I) ⟨1⟩
 
 theorem isOperatorSpenderMem_read0 (owner spender : UInt256) :
@@ -377,8 +372,8 @@ theorem isOperatorOuterKeccakSlot (I : ExecutionEnv)
       = isOperatorSlot I := by
   rw [isOperatorOuterHashMem_read0_64, isOperatorInnerKeccakSlot I hcanonOwner]
   unfold isOperatorSlot operatorApprovalSlot mapSlot
-  rw [erc6909KeyValueToWord_address_of_canonical _ hcanonOwner,
-    erc6909KeyValueToWord_address_of_canonical _ hcanonSpender]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner,
+    keyValueToWord_address_of_canonical _ hcanonSpender]
   exact mappingSlot_single (isOperatorSpenderWord I)
     (mapSlot (isOperatorOwnerWord I) ⟨1⟩)
 
@@ -453,13 +448,6 @@ theorem isOperatorReturnMem_read128 (owner spender val : UInt256) :
     change (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).size ≤ 32
     rw [toByteArray_size])
 
-theorem erc6909BoolFalseReturnEncoding :
-    encodeReturnValue? boolTy (.bool false) = some (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
-  scalarReturnEncoding (t := .bool) (w := ⟨0⟩) rfl
-    (by simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-        decide)
-    (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
-
 theorem erc6909BoolTrueReturnEncoding :
     encodeReturnValue? boolTy (.bool true) = some (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   simpa [boolTy] using boolTrueReturnEncoding
@@ -473,7 +461,7 @@ theorem erc6909BoolReturnEncoding (w : UInt256) :
       apply u256_inj
       exact congrArg Fin.val hval
     have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [wordToElem, hz, hnorm] using erc6909BoolFalseReturnEncoding
+    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
   · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
       intro hx
       apply hval
@@ -482,61 +470,8 @@ theorem erc6909BoolReturnEncoding (w : UInt256) :
     have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
     simpa [wordToElem, hval, hiz, hnorm] using erc6909BoolTrueReturnEncoding
 
-end OpenZeppelinBench.ERC6909
-
-namespace Reasoning.Reach
-
-open OpenZeppelinBench.ERC6909
-
--- PROMOTE -> Common.lean
--- GENERALIZES `Examples.ERC20.Common.RD.erc20DecodeAddrOk`: same solc address decoder shape with
--- ERC6909's optimizer-on inlined mask/check routine at pc 1629.
-set_option maxHeartbeats 400000 in
-theorem RD.erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
-        < EVM.addressModulus)
-    (hret : (D_J erc6909BenchBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD erc6909BenchBytecode ee g s0 ret
-        (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
-  have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-        solcAddrMask) = ⟨1⟩ :=
-    solcAddrCanon_eq hcanon
-  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    decide
-  exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩,
-    jumpiT (by rw [hmask, hclean]; decide) (by jump_dest),
-    jumpdest, swap2, swap1, pop, jump hret ]⟩
-
--- PROMOTE -> Common.lean
-set_option maxHeartbeats 400000 in
-theorem RD.erc6909DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
-    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-        (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
-          solcAddrMask) = ⟨0⟩)
-    (hov : R.length + 7 ≤ 1024) :
-    RDrev erc6909BenchBytecode g s0 := by
-  have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    decide
-  exact (evm_run h with [
-    jumpdest, dup1, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    dup2, and, dup2, eq, push2 ⟨1651⟩, jumpiNT (by rw [hmask, hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
-    RDrev erc6909BenchBytecode g s0)
-
-end Reasoning.Reach
-
-namespace OpenZeppelinBench.ERC6909
-
 /-! ## EVM trace for `isOperator(address,address)` -/
+
 
 theorem erc6909IsOperatorX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
@@ -582,7 +517,7 @@ theorem erc6909IsOperatorX_dec1931 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_owner (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz68 hsize hszhi hreach
-  exact RD.erc6909DecodeAddrOk rd hcanonOwner (by jump_dest) (by evm_ov)
+  exact erc6909DecodeAddrOk rd hcanonOwner (by jump_dest) (by evm_ov)
 
 theorem erc6909IsOperatorX_dec1629_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -618,7 +553,7 @@ theorem erc6909IsOperatorX_dec1945 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_spender (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonOwner hreach
-  exact RD.erc6909DecodeAddrOk rd hcanonSpender (by jump_dest) (by evm_ov)
+  exact erc6909DecodeAddrOk rd hcanonSpender (by jump_dest) (by evm_ov)
 
 theorem erc6909IsOperatorX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -692,7 +627,7 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨255⟩, and, swap1, jump (by jump_dest) ]
   have hmaskComm : UInt256.land ⟨255⟩ (isOperatorStorageWord σ I) =
       UInt256.land (isOperatorStorageWord σ I) ⟨255⟩ := by
-    exact SimpleAuction.simpleAuctionU256_land_comm ⟨255⟩ (isOperatorStorageWord σ I)
+    exact Reasoning.Theory.u256_land_comm ⟨255⟩ (isOperatorStorageWord σ I)
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -779,7 +714,7 @@ theorem erc6909IsOperatorX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_owner (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
-  simpa [isOperatorOwnerWord] using RD.erc6909DecodeAddrRevert rd hnc (by evm_ov)
+  simpa [isOperatorOwnerWord] using erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909IsOperatorX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -795,7 +730,7 @@ theorem erc6909IsOperatorX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd⟩ := erc6909IsOperatorX_dec1629_spender (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonOwner hreach
-  simpa [isOperatorSpenderWord] using RD.erc6909DecodeAddrRevert rd hnc (by evm_ov)
+  simpa [isOperatorSpenderWord] using erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909IsOperatorSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0xb6, 0x36, 0x3c, 0xf2]⟩ : ByteArray) == I.calldata.extract 0 4) =

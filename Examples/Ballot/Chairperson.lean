@@ -73,7 +73,7 @@ theorem ballotDispatch_chairperson {cd : ByteArray}
     (hsel : ((⟨#[0x2e, 0x41, 0x76, 0xcf]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some chairpersonGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x2e, 0x41, 0x76, 0xcf]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [voteTransition, proposalsGetter])
     (post := [delegateTransition, winningProposalTransition, giveRightToVoteTransition,
       votersGetter, winnerNameTransition])
@@ -117,6 +117,6 @@ theorem ballotChairpersonBodyCore
         (by simp only [initState]; exact hwv) (by simp)
   exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport hcode hd hdec
     hbody (by simp [chairpersonReturnWord, hword]) hAccounts
-    (returnEquiv_of_encode (ballotAddressReturnEncoding (chairpersonWord σ_evm I)))
+    (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (chairpersonWord σ_evm I)))
 
 end Ballot

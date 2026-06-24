@@ -57,19 +57,11 @@ noncomputable def withdrawRehashKeyMem (I : ExecutionEnv) : ByteArray :=
 noncomputable def withdrawRehashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨7⟩ : UInt256)).write 0 (withdrawRehashKeyMem I) 32 32
 
-theorem withdrawKeyValueToWord_address_source (I : ExecutionEnv) :
-    keyValueToWord (withdrawSenderKey I) = withdrawSourceWord I := by
-  apply u256_inj
-  unfold withdrawSenderKey withdrawSourceWord keyValueToWord UInt256.ofNat
-  change I.source.val = (Fin.ofNat UInt256.size I.source.val).val
-  rw [Fin.val_ofNat]
-  exact (Nat.mod_eq_of_lt
-    (lt_of_lt_of_le I.source.isLt (show AccountAddress.size ≤ UInt256.size from by decide))).symm
-
 theorem withdrawAmountSlot_spec (I : ExecutionEnv) :
     withdrawAmountSlot I = blindAuctionMappingSlot (withdrawSourceWord I) ⟨7⟩ := by
-  unfold withdrawAmountSlot pendingReturnsSlot blindAuctionMappingSlot
-  rw [withdrawKeyValueToWord_address_source]
+  unfold withdrawAmountSlot pendingReturnsSlot blindAuctionMappingSlot withdrawSenderKey
+  rw [show keyValueToWord (.address I.source) = withdrawSourceWord I by
+    simpa [withdrawSourceWord] using keyValueToWord_address I.source]
 
 theorem withdrawBaseSlotMem_size : withdrawBaseSlotMem.size = 96 := by
   unfold withdrawBaseSlotMem
@@ -176,7 +168,7 @@ theorem withdrawLoadHashMem_read0_64 (I : ExecutionEnv) :
         0 (0 + 64) =
       UInt256.toByteArray (withdrawSourceWord I) ++ S
   rw [show 0 + 64 = 64 by norm_num]
-  rw [SimpleAuction.withdraw_extract_two_chunks_0]
+  rw [byteArray_extract_two_chunks_0]
   · have hM0 : M.extract 0 32 = UInt256.toByteArray (withdrawSourceWord I) := by
       dsimp [M]
       rw [← readWithPadding_eq_extract (withdrawKeyMem I) 0
@@ -185,7 +177,7 @@ theorem withdrawLoadHashMem_read0_64 (I : ExecutionEnv) :
     have hSself : S.extract 0 32 = S := by
       dsimp [S]
       rw [show 32 = (UInt256.toByteArray (⟨7⟩ : UInt256)).size by rw [toByteArray_size]]
-      exact SimpleAuction.withdrawByteArray_extract_self _
+      exact byteArray_extract_self _
     rw [hM0, hSself]
   · rw [ByteArray.size_extract]
     dsimp [M]
@@ -211,7 +203,7 @@ theorem withdrawRehashMem_read0_64 (I : ExecutionEnv) :
         0 (0 + 64) =
       UInt256.toByteArray (withdrawSourceWord I) ++ S
   rw [show 0 + 64 = 64 by norm_num]
-  rw [SimpleAuction.withdraw_extract_two_chunks_0]
+  rw [byteArray_extract_two_chunks_0]
   · have hM0 : M.extract 0 32 = UInt256.toByteArray (withdrawSourceWord I) := by
       dsimp [M]
       rw [← readWithPadding_eq_extract (withdrawRehashKeyMem I) 0
@@ -220,7 +212,7 @@ theorem withdrawRehashMem_read0_64 (I : ExecutionEnv) :
     have hSself : S.extract 0 32 = S := by
       dsimp [S]
       rw [show 32 = (UInt256.toByteArray (⟨7⟩ : UInt256)).size by rw [toByteArray_size]]
-      exact SimpleAuction.withdrawByteArray_extract_self _
+      exact byteArray_extract_self _
     rw [hM0, hSself]
   · rw [ByteArray.size_extract]
     dsimp [M]
@@ -350,22 +342,7 @@ theorem withdrawRehashMappingKeccak (I : ExecutionEnv) :
 theorem withdrawStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionUint256Loc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
-          (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad blindAuctionUint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
+  exact blindAuctionStorageLocLoad_uint256 evm slot
 
 theorem withdrawPendingReturns_evalStorageRef
     (evm : EVM.State) (locals : Store) :
@@ -652,7 +629,7 @@ theorem blindAuctionDispatch_withdraw {cd : ByteArray}
     (hsel : ((⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg blindAuctionContract cd = some withdrawTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩ : ByteArray) :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, revealTransition])
     (post := [auctionEndTransition, beneficiaryGetter, biddingEndGetter, revealEndGetter,
@@ -838,7 +815,7 @@ theorem blindAuctionX_withdraw_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
     simp [min, hle]
   have hcd : (withdrawRehashMem I).readWithPadding (⟨128⟩ : UInt256).toNat
       (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact SimpleAuction.withdraw_readWithPadding_zero _ _
+    exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
       (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
         (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
@@ -874,7 +851,7 @@ theorem blindAuctionX_withdraw_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
-  rw [hmin, SimpleAuction.withdraw_write_len_zero, haw] at rd767₀
+  rw [hmin, byteArray_write_len_zero, haw] at rd767₀
   exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
     by simpa [initState] using rd767₀⟩
 
@@ -902,7 +879,7 @@ theorem blindAuctionX_withdraw_callDepth {cA gh bl σ σ₀ A I} {g : Sat256}
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
-  rw [hmin, SimpleAuction.withdraw_write_len_zero, haw] at rd767₀
+  rw [hmin, byteArray_write_len_zero, haw] at rd767₀
   exact ⟨k', C', by simpa [withdrawZeroMap, initState] using rd767₀⟩
 
 set_option maxHeartbeats 1000000 in
@@ -924,7 +901,7 @@ theorem blindAuctionX_withdraw_callInsufficient {cA gh bl σ σ₀ A I} {g : Sat
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach hpos
   obtain ⟨k', C', rd767₀⟩ :=
-    SimpleAuction.withdrawRDCallValueInsufficientBalance rd766 hperm
+    RD.callValueInsufficientBalance rd766 hperm
       (by decide) hbalance hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     decide
@@ -933,7 +910,7 @@ theorem blindAuctionX_withdraw_callInsufficient {cA gh bl σ σ₀ A I} {g : Sat
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
-  rw [hmin, SimpleAuction.withdraw_write_len_zero, haw] at rd767₀
+  rw [hmin, byteArray_write_len_zero, haw] at rd767₀
   exact ⟨k', C', by simpa [withdrawZeroMap, initState] using rd767₀⟩
 
 theorem blindAuctionX_withdraw_postCallEmpty_toBranch {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1011,7 +988,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
         SimpleAuction.withdrawReturnDataActiveWords o := by
     simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd808 := SimpleAuction.withdrawRDReturndatacopy
+  have rd808 := RD.returndatacopy
     (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (SimpleAuction.withdrawReturnDataActiveWords o)
@@ -1061,7 +1038,7 @@ theorem blindAuctionX_withdraw_afterCall_revert {cA gh bl σ σ₀ A I} {g : Sat
     (hosz : o.size < UInt256.size) :
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   by_cases ho : o.size = 0
-  · have hoempty : o = ByteArray.empty := SimpleAuction.withdrawByteArray_eq_empty_of_size_eq_zero o ho
+  · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
     obtain ⟨_, _, rd822⟩ :=
       blindAuctionX_withdraw_postCallEmpty_toBranch (cA := cA) (gh := gh) (bl := bl)
@@ -1083,7 +1060,7 @@ theorem blindAuctionX_withdraw_afterCall_return {cA gh bl σ σ₀ A I} {g : Sat
     (hosz : o.size < UInt256.size) :
     RDret blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   by_cases ho : o.size = 0
-  · have hoempty : o = ByteArray.empty := SimpleAuction.withdrawByteArray_eq_empty_of_size_eq_zero o ho
+  · have hoempty : o = ByteArray.empty := byteArray_eq_empty_of_size_eq_zero o ho
     subst o
     obtain ⟨_, _, rd822⟩ :=
       blindAuctionX_withdraw_postCallEmpty_toBranch (cA := cA) (gh := gh) (bl := bl)
@@ -1248,7 +1225,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
               (valueWord := withdrawAmountWord σ_evm I)
               (cA' := cA') (σ' := σ') (g' := g'') (A' := A')
               ?_ ?_ ?_ ?_ ?_
-            · exact (blindAuctionWordOfInt_ofNat_toNat (withdrawAmountWord σ_evm I)).symm
+            · exact (wordOfInt_ofNat_toNat (withdrawAmountWord σ_evm I)).symm
             · refine ⟨callGas, A_in, ?_⟩
               simpa [evmEZero, targetE, valueE, initState, hperm, accountAddress_roundtrip,
                 withdrawSourceWord] using hThetaEq
@@ -1349,7 +1326,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
             · rfl
             · rfl
             · rintro ⟨hvalueBal, _⟩
-              rw [blindAuctionWordOfInt_ofNat_toNat] at hvalueBal
+              rw [wordOfInt_ofNat_toNat] at hvalueBal
               have hvalueBalS :
                     withdrawAmountWord σ_solm I ≤
                       (withdrawZeroMap σ_solm I |>.find? I.codeOwner |>.elim ⟨0⟩

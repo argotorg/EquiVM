@@ -180,7 +180,7 @@ theorem allowanceInnerKeccakSlot_word (owner : UInt256)
   unfold allowanceInnerSlot
   rw [allowanceInnerHashMem_read0_64]
   unfold erc20AllowanceOwnerSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanonOwner]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner]
   exact mappingSlot_single owner ⟨1⟩
 
 -- `erc20AddrMask_clean` / `erc20AddrMask_clean_left` moved to `Reasoning.Solc`
@@ -372,8 +372,8 @@ theorem allowanceOuterKeccakSlot_word (owner spender : UInt256)
           (.address (AccountAddress.ofNat spender.toNat)) := by
   rw [allowanceOuterHashMem_read0_64, allowanceInnerKeccakSlot_word owner hcanonOwner]
   unfold erc20AllowanceSlot erc20AllowanceOwnerSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanonOwner,
-    erc20KeyValueToWord_address_of_canonical _ hcanonSpender]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner,
+    keyValueToWord_address_of_canonical _ hcanonSpender]
   exact mappingSlot_single spender (erc20MappingSlot owner ⟨1⟩)
 
 theorem approveOuterKeccakSlot (I : ExecutionEnv)

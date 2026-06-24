@@ -50,7 +50,7 @@ theorem winnerNameNameWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEn
 theorem winnerNameNameSlot_spec (w : UInt256) :
     winnerNameNameSlot w = proposalElemSlot (.int (Int.ofNat w.toNat)) := by
   unfold winnerNameNameSlot proposalElemSlot
-  rw [ballotKeyValueToWord_int_ofNat_toNat]
+  rw [keyValueToWord_uint256]
   rw [u256_mul_two_ofNat]
   exact u256_add_comm _ _
 
@@ -237,18 +237,12 @@ theorem ballotBytes32ReturnEncoding (w : UInt256) :
 
 /-! ## EVM body for `winnerName` -/
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem winnerName_u256_zero_add (w : UInt256) : (⟨0⟩ : UInt256) + w = w := by
-  apply u256_inj
-  show (0 + w.val).val = w.val
-  simp
-
 theorem winnerNameNameSlot_evm (w : UInt256) :
     (⟨0⟩ : UInt256) + (UInt256.mul ⟨2⟩ w + proposalsDataBase) =
       winnerNameNameSlot w := by
   unfold winnerNameNameSlot
-  rw [winnerName_u256_zero_add]
-  rw [winningProposal_u256_mul_comm ⟨2⟩ w]
+  rw [u256_zero_add]
+  rw [u256_mul_comm ⟨2⟩ w]
 
 theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hbound : (winningProposalResultWord σ I).toNat < (winningProposalLengthWord σ I).toNat)
@@ -378,7 +372,7 @@ theorem ballotDispatch_winnerName {cd : ByteArray}
     (hsel : ((⟨#[0xe2, 0xba, 0x53, 0xf0]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some winnerNameTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xe2, 0xba, 0x53, 0xf0]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition, giveRightToVoteTransition, votersGetter])

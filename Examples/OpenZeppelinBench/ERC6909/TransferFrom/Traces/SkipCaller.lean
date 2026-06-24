@@ -61,7 +61,7 @@ theorem erc6909TransferFromX_dec1982 {cA gh bl σ σ₀ A I} {g : Sat256}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hreach
   simpa [transferFromSenderWord, calldataWord] using
-    RD.erc6909DecodeAddrOk rd hcanonSender (by jump_dest) (by evm_ov)
+    erc6909DecodeAddrOk rd hcanonSender (by jump_dest) (by evm_ov)
 
 theorem erc6909TransferFromX_dec1629_receiver {cA gh bl σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -99,7 +99,7 @@ theorem erc6909TransferFromX_dec1996 {cA gh bl σ σ₀ A I} {g : Sat256}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hcanonSender hreach
   simpa [transferFromReceiverWord, calldataWord] using
-    RD.erc6909DecodeAddrOk rd hcanonReceiver (by jump_dest) (by evm_ov)
+    erc6909DecodeAddrOk rd hcanonReceiver (by jump_dest) (by evm_ov)
 
 theorem erc6909TransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}

@@ -12,15 +12,14 @@ namespace OpenZeppelinBench.Ownable2Step
 
 /-- The deployed Ownable2Step benchmark runtime bytecode refines the Solm specification. -/
 theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchBytecode contract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm
-      hAccounts _hOriginalAccounts => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x71, 0x50, 0x18, 0xa6]⟩
       · have hsz0 := ownable2StepRenounceOwnershipSelector_size h0
         have hm := ownable2StepMatches 0 (by omega) hsz0 h0
         have hreach := ownable2StepReachBody (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+          (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
           0 (by omega) ⟨89⟩ hcode hwv hsz0 hsize
           hm.1 hm.2 (by jump_dest) (by decide)
         exact ownable2StepRenounceOwnershipBody hcode hsize hperm hwv h0 hreach hAccounts
@@ -28,7 +27,7 @@ theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchByte
         · have hsz1 := ownable2StepAcceptOwnershipSelector_size h1
           have hm := ownable2StepMatches 1 (by omega) hsz1 h1
           have hreach := ownable2StepReachBody (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+            (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
             1 (by omega) ⟨99⟩ hcode hwv hsz1 hsize
             hm.1 hm.2 (by jump_dest) (by decide)
           exact ownable2StepAcceptOwnershipBody hcode hsize hperm hwv h1 hreach hAccounts
@@ -36,7 +35,7 @@ theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchByte
           · have hsz2 := ownable2StepOwnerSelector_size h2
             have hm := ownable2StepMatches 2 (by omega) hsz2 h2
             have hreach := ownable2StepReachBody (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+              (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
               2 (by omega) ⟨107⟩ hcode hwv hsz2
               hsize hm.1 hm.2 (by jump_dest) (by decide)
             exact ownable2StepOwnerBody hcode hsize hperm hwv h2 hreach hAccounts
@@ -44,7 +43,7 @@ theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchByte
             · have hsz3 := ownable2StepPendingOwnerSelector_size h3
               have hm := ownable2StepMatches 3 (by omega) hsz3 h3
               have hreach := ownable2StepReachBody (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+                (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                 3 (by omega) ⟨147⟩ hcode hwv hsz3
                 hsize hm.1 hm.2 (by jump_dest) (by decide)
               exact ownable2StepPendingOwnerBody hcode hsize hperm hwv h3 hreach hAccounts
@@ -52,7 +51,7 @@ theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchByte
               · have hsz4 := ownable2StepTransferOwnershipSelector_size h4
                 have hm := ownable2StepMatches 4 (by omega) hsz4 h4
                 have hreach := ownable2StepReachBody (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+                  (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                   4 (by omega) ⟨164⟩ hcode hwv hsz4
                   hsize hm.1 hm.2 (by jump_dest) (by decide)
                 exact ownable2StepTransferOwnershipBody hcode hsize hperm hwv h4 hreach hAccounts

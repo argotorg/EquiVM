@@ -44,11 +44,6 @@ abbrev erc6909LowFirstArmPc : UInt256 := ⟨89⟩
 /-- The first standard `PUSH4` arm in the low group, after the `balanceOf` `PUSH3` arm. -/
 abbrev erc6909LowRestFirstArmPc : UInt256 := ⟨99⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem byteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 /-- If `calldata[0:4]` matches a selector byte literal, the EVM selector word is that literal. -/
 theorem erc6909SelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -314,5 +309,44 @@ theorem erc6909ReachLowRestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [erc6909LowRestFirstArmPc, erc6909LowFirstArmPc, erc6909LowJumpdestPc,
       erc6909SplitPc, selArmPushSelPcW, selArmEqPcW, selArmPushTgtPcW, selArmJumpiPcW,
       selArmNextPcW, armTgtW, armTgtWidthW] using hbody'⟩
+
+/-! ## Shared ABI-decoder bytecode adapters -/
+
+-- ERC6909's optimizer-on bytecode shares one inlined address decoder block at pc 1629.
+set_option maxHeartbeats 400000 in
+theorem erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
+    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
+        < EVM.addressModulus)
+    (hret : (D_J erc6909BenchBytecode 0).contains ret = true)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD erc6909BenchBytecode ee g s0 ret
+      (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
+  exact RD.solcInlinedDecodeAddrOk h hcanon hret
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    hov
+
+set_option maxHeartbeats 400000 in
+theorem erc6909DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
+    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)) solcAddrMask) =
+        ⟨0⟩)
+    (hov : R.length + 6 ≤ 1024) :
+    RDrev erc6909BenchBytecode g s0 := by
+  exact RD.solcInlinedDecodeAddrRevert h hnc
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) hov
 
 end OpenZeppelinBench.ERC6909

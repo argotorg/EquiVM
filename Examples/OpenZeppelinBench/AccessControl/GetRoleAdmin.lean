@@ -1,4 +1,5 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
+import Reasoning.ABI
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -79,11 +80,6 @@ theorem getRoleAdminAddSlot_eq (slot : UInt256) :
   change (slot.toNat + 1) % UInt256.size = (slot.toNat + 1) % UInt256.size
   rfl
 
--- PROMOTE -> Common.lean / Reasoning.EVMWord: `UInt256` addition is commutative.
-theorem getRoleAdminU256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  simp [uadd_toNat, Nat.add_comm]
-
 theorem getRoleAdminSlot_evm (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size) :
     getRoleAdminSlot I = getRoleAdminBaseSlot I + ⟨1⟩ := by
   unfold getRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot getRoleAdminRoleKey
@@ -104,7 +100,7 @@ theorem accessControlDispatch_getRoleAdmin {cd : ByteArray}
       true) :
     dispatchMsg contract cd = some getRoleAdminTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩ : ByteArray) :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [defaultAdminRoleTransition])
     (post := [grantRoleTransition, hasRoleTransition, renounceRoleTransition,
       revokeRoleTransition, supportsInterfaceTransition])
@@ -115,106 +111,31 @@ theorem accessControlDispatch_getRoleAdmin {cd : ByteArray}
   rw [selectorOf, defaultAdminRoleSelectorBytes, hcd]
   decide
 
--- PROMOTE -> Reasoning.ABI: single fixed-bytes32 calldata decoder.
 theorem accessControlDecode_getRoleAdmin_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4) :
     decodeCalldata (getRoleAdminTransition.params.map Param.name)
       (transitionSignature getRoleAdminTransition).paramTypes I.calldata =
         some (getRoleAdminStore I) := by
   show decodeCalldata ["role"] [bytes32] I.calldata = some (getRoleAdminStore I)
-  unfold decodeCalldata
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ I.calldata.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([bytes32].any isDynamicABIType = true ∧
-      2 ^ 255 ≤ I.calldata.toList.length) := by
-    simp [bytes32, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([bytes32].isEmpty = false ∧
-      2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
-    rw [List.length_drop, htlen]
-    omega
-  rw [if_neg hnotHuge]
-  have hread : readBytes? (I.calldata.toList.drop 4) 0 32 =
-      some ((I.calldata.toList.drop 4).take 32) := by
-    unfold readBytes?
-    have hlen : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_pos hlen, List.drop_zero]
-  have hblen : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 32 0 = some () := by
-    unfold zeroPadding? readBytes?
-    simp
-  have htake : List.take 32 ((I.calldata.toList.drop 4).take 32) =
-      (I.calldata.toList.drop 4).take 32 :=
-    List.take_of_length_le (by rw [hblen])
-  have hnotArgShort : ¬ I.calldata.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
-  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, bytes32, ABI.decodeABIValues?,
-    ABI.decodeABIValue?, isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad,
-    getRoleAdminStore, getRoleAdminRoleValue, getRoleAdminRoleBytes, bytes32Width, htake,
-    hnotArgShort]
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width, getRoleAdminStore,
+    getRoleAdminRoleValue, getRoleAdminRoleBytes]
+    using decodeCalldata_bytes32_ok (cd := I.calldata) (x := "role") hsz36 hbig
 
 theorem accessControlDecode_getRoleAdmin_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldata (getRoleAdminTransition.params.map Param.name)
       (transitionSignature getRoleAdminTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role"] [bytes32] I.calldata = none
-  unfold decodeCalldata
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ I.calldata.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([bytes32].any isDynamicABIType = true ∧
-      2 ^ 255 ≤ I.calldata.toList.length) := by
-    simp [bytes32, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([bytes32].isEmpty = false ∧
-      2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
-    rw [List.length_drop, htlen]
-    omega
-  rw [if_neg hnotHuge]
-  have hread : readBytes? (I.calldata.toList.drop 4) 0 32 = none := by
-    unfold readBytes?
-    have hlen : ¬ (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_neg hlen]
-  simp [decodeCalldata.decodeArgs, bytes32, ABI.decodeABIValues?, ABI.decodeABIValue?,
-    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread]
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_none_short (cd := I.calldata) (x := "role") hsz4 hshort
 
 theorem accessControlDecode_getRoleAdmin_none_huge {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (getRoleAdminTransition.params.map Param.name)
       (transitionSignature getRoleAdminTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["role"] [bytes32] I.calldata = none
-  unfold decodeCalldata
-  by_cases hlt4 : I.calldata.toList.length < 4
-  · rw [if_pos hlt4]
-  · rw [if_neg hlt4]
-    have hHuge : [bytes32].isEmpty = false ∧
-        2 ^ 255 ≤ (I.calldata.toList.drop 4).length := by
-      have htlen : I.calldata.toList.length = I.calldata.size := by
-        rw [byteArray_toList_eq, Array.length_toList]
-        rfl
-      rw [List.length_drop, htlen]
-      simp
-      omega
-    have hnotDyn : ¬ ([bytes32].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length) := by
-      simp [bytes32, isDynamicABIType]
-    rw [if_neg hnotDyn, if_pos hHuge]
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_none_huge (cd := I.calldata) (x := "role") hbig
 
 theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -564,7 +485,7 @@ theorem accessControlGetRoleAdminX {cA gh bl σ σ₀ A I} {g : Sat256}
           ⟨1⟩ : UInt256) = ⟨198⟩ := by
         decide
       simpa [hpc198, getRoleAdminWord, getRoleAdminSlot_evm I hsz36,
-        getRoleAdminU256_add_comm] using rd198₀⟩
+        u256_add_comm] using rd198₀⟩
   obtain ⟨_, _, rd198⟩ := rd198
   have rd200 := evm_run rd198 with [swap1, jump (by jump_dest)]
   have rd157 := evm_run rd200 with [
@@ -592,18 +513,18 @@ theorem accessControlGetRoleAdminX {cA gh bl σ σ₀ A I} {g : Sat256}
         exact getRoleAdminReturnMem_read128 I (getRoleAdminWord σ I))
       (by evm_ov) ]
 
-theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨166⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨166⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := accessControlGetRoleAdminSelector_size hsel
   have hd := accessControlDispatch_getRoleAdmin (cd := I.calldata) (by
@@ -615,16 +536,16 @@ theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_s
         getRoleAdminWord_accountMapEquiv hAccounts
       have hbody :
           ExecTransitionBody config contract
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (getRoleAdminStore I) getRoleAdminTransition.body
             (.returned { contract := contract, locals := getRoleAdminStore I }
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               (some (.fixedBytes bytes32Width
                 (EVM.Word.toBytesBE (getRoleAdminWord σ_solm I))))) := by
         simpa [getRoleAdminCurrent, getRoleAdminWord, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using
           accessControlGetRoleAdminBodyReturns
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv)
       exact (accessControlGetRoleAdminX (g := Sat256.ofUInt256 g) hsz36 hsize hbig hreach)
         |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]; rfl) hAccounts

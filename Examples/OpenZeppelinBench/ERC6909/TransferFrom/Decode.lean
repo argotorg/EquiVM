@@ -294,7 +294,7 @@ theorem transferFromOperatorKeccakSlot (I : ExecutionEnv)
       transferFromOperatorSlotI I := by
   have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by
     rw [← transferFromCaller_ofNat I]
-    exact erc6909KeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (transferFromCallerWord_canonical I)
   have hinner :
       isOperatorInnerSlot (transferFromSenderWord I) =
@@ -304,7 +304,7 @@ theorem transferFromOperatorKeccakSlot (I : ExecutionEnv)
     exact mappingSlot_single (transferFromSenderWord I) ⟨1⟩
   unfold transferFromOperatorSlotI operatorApprovalSlot mapSlot
   rw [isOperatorOuterHashMem_read0_64, hinner,
-    erc6909KeyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
+    keyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
   exact mappingSlot_single (transferFromCallerWord I)
     (mapSlot (transferFromSenderWord I) ⟨1⟩)
 
@@ -316,7 +316,7 @@ theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
       transferFromAllowanceSlotI I := by
   have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by
     rw [← transferFromCaller_ofNat I]
-    exact erc6909ApproveKeyValueToWord_address_of_canonical _
+    exact keyValueToWord_address_of_canonical _
       (transferFromCallerWord_canonical I)
   have hownerSlot :
       approveOwnerSlot (transferFromSenderWord I) =
@@ -333,7 +333,7 @@ theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
       (mapSlot (transferFromSenderWord I) ⟨2⟩)
   unfold transferFromAllowanceSlotI allowanceSlot mapSlot
   rw [approveIdHashMem_read0_64, hspenderSlot,
-    erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
+    keyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
   rw [keyValueToWord_uint256 (transferFromIdWord I)]
   exact mappingSlot_single (transferFromIdWord I)
     (mapSlot (transferFromCallerWord I) (mapSlot (transferFromSenderWord I) ⟨2⟩))

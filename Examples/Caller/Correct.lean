@@ -547,14 +547,6 @@ theorem callerCalldataMem_read128_36 (I : ExecutionEnv) :
       extract_extract_BA, show (0:ℕ) + 0 = 0 from rfl,
       show min (0 + (164 - 132)) 32 = 32 from by omega, hBfull]
 
-/-- `wordOfInt (Int.ofNat a.toNat) = a` (a nonneg word round-trips through `ℤ`). -/
-theorem wordOfInt_ofNat_toNat (a : UInt256) : EVM.wordOfInt (Int.ofNat a.toNat) = a := by
-  rw [EVM.wordOfInt, if_neg (by simp)]
-  apply u256_inj
-  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
-  show a.toNat % EVM.twoPow 256 = a.toNat
-  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
-
 /-- **Encoding coupling (spec level).**  The Solm ABI's `encode? "pow2" [n]` produces exactly the
     36-byte buffer the bytecode sends to the `CALL`. -/
 theorem callerEncode_eq (I : ExecutionEnv) :
@@ -941,12 +933,6 @@ theorem wordOfInt_ofNat_eq (k : ℕ) : EVM.wordOfInt (Int.ofNat k) = UInt256.ofN
   rw [show (Int.ofNat k).toNat = k from rfl, show (UInt256.ofNat k).toNat = k % UInt256.size from rfl,
       show EVM.twoPow 256 = UInt256.size from by decide]
 
-/-- The little-endian byte serialization round-trips: `fromBytes' (toBytesLE w) = w.toNat`. -/
-theorem fromBytesLE_roundtrip (w : UInt256) :
-    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
-  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
-  rw [fromBytes'_append_zeros, fromBytes'_toBytes']; rfl
-
 /-- **Whole-slot store.**  Storing `.int k` into the `stored` location (slot 0, offset 0, size 32)
     writes exactly the word `ofNat k` — i.e. the value the EVM `SSTORE`s. -/
 theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
@@ -964,7 +950,7 @@ theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
         ++ List.drop ((0:Fin 32).val + (32:Fin 33).val) _) = (UInt256.ofNat k).toNat
   rw [show (0:Fin 32).val = 0 from rfl, show (32:Fin 33).val = 32 from rfl,
       List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
-      List.take_of_length_le (by omega), fromBytesLE_roundtrip]
+      List.take_of_length_le (by omega), fromBytes'_toBytesLEWithSizeProof]
 
 /-- **The Solm `.assign stored := .int k` step.**  Dispatches to the storage write (the local
     `stored` is absent, `hbase`), producing the post-`SSTORE` EVM state. -/
@@ -1090,19 +1076,17 @@ theorem callerL_rev (n : ℕ) (h : n < 32) :
   rw [if_neg (show ¬ (⟨32⟩:UInt256) ≤ UInt256.ofNat n from ?_), ofNat_toNat_lt n (by omega)]
   · show ¬ (32:ℕ) ≤ (UInt256.ofNat n).val.val
     rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl, ofNat_toNat_lt n (by omega)]; omega
-theorem write_len_zero (src base : ByteArray) (sa da : ℕ) : src.write sa base da 0 = base := by
-  rw [ByteArray.write]; rfl
 theorem callerWrite_size (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
     (o.write 0 (callerCalldataMem I) 128 L).size = 164 := by
   rcases Nat.eq_zero_or_pos L with h | h
-  · subst h; rw [write_len_zero]; exact callerCalldataMem_size I
+  · subst h; rw [byteArray_write_len_zero]; exact callerCalldataMem_size I
   · rw [write_eq_gen o (callerCalldataMem I) 128 L (by omega) hLo (by rw [callerCalldataMem_size]; omega),
       ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
       ByteArray.size_extract, callerCalldataMem_size]; omega
 theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
     (o.write 0 (callerCalldataMem I) 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   rcases Nat.eq_zero_or_pos L with h | h
-  · subst h; rw [write_len_zero]; exact callerCalldataMem_read64 I
+  · subst h; rw [byteArray_write_len_zero]; exact callerCalldataMem_read64 I
   · rw [write_read_below_gen o (callerCalldataMem I) 128 L 64 (by omega) hLo
       (by rw [callerCalldataMem_size]; omega) (by omega), callerCalldataMem_read64]
 

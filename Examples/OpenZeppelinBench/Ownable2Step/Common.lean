@@ -41,11 +41,6 @@ theorem ownable2StepArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem ownable2StepByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 /-- Arm `j`'s selector equality agrees with the calldata byte comparison. -/
 theorem ownable2StepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -70,7 +65,7 @@ theorem ownable2StepMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
           (nthArmPc ownable2StepBenchBytecode ownable2StepFirstArmPc i))
         (ownable2StepSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = ownable2StepSelBytes i :=
-    (ownable2StepByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [ownable2StepArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -228,11 +223,11 @@ theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run h85rd with [
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem ownable2StepNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (ownable2StepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -247,26 +242,26 @@ theorem ownable2StepNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (ownable2StepBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem ownable2StepShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepShortRevert {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (ownable2StepX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (ownable2StepDispatch_none_short hsz)
 
-theorem ownable2StepNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem ownable2StepNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (ownable2StepSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (ownable2StepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (ownable2StepDispatch_none_nomatch hnm)
@@ -300,51 +295,6 @@ theorem ownable2StepSource_ofNat (I : ExecutionEnv) :
   rw [ownable2StepSourceWord_toNat, Fin.val_ofNat]
   exact Nat.mod_eq_of_lt I.source.isLt
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem ownable2StepNat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem ownable2StepNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem ownable2StepU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show Nat.land a.toNat b.toNat % UInt256.size =
-    Nat.land b.toNat a.toNat % UInt256.size
-  rw [ownable2StepNat_land_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem ownable2StepU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [ownable2StepNat_lor_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem ownable2StepSolcAddrMask_result_canonical (w : UInt256) :
-    (UInt256.land w solcAddrMask).toNat < EVM.addressModulus := by
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
-  show (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size < EVM.addressModulus
-  have hle : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat := hlandle _ _
-  have hltSize : Nat.land w.toNat solcAddrMask.toNat < UInt256.size :=
-    lt_of_le_of_lt hle (by decide)
-  rw [Nat.mod_eq_of_lt hltSize]
-  exact lt_of_le_of_lt hle (by decide)
-
 theorem ownable2StepMaskedAddress_eq_source_of_word_eq {w : UInt256} {I : ExecutionEnv}
     (h : UInt256.land w solcAddrMask = ownable2StepSourceWord I) :
     AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source := by
@@ -354,7 +304,7 @@ theorem ownable2StepWord_eq_of_maskedAddress_eq_source {w : UInt256} {I : Execut
     (h : AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source) :
     UInt256.land w solcAddrMask = ownable2StepSourceWord I := by
   apply u256_inj
-  have hcanon := ownable2StepSolcAddrMask_result_canonical w
+  have hcanon := solcAddrMask_result_canonical w
   have hval := congrArg Fin.val h
   unfold AccountAddress.ofNat at hval
   rw [Fin.val_ofNat] at hval
@@ -362,22 +312,6 @@ theorem ownable2StepWord_eq_of_maskedAddress_eq_source {w : UInt256} {I : Execut
   rw [Nat.mod_eq_of_lt (by
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)] at hval
   exact hval
-
--- GENERALIZES `Examples.SimpleAuction.Common.simpleAuctionAddressReturnEncoding`.
-theorem ownable2StepAddressReturnEncoding (w : UInt256) :
-    encodeReturnValue? addr (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
-      some (UInt256.toByteArray (UInt256.land w solcAddrMask)) := by
-  have hcanon := ownable2StepSolcAddrMask_result_canonical w
-  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-      (UInt256.land w solcAddrMask).toNat := by
-    apply Nat.mod_eq_of_lt
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-  have hword : EVM.word (UInt256.land w solcAddrMask).toNat = UInt256.land w solcAddrMask :=
-    u256_ofNat_toNat _
-  refine scalarReturnEncoding (t := .address) (w := UInt256.land w solcAddrMask) rfl ?_ ?_
-  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  · simp [encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
 
 abbrev ownable2StepRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
 
@@ -430,24 +364,6 @@ namespace Reasoning.Theory
 
 open Solm ABI Ethereum Ethereum.EVM
 
--- LIBRARY CANDIDATE: `Reasoning.Stepping` / `Reasoning.Reach`, generic `OR` combinator.
-theorem ownable2StepOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
 end Reasoning.Theory
 
 namespace Reasoning.Reach
@@ -456,17 +372,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 def ownable2StepOnlyOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic `RD.or`.
-theorem RD.ownable2StepOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => Reasoning.Theory.ownable2StepOr_xstep hc hp hdec hs hov)
 
 /-- Ownable2StepBench's direct one-word address return tail at pc 119. -/
 theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -529,7 +434,7 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
   have hmask :
       UInt256.land solcAddrMask (ownable2StepOnlyOwnerWord σ ee) =
         _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee := by
-    rw [_root_.OpenZeppelinBench.Ownable2Step.ownable2StepU256_land_comm, howner]
+    rw [Reasoning.Theory.u256_land_comm, howner]
   have heq :
       UInt256.eq (UInt256.ofNat ee.source.val)
         (UInt256.land
@@ -568,7 +473,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
         _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee := by
     intro hmask
     exact howner (by
-      rw [_root_.OpenZeppelinBench.Ownable2Step.ownable2StepU256_land_comm] at hmask
+      rw [Reasoning.Theory.u256_land_comm] at hmask
       exact hmask)
   have hneq :
       UInt256.ofNat ee.source.val ≠
@@ -612,7 +517,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
           _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord
         rw [show UInt256.land solcAddrMask (UInt256.ofNat ee.source.val) =
             UInt256.ofNat ee.source.val by
-          rw [_root_.OpenZeppelinBench.Ownable2Step.ownable2StepU256_land_comm]
+          rw [Reasoning.Theory.u256_land_comm]
           exact solcAddrMask_clean
             (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord_canonical ee)])
       (by decide) (by evm_ov),

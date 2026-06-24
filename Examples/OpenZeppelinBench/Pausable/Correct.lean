@@ -18,9 +18,8 @@ hands the body proof to the one-function file for that selector.
 -/
 
 theorem pausableCorrect :
-    runtimeEquivalence!?! config pausableBenchBytecode contract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm
-      hAccounts _hOriginalAccounts => ?_⟩
+  runtimeEquivalence!?! config pausableBenchBytecode contract := by
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x3f, 0x4b, 0xa8, 0x3a]⟩

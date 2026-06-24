@@ -78,9 +78,9 @@ theorem accessControlFromBytes'_zero_iff_all_zero (xs : List UInt8) :
       · intro h
         simp only [List.all_cons, Bool.and_eq_true]
         unfold fromBytes' at h
-        have hxnat : x.toNat = 0 := (Nat.add_eq_zero.mp h).1
+        have hxnat : x.toNat = 0 := (Nat.add_eq_zero_iff.mp h).1
         have htail : fromBytes' xs = 0 := by
-          have hprod : UInt8.size * fromBytes' xs = 0 := (Nat.add_eq_zero.mp h).2
+          have hprod : UInt8.size * fromBytes' xs = 0 := (Nat.add_eq_zero_iff.mp h).2
           have hsize : 0 < UInt8.size := by decide
           omega
         have hx : x = 0 := UInt8.toNat_inj.mp hxnat
@@ -318,10 +318,6 @@ theorem accessControlUInt256_eq_one_eq {a b : UInt256}
     (h : UInt256.eq a b = ⟨1⟩) : a = b :=
   Reasoning.Theory.uInt256_eq_one_eq h
 
-theorem accessControlUInt256_eq_comm (a b : UInt256) :
-    UInt256.eq a b = UInt256.eq b a :=
-  Reasoning.Theory.uInt256_eq_comm a b
-
 theorem supportsInterfaceEqZero_of_padding_none {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = none) :
@@ -499,7 +495,7 @@ theorem accessControlDispatch_supportsInterface {cd : ByteArray}
     (hsel : ((⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some supportsInterfaceTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ : ByteArray) :=
-    (accessControlByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [defaultAdminRoleTransition, getRoleAdminTransition, grantRoleTransition,
       hasRoleTransition, renounceRoleTransition, revokeRoleTransition])
@@ -705,7 +701,7 @@ theorem accessControlSupportsInterfaceX_body {cA gh bl σ σ₀ A I} {g : Sat256
     have hresultRev :
         UInt256.eq (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) ierc165IdWord =
           supportsInterfaceResultWord I := by
-      rw [accessControlUInt256_eq_comm, hresult]
+      rw [uInt256_eq_comm, hresult]
     exact ⟨_, _, by
       simpa [hmask, hresultRev, ierc165IdWord] using evm_run rd347 with [
         jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]⟩
@@ -842,7 +838,7 @@ theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (returnEquiv_of_encode (by
                 by_cases hr : supportsInterfaceResult I
                 · simpa [supportsInterfaceResultWord, hr] using boolTrueReturnEncodingAC
-                · simpa [supportsInterfaceResultWord, hr] using boolFalseReturnEncoding))
+                · simpa [boolTy, supportsInterfaceResultWord, hr] using boolFalseReturnEncoding))
     · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
       have hdec := accessControlDecode_supportsInterface_none_huge (I := I) hbigge
       exact (accessControlSupportsInterfaceX_hugearg (g := Sat256.ofUInt256 g)
