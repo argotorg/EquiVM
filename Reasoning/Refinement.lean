@@ -292,14 +292,14 @@ theorem CoupledState.refines.letDeclAt {code : ByteArray} {ee : ExecutionEnv} {g
     generic Solm assignment semantics. -/
 theorem CoupledState.refines.assignAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {cfg : Config} {pc pc' : UInt256} {R R' : StateRel}
-    {Post : StmtPost} {slot : StorageRef} {expr : Expr} {rest : List Stmt}
+    {Post : StmtPost} {origin : VarOrigin} {slot : StorageRef} {expr : Expr} {rest : List Stmt}
     (st : CoupledState code ee g s0 R pc)
     (st' : CoupledState code ee g s0 R' pc')
     {value : Value}
     (heval : evalExpr? cfg st.frame st.evm expr = .ok value)
-    (hassign : assignStorageRef? cfg st.frame st.evm slot value = .ok (st'.frame, st'.evm))
+    (hassign : assignStorageRef? cfg st.frame st.evm origin slot value = .ok (st'.frame, st'.evm))
     (hrest : CoupledState.refines st' cfg rest Post) :
-    CoupledState.refines st cfg (.assign slot expr :: rest) Post := by
+    CoupledState.refines st cfg (.assign origin slot expr :: rest) Post := by
   refine CoupledState.refines.consNormalAt st st' ?_ hrest
   exact ExecStmt.assign heval hassign
 
