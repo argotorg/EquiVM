@@ -137,6 +137,17 @@ theorem u256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
     Nat.lor b.toNat a.toNat % UInt256.size
   rw [nat_lor_comm]
 
+theorem u256_lor_zero (a : UInt256) : UInt256.lor a ⟨0⟩ = a := by
+  apply u256_inj
+  change Nat.lor a.toNat 0 % UInt256.size = a.toNat
+  have hlor : Nat.lor a.toNat 0 = a.toNat := by
+    refine Nat.eq_of_testBit_eq fun i => ?_
+    change Nat.testBit (a.toNat ||| 0) i = Nat.testBit a.toNat i
+    rw [Nat.testBit_or]
+    simp
+  rw [hlor]
+  exact Nat.mod_eq_of_lt a.val.isLt
+
 theorem u256_add_comm (a b : UInt256) : a + b = b + a := by
   apply u256_inj
   rw [uadd_toNat, uadd_toNat, Nat.add_comm]

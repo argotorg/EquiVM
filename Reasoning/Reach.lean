@@ -450,6 +450,29 @@ theorem RD.dup8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (hh :: a :: b :: c :: d :: e :: f :: gg :: hh :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup8_xstep hc hp hdec hs hov)
 
+theorem RD.dup9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.DUP9, .none)) (hov : t.length + 10 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (ii :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup9_xstep hc hp hdec hs hov)
+
+theorem RD.dup10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.DUP10, .none)) (hov : t.length + 11 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩)
+      (jj :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup10_xstep hc hp hdec hs hov)
+
 /-- `GAS` pushes the (cursor-dependent) remaining gas, so its pushed value is existential. -/
 theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -824,6 +847,15 @@ theorem RD.and {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hdec : decode code pc = some (.AND, .none)) (hov : t.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.land a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => and_xstep hc hp hdec hs hov)
+
+theorem RD.lor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => or_xstep hc hp hdec hs hov)
 
 theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1292,6 +1324,40 @@ theorem RD.swap4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     RD code ee g s0 (pc + ⟨1⟩) (e :: b :: c :: d :: a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => swap4_xstep hc hp hdec hs hov)
 
+/-- **SWAP5**: exchange the stack top with the 6th element (cost `Gverylow = 3`, pc += 1). -/
+theorem RD.swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f : UInt256} {t : List UInt256}
+    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  rd.stepSwap (fun _ hc hp hs => swap5_xstep hc hp hdec hs hov)
+
+/-- **SWAP6**: exchange the stack top with the 7th element (cost `Gverylow = 3`, pc += 1). -/
+theorem RD.swap6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg : UInt256} {t : List UInt256}
+    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP6, .none)) (hov : t.length + 7 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (gg :: b :: c :: d :: e :: f :: a :: t) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  rd.stepSwap (fun _ hc hp hs => swap6_xstep hc hp hdec hs hov)
+
+/-- **SWAP7**: exchange the stack top with the 8th element (cost `Gverylow = 3`, pc += 1). -/
+theorem RD.swap7 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg h : UInt256} {t : List UInt256}
+    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: h :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP7, .none)) (hov : t.length + 8 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (h :: b :: c :: d :: e :: f :: gg :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  rd.stepSwap (fun _ hc hp hs => swap7_xstep hc hp hdec hs hov)
+
 /-- **KECCAK256**: pop offset `a` and size `b`, push `KEC(mem[a..a+b])` (two-stage cost
     `memExp + hashCost`, pc += 1).  `mcost` is the memory-expansion cost (computed from the carried
     `aw` and offsets via `hmc`); the hash cost is `Gkeccak256 + Gkeccak256word·⌈b/32⌉`. -/
@@ -1453,6 +1519,51 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · simp only [stLog3]; exact hee
       · simp only [stLog3]; exact hworld
 
+/-- **LOG4**: pop `[offset, size, t1, t2, t3, t4]`, append a log over
+    `mem[offset..offset+size]` with the four topics
+    (cost `memExp + Glog + Glogdata·size + 4·Glogtopic`, pc += 1).  Requires `ee.perm`
+    (aborts in static mode).  The `substate.logSeries` append is invisible to `RD`. -/
+theorem RD.log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
+    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
+    (hmc : ∀ s : State, s.machineState.activeWords = aw →
+        s.machineState.stack = a :: b :: c :: d :: e :: f :: t →
+        memoryExpansionCost s .LOG4 = mcost)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
+      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
+        + 4 * GasConstants.Glogtopic))) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
+      hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have hmcS : memoryExpansionCost s .LOG4 = mcost := hmc s haw hstk
+    have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
+    have st := log4_xstep hcode hpc hdec hperms hstk hov
+    rw [hmcS] at st
+    by_cases gg : g.toNat < C + (mcost
+        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic))
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stLog4 s a b c d e f t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
+          ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stLog4]; exact hcode
+      · simp only [stLog4]; rw [hpc]
+      · simp only [stLog4]
+      · simp only [stLog4, hmcS]
+        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stLog4]; exact hmem
+      · simp only [stLog4]; rw [haw, hawout]
+      · simp only [stLog4]; exact hrdata
+      · simp only [stLog4]; exact hacc
+      · simp only [stLog4]; exact hee
+      · simp only [stLog4]; exact hworld
+
 /-! ## Selector-dispatch arm — one `DUP1; PUSH4 selᵢ; EQ; PUSHk tgtᵢ; JUMPI`
 
 A solc dispatcher is a chain of these arms.  Each consumes the 5 opcodes width-generically (the
@@ -1579,6 +1690,87 @@ theorem RD.selectorArmNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : S
       mem aw rdata acc (k + 5) (C + 22) := by
   obtain ⟨hdup, hpush4, heq, hopT, hpushT, hjumpi⟩ := hwf
   exact h.selectorArmNotTaken hdup hpush4 heq hopT hpushT hjumpi hb hov
+
+/-! ### Width-generic selector arms
+
+Solc can encode a selector with fewer than four pushed bytes when the high selector byte is zero.
+The arm shape is still `DUP1; PUSHw selᵢ; EQ; PUSHk tgtᵢ; JUMPI`; only the selector push width
+changes. -/
+
+@[reducible] def selArmPushSelPcW (armPc : UInt256) : UInt256 := armPc + ⟨1⟩
+@[reducible] def selArmEqPcW (armPc : UInt256) (selWidth : ℕ) : UInt256 :=
+  selArmPushSelPcW armPc + UInt256.ofNat selWidth.succ
+@[reducible] def selArmPushTgtPcW (armPc : UInt256) (selWidth : ℕ) : UInt256 :=
+  selArmEqPcW armPc selWidth + ⟨1⟩
+@[reducible] def selArmJumpiPcW (armPc : UInt256) (selWidth tgtWidth : ℕ) : UInt256 :=
+  selArmPushTgtPcW armPc selWidth + UInt256.ofNat tgtWidth.succ
+@[reducible] def selArmNextPcW (armPc : UInt256) (selWidth tgtWidth : ℕ) : UInt256 :=
+  selArmJumpiPcW armPc selWidth tgtWidth + ⟨1⟩
+
+@[reducible] def armSelNatW (code : ByteArray) (armPc : UInt256) : UInt256 :=
+  (pushAt code (selArmPushSelPcW armPc)).2.1
+@[reducible] def armSelOpW (code : ByteArray) (armPc : UInt256) : Operation.POp :=
+  (pushAt code (selArmPushSelPcW armPc)).1
+@[reducible] def armTgtOpW (code : ByteArray) (armPc : UInt256) (selWidth : ℕ) :
+    Operation.POp :=
+  (pushAt code (selArmPushTgtPcW armPc selWidth)).1
+@[reducible] def armTgtW (code : ByteArray) (armPc : UInt256) (selWidth : ℕ) : UInt256 :=
+  (pushAt code (selArmPushTgtPcW armPc selWidth)).2.1
+@[reducible] def armTgtWidthW (code : ByteArray) (armPc : UInt256) (selWidth : ℕ) : ℕ :=
+  (pushAt code (selArmPushTgtPcW armPc selWidth)).2.2
+
+@[reducible] def armWellFormedW (code : ByteArray) (armPc : UInt256) (selWidth : ℕ) : Prop :=
+  decode code armPc = some (.DUP1, .none)
+  ∧ armSelOpW code armPc ≠ .PUSH0
+  ∧ decode code (selArmPushSelPcW armPc)
+      = some (.Push (armSelOpW code armPc), some (armSelNatW code armPc, selWidth))
+  ∧ decode code (selArmEqPcW armPc selWidth) = some (.EQ, .none)
+  ∧ armTgtOpW code armPc selWidth ≠ .PUSH0
+  ∧ decode code (selArmPushTgtPcW armPc selWidth)
+      = some (.Push (armTgtOpW code armPc selWidth),
+          some (armTgtW code armPc selWidth, armTgtWidthW code armPc selWidth))
+  ∧ decode code (selArmJumpiPcW armPc selWidth (armTgtWidthW code armPc selWidth))
+      = some (.JUMPI, .none)
+
+theorem RD.selectorArmWidthTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256} (selWidth : ℕ)
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : armWellFormedW code armPc selWidth)
+    (hb : UInt256.eq (armSelNatW code armPc) selWord ≠ ⟨0⟩)
+    (hjd : (D_J code 0).contains (armTgtW code armPc selWidth) = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (armTgtW code armPc selWidth) (selWord :: rest)
+      mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hopSel, hpushSel, heq, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.dup1 hdup (by omega)
+    |>.pushConst (armSelNatW code armPc) hopSel hpushSel
+        (by simp only [List.length_cons]; omega)
+    |>.eq heq (by simp only [List.length_cons]; omega)
+    |>.pushConst (armTgtW code armPc selWidth) hopT hpushT
+        (by simp only [List.length_cons]; omega)
+    |>.jumpiT hjumpi hb hjd (by simp only [List.length_cons]; omega)
+
+theorem RD.selectorArmWidthNotTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {armPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256} (selWidth : ℕ)
+    (h : RD code ee g s0 armPc (selWord :: rest) mem aw rdata acc k C)
+    (hwf : armWellFormedW code armPc selWidth)
+    (hb : UInt256.eq (armSelNatW code armPc) selWord = ⟨0⟩)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0
+      (selArmNextPcW armPc selWidth (armTgtWidthW code armPc selWidth))
+      (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
+  obtain ⟨hdup, hopSel, hpushSel, heq, hopT, hpushT, hjumpi⟩ := hwf
+  exact h.dup1 hdup (by omega)
+    |>.pushConst (armSelNatW code armPc) hopSel hpushSel
+        (by simp only [List.length_cons]; omega)
+    |>.eq heq (by simp only [List.length_cons]; omega)
+    |>.pushConst (armTgtW code armPc selWidth) hopT hpushT
+        (by simp only [List.length_cons]; omega)
+    |>.jumpiNT hjumpi hb (by simp only [List.length_cons]; omega)
 
 /-! ### Selector split — one `DUP1; PUSH4 pivot; GT; PUSHk tgt; JUMPI`
 

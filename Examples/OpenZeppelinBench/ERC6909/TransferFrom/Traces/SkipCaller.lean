@@ -118,9 +118,9 @@ theorem erc6909TransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz132 hsize hszhi hcanonSender hcanonReceiver hreach
   have rd1997 := evm_run rd with [jumpdest, swap4]
-  have rd1998 := RD.erc6909Swap7 rd1997 (by decide) (by evm_ov)
+  have rd1998 := RD.swap7 rd1997 (by decide) (by evm_ov)
   have rd1999 := evm_run rd1998 with [swap4]
-  have rd2000 := RD.erc6909Swap6 rd1999 (by decide) (by evm_ov)
+  have rd2000 := RD.swap6 rd1999 (by decide) (by evm_ov)
   have rd402 := evm_run rd2000 with [
     pop, pop, pop, pop, push1 ⟨64⟩, dup3, add, calldataload, swap2,
     push1 ⟨96⟩, add, calldataload, swap1, jump (by jump_dest) ]
@@ -922,9 +922,9 @@ theorem erc6909TransferFromX_skipCaller_success {cA gh bl σ σ₀ A I}
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
-  have rd1574 := RD.erc6909Dup9 rd1573 (by decide) (by evm_ov)
+  have rd1574 := RD.dup9 rd1573 (by decide) (by evm_ov)
   have rd1577 := evm_run rd1574 with [and, swap3, swap2]
-  have rd1578 := RD.erc6909Dup10 rd1577 (by decide) (by evm_ov)
+  have rd1578 := RD.dup10 rd1577 (by decide) (by evm_ov)
   have rd1580₀ := evm_run rd1578 with [and, swap2]
   have rd1580 := rd1580₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -941,15 +941,15 @@ theorem erc6909TransferFromX_skipCaller_success {cA gh bl σ σ₀ A I}
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.erc6909Log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd649 := evm_run rd760 with [
     jumpdest, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd651 := evm_run rd649 with [jumpdest, pop, push1 ⟨1⟩]
-  have rd654 := RD.erc6909Swap6 rd651 (by decide) (by evm_ov)
-  have rd655 := RD.erc6909Swap5 rd654 (by decide) (by evm_ov)
+  have rd654 := RD.swap6 rd651 (by decide) (by evm_ov)
+  have rd655 := RD.swap5 rd654 (by decide) (by evm_ov)
   have rd193 := evm_run rd655 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [

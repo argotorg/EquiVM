@@ -672,161 +672,6 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
         (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveOwnerWord I) ++
           UInt256.toByteArray (⟨2⟩ : UInt256)))))))
 
-theorem erc6909Swap5_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  exact swap5_xstep hcode hpc hdec hstk hov
-
-theorem erc6909Swap6_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f h : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP6, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: h :: t)
-    (hov : t.length + 7 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (h :: b :: c :: d :: e :: f :: a :: t), .none)) := by
-  exact swap6_xstep hcode hpc hdec hstk hov
-
-theorem RD.erc6909Swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909Swap5_xstep hc hp hdec hs hov)
-
-theorem RD.erc6909Swap6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f h : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: h :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP6, .none)) (hov : t.length + 7 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (h :: b :: c :: d :: e :: f :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909Swap6_xstep hc hp hdec hs hov)
-
-theorem erc6909Dup9_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f h i j : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP9, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: h :: i :: j :: t)
-    (hov : t.length + 10 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (j :: a :: b :: c :: d :: e :: f :: h :: i :: j :: t), .none)) := by
-  exact dup9_xstep hcode hpc hdec hstk hov
-
-theorem RD.erc6909Dup9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f h i j : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: h :: i :: j :: t) mem aw
-      rdata acc k C)
-    (hdec : decode code pc = some (.DUP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (j :: a :: b :: c :: d :: e :: f :: h :: i :: j :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909Dup9_xstep hc hp hdec hs hov)
-
-/-! ## Local LOG4 reachability helper for the Approval event -/
-
--- PROMOTE -> Reasoning.Stepping
-def erc6909StLog4 (s : State) (a b c d e f : UInt256) (t : List UInt256) : State :=
-  {s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d, e, f], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG4)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-            + 4 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
--- PROMOTE -> Reasoning.Stepping
-theorem erc6909Log4_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG4, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat
-            < memoryExpansionCost s .LOG4
-              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic)
-         then .error .OutOfGass else .ok (erc6909StLog4 s a b c d e f t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG4, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_log4 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 0 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, erc6909StLog4]
-
--- PROMOTE -> Reasoning.Reach
-theorem RD.erc6909Log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: e :: f :: t →
-        memoryExpansionCost s .LOG4 = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 4 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
-      hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG4 = mcost := hmc s haw hstk
-    have hperms : s.executionEnv.perm = true := by
-      rw [hee]
-      exact hperm
-    have st := erc6909Log4_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 4 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨erc6909StLog4 s a b c d e f t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [erc6909StLog4]
-        exact hcode
-      · simp only [erc6909StLog4]
-        rw [hpc]
-      · simp only [erc6909StLog4]
-      · simp only [erc6909StLog4, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [erc6909StLog4]
-        exact hmem
-      · simp only [erc6909StLog4]
-        rw [haw, hawout]
-      · simp only [erc6909StLog4]
-        exact hrdata
-      · simp only [erc6909StLog4]
-        exact hacc
-      · simp only [erc6909StLog4]
-        exact hee
-      · simp only [erc6909StLog4]
-        exact hworld
-
 /-! ## EVM ABI decode traces for the approve body wrapper -/
 
 -- PROMOTE -> Common.lean / Reasoning.Solc: ERC6909's optimizer-on inlined address decoder.
@@ -903,11 +748,11 @@ theorem erc6909ApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   obtain ⟨_, _, rd1769⟩ := erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest)
     (by evm_ov)
   have rd1770 := evm_run rd1769 with [jumpdest]
-  have rd1771 := RD.erc6909Swap6 rd1770 (by decide) (by simp)
+  have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
   have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
-  have rd1778 := RD.erc6909Swap6 rd1777 (by decide) (by simp)
+  have rd1778 := RD.swap6 rd1777 (by decide) (by simp)
   have rd1781 := evm_run rd1778 with [pop, push1 ⟨64⟩, swap1]
-  have rd1782 := RD.erc6909Swap5 rd1781 (by decide) (by simp)
+  have rd1782 := RD.swap5 rd1781 (by decide) (by simp)
   have rd242 := evm_run rd1782 with [
     add, calldataload, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
   have rd522 := evm_run rd242 with [jumpdest, push2 ⟨522⟩, jump (by jump_dest)]
@@ -1082,8 +927,8 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     push1 ⟨64⟩, dup1, dup4,
     raw keccak256 0 (approveOwnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
-  have rd877 := RD.erc6909Swap5 rd876₀ (by decide) (by evm_ov)
-  have rd878 := RD.erc6909Dup9 rd877 (by decide) (by evm_ov)
+  have rd877 := RD.swap5 rd876₀ (by decide) (by evm_ov)
+  have rd878 := RD.dup9 rd877 (by decide) (by evm_ov)
   have rd882₀ := evm_run rd878 with [
     and, dup1, dup5,
     raw mstore 0 (approveWordAt0Mem (approveSpenderWord I)
@@ -1095,7 +940,7 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         rw [solcAddrMask_clean hcanonSpender]
         rfl)
       (by decide) (by evm_ov) ]
-  have rd883 := RD.erc6909Swap5 rd882₀ (by decide) (by evm_ov)
+  have rd883 := RD.swap5 rd882₀ (by decide) (by evm_ov)
   have rd899 := evm_run rd883 with [
     dup3,
     raw mstore 0 (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I))
@@ -1252,7 +1097,7 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (approveIdWord I) (approveAmountWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd952 := RD.erc6909Log4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
+  have rd952 := RD.log4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd512 := evm_run rd952 with [
     pop, pop, pop, pop, jump (by jump_dest) ]

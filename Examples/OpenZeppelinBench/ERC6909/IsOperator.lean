@@ -115,15 +115,6 @@ theorem isOperatorStore_operatorApprovals (I : ExecutionEnv) :
   rw [isOperatorStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
   simp
 
--- PROMOTE -> Storage.lean
--- LIBRARY CANDIDATE: `Reasoning.Storage`, packed `bool` load at byte offset 0.
-theorem erc6909StorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (boolLoc slot) =
-      wordToElem .bool
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolLoc, OpenZeppelinBench.Pausable.boolLoc] using
-    OpenZeppelinBench.Pausable.pausableStorageLocLoad_bool_offset0 evm slot
-
 theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := isOperatorStore I } evm
       (.storage (operatorApprovalRef (.var "owner") (.var "spender"))) =
@@ -156,7 +147,7 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
   rw [evalExpr_storage_scalar (t := .bool)
     (hbase := isOperatorStore_operatorApprovals I)
     (her := her) (hty := hty) (hloc := hloc)]
-  rw [erc6909StorageLocLoad_bool_offset0 evm (isOperatorSlot I)]
+  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm (isOperatorSlot I)
 
 theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -497,36 +488,6 @@ namespace Reasoning.Reach
 
 open OpenZeppelinBench.ERC6909
 
--- PROMOTE -> Common.lean / Reasoning.Stepping: generic `SWAP5` xstep.
-theorem erc6909IsOperatorSwap5_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- PROMOTE -> Common.lean / Reasoning.Reach: generic `RD.swap5`.
-theorem RD.erc6909IsOperatorSwap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909IsOperatorSwap5_xstep hc hp hdec hs hov)
-
 -- PROMOTE -> Common.lean
 -- GENERALIZES `Examples.ERC20.Common.RD.erc20DecodeAddrOk`: same solc address decoder shape with
 -- ERC6909's optimizer-on inlined mask/check routine at pc 1629.
@@ -709,7 +670,7 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw keccak256 0 (isOperatorInnerSlot (isOperatorOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap4, swap1 ]
-  have rd374 := RD.erc6909IsOperatorSwap5 rd373 (by decide) (by evm_ov)
+  have rd374 := RD.swap5 rd373 (by decide) (by evm_ov)
   have rd382 := evm_run rd374 with [
     and, dup3,
     raw mstore 0 (isOperatorSpenderMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))

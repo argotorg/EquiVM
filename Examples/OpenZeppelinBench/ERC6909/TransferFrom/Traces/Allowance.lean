@@ -772,7 +772,7 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
         rw [approveOwnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1295 := evm_run rd1294 with [swap4]
-  have rd1296 := RD.erc6909Dup9 rd1295 (by decide) (by evm_ov)
+  have rd1296 := RD.dup9 rd1295 (by decide) (by evm_ov)
   have rd1310 := evm_run rd1296 with [
     and, dup4,
     raw mstore 0 spenderKeyMem (UInt256.ofNat 3) (by decide) mem_cost

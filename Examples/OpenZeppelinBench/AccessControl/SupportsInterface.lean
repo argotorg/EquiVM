@@ -514,7 +514,6 @@ theorem accessControlDispatch_supportsInterface {cd : ByteArray}
   · rw [selectorOf, renounceRoleSelectorBytes, hcd]; decide
   · rw [selectorOf, revokeRoleSelectorBytes, hcd]; decide
 
--- PROMOTE -> Reasoning.ABI: single fixed-bytes4 calldata decoder.
 theorem accessControlDecode_supportsInterface_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ()) :
@@ -522,94 +521,25 @@ theorem accessControlDecode_supportsInterface_ok {I : ExecutionEnv}
       (transitionSignature supportsInterfaceTransition).paramTypes I.calldata =
         some (supportsInterfaceStore I) := by
   show decodeCalldata ["interfaceId"] [bytes4] I.calldata = some (supportsInterfaceStore I)
-  unfold decodeCalldata
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ I.calldata.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([bytes4].any isDynamicABIType = true ∧
-      2 ^ 255 ≤ I.calldata.toList.length) := by
-    simp [bytes4, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([bytes4].isEmpty = false ∧ 2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
-    rw [List.length_drop, htlen]
-    omega
-  rw [if_neg hnotHuge]
-  simp only [List.isEmpty_cons, Bool.false_eq_true, false_and, List.map_cons, List.map_nil,
-    transitionSignature, bind, Option.bind]
-  have hread : readBytes? (I.calldata.toList.drop 4) 0 32 =
-      some ((I.calldata.toList.drop 4).take 32) := by
-    unfold readBytes?
-    have hlen : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_pos hlen, List.drop_zero]
-  have hblen : ((I.calldata.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hnotArgShort : ¬ I.calldata.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
-  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, bytes4, ABI.decodeABIValues?,
-    ABI.decodeABIValue?, isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad,
-    supportsInterfaceStore, supportsInterfaceBytes, bytes4Width, hblen, hnotArgShort]
+  simpa [supportsInterfaceStore, supportsInterfaceBytes, calldataBytes4Arg, bytes4, bytes4Width,
+    abiBytes4, abiBytes4Width] using
+    decodeCalldata_bytes4_ok (cd := I.calldata) (x := "interfaceId") hsz36 hbig hpad
 
 theorem accessControlDecode_supportsInterface_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldata (supportsInterfaceTransition.params.map Param.name)
       (transitionSignature supportsInterfaceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["interfaceId"] [bytes4] I.calldata = none
-  unfold decodeCalldata
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ I.calldata.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([bytes4].any isDynamicABIType = true ∧
-      2 ^ 255 ≤ I.calldata.toList.length) := by
-    simp [bytes4, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([bytes4].isEmpty = false ∧ 2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
-    rw [List.length_drop, htlen]
-    omega
-  rw [if_neg hnotHuge]
-  simp only [List.isEmpty_cons, Bool.false_eq_true, false_and, List.map_cons, List.map_nil,
-    transitionSignature, bind, Option.bind]
-  have hread : readBytes? (I.calldata.toList.drop 4) 0 32 = none := by
-    unfold readBytes?
-    have hlen : ¬ (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_neg hlen]
-  simp [decodeCalldata.decodeArgs, bytes4, ABI.decodeABIValues?, ABI.decodeABIValue?,
-    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread]
+  simpa [bytes4, bytes4Width, abiBytes4, abiBytes4Width] using
+    decodeCalldata_bytes4_none_short (cd := I.calldata) (x := "interfaceId") hsz4 hshort
 
 theorem accessControlDecode_supportsInterface_none_huge {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeCalldata (supportsInterfaceTransition.params.map Param.name)
       (transitionSignature supportsInterfaceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["interfaceId"] [bytes4] I.calldata = none
-  unfold decodeCalldata
-  by_cases hlt4 : I.calldata.toList.length < 4
-  · rw [if_pos hlt4]
-  · rw [if_neg hlt4]
-    have hnotDyn : ¬ ([bytes4].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length) := by
-      simp [bytes4, isDynamicABIType]
-    rw [if_neg hnotDyn]
-    have hHuge : [bytes4].isEmpty = false ∧ 2 ^ 255 ≤ (I.calldata.toList.drop 4).length := by
-      have htlen : I.calldata.toList.length = I.calldata.size := by
-        rw [byteArray_toList_eq, Array.length_toList]
-        rfl
-      rw [List.length_drop, htlen]
-      simp
-      omega
-    rw [if_pos hHuge]
+  simpa [bytes4, bytes4Width, abiBytes4, abiBytes4Width] using
+    decodeCalldata_bytes4_none_huge (cd := I.calldata) (x := "interfaceId") hbig
 
 theorem accessControlDecode_supportsInterface_none_pad {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -617,37 +547,8 @@ theorem accessControlDecode_supportsInterface_none_pad {I : ExecutionEnv}
     decodeCalldata (supportsInterfaceTransition.params.map Param.name)
       (transitionSignature supportsInterfaceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["interfaceId"] [bytes4] I.calldata = none
-  unfold decodeCalldata
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ I.calldata.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([bytes4].any isDynamicABIType = true ∧
-      2 ^ 255 ≤ I.calldata.toList.length) := by
-    simp [bytes4, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([bytes4].isEmpty = false ∧ 2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
-    rw [List.length_drop, htlen]
-    omega
-  rw [if_neg hnotHuge]
-  simp only [List.isEmpty_cons, Bool.false_eq_true, false_and, List.map_cons, List.map_nil,
-    transitionSignature, bind, Option.bind]
-  have hread : readBytes? (I.calldata.toList.drop 4) 0 32 =
-      some ((I.calldata.toList.drop 4).take 32) := by
-    unfold readBytes?
-    have hlen : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_pos hlen, List.drop_zero]
-  have hnotArgShort : ¬ I.calldata.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
-  simp [decodeCalldata.decodeArgs, bytes4, ABI.decodeABIValues?, ABI.decodeABIValue?,
-    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread, hpad, bytes4Width,
-    hnotArgShort]
+  simpa [bytes4, bytes4Width, abiBytes4, abiBytes4Width] using
+    decodeCalldata_bytes4_none_pad (cd := I.calldata) (x := "interfaceId") hsz36 hbig hpad
 
 theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :

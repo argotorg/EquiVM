@@ -945,9 +945,9 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
-  have rd1574 := RD.erc6909Dup9 rd1573 (by decide) (by evm_ov)
+  have rd1574 := RD.dup9 rd1573 (by decide) (by evm_ov)
   have rd1577 := evm_run rd1574 with [and, swap3, swap2]
-  have rd1578 := RD.erc6909Dup10 rd1577 (by decide) (by evm_ov)
+  have rd1578 := RD.dup10 rd1577 (by decide) (by evm_ov)
   have rd1580₀ := evm_run rd1578 with [and, swap2]
   have rd1580 := rd1580₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -964,15 +964,15 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.erc6909Log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd649 := evm_run rd760 with [
     jumpdest, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd651 := evm_run rd649 with [jumpdest, pop, push1 ⟨1⟩]
-  have rd654 := RD.erc6909Swap6 rd651 (by decide) (by evm_ov)
-  have rd655 := RD.erc6909Swap5 rd654 (by decide) (by evm_ov)
+  have rd654 := RD.swap6 rd651 (by decide) (by evm_ov)
+  have rd655 := RD.swap5 rd654 (by decide) (by evm_ov)
   have rd193 := evm_run rd655 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
@@ -1542,9 +1542,9 @@ theorem erc6909TransferFromX_from1545_successCaller_base
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
-  have rd1574 := RD.erc6909Dup9 rd1573 (by decide) (by evm_ov)
+  have rd1574 := RD.dup9 rd1573 (by decide) (by evm_ov)
   have rd1577 := evm_run rd1574 with [and, swap3, swap2]
-  have rd1578 := RD.erc6909Dup10 rd1577 (by decide) (by evm_ov)
+  have rd1578 := RD.dup10 rd1577 (by decide) (by evm_ov)
   have rd1580₀ := evm_run rd1578 with [and, swap2]
   have rd1580 := rd1580₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1561,15 +1561,15 @@ theorem erc6909TransferFromX_from1545_successCaller_base
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.erc6909Log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd649 := evm_run rd760 with [
     jumpdest, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd651 := evm_run rd649 with [jumpdest, pop, push1 ⟨1⟩]
-  have rd654 := RD.erc6909Swap6 rd651 (by decide) (by evm_ov)
-  have rd655 := RD.erc6909Swap5 rd654 (by decide) (by evm_ov)
+  have rd654 := RD.swap6 rd651 (by decide) (by evm_ov)
+  have rd655 := RD.swap5 rd654 (by decide) (by evm_ov)
   have rd193 := evm_run rd655 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [

@@ -467,36 +467,6 @@ namespace Reasoning.Reach
 
 open OpenZeppelinBench.ERC6909
 
--- PROMOTE -> Common.lean / Reasoning.Stepping
-theorem erc6909BalanceOfSwap5_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- PROMOTE -> Common.lean / Reasoning.Reach
-theorem RD.erc6909BalanceOfSwap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909BalanceOfSwap5_xstep hc hp hdec hs hov)
-
 -- PROMOTE -> Common.lean
 -- GENERALIZES `Examples.ERC20.Common.RD.erc20DecodeAddrOk`: same solc address decoder shape with
 -- ERC6909's optimizer-on inlined mask/check routine at pc 1629.
@@ -615,7 +585,7 @@ theorem erc6909BalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanon hreach
   have rd1683 := evm_run rd with [jumpdest]
-  have rd1684 := RD.erc6909BalanceOfSwap5 rd1683 (by decide) (by evm_ov)
+  have rd1684 := RD.swap5 rd1683 (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [balanceOfIdWord, calldataWord] using evm_run rd1684 with [
       push1 ⟨32⟩, swap4, swap1, swap4, add, calldataload,

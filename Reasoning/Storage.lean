@@ -1,4 +1,5 @@
 import Reasoning.EVMWord
+import Reasoning.Memory
 import Reasoning.Stepping
 
 /-!
@@ -39,6 +40,268 @@ theorem keyValueToWord_uint256 (w : UInt256) :
   apply u256_inj
   show w.toNat % EVM.twoPow 256 = w.toNat
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le w.val.isLt (by decide))
+
+/-! ## Packed bool storage at byte offset 0 -/
+
+def boolOffset0Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
+
+def setBoolOffset0Word (old word : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩))
+    (UInt256.isZero (UInt256.isZero word))
+
+theorem storageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (boolOffset0Loc slot) =
+      wordToElem .bool
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
+  unfold storageLocLoad boolOffset0Loc
+  simp only [Fin.val_zero, Nat.zero_add]
+  congr
+  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 1) = _
+  rw [fromBytes'_take_wordLE_land_mask (n := 1) _ (by decide)]
+  rfl
+
+theorem divPow8_testBit (n i : Nat) (h8 : 8 ≤ i) :
+    (n / 2 ^ 8).testBit (i - 8) = n.testBit i := by
+  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
+  rw [Nat.div_div_eq_div_mul]
+  change n / (2 ^ 8 * 2 ^ (i - 8)) % 2 = 1 ↔ n / 2 ^ i % 2 = 1
+  rw [← Nat.pow_add]
+  rw [show 8 + (i - 8) = i by omega]
+
+theorem testBit_shiftLeft (m k i : Nat) :
+    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
+  induction k generalizing i with
+  | zero => simp
+  | succ k ih =>
+      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
+      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
+      cases i with
+      | zero => simp
+      | succ i =>
+          rw [Nat.testBit_bit_succ]
+          rw [Nat.shiftLeft'_false]
+          rw [ih]
+          by_cases hi : i + 1 < k + 1
+          · have hik : i < k := by omega
+            simp [hi, hik]
+          · have hnk : ¬ i < k := by omega
+            simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
+
+theorem natLandClearLow8 (n : Nat) (hn : n < 2 ^ 256) :
+    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 8) = (n / 2 ^ 8) * 2 ^ 8 := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 8)).testBit i =
+    ((n / 2 ^ 8) * 2 ^ 8).testBit i
+  rw [Nat.testBit_and]
+  rw [show (2 : Nat) ^ 256 - 2 ^ 8 = (2 ^ 248 - 1) <<< 8 by
+    rw [Nat.shiftLeft_eq]
+    norm_num [Nat.pow_add]]
+  rw [testBit_shiftLeft]
+  rw [show (n / 2 ^ 8) * 2 ^ 8 = (n / 2 ^ 8) <<< 8 by rw [Nat.shiftLeft_eq]]
+  rw [testBit_shiftLeft]
+  by_cases hi8 : i < 8
+  · simp [hi8]
+  · simp [hi8]
+    have h8 : 8 ≤ i := Nat.le_of_not_gt hi8
+    by_cases hi256 : i < 256
+    · have hlt : i - 8 < 248 := by omega
+      change (n.testBit i && (((2 : Nat) ^ 248 - 1).testBit (i - 8))) =
+        (n / 2 ^ 8).testBit (i - 8)
+      rw [Nat.testBit_two_pow_sub_one]
+      simp [hlt]
+      exact (divPow8_testBit n i h8).symm
+    · have hnlt : ¬ i - 8 < 248 := by omega
+      change (n.testBit i && (((2 : Nat) ^ 248 - 1).testBit (i - 8))) =
+        (n / 2 ^ 8).testBit (i - 8)
+      rw [Nat.testBit_two_pow_sub_one]
+      simp [hnlt]
+      change (n / 2 ^ 8).testBit (i - 8) = false
+      have hq : n / 2 ^ 8 < 2 ^ 248 := by
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 ^ 8 * 2 ^ 248 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+        exact hn
+      have hpow : n / 2 ^ 8 < 2 ^ (i - 8) := by
+        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
+      exact Nat.testBit_lt_two_pow hpow
+
+theorem natLorShift8One (q : Nat) : Nat.lor (q * 2 ^ 8) 1 = 1 + q * 2 ^ 8 := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change ((q * 2 ^ 8) ||| 1).testBit i = (1 + q * 2 ^ 8).testBit i
+  rw [Nat.testBit_or]
+  conv_lhs => rw [show q * 2 ^ 8 = q <<< 8 by rw [Nat.shiftLeft_eq]]
+  rw [testBit_shiftLeft]
+  cases i with
+  | zero =>
+      simp [Nat.testBit]
+      rw [Nat.add_mod]
+      have hmul : q * 256 % 2 = 0 := by
+        rw [show q * 256 = (q * 128) * 2 by ring]
+        exact Nat.mul_mod_left (q * 128) 2
+      rw [hmul]
+  | succ k =>
+      have h1bit : (1 : Nat).testBit (k + 1) = false := by
+        apply Nat.testBit_lt_two_pow
+        exact Nat.lt_of_lt_of_le (by norm_num : 1 < 2)
+          (Nat.pow_le_pow_right (n := 2) (by norm_num) (by omega : 1 ≤ k + 1))
+      rw [h1bit, Bool.or_false]
+      rw [show 1 + q * 2 ^ 8 = Nat.bit true (q * 2 ^ 7) by
+        simp [Nat.bit]
+        omega]
+      rw [Nat.testBit_bit_succ]
+      conv_rhs => rw [show q * 2 ^ 7 = q <<< 7 by rw [Nat.shiftLeft_eq]]
+      rw [testBit_shiftLeft]
+      by_cases hk : k < 7
+      · have hk8 : k + 1 < 8 := by omega
+        simp [hk, hk8]
+      · have hnk8 : ¬ k + 1 < 8 := by omega
+        simp [hk, hnk8]
+
+theorem packedSetTrueNat_lt_size (n : Nat) (hn : n < UInt256.size) :
+    1 + 256 * (n / 256) < UInt256.size := by
+  have hq : n / 256 < 2 ^ 248 := by
+    norm_num [UInt256.size] at hn ⊢
+    omega
+  have hmul : 256 * (n / 256) ≤ 256 * (2 ^ 248 - 1) :=
+    Nat.mul_le_mul_left 256 (Nat.le_pred_of_lt hq)
+  norm_num [UInt256.size] at hmul ⊢
+  omega
+
+theorem packedSetTrueWord_eq (w : UInt256) :
+    UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩ =
+      UInt256.ofNat (1 + 256 * (w.toNat / 256)) := by
+  apply u256_inj
+  unfold UInt256.lor UInt256.land UInt256.toNat Fin.lor Fin.land
+  change (Nat.lor ((Nat.land w.val.val (UInt256.lnot (⟨255⟩ : UInt256)).toNat) %
+      UInt256.size) 1) %
+      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
+    native_decide
+  rw [hlnot]
+  change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 1) %
+      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
+  have hwlt : w.toNat < 2 ^ 256 := by
+    change w.val.val < 2 ^ 256
+    simpa [UInt256.size] using w.val.isLt
+  have hland_lt : Nat.land w.toNat (2 ^ 256 - 2 ^ 8) < UInt256.size := by
+    rw [natLandClearLow8 w.toNat hwlt]
+    exact lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
+  rw [Nat.mod_eq_of_lt hland_lt]
+  rw [natLandClearLow8 w.toNat hwlt]
+  rw [show 256 = 2 ^ 8 by norm_num]
+  rw [Nat.mul_comm (2 ^ 8) (w.toNat / 2 ^ 8)]
+  rw [natLorShift8One]
+
+theorem packedSetTrueWord_toNat (w : UInt256) :
+    (UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat =
+      1 + 256 * (w.toNat / 256) := by
+  rw [packedSetTrueWord_eq]
+  exact ulit_toNat' _ (packedSetTrueNat_lt_size w.toNat w.val.isLt)
+
+theorem packedSetFalseWord_eq (w : UInt256) :
+    UInt256.land w (UInt256.lnot ⟨255⟩) =
+      UInt256.ofNat (256 * (w.toNat / 256)) := by
+  apply u256_inj
+  rw [u256_land_toNat]
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
+    native_decide
+  rw [hlnot]
+  have hwlt : w.toNat < 2 ^ 256 := by
+    change w.val.val < 2 ^ 256
+    simpa [UInt256.size] using w.val.isLt
+  rw [natLandClearLow8 w.toNat hwlt]
+  have hlt : w.toNat / 2 ^ 8 * 2 ^ 8 < UInt256.size :=
+    lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
+  rw [Nat.mod_eq_of_lt hlt]
+  have hlt' : 256 * (w.toNat / 256) < UInt256.size := by
+    simpa [Nat.mul_comm] using hlt
+  rw [show 2 ^ 8 = 256 by norm_num]
+  rw [Nat.mul_comm (w.toNat / 256) 256]
+  rw [ulit_toNat' _ hlt']
+
+theorem packedSetFalseWord_toNat (w : UInt256) :
+    (UInt256.land w (UInt256.lnot ⟨255⟩)).toNat = 256 * (w.toNat / 256) := by
+  rw [packedSetFalseWord_eq]
+  have hlt : 256 * (w.toNat / 256) < UInt256.size := by
+    have hle : 256 * (w.toNat / 256) ≤ w.toNat :=
+      Nat.mul_div_le w.toNat 256
+    exact lt_of_le_of_lt hle w.val.isLt
+  exact ulit_toNat' _ hlt
+
+theorem storageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (.bool true) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.lor
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            (UInt256.lnot ⟨255⟩)) ⟨1⟩)) := by
+  unfold storageLocStore storageLocWriteWord boolOffset0Loc
+  simp only [valueToWord, Bool.toUInt256_true, bind, Option.bind]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof (⟨1⟩ : UInt256)).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
+        (UInt256.lor
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
+    List.take_zero, List.nil_append]
+  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 1)).1 =
+      [1] by
+        native_decide]
+  rw [fromBytes'_append, fromBytes'_drop_wordLE]
+  simp [fromBytes']
+  rw [packedSetTrueWord_toNat]
+
+theorem storageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (.bool false) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          (UInt256.lnot ⟨255⟩))) := by
+  unfold storageLocStore storageLocWriteWord boolOffset0Loc
+  simp only [valueToWord, Bool.toUInt256_false, bind, Option.bind]
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          (UInt256.lnot ⟨255⟩)).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
+    List.take_zero, List.nil_append]
+  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 0)).1 =
+      [0] by
+        native_decide]
+  rw [fromBytes'_append, fromBytes'_drop_wordLE]
+  simp [fromBytes']
+  rw [packedSetFalseWord_toNat]
+
+theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (wordToElem .bool word) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setBoolOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) word)) := by
+  by_cases hzero : word = ⟨0⟩
+  · subst hzero
+    have hbool : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by
+      native_decide
+    simp only [wordToElem, beq_self_eq_true, ↓reduceIte]
+    simpa [setBoolOffset0Word, hbool, u256_lor_zero] using
+      storageLocStore_bool_false_offset0 evm slot
+  · have hbeq : (word.val == 0) = false := by
+      rw [beq_eq_false_iff_ne]
+      intro hval
+      apply hzero
+      apply u256_inj
+      simpa [UInt256.toNat] using hval
+    have hiszero : UInt256.isZero word = ⟨0⟩ := isZero_eq_zero_of_ne hzero
+    simp only [wordToElem, hbeq, Bool.false_eq_true, ↓reduceIte]
+    simpa [setBoolOffset0Word, hiszero] using storageLocStore_bool_true_offset0 evm slot
 
 private theorem rbnode_append_toList {α : Type u} (l r : Batteries.RBNode α) :
     (l.append r).toList = l.toList ++ r.toList := by

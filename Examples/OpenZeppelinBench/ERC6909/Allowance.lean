@@ -177,78 +177,6 @@ theorem erc6909AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 end OpenZeppelinBench.ERC6909
 
-namespace Reasoning.Theory
-
--- PROMOTE -> Common.lean
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic `SWAP5` xstep.
-theorem erc6909Swap5_xstep {s : State} {code : ByteArray} {pcv a b c d e f : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
--- PROMOTE -> Common.lean
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic `SWAP6` xstep.
-theorem erc6909Swap6_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f h : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP6, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: h :: t)
-    (hov : t.length + 7 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (h :: b :: c :: d :: e :: f :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP6, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap6 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: h :: t).length - 7 + 7 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-end Reasoning.Theory
-
-namespace Reasoning.Reach
-
--- PROMOTE -> Common.lean
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic `RD.swap5`.
-theorem RD.swap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.erc6909Swap5_xstep hc hp hdec hs hov)
-
--- PROMOTE -> Common.lean
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic `RD.swap6`.
-theorem RD.swap6 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f h : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: h :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP6, .none)) (hov : t.length + 7 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (h :: b :: c :: d :: e :: f :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.erc6909Swap6_xstep hc hp hdec hs hov)
-
-end Reasoning.Reach
-
 namespace OpenZeppelinBench.ERC6909
 
 /-! ## EVM decode trace for `allowance(address,address,uint256)` -/
@@ -501,15 +429,6 @@ theorem byteArray_extract0_size (b : ByteArray) : b.extract 0 b.size = b := by
   apply ByteArray.ext
   rw [ByteArray.data_extract]
   exact Array.extract_eq_self_of_le le_rfl
-
--- PROMOTE -> Common.lean
-theorem writeWord_size_of_96 (base : ByteArray) (w : UInt256) (dest : ℕ)
-    (hbase : base.size = 96) (hdest : dest + 32 ≤ 96) :
-    ((UInt256.toByteArray w).write 0 base dest 32).size = 96 := by
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hbase]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hbase, toByteArray_size]
-  omega
 
 /-- Memory after storing the `owner` key at scratch offset `0x00`. -/
 noncomputable def allowanceOwnerMem (owner : UInt256) : ByteArray :=

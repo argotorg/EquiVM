@@ -804,11 +804,11 @@ theorem erc6909TransferX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   obtain ⟨_, _, rd1769⟩ := erc6909DecodeAddrOk rd1629 hcanonReceiver (by jump_dest)
     (by evm_ov)
   have rd1770 := evm_run rd1769 with [jumpdest]
-  have rd1771 := RD.erc6909Swap6 rd1770 (by decide) (by simp)
+  have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
   have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
-  have rd1778 := RD.erc6909Swap6 rd1777 (by decide) (by simp)
+  have rd1778 := RD.swap6 rd1777 (by decide) (by simp)
   have rd1781 := evm_run rd1778 with [pop, push1 ⟨64⟩, swap1]
-  have rd1782 := RD.erc6909Swap5 rd1781 (by decide) (by simp)
+  have rd1782 := RD.swap5 rd1781 (by decide) (by simp)
   have rd223 := evm_run rd1782 with [
     add, calldataload, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
   have rd499 := evm_run rd223 with [jumpdest, push2 ⟨499⟩, jump (by jump_dest)]
@@ -872,29 +872,6 @@ theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
     (by evm_ov)
 
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
-
-theorem erc6909Dup10_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f h i j l : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP10, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t)
-    (hov : t.length + 11 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok
-          (stSwap s (l :: a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t), .none)) := by
-  exact dup10_xstep hcode hpc hdec hstk hov
-
-theorem RD.erc6909Dup10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f h i j l : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t) mem aw
-      rdata acc k C)
-    (hdec : decode code pc = some (.DUP10, .none)) (hov : t.length + 11 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (l :: a :: b :: c :: d :: e :: f :: h :: i :: j :: l :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => erc6909Dup10_xstep hc hp hdec hs hov)
 
 noncomputable def transferInnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨0⟩ solcFreePtrMem
@@ -2312,9 +2289,9 @@ theorem erc6909X_transfer {cA gh bl σ σ₀ A I} {g : Sat256}
     raw mstore 3 (transferEventBaseMem creditMem (transferSenderWord I) (transferAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
-  have rd1574 := RD.erc6909Dup9 rd1573 (by decide) (by evm_ov)
+  have rd1574 := RD.dup9 rd1573 (by decide) (by evm_ov)
   have rd1577 := evm_run rd1574 with [and, swap3, swap2]
-  have rd1578 := RD.erc6909Dup10 rd1577 (by decide) (by evm_ov)
+  have rd1578 := RD.dup10 rd1577 (by decide) (by evm_ov)
   have rd1580₀ := evm_run rd1578 with [and, swap2]
   have rd1580 := rd1580₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -2331,7 +2308,7 @@ theorem erc6909X_transfer {cA gh bl σ σ₀ A I} {g : Sat256}
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.erc6909Log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]

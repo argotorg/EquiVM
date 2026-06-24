@@ -600,6 +600,14 @@ noncomputable def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
 noncomputable def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt32Mem slot (wordAt0Mem key mem)
 
+theorem writeWord_size_of_96 (base : ByteArray) (w : UInt256) (dest : ℕ)
+    (hbase : base.size = 96) (hdest : dest + 32 ≤ 96) :
+    ((UInt256.toByteArray w).write 0 base dest 32).size = 96 := by
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hbase]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hbase, toByteArray_size]
+  omega
+
 theorem wordAt0Mem_size_96 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
     (wordAt0Mem word mem).size = 96 := by
   unfold wordAt0Mem
