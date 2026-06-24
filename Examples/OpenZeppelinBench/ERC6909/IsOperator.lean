@@ -169,14 +169,10 @@ theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [operatorApprovalRef] using evalExpr_isOperator_storage evm I)
 
--- PROMOTE -> Common.lean
 theorem erc6909KeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
+  keyValueToWord_address_of_canonical w hcanon
 
 /-! ## EVM scratch memory for the `_operatorApprovals` nested mapping access -/
 

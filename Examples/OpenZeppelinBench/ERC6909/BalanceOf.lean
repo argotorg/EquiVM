@@ -158,16 +158,11 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/
 
--- PROMOTE -> Storage.lean
 theorem balanceOfKeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
+  keyValueToWord_address_of_canonical w hcanon
 
--- PROMOTE -> Storage.lean
 theorem balanceOfKeyValueToWord_uint256 (w : UInt256) :
     keyValueToWord (.int (Int.ofNat w.toNat)) = w := by
   exact erc6909WordOfInt_ofNat_toNat w

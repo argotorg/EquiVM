@@ -1,7 +1,6 @@
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.Pausable.Storage
-import Examples.ERC20.Approve
 import Reasoning.Refinement
 import Reasoning.SolmBody
 

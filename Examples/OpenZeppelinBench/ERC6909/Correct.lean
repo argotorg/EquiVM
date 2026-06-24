@@ -225,7 +225,7 @@ theorem erc6909NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 theorem erc6909Correct :
     runtimeEquivalence!?! config erc6909BenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
-      hAccounts _hOriginalAccounts => ?_⟩
+      hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I (erc6909SelBytes 0)

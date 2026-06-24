@@ -469,14 +469,10 @@ theorem erc6909Dispatch_approve {cd : ByteArray}
 
 /-! ## Local scratch-memory facts for the three-level `_allowances` write -/
 
--- PROMOTE -> Common.lean
 theorem erc6909ApproveKeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
+  keyValueToWord_address_of_canonical w hcanon
 
 theorem approveAccountAddress_ofNat_zero_iff {w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus) :

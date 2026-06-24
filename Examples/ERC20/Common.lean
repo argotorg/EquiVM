@@ -90,11 +90,8 @@ theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressMo
 
 theorem erc20KeyValueToWord_address_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w :=
+  Reasoning.Theory.keyValueToWord_address_of_canonical w hcanon
 
 
 end ERC20

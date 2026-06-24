@@ -1,5 +1,4 @@
 import Examples.OpenZeppelinBench.ERC6909.Storage
-import Examples.ERC20.TransferFrom
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -53,8 +52,8 @@ theorem erc6909Decode_allowance_ok {I : ExecutionEnv}
   show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = _
   simpa [allowanceStore, allowanceOwnerValue, allowanceSpenderValue, allowanceIdValue,
     allowanceOwnerWord, allowanceSpenderWord, allowanceIdWord, calldataWord, addr, uint256,
-    uint256Int, ERC20.addr, ERC20.uint256, ERC20.uint256Int]
-    using ERC20.decodeCalldata_address_address_uint256_ok
+    uint256Int, abiUInt256]
+    using Reasoning.Theory.decodeCalldata_address_address_uint256_ok
       (cd := I.calldata) (x := "owner") (y := "spender") (z := "id")
       hsz100 hbig hcanonOwner hcanonSpender
 
@@ -63,8 +62,8 @@ theorem erc6909Decode_allowance_none_short {I : ExecutionEnv}
     decodeCalldata (allowanceTransition.params.map Param.name)
       (transitionSignature allowanceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, uint256Int, ERC20.addr, ERC20.uint256, ERC20.uint256Int]
-    using ERC20.decodeCalldata_address_address_uint256_none_short
+  simpa [addr, uint256, uint256Int, abiUInt256]
+    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_short
       (cd := I.calldata) (x := "owner") (y := "spender") (z := "id") hsz4 hshort
 
 theorem erc6909Decode_allowance_none_noncanon_owner {I : ExecutionEnv}
@@ -73,9 +72,8 @@ theorem erc6909Decode_allowance_none_noncanon_owner {I : ExecutionEnv}
     decodeCalldata (allowanceTransition.params.map Param.name)
       (transitionSignature allowanceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, uint256Int, allowanceOwnerWord, calldataWord, ERC20.addr,
-    ERC20.uint256, ERC20.uint256Int]
-    using ERC20.decodeCalldata_address_address_uint256_none_noncanon0
+  simpa [addr, uint256, uint256Int, allowanceOwnerWord, calldataWord, abiUInt256]
+    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon0
       (cd := I.calldata) (x := "owner") (y := "spender") (z := "id")
       hsz100 hbig hncOwner
 
@@ -87,8 +85,8 @@ theorem erc6909Decode_allowance_none_noncanon_spender {I : ExecutionEnv}
       (transitionSignature allowanceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = none
   simpa [addr, uint256, uint256Int, allowanceOwnerWord, allowanceSpenderWord, calldataWord,
-    ERC20.addr, ERC20.uint256, ERC20.uint256Int]
-    using ERC20.decodeCalldata_address_address_uint256_none_noncanon1
+    abiUInt256]
+    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon1
       (cd := I.calldata) (x := "owner") (y := "spender") (z := "id")
       hsz100 hbig hcanonOwner hncSpender
 
@@ -97,8 +95,8 @@ theorem erc6909Decode_allowance_none_huge {I : ExecutionEnv}
     decodeCalldata (allowanceTransition.params.map Param.name)
       (transitionSignature allowanceTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, uint256Int, ERC20.addr, ERC20.uint256, ERC20.uint256Int]
-    using ERC20.decodeCalldata_address_address_uint256_none_huge
+  simpa [addr, uint256, uint256Int, abiUInt256]
+    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_huge
       (cd := I.calldata) (x := "owner") (y := "spender") (z := "id") hbig
 
 theorem allowanceStore_owner (I : ExecutionEnv) :
@@ -827,8 +825,8 @@ theorem allowanceFinalKeccakSlot (I : ExecutionEnv)
       = allowanceSlotOf I := by
   rw [allowanceIdHashMem_read0_64]
   unfold allowanceSlotOf allowanceSlot allowanceSpenderSlotWord allowanceOwnerSlotWord mapSlot
-  rw [ERC20.erc20KeyValueToWord_address_of_canonical _ hcanonOwner,
-    ERC20.erc20KeyValueToWord_address_of_canonical _ hcanonSpender]
+  rw [keyValueToWord_address_of_canonical _ hcanonOwner,
+    keyValueToWord_address_of_canonical _ hcanonSpender]
   rw [show keyValueToWord (.int (Int.ofNat (allowanceIdWord I).toNat)) =
       allowanceIdWord I from erc6909WordOfInt_ofNat_toNat (allowanceIdWord I)]
   exact mappingSlot_single (allowanceIdWord I)

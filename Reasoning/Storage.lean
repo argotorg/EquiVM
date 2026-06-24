@@ -24,6 +24,14 @@ theorem storage_findD_insert_ne (storage : Storage) (readSlot writeSlot val defa
   intro hcmp
   exact hne (Std.LawfulEqCmp.eq_of_compare hcmp)
 
+theorem keyValueToWord_address_of_canonical (w : UInt256)
+    (hcanon : w.toNat < EVM.addressModulus) :
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
+  apply u256_inj
+  unfold keyValueToWord AccountAddress.ofNat
+  exact Nat.mod_eq_of_lt (by
+    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+
 private theorem rbnode_append_toList {α : Type u} (l r : Batteries.RBNode α) :
     (l.append r).toList = l.toList ++ r.toList := by
   fun_induction Batteries.RBNode.append l r <;> simp [List.append_assoc]
