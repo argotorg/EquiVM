@@ -1558,7 +1558,7 @@ theorem erc6909ApproveBodyCore
             have hσPost : EVMStateEquiv (approvePostState evmE I) (approvePostState evmS I) := by
               unfold approvePostState approveSlot
               rw [hσ.executionEnv]
-              exact hσ.storageStore_codeOwner
+              exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
                 (allowanceSlot (.address evmS.executionEnv.source)
                   (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
                   (.int (Int.ofNat (approveIdWord I).toNat))) rfl

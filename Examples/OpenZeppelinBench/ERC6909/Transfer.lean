@@ -2509,7 +2509,7 @@ theorem erc6909TransferBodyCore
       (transferAfterDebitState evmS I) := by
     unfold transferAfterDebitState transferFromSlot
     rw [hσ.executionEnv, hDebit]
-    exact hσ.storageStore_codeOwner
+    exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
       (balanceSlot (.address evmS.executionEnv.source)
         (.int (Int.ofNat (transferIdWord I).toNat))) rfl
   have hToBalance : transferToBalanceWord evmE I = transferToBalanceWord evmS I := by
@@ -2522,7 +2522,8 @@ theorem erc6909TransferBodyCore
     simp [transferNewToWord, hNewToNat]
   have hσPost : EVMStateEquiv (transferPostState evmE I) (transferPostState evmS I) := by
     unfold transferPostState
-    exact hσDebit.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+    exact erc6909EVMStateEquivStorageStore hσDebit
+      (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
       (transferToSlot I) hNewToWord
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4

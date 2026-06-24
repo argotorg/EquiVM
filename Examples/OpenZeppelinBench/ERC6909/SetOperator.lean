@@ -1551,7 +1551,8 @@ theorem erc6909SetOperatorBodyCore
                   rw [hslotEq]
                   exact hσ.storageLoad_codeOwner (setOperatorSlot evmS I)
                 unfold setOperatorPostState
-                exact hσ.storageStore_codeOwner (setOperatorSlot evmS I) (by rw [hloadEq])
+                exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
+                  (setOperatorSlot evmS I) (by rw [hloadEq])
               exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
                   hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
                 |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
