@@ -53,7 +53,6 @@ def approvePostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (approveSlot evm I)
     (approveAmountWord I)
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_addr_uint256_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32)
@@ -63,62 +62,21 @@ theorem decodeScalarWords_addr_uint256_uint256_ok {bytes : List UInt8}
       some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
         .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
         .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)] := by
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon)]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_uint256_ok (start := 32) hlen32]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_uint256_ok (start := 64) hlen64]
-  rfl
+  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_ok
+    hlen0 hlen32 hlen64 hcanon
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_addr_uint256_uint256_none_noncanon {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hnc : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
     decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none := by
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
-    (by simpa using hnc)]
-  simp only [Option.bind, bind]
+  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_noncanon0
+    hlen0 hnc
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_addr_uint256_uint256_none_short {bytes : List UInt8}
     (hshort : bytes.length < 96) :
     decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none := by
-  simp only [decodeScalarWords?, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    rw [decodeScalarWord_address_none_short (start := 0) (by simpa using htake0n)]
-    simp only [Option.bind, bind]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    by_cases hcanon : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
-    · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-        (by simpa using hcanon)]
-      simp only [Option.bind, bind]
-      by_cases h64 : bytes.length < 64
-      · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        rw [decodeScalarWord_uint256_none_short (start := 32) htake32n]
-      · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        have htake64n : ¬ ((bytes.drop 64).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        rw [decodeScalarWord_uint256_ok (start := 32) htake32]
-        simp only [Option.bind, bind]
-        rw [decodeScalarWord_uint256_none_short (start := 64) htake64n]
-    · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
-        (by simpa using hcanon)]
-      simp only [Option.bind, bind]
+  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_short hshort
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_addr_uint256_uint256_ok {cd : ByteArray} {x y z : Solm.Ident}
     (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
     (hcanon : (calldataWord cd 4).toNat < EVM.addressModulus) :
@@ -127,98 +85,28 @@ theorem decodeCalldata_addr_uint256_uint256_ok {cd : ByteArray} {x y z : Solm.Id
         (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
         (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
         (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
-  have htake68' : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
-    (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_addr_uint256_uint256_ok (bytes := cd.toList.drop 4) htake4
-    htake36' htake68' (by rw [hword4]; exact hcanon)]
-  change decodeCalldata.insertValues [x, y, z]
-      [.address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-        .int (Int.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat),
-        .int (Int.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat)] ∅ =
-    some ((((∅ : Solm.Store).insert x
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-      (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-      (.int (Int.ofNat (calldataWord cd 68).toNat)))
-  simp [decodeCalldata.insertValues]
-  rw [hword4, hword36, hword68]
+  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_ok
+    hsz100 hbig hcanon
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_addr_uint256_uint256_none_noncanon {cd : ByteArray}
     {x y z : Solm.Ident}
     (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
     (hnc : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
     decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
-    (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_addr_uint256_uint256_none_noncanon (bytes := cd.toList.drop 4)
-    htake4 (by rw [hword4]; exact hnc)]
+  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_noncanon0
+    hsz100 hbig hnc
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_addr_uint256_uint256_none_short {cd : ByteArray}
     {x y z : Solm.Ident}
     (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
     decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
-    (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_addr_uint256_uint256_none_short (bytes := cd.toList.drop 4) (by
-    rw [List.length_drop, htlen]
-    omega)]
+  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_short hsz4 hshort
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_addr_uint256_uint256_none_huge {cd : ByteArray}
     {x y z : Solm.Ident}
     (hbig : 2 ^ 255 + 4 ≤ cd.size) :
     decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
-    (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_huge hbig
 
 theorem erc6909Decode_approve_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -513,112 +401,52 @@ theorem approveMasked_eq_zero_of_zero {w : UInt256} (hzero : w = ⟨0⟩) :
   rw [hzero]
   decide
 
--- PROMOTE -> Common.lean
 noncomputable def approveWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 0 32
+  wordAt0Mem word mem
 
--- PROMOTE -> Common.lean
 noncomputable def approveWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 32 32
+  wordAt32Mem word mem
 
--- PROMOTE -> Common.lean
 noncomputable def approveTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
-  approveWordAt32Mem slot (approveWordAt0Mem key mem)
+  twoWordHashMem key slot mem
 
--- PROMOTE -> Common.lean
 theorem approveWordAt0Mem_size {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
     (approveWordAt0Mem word mem).size = 96 := by
-  unfold approveWordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
+  exact wordAt0Mem_size_96 word hmem
 
--- PROMOTE -> Common.lean
 theorem approveWordAt32Mem_size {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
     (approveWordAt32Mem word mem).size = 96 := by
-  unfold approveWordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
+  exact wordAt32Mem_size_96 word hmem
 
--- PROMOTE -> Common.lean
 theorem approveTwoWordHashMem_size {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 96) :
     (approveTwoWordHashMem key slot mem).size = 96 := by
-  unfold approveTwoWordHashMem
-  exact approveWordAt32Mem_size slot (approveWordAt0Mem_size key hmem)
+  exact twoWordHashMem_size_96 key slot hmem
 
--- PROMOTE -> Common.lean
 theorem approveTwoWordHashMem_read0 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 96) :
     (approveTwoWordHashMem key slot mem).readWithPadding 0 32 =
       UInt256.toByteArray key := by
-  unfold approveTwoWordHashMem approveWordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [approveWordAt0Mem_size key hmem]; omega) (by omega)]
-  unfold approveWordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
+  exact twoWordHashMem_read0 key slot hmem
 
--- PROMOTE -> Common.lean
 theorem approveTwoWordHashMem_read32 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 96) :
     (approveTwoWordHashMem key slot mem).readWithPadding 32 32 =
       UInt256.toByteArray slot := by
-  unfold approveTwoWordHashMem approveWordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [approveWordAt0Mem_size key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
+  exact twoWordHashMem_read32 key slot hmem
 
--- PROMOTE -> Common.lean
 theorem approveTwoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (approveTwoWordHashMem key slot mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold approveTwoWordHashMem approveWordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [approveWordAt0Mem_size key hmem]; omega) (by omega)
-      (by rw [approveWordAt0Mem_size key hmem])]
-  unfold approveWordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem])]
-  exact hread64
+  exact twoWordHashMem_read64 key slot hmem hread64
 
--- PROMOTE -> Common.lean
-set_option maxHeartbeats 800000 in
 theorem approveTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 96) :
     (approveTwoWordHashMem key slot mem).readWithPadding 0 64 =
       UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [approveTwoWordHashMem_size key slot hmem]; omega)]
-  have hleft :
-      (approveTwoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [approveTwoWordHashMem_size key slot hmem]; omega),
-      approveTwoWordHashMem_read0 key slot hmem]
-  have hright :
-      (approveTwoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [approveTwoWordHashMem_size key slot hmem]; omega),
-      approveTwoWordHashMem_read32 key slot hmem]
-  rw [show (approveTwoWordHashMem key slot mem).extract 0 64 =
-      (approveTwoWordHashMem key slot mem).extract 0 32 ++
-        (approveTwoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
+  exact twoWordHashMem_read0_64 key slot hmem
 
 noncomputable def approveOwnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨2⟩ solcFreePtrMem
@@ -837,8 +665,7 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
         approveSpenderWord I :=
     erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSpender
   rw [hownerKey, hspenderKey]
-  rw [show keyValueToWord (.int (Int.ofNat (approveIdWord I).toNat)) =
-      approveIdWord I from erc6909WordOfInt_ofNat_toNat (approveIdWord I)]
+  rw [keyValueToWord_uint256 (approveIdWord I)]
   exact mappingSlot_single (approveIdWord I)
     (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveSpenderWord I) ++
       UInt256.toByteArray

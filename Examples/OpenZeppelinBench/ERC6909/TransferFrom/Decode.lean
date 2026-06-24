@@ -62,7 +62,6 @@ def transferFromStore (I : ExecutionEnv) : Store :=
 
 /-! ### ABI decoding -/
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_address_address_uint256_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32)
@@ -76,129 +75,40 @@ theorem decodeScalarWords_address_address_uint256_uint256_ok {bytes : List UInt8
         .address (Ethereum.AccountAddress.ofNat
           (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
         .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address, .elem .address, abiUInt256, abiUInt256]
-      bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-      .address (Ethereum.AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-      .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-      .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat)]
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon0)]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_address_ok (start := 32) hlen32 hcanon32]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_uint256_ok (start := 64) hlen64]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_uint256_ok (start := 96) hlen96]
-  rfl
+        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat)] :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_ok
+        (bytes := bytes) hlen0 hlen32 hlen64 hlen96 hcanon0 hcanon32
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_address_address_uint256_uint256_none_noncanon0 {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address, abiUInt256, abiUInt256]
-    bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
-    (by simpa using hnc0)]
-  simp only [Option.bind, bind]
+    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_noncanon0
+        (bytes := bytes) hlen0 hnc0
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_address_address_uint256_uint256_none_noncanon1 {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32)
     (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
     (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address, abiUInt256, abiUInt256]
-    bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
-    (by simpa using hcanon0)]
-  simp only [Option.bind, bind]
-  rw [decodeScalarWord_address_none_noncanon (start := 32) hlen32 hnc32]
+    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_noncanon1
+        (bytes := bytes) hlen0 hlen32 hcanon0 hnc32
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeScalarWords_address_address_uint256_uint256_none_short {bytes : List UInt8}
     (hshort : bytes.length < 128) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address, abiUInt256, abiUInt256]
-    bytes 0 = none
-  simp only [decodeScalarWords?, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    rw [decodeScalarWord_address_none_short (start := 0) (by simpa using htake0n)]
-    simp only [Option.bind, bind]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    by_cases h64 : bytes.length < 64
-    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
-      · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-          (by simpa using hcanon0)]
-        simp only [Option.bind, bind]
-        rw [decodeScalarWord_address_none_short (start := 32) htake32n]
-      · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
-          (by simpa using hcanon0)]
-        simp only [Option.bind, bind]
-    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      by_cases h96 : bytes.length < 96
-      · have htake64n : ¬ ((bytes.drop 64).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
-        · by_cases hcanon32 :
-            (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus
-          · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-              (by simpa using hcanon0)]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_address_ok (start := 32) htake32 hcanon32]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_uint256_none_short (start := 64) htake64n]
-          · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-              (by simpa using hcanon0)]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_address_none_noncanon (start := 32) htake32 hcanon32]
-        · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
-            (by simpa using hcanon0)]
-          simp only [Option.bind, bind]
-      · have htake64 : ((bytes.drop 64).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        have htake96n : ¬ ((bytes.drop 96).take 32).length = 32 := by
-          rw [List.length_take, List.length_drop]
-          omega
-        by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
-        · by_cases hcanon32 :
-            (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus
-          · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-              (by simpa using hcanon0)]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_address_ok (start := 32) htake32 hcanon32]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_uint256_ok (start := 64) htake64]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_uint256_none_short (start := 96) htake96n]
-          · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
-              (by simpa using hcanon0)]
-            simp only [Option.bind, bind]
-            rw [decodeScalarWord_address_none_noncanon (start := 32) htake32 hcanon32]
-        · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
-            (by simpa using hcanon0)]
-          simp only [Option.bind, bind]
+    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_short
+        (bytes := bytes) hshort
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_address_address_uint256_uint256_ok {cd : ByteArray}
     {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
     (hbig : cd.size < 2 ^ 255 + 4)
@@ -209,147 +119,48 @@ theorem decodeCalldata_address_address_uint256_uint256_ok {cd : ByteArray}
         (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
         (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
         (.int (Int.ofNat (calldataWord cd 68).toNat))).insert w
-        (.int (Int.ofNat (calldataWord cd 100).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 100).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  have hword100 : ABI.bytesToWord ((cd.toList.drop 100).take 32) = calldataWord cd 100 :=
-    decode_word_at_eq cd 100 (by omega) (by norm_num)
-  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
-  have htake68' : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
-  have htake100' : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake100
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z, w])
-    (types := [addr, addr, uint256, uint256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_uint256_uint256_ok (bytes := cd.toList.drop 4)
-    htake4 htake36' htake68' htake100'
-    (by rw [hword4]; exact hcanon0)
-    (by
-      rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-          calldataWord cd 36 from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hcanon1)]
-  change decodeCalldata.insertValues [x, y, z, w]
-      [.address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat),
-        .int (Int.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat),
-        .int (Int.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 96).take 32)).toNat)] ∅ =
-    some (((((∅ : Solm.Store).insert x
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
-      (.int (Int.ofNat (calldataWord cd 68).toNat))).insert w
-      (.int (Int.ofNat (calldataWord cd 100).toNat)))
-  simp [decodeCalldata.insertValues]
-  rw [hword4, hword36, hword68, hword100]
+        (.int (Int.ofNat (calldataWord cd 100).toNat))) :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_ok
+        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hcanon0 hcanon1
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_address_address_uint256_uint256_none_noncanon0 {cd : ByteArray}
     {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
     (hbig : cd.size < 2 ^ 255 + 4)
     (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z, w])
-    (types := [addr, addr, uint256, uint256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_uint256_uint256_none_noncanon0
-    (bytes := cd.toList.drop 4) htake4 (by rw [hword4]; exact hnc0)]
+    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_noncanon0
+        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hnc0
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_address_address_uint256_uint256_none_noncanon1 {cd : ByteArray}
     {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
     (hbig : cd.size < 2 ^ 255 + 4)
     (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
     (hnc1 : ¬ (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z, w])
-    (types := [addr, addr, uint256, uint256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_uint256_uint256_none_noncanon1
-    (bytes := cd.toList.drop 4) htake4 htake36'
-    (by rw [hword4]; exact hcanon0)
-    (by
-      rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-          calldataWord cd 36 from by
-        simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-      exact hnc1)]
+    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_noncanon1
+        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hcanon0 hnc1
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_address_address_uint256_uint256_none_short {cd : ByteArray}
     {x y z w : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 132) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z, w])
-    (types := [addr, addr, uint256, uint256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
-  rw [decodeScalarWords_address_address_uint256_uint256_none_short
-    (bytes := cd.toList.drop 4) (by rw [List.length_drop, htlen]; omega)]
+    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_short
+        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz4 hshort
 
--- PROMOTE -> Common.lean / Reasoning.ABI
 theorem decodeCalldata_address_address_uint256_uint256_none_huge {cd : ByteArray}
     {x y z w : Solm.Ident} (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z, w])
-    (types := [addr, addr, uint256, uint256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
+  by
+    simpa [addr, uint256, abiUInt256] using
+      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_huge
+        (cd := cd) (x := x) (y := y) (z := z) (w := w) hbig
 
 theorem erc6909Decode_transferFrom_ok {I : ExecutionEnv}
     (hsz132 : 132 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -523,8 +334,7 @@ theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
   unfold transferFromAllowanceSlotI allowanceSlot mapSlot
   rw [approveIdHashMem_read0_64, hspenderSlot,
     erc6909ApproveKeyValueToWord_address_of_canonical _ hcanonSender, hcallerKey]
-  rw [show keyValueToWord (.int (Int.ofNat (transferFromIdWord I).toNat)) =
-      transferFromIdWord I from erc6909WordOfInt_ofNat_toNat (transferFromIdWord I)]
+  rw [keyValueToWord_uint256 (transferFromIdWord I)]
   exact mappingSlot_single (transferFromIdWord I)
     (mapSlot (transferFromCallerWord I) (mapSlot (transferFromSenderWord I) ⟨2⟩))
 

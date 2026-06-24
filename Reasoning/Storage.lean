@@ -32,6 +32,14 @@ theorem keyValueToWord_address_of_canonical (w : UInt256)
   exact Nat.mod_eq_of_lt (by
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
 
+theorem keyValueToWord_uint256 (w : UInt256) :
+    keyValueToWord (.int (Int.ofNat w.toNat)) = w := by
+  unfold keyValueToWord EVM.wordOfInt
+  simp only [Int.ofNat_eq_natCast]
+  apply u256_inj
+  show w.toNat % EVM.twoPow 256 = w.toNat
+  exact Nat.mod_eq_of_lt (lt_of_lt_of_le w.val.isLt (by decide))
+
 private theorem rbnode_append_toList {α : Type u} (l r : Batteries.RBNode α) :
     (l.append r).toList = l.toList ++ r.toList := by
   fun_induction Batteries.RBNode.append l r <;> simp [List.append_assoc]

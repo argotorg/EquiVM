@@ -9,8 +9,9 @@ import Mathlib.Data.Nat.Digits.Lemmas
 The EVM `MSTORE`/`MLOAD`/`RETURN` and the `UInt256.toByteArray` word encoding are *computable*
 `ByteArray` operations — **not** opaque like `D_J`/keccak.  The single genuine opacity is the
 *content* of `ffi.ByteArray.zeroes` (the `memset_zero` extern): evmlean axiomatizes only its
-**size** (`ByteArray_zeroes_size`), not that the bytes are `0`.  We admit that one extern-spec
-fact (`byteArray_zeroes_toList`) and **prove everything else** as generic, contract-agnostic
+**size** (`ByteArray_zeroes_size`), not that the bytes are `0`.  The additional extern-spec
+fact (`byteArray_zeroes_toList`) is isolated here, and **everything else** is proved as generic,
+contract-agnostic
 lemmas: the big-endian byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
 `MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
 encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
@@ -587,6 +588,105 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
       show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
       show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size = readAddr + 32 from by
         omega]
+
+/-! ## 4a. Two-word scratch memory for mapping-slot hashes -/
+
+noncomputable def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray word).write 0 mem 0 32
+
+noncomputable def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray word).write 0 mem 32 32
+
+noncomputable def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+  wordAt32Mem slot (wordAt0Mem key mem)
+
+theorem wordAt0Mem_size_96 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
+    (wordAt0Mem word mem).size = 96 := by
+  unfold wordAt0Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem wordAt32Mem_size_96 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
+    (wordAt32Mem word mem).size = 96 := by
+  unfold wordAt32Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem twoWordHashMem_size_96 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96) :
+    (twoWordHashMem key slot mem).size = 96 := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_size_96 slot (wordAt0Mem_size_96 key hmem)
+
+theorem twoWordHashMem_read0 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_96 key hmem]; omega) (by omega)]
+  unfold wordAt0Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray key).size ≤ 32
+    rw [toByteArray_size])
+
+theorem twoWordHashMem_read32 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_96 key hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray slot).size ≤ 32
+    rw [toByteArray_size])
+
+theorem twoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_96 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_96 key hmem])]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem])]
+  exact hread64
+
+set_option maxHeartbeats 800000 in
+theorem twoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [twoWordHashMem_size_96 key slot hmem]; omega)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [twoWordHashMem_size_96 key slot hmem]; omega),
+      twoWordHashMem_read0 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [twoWordHashMem_size_96 key slot hmem]; omega),
+      twoWordHashMem_read32 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num]
+  rw [hleft, hright]
 
 /-! ## 5. `RETURN`/ABI encoding: `UInt256.toByteArray` as the big-endian word list -/
 

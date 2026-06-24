@@ -827,8 +827,7 @@ theorem allowanceFinalKeccakSlot (I : ExecutionEnv)
   unfold allowanceSlotOf allowanceSlot allowanceSpenderSlotWord allowanceOwnerSlotWord mapSlot
   rw [keyValueToWord_address_of_canonical _ hcanonOwner,
     keyValueToWord_address_of_canonical _ hcanonSpender]
-  rw [show keyValueToWord (.int (Int.ofNat (allowanceIdWord I).toNat)) =
-      allowanceIdWord I from erc6909WordOfInt_ofNat_toNat (allowanceIdWord I)]
+  rw [keyValueToWord_uint256 (allowanceIdWord I)]
   exact mappingSlot_single (allowanceIdWord I)
     (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (allowanceSpenderWord I) ++
       UInt256.toByteArray

@@ -164,8 +164,8 @@ theorem balanceOfKeyValueToWord_address_of_canonical (w : UInt256)
   keyValueToWord_address_of_canonical w hcanon
 
 theorem balanceOfKeyValueToWord_uint256 (w : UInt256) :
-    keyValueToWord (.int (Int.ofNat w.toNat)) = w := by
-  exact erc6909WordOfInt_ofNat_toNat w
+    keyValueToWord (.int (Int.ofNat w.toNat)) = w :=
+  keyValueToWord_uint256 w
 
 /-- Memory after the body stores the masked owner key at scratch offset `0x00`. -/
 noncomputable def balanceOfOwnerMem (owner : UInt256) : ByteArray :=
