@@ -755,17 +755,17 @@ theorem erc6909BalanceOfX_noncanon {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     RD.erc6909BalanceOfDecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909BalanceOfBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x00, 0xfd, 0xd5, 0x8e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true)
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨136⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨136⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc6909BalanceOfSelector_size hsel
   have hd := erc6909Dispatch_balanceOf (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -776,15 +776,15 @@ theorem erc6909BalanceOfBodyCore
           accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
         have hbody :
             ExecTransitionBody config contract
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               (balanceOfStore I)
               balanceOfTransition.body
               (.returned { contract := contract, locals := balanceOfStore I }
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
           simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
             State.lookupAccount] using erc6909BalanceOfBodyReturns
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
         exact (erc6909X_balanceOf (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hcanon hreach)

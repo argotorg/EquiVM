@@ -867,17 +867,17 @@ theorem erc6909Dispatch_isOperator {cd : ByteArray}
   · rw [selectorOf, erc6909BalanceOfSelectorBytes, hcd]; decide
 
 theorem erc6909IsOperatorBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xb6, 0x36, 0x3c, 0xf2]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true)
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨329⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc6909IsOperatorSelector_size hsel
   have hd := erc6909Dispatch_isOperator (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -890,16 +890,16 @@ theorem erc6909IsOperatorBodyCore
             accountMapEquiv_storage_findD hAccounts I.codeOwner (isOperatorSlot I) ⟨0⟩
           have hbody :
               ExecTransitionBody config contract
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (isOperatorStore I)
                 isOperatorTransition.body
                 (.returned { contract := contract, locals := isOperatorStore I }
-                  (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                   (some (wordToElem .bool
                     (UInt256.land (isOperatorStorageWord σ_solm I) ⟨255⟩)))) := by
             simpa [isOperatorStorageWord, isOperatorSlot, initState, Solm.EVM.storageLoad,
               State.lookupAccount] using erc6909IsOperatorBodyReturns
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
           exact (erc6909X_isOperator (g := Sat256.ofUInt256 g)
               hsz68 hsize hbig hcanonOwner hcanonSpender hreach)

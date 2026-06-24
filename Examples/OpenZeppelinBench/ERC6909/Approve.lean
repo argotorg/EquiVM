@@ -1500,17 +1500,17 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by evm_ov) ]
 
 theorem erc6909ApproveBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 3))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨228⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hselApprove : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩ := by
     simpa [erc6909SelBytes] using hsel
   have hsz4 := erc6909ApproveSelector_size hselApprove
@@ -1519,8 +1519,8 @@ theorem erc6909ApproveBodyCore
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc6909Decode_approve_ok (I := I) hsz100 hbig hcanonSpender
-        let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-        let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+        let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
         have hσ : EVMStateEquiv evmE evmS := by
           simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
             hAccounts
@@ -1558,7 +1558,7 @@ theorem erc6909ApproveBodyCore
             have hσPost : EVMStateEquiv (approvePostState evmE I) (approvePostState evmS I) := by
               unfold approvePostState approveSlot
               rw [hσ.executionEnv]
-              exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
+              exact hσ.storageStore_codeOwner
                 (allowanceSlot (.address evmS.executionEnv.source)
                   (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
                   (.int (Int.ofNat (approveIdWord I).toNat))) rfl

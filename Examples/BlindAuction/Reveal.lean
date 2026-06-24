@@ -65,7 +65,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                 (transitionSignature revealTransition).paramTypes I.calldata = none
           · have hrev :=
               scratch_blindAuctionRevealDecode1806_none_reverts
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
                 (A := A) (I := I) (g := Sat256.ofUInt256 g) rd1806 (by omega)
                 hcalldataSign hdecNone
             exact hrev.reEquivDecodingFailed hcode hd hdecNone
@@ -98,7 +98,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                 hfakesGt hfakesStart hfakesLenLoad hfakesLenMax hfakesEnd
                 hsecretsGt hsecretsStart hsecretsLenLoad hsecretsLenMax hsecretsEnd
             let evmSolm : EVM.State :=
-              initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+              initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
             have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
               simpa [evmSolm, initState] using hwv
             have hbiddingAbsent : callargs.get? biddingEndRef.base = none :=
@@ -143,7 +143,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                     · have h963 :=
                         blindAuctionRevealX_from887_afterTimeGuards
                           (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
-                          (s0 := initState cA gh bl σ_evm σ₀_evm
+                          (s0 := initState cA gh bl σ_evm σ₀
                             (Sat256.ofUInt256 g) A I)
                           rd887 hafter hbefore
                       rcases h963 with ⟨_, _, rd963⟩
@@ -190,7 +190,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                         · obtain ⟨_, _, rd1350⟩ :=
                             blindAuctionRevealX_from963_empty_callDepth
                               (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                              (σ₀ := σ₀_evm) (A := A) (I := I)
+                              (σ₀ := σ₀) (A := A) (I := I)
                               (g := Sat256.ofUInt256 g)
                                 hdepthEq
                                 (by
@@ -221,7 +221,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                 hcallS
                             simpa [hcallargsEmpty] using hbodyEmpty
                           have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-                              (initState cA gh bl σ_evm σ₀_evm
+                              (initState cA gh bl σ_evm σ₀
                                 (Sat256.ofUInt256 g) A I) :=
                             blindAuctionRevealX_postCallEmpty_failure_revert
                               (by simpa using rd1350)
@@ -236,7 +236,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                               hout255, rd1350⟩ :=
                             blindAuctionRevealX_from963_empty_callMade
                               (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                              (σ₀ := σ₀_evm) (A := A) (I := I)
+                              (σ₀ := σ₀) (A := A) (I := I)
                                 (g := Sat256.ofUInt256 g)
                                 hdepthLt
                                 (by
@@ -245,7 +245,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                 hbidsZero hbidsHash
                           rcases hTheta with ⟨g'', A', hThetaEq⟩
                           let evmECall : EVM.State :=
-                            { initState cA gh bl σ_evm σ₀_evm
+                            { initState cA gh bl σ_evm σ₀
                                 (Sat256.ofUInt256 g) A I with
                               accountMap := σ',
                               substate := A',
@@ -256,7 +256,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                             exact Nat.mod_eq_of_lt a.isLt
                           have hcallE :
                               callViaEVM
-                                (initState cA gh bl σ_evm σ₀_evm
+                                (initState cA gh bl σ_evm σ₀
                                   (Sat256.ofUInt256 g) A I)
                                 (EVM.address I.source) 0 ByteArray.empty
                                 (z, evmECall, out) := by
@@ -276,7 +276,6 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                           obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
                             callViaEVM_initState_accountMapEquiv
                               (storage := blindAuctionConfig.storage) hcallE hAccounts
-                              hOriginalAccounts
                           let evmSCall : EVM.State :=
                             { evmSolm with
                               accountMap := σ'_solm,
@@ -304,7 +303,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                   change out.size = 0
                                   exact hout0)
                               have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀_evm
+                                  (initState cA gh bl σ_evm σ₀
                                     (Sat256.ofUInt256 g) A I) :=
                                 blindAuctionRevealX_postCallEmpty_failure_revert
                                   (by simpa [houtEmpty] using rd1350)
@@ -314,7 +313,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                   (by simpa using rd1350) hout0
                                   (lt_size_of_lt_sign hout255)
                               have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀_evm
+                                  (initState cA gh bl σ_evm σ₀
                                     (Sat256.ofUInt256 g) A I) :=
                                 blindAuctionRevealX_postCallRequire_failure_revert
                                   (by simpa using rd1405)
@@ -345,7 +344,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                   change out.size = 0
                                   exact hout0)
                               have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀_evm
+                                  (initState cA gh bl σ_evm σ₀
                                     (Sat256.ofUInt256 g) A I)
                                   (cA', σ') ByteArray.empty :=
                                 blindAuctionRevealX_postCallEmpty_success_stop
@@ -362,7 +361,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                   (by simpa using rd1350) hout0
                                   (lt_size_of_lt_sign hout255)
                               have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀_evm
+                                  (initState cA gh bl σ_evm σ₀
                                     (Sat256.ofUInt256 g) A I)
                                   (cA', σ') ByteArray.empty :=
                                 blindAuctionRevealX_postCallRequire_success_stop
@@ -440,7 +439,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                   exact hrev.reEquivExecutionRevert hcode hd hdec hbody
               · have hrev := blindAuctionRevealX_from887_tooLate
                     (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
-                    (s0 := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                    (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                     rd887 hafter (Nat.le_of_not_gt hbefore)
                 have hafterBody :
                     (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
@@ -464,7 +463,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                 exact hrev.reEquivExecutionRevert hcode hd hdec hbody
             · have hrev := blindAuctionRevealX_from887_tooEarly
                   (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
-                  (s0 := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                  (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                   rd887 (Nat.le_of_not_gt hafter)
               have htimeBody :
                   (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat ≤
@@ -482,7 +481,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
           have hdecNone := blindAuctionDecode_reveal_none_huge_dynamic (I := I) hcalldataGe
           have hrev :=
             blindAuctionRevealDecode1806_hugeDynamic_reverts
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm)
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
               (A := A) (I := I) (g := Sat256.ofUInt256 g) rd1806 hcalldataGe hsize
           exact hrev.reEquivDecodingFailed hcode hd hdecNone
   · have hrev := blindAuctionX_reveal_nonpayable (g := Sat256.ofUInt256 g) hwv hreach

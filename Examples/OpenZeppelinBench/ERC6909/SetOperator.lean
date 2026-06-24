@@ -1484,17 +1484,17 @@ theorem erc6909X_setOperator {cA gh bl σ σ₀ A I} {g : Sat256}
       (by evm_ov) ]
 
 theorem erc6909SetOperatorBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 4))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨247⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨247⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc6909SetOperatorSelector_size hsel
   have hd := erc6909Dispatch_setOperator (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -1502,8 +1502,8 @@ theorem erc6909SetOperatorBodyCore
     · by_cases hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus
       · by_cases hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩
         · have hdec := erc6909Decode_setOperator_ok (I := I) hsz68 hbig hcanonSpender hbool
-          let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-          let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+          let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+          let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
           have hσ : EVMStateEquiv evmE evmS := by
             simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
               hAccounts
@@ -1551,7 +1551,7 @@ theorem erc6909SetOperatorBodyCore
                   rw [hslotEq]
                   exact hσ.storageLoad_codeOwner (setOperatorSlot evmS I)
                 unfold setOperatorPostState
-                exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
+                exact hσ.storageStore_codeOwner
                   (setOperatorSlot evmS I) (by rw [hloadEq])
               exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
                   hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)

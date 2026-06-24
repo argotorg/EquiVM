@@ -14,21 +14,21 @@ namespace OpenZeppelinBench.ERC6909
 
 set_option maxHeartbeats 20000000 in
 theorem erc6909TransferFromBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 7))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨388⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc6909TransferFromSelector_size hsel
   have hd := erc6909Dispatch_transferFrom (cd := I.calldata) hsel
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
       hAccounts
@@ -58,7 +58,7 @@ theorem erc6909TransferFromBodyCore
         (transferFromAfterAllowanceState evmS I) := by
     unfold transferFromAfterAllowanceState transferFromAllowanceSlot
     rw [hσ.executionEnv, hAllowanceDebit]
-    exact erc6909EVMStateEquivStorageStoreCodeOwner hσ
+    exact hσ.storageStore_codeOwner
       (allowanceSlot
         (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
         (.address evmS.executionEnv.source)
@@ -79,7 +79,7 @@ theorem erc6909TransferFromBodyCore
         (transferFromAfterSenderBalanceState evmS I) := by
     unfold transferFromAfterSenderBalanceState
     rw [hSenderDebit]
-    exact erc6909EVMStateEquivStorageStore hσAfterAllowance
+    exact hσAfterAllowance.storageStore
       (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromSenderBalanceSlot I) rfl
   have hReceiverBalance :
       transferFromReceiverBalanceWord evmE I = transferFromReceiverBalanceWord evmS I := by
@@ -96,7 +96,7 @@ theorem erc6909TransferFromBodyCore
       EVMStateEquiv (transferFromPostState evmE I) (transferFromPostState evmS I) := by
     unfold transferFromPostState
     rw [hReceiverCreditWord]
-    exact erc6909EVMStateEquivStorageStore hσAfterSenderBalance
+    exact hσAfterSenderBalance.storageStore
       (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I) rfl
   have hTailSenderBalance :
       transferFromSenderBalanceWord evmE I = transferFromSenderBalanceWord evmS I := by
@@ -111,7 +111,7 @@ theorem erc6909TransferFromBodyCore
         (transferFromTailAfterSenderBalanceState evmS I) := by
     unfold transferFromTailAfterSenderBalanceState
     rw [hTailSenderDebit]
-    exact erc6909EVMStateEquivStorageStore hσ (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+    exact hσ.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
       (transferFromSenderBalanceSlot I) rfl
   have hTailReceiverBalance :
       transferFromTailReceiverBalanceWord evmE I =
@@ -132,7 +132,7 @@ theorem erc6909TransferFromBodyCore
         (transferFromTailPostState evmS I) := by
     unfold transferFromTailPostState
     rw [hTailReceiverCreditWord]
-    exact erc6909EVMStateEquivStorageStore hσTailAfterSender
+    exact hσTailAfterSender.storageStore
       (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I) rfl
   by_cases hsz132 : 132 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
@@ -398,7 +398,7 @@ theorem erc6909TransferFromBodyCore
                     (transferFromAllowanceSlotI I) (transferFromAllowanceDebitWord evmE I)
                   have hAfterAllowanceInit :
                       transferFromAfterAllowanceState evmE I =
-                        initState cA gh bl σAllowance σ₀_evm (Sat256.ofUInt256 g) A I := by
+                        initState cA gh bl σAllowance σ₀ (Sat256.ofUInt256 g) A I := by
                     cases hfind : σ_evm.find? I.codeOwner <;>
                       simp [evmE, σAllowance, transferFromAfterAllowanceState,
                         transferFromAllowanceSlot, transferFromAllowanceSlotI, initState,
@@ -412,7 +412,7 @@ theorem erc6909TransferFromBodyCore
                   have hPostAsTail :
                       transferFromPostState evmE I =
                         transferFromTailPostState
-                          (initState cA gh bl σAllowance σ₀_evm
+                          (initState cA gh bl σAllowance σ₀
                             (Sat256.ofUInt256 g) A I) I := by
                     rw [← hAfterAllowanceInit]
                     simp [transferFromPostState, transferFromTailPostState,
@@ -428,13 +428,13 @@ theorem erc6909TransferFromBodyCore
                   obtain ⟨_, _, rd1193⟩ :=
                     erc6909TransferFromX_operatorFalse_afterAllowanceLoad
                       (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                      (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+                      (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I) hsz132 hsize hbig hcanonSender
                       hcanonReceiver hsenderCaller hopZero hreach
                   obtain ⟨_, _, rd661⟩ :=
                     erc6909TransferFromX_from1193_allowanceDebit_to661_base
                       (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                      (σ₀ := σ₀_evm) (A := A) (g := Sat256.ofUInt256 g)
+                      (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I)
                       (base := transferFromOperatorAllowanceScratchMem I)
                       hbase hperm hcanonSender hallowanceNotMax hallowanceEnough rd1193
@@ -446,7 +446,7 @@ theorem erc6909TransferFromBodyCore
                         (hsenderZeroAddr hsenderZero)
                     exact (erc6909TransferFromX_from661_revert_sender_zero_base
                         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                        (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                        (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                         (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                         (base := transferFromAllowanceScratchMem
                           (transferFromOperatorAllowanceScratchMem I) I)
@@ -463,7 +463,7 @@ theorem erc6909TransferFromBodyCore
                           (hsenderNZAddr hsenderZero) (hreceiverZeroAddr hreceiverZero)
                       exact (erc6909TransferFromX_from661_revert_receiver_zero_base
                           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                          (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                          (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                           (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                           (base := transferFromAllowanceScratchMem
                             (transferFromOperatorAllowanceScratchMem I) I)
@@ -474,7 +474,7 @@ theorem erc6909TransferFromBodyCore
                         |>.reEquivExecutionRevert hcode hd hdec hbody
                     · obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_from661_toUpdateHelper_base
                         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                        (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                        (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                         (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                         (base := transferFromAllowanceScratchMem
                           (transferFromOperatorAllowanceScratchMem I) I)
@@ -508,7 +508,7 @@ theorem erc6909TransferFromBodyCore
                             hbalanceEnoughS hfitS
                           exact (erc6909TransferFromX_from1323_successCaller_base
                               (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                              (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                              (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                               (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                               (base := transferFromAllowanceScratchMem
                                 (transferFromOperatorAllowanceScratchMem I) I)
@@ -559,7 +559,7 @@ theorem erc6909TransferFromBodyCore
                               hbalanceEnoughS hoverS
                           exact (erc6909TransferFromX_from1323_overflow_base
                               (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                              (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                              (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                               (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                               (base := transferFromAllowanceScratchMem
                                 (transferFromOperatorAllowanceScratchMem I) I)
@@ -597,7 +597,7 @@ theorem erc6909TransferFromBodyCore
                             hltS
                         exact (erc6909TransferFromX_from1323_insufficient_base
                             (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                            (σ₀ := σ₀_evm) (σcur := σAllowance) (A := A)
+                            (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                             (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                             (base := transferFromAllowanceScratchMem
                               (transferFromOperatorAllowanceScratchMem I) I)

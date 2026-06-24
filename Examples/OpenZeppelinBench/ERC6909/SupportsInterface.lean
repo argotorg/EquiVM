@@ -586,17 +586,17 @@ theorem erc6909SupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat256}
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem erc6909SupportsInterfaceBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 1))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨174⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hselSupports : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ := by
     simpa [erc6909SelBytes] using hsel
@@ -620,14 +620,14 @@ theorem erc6909SupportsInterfaceBodyCore
             (I := I) hsz36 hbig hpadSome
           have hbody :
               ExecTransitionBody config contract
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (supportsInterfaceStore I)
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
-                  (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                   (some (.bool (supportsInterfaceResult I)))) := by
             exact erc6909SupportsInterfaceBodyReturns
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
           exact (erc6909X_supportsInterface (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hpadSome hreach)
