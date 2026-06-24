@@ -1,5 +1,6 @@
 import Reasoning.Stepping
 import Reasoning.Memory
+import Ethereum.Theory.ReturnDataBound
 
 /-!
 # Reach — a reusable symbolic straight-line execution abstraction
@@ -1199,17 +1200,18 @@ theorem Theta_returnedGas_le
     (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.1.toNat ≤ g.toNat := by
   exact Ethereum.EVM.Theta_gas_le
 
-/-- **Trusted base — `Θ` return-data is address-bounded.**  A message call's return data is a slice
-    `memory[off .. off+len]` with `off, len : UInt256`, so its size is below `2²⁵⁶`; the tighter
-    `< 2²⁵⁵` bound (still astronomically large — a return buffer can never approach `2²⁵⁵` bytes)
-    is what the solc return-decoder's `ADD`/signed-`SLT` length check needs to behave as plain
-    unsigned arithmetic.  Physically always true; analogue of the per-call `calldata.size < 2²⁵⁵`. -/
-axiom Theta_returnData_size_lt
+/-- `Θ` return data is word-size-bounded when the calldata supplied to `Θ` is word-size-bounded.
+    The only remaining trusted base is evmlean's opaque-precompile case; interpreted bytecode is
+    proved in `Ethereum.Theory.ReturnDataBound`. -/
+theorem Theta_returnData_size_lt
     (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
-    (e : Fin 1025) (H : BlockHeader) (w : Bool) :
-    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size < 2 ^ 255
+    (e : Fin 1025) (H : BlockHeader) (w : Bool) (hd : d.size < UInt256.size) :
+    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size <
+      UInt256.size :=
+  Ethereum.EVM.theta_projection_output_size_lt_uint256 blob cA gh blocks σ σ₀ A s o r c d
+    g p v v' e H w hd
 
 /-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters, like `RD.loop`): from a
     cursor at the `SSTORE` pc with `[slot, val, …t]` and carried accounts `(cA, σ)`, write `val` to
@@ -1739,11 +1741,16 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
-          o (cA', σ') k' C' := by
+          o (cA', σ') k' C'
+      ∧ o.size < UInt256.size := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · -- OOG: default witnesses; the Θ-link is tuple-eta (rfl), the RD part is OOG.
-    exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, (by unfold RD; exact Or.inl hoog)⟩
+    exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+      (by unfold RD; exact Or.inl hoog),
+      (by
+        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
   · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
     have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
@@ -1768,7 +1775,11 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     -- hXP : X (g+1) s0 = if (gas < memCost+gasCost) then OOG else X (g-k) SUCC
     split at hXP
     · -- OOG: the whole run is out of gas (RD absorbs it); Θ-link via default witnesses.
-      exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, by unfold RD; exact Or.inl hXP⟩
+      exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+        (by unfold RD; exact Or.inl hXP),
+        (by
+          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
     · -- success: SUCC is concrete in hXP.  Emit `Or.inr ⟨SUCC, …⟩` with field projections,
       -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
       rename_i hP
@@ -1852,7 +1863,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       -- assemble the conclusion
       refine ⟨θs.1, θs.2.1, θs.2.2.2.2.1, θs.2.2.2.2.2,
         (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
-        C + callCharge, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_⟩
+        C + callCharge, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_, ?_⟩
       · -- Θ-link: rewrite cursor fields to the world/ee/acc form, then tuple-eta
         rw [← hee, ← hcA, ← hσ, ← hmem, ← hw1, ← hw2, ← hw3, ← hθs]
       · -- RD on the successor `SUCC` (inferred from `hXP`'s `X` equation)
@@ -1873,6 +1884,17 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         · rfl
         · exact hee
         · exact hworld
+      · rw [hθs]
+        exact Ethereum.EVM.theta_projection_output_size_lt_uint256
+          s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
+          s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
+          s.executionEnv.sender (AccountAddress.ofUInt256 target)
+          (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
+          cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
+          (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
 
 set_option maxHeartbeats 1000000 in
 /-- **CALL** (arbitrary value, call-made branch) as an `RD → RD` combinator.
@@ -1906,10 +1928,15 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
           (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
             outOffset.toNat outSize.toNat))
-          o (cA', σ') k' C' := by
+          o (cA', σ') k' C'
+      ∧ o.size < UInt256.size := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, (by unfold RD; exact Or.inl hoog)⟩
+  · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+      (by unfold RD; exact Or.inl hoog),
+      (by
+        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hperm' : s.executionEnv.perm = true := by rw [hee]; exact hperm
@@ -1956,7 +1983,11 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     split at hXP
-    · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, by unfold RD; exact Or.inl hXP⟩
+    · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+        (by unfold RD; exact Or.inl hXP),
+        (by
+          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.CALL with hmc
       set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
@@ -2026,7 +2057,7 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       refine ⟨θs.1, θs.2.1, θs.2.2.2.2.1, θs.2.2.2.2.2,
         (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
-        C + callCharge, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_⟩
+        C + callCharge, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_, ?_⟩
       · rw [← hee, ← hcA, ← hσ, ← hmem, ← hw1, ← hw2, ← hw3, ← hθs]
       · unfold RD
         refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -2044,6 +2075,17 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
         · rfl
         · exact hee
         · exact hworld
+      · rw [hθs]
+        exact Ethereum.EVM.theta_projection_output_size_lt_uint256
+          s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
+          s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
+          s.executionEnv.sender (AccountAddress.ofUInt256 target)
+          (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
+          cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
+          (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
 
 set_option maxHeartbeats 1000000 in
 /-- **`CALL` at the call-depth limit**, with an arbitrary transferred `value`.
@@ -2384,6 +2426,51 @@ private theorem RD.terminalOOG {code : ByteArray} {g : Sat256} {s0 s : State} {k
   have hstepE : Xstep (D_J code 0) s = .error .OutOfGass := by rw [hstep, if_pos hgg]
   have hfuel : g.toNat + 1 - k = (g.toNat + 1 - (k + 1)) + 1 := by omega
   rw [hfuel]; exact Ethereum.EVM.Xstep_X_X_except _ s _ _ hstepE
+
+/-- `RETURNDATACOPY` terminal OOG: if the memory-expansion component alone is larger than the
+    whole transaction gas, the reached cursor makes the entire run out of gas. -/
+theorem RD.returndatacopyOOG_error {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.RETURNDATACOPY, .none))
+    (hguard : b.toNat + c.toNat ≤ rdata.size)
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
+        memoryExpansionCost s .RETURNDATACOPY = mcost)
+    (hOOG : g.toNat < mcost)
+    (hov : t.length ≤ 1024) :
+    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, hrdata, _hacc, _hee, _hworld⟩
+  · exact hoog
+  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := hmc s haw hstk
+    have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
+      rw [hrdata]
+      omega
+    have st := returndatacopy_xstep hcode hpc hdec hstk hmemok hov
+    rw [hmcS] at st
+    rw [collapse_two_stage] at st
+    exact hX.trans (stepOOG hgas st hk hC (by
+      have hcopy_nonneg :
+          0 ≤ GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32) :=
+        Nat.zero_le _
+      omega))
+
+/-- `RETURNDATACOPY` terminal OOG, packaged as an `RDrev` for older call sites. -/
+theorem RD.returndatacopyOOG {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c : UInt256} {t : List UInt256} (mcost : ℕ)
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.RETURNDATACOPY, .none))
+    (hguard : b.toNat + c.toNat ≤ rdata.size)
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
+        memoryExpansionCost s .RETURNDATACOPY = mcost)
+    (hOOG : g.toNat < mcost)
+    (hov : t.length ≤ 1024) :
+    RDrev code g s0 :=
+  Or.inl (RD.returndatacopyOOG_error mcost h hdec hguard hmc hOOG hov)
 
 private theorem Xi_error_of_X_sat
     {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {e} {g : Sat256}

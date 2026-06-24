@@ -109,6 +109,32 @@ theorem usub_uadd_lit_cancel {base n : ℕ}
       UInt256.toNat_sub_ofNat_of_le (by rw [haddn]; omega), haddn, ulit_toNat' n hn]
   omega
 
+/-- `(base + n) - base = n` in word arithmetic, allowing the addition to wrap. -/
+theorem usub_uadd_lit_cancel_mod {base n : ℕ}
+    (hbase : base < UInt256.size) (hn : n < UInt256.size) :
+    UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)) (UInt256.ofNat base)
+      = UInt256.ofNat n := by
+  apply u256_inj
+  by_cases hadd : base + n < UInt256.size
+  · exact congrArg UInt256.toNat (usub_uadd_lit_cancel hbase hn hadd)
+  · have hsum_ge : UInt256.size ≤ base + n := by omega
+    have hsum_lt2 : base + n < 2 * UInt256.size := by omega
+    have hmod : (base + n) % UInt256.size = base + n - UInt256.size := by
+      rw [Nat.mod_eq_sub_mod hsum_ge]
+      exact Nat.mod_eq_of_lt (by omega)
+    have haddn :
+        (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)).toNat =
+          base + n - UInt256.size := by
+      rw [show UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)
+            = UInt256.ofNat base + UInt256.ofNat n from rfl,
+          uadd_toNat, ulit_toNat' base hbase, ulit_toNat' n hn, hmod]
+    change (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n))
+        (UInt256.ofNat base)).toNat = (UInt256.ofNat n).toNat
+    rw [usub_toNat_underflow (a := UInt256.add (UInt256.ofNat base) (UInt256.ofNat n))
+        (b := UInt256.ofNat base) (by rw [haddn, ulit_toNat' base hbase]; omega),
+        haddn, ulit_toNat' base hbase, ulit_toNat' n hn]
+    omega
+
 /-! ## Unsigned comparisons and small arithmetic helpers -/
 
 /-- `LT` returns `1` when the strict order holds. -/

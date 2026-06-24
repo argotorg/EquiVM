@@ -1834,7 +1834,7 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
           (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ o.size < 2 ^ 255
+      ∧ o.size < UInt256.size
       ∧ RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), ⟨128⟩, ⟨0⟩, revealScratchSenderWord I,
             ⟨0⟩, ⟨0⟩, ⟨0⟩, revealScratchRevealEndWord σ I,
@@ -1844,7 +1844,7 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
   obtain ⟨gasArg, _, _, rd1349⟩ :=
     blindAuctionRevealX_from963_empty_toCall (cA := cA) (σ := σ) (I := I) (g := g)
       (s0 := initState cA gh bl σ σ₀ g A I) rd hbidsZero hbidsHash
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀⟩ :=
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀, hosz⟩ :=
     rd1349.call (by decide) hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
@@ -1868,27 +1868,13 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
     refine ⟨g'', A', ?_⟩
     rw [hcd] at hΘeq
     exact hΘeq
-  have ho255 : o.size < 2 ^ 255 := by
-    rcases hΘ' with ⟨g'', A', hΘeq⟩
-    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        σ (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hΘeq
-    rw [ho]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   have haw : UInt256.ofNat
       (MachineState.M (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
   rw [hmin, revealScratch_write_len_zero, haw] at rd1350₀
-  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', hosz,
     by simpa [revealScratchSenderWord] using rd1350₀⟩
 
 set_option maxHeartbeats 1000000 in

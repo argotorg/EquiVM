@@ -820,7 +820,7 @@ theorem blindAuctionX_withdraw_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
           callGas (UInt256.ofNat I.gasPrice)
           (withdrawAmountWord σ I) (withdrawAmountWord σ I)
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ o.size < 2 ^ 255
+      ∧ o.size < UInt256.size
       ∧ RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨767⟩
           [(if z then ⟨1⟩ else ⟨0⟩), ⟨128⟩,
             withdrawAmountWord σ I, withdrawSourceWord I, ⟨0⟩,
@@ -829,7 +829,7 @@ theorem blindAuctionX_withdraw_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_withdraw_toCall (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach hpos
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd767₀⟩ :=
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd767₀, hosz⟩ :=
     rd766.callValueMade (by decide) hperm hbalance hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
@@ -854,28 +854,13 @@ theorem blindAuctionX_withdraw_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
     refine ⟨g'', A', ?_⟩
     rw [hcd] at hΘeq
     exact hΘeq
-  have ho255 : o.size < 2 ^ 255 := by
-    rcases hΘ' with ⟨g'', A', hΘeq⟩
-    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        (withdrawZeroMap σ I) (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (withdrawSourceWord I))
-        (toExecute (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSourceWord I)))
-        callGas (UInt256.ofNat I.gasPrice)
-        (withdrawAmountWord σ I) (withdrawAmountWord σ I)
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hΘeq
-    rw [ho]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   have haw : UInt256.ofNat
       (MachineState.M (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
   rw [hmin, SimpleAuction.withdraw_write_len_zero, haw] at rd767₀
-  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', hosz,
     by simpa [initState] using rd767₀⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1231,7 +1216,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
           omega
         by_cases hbalance : withdrawAmountWord σ_evm I ≤
             (withdrawZeroMap σ_evm I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))
-        · obtain ⟨cA', σ', z, out, A_in, callGas, kCall, CCall, hTheta, hout255, rd767⟩ :=
+        · obtain ⟨cA', σ', z, out, A_in, callGas, kCall, CCall, hTheta, houtsz, rd767⟩ :=
             blindAuctionX_withdraw_callMade (g := Sat256.ofUInt256 g) hperm hwv hreach
               hzero hbalance hdepthLt
           obtain ⟨g'', A', hThetaEq⟩ := hTheta
@@ -1310,8 +1295,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
                 (by simpa [evmS, initState] using hwv) hamountS hposS
                 (by simpa [evmSZero] using hcallS)
             exact (blindAuctionX_withdraw_afterCall_revert
-                (g := Sat256.ofUInt256 g) (by simpa using rd767)
-                (lt_size_of_lt_sign hout255))
+                (g := Sat256.ofUInt256 g) (by simpa using rd767) houtsz)
               |>.reEquivExecutionRevert hcode hd hdec hbody
           · have hbody :
                 ExecTransitionBody blindAuctionConfig blindAuctionContract evmS ∅
@@ -1328,7 +1312,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                 (cA', σ') ByteArray.empty :=
               blindAuctionX_withdraw_afterCall_return (g := Sat256.ofUInt256 g)
-                (by simpa using rd767) (lt_size_of_lt_sign hout255)
+                (by simpa using rd767) houtsz
             exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
               (by simp [evmSCall, evmECall])
               (by simpa [evmSCall, evmECall] using hPostAccounts)

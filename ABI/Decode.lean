@@ -228,3 +228,20 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
       | name :: names, value :: values =>
           insertValues names values (store.insert name value)
       | _, _ => none
+
+def decodeReturnValues? (types : List ABIType) (returndata : ByteArray) :
+    Option (List Solm.Value) :=
+  let bytes := returndata.toList
+  -- solc's return decoder uses the same signed-size guard as calldata tuple decoders.  A nonempty
+  -- return tuple whose length word has the sign bit set follows the generated revert path.
+  if types.isEmpty = false ∧ (2 : Nat) ^ 255 ≤ bytes.length then
+    none
+  else do
+    let headSize <- abiTupleHeadSize? types
+    let (values, _endOffset) <- decodeABIValues? types bytes 0 0 headSize headSize
+    some values
+
+def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option Solm.Value := do
+  match decodeReturnValues? [ty] returndata with
+  | some [value] => some value
+  | _ => none
