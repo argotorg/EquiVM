@@ -4,12 +4,10 @@ import Reasoning.Stepping
 /-!
 # Memory — reusable EVM memory / `ByteArray` lemmas
 
-The EVM `MSTORE`/`MLOAD`/`RETURN` and the `UInt256.toByteArray` word encoding are *computable*
-`ByteArray` operations — **not** opaque like `D_J`/keccak.  The single genuine opacity is the
-*content* of `ffi.ByteArray.zeroes` (the `memset_zero` extern): evmlean axiomatizes only its
-**size** (`ByteArray_zeroes_size`), not that the bytes are `0`.  We admit that one extern-spec
-fact (`byteArray_zeroes_toList`) and **prove everything else** as generic, contract-agnostic
-lemmas: the big-endian byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
+The EVM `MSTORE`/`MLOAD`/`RETURN`, `ffi.ByteArray.zeroes`, and the `UInt256.toByteArray` word
+encoding are computable `ByteArray` operations, unlike genuinely opaque bytecode facts such as
+`D_J`/keccak.  This module proves the generic, contract-agnostic memory lemmas: the big-endian
+byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
 `MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
 encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
 -/
@@ -20,11 +18,10 @@ set_option maxRecDepth 8000
 
 namespace Reasoning.Theory
 
-/-- **Trusted (extern spec).** `ffi.ByteArray.zeroes` (`@[extern "memset_zero"]`) yields zero
-    bytes.  Companion to evmlean's admitted `ByteArray_zeroes_size`; the only `ffi.zeroes` fact
-    not already derivable from the base.  Everything below is proved from it. -/
-axiom byteArray_zeroes_toList (n : USize) :
-    (ffi.ByteArray.zeroes n).data.toList = List.replicate n.toNat 0
+/-- `ffi.ByteArray.zeroes` yields zero bytes. -/
+theorem byteArray_zeroes_toList (n : USize) :
+    (ffi.ByteArray.zeroes n).data.toList = List.replicate n.toNat 0 := by
+  simp [ffi.ByteArray.zeroes]
 
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 

@@ -302,7 +302,7 @@ Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the ini
 `MLOAD 0x40` needs — contract-agnostic. -/
 
 /-- Memory after solc stores the free pointer `0x80` at `0x40`. -/
-noncomputable def solcFreePtrMem : ByteArray :=
+def solcFreePtrMem : ByteArray :=
   (UInt256.toByteArray ⟨128⟩).write 0 ByteArray.empty 64 32
 
 theorem solcFreePtrMem_eq :
@@ -348,7 +348,7 @@ theorem solcFreePtrMem_pad_size :
 
 /-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
     the shape every solc ABI-encoder's epilogue produces (its `RETURN`s `mem[0x80 .. 0xa0] = val`). -/
-noncomputable def solcReturnMem (val : UInt256) : ByteArray :=
+def solcReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
 
 theorem solcReturnMem_eq (val : UInt256) :

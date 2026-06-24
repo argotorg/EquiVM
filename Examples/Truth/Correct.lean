@@ -14,8 +14,8 @@ import Reasoning.Reach
 
 Every call (`callvalue ≠ 0`, short calldata, wrong selector, and the `truth()` success path)
 is shown equivalent to the Solm spec, via the generic `Reasoning` library.  `#print axioms
-truthCorrect` lists only Lean's three, the evmlean base axioms, and the two documented trusted
-selector/jump axioms (`Examples/Truth/Bytecode.lean`) — no `sorryAx`.
+truthCorrect` lists only Lean's three and the two documented trusted selector/jump axioms
+(`Examples/Truth/Bytecode.lean`) — no `sorryAx`.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
