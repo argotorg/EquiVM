@@ -315,21 +315,12 @@ theorem supportsInterfaceModZero_of_land_eq (w : UInt256)
   omega
 
 theorem accessControlUInt256_eq_one_eq {a b : UInt256}
-    (h : UInt256.eq a b = ⟨1⟩) : a = b := by
-  by_contra hne
-  simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
-    Bool.false_eq_true, ↓reduceIte] at h
-  exact absurd h (by decide)
+    (h : UInt256.eq a b = ⟨1⟩) : a = b :=
+  Reasoning.Theory.uInt256_eq_one_eq h
 
 theorem accessControlUInt256_eq_comm (a b : UInt256) :
-    UInt256.eq a b = UInt256.eq b a := by
-  by_cases h : a = b
-  · subst b
-    rfl
-  · have hba : b ≠ a := by
-      intro hb
-      exact h hb.symm
-    simp [UInt256.eq, UInt256.fromBool, h, hba]
+    UInt256.eq a b = UInt256.eq b a :=
+  Reasoning.Theory.uInt256_eq_comm a b
 
 theorem supportsInterfaceEqZero_of_padding_none {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -902,18 +893,18 @@ theorem accessControlSupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat2
       simpa [supportsInterfaceMask, hclean]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨126⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨126⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := supportsInterfaceSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_supportsInterface (cd := I.calldata) (by
@@ -935,14 +926,14 @@ theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ₀_evm σ_solm σ
             (I := I) hsz36 hbig hpadSome
           have hbody :
               ExecTransitionBody config contract
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (supportsInterfaceStore I)
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
-                  (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                   (some (.bool (supportsInterfaceResult I)))) := by
             exact accessControlSupportsInterfaceBodyReturns
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
           exact (accessControlX_supportsInterface (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hpadSome hreach)

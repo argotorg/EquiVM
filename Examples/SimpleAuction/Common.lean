@@ -89,63 +89,28 @@ theorem simpleAuctionByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true)
 
 -- LIBRARY CANDIDATE: `Reasoning.Memory`.
 theorem simpleAuctionFromBytes'_eq_ofDigits (bs : List UInt8) :
-    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) := by
-  induction bs with
-  | nil => rfl
-  | cons b bs ih => simp [fromBytes', Nat.ofDigits, ih]
+    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) :=
+  Reasoning.Theory.fromBytes'_eq_ofDigits bs
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
 theorem simpleAuctionNat_land_mask_eq_mod (n k : Nat) :
-    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
-  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  by_cases hi : i < k
-  · rw [decide_eq_true hi]
-    simp
-  · rw [decide_eq_false hi]
-    simp
+    Nat.land n (2 ^ k - 1) = n % 2 ^ k :=
+  Reasoning.Theory.nat_land_mask_eq_mod n k
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem simpleAuctionNat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
+theorem simpleAuctionNat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a :=
+  Reasoning.Theory.nat_land_comm a b
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem simpleAuctionU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show Nat.land a.toNat b.toNat % UInt256.size =
-    Nat.land b.toNat a.toNat % UInt256.size
-  rw [simpleAuctionNat_land_comm]
+theorem simpleAuctionU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a :=
+  Reasoning.Theory.u256_land_comm a b
 
 -- LIBRARY CANDIDATE: `Reasoning.Memory`.
 theorem simpleAuctionFromBytes'_take20_wordLE (w : UInt256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =
       (UInt256.land w solcAddrMask).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← simpleAuctionFromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 20 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [simpleAuctionFromBytes'_eq_ofDigits (bs.take 20), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 20 = (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size
-  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [simpleAuctionNat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 160 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160))
-      (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  simpa [solcAddrMask] using
+    Reasoning.Theory.fromBytes'_take_wordLE_land_mask w 20 (by decide)
 
 theorem simpleAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (simpleAuctionAddrLoc slot) =

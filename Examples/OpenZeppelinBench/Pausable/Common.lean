@@ -48,21 +48,15 @@ theorem pausableByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a 
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`; reused across Ballot/SimpleAuction/BlindAuction/OZ.
 theorem pausableU256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a :=
-  SimpleAuction.simpleAuctionU256_land_comm a b
+  Reasoning.Theory.u256_land_comm a b
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem pausableNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
+theorem pausableNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a :=
+  Reasoning.Theory.nat_lor_comm a b
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem pausableU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [pausableNat_lor_comm]
+theorem pausableU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a :=
+  Reasoning.Theory.u256_lor_comm a b
 
 /-! ### Shared source-level storage and ABI helpers -/
 
@@ -390,10 +384,10 @@ theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run h85rd with [
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem pausableNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem pausableNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (pausableX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -408,24 +402,24 @@ theorem pausableNonPayable {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (pausableBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem pausableShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem pausableShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (pausableX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (pausableDispatch_none_short hsz)
 
-theorem pausableNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem pausableNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (pausableX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (pausableDispatch_none_nomatch hnm)

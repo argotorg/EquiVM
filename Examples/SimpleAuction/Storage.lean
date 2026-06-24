@@ -52,50 +52,21 @@ theorem simpleAuctionSourceWord_canonical (I : ExecutionEnv) :
   simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hsrc
 
 theorem simpleAuctionU256_lor_toNat (a b : UInt256) :
-    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size := rfl
+    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size :=
+  Reasoning.Theory.u256_lor_toNat a b
 
 theorem simpleAuctionU256_land_toNat (a b : UInt256) :
-    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
+    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size :=
+  Reasoning.Theory.u256_land_toNat a b
 
 theorem simpleAuctionFromBytes'_drop_wordLE (w : UInt256) (n : Nat) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop n) = w.toNat / 256 ^ n := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← simpleAuctionFromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) n (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [simpleAuctionFromBytes'_eq_ofDigits (bs.drop n), List.map_drop]
-  rw [← hdrop, hfull]
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop n) = w.toNat / 256 ^ n :=
+  Reasoning.Theory.fromBytes'_drop_wordLE w n
 
 theorem simpleAuctionFromBytes'_take1_wordLE (w : UInt256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 1) =
       (UInt256.land w ⟨255⟩).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← simpleAuctionFromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [simpleAuctionFromBytes'_eq_ofDigits (bs.take 1), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 1 = (Nat.land w.toNat (⟨255⟩ : UInt256).toNat) % UInt256.size
-  rw [show 256 ^ 1 = 2 ^ 8 by norm_num]
-  rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
-  rw [simpleAuctionNat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 8 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  simpa using Reasoning.Theory.fromBytes'_take_wordLE_land_mask w 1 (by decide)
 
 theorem simpleAuctionStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (simpleAuctionBoolLoc slot)
@@ -133,20 +104,7 @@ theorem simpleAuctionStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : 
 
 theorem simpleAuctionFromBytes'_drop1_wordLE (w : UInt256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop 1) = w.toNat / 256 := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← simpleAuctionFromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [simpleAuctionFromBytes'_eq_ofDigits (bs.drop 1), List.map_drop]
-  rw [← hdrop, hfull]
-  norm_num
+  simpa using Reasoning.Theory.fromBytes'_drop_wordLE w 1
 
 theorem simpleAuctionTestBit_shiftLeft (m k i : Nat) :
     (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by

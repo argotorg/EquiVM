@@ -266,6 +266,102 @@ theorem storage_find?_erase_ne (storage : Storage) (readSlot writeSlot : UInt256
     (storage.erase writeSlot).find? readSlot = storage.find? readSlot :=
   rbmap_find?_erase_ne storage readSlot writeSlot hne
 
+private theorem rbnode_not_memP_del {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut] :
+    ∀ {t : Batteries.RBNode α}, Batteries.RBNode.Ordered cmp t →
+      ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.del cut t)
+  | .nil, _, h => by cases h
+  | .node _ a y b, ht, h => by
+      unfold Batteries.RBNode.del at h
+      rcases ht with ⟨ay, yb, ha, hb⟩
+      cases hcut : cut y with
+      | lt =>
+          cases hblack : Batteries.RBNode.isBlack a <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hdel | hbmem
+            · exact nomatch heq.symm.trans hcut
+            · exact rbnode_not_memP_del ha (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.lt_trans
+                  (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases rbnode_mem_of_mem_balLeft hx with hdel | hrest
+            · exact rbnode_not_memP_del ha (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · rcases hrest with rfl | hbmem
+              · exact nomatch heq.symm.trans hcut
+              · exact nomatch heq.symm.trans
+                  (Batteries.RBNode.IsCut.lt_trans
+                    (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+      | eq =>
+          simp [hcut] at h
+          rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+          rcases rbnode_mem_of_mem_append hx with hamem | hbmem
+          · have hcmp : cmp y x = .gt :=
+              Std.OrientedCmp.gt_iff_lt.2 (Batteries.RBNode.All_def.1 ay _ hamem).1
+            have hcutx : cut x = .gt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+          · have hcmp : cmp y x = .lt := (Batteries.RBNode.All_def.1 yb _ hbmem).1
+            have hcutx : cut x = .lt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+      | gt =>
+          cases hblack : Batteries.RBNode.isBlack b <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hamem | hdel
+            · exact nomatch heq.symm.trans hcut
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · exact rbnode_not_memP_del hb (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases rbnode_mem_of_mem_balRight hx with hamem | hrest
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · rcases hrest with rfl | hdel
+              · exact nomatch heq.symm.trans hcut
+              · exact rbnode_not_memP_del hb
+                  (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+
+private theorem rbnode_not_memP_erase {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut]
+    {t : Batteries.RBNode α} (ht : Batteries.RBNode.Ordered cmp t) :
+    ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.erase cut t) := by
+  intro h
+  rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+  have hxdel : x ∈ Batteries.RBNode.del cut t := by
+    rw [← Batteries.RBNode.mem_toList] at hx ⊢
+    unfold Batteries.RBNode.erase at hx
+    simpa using hx
+  exact rbnode_not_memP_del ht (Batteries.RBNode.memP_def.2 ⟨x, hxdel, heq⟩)
+
+private theorem rbmap_find?_erase_self {α : Type u} {β : Type v}
+    {cmp : α → α → Ordering} [Std.TransCmp cmp]
+    (m : Batteries.RBMap α β cmp) (write : α) :
+    (m.erase write).find? write = none := by
+  cases hfind : (m.erase write).find? write with
+  | none => rfl
+  | some v =>
+      have hsome : ∃ y, (y, v) ∈ (m.erase write).toList ∧ cmp write y = .eq :=
+        (Batteries.RBMap.find?_some).1 hfind
+      rcases hsome with ⟨y, hymem, hcmp⟩
+      have hmemNode : (y, v) ∈ (m.erase write).1 := Batteries.RBMap.mem_toList.1 hymem
+      have hno := rbnode_not_memP_erase
+        (cmp := Ordering.byKey Prod.fst cmp)
+        (cut := Ordering.byKey Prod.fst cmp (write, v))
+        (t := m.1) m.2.out.1
+      cases hno (Batteries.RBNode.memP_def.2 ⟨(y, v), hmemNode, hcmp⟩)
+
+/-- Erasing a storage slot removes lookup at that same slot. -/
+theorem storage_find?_erase_self (storage : Storage) (slot : UInt256) :
+    (storage.erase slot).find? slot = none :=
+  rbmap_find?_erase_self storage slot
+
 /-- Updating a storage slot with EVM/Solidity semantics preserves `find?` at a different slot.
     Nonzero writes insert; zero writes erase. -/
 theorem storage_find?_update_ne (storage : Storage) (readSlot writeSlot val : UInt256)
@@ -430,6 +526,20 @@ theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
   specialize hστ addr
   cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
   exact accountEquiv_storage_findD slot default hστ
+
+/-- Erasing the same persistent storage slot from equivalent accounts preserves equivalence. -/
+theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
+    (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
+    accountEquiv {acc₁ with storage := acc₁.storage.erase slot}
+      {acc₂ with storage := acc₂.storage.erase slot} := by
+  rcases hacc with ⟨hnonce, hbalance, hcode, hstorage, htstorage⟩
+  refine ⟨hnonce, hbalance, hcode, ?_, htstorage⟩
+  intro readSlot
+  by_cases hread : readSlot = slot
+  · subst readSlot
+    rw [storage_find?_erase_self, storage_find?_erase_self]
+  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
+      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
 
 theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
     (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)

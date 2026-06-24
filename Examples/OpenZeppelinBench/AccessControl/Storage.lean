@@ -15,10 +15,8 @@ Helpers for the `_roles` nested mapping layout and full-slot/low-byte storage lo
 
 -- LIBRARY CANDIDATE: `Reasoning.Memory`.
 theorem fromBytes'_eq_ofDigits (bs : List UInt8) :
-    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) := by
-  induction bs with
-  | nil => rfl
-  | cons b bs ih => simp [fromBytes', Nat.ofDigits, ih]
+    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) :=
+  Reasoning.Theory.fromBytes'_eq_ofDigits bs
 
 theorem accessControlWordOfInt_ofNat_toNat (a : UInt256) :
     EVM.wordOfInt (Int.ofNat a.toNat) = a := by
@@ -43,16 +41,8 @@ theorem accessControlKeyValueToWord_fixedBytes32 (w : UInt256) :
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
 theorem accessControlNat_land_mask_eq_mod (n k : Nat) :
-    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
-  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  by_cases hi : i < k
-  · rw [decide_eq_true hi]
-    simp
-  · rw [decide_eq_false hi]
-    simp
+    Nat.land n (2 ^ k - 1) = n % 2 ^ k :=
+  Reasoning.Theory.nat_land_mask_eq_mod n k
 
 theorem accessControlStorageLocLoad_bytes32_raw (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm
@@ -88,26 +78,7 @@ theorem accessControlStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
 theorem accessControlFromBytes'_take1_wordLE (w : UInt256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 1) =
       (UInt256.land w ⟨255⟩).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits (bs.take 1), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 1 = (Nat.land w.toNat (⟨255⟩ : UInt256).toNat) % UInt256.size
-  rw [show 256 ^ 1 = 2 ^ 8 by norm_num]
-  rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
-  rw [accessControlNat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 8 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  simpa using Reasoning.Theory.fromBytes'_take_wordLE_land_mask w 1 (by decide)
 
 theorem accessControlStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (boolLoc slot)
@@ -295,15 +266,8 @@ theorem accessControlStorage_find?_erase_self (storage : Storage) (slot : UInt25
 theorem accessControlAccountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
     (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
     accountEquiv { acc₁ with storage := acc₁.storage.erase slot }
-      { acc₂ with storage := acc₂.storage.erase slot } := by
-  rcases hacc with ⟨hnonce, hbalance, hcode, htstor, hstorage⟩
-  refine ⟨hnonce, hbalance, hcode, htstor, ?_⟩
-  intro readSlot
-  by_cases hread : readSlot = slot
-  · subst readSlot
-    rw [accessControlStorage_find?_erase_self, accessControlStorage_find?_erase_self]
-  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
-      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
+      { acc₂ with storage := acc₂.storage.erase slot } :=
+  Reasoning.Theory.accountEquiv_erase_storage_of_equiv slot hacc
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 theorem accessControlAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}

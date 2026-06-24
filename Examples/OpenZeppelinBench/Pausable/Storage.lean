@@ -288,15 +288,8 @@ theorem pausableStorage_find?_erase_self (storage : Storage) (slot : UInt256) :
 theorem pausableAccountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
     (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
     accountEquiv { acc₁ with storage := acc₁.storage.erase slot }
-      { acc₂ with storage := acc₂.storage.erase slot } := by
-  rcases hacc with ⟨hnonce, hbalance, hcode, htstor, hstorage⟩
-  refine ⟨hnonce, hbalance, hcode, htstor, ?_⟩
-  intro readSlot
-  by_cases hread : readSlot = slot
-  · subst readSlot
-    rw [pausableStorage_find?_erase_self, pausableStorage_find?_erase_self]
-  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
-      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
+      { acc₂ with storage := acc₂.storage.erase slot } :=
+  Reasoning.Theory.accountEquiv_erase_storage_of_equiv slot hacc
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 theorem pausableAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}

@@ -1,5 +1,7 @@
 import Reasoning.EVMWord
 import Reasoning.Stepping
+import Mathlib.Data.Nat.Digits.Defs
+import Mathlib.Data.Nat.Digits.Lemmas
 
 /-!
 # Memory — reusable EVM memory / `ByteArray` lemmas
@@ -67,6 +69,68 @@ theorem fromBytes'_toBytesLEWithSizeProof (w : UInt256) :
   show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
   rw [fromBytes'_append_zeros, fromBytes'_toBytes']
   rfl
+
+/-! ## 1a. Digit views of little-endian word slices -/
+
+theorem fromBytes'_eq_ofDigits (bs : List UInt8) :
+    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) := by
+  induction bs with
+  | nil => rfl
+  | cons b bs ih => simp [fromBytes', Nat.ofDigits, ih]
+
+theorem fromBytes'_take_wordLE (w : UInt256) (n : Nat) :
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take n) = w.toNat % 256 ^ n := by
+  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
+  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
+    rw [← fromBytes'_eq_ofDigits bs]
+    exact fromBytes'_toBytesLEWithSizeProof w
+  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
+    intro l hl
+    simp only [List.mem_map] at hl
+    rcases hl with ⟨b, _hb, rfl⟩
+    exact b.toFin.isLt
+  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) n (by decide)
+    (bs.map (fun b : UInt8 => b.toNat)) hlt
+  rw [fromBytes'_eq_ofDigits (bs.take n), List.map_take]
+  rw [← htake, hfull]
+
+theorem fromBytes'_drop_wordLE (w : UInt256) (n : Nat) :
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop n) = w.toNat / 256 ^ n := by
+  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
+  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
+    rw [← fromBytes'_eq_ofDigits bs]
+    exact fromBytes'_toBytesLEWithSizeProof w
+  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
+    intro l hl
+    simp only [List.mem_map] at hl
+    rcases hl with ⟨b, _hb, rfl⟩
+    exact b.toFin.isLt
+  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) n (by decide)
+    (bs.map (fun b : UInt8 => b.toNat)) hlt
+  rw [fromBytes'_eq_ofDigits (bs.drop n), List.map_drop]
+  rw [← hdrop, hfull]
+
+theorem fromBytes'_take_wordLE_land_mask (w : UInt256) (n : Nat) (hbits : 8 * n ≤ 256) :
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take n) =
+      (UInt256.land w (UInt256.ofNat (2 ^ (8 * n) - 1))).toNat := by
+  rw [fromBytes'_take_wordLE]
+  show w.toNat % 256 ^ n =
+    Nat.land w.toNat (UInt256.ofNat (2 ^ (8 * n) - 1)).toNat % UInt256.size
+  have hmaskLt : 2 ^ (8 * n) - 1 < UInt256.size := by
+    have hpow : (2 : Nat) ^ (8 * n) ≤ 2 ^ 256 :=
+      Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat)) hbits
+    have hpos : 0 < (2 : Nat) ^ (8 * n) := by positivity
+    change 2 ^ (8 * n) - 1 < 2 ^ 256
+    omega
+  rw [ulit_toNat' _ hmaskLt]
+  rw [show 256 ^ n = 2 ^ (8 * n) by
+    rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+  rw [nat_land_mask_eq_mod]
+  have hsmall : w.toNat % 2 ^ (8 * n) < UInt256.size := by
+    exact lt_of_lt_of_le (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ (8 * n))) (by
+      simpa [UInt256.size] using
+        Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat)) hbits)
+  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
 
 /-! ## 2. `ByteArray.toList` = `data.toList`, and the `fromByteArrayBigEndian ∘ toByteArray` round-trip -/
 

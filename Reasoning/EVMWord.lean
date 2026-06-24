@@ -111,6 +111,69 @@ theorem usub_uadd_lit_cancel {base n : ℕ}
 
 /-! ## Unsigned comparisons and small arithmetic helpers -/
 
+/-! ### Arithmetic and bitwise normalization -/
+
+theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (a &&& b).testBit i = (b &&& a).testBit i
+  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
+
+theorem u256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
+  apply u256_inj
+  show Nat.land a.toNat b.toNat % UInt256.size =
+    Nat.land b.toNat a.toNat % UInt256.size
+  rw [nat_land_comm]
+
+theorem nat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (a ||| b).testBit i = (b ||| a).testBit i
+  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
+
+theorem u256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
+  apply u256_inj
+  show Nat.lor a.toNat b.toNat % UInt256.size =
+    Nat.lor b.toNat a.toNat % UInt256.size
+  rw [nat_lor_comm]
+
+theorem u256_add_comm (a b : UInt256) : a + b = b + a := by
+  apply u256_inj
+  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
+
+theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
+  apply u256_inj
+  simp [uadd_toNat, Nat.add_assoc]
+
+theorem u256_mul_comm (a b : UInt256) : UInt256.mul a b = UInt256.mul b a := by
+  apply u256_inj
+  show (a.val * b.val).val = (b.val * a.val).val
+  rw [Fin.val_mul, Fin.val_mul, Nat.mul_comm]
+
+theorem u256_lor_toNat (a b : UInt256) :
+    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size := rfl
+
+theorem u256_land_toNat (a b : UInt256) :
+    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
+
+theorem u256_mul_toNat (a b : UInt256) :
+    (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size := by
+  show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
+  rw [Fin.val_mul]
+  rfl
+
+theorem nat_land_mask_eq_mod (n k : Nat) :
+    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
+  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
+  by_cases hi : i < k
+  · rw [decide_eq_true hi]
+    simp
+  · rw [decide_eq_false hi]
+    simp
+
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
   show UInt256.fromBool (decide (a < b)) = ⟨1⟩
@@ -266,6 +329,23 @@ theorem uInt256_eq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) 
   · subst hab; exact absurd (uInt256_eq_self a) h
   · show UInt256.fromBool (decide (a = b)) = ⟨0⟩
     rw [decide_eq_false hab]; rfl
+
+/-- `EQ` returning `1` reflects word equality. -/
+theorem uInt256_eq_one_eq {a b : UInt256} (h : UInt256.eq a b = ⟨1⟩) : a = b := by
+  by_contra hne
+  simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
+    Bool.false_eq_true, ↓reduceIte] at h
+  exact absurd h (by decide)
+
+/-- EVM word equality is symmetric. -/
+theorem uInt256_eq_comm (a b : UInt256) : UInt256.eq a b = UInt256.eq b a := by
+  by_cases h : a = b
+  · subst b
+    rfl
+  · have hba : b ≠ a := by
+      intro hb
+      exact h hb.symm
+    simp [UInt256.eq, UInt256.fromBool, h, hba]
 
 /-- `AND` with the low-160-bit mask is the identity on values below `2^160`. -/
 theorem land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n := by
