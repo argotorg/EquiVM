@@ -863,11 +863,11 @@ private def powCallargs (I : Ethereum.ExecutionEnv) : Solm.Store :=
 
 /-- **`callvalue = 0` case**: split on calldata size and the selector to land in one of
     `noDispatch` / `decodingFailed` / `execution`. -/
-theorem powReEquiv_callvalueZero {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+theorem powReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor powConfig Pow.powContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g.toUInt256 A I := by
+      σ_evm σ_solm σ₀ g.toUInt256 A I := by
   by_cases hsz4 : I.calldata.size < 4
   · -- short calldata ⇒ noDispatch
     exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch.none_short hsz4)
@@ -888,7 +888,7 @@ theorem powReEquiv_callvalueZero {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A
           by_cases hn : (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat < 256
           · -- success: EVM returns 2^n, Solm body returns 2^n
             obtain ⟨L', hbody⟩ :=
-              powBodyReturns (initState cA gh bl σ_solm σ₀_solm g A I) (powCallargs I)
+              powBodyReturns (initState cA gh bl σ_solm σ₀ g A I) (powCallargs I)
                 (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])
             exact (powX_success hcode hwv hsz36 hbig hmatch hn).reEquivExecution hcode hd
               (powDecode_n hsz36 hbig) hbody hAccounts
@@ -897,7 +897,7 @@ theorem powReEquiv_callvalueZero {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A
             rw [not_lt] at hn
             exact (powX_nlarge hcode hwv hsz36 hbig hmatch hn).reEquivExecutionRevert hcode hd
               (powDecode_n hsz36 hbig)
-              (powBodyReverts_n (initState cA gh bl σ_solm σ₀_solm g A I) (powCallargs I)
+              (powBodyReverts_n (initState cA gh bl σ_solm σ₀ g A I) (powCallargs I)
                 (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self]))
     · -- wrong selector ⇒ noDispatch
       rw [Bool.not_eq_true] at hmatch
@@ -923,7 +923,7 @@ theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
 theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize _hperm hσ _hσ₀ => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize _hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize hσ
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling

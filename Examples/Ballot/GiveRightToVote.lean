@@ -1529,16 +1529,16 @@ theorem ballotDispatch_giveRightToVote {cd : ByteArray}
   · rw [selectorOf, ballotWinningProposalSelectorBytes, hcd]; decide
 
 theorem ballotGiveRightToVoteBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨286⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := ballotGiveRightToVoteSelector_size hsel
   have hd := ballotDispatch_giveRightToVote (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1550,7 +1550,7 @@ theorem ballotGiveRightToVoteBodyCore
         · by_cases hvoted : giveRightVotedByte σ_evm I = ⟨0⟩
           · by_cases hweight : giveRightWeightWord σ_evm I = ⟨0⟩
             · have hbody := ballotGiveRightToVoteBodyReturns
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
                 (by
                   have hchairSolm :
@@ -1568,8 +1568,8 @@ theorem ballotGiveRightToVoteBodyCore
                     simpa [← giveRightWeightWord_accountMapEquiv hAccounts] using hweight
                   simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweightSolm)
               have hσPost : EVMStateEquiv
-                  (giveRightPostState (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) I)
-                  (giveRightPostState (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I) := by
+                  (giveRightPostState (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
+                  (giveRightPostState (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I) := by
                 unfold giveRightPostState
                 exact (EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts).storageStore_codeOwner
                   (giveRightVoterSlot I) rfl
@@ -1584,7 +1584,7 @@ theorem ballotGiveRightToVoteBodyCore
                 hσPost
                 (returnEquiv.void rfl rfl rfl)
             · have hbody := ballotGiveRightToVoteBodyReverts_weight
-                (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
                 (by
                   have hchairSolm :
@@ -1605,7 +1605,7 @@ theorem ballotGiveRightToVoteBodyCore
                   hsz36 hsize hbig hcanon hchair hvoted hweight hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
           · have hbody := ballotGiveRightToVoteBodyReverts_voted
-              (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
               (by
                 have hchairSolm :
@@ -1622,7 +1622,7 @@ theorem ballotGiveRightToVoteBodyCore
                 hsz36 hsize hbig hcanon hchair hvoted hreach)
               |>.reEquivExecutionRevert hcode hd hdec hbody
         · have hbody := ballotGiveRightToVoteBodyReverts_chair
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) I
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv)
             (by
               have hchairSolm :

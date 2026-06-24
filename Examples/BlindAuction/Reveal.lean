@@ -7,20 +7,20 @@ set_option maxHeartbeats 800000
 namespace BlindAuction
 
 /-- `reveal(uint256[],bool[],bytes32[])` body (pc 387) refines its transition. -/
-theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨387⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨387⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
       k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+ :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
-  have _hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm := hOriginalAccounts
+
   have hsz := blindAuctionRevealSelector_size hsel
   have hd := blindAuctionDispatch_reveal (cd := I.calldata) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -493,7 +493,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
     · obtain ⟨callargs, hdec⟩ := Option.ne_none_iff_exists'.mp hdecNone
       have hbody :
           ExecTransitionBody blindAuctionConfig blindAuctionContract
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) callargs
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
             revealTransition.body .reverted := by
         exact blindAuctionRevealBodyReverts_nonpayable
           (by simp only [initState]; exact hwv)

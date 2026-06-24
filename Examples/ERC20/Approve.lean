@@ -772,24 +772,24 @@ theorem erc20Dispatch_approve {cd : ByteArray}
     rfl (by simp) (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
 
 theorem erc20ApproveBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc20ApproveSelector_size hsel
   have hd := erc20Dispatch_approve (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_approve_ok (I := I) hsz68 hbig hcanonSpender
-        let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-        let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+        let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
         have hσ : EVMStateEquiv evmE evmS := by
           simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
         have hbody := erc20ApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)

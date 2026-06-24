@@ -21,21 +21,21 @@ PC, then hands control to one per-function body theorem.
 -/
 
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
-theorem simpleAuctionShortRevert {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem simpleAuctionShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   exact (simpleAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
     (simpleAuctionDispatch_none_short hsz)
 
 /-- `size ≥ 4` but no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
-theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (simpleAuctionX_noMatch (g := Sat256.ofUInt256 g) hcode hsz hsize hnm)
       |>.reEquivNoDispatch hcode (simpleAuctionDispatch_none_nomatch hnm)
@@ -46,8 +46,8 @@ theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A 
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
     runtimeEquivalence!?! simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize hperm
-      hAccounts _hOriginalAccounts => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
+      hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x19, 0x98, 0xae, 0xef]⟩
     · exact simpleAuctionBidBody hcode hsize hperm h0
@@ -70,7 +70,7 @@ theorem simpleAuctionCorrect :
             (simpleAuctionHighMatches 0 (by omega) hsz
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).2
             (by jump_dest) (by decide))
-          hAccounts _hOriginalAccounts
+          hAccounts
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
         · exact simpleAuctionAuctionEndBody hcode hsize hperm h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
@@ -81,7 +81,7 @@ theorem simpleAuctionCorrect :
               (simpleAuctionLowMatches 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).2
               (by jump_dest) (by decide))
-            hAccounts _hOriginalAccounts
+            hAccounts
         · by_cases h3 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
           · exact simpleAuctionBeneficiaryBody hcode hsize hperm h3
               (simpleAuctionReachLowBody 2 (by omega) ⟨144⟩ hcode hsz hsize

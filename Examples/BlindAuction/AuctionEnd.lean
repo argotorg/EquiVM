@@ -1179,27 +1179,27 @@ theorem blindAuctionAuctionEndBodyReverts_nonpayable {evm : EVM.State} {locals :
   exact bodyReverts_nonPayable h
 
 /-- `auctionEnd()` body (pc 256) refines its transition. -/
-theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨256⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨256⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
       k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+ :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have _hAccounts : accountMapEquiv σ_evm σ_solm := hAccounts
-  have _hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm := hOriginalAccounts
+
   have hsz := blindAuctionAuctionEndSelector_size hsel
   have hd := blindAuctionDispatch_auctionEnd (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_auctionEnd (I := I) hsz
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState
       (g := Sat256.ofUInt256 g) hAccounts
@@ -1301,7 +1301,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ_evm I) I := by
               simpa [evmEAfter, evmE] using
                 (auctionEndBeneficiaryWordState_afterEnded_init (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm) (A := A)
+                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
                   (I := I) (g := Sat256.ofUInt256 g))
             have hBenefES :
                 auctionEndBeneficiaryWordState evmEAfter =
@@ -1313,7 +1313,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   auctionEndHighestBidWord (auctionEndAfterEndedMap σ_evm I) I := by
               simpa [evmEAfter, evmE] using
                 (auctionEndHighestBidWordState_afterEnded_init (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm) (A := A)
+                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
                   (I := I) (g := Sat256.ofUInt256 g))
             have hHighES :
                 auctionEndHighestBidWordState evmEAfter =
@@ -1324,28 +1324,28 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                 evmEAfter.accountMap = auctionEndAfterEndedMap σ_evm I := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_accountMap_init (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm) (A := A)
+                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
                   (I := I) (g := Sat256.ofUInt256 g))
             have hAfterEnvE : evmEAfter.executionEnv = I := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_executionEnv
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
             have hCreatedE : evmEAfter.createdAccounts = cA := by
               simpa [evmEAfter, evmE, initState] using
                 (auctionEndAfterEndedState_createdAccounts
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
-            have hOrigE : evmEAfter.σ₀ = σ₀_evm := by
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
+            have hOrigE : evmEAfter.σ₀ = σ₀ := by
               simpa [evmEAfter, evmE, initState] using
                 (auctionEndAfterEndedState_originalMap
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
             have hGenesisE : evmEAfter.genesisBlockHeader = gh := by
               simpa [evmEAfter, evmE, initState] using
                 (auctionEndAfterEndedState_genesisBlockHeader
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
             have hBlocksE : evmEAfter.blocks = bl := by
               simpa [evmEAfter, evmE, initState] using
                 (auctionEndAfterEndedState_blocks
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I))
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
             have hBalE :
                 (auctionEndAfterEndedMap σ_evm I |>.find? I.codeOwner |>.elim ⟨0⟩
                     (·.balance)) =
@@ -1353,7 +1353,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                     ⟨0⟩ (·.balance)) := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_balance_init (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I)
+                  (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g))
             have hcallE :
                 callViaEVM evmEAfter targetE valueE ByteArray.empty (z, evmECall, out) := by
@@ -1374,10 +1374,10 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   simpa [evmEAfter, evmE, initState, auctionEndAfterEndedState_executionEnv] using hd)
             have hout255 : out.size < 2 ^ 255 := by
               have hsizeΘ := Theta_returnData_size_lt I.blobVersionedHashes cA
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I).genesisBlockHeader
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I).blocks
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks
                 (auctionEndAfterEndedMap σ_evm I)
-                (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I).σ₀ A_in
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).σ₀ A_in
                 (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
                 (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                   (auctionEndAfterEndedMap σ_evm I) I))
@@ -1394,9 +1394,9 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
               have hpow : 2 ^ 255 < UInt256.size := by
                 norm_num [UInt256.size]
               omega
-            have hOrigAfter : accountMapEquiv evmEAfter.σ₀ evmSAfter.σ₀ := by
+            have hOrigAfter : evmEAfter.σ₀ = evmSAfter.σ₀ := by
               simpa [evmEAfter, evmSAfter, evmE, evmS, initState,
-                auctionEndAfterEndedState_originalMap] using hOriginalAccounts
+                auctionEndAfterEndedState_originalMap]
             obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
               callViaEVM_accountMapEquiv (storage := blindAuctionConfig.storage)
                 (evm_solm := evmSAfter) hcallE hσAfter.accountMap hOrigAfter
@@ -1462,9 +1462,9 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   hendedSState
                   (by simpa [evmSAfter] using hcallS)
               have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) :=
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
                 blindAuctionX_auctionEnd_afterCall_revert (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I)
+                  (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g)
                   (rd := by simpa using rd767) houtsz
               exact hrev.reEquivExecutionRevert hcode hd hdec hbody
@@ -1481,10 +1481,10 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   hendedSState
                   (by simpa [evmSAfter] using hcallS)
               have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-                  (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I)
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                   (cA', σ') ByteArray.empty :=
                 blindAuctionX_auctionEnd_afterCall_return (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I)
+                  (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g)
                   (rd := by simpa using rd767) houtsz
               exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
@@ -1501,7 +1501,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                   auctionEndHighestBidWord (auctionEndAfterEndedMap σ_evm I) I := by
               simpa [evmEAfter, evmE] using
                 (auctionEndHighestBidWordState_afterEnded_init (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀_evm) (A := A)
+                  (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
                   (I := I) (g := Sat256.ofUInt256 g))
             have hHighES :
                 auctionEndHighestBidWordState evmEAfter =
@@ -1515,7 +1515,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
                     ⟨0⟩ (·.balance)) := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_balance_init (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I)
+                  (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g))
             have hBalES :
                 (evmEAfter.accountMap.find? evmEAfter.executionEnv.codeOwner |>.elim
@@ -1578,7 +1578,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
           |>.reEquivExecutionRevert hcode hd hdec hbody
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           auctionEndTransition.body .reverted := by
       exact blindAuctionAuctionEndBodyReverts_nonpayable (by simpa [initState] using hwv)
     exact (blindAuctionX_auctionEnd_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)

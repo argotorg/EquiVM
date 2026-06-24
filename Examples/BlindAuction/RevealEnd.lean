@@ -156,21 +156,21 @@ theorem blindAuctionDecode_revealEnd {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
   exact decodeCalldata_empty_ok hsz
 
 /-- `revealEnd()` getter body (pc 468) refines its transition. -/
-theorem blindAuctionRevealEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem blindAuctionRevealEndBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨468⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨468⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
       k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm) :
+ :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
-  have _hOriginalAccounts : accountMapEquiv σ₀_evm σ₀_solm := hOriginalAccounts
+
   have hsz := blindAuctionRevealEndSelector_size hsel
   have hd := blindAuctionDispatch_revealEnd (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_revealEnd (I := I) hsz
@@ -179,25 +179,25 @@ theorem blindAuctionRevealEndBodyCore {cA gh bl σ_evm σ₀_evm σ_solm σ₀_s
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           revealEndGetter.body
           (.returned { contract := blindAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (some (.int (Int.ofNat (blindAuctionRevealEndWord σ_solm I).toNat)))) := by
       simpa [blindAuctionRevealEndWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         blindAuctionRevealEndBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (blindAuctionX_revealEnd (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
         (returnEquiv_of_encode (uint256ReturnEncoding (blindAuctionRevealEndWord σ_evm I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           revealEndGetter.body .reverted := by
       simpa [revealEndGetter, initState] using
         (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
           (rest := [.return (.storage revealEndRef)])
           (by simp only [initState]; exact hwv))

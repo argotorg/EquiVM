@@ -46,10 +46,10 @@ theorem ctorStoreRuntimeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem ctorStoreRuntimeCorrect :
     runtimeEquivalence!?! ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode _hsize _hperm
-      _hσ _hσ₀ => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode _hsize _hperm
+      _hσ => ?_⟩
   exact (ctorStoreRuntimeRevert (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-    (σ₀ := σ₀_evm)
+    (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
       (ctorStoreDispatch_none I.calldata)
 
@@ -377,14 +377,14 @@ theorem ctorStoreConstructorCorrect :
     constructorEquivalence ctorStoreConfig ctorStoreInitcode CtorStore.contract
       ctorStoreRuntimeBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ₀_evm σ_solm σ₀_solm g A I
-      args deployedInitcode hdeploy hcode _hcalldata hperm hσ _hσ₀
+  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+      args deployedInitcode hdeploy hcode _hcalldata hperm hσ
   rcases ctorStoreDeployment_shape hdeploy with ⟨i, hargs, h0, _hlt, hdeployed⟩
   subst args
   rw [hdeployed] at hcode
   have hrd := ctorStoreInitcodeRun (createdAccounts := createdAccounts)
       (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ := σ_evm)
-      (σ₀ := σ₀_evm)
+      (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (w := EVM.word i.toNat) hcode hperm
   rcases hrd with hoog | ⟨s, hX, hacc⟩
   · exact constructorEquivalenceFor.outOfGas
@@ -400,7 +400,7 @@ theorem ctorStoreConstructorCorrect :
     rw [hcA, hσ'] at hsuccess
     refine constructorEquivalenceFor.execution hsuccess
       (ctorStoreSolmCtorExec (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀_solm) (g := g) (A := A) (I := I)
+        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         i h0) ?_
     refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
     · simp only [storageStore_createdAccounts, initState]

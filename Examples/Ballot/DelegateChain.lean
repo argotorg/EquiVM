@@ -873,7 +873,7 @@ theorem ballotDelegateBodyReverts_chainSender {cA gh bl σ σ₀ A I} {g : Sat25
       (target := target) hnext0 hcycle0 hhit hnext hcontinue)
 
 theorem ballotDelegateChainSenderRevertEquiv
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+    {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256} {sel : UInt256} {target : Nat}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
@@ -890,11 +890,11 @@ theorem ballotDelegateChainSenderRevertEquiv
     (hnext : delegateVoterDelegateWord σ_evm I (delegateChainWord σ_evm I target) ≠ ⟨0⟩)
     (hcontinue : ∀ i, 1 ≤ i → i < target → delegateChainContinuesAt σ_evm I i)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon
   have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
@@ -921,11 +921,11 @@ theorem ballotDelegateChainSenderRevertEquiv
     intro i hi hlt
     exact delegateChainContinuesAt_accountMapEquiv (I := I) hAccounts (hcontinue i hi hlt)
   have hbody := ballotDelegateBodyReverts_chainSender (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀_solm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (target := target) hwv hcanon hweightSolm hvotedSolm hnotself hnext0Solm hcycle0Solm
     hhitSolm hnextSolm hcontinueSolm
   exact (ballotDelegateChainSenderRevertFrom245 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀_evm) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (target := target) hsz36 hsize hbig hcanon hweight hvoted hnotself
       hnext0 hcycle0 htarget hhit hnext hcontinue hreach)
     |>.reEquivExecutionRevert hcode hd hdec hbody

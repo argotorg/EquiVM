@@ -222,14 +222,14 @@ namespace Reasoning.Reach
     `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
     `execution`-with-revert.  Both examples' `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256} {code : ByteArray}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
     (htr : contract.transitions = [transition])
-    (h : RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I))
+    (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hbody : ∀ callargs, ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I)
+              (initState cA gh bl σ_solm σ₀ g A I)
               callargs transition.body .reverted) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -248,21 +248,21 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     internal shapes but identical account presence, account metadata, and storage lookups. -/
 theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) acc o)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) acc o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal))
     (hCreated : acc.1 = evm''.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evm''.accountMap)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
@@ -273,7 +273,7 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
     have hbody' :
         ExecTransitionBody cfg contract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g.toUInt256) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
     refine reEquiv_execution hd hdec hbody' ?_
@@ -295,23 +295,23 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
     the Solm spec coalesce to different `RBMap` shapes (e.g. packed same-slot double writes). -/
 theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {evm'_evm evm'_solm : EVM.State}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) acc o)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) acc o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs evm'_solm retVal))
     (hCreated : acc.1 = evm'_evm.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evm'_evm.accountMap)
     (hState : EVMStateEquiv evm'_evm evm'_solm)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (hCreated.trans hState.createdAccounts)
@@ -322,19 +322,19 @@ theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : Contra
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`).
     The non-mutating special case of `reEquivExecutionGenAccountMapEquiv` (`evm'' = initState …`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) (cA, σ_evm) o)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) (cA, σ_evm) o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
-              (.returned cs (initState cA gh bl σ_solm σ₀_solm g A I) retVal))
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
+              (.returned cs (initState cA gh bl σ_solm σ₀ g A I) retVal))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (henc : returnEquiv o retVal t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [initState]) (by simpa [initState] using hAccounts) henc
@@ -345,36 +345,36 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     `accountMapEquiv` read-agreement lifted to the returned value — so the body is passed in its
     natural `σ_solm` form, with no second restatement transported to `σ_evm`. -/
 theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs rvSolm rvEvm}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) (cA, σ_evm) o)
+    (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) (cA, σ_evm) o)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
-              (.returned cs (initState cA gh bl σ_solm σ₀_solm g A I) rvSolm))
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
+              (.returned cs (initState cA gh bl σ_solm σ₀ g A I) rvSolm))
     (hval : rvSolm = rvEvm)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (henc : returnEquiv o rvEvm t.returnType) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   subst hval
   exact h.reEquivExecution hcode hd hdec hbody hAccounts henc
 
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256} {code : ByteArray}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {code : ByteArray}
     {callargs}
     (hcode : I.code = code)
-    (h : RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I))
+    (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body .reverted) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body .reverted) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_

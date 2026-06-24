@@ -1178,25 +1178,25 @@ theorem ballotX_winningProposal_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem ballotWinningProposalBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨264⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := ballotWinningProposalSelector_size hsel
   have hd := ballotDispatch_winningProposal (cd := I.calldata) hsel
   have hdec := ballotDecode_winningProposal (I := I) hsz4
   obtain ⟨locals', hbody⟩ := ballotWinningProposalBodyReturns
-    (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
     (by simp only [initState]; exact hwv) (by simp)
   have hresult :
       winningProposalResultCurrent
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) =
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) =
         winningProposalResultWord σ_evm I := by
     rw [winningProposalResultCurrent_init]
     exact (winningProposalResultWord_accountMapEquiv hAccounts).symm

@@ -113,17 +113,17 @@ theorem simpleAuctionHighestBidderX_nonpayable {cA gh bl σ σ₀ A I} {g : Sat2
     jumpiNT (isZero_eq_zero_of_ne hwv)]
   exact rd282.revertStub (by decide) (by decide) (by decide) (by simp)
 
-theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨274⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz := simpleAuctionHighestBidderSelector_size hsel
   have hd := simpleAuctionDispatch_highestBidder (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_highestBidder (I := I) hsz
@@ -132,14 +132,14 @@ theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidderGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (some (.address (AccountAddress.ofNat (highestBidderReturnWord σ_solm I).toNat)))) := by
       simpa [highestBidderWord, highestBidderReturnWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using simpleAuctionHighestBidderBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (simpleAuctionX_highestBidder (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [highestBidderReturnWord, hword])
@@ -147,11 +147,11 @@ theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_
         (returnEquiv_of_encode (simpleAuctionAddressReturnEncoding (highestBidderWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           highestBidderGetter.body .reverted := by
       simpa [highestBidderGetter, initState] using
         (bodyReverts_nonPayable (cfg := simpleAuctionConfig) (contract := simpleAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
           (rest := [.return (.storage highestBidderRef)])
           (by simp only [initState]; exact hwv))

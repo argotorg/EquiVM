@@ -219,10 +219,10 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
       (by evm_ov) ]
 
 theorem truthReEquiv_callvalueZero
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor truthConfig truthContract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
@@ -234,7 +234,7 @@ theorem truthReEquiv_callvalueZero
         rw [truthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode hwv hsz hsize hmatch).reEquivExecution hcode hd
         (truthDecode_empty hsz)
-        (truthBodyReturns (initState cA gh bl σ_solm σ₀_solm g A I) ∅
+        (truthBodyReturns (initState cA gh bl σ_solm σ₀ g A I) ∅
           (by simp only [initState]; exact hwv))
         hAccounts
         (returnEquiv_of_encode boolTrueReturnEncoding)
@@ -248,7 +248,7 @@ theorem truthReEquiv_callvalueZero
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
     runtimeEquivalence!?! truthConfig truthBytecode truthContract := by
-  refine ⟨fun cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm g A I hcode hsize _hperm hσ _hσ₀ => ?_⟩
+  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize _hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling

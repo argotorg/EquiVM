@@ -106,17 +106,17 @@ theorem simpleAuctionDecode_beneficiary {I : ExecutionEnv} (hsz : 4 ≤ I.callda
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I}
+theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨144⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨144⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := simpleAuctionBeneficiarySelector_size hsel
@@ -127,13 +127,13 @@ theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I)
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
             (some (.address (AccountAddress.ofNat (beneficiaryReturnWord σ_solm I).toNat)))) := by
       simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using simpleAuctionBeneficiaryBodyReturns
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (simpleAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody
@@ -141,7 +141,7 @@ theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_so
         (returnEquiv_of_encode (simpleAuctionAddressReturnEncoding (beneficiaryWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           .reverted := by
       exact bodyReverts_nonPayable (by simp only [initState]; exact hwv)
     exact (simpleAuctionX_beneficiary_nonzero (g := Sat256.ofUInt256 g) hwv hreach)

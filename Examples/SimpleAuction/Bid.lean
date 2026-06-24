@@ -1466,24 +1466,24 @@ theorem simpleAuctionBidBodyReturnsWithPending (evm : EVM.State) (I : ExecutionE
       (bidAssignHighestBid (bidAfterPendingState evm) I hPendingEnv)) ?_
   exact ExecBlock.nil
 
-theorem simpleAuctionBidBody {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256}
+theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x19, 0x98, 0xae, 0xef]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨114⟩
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨114⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsel' : ((⟨#[0x19, 0x98, 0xae, 0xef]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
     simpa [selIs] using hsel
   have hsz := simpleAuctionBidSelector_size hsel'
   have hd := simpleAuctionDispatch_bid (cd := I.calldata) hsel'
   have hdec := simpleAuctionDecode_bid (I := I) hsz
-  let evmE := initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
   have hAuctionEnd : bidAuctionEndWord σ_evm I = bidAuctionEndWord σ_solm I :=

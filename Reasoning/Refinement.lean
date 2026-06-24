@@ -246,37 +246,37 @@ theorem equivStmts.seq {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
     ABI-coupled values with equivalent final worlds, or both revert. -/
 inductive equivTransition (cfg : Config) (contract : ContractDecl) (t : TransitionDecl)
     (cA : Batteries.RBSet AccountAddress compare) (gh : BlockHeader) (bl : ProcessedBlocks)
-    (σ_evm σ₀_evm σ_solm σ₀_solm : AccountMap) (A : Substate) (I : ExecutionEnv)
+    (σ_evm σ_solm σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv)
     (g : Sat256)
     (code : ByteArray) (callargs : Store) : Prop where
   | returns {o : ByteArray} {cs : Frame} {retVal} {evm'' : State}
       {world : Batteries.RBSet AccountAddress compare × AccountMap} :
-      RDret code g (initState cA gh bl σ_evm σ₀_evm g A I) world o →
-      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀_solm g A I) callargs t.body
+      RDret code g (initState cA gh bl σ_evm σ₀ g A I) world o →
+      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
         (.returned cs evm'' retVal) →
       world.1 = evm''.createdAccounts →
       accountMapEquiv world.2 evm''.accountMap →
       returnEquiv o retVal t.returnType →
-      equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+      equivTransition cfg contract t cA gh bl σ_evm σ_solm σ₀ A I g code
         callargs
   | reverts :
-      RDrev code g (initState cA gh bl σ_evm σ₀_evm g A I) →
-      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀_solm g A I)
+      RDrev code g (initState cA gh bl σ_evm σ₀ g A I) →
+      ExecTransitionBody cfg contract (initState cA gh bl σ_solm σ₀ g A I)
         callargs t.body .reverted →
-      equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+      equivTransition cfg contract t cA gh bl σ_evm σ_solm σ₀ A I g code
         callargs
 
 /-- `equivTransition` + the selector dispatches to `t` + its args decode ⟹ `runtimeEquivalenceFor`. -/
 theorem equivTransition.toRuntime {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : Sat256} {code : ByteArray}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {code : ByteArray}
     {callargs : Store}
     (hcode : I.code = code)
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
               I.calldata = some callargs)
-    (h : equivTransition cfg contract t cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I g code
+    (h : equivTransition cfg contract t cA gh bl σ_evm σ_solm σ₀ A I g code
       callargs) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   cases h with
   | returns hret hbody hCreated hAccounts henc =>
@@ -301,7 +301,7 @@ theorem equivStmts.toTransition {cfg : Config} {contract : ContractDecl} {t : Tr
         Q cur' frame' evm' →
         ∃ o, RDret code g (initState cA gh bl σ σ₀ g A I) (worldOf evm') o
           ∧ returnEquiv o none t.returnType) :
-    equivTransition cfg contract t cA gh bl σ σ₀ σ σ₀ A I g code callargs := by
+    equivTransition cfg contract t cA gh bl σ σ σ₀ A I g code callargs := by
   obtain ⟨result, hbody, hmatch⟩ :=
     h entry kE CE { contract := contract, locals := callargs } (initState cA gh bl σ σ₀ g A I)
       hpc hRD hworld hR

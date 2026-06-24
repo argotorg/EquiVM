@@ -2465,22 +2465,22 @@ theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
   exact rd923.rev 0 (by decide) mem_cost (by evm_ov)
 
 theorem erc20TransferFromBodyCore
-    {cA gh bl σ_evm σ₀_evm σ_solm σ₀_solm A I} {g : UInt256} {sel : UInt256}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀_evm (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ₀_evm σ_solm σ₀_solm g A I := by
+      σ_evm σ_solm σ₀ g A I := by
   have hsz4 := erc20TransferFromSelector_size hsel
   have hd := erc20Dispatch_transferFrom (cd := I.calldata) hsel
   let σ := σ_evm
-  let σ₀ := σ₀_evm
+  let σ₀ := σ₀
   let evmE := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀_solm (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
   have hAllowance :
