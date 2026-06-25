@@ -207,6 +207,15 @@ cabal run equivm-symcheck -- run \
   --post 'call[0].to==0x1234'
 ```
 
+Final branch output, both in text mode and `--json`, includes:
+
+- final `pc`, `stack`, `memory`, and `returndata`
+- final current-contract `storage`, `transientStorage`, `originalStorage`, and
+  `balance`
+- known contract balances
+- final path-constraint count and the rendered path constraints themselves
+- call-boundary metadata, SMT mode, and overapproximation markers
+
 ## Call boundaries
 
 `CALL`, `CALLCODE`, `DELEGATECALL`, and `STATICCALL` are treated as segment

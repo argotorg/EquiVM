@@ -590,6 +590,7 @@ unlessNull xs action =
 printSegmentResult :: SegmentResult -> IO ()
 printSegmentResult result = do
   frozenVm <- stToIO $ SymExec.freezeVM result.finalVm
+  let currentContractState = lookupRunningContract frozenVm
   putStrLn $ "steps: " <> show result.steps
   putStrLn $ "stop:  " <> renderStop result.stopReason
   putStrLn $ "pc:    " <> show frozenVm.state.pc
@@ -597,6 +598,20 @@ printSegmentResult result = do
   putStrLn $ "memory: " <> renderMemory frozenVm.state.memory
   putStrLn $ "returndata: " <> renderBufExpr frozenVm.state.returndata
   putStrLn $ "constraints: " <> show (length frozenVm.constraints)
+  unlessNull frozenVm.constraints $ do
+    putStrLn "path-constraints:"
+    mapM_ (\prop0 -> putStrLn $ "  " <> renderProp prop0) frozenVm.constraints
+  case currentContractState of
+    Just contract -> do
+      putStrLn $ "storage: " <> renderStorageExpr contract.storage
+      putStrLn $ "transient-storage: " <> renderStorageExpr contract.tStorage
+      putStrLn $ "original-storage: " <> renderStorageExpr contract.origStorage
+      putStrLn $ "balance: " <> renderWordExpr contract.balance
+    Nothing ->
+      putStrLn "contract-state: <missing>"
+  unlessNull (renderBalances frozenVm) $ do
+    putStrLn "balances:"
+    mapM_ (\line -> putStrLn $ "  " <> line) (renderBalances frozenVm)
   putStrLn $ "smt:   " <> if result.usedWeakenedSmt then "weakened" else "exact"
   putStrLn $ "overapprox: " <> renderOverapproximationSummary result.overapproximations
   unlessNull result.callBoundaries $
@@ -1237,10 +1252,27 @@ renderAddrExpr = T.unpack . Format.formatExpr . Expr.simplify
 renderBufExpr :: Expr Buf -> String
 renderBufExpr = T.unpack . Format.formatExpr . Expr.simplify
 
+renderStorageExpr :: Expr Storage -> String
+renderStorageExpr = T.unpack . Format.formatExpr . Expr.simplify
+
 renderMemory :: Memory -> String
 renderMemory = \case
   SymbolicMemory buf -> renderBufExpr buf
   ConcreteMemory _ -> "<mutable-memory>"
+
+renderProp :: Prop -> String
+renderProp = T.unpack . Format.formatProp
+
+lookupRunningContract :: VM Symbolic -> Maybe Contract
+lookupRunningContract vm =
+  Map.lookup vm.state.contract vm.env.contracts
+
+renderBalances :: VM Symbolic -> [String]
+renderBalances vm =
+  fmap renderOne (Map.toList vm.env.contracts)
+  where
+    renderOne (addr, contract) =
+      renderAddrExpr addr <> " => " <> renderWordExpr contract.balance
 
 renderVmResult :: VMResult Symbolic -> String
 renderVmResult = \case
@@ -1266,6 +1298,7 @@ emitJsonOutput results reports = do
 segmentResultToJson :: (Int, SegmentResult) -> IO Value
 segmentResultToJson (idx, result) = do
   frozenVm <- stToIO $ SymExec.freezeVM result.finalVm
+  let currentContractState = lookupRunningContract frozenVm
   pure $
     object
       [ "branch" .= idx
@@ -1276,11 +1309,24 @@ segmentResultToJson (idx, result) = do
       , "memory" .= renderMemory frozenVm.state.memory
       , "returndata" .= renderBufExpr frozenVm.state.returndata
       , "constraints" .= length frozenVm.constraints
+      , "pathConstraints" .= fmap renderProp frozenVm.constraints
+      , "storage" .= fmap (renderStorageExpr . (.storage)) currentContractState
+      , "transientStorage" .= fmap (renderStorageExpr . (.tStorage)) currentContractState
+      , "originalStorage" .= fmap (renderStorageExpr . (.origStorage)) currentContractState
+      , "balance" .= fmap (renderWordExpr . (.balance)) currentContractState
+      , "balances" .= fmap balanceEntryToJson (Map.toList frozenVm.env.contracts)
       , "usedWeakenedSmt" .= result.usedWeakenedSmt
       , "overapproximations" .= fmap renderOverapproximation result.overapproximations
       , "callBoundaries" .= fmap callBoundaryToJson result.callBoundaries
       , "vmResult" .= fmap renderVmResult frozenVm.result
       ]
+
+balanceEntryToJson :: (Expr EAddr, Contract) -> Value
+balanceEntryToJson (addr, contract) =
+  object
+    [ "address" .= renderAddrExpr addr
+    , "balance" .= renderWordExpr contract.balance
+    ]
 
 callBoundaryToJson :: CallBoundary -> Value
 callBoundaryToJson boundary =
