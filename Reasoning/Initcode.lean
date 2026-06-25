@@ -87,4 +87,100 @@ theorem decode_append_left_window (A B : ByteArray) (pc : UInt256)
   · intro b instr _ _; have := argOnNBytesOfInstr_le_32 instr; omega
   · intro b instr _ _; have := argOnNBytesOfInstr_le_32 instr; omega
 
+/-! ## Jump-destination set under an appended argument tail
+
+`D_J_aux` (the `JUMPDEST`-set scanner) threads its accumulator linearly — scanning from `i` only ever
+*appends* discovered destinations.  Hence appending bytes to a fixed prefix can only *add* later
+destinations, never remove the prefix's own.  So a `(D_J A 0).contains pc` fact survives `A ↦ A ++ B`,
+which is what every `jump`/`jumpiT` in a creation-code trace needs (the instruction stream is in the
+fixed prefix, the symbolic ABI argument tail follows). -/
+
+/-- One scan step when the current byte does not decode (or the stream ended). -/
+theorem D_J_aux_eq_none (c : ByteArray) (i : ℕ) (result : Array UInt256)
+    (h : c.get? i >>= parseInstr = none) : D_J_aux c i result = result := by
+  rw [D_J_aux]; split
+  · rfl
+  · rename_i cᵢ hc; rw [hc] at h; simp at h
+
+/-- One scan step when the current byte decodes to `cᵢ`: recurse past its immediates, recording the
+    position iff it is a `JUMPDEST`. -/
+theorem D_J_aux_eq_some (c : ByteArray) (i : ℕ) (result : Array UInt256) (cᵢ : Operation)
+    (h : c.get? i >>= parseInstr = some cᵢ) :
+    D_J_aux c i result = D_J_aux c (N i cᵢ)
+      (if cᵢ = Operation.JUMPDEST then result.push (UInt256.ofNat i) else result) := by
+  rw [D_J_aux]; split
+  · rename_i hc; rw [hc] at h; simp at h
+  · rename_i cᵢ' hc; rw [hc] at h; simp only [Option.some.injEq] at h; subst h; rfl
+
+/-- The scan position reaching the end of the bytecode returns the accumulator. -/
+theorem D_J_aux_ge_size (c : ByteArray) (i : ℕ) (result : Array UInt256) (h : c.size ≤ i) :
+    D_J_aux c i result = result :=
+  D_J_aux_eq_none c i result (by
+    have : c.get? i = none := by rw [ByteArray.get?, dif_neg (by omega)]
+    simp [this])
+
+/-- `c.get? i = some _` exactly when `i` is in range. -/
+private theorem lt_size_of_get?_isSome {c : ByteArray} {i : ℕ} {cᵢ : Operation}
+    (h : c.get? i >>= parseInstr = some cᵢ) : i < c.size := by
+  rcases hb : c.get? i with _ | b
+  · rw [hb] at h; simp at h
+  · rw [ByteArray.get?] at hb; split at hb
+    · assumption
+    · simp at hb
+
+/-- `D_J_aux` appends to its accumulator: scanning from `i` adds the same destinations regardless of
+    what is already accumulated. -/
+theorem D_J_aux_acc (c : ByteArray) (i : ℕ) (result : Array UInt256) :
+    D_J_aux c i result = result ++ D_J_aux c i #[] := by
+  cases h : c.get? i >>= parseInstr with
+  | none => rw [D_J_aux_eq_none c i result h, D_J_aux_eq_none c i #[] h]; exact Array.append_empty.symm
+  | some cᵢ =>
+      rw [D_J_aux_eq_some c i result cᵢ h, D_J_aux_eq_some c i #[] cᵢ h,
+          D_J_aux_acc c (N i cᵢ)
+            (if cᵢ = Operation.JUMPDEST then result.push (UInt256.ofNat i) else result),
+          D_J_aux_acc c (N i cᵢ)
+            (if cᵢ = Operation.JUMPDEST then (#[] : Array UInt256).push (UInt256.ofNat i) else #[])]
+      by_cases hjd : cᵢ = Operation.JUMPDEST
+      · simp only [if_pos hjd, Array.push_eq_append, Array.empty_append, Array.append_assoc]
+      · simp only [if_neg hjd, Array.empty_append]
+termination_by c.size - i
+decreasing_by all_goals (have := lt_size_of_get?_isSome h; simp only [N]; omega)
+
+/-- Appending bytes to a fixed prefix `A` only extends the scanned `JUMPDEST` set: from any position
+    `i ≤ A.size`, `D_J_aux (A ++ B) i #[]` is `D_J_aux A i #[]` followed by some suffix. -/
+theorem D_J_aux_append_left_suffix (A B : ByteArray) (i : ℕ) (hi : i ≤ A.size) :
+    ∃ suf : Array UInt256, D_J_aux (A ++ B) i #[] = D_J_aux A i #[] ++ suf := by
+  by_cases hib : i < A.size
+  · have hget : (A ++ B).get? i >>= parseInstr = A.get? i >>= parseInstr := by
+      rw [byteArray_get?_append_left A B hib]
+    cases h : A.get? i >>= parseInstr with
+    | none =>
+        rw [D_J_aux_eq_none (A ++ B) i #[] (hget.trans h), D_J_aux_eq_none A i #[] h]
+        exact ⟨#[], Array.append_empty.symm⟩
+    | some cᵢ =>
+        rw [D_J_aux_eq_some (A ++ B) i #[] cᵢ (hget.trans h), D_J_aux_eq_some A i #[] cᵢ h,
+            D_J_aux_acc (A ++ B) (N i cᵢ)
+              (if cᵢ = Operation.JUMPDEST then (#[] : Array UInt256).push (UInt256.ofNat i) else #[]),
+            D_J_aux_acc A (N i cᵢ)
+              (if cᵢ = Operation.JUMPDEST then (#[] : Array UInt256).push (UInt256.ofNat i) else #[])]
+        by_cases hN : N i cᵢ ≤ A.size
+        · obtain ⟨suf, hsuf⟩ := D_J_aux_append_left_suffix A B (N i cᵢ) hN
+          exact ⟨suf, by rw [hsuf]; simp [Array.append_assoc]⟩
+        · refine ⟨D_J_aux (A ++ B) (N i cᵢ) #[], ?_⟩
+          rw [D_J_aux_ge_size A (N i cᵢ) #[] (by omega)]
+          simp [Array.append_empty]
+  · rw [D_J_aux_ge_size A i #[] (by omega)]
+    exact ⟨D_J_aux (A ++ B) i #[], by simp⟩
+termination_by A.size - i
+decreasing_by simp only [N]; omega
+
+/-- A `JUMPDEST`-membership fact for a fixed prefix `A` survives appending an arbitrary tail `B`. -/
+theorem D_J_contains_append_left (A B : ByteArray) (pc : UInt256)
+    (h : (D_J A 0).contains pc = true) : (D_J (A ++ B) 0).contains pc = true := by
+  obtain ⟨suf, hsuf⟩ := D_J_aux_append_left_suffix A B 0 (Nat.zero_le _)
+  rw [Array.contains_iff_mem] at h ⊢
+  simp only [D_J] at h hsuf ⊢
+  rw [hsuf, Array.mem_append]
+  exact Or.inl h
+
 end Reasoning.Theory

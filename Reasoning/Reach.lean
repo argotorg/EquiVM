@@ -932,6 +932,15 @@ theorem RD.shr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.shiftRight b a :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => shr_xstep hc hp hdec hs hov)
 
+theorem RD.sgt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SGT, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sgt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => sgt_xstep hc hp hdec hs hov)
+
 theorem RD.sub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}

@@ -467,6 +467,18 @@ theorem slt_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stBinop]
 
+theorem sgt_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SGT, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok (stBinop s (UInt256.sgt a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SGT, .none) := by rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_sgt s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
+
 theorem add_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
     (hdec : decode code pcv = some (.ADD, .none))

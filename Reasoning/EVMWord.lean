@@ -457,6 +457,23 @@ theorem slt_lit_one_low {a : UInt256} {m : ℕ}
   rw [hbool]
   rfl
 
+/-- `SGT a m = 1` when both words are non-negative and `a > m`. -/
+theorem sgt_lit_one {a : UInt256} {m : ℕ}
+    (hm : m < 2 ^ 255) (hlo : m < a.toNat) (hhi : a.toNat < 2 ^ 255) :
+    UInt256.sgt a (UInt256.ofNat m) = ⟨1⟩ := by
+  have hmNat : (UInt256.ofNat m).toNat = m := ulit_toNat' m (lt_size_of_lt_sign hm)
+  have hbool : UInt256.sgtBool a (UInt256.ofNat m) = true := by
+    unfold UInt256.sgtBool
+    rw [if_neg (show ¬ a.toNat ≥ 2 ^ 255 by omega),
+        if_neg (show ¬ (UInt256.ofNat m).toNat ≥ 2 ^ 255 by rw [hmNat]; omega)]
+    exact decide_eq_true (show a > UInt256.ofNat m by
+      show (UInt256.ofNat m).toNat < a.toNat
+      rw [hmNat]
+      omega)
+  show UInt256.fromBool (UInt256.sgtBool a (UInt256.ofNat m)) = ⟨1⟩
+  rw [hbool]
+  rfl
+
 /-- `SLT a m = 1` when `a` has the sign bit set and `m` is non-negative. -/
 theorem slt_lit_one_high {a : UInt256} {m : ℕ}
     (hm : m < 2 ^ 255) (hhi : 2 ^ 255 ≤ a.toNat) :
@@ -585,5 +602,70 @@ instance : Std.LawfulEqCmp (compare : UInt256 → UInt256 → Ordering) where
     cases b
     cases hv
     rfl
+
+/-! ## Bitwise word-rounding (solc memory allocation)
+
+solc rounds an allocation size up to the next 32-byte word with `(size + 0x3f) & ~0x1f`.  These
+lemmas evaluate that rounding for a size that is already a multiple of 32 (the dynamic-array data
+length `0x20 * n`), giving the clean `size + 0x20`. -/
+
+/-- Big-endian `Nat`-level mask: anding off the low 5 bits floors to a multiple of 32.  Proved by
+    `(2^256 - 32) = (2^251 - 1) * 2^5` and bit extensionality. -/
+theorem nat_land_mask (m : ℕ) (h : m < 2 ^ 256) : m &&& (2 ^ 256 - 32) = 32 * (m / 32) := by
+  have hmask : (2:ℕ) ^ 256 - 32 = (2 ^ 251 - 1) * 2 ^ 5 := by norm_num
+  apply Nat.eq_of_testBit_eq
+  intro i
+  rw [hmask, Nat.testBit_and, Nat.testBit_mul_two_pow, Nat.testBit_two_pow_sub_one,
+    show 32 * (m / 32) = (m >>> 5) * 2 ^ 5 by rw [Nat.shiftRight_eq_div_pow]; ring,
+    Nat.testBit_mul_two_pow, Nat.testBit_shiftRight]
+  by_cases hi : 5 ≤ i
+  · simp only [hi, decide_true, Bool.true_and]
+    by_cases hi256 : i - 5 < 251
+    · simp only [hi256, decide_true, Bool.and_true]
+      rw [show 5 + (i - 5) = i by omega]
+    · simp only [hi256, decide_false, Bool.and_false]
+      have hb : m.testBit i = false := Nat.testBit_lt_two_pow (lt_of_lt_of_le h
+        (Nat.pow_le_pow_right (by norm_num) (by omega : (256:ℕ) ≤ i)))
+      rw [show 5 + (i - 5) = i by omega, hb]
+  · simp only [hi, decide_false, Bool.false_and, Bool.and_false]
+
+/-- `UInt256.land` is `Nat`-level `&&&` on `toNat` (the mask never grows past either operand). -/
+theorem uland_toNat (a b : UInt256) : (UInt256.land a b).toNat = a.toNat &&& b.toNat := by
+  unfold UInt256.land UInt256.toNat Fin.land
+  simp only []
+  exact Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.and_le_left) a.val.isLt)
+
+/-- `~0x1f` as a 256-bit word is `2^256 - 32`. -/
+theorem lnot31_toNat : (UInt256.lnot ⟨31⟩).toNat = 2 ^ 256 - 32 := by unfold UInt256.lnot; decide
+
+/-- The solc allocation word-rounding: `(x + 0x3f) &&& ~0x1f = x + 0x20` when `x` is a multiple of
+    32 (here `x = 0x20 * length` is the dynamic-array data byte-size). -/
+theorem alloc_round (x : UInt256) (n : ℕ) (hx : x.toNat = 32 * n) (hxb : x.toNat + 63 < 2 ^ 256) :
+    UInt256.land (UInt256.lnot ⟨31⟩) (x + ⟨63⟩) = x + ⟨32⟩ := by
+  apply u256_inj
+  have h63 : ((⟨63⟩ : UInt256)).toNat = 63 := by decide
+  have h32 : ((⟨32⟩ : UInt256)).toNat = 32 := by decide
+  have hsz : UInt256.size = 2 ^ 256 := by decide
+  rw [uland_toNat, lnot31_toNat, uadd_toNat, uadd_toNat, h63, h32, hsz,
+      Nat.mod_eq_of_lt (by omega : x.toNat + 63 < 2 ^ 256),
+      Nat.mod_eq_of_lt (by omega : x.toNat + 32 < 2 ^ 256),
+      Nat.and_comm, nat_land_mask _ (by omega)]
+  omega
+
+/-- `SHL` by 5 of a length literal is multiplication by 32 (no wrap for `n < 2^251`).  solc uses
+    `n << 5` to turn an element count into the `0x20 * n` data byte-size. -/
+theorem ushl5_ofNat_toNat (n : ℕ) (hn : n < 2 ^ 251) :
+    (UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩).toNat = 32 * n := by
+  have hofn : ((UInt256.ofNat n) : UInt256).toNat = n := ulit_toNat' n (lt_trans hn (by decide))
+  unfold UInt256.shiftLeft
+  rw [if_neg (by decide : ¬ ((⟨5⟩ : UInt256).val ≥ 256))]
+  show (Fin.shiftLeft (UInt256.ofNat n).val (⟨5⟩ : UInt256).val).val = 32 * n
+  unfold Fin.shiftLeft
+  show ((UInt256.ofNat n).toNat <<< (5 : ℕ)) % UInt256.size = 32 * n
+  rw [hofn, Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by
+    have hub : (2:ℕ) ^ 251 * 2 ^ 5 ≤ UInt256.size := by decide
+    calc n * 2 ^ 5 < 2 ^ 251 * 2 ^ 5 := Nat.mul_lt_mul_of_pos_right hn (by norm_num)
+      _ ≤ UInt256.size := hub)]
+  ring
 
 end Reasoning.Theory
