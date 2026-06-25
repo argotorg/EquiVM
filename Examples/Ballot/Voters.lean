@@ -103,20 +103,6 @@ theorem ballotStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
   simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
-theorem ballotStorageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 1, size := 20, hbound := by decide, type := .address }
-      = .address (AccountAddress.ofNat
-          (UInt256.land
-          (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
-            solcAddrMask).toNat) := by
-  unfold storageLocLoad wordToElem
-  simp only [Fin.val_one]
-  change Value.address (AccountAddress.ofNat
-      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
-  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]
-
 theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
@@ -166,7 +152,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, addrSt, storageTypeStep?])
           (hloc := by funext evm'; rfl),
-          ballotStorageLocLoad_address_offset1]
+          storageLocLoad_address_offset1]
         simp [votersDelegateWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       have hvote :

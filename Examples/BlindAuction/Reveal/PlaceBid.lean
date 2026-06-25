@@ -85,7 +85,7 @@ theorem scratch_eval_placeBid_highestBid
     (er := { base := "highestBid", steps := [] })
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc ⟨6⟩)]
-  · rw [blindAuctionBiddingEndStorageLocLoad_uint256, hhigh]
+  · rw [blindAuctionStorageLocLoad_uint256, hhigh]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · simp [evalStorageRef, evalStorageRefSteps, highestBidRef, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidRef, uint256St]
@@ -133,7 +133,7 @@ theorem scratch_eval_placeBid_highestBidder
     (er := { base := "highestBidder", steps := [] })
     (t := .address)
     (loc := blindAuctionAddrLoc ⟨5⟩)]
-  · rw [highestBidderStorageLocLoad_address_offset0, hold]
+  · rw [blindAuctionStorageLocLoad_address_offset0, hold]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · simp [evalStorageRef, evalStorageRefSteps, highestBidderRef, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidderRef, addrSt]
@@ -224,7 +224,7 @@ theorem scratch_eval_placeBid_pendingReturns
     (er := { base := "pendingReturns", steps := [.mindex (.address oldAddr)] })
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc (pendingReturnsSlot (.address oldAddr)))]
-  · rw [blindAuctionBiddingEndStorageLocLoad_uint256, hpending]
+  · rw [blindAuctionStorageLocLoad_uint256, hpending]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · exact scratch_evalStorageRef_placeBid_pendingReturns evm bidder oldAddr value old hold holdAddr
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, storageTypeStep?,

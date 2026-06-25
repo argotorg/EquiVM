@@ -2149,6 +2149,25 @@ theorem boolFalseReturnEncoding :
         decide)
     (by simp [encodeABIValue?, encodeABIWord?, Bool.toUInt256_false]; rfl)
 
+/-- ABI-encoding a packed-storage bool return agrees with solc's `iszero(iszero(word & 0xff))`. -/
+theorem boolWordReturnEncoding (w : UInt256) :
+    encodeReturnValue? (.elem .bool) (wordToElem .bool (UInt256.land w ⟨255⟩)) =
+      some (UInt256.toByteArray
+        (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
+  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
+  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
+      apply u256_inj
+      exact congrArg Fin.val hval
+    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
+    simpa [wordToElem, hz, hnorm] using boolFalseReturnEncoding
+  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
+      intro hx
+      apply hval
+      rw [hx]
+    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
+    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
+    simpa [wordToElem, hval, hiz, hnorm] using boolTrueReturnEncoding
+
 /-- ABI-encoding a `uint256` return value is exactly the EVM's returned word bytes. -/
 theorem uint256ReturnEncoding (v : UInt256) :
     encodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int (Int.ofNat v.toNat)) =
@@ -2163,5 +2182,16 @@ theorem uint256ReturnEncoding (v : UInt256) :
   · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
     decide
   · simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
+
+/-- ABI-encoding a `bytes32` return value is exactly the returned word's 32 bytes. -/
+theorem bytes32ReturnEncoding (w : UInt256) :
+    encodeReturnValue? (.elem (.bytes ⟨31, by decide⟩))
+        (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE w)) =
+      some (UInt256.toByteArray w) := by
+  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size w
+  refine scalarReturnEncoding (t := .bytes ⟨31, by decide⟩) (w := w) (by native_decide) ?_ ?_
+  · native_decide
+  · simp [encodeABIValue?, hlen, zeroBytes]
 
 end Reasoning.Theory

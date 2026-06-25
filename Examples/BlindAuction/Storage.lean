@@ -32,6 +32,13 @@ theorem blindAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [blindAuctionUint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
+theorem blindAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (blindAuctionAddrLoc slot) =
+      .address (AccountAddress.ofNat
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          solcAddrMask).toNat) := by
+  simpa [blindAuctionAddrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
+
 theorem blindAuctionStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionBoolLoc slot) =
       wordToElem .bool

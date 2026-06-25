@@ -19,74 +19,6 @@ def beneficiaryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev beneficiaryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (beneficiaryWord σ I) solcAddrMask
 
--- PROMOTE -> Common.lean: BlindAuction full-slot Solidity address `storageLocLoad` helper.
-theorem beneficiaryStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionAddrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  unfold storageLocLoad blindAuctionAddrLoc wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  change Value.address (AccountAddress.ofNat
-      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
-  rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [fromBytes'_take20_wordLE_solcAddrMask]
-
-abbrev beneficiaryRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
-
-theorem beneficiarySubRet32_toNat :
-    (UInt256.sub beneficiaryRetEnd ⟨128⟩).toNat = 32 := by
-  decide
-
-theorem beneficiaryRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {val ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD blindAuctionBytecode ee g s0 ⟨308⟩ (val :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
-    (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨206⟩ (beneficiaryRetEnd :: ret :: R)
-      (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
-  let rd := evm_run h with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost
-      solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
-    swap1, swap2, and, dup2,
-    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
-      (by decide) mem_cost
-      (by
-        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-          solcAddrMask from by decide]
-        rfl)
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
-  exact ⟨_, _, by simpa using rd⟩
-
-theorem beneficiaryReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {val : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD blindAuctionBytecode ee g s0 ⟨206⟩ (beneficiaryRetEnd :: R)
-        (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C)
-    (hov : R.length + 5 ≤ 1024) :
-    RDret blindAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
-  exact evm_run h with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (solcReturnMem_mload64 val)
-      (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          beneficiarySubRet32_toNat]
-        simpa using solcReturnMem_read128 val)
-      (by evm_ov)]
-
 theorem blindAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "beneficiary" = none) :
@@ -107,7 +39,7 @@ theorem blindAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
         decide
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_beneficiary),
-        beneficiaryStorageLocLoad_address_offset0])
+        blindAuctionStorageLocLoad_address_offset0])
 
 theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -130,7 +62,7 @@ theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd308 := evm_run rd293 with [
     push2 ⟨308⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩,
     shl, sub, and, dup2, jump (by jump_dest)]
-  obtain ⟨_, _, rd206⟩ := beneficiaryRoutineEncodeAddress
+  obtain ⟨_, _, rd206⟩ := blindAuctionRoutineEncodeAddress308
     (val := UInt256.land solcAddrMask (beneficiaryWord σ I)) (ret := ⟨308⟩)
     (R := [blindAuctionSelWord I]) rd308 (by simp only [List.length_singleton]; omega)
   have hval : UInt256.land solcAddrMask (beneficiaryWord σ I) =
@@ -140,7 +72,7 @@ theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
       beneficiaryReturnWord σ I := by
     rw [hval]
     exact solcAddrMask_clean (solcAddrMask_result_canonical (beneficiaryWord σ I))
-  have hret := beneficiaryReturnOneWord206 (R := [⟨308⟩, blindAuctionSelWord I]) rd206
+  have hret := blindAuctionReturnOneWord206 (R := [⟨308⟩, blindAuctionSelWord I]) rd206
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [beneficiaryReturnWord, hclean] using hret
 

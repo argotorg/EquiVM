@@ -1580,7 +1580,7 @@ theorem evalExpr_reveal_biddingEnd (evm : EVM.State) (locals : Store)
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-  rw [blindAuctionBiddingEndStorageLocLoad_uint256]
+  rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_reveal_revealEnd (evm : EVM.State) (locals : Store)
     (hbase : locals.get? revealEndRef.base = none) :
@@ -1597,7 +1597,7 @@ theorem evalExpr_reveal_revealEnd (evm : EVM.State) (locals : Store)
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
-  rw [blindAuctionRevealEndStorageLocLoad_uint256]
+  rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_reveal_afterBiddingEnd_true (evm : EVM.State) (locals : Store)
     (hbase : locals.get? biddingEndRef.base = none)
@@ -1933,7 +1933,7 @@ theorem evalExpr_reveal_bids_length_zero (evm : EVM.State) (locals : Store)
   change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
     | Value.int n => pure (Value.int n)
     | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
-  rw [blindAuctionBiddingEndStorageLocLoad_uint256, hlen]
+  rw [blindAuctionStorageLocLoad_uint256, hlen]
   rfl
 
 theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len : UInt256)
@@ -1970,7 +1970,7 @@ theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len 
   change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
     | Value.int n => pure (Value.int n)
     | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
-  rw [blindAuctionBiddingEndStorageLocLoad_uint256, hlen]
+  rw [blindAuctionStorageLocLoad_uint256, hlen]
   rfl
 
 theorem blindAuctionRevealBodyReturns_empty_callSuccess

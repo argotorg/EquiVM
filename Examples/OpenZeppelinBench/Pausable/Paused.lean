@@ -145,7 +145,7 @@ theorem pausablePausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
       returnEquiv_of_encode (abit := boolTy) (rv := wordToElem .bool (pausedWord σ_evm I))
         (o := UInt256.toByteArray (pausedReturnWord σ_evm I))
         (by simpa [pausedWord, pausedReturnWord] using
-          pausableBoolReturnEncoding (pausedRawWord σ_evm I))
+          boolWordReturnEncoding (pausedRawWord σ_evm I))
   exact (pausableX_paused (g := Sat256.ofUInt256 g) hreach)
     |>.reEquivExecutionTransport hcode hd hdec hbody
       hretVal hAccounts henc

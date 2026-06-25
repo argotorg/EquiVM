@@ -87,13 +87,8 @@ theorem simpleAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UI
       .address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           solcAddrMask).toNat) := by
-  unfold storageLocLoad simpleAuctionAddrLoc wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  change Value.address (AccountAddress.ofNat
-      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
-  rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [fromBytes'_take20_wordLE_solcAddrMask]
+  simpa [simpleAuctionAddrLoc, addressOffset0Loc] using
+    storageLocLoad_address_offset0 evm slot
 
 theorem simpleAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (simpleAuctionUint256Loc slot)

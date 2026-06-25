@@ -781,20 +781,6 @@ theorem resolveStorageRef_delegate_senderField_afterDelegate (evm : EVM.State) (
   simp [evalStorageRefFrom?, evalStorageRefStep, delegateSenderRef, delegateSenderFieldRef,
     EvalResult.bind, EvalResult.ofOption, bind, pure, hty]
 
-theorem delegateStorageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 1, size := 20, hbound := by decide, type := .address }
-      = .address (AccountAddress.ofNat
-          (UInt256.land
-          (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
-            solcAddrMask).toNat) := by
-  unfold storageLocLoad wordToElem
-  simp only [Fin.val_one]
-  change Value.address (AccountAddress.ofNat
-      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
-  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]
-
 -- LIBRARY CANDIDATE: `Reasoning.Solm` / packed storage writes.
 -- Byte recomposition for the packed `bool,address` slot used by `delegate`.
 theorem delegatePackedAddressAfterBoolTrueBytes_toNat (old val : UInt256)
@@ -856,7 +842,7 @@ theorem evalExpr_delegate_voter_delegate (evm : EVM.State) (I : ExecutionEnv) :
           hbound := _, type := .address }) =
       EvalResult.ok
         (Value.address (AccountAddress.ofNat (delegateVoterDelegateWordCurrent evm I).toNat))
-    rw [delegateStorageLocLoad_address_offset1]
+    rw [storageLocLoad_address_offset1]
     simp [delegateVoterDelegateWordCurrent, delegateVoterPackedCurrent]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]

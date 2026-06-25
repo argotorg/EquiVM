@@ -189,7 +189,7 @@ theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_beneficiary)]
-  rw [beneficiaryStorageLocLoad_address_offset0]
+  rw [blindAuctionStorageLocLoad_address_offset0]
   rfl
 
 theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :

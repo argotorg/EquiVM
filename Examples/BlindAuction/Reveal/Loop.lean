@@ -1173,7 +1173,7 @@ theorem scratch_evalExpr_reveal_bid_deposit (evm : EVM.State) (locals : Store)
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))
     (scratch_revealBid_deposit_layout evm i)]
-  rw [blindAuctionBiddingEndStorageLocLoad_uint256, hdeposit]
+  rw [blindAuctionStorageLocLoad_uint256, hdeposit]
 
 theorem scratch_evalExpr_reveal_placeBid_cond_true (evm : EVM.State) (locals : Store)
     (i value deposit : UInt256)

@@ -13,11 +13,6 @@ namespace BlindAuction
 def biddingEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
 
-theorem blindAuctionBiddingEndStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionUint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  exact blindAuctionStorageLocLoad_uint256 evm slot
-
 theorem blindAuctionBiddingEndBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "biddingEnd" = none) :
@@ -37,9 +32,8 @@ theorem blindAuctionBiddingEndBodyReturns (evm : EVM.State) (locals : Store)
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-      rw [blindAuctionBiddingEndStorageLocLoad_uint256])
+      rw [blindAuctionStorageLocLoad_uint256])
 
--- PROMOTE -> Common.lean: parameterize this `callvalue == 0; SLOAD slot; uint256 RETURN` getter trace.
 theorem blindAuctionX_biddingEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
@@ -60,32 +54,11 @@ theorem blindAuctionX_biddingEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [biddingEndWord, initState] using rd371₀⟩
   have rd373 := evm_run rd371 with [
     dup2, jump (by jump_dest)]
-  have rd206 := evm_run rd373 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost
-      solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
-    swap1, dup2,
-    raw mstore 6 (solcReturnMem (biddingEndWord σ I)) (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
-  exact evm_run rd206 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (solcReturnMem_mload64 (biddingEndWord σ I))
-      (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (biddingEndWord σ I)) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
-          solcReturnMem_read128])
-      (by evm_ov)]
+  obtain ⟨_, _, rd206⟩ := blindAuctionRoutineEncodeWord373
+    (val := biddingEndWord σ I) (ret := ⟨373⟩) (R := [blindAuctionSelWord I])
+    rd373 (by simp only [List.length_singleton]; omega)
+  exact blindAuctionReturnOneWord206 (R := [⟨373⟩, blindAuctionSelWord I]) rd206
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem blindAuctionX_biddingEnd_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)

@@ -11,11 +11,6 @@ namespace BlindAuction
 def blindAuctionRevealEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
 
-theorem blindAuctionRevealEndStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionUint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  exact blindAuctionStorageLocLoad_uint256 evm slot
-
 theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "revealEnd" = none) :
@@ -35,7 +30,7 @@ theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
-      rw [blindAuctionRevealEndStorageLocLoad_uint256])
+      rw [blindAuctionStorageLocLoad_uint256])
 
 theorem blindAuctionX_revealEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -57,34 +52,11 @@ theorem blindAuctionX_revealEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [blindAuctionRevealEndWord, initState] using rd487₀⟩
   have rd373 := evm_run rd487 with [
     dup2, jump (by jump_dest)]
-  have rd206 := evm_run rd373 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost
-      solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
-    swap1, dup2,
-    raw mstore 6 (solcReturnMem (blindAuctionRevealEndWord σ I)) (UInt256.ofNat 5)
-      (by decide) mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
-        rfl)
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
-  exact evm_run rd206 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (solcReturnMem_mload64 (blindAuctionRevealEndWord σ I))
-      (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (blindAuctionRevealEndWord σ I)) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide]
-        simpa using solcReturnMem_read128 (blindAuctionRevealEndWord σ I))
-      (by evm_ov)]
+  obtain ⟨_, _, rd206⟩ := blindAuctionRoutineEncodeWord373
+    (val := blindAuctionRevealEndWord σ I) (ret := ⟨373⟩) (R := [blindAuctionSelWord I])
+    rd373 (by simp only [List.length_singleton]; omega)
+  exact blindAuctionReturnOneWord206 (R := [⟨373⟩, blindAuctionSelWord I]) rd206
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem blindAuctionX_revealEnd_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)

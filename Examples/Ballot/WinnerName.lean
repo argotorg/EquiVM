@@ -226,15 +226,6 @@ theorem ballotWinnerNameBodyReverts_oob (evm : EVM.State)
       ExecBlock.consNormal hcall <|
         ExecBlock.consRevert (ExecStmt.returnRevert hret)
 
-theorem ballotBytes32ReturnEncoding (w : UInt256) :
-    encodeReturnValue? bytes32 (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE w)) =
-      some (UInt256.toByteArray w) := by
-  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size w
-  refine scalarReturnEncoding (t := .bytes ⟨31, by decide⟩) (w := w) (by native_decide) ?_ ?_
-  · native_decide
-  · simp [encodeABIValue?, hlen, zeroBytes]
-
 /-! ## EVM body for `winnerName` -/
 
 theorem winnerNameNameSlot_evm (w : UInt256) :
@@ -442,7 +433,11 @@ theorem ballotWinnerNameBodyCore
     exact (ballotX_winnerName_ok (g := Sat256.ofUInt256 g) hbound hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname])
         hAccounts
-        (returnEquiv_of_encode (ballotBytes32ReturnEncoding (winnerNameNameWord σ_evm I)))
+        (returnEquiv_of_encode (abit := bytes32)
+          (rv := .fixedBytes ⟨31, by decide⟩
+            (EVM.Word.toBytesBE (winnerNameNameWord σ_evm I)))
+          (o := UInt256.toByteArray (winnerNameNameWord σ_evm I))
+          (by simpa [bytes32] using bytes32ReturnEncoding (winnerNameNameWord σ_evm I)))
   · have hboundCurrent :
         ¬ (winningProposalResultCurrent
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).toNat <

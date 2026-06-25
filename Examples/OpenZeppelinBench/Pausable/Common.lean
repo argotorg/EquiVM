@@ -76,23 +76,6 @@ theorem pausableEventMem_mload64 (I : ExecutionEnv) :
   exact mloadFreePtrValue (by rw [pausableEventMem_size]; decide) (by decide)
     (pausableEventMem_read64 I)
 
-theorem pausableBoolReturnEncoding (w : UInt256) :
-    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
-      some (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
-  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
-  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
-      apply u256_inj
-      exact congrArg Fin.val hval
-    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
-  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
-      intro hx
-      apply hval
-      rw [hx]
-    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
-    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
-    simpa [boolTy, wordToElem, hval, hiz, hnorm] using boolTrueReturnEncoding
-
 theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
     (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩)
     (hlocals : locals.get? "_paused" = none) :

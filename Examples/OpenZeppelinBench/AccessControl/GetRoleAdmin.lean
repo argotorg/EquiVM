@@ -548,8 +548,12 @@ theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ_solm σ₀ A I}
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv)
       exact (accessControlGetRoleAdminX (g := Sat256.ofUInt256 g) hsz36 hsize hbig hreach)
-        |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]; rfl) hAccounts
-          (returnEquiv_of_encode (accessControlBytes32ReturnEncoding (getRoleAdminWord σ_evm I)))
+        |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
+          (returnEquiv_of_encode (abit := bytes32)
+            (rv := .fixedBytes bytes32Width (EVM.Word.toBytesBE (getRoleAdminWord σ_evm I)))
+            (o := UInt256.toByteArray (getRoleAdminWord σ_evm I))
+            (by simpa [bytes32, bytes32Width] using
+              bytes32ReturnEncoding (getRoleAdminWord σ_evm I)))
     · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
       have hdec := accessControlDecode_getRoleAdmin_none_huge (I := I) hbigge
       have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=

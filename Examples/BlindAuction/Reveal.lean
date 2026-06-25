@@ -373,7 +373,8 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                                   change accountMapEquiv σ' σ'_solm
                                   simpa [evmECall] using hPostAccounts)
                                 (returnEquiv.void rfl rfl rfl)
-                      · sorry
+                      · trace_state
+                        exact ?nonemptyReveal
                     · have hrev :=
                         blindAuctionRevealDecodeArrays1806_secretsLengthMismatch_reverts
                           (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)

@@ -22,27 +22,6 @@ abbrev endedMaskedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev endedReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.isZero (UInt256.isZero (endedMaskedWord σ I))
 
-theorem blindAuctionBoolTrueReturnEncoding :
-    encodeReturnValue? boolTy (.bool true) = some (UInt256.toByteArray ⟨1⟩) := by
-  simpa [boolTy] using boolTrueReturnEncoding
-
-theorem blindAuctionBoolReturnEncoding (w : UInt256) :
-    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land ⟨255⟩ w)) =
-      some (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ w)))) := by
-  by_cases hval : (UInt256.land ⟨255⟩ w).val = 0
-  · have hz : UInt256.land ⟨255⟩ w = ⟨0⟩ := by
-      apply u256_inj
-      exact congrArg Fin.val hval
-    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
-  · have hz : UInt256.land ⟨255⟩ w ≠ ⟨0⟩ := by
-      intro hx
-      apply hval
-      rw [hx]
-    have hiz : UInt256.isZero (UInt256.land ⟨255⟩ w) = ⟨0⟩ := isZero_eq_zero_of_ne hz
-    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
-    simpa [wordToElem, hval, hiz, hnorm] using blindAuctionBoolTrueReturnEncoding
-
 theorem blindAuctionEndedBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "ended" = none) :
@@ -97,20 +76,8 @@ theorem blindAuctionX_ended {cA gh bl σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
-  exact evm_run rd206 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (solcReturnMem_mload64 (endedReturnWord σ I))
-      (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (endedReturnWord σ I)) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide]
-        simpa using solcReturnMem_read128 (endedReturnWord σ I))
-      (by evm_ov)]
+  exact blindAuctionReturnOneWord206 (R := [⟨240⟩, blindAuctionSelWord I]) rd206
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem blindAuctionX_ended_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
@@ -195,7 +162,13 @@ theorem blindAuctionEndedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
     exact (blindAuctionX_ended (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [endedMaskedWord, hword])
         hAccounts
-        (returnEquiv_of_encode (blindAuctionBoolReturnEncoding (endedWord σ_evm I)))
+        (returnEquiv_of_encode (abit := boolTy)
+          (rv := wordToElem .bool (endedMaskedWord σ_evm I))
+          (o := UInt256.toByteArray (endedReturnWord σ_evm I))
+          (by
+            rw [endedReturnWord, endedMaskedWord]
+            rw [Reasoning.Theory.u256_land_comm ⟨255⟩ (endedWord σ_evm I)]
+            simpa [boolTy] using boolWordReturnEncoding (endedWord σ_evm I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

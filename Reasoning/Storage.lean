@@ -1,5 +1,6 @@
 import Reasoning.EVMWord
 import Reasoning.Memory
+import Reasoning.Solc
 import Reasoning.Stepping
 
 /-!
@@ -148,6 +149,44 @@ theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Val
   rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
     List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
     List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+/-! ## Solidity address storage at byte offset 0 -/
+
+def addressOffset0Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
+
+theorem storageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (addressOffset0Loc slot) =
+      .address (AccountAddress.ofNat
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          solcAddrMask).toNat) := by
+  unfold storageLocLoad addressOffset0Loc wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  change Value.address (AccountAddress.ofNat
+      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
+  rw [List.extract_eq_take_drop, List.drop_zero]
+  rw [fromBytes'_take20_wordLE_solcAddrMask]
+
+/-! ## Solidity address storage at byte offset 1 -/
+
+def addressOffset1Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 1, size := 20, hbound := by decide, type := .address }
+
+theorem storageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256)
+    {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32} :
+    storageLocLoad evm
+        { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address } =
+      .address (AccountAddress.ofNat
+        (UInt256.land
+          (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
+          solcAddrMask).toNat) := by
+  unfold storageLocLoad wordToElem
+  simp only [Fin.val_one]
+  change Value.address (AccountAddress.ofNat
+      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
+  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]
 
 /-! ## Packed bool storage at byte offset 0 -/
 

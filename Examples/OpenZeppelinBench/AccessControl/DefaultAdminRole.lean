@@ -130,6 +130,7 @@ theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
       (by simp only [initState]; exact hwv)
   exact (accessControlX_defaultAdminRole (g := Sat256.ofUInt256 g) hreach)
     |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
-      (returnEquiv_of_encode (accessControlBytes32ReturnEncoding defaultAdminRoleWord))
+      (returnEquiv_of_encode (by
+        simpa [bytes32] using bytes32ReturnEncoding defaultAdminRoleWord))
 
 end OpenZeppelinBench.AccessControl

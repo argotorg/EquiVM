@@ -605,7 +605,7 @@ theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
   rw [evalExpr_storage_scalar (t := .int uint256Int)
     (hbase := by simp [bidStore, biddingEndRef])
     (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-  rw [blindAuctionBiddingEndStorageLocLoad_uint256]
+  rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_bid_time_true (evm : EVM.State)
     (htime :

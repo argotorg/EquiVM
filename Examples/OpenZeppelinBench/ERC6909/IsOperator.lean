@@ -448,28 +448,6 @@ theorem isOperatorReturnMem_read128 (owner spender val : UInt256) :
     change (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).size ≤ 32
     rw [toByteArray_size])
 
-theorem erc6909BoolTrueReturnEncoding :
-    encodeReturnValue? boolTy (.bool true) = some (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  simpa [boolTy] using boolTrueReturnEncoding
-
-theorem erc6909BoolReturnEncoding (w : UInt256) :
-    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
-      some (UInt256.toByteArray
-        (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
-  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
-  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
-      apply u256_inj
-      exact congrArg Fin.val hval
-    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
-  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
-      intro hx
-      apply hval
-      rw [hx]
-    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
-    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
-    simpa [wordToElem, hval, hiz, hnorm] using erc6909BoolTrueReturnEncoding
-
 /-! ## EVM trace for `isOperator(address,address)` -/
 
 
@@ -797,7 +775,11 @@ theorem erc6909IsOperatorBodyCore
               hsz68 hsize hbig hcanonOwner hcanonSpender hreach)
             |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword])
               hAccounts
-              (returnEquiv_of_encode (erc6909BoolReturnEncoding (isOperatorStorageWord σ_evm I)))
+              (returnEquiv_of_encode (abit := boolTy)
+                (rv := wordToElem .bool (UInt256.land (isOperatorStorageWord σ_evm I) ⟨255⟩))
+                (o := UInt256.toByteArray (isOperatorReturnWord σ_evm I))
+                (by simpa [boolTy, isOperatorReturnWord] using
+                  boolWordReturnEncoding (isOperatorStorageWord σ_evm I)))
         · have hdec := erc6909Decode_isOperator_none_noncanon_spender
             (I := I) hsz68 hbig hcanonOwner hcanonSpender
           have hnc : UInt256.eq (isOperatorSpenderWord I)

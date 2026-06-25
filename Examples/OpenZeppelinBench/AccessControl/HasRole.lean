@@ -181,25 +181,6 @@ theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [roleHasRoleRef] using evalExpr_hasRole_storage evm I)
 
--- PROMOTE -> Common.lean: bool return encoding for packed low-byte storage words.
-theorem accessControlBoolReturnEncoding (w : UInt256) :
-    encodeReturnValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =
-      some (UInt256.toByteArray
-        (UInt256.isZero (UInt256.isZero (UInt256.land w ⟨255⟩)))) := by
-  by_cases hval : (UInt256.land w ⟨255⟩).val = 0
-  · have hz : UInt256.land w ⟨255⟩ = ⟨0⟩ := by
-      apply u256_inj
-      exact congrArg Fin.val hval
-    have hnorm : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by decide
-    simpa [boolTy, wordToElem, hz, hnorm] using boolFalseReturnEncoding
-  · have hz : UInt256.land w ⟨255⟩ ≠ ⟨0⟩ := by
-      intro hx
-      apply hval
-      rw [hx]
-    have hiz : UInt256.isZero (UInt256.land w ⟨255⟩) = ⟨0⟩ := isZero_eq_zero_of_ne hz
-    have hnorm : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide
-    simpa [boolTy, wordToElem, hval, hiz, hnorm] using boolTrueReturnEncodingAC
-
 theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     keyValueToWord (hasRoleRoleKey I) = hasRoleRoleWord I := by
   have htlen : I.calldata.toList.length = I.calldata.size := by
@@ -716,7 +697,7 @@ theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
           |>.reEquivExecutionTransport hcode hd hdec hbody hretVal hAccounts
             (returnEquiv_of_encode (by
               simpa [hasRoleMaskedWord, hasRoleReturnWord] using
-                accessControlBoolReturnEncoding (hasRoleStorageWord σ_evm I)))
+                boolWordReturnEncoding (hasRoleStorageWord σ_evm I)))
       · have hdec := accessControlDecode_hasRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (hasRoleAccountWord I)

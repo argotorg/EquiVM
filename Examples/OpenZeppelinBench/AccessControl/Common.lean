@@ -496,13 +496,4 @@ theorem boolTrueReturnEncodingAC :
     encodeReturnValue? boolTy (.bool true) = some (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   simpa [boolTy] using boolTrueReturnEncoding
 
-theorem accessControlBytes32ReturnEncoding (w : UInt256) :
-    encodeReturnValue? bytes32 (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE w)) =
-      some (UInt256.toByteArray w) := by
-  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size w
-  refine scalarReturnEncoding (t := .bytes ⟨31, by decide⟩) (w := w) (by native_decide) ?_ ?_
-  · native_decide
-  · simp [encodeABIValue?, hlen, zeroBytes]
-
 end OpenZeppelinBench.AccessControl

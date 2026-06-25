@@ -145,7 +145,7 @@ theorem evalExpr_delegate_current_voter_delegate (evm : EVM.State) (I : Executio
         { slot := delegateVoterPackedSlot w, offset := 1, size := 20,
           hbound := _, type := .address }) =
       EvalResult.ok (delegateCurrentNextValue evm w)
-    rw [delegateStorageLocLoad_address_offset1]
+    rw [storageLocLoad_address_offset1]
     simp [delegateCurrentNextValue, delegateCurrentVoterDelegateWordCurrent,
       delegateCurrentVoterPackedCurrent]
   rw [evalExpr?]
