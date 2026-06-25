@@ -70,4 +70,21 @@ theorem decode_append_left (A B : ByteArray) (pc : UInt256)
             · exact hwin64 b instr hget hinstr
             · exact hwin b instr hget hinstr
 
+/-- Every EVM instruction carries at most 32 immediate argument bytes (`PUSH32`). -/
+theorem argOnNBytesOfInstr_le_32 (i : Operation) : argOnNBytesOfInstr i ≤ 32 := by
+  cases i <;> first | decide | (rename_i p; cases p <;> decide)
+
+/-- A ready-to-apply form of `decode_append_left`: appending arbitrary bytes to a fixed prefix `A`
+    leaves the decode at `pc` unchanged whenever the *whole* maximal instruction window
+    (`pc + 1 + 32`, the `PUSH32` worst case) still lies inside `A`.  The window/`2^64` side
+    conditions are discharged from `argOnNBytesOfInstr_le_32`, so callers supply only the single
+    arithmetic fact `pc + 33 ≤ A.size` (plus `A.size < 2^64`, trivial for any real bytecode). -/
+theorem decode_append_left_window (A B : ByteArray) (pc : UInt256)
+    (hwin : pc.toNat + 33 ≤ A.size) (hsize : A.size < 2 ^ 64) :
+    decode (A ++ B) pc = decode A pc := by
+  apply decode_append_left A B pc
+  · omega
+  · intro b instr _ _; have := argOnNBytesOfInstr_le_32 instr; omega
+  · intro b instr _ _; have := argOnNBytesOfInstr_le_32 instr; omega
+
 end Reasoning.Theory

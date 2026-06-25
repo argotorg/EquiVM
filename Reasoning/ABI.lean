@@ -2194,4 +2194,22 @@ theorem bytes32ReturnEncoding (w : UInt256) :
   · native_decide
   · simp [encodeABIValue?, hlen, zeroBytes]
 
+/-- ABI encoding of a single dynamic-array (static element type) constructor/calldata argument:
+    a 32-byte offset (always `0x20`), a 32-byte length, then the statically-encoded elements.
+    The workhorse for decoding the deployment shape of a `T[] memory` constructor parameter. -/
+theorem encodeABIValues_single_dynArray_static
+    {elemTy : ABIType} {vs : List Value}
+    (hstatic : ABI.isDynamicABIType elemTy = false) :
+    ABI.encodeABIValues? [.dynamicArray elemTy] [.array vs]
+      = (ABI.encodeABIStaticArrayElems? elemTy vs).bind
+          (fun e => some (ABI.natBytes 32 ++ (ABI.natBytes vs.length ++ e))) := by
+  unfold ABI.encodeABIValues?
+  cases h : ABI.encodeABIStaticArrayElems? elemTy vs with
+  | none =>
+      simp [ABI.abiTupleHeadSize?, ABI.isDynamicABIType, ABI.encodeABIValuesFrom?,
+        ABI.encodeABIValue?, ABI.encodeABIArrayElems?, hstatic, h]
+  | some e =>
+      simp [ABI.abiTupleHeadSize?, ABI.isDynamicABIType, ABI.encodeABIValuesFrom?,
+        ABI.encodeABIValue?, ABI.encodeABIArrayElems?, hstatic, h]
+
 end Reasoning.Theory

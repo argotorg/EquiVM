@@ -49,6 +49,195 @@ theorem scratch_reveal_aw_mload64_of_ge3 {aw : UInt256} (haw : 3 ≤ aw.toNat) :
   · omega
   · exact lt_of_le_of_lt (by omega : max aw.toNat 3 ≤ aw.toNat) aw.val.isLt
 
+theorem scratch_revealPackedHashWord_toBytesBE (value : UInt256) (fake : Bool)
+    (secret : UInt256) :
+    EVM.Word.toBytesBE
+        (uInt256OfByteArray
+          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
+      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList :=
+  toBytesBE_keccak_uInt256OfByteArray _
+
+theorem scratch_revealPackedHash_ne_of_word_ne {blinded value secret : UInt256}
+    {fake : Bool}
+    (hne :
+      blinded ≠
+        uInt256OfByteArray
+          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) :
+    EVM.Word.toBytesBE blinded ≠
+      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList := by
+  intro hbytes
+  apply hne
+  apply word_toBytesBE_inj
+  rw [hbytes, scratch_revealPackedHashWord_toBytesBE value fake secret]
+
+theorem scratch_word_ne_of_u256_eq_zero {a b : UInt256}
+    (h : UInt256.eq a b = ⟨0⟩) : a ≠ b := by
+  intro heq
+  rw [heq, u256_eq_refl] at h
+  have hnat := congrArg UInt256.toNat h
+  change (1 : Nat) = 0 at hnat
+  omega
+
+theorem scratch_revealPackedHash_eq_of_u256_eq_one {blinded value secret : UInt256}
+    {fake : Bool}
+    (h :
+      UInt256.eq blinded
+          (uInt256OfByteArray
+            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
+        ⟨1⟩) :
+    EVM.Word.toBytesBE blinded =
+      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList := by
+  have hword := uInt256_eq_one_eq h
+  rw [hword, scratch_revealPackedHashWord_toBytesBE value fake secret]
+
+theorem scratch_revealPackedHash_ne_of_u256_eq_zero {blinded value secret : UInt256}
+    {fake : Bool}
+    (h :
+      UInt256.eq blinded
+          (uInt256OfByteArray
+            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
+        ⟨0⟩) :
+    EVM.Word.toBytesBE blinded ≠
+      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList := by
+  exact scratch_revealPackedHash_ne_of_word_ne
+    (scratch_word_ne_of_u256_eq_zero h)
+
+set_option maxHeartbeats 1000000 in
+theorem scratch_blindAuctionRevealX_callMade_fromCall_general {I} {g : Sat256}
+    {s0 : State} {k C : ℕ}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {gasArg refund len freePtr revealEnd biddingEnd valuesLen valuesEnd fakesLen fakesEnd
+      secretsLen secretsEnd sel : UInt256}
+    {mem : ByteArray} {aw : UInt256}
+    (hperm : I.perm = true)
+    (hbalance : refund ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : I.depth.val < 1024)
+    (rd : RD blindAuctionBytecode I g s0 ⟨1349⟩
+      [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,
+        freePtr, refund, revealScratchSenderWord I, ⟨0⟩, refund, len,
+        revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨276⟩, sel]
+      mem aw ByteArray.empty (cA, σ) k C)
+    (hawCall :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat (⟨0⟩ : UInt256).toNat)
+          freePtr.toNat (⟨0⟩ : UInt256).toNat) = aw) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
+          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+          (AccountAddress.ofUInt256 (revealScratchSenderWord I))
+          (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          callGas (UInt256.ofNat I.gasPrice) refund refund
+          ByteArray.empty (I.depth + 1) I.header I.perm)
+      ∧ o.size < 2 ^ 255
+      ∧ RD blindAuctionBytecode I g s0 ⟨1350⟩
+          [(if z then ⟨1⟩ else ⟨0⟩), freePtr, refund, revealScratchSenderWord I,
+            ⟨0⟩, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
+            fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
+          mem aw o (cA', σ') k' C' := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀⟩ :=
+    RD.callValueMade rd (by decide) hperm hbalance hdepth (by simp)
+  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
+    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
+      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
+      exact Nat.zero_le _
+    simp [min, hle]
+  have hcd : mem.readWithPadding freePtr.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
+    exact byteArray_readWithPadding_zero _ _
+  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
+      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
+        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
+        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+        callGas (UInt256.ofNat I.gasPrice) refund refund
+        ByteArray.empty (I.depth + 1) I.header I.perm := by
+    rcases hΘ with ⟨g'', A', hΘeq⟩
+    refine ⟨g'', A', ?_⟩
+    rw [hcd] at hΘeq
+    exact hΘeq
+  have ho255 : o.size < 2 ^ 255 := by
+    rcases hΘ' with ⟨g'', A', hΘeq⟩
+    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
+        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
+        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+        callGas (UInt256.ofNat I.gasPrice) refund refund
+        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
+      congrArg (fun t => t.2.2.2.2.2) hΘeq
+    rw [ho]
+    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
+    by simpa [revealScratchSenderWord] using rd1350₀⟩
+
+set_option maxHeartbeats 1000000 in
+theorem scratch_blindAuctionRevealX_callDepth_fromCall_general {I} {g : Sat256}
+    {s0 : State} {k C : ℕ}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {gasArg refund len freePtr revealEnd biddingEnd valuesLen valuesEnd fakesLen fakesEnd
+      secretsLen secretsEnd sel : UInt256}
+    {mem : ByteArray} {aw : UInt256}
+    (hperm : I.perm = true)
+    (hdepth : I.depth = 1024)
+    (rd : RD blindAuctionBytecode I g s0 ⟨1349⟩
+      [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,
+        freePtr, refund, revealScratchSenderWord I, ⟨0⟩, refund, len,
+        revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨276⟩, sel]
+      mem aw ByteArray.empty (cA, σ) k C)
+    (hawCall :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat (⟨0⟩ : UInt256).toNat)
+          freePtr.toNat (⟨0⟩ : UInt256).toNat) = aw) :
+    ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1350⟩
+      [⟨0⟩, freePtr, refund, revealScratchSenderWord I, ⟨0⟩, refund, len,
+        revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨276⟩, sel]
+      mem aw ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨k', C', rd1350₀⟩ :=
+    RD.callValueDepthLimit rd hperm (by decide) hdepth (by simp)
+  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    decide
+  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
+  exact ⟨k', C', by simpa [revealScratchSenderWord] using rd1350₀⟩
+
+set_option maxHeartbeats 1000000 in
+theorem scratch_blindAuctionRevealX_callInsufficient_fromCall_general {I} {g : Sat256}
+    {s0 : State} {k C : ℕ}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {gasArg refund len freePtr revealEnd biddingEnd valuesLen valuesEnd fakesLen fakesEnd
+      secretsLen secretsEnd sel : UInt256}
+    {mem : ByteArray} {aw : UInt256}
+    (hperm : I.perm = true)
+    (hbalance : ¬ refund ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : I.depth.val < 1024)
+    (rd : RD blindAuctionBytecode I g s0 ⟨1349⟩
+      [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,
+        freePtr, refund, revealScratchSenderWord I, ⟨0⟩, refund, len,
+        revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨276⟩, sel]
+      mem aw ByteArray.empty (cA, σ) k C)
+    (hawCall :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat (⟨0⟩ : UInt256).toNat)
+          freePtr.toNat (⟨0⟩ : UInt256).toNat) = aw) :
+    ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1350⟩
+      [⟨0⟩, freePtr, refund, revealScratchSenderWord I, ⟨0⟩, refund, len,
+        revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen,
+        valuesEnd, ⟨276⟩, sel]
+      mem aw ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨k', C', rd1350₀⟩ :=
+    RD.callValueInsufficientBalance rd hperm (by decide) hbalance hdepth (by simp)
+  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    decide
+  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
+  exact ⟨k', C', by simpa [revealScratchSenderWord] using rd1350₀⟩
+
 def scratch_revealPanicSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩
 
@@ -101,6 +290,25 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
       rw [hM, u256_ofNat_toNat]
       omega)
     (by evm_ov)
+
+theorem scratch_blindAuctionCheckedAddOverflowRevert {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat} {a b ret : UInt256} {R : List UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    (rd : RD blindAuctionBytecode ee g s0 ⟨2045⟩ (a :: b :: ret :: R)
+      mem aw rdata acc k C)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (haw : 3 ≤ aw.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev blindAuctionBytecode g s0 := by
+  have hgt := scratch_blindAuctionCheckedAddOverflowGt a b hover
+  have rd2052₀ := evm_run rd with [jumpdest, dup1, dup3, add, dup1, dup3, gt]
+  have rd2052 := rd2052₀
+  rw [hgt] at rd2052
+  have rd1967 := evm_run rd2052 with [
+    iszero, push2 ⟨1654⟩, jumpiNT (by decide), push2 ⟨1967⟩,
+    jump (by jump_dest)]
+  exact RD.blindAuctionPanic32Revert1967 rd1967 haw (by simp at hov ⊢; omega)
 
 theorem scratch_revealBid_arrayIndexInBounds_revert (evm : EVM.State) (i curLen : UInt256)
     (hlen :

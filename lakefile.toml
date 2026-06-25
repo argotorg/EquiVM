@@ -23,6 +23,10 @@ globs = ["Examples.+"]
 name = "Reasoning"
 globs = ["Reasoning.+"]
 
+[[lean_lib]]
+name = "Proofs"
+globs = ["Proofs.+"]
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"

@@ -7,14 +7,13 @@ import Mathlib.Data.Nat.Digits.Lemmas
 # Memory — reusable EVM memory / `ByteArray` lemmas
 
 The EVM `MSTORE`/`MLOAD`/`RETURN` and the `UInt256.toByteArray` word encoding are *computable*
-`ByteArray` operations — **not** opaque like `D_J`/keccak.  The single genuine opacity is the
-*content* of `ffi.ByteArray.zeroes` (the `memset_zero` extern): evmlean axiomatizes only its
-**size** (`ByteArray_zeroes_size`), not that the bytes are `0`.  The additional extern-spec
-fact (`byteArray_zeroes_toList`) is isolated here, and **everything else** is proved as generic,
-contract-agnostic
-lemmas: the big-endian byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
-`MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
-encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
+`ByteArray` operations — **not** opaque like `D_J`/keccak.  The genuine opacities isolated here
+are extern-spec facts: `ffi.ByteArray.zeroes` (`memset_zero`) returns zero bytes, and
+`ffi.KEC` (`keccak256`) returns 32 bytes.  Everything else is proved as generic,
+contract-agnostic lemmas: the big-endian byte round-trip,
+`fromByteArrayBigEndian ∘ toByteArray = toNat`, the `MSTORE`-then-`MLOAD`/`RETURN` round-trip,
+and the `toByteArray`/`toBytesBE` bridge.  ABI-level encode/decode reasoning lives in
+`Reasoning.ABI` (which imports this module).
 -/
 
 open Ethereum Ethereum.EVM Solm ABI
@@ -28,6 +27,11 @@ namespace Reasoning.Theory
     not already derivable from the base.  Everything below is proved from it. -/
 axiom byteArray_zeroes_toList (n : USize) :
     (ffi.ByteArray.zeroes n).data.toList = List.replicate n.toNat 0
+
+/-- **Trusted (extern spec).** Keccak-256 returns a 32-byte digest.  This does not assert
+    collision-resistance or injectivity; it only exposes the byte length guaranteed by the FFI
+    implementation of `ffi.KEC`. -/
+axiom keccak_size (b : ByteArray) : (ffi.KEC b).size = 32
 
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 
@@ -866,6 +870,21 @@ theorem word_toBytesBE_toByteArray_size (w : UInt256) :
     (EVM.Word.toBytesBE w).toByteArray.size = 32 := by
   rw [word_toBytesBE_toByteArray_eq_toByteArray, toByteArray_size]
 
+theorem word_toBytesBE_inj {a b : UInt256}
+    (h : EVM.Word.toBytesBE a = EVM.Word.toBytesBE b) : a = b := by
+  apply u256_inj
+  have ha :
+      fromBytesBigEndian (EVM.Word.toBytesBE a) = a.toNat := by
+    have hba := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray a)
+    simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+      hba.trans (fromByteArrayBigEndian_toByteArray a)
+  have hb :
+      fromBytesBigEndian (EVM.Word.toBytesBE b) = b.toNat := by
+    have hbb := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray b)
+    simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+      hbb.trans (fromByteArrayBigEndian_toByteArray b)
+  rw [← ha, ← hb, h]
+
 /-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
 
 /-- `fromBytes'` (little-endian) of an append splits at the byte boundary. -/
@@ -966,6 +985,74 @@ theorem uInt256OfByteArray_eq (arr : ByteArray) :
     uInt256OfByteArray arr = UInt256.ofNat (fromByteArrayBigEndian arr) := by
   unfold uInt256OfByteArray fromByteArrayBigEndian fromBytesBigEndian
   rw [byteArray_toList_eq]; rfl
+
+theorem fromBytes'_inj_of_length {xs ys : List UInt8}
+    (hlen : xs.length = ys.length)
+    (h : fromBytes' xs = fromBytes' ys) : xs = ys := by
+  induction xs generalizing ys with
+  | nil =>
+      cases ys with
+      | nil => rfl
+      | cons _ _ => simp at hlen
+  | cons x xs ih =>
+      cases ys with
+      | nil => simp at hlen
+      | cons y ys =>
+          simp at hlen
+          unfold fromBytes' at h
+          have hx : x.toFin.val < 2 ^ 8 := x.toFin.isLt
+          have hy : y.toFin.val < 2 ^ 8 := y.toFin.isLt
+          have hheadNat : x.toFin.val = y.toFin.val := by
+            have hmod := congrArg (fun n => n % 2 ^ 8) h
+            omega
+          have htail : fromBytes' xs = fromBytes' ys := by
+            have hdiv := congrArg (fun n => n / 2 ^ 8) h
+            omega
+          have hxy : x = y := UInt8.toNat_inj.mp hheadNat
+          rw [hxy]
+          congr
+          exact ih hlen htail
+
+theorem fromBytesBigEndian_inj_of_length {xs ys : List UInt8}
+    (hlen : xs.length = ys.length)
+    (h : fromBytesBigEndian xs = fromBytesBigEndian ys) : xs = ys := by
+  unfold fromBytesBigEndian at h
+  apply List.reverse_injective
+  apply fromBytes'_inj_of_length
+  · simp [hlen]
+  · exact h
+
+theorem toBytesBE_uInt256OfByteArray_of_size {arr : ByteArray}
+    (hsize : arr.size = 32) :
+    EVM.Word.toBytesBE (uInt256OfByteArray arr) = arr.toList := by
+  apply fromBytesBigEndian_inj_of_length
+  · rw [show (EVM.Word.toBytesBE (uInt256OfByteArray arr)).length = 32 by
+        simpa using word_toBytesBE_toByteArray_size (uInt256OfByteArray arr)]
+    simpa [byteArray_toList_eq] using hsize.symm
+  · have hleft :
+        fromBytesBigEndian (EVM.Word.toBytesBE (uInt256OfByteArray arr)) =
+          (uInt256OfByteArray arr).toNat := by
+      have h := congrArg fromByteArrayBigEndian
+        (word_toBytesBE_toByteArray_eq_toByteArray (uInt256OfByteArray arr))
+      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+        h.trans (fromByteArrayBigEndian_toByteArray (uInt256OfByteArray arr))
+    have hright : (uInt256OfByteArray arr).toNat = fromBytesBigEndian arr.toList := by
+      rw [uInt256OfByteArray_eq]
+      unfold fromByteArrayBigEndian
+      have hlen : arr.toList.length = 32 := by
+        simpa [byteArray_toList_eq] using hsize
+      have hlt : fromBytesBigEndian arr.toList < UInt256.size := by
+        unfold fromBytesBigEndian
+        have hle := fromBytes'_le (bs := arr.toList.reverse)
+        rw [List.length_reverse, hlen] at hle
+        simpa [UInt256.size] using hle
+      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+        (ulit_toNat' (fromBytesBigEndian arr.toList) hlt)
+    rw [hleft, hright]
+
+theorem toBytesBE_keccak_uInt256OfByteArray (b : ByteArray) :
+    EVM.Word.toBytesBE (uInt256OfByteArray (ffi.KEC b)) = (ffi.KEC b).toList :=
+  toBytesBE_uInt256OfByteArray_of_size (keccak_size b)
 
 /-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
 theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size)
