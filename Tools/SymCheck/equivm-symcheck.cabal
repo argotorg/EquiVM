@@ -1,0 +1,66 @@
+cabal-version: 3.0
+name: equivm-symcheck
+version: 0.1.0.0
+build-type: Simple
+
+library
+  hs-source-dirs: src
+  exposed-modules:
+    SymCheck
+    SymCheck.Conditions
+    SymCheck.Midpoint
+    SymCheck.Smt
+  default-language: GHC2021
+  default-extensions:
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:
+    -Wall
+  build-depends:
+    aeson,
+    base >= 4.14 && < 5,
+    bytestring,
+    containers,
+    hevm,
+    mtl,
+    text,
+    transformers
+
+executable equivm-symcheck
+  hs-source-dirs: app, src
+  main-is: Main.hs
+  other-modules:
+    SymCheck
+    SymCheck.Conditions
+    SymCheck.Midpoint
+    SymCheck.Smt
+  default-language: GHC2021
+  default-extensions:
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:
+    -Wall
+  build-depends:
+    aeson,
+    base >= 4.14 && < 5,
+    bytestring,
+    containers,
+    equivm-symcheck,
+    hevm,
+    mtl,
+    text,
+    transformers
+
+test-suite cli-smoke
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: CliSmoke.hs
+  default-language: GHC2021
+  ghc-options:
+    -Wall
+  build-tool-depends:
+    equivm-symcheck:equivm-symcheck
+  build-depends:
+    base >= 4.14 && < 5,
+    process

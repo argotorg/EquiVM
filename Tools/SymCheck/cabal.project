@@ -1,0 +1,6 @@
+packages: .
+
+source-repository-package
+  type: git
+  location: https://github.com/argotorg/hevm.git
+  tag: 408bf3100f1edbfc489b21b5218332e583e503a7

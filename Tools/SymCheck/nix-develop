@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+exec nix develop "path:${repo_root}/Tools/SymCheck" --extra-experimental-features 'nix-command flakes' "$@"
