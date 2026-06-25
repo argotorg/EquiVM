@@ -1,4 +1,4 @@
-import Examples.BlindAuction.Reveal.Loop
+import Examples.BlindAuction.Reveal.Nonempty
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
