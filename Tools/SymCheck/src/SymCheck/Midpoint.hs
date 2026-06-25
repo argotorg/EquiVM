@@ -130,6 +130,7 @@ data Overapproximation
 
 data SegmentResult = SegmentResult
   { steps :: Int
+  , pcTrace :: [Int]
   , stopReason :: SegmentStop
   , callBoundaries :: [CallBoundary]
   , overapproximations :: [Overapproximation]
@@ -496,13 +497,14 @@ makeMidpointVM spec = do
     }
 
 runSegment :: SegmentRunSpec -> VM Symbolic -> ST RealWorld SegmentResult
-runSegment spec = go [] [] 0 spec.fuel
+runSegment spec = go [] [] [] 0 spec.fuel
   where
-    go seenCalls overapprox stepsLeft fuelLeft vm
+    go traceRev seenCalls overapprox stepsLeft fuelLeft vm
       | Just stopPc <- spec.targetPc
       , vm.state.pc == stopPc =
           pure SegmentResult
             { steps = stepsLeft
+            , pcTrace = finishPcTrace traceRev vm.state.pc
             , stopReason = StoppedAtTargetPc stopPc
             , callBoundaries = reverse seenCalls
             , overapproximations = reverse overapprox
@@ -512,6 +514,7 @@ runSegment spec = go [] [] 0 spec.fuel
       | Just result <- vm.result =
           pure SegmentResult
             { steps = stepsLeft
+            , pcTrace = finishPcTrace traceRev vm.state.pc
             , stopReason = StoppedAtResult result
             , callBoundaries = reverse seenCalls
             , overapproximations = reverse overapprox
@@ -521,6 +524,7 @@ runSegment spec = go [] [] 0 spec.fuel
       | fuelLeft <= 0 =
           pure SegmentResult
             { steps = stepsLeft
+            , pcTrace = finishPcTrace traceRev vm.state.pc
             , stopReason = StoppedAtFuelExhaustion
             , callBoundaries = reverse seenCalls
             , overapproximations = reverse overapprox
@@ -528,23 +532,24 @@ runSegment spec = go [] [] 0 spec.fuel
             , finalVm = vm
             }
       | Just (boundary, vm', newOverapprox) <- cutAtCallBoundary vm =
-          go (boundary : seenCalls) (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
+          go (extendPcTrace traceRev vm.state.pc) (boundary : seenCalls) (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
       | Just (vm', newOverapprox) <- abstractGasStep vm =
-          go seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
+          go (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
       | Just (vm', newOverapprox) <- abstractPostCallWorldStep vm =
-          go seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
+          go (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
       | otherwise = do
           (_, vm') <- runStateT (exec1 spec.config) vm
-          go seenCalls overapprox (stepsLeft + 1) (fuelLeft - 1) vm'
+          go (extendPcTrace traceRev vm.state.pc) seenCalls overapprox (stepsLeft + 1) (fuelLeft - 1) vm'
 
 runSegmentWithSolvers :: SegmentRunSpec -> VM Symbolic -> IO [SegmentResult]
 runSegmentWithSolvers spec vm0 =
   Effects.runEnv Effects.defaultEnv $
     Solvers.withSolvers Solvers.Z3 1 Nothing Solvers.defMemLimit $ \solverGroup ->
-      go solverGroup [] [] False 0 spec.fuel vm0
+      go solverGroup [] [] [] False 0 spec.fuel vm0
   where
     go
       :: Solvers.SolverGroup
+      -> [Int]
       -> [CallBoundary]
       -> [Overapproximation]
       -> Bool
@@ -552,11 +557,12 @@ runSegmentWithSolvers spec vm0 =
       -> Int
       -> VM Symbolic
       -> ReaderT Effects.Env IO [SegmentResult]
-    go solverGroup seenCalls overapprox weakenedSmt stepsLeft fuelLeft vm
+    go solverGroup traceRev seenCalls overapprox weakenedSmt stepsLeft fuelLeft vm
       | Just stopPc <- spec.targetPc
       , vm.state.pc == stopPc =
           pure [SegmentResult
             { steps = stepsLeft
+            , pcTrace = finishPcTrace traceRev vm.state.pc
             , stopReason = StoppedAtTargetPc stopPc
             , callBoundaries = reverse seenCalls
             , overapproximations = reverse overapprox
@@ -570,6 +576,7 @@ runSegmentWithSolvers spec vm0 =
                 Nothing ->
                   pure [SegmentResult
                     { steps = stepsLeft
+                    , pcTrace = finishPcTrace traceRev vm.state.pc
                     , stopReason = StoppedAtResult result
                     , callBoundaries = reverse seenCalls
                     , overapproximations = reverse overapprox
@@ -577,12 +584,13 @@ runSegmentWithSolvers spec vm0 =
                     , finalVm = vm
                     }]
                 Just (queryUsedWeakening, vm') ->
-                  go solverGroup seenCalls overapprox (weakenedSmt || queryUsedWeakening) stepsLeft fuelLeft vm'
+                  go solverGroup traceRev seenCalls overapprox (weakenedSmt || queryUsedWeakening) stepsLeft fuelLeft vm'
             HandleEffect (Branch context) ->
               branchVMs context vm >>= \case
                 [] ->
                   pure [SegmentResult
                     { steps = stepsLeft
+                    , pcTrace = finishPcTrace traceRev vm.state.pc
                     , stopReason = StoppedAtResult result
                     , callBoundaries = reverse seenCalls
                     , overapproximations = reverse overapprox
@@ -590,10 +598,11 @@ runSegmentWithSolvers spec vm0 =
                     , finalVm = vm
                     }]
                 vms ->
-                  concat <$> traverse (go solverGroup seenCalls overapprox weakenedSmt stepsLeft fuelLeft) vms
+                  concat <$> traverse (go solverGroup traceRev seenCalls overapprox weakenedSmt stepsLeft fuelLeft) vms
             _ ->
               pure [SegmentResult
                 { steps = stepsLeft
+                , pcTrace = finishPcTrace traceRev vm.state.pc
                 , stopReason = StoppedAtResult result
                 , callBoundaries = reverse seenCalls
                 , overapproximations = reverse overapprox
@@ -603,6 +612,7 @@ runSegmentWithSolvers spec vm0 =
       | fuelLeft <= 0 =
           pure [SegmentResult
             { steps = stepsLeft
+            , pcTrace = finishPcTrace traceRev vm.state.pc
             , stopReason = StoppedAtFuelExhaustion
             , callBoundaries = reverse seenCalls
             , overapproximations = reverse overapprox
@@ -616,6 +626,7 @@ runSegmentWithSolvers spec vm0 =
                 (\(boundary', vm', newOverapprox, branchUsedWeakening) ->
                   go
                     solverGroup
+                    (extendPcTrace traceRev vm.state.pc)
                     (boundary' : seenCalls)
                     (reverse newOverapprox <> overapprox)
                     (weakenedSmt || branchUsedWeakening)
@@ -624,12 +635,12 @@ runSegmentWithSolvers spec vm0 =
                     vm')
                 branches
       | Just (vm', newOverapprox) <- abstractGasStep vm =
-          go solverGroup seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
+          go solverGroup (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
       | Just (vm', newOverapprox) <- abstractPostCallWorldStep vm =
-          go solverGroup seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
+          go solverGroup (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
       | otherwise = do
           (_, vm') <- liftIO $ stToIO $ runStateT (exec1 spec.config) vm
-          go solverGroup seenCalls overapprox weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
+          go solverGroup (extendPcTrace traceRev vm.state.pc) seenCalls overapprox weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
 
     resolveQuery
       :: Solvers.SolverGroup
@@ -700,6 +711,16 @@ runSegmentWithSolvers spec vm0 =
                 (True, False) -> [failureBranch usedWeakening]
                 (False, True) -> [continueBranch usedWeakening]
                 (True, True) -> [failureBranch usedWeakening, continueBranch usedWeakening]
+
+extendPcTrace :: [Int] -> Int -> [Int]
+extendPcTrace traceRev pc0 =
+  case traceRev of
+    pc1 : _ | pc1 == pc0 -> traceRev
+    _ -> pc0 : traceRev
+
+finishPcTrace :: [Int] -> Int -> [Int]
+finishPcTrace traceRev pc0 =
+  reverse (extendPcTrace traceRev pc0)
 
 cutAtCallBoundary :: VM Symbolic -> Maybe (CallBoundary, VM Symbolic, [Overapproximation])
 cutAtCallBoundary vm = do

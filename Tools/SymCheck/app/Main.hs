@@ -594,6 +594,7 @@ printSegmentResult result = do
   putStrLn $ "steps: " <> show result.steps
   putStrLn $ "stop:  " <> renderStop result.stopReason
   putStrLn $ "pc:    " <> show frozenVm.state.pc
+  putStrLn $ "pc-trace: " <> renderPcTrace result.pcTrace
   putStrLn $ "stack: " <> renderWordExprList frozenVm.state.stack
   putStrLn $ "memory: " <> renderMemory frozenVm.state.memory
   putStrLn $ "returndata: " <> renderBufExpr frozenVm.state.returndata
@@ -1243,6 +1244,10 @@ renderWordExprList :: [Expr EWord] -> String
 renderWordExprList exprs =
   "[" <> concatWith ", " (fmap renderWordExpr exprs) <> "]"
 
+renderPcTrace :: [Int] -> String
+renderPcTrace pcs =
+  "[" <> concatWith ", " (fmap show pcs) <> "]"
+
 renderWordExpr :: Expr EWord -> String
 renderWordExpr = T.unpack . Format.formatExpr . Expr.simplify
 
@@ -1303,6 +1308,7 @@ segmentResultToJson (idx, result) = do
     object
       [ "branch" .= idx
       , "steps" .= result.steps
+      , "pcTrace" .= result.pcTrace
       , "stop" .= renderStop result.stopReason
       , "pc" .= frozenVm.state.pc
       , "stack" .= fmap renderWordExpr frozenVm.state.stack

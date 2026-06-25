@@ -210,6 +210,7 @@ cabal run equivm-symcheck -- run \
 Final branch output, both in text mode and `--json`, includes:
 
 - final `pc`, `stack`, `memory`, and `returndata`
+- per-branch `pc` traces
 - final current-contract `storage`, `transientStorage`, `originalStorage`, and
   `balance`
 - known contract balances
