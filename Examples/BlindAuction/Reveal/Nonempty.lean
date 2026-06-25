@@ -291,6 +291,50 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
       omega)
     (by evm_ov)
 
+theorem RD.blindAuctionPanic11Revert2025 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD blindAuctionBytecode ee g s0 ⟨2025⟩ R mem aw rdata acc k C)
+    (haw : 3 ≤ aw.toNat)
+    (hov : R.length + 2 ≤ 1024) :
+    RDrev blindAuctionBytecode g s0 := by
+  have hsel :
+      UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ = scratch_revealPanicSelector := by
+    rfl
+  have rd2032₀ := evm_run h with [
+    jumpdest, push4 ⟨0x4e487b71⟩, push1 ⟨224⟩, shl, push0]
+  have rd2032 := rd2032₀
+  rw [hsel] at rd2032
+  have rd2036 := evm_run rd2032 with [
+    raw mstore 0 (scratch_revealPanicMem0 mem) aw
+      (by decide)
+      (fun s haws hstk => by
+        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+        rw [scratch_reveal_aw_mstore0_of_ge3 haw]
+        simp)
+      (by rfl) (scratch_reveal_aw_mstore0_of_ge3 haw) (by evm_ov),
+    push1 ⟨0x11⟩, push1 ⟨4⟩]
+  have rd2042 := evm_run rd2036 with [
+    raw mstore 0 (scratch_revealPanicMem ⟨0x11⟩ mem) aw
+      (by decide)
+      (fun s haws hstk => by
+        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+        rw [show (⟨4⟩ : UInt256).toNat = 4 by native_decide]
+        rw [scratch_reveal_aw_mstore4_of_ge3 haw]
+        simp)
+      (by rfl) (scratch_reveal_aw_mstore4_of_ge3 haw) (by evm_ov),
+    push1 ⟨0x24⟩, push0]
+  exact rd2042.rev 0 (by decide)
+    (fun s haws hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      rw [show (⟨36⟩ : UInt256).toNat = 36 by native_decide]
+      have hM : MachineState.M aw.toNat 0 36 = aw.toNat := by
+        simp [MachineState.M]
+        omega
+      rw [hM, u256_ofNat_toNat]
+      omega)
+    (by evm_ov)
+
 theorem scratch_blindAuctionCheckedAddOverflowRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {k C : Nat} {a b ret : UInt256} {R : List UInt256}
@@ -305,10 +349,10 @@ theorem scratch_blindAuctionCheckedAddOverflowRevert {g : Sat256} {s0 : State}
   have rd2052₀ := evm_run rd with [jumpdest, dup1, dup3, add, dup1, dup3, gt]
   have rd2052 := rd2052₀
   rw [hgt] at rd2052
-  have rd1967 := evm_run rd2052 with [
-    iszero, push2 ⟨1654⟩, jumpiNT (by decide), push2 ⟨1967⟩,
+  have rd2025 := evm_run rd2052 with [
+    iszero, push2 ⟨1654⟩, jumpiNT (by decide), push2 ⟨1654⟩, push2 ⟨2025⟩,
     jump (by jump_dest)]
-  exact RD.blindAuctionPanic32Revert1967 rd1967 haw (by simp at hov ⊢; omega)
+  exact RD.blindAuctionPanic11Revert2025 rd2025 haw (by simp at hov ⊢; omega)
 
 theorem scratch_revealBid_arrayIndexInBounds_revert (evm : EVM.State) (i curLen : UInt256)
     (hlen :
