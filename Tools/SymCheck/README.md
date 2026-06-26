@@ -101,6 +101,7 @@ Useful flags:
 - `--pre COND` (repeatable; adds an initial symbolic precondition)
 - `--post COND` (repeatable; checks a postcondition on each final branch)
 - `--json` (machine-readable output)
+- `--trace-opcodes` (include opcode annotations alongside `pc` traces)
 - `--fail-on-overapproximation` (exit nonzero if execution uses model overapproximation on any branch)
 - `--no-smt-weakening` (disable conservative weakening fallback for unsupported SMT queries)
 - `--quiet-smt-weakening` (keep weakening enabled but suppress runtime notes)

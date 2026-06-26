@@ -21,6 +21,7 @@ import Data.Text qualified as T
 import EVM.Expr qualified as Expr
 import EVM.Effects qualified as Effects
 import EVM.Format qualified as Format
+import EVM.Op (intToOpName)
 import EVM.SymExec qualified as SymExec
 import EVM.Types
 import SymCheck
@@ -54,6 +55,7 @@ data CliOptions = CliOptions
   , cliNotifySmtWeakening :: Bool
   , cliFailOnOverapproximation :: Bool
   , cliJsonOutput :: Bool
+  , cliTraceOpcodes :: Bool
   }
 
 defaultCliOptions :: Either String CliOptions
@@ -86,6 +88,7 @@ defaultCliOptions = do
     , cliNotifySmtWeakening = True
     , cliFailOnOverapproximation = False
     , cliJsonOutput = False
+    , cliTraceOpcodes = False
     }
 
 main :: IO ()
@@ -576,9 +579,9 @@ runCli opts = do
       [] -> pure Nothing
       _ -> Just <$> checkPostconditionsWithSolvers runSpec opts.cliPostconditions results
   if opts.cliJsonOutput
-    then emitJsonOutput results reports
+    then emitJsonOutput opts.cliTraceOpcodes results reports
     else do
-      printSegmentResults results
+      printSegmentResults opts.cliTraceOpcodes results
       maybe (pure ()) printPostconditionReports reports
 
 unlessNull :: [a] -> IO () -> IO ()
@@ -587,14 +590,16 @@ unlessNull xs action =
     [] -> pure ()
     _ -> action
 
-printSegmentResult :: SegmentResult -> IO ()
-printSegmentResult result = do
+printSegmentResult :: Bool -> SegmentResult -> IO ()
+printSegmentResult includeTraceOpcodes result = do
   frozenVm <- stToIO $ SymExec.freezeVM result.finalVm
   let currentContractState = lookupRunningContract frozenVm
   putStrLn $ "steps: " <> show result.steps
   putStrLn $ "stop:  " <> renderStop result.stopReason
   putStrLn $ "pc:    " <> show frozenVm.state.pc
   putStrLn $ "pc-trace: " <> renderPcTrace result.pcTrace
+  when includeTraceOpcodes $
+    putStrLn $ "pc-trace-opcodes: " <> renderPcTraceOpcodes frozenVm.state.code result.pcTrace
   putStrLn $ "stack: " <> renderWordExprList frozenVm.state.stack
   putStrLn $ "memory: " <> renderMemory frozenVm.state.memory
   putStrLn $ "returndata: " <> renderBufExpr frozenVm.state.returndata
@@ -621,15 +626,15 @@ printSegmentResult result = do
     Just vmResult -> putStrLn $ "vm-result: " <> renderVmResult vmResult
     Nothing -> pure ()
 
-printSegmentResults :: [SegmentResult] -> IO ()
-printSegmentResults [] = putStrLn "no results"
-printSegmentResults [result] = printSegmentResult result
-printSegmentResults results =
+printSegmentResults :: Bool -> [SegmentResult] -> IO ()
+printSegmentResults _ [] = putStrLn "no results"
+printSegmentResults includeTraceOpcodes [result] = printSegmentResult includeTraceOpcodes result
+printSegmentResults includeTraceOpcodes results =
   mapM_ printOne (zip [(1 :: Int) ..] results)
   where
     printOne (idx, result) = do
       putStrLn $ "branch: " <> show idx
-      printSegmentResult result
+      printSegmentResult includeTraceOpcodes result
 
 printPostconditionReports :: [[PostconditionReport]] -> IO ()
 printPostconditionReports [] = pure ()
@@ -904,6 +909,8 @@ parseCli args = do
       (\cond -> opts { cliPostconditions = opts.cliPostconditions <> [cond] }) <$> parseCondition value >>= \opts' -> go opts' rest
     go opts ("--json" : rest) =
       go opts { cliJsonOutput = True } rest
+    go opts ("--trace-opcodes" : rest) =
+      go opts { cliTraceOpcodes = True } rest
     go opts ("--fail-on-overapproximation" : rest) =
       go opts { cliFailOnOverapproximation = True } rest
     go opts ("--no-smt-weakening" : rest) =
@@ -929,6 +936,7 @@ usage = unlines $
       , "                      [--callvalue WORD] [--block-number WORD] [--timestamp WORD]"
       , "                      [--static] [--empty-base|--abstract-base] [--store SLOT=VALUE]..."
       , "                      [--pre COND]... [--post COND]... [--json]"
+      , "                      [--trace-opcodes]"
       , "                      [--fail-on-overapproximation]"
       , "                      [--no-smt-weakening] [--quiet-smt-weakening]"
       ]
@@ -1248,6 +1256,13 @@ renderPcTrace :: [Int] -> String
 renderPcTrace pcs =
   "[" <> concatWith ", " (fmap show pcs) <> "]"
 
+renderPcTraceOpcodes :: ContractCode -> [Int] -> String
+renderPcTraceOpcodes code0 pcs =
+  "[" <> concatWith ", " (fmap renderOne pcs) <> "]"
+  where
+    renderOne pc0 =
+      show pc0 <> ":" <> opcodeNameAtPc code0 pc0
+
 renderWordExpr :: Expr EWord -> String
 renderWordExpr = T.unpack . Format.formatExpr . Expr.simplify
 
@@ -1290,9 +1305,29 @@ concatWith _ [] = ""
 concatWith _ [x] = x
 concatWith sep (x : xs) = x <> sep <> concatWith sep xs
 
-emitJsonOutput :: [SegmentResult] -> Maybe [[PostconditionReport]] -> IO ()
-emitJsonOutput results reports = do
-  resultValues <- traverse segmentResultToJson (zip [1 :: Int ..] results)
+opcodeNameAtPc :: ContractCode -> Int -> String
+opcodeNameAtPc code0 pc0 =
+  case code0 of
+    RuntimeCode (ConcreteRuntimeCode bytes)
+      | pc0 < 0 -> "negative-pc"
+      | pc0 >= BS.length bytes -> "out-of-bounds"
+      | otherwise -> intToOpName (fromIntegral (BS.index bytes pc0))
+    RuntimeCode (SymbolicRuntimeCode _) -> "symbolic-runtime-code"
+    InitCode codeBytes _
+      | pc0 < 0 -> "negative-pc"
+      | pc0 >= BS.length codeBytes -> "out-of-bounds"
+      | otherwise -> intToOpName (fromIntegral (BS.index codeBytes pc0))
+    UnknownCode _ -> "unknown-code"
+
+pcTraceOpcodesToJson :: ContractCode -> [Int] -> [Value]
+pcTraceOpcodesToJson code0 pcs =
+  fmap
+    (\pc0 -> object ["pc" .= pc0, "opcode" .= opcodeNameAtPc code0 pc0])
+    pcs
+
+emitJsonOutput :: Bool -> [SegmentResult] -> Maybe [[PostconditionReport]] -> IO ()
+emitJsonOutput includeTraceOpcodes results reports = do
+  resultValues <- traverse (segmentResultToJson includeTraceOpcodes) (zip [1 :: Int ..] results)
   let jsonValue =
         object
           [ "results" .= resultValues
@@ -1300,32 +1335,36 @@ emitJsonOutput results reports = do
           ]
   LBS8.putStrLn (encode jsonValue)
 
-segmentResultToJson :: (Int, SegmentResult) -> IO Value
-segmentResultToJson (idx, result) = do
+segmentResultToJson :: Bool -> (Int, SegmentResult) -> IO Value
+segmentResultToJson includeTraceOpcodes (idx, result) = do
   frozenVm <- stToIO $ SymExec.freezeVM result.finalVm
   let currentContractState = lookupRunningContract frozenVm
   pure $
     object
-      [ "branch" .= idx
-      , "steps" .= result.steps
-      , "pcTrace" .= result.pcTrace
-      , "stop" .= renderStop result.stopReason
-      , "pc" .= frozenVm.state.pc
-      , "stack" .= fmap renderWordExpr frozenVm.state.stack
-      , "memory" .= renderMemory frozenVm.state.memory
-      , "returndata" .= renderBufExpr frozenVm.state.returndata
-      , "constraints" .= length frozenVm.constraints
-      , "pathConstraints" .= fmap renderProp frozenVm.constraints
-      , "storage" .= fmap (renderStorageExpr . (.storage)) currentContractState
-      , "transientStorage" .= fmap (renderStorageExpr . (.tStorage)) currentContractState
-      , "originalStorage" .= fmap (renderStorageExpr . (.origStorage)) currentContractState
-      , "balance" .= fmap (renderWordExpr . (.balance)) currentContractState
-      , "balances" .= fmap balanceEntryToJson (Map.toList frozenVm.env.contracts)
-      , "usedWeakenedSmt" .= result.usedWeakenedSmt
-      , "overapproximations" .= fmap renderOverapproximation result.overapproximations
-      , "callBoundaries" .= fmap callBoundaryToJson result.callBoundaries
-      , "vmResult" .= fmap renderVmResult frozenVm.result
-      ]
+      ( [ "branch" .= idx
+        , "steps" .= result.steps
+        , "pcTrace" .= result.pcTrace
+        , "stop" .= renderStop result.stopReason
+        , "pc" .= frozenVm.state.pc
+        , "stack" .= fmap renderWordExpr frozenVm.state.stack
+        , "memory" .= renderMemory frozenVm.state.memory
+        , "returndata" .= renderBufExpr frozenVm.state.returndata
+        , "constraints" .= length frozenVm.constraints
+        , "pathConstraints" .= fmap renderProp frozenVm.constraints
+        , "storage" .= fmap (renderStorageExpr . (.storage)) currentContractState
+        , "transientStorage" .= fmap (renderStorageExpr . (.tStorage)) currentContractState
+        , "originalStorage" .= fmap (renderStorageExpr . (.origStorage)) currentContractState
+        , "balance" .= fmap (renderWordExpr . (.balance)) currentContractState
+        , "balances" .= fmap balanceEntryToJson (Map.toList frozenVm.env.contracts)
+        , "usedWeakenedSmt" .= result.usedWeakenedSmt
+        , "overapproximations" .= fmap renderOverapproximation result.overapproximations
+        , "callBoundaries" .= fmap callBoundaryToJson result.callBoundaries
+        , "vmResult" .= fmap renderVmResult frozenVm.result
+        ]
+          <> [ "pcTraceOpcodes" .= pcTraceOpcodesToJson frozenVm.state.code result.pcTrace
+             | includeTraceOpcodes
+             ]
+      )
 
 balanceEntryToJson :: (Expr EAddr, Contract) -> Value
 balanceEntryToJson (addr, contract) =
