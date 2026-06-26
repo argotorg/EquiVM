@@ -18,6 +18,22 @@ cd Tools/SymCheck
 cabal build
 ```
 
+Portable Linux bundle:
+
+```bash
+nix build 'path:.#portable-bundle' --extra-experimental-features 'nix-command flakes'
+```
+
+That produces `result/bin/equivm-symcheck`, a launcher that uses bundled shared
+libraries and dynamic loader so it can be moved outside the originating Nix
+environment on a compatible `x86_64-linux` host.
+
+Tarball form:
+
+```bash
+nix build 'path:.#portable-tarball' --extra-experimental-features 'nix-command flakes'
+```
+
 The local `cabal.project` pins `hevm` via
 `source-repository-package`, and `flake.nix` pins the same repository as a
 flake input. The shell still builds a shared Haskell package set containing
