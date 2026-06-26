@@ -192,55 +192,23 @@ theorem scratch_write32_read_prefix_len (src base : ByteArray) (dest len : Nat)
     (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size) (hlen : len ≤ 32)
     (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
     (src.write 0 base dest 32).readWithPadding dest len = src.extract 0 len := by
-  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
-  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
-  rw [write32_eq src base dest hsrc hlo]
-  rw [readWithPadding_eq_extract' _ dest len hpos hlen64 (by
-    rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]
-    omega)]
-  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega)]
-  rw [extract_append_right_window _ _ _ _ (by rw [hbsz])]
-  rw [hbsz]
-  rw [show dest - dest = 0 by omega, show dest + len - dest = len by omega]
-  rw [extract_extract_BA]
-  rw [show 0 + 0 = 0 by omega, show min (0 + len) 32 = len by omega]
+  exact Reasoning.Theory.write32_read_prefix_len src base dest len hsrc hlo hlen hpos hlen64
 
 theorem scratch_write32_read_below_len (src base : ByteArray) (dest read len : Nat)
     (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size)
     (hbelow : read + len ≤ dest) (hin : read + len ≤ base.size)
     (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
     (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
-  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
-  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
-  rw [write32_eq src base dest hsrc hlo]
-  rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
-    rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]
-    omega)]
-  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega)]
-  rw [extract_append_left _ _ _ _ (by rw [hbsz]; omega)]
-  rw [extract_prefix _ _ _ _ (by omega)]
-  rw [← readWithPadding_eq_extract' base read len hpos hlen64 hin]
+  exact Reasoning.Theory.write32_read_below_len src base dest read len hsrc hlo
+    hbelow hin hpos hlen64
 
 theorem scratch_write32_read_above_len (src base : ByteArray) (dest read len : Nat)
     (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size)
     (habove : dest + 32 ≤ read) (hin : read + len ≤ base.size)
     (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
     (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
-  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
-  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
-  have hcsz : (base.extract (dest + 32) base.size).size = base.size - (dest + 32) := by
-    rw [ByteArray.size_extract]; omega
-  have habsz : (base.extract 0 dest ++ src.extract 0 32).size = dest + 32 := by
-    rw [ByteArray.size_append, hbsz, hsz32]
-  rw [write32_eq src base dest hsrc hlo]
-  rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
-    rw [ByteArray.size_append, habsz, hcsz]
-    omega)]
-  rw [readWithPadding_eq_extract' base read len hpos hlen64 hin]
-  rw [extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz]
-  rw [extract_extract_BA]
-  rw [show dest + 32 + (read - (dest + 32)) = read by omega]
-  rw [show min (dest + 32 + (read + len - (dest + 32))) base.size = read + len by omega]
+  exact Reasoning.Theory.write32_read_above_len src base dest read len hsrc hlo
+    habove hin hpos hlen64
 
 theorem scratch_twoWordWrite_read0_64_any (mem : ByteArray) (key slot : UInt256) :
     (((UInt256.toByteArray slot).write 0

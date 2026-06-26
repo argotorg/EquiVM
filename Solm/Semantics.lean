@@ -1,6 +1,7 @@
 import Solm.Storage
 import Solm.Value
 import ABI.Encode
+import ABI.Decode
 
 namespace Solm
 
@@ -1215,14 +1216,9 @@ def defaultEncodeCall? (_name : Ident) (args : List Value) : Option EVM.Bytes :=
   some (words.foldl (fun bytes word => bytes ++ (Ethereum.UInt256.toByteArray word)) ByteArray.empty)
 
 def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option Value :=
-  -- The solc-generated ABI return decoder for an `int`/`uint` value reverts unless at least one
-  -- full word (32 bytes) of return data is present (`if slt(returndatasize, 32) { revert }`).  We
-  -- mirror that *partiality*: under-length return data decodes to `none`, which the
-  -- `externalCallReturnDecodeRevert` rule turns into a revert — matching the bytecode.
-  if bytes.size < 32 then
-    none
-  else
-    some (.int (Ethereum.fromByteArrayBigEndian (bytes.extract 0 32)))
+  -- Default typed external calls expect one `uint256` return word.  The ABI decoder models solc's
+  -- generated signed-size guard, so under-length and huge return data both decode to `none`.
+  ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) bytes
 
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }

@@ -6,14 +6,12 @@ import Mathlib.Data.Nat.Digits.Lemmas
 /-!
 # Memory — reusable EVM memory / `ByteArray` lemmas
 
-The EVM `MSTORE`/`MLOAD`/`RETURN` and the `UInt256.toByteArray` word encoding are *computable*
-`ByteArray` operations — **not** opaque like `D_J`/keccak.  The genuine opacities isolated here
-are extern-spec facts: `ffi.ByteArray.zeroes` (`memset_zero`) returns zero bytes, and
-`ffi.KEC` (`keccak256`) returns 32 bytes.  Everything else is proved as generic,
-contract-agnostic lemmas: the big-endian byte round-trip,
-`fromByteArrayBigEndian ∘ toByteArray = toNat`, the `MSTORE`-then-`MLOAD`/`RETURN` round-trip,
-and the `toByteArray`/`toBytesBE` bridge.  ABI-level encode/decode reasoning lives in
-`Reasoning.ABI` (which imports this module).
+The EVM `MSTORE`/`MLOAD`/`RETURN`, `ffi.ByteArray.zeroes`, and the `UInt256.toByteArray` word
+encoding are computable `ByteArray` operations, unlike genuinely opaque bytecode facts such as
+`D_J`/keccak.  This module proves the generic, contract-agnostic memory lemmas: the big-endian
+byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
+`MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
+encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
 -/
 
 open Ethereum Ethereum.EVM Solm ABI
@@ -22,11 +20,10 @@ set_option maxRecDepth 8000
 
 namespace Reasoning.Theory
 
-/-- **Trusted (extern spec).** `ffi.ByteArray.zeroes` (`@[extern "memset_zero"]`) yields zero
-    bytes.  Companion to evmlean's admitted `ByteArray_zeroes_size`; the only `ffi.zeroes` fact
-    not already derivable from the base.  Everything below is proved from it. -/
-axiom byteArray_zeroes_toList (n : USize) :
-    (ffi.ByteArray.zeroes n).data.toList = List.replicate n.toNat 0
+/-- `ffi.ByteArray.zeroes` yields zero bytes. -/
+theorem byteArray_zeroes_toList (n : USize) :
+    (ffi.ByteArray.zeroes n).data.toList = List.replicate n.toNat 0 := by
+  simp [ffi.ByteArray.zeroes]
 
 /-- **Trusted (extern spec).** Keccak-256 returns a 32-byte digest.  This does not assert
     collision-resistance or injectivity; it only exposes the byte length guaranteed by the FFI

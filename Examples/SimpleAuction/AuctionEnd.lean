@@ -569,7 +569,7 @@ theorem simpleAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasArg, _, _, rd742⟩ := simpleAuctionX_auctionEnd_toCall (cA := cA) (gh := gh)
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd743₀⟩ :=
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd743₀, _hosz⟩ :=
     rd742.callValueMade (by decide) hperm hbalance hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
@@ -1259,7 +1259,7 @@ theorem simpleAuctionAuctionEndBody {cA gh bl σ_evm σ_solm σ₀ A I}
               · intro hd
                 exact hdepthEq (by
                   simpa [evmEAfter, evmE, initState, auctionEndAfterEndedState_executionEnv] using hd)
-            have hout255 : out.size < 2 ^ 255 := by
+            have houtsz : out.size < UInt256.size := by
               have hsizeΘ := Theta_returnData_size_lt I.blobVersionedHashes cA
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks
@@ -1275,12 +1275,9 @@ theorem simpleAuctionAuctionEndBody {cA gh bl σ_evm σ_solm σ₀ A I}
                 (auctionEndHighestBidWord (auctionEndAfterEndedMap σ_evm I) I)
                 (auctionEndHighestBidWord (auctionEndAfterEndedMap σ_evm I) I)
                 ByteArray.empty (I.depth + 1) I.header I.perm
+                (by simp [UInt256.size])
               rw [← hThetaEq] at hsizeΘ
               exact hsizeΘ
-            have houtsz : out.size < UInt256.size := by
-              have hpow : 2 ^ 255 < UInt256.size := by
-                norm_num [UInt256.size]
-              omega
             have hOrigAfter : evmEAfter.σ₀ = evmSAfter.σ₀ := by
               simpa [evmEAfter, evmSAfter, evmE, evmS, initState,
                 auctionEndAfterEndedState_originalMap]

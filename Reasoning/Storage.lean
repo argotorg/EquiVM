@@ -2,6 +2,7 @@ import Reasoning.EVMWord
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Stepping
+import Ethereum.Theory.StorageExtensionality
 
 /-!
 # Storage — ordered-map (`Batteries.RBMap`) facts for EVM storage maps
@@ -1032,6 +1033,16 @@ theorem accountEquiv_insert_storage_of_equiv {acc₁ acc₂ : Account} (slot val
     rw [storage_find?_insert_ne acc₂.storage readSlot slot val hread]
     exact hs readSlot
 
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- Erasing the same storage slot from equivalent accounts preserves account equivalence. -/
+theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account} (slot : UInt256)
+    (hacc : accountEquiv acc₁ acc₂) :
+    accountEquiv {acc₁ with storage := acc₁.storage.erase slot}
+      {acc₂ with storage := acc₂.storage.erase slot} := by
+  rcases hacc with ⟨hn, hb, hc, hs, ht⟩
+  refine ⟨hn, hb, hc, ?_, ht⟩
+  exact storageExtensionalEq_erase_same hs slot
+
 theorem accountEquiv_update_insert_self (acc : Account) (slot val1 val2 : UInt256) :
     accountEquiv {acc with storage := acc.storage.insert slot val2}
       {acc with storage :=
@@ -1085,13 +1096,60 @@ theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
       rw [accountMap_find?_insert_ne τ addr a _ haddr]
       exact hστ
 
--- TODO: prove the zero-write branch from a reusable `RBMap.erase` same-key lookup theorem.
--- The nonzero branch is `accountMapEquiv_sstoreAccountMap_insert`; the zero branch is the
--- corresponding erase-on-both-sides fact.  This is the statement examples should consume.
-axiom accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- `accountMapEquiv` is preserved by the same zero `SSTORE` on both maps. -/
+theorem accountMapEquiv_sstoreAccountMap_erase {σ τ : AccountMap}
+    (a : AccountAddress) (slot val : UInt256)
+    (hστ : accountMapEquiv σ τ) (hval : (val == (default : UInt256)) = true) :
+    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) := by
+  intro addr
+  by_cases haddr : addr = a
+  · subst addr
+    unfold sstoreAccountMap
+    specialize hστ a
+    cases hσ : σ.find? a with
+    | none =>
+        cases hτ : τ.find? a with
+        | none =>
+            simp [hσ, hτ, Option.option]
+        | some accτ =>
+            have hbad : False := by
+              simp [hσ, hτ] at hστ
+            exact False.elim hbad
+    | some accσ =>
+        cases hτ : τ.find? a with
+        | none =>
+            have hbad : False := by
+              simp [hσ, hτ] at hστ
+            exact False.elim hbad
+        | some accτ =>
+            have hacc : accountEquiv accσ accτ := by simpa [hσ, hτ] using hστ
+            simpa [hσ, hτ, Option.option, hval, accountMap_find_insert_self] using
+              accountEquiv_erase_storage_of_equiv (acc₁ := accσ) (acc₂ := accτ) slot hacc
+  · unfold sstoreAccountMap
+    specialize hστ addr
+    cases hσa : σ.find? a <;> cases hτa : τ.find? a <;>
+      simp only [Option.option]
+    · exact hστ
+    · rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      exact hστ
+    · rw [accountMap_find?_insert_ne σ addr a _ haddr]
+      rw [accountMap_find?_insert_ne τ addr a _ haddr]
+      exact hστ
+
+-- LIBRARY CANDIDATE: `Reasoning.Storage`.
+/-- `accountMapEquiv` is preserved by the same zero-aware `SSTORE` on both maps. -/
+theorem accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256)
     (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val)
+    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) := by
+  by_cases hval : (val == (default : UInt256)) = true
+  · exact accountMapEquiv_sstoreAccountMap_erase a slot val hστ hval
+  · have hfalse : (val == (default : UInt256)) = false := by
+      cases h : (val == (default : UInt256)) <;> simp [h] at hval ⊢
+    exact accountMapEquiv_sstoreAccountMap_insert a slot val hστ hfalse
 
 theorem storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
     (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)

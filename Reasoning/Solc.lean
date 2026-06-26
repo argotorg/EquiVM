@@ -274,6 +274,23 @@ theorem solcReturnStaticLenCheckShort {base len words : ℕ}
     usub_uadd_lit_cancel hbase (lt_size_of_lt_sign hhi) hadd
   rw [hsub, slt_ofNat_lit_one_low hneed hshort]
 
+theorem solcReturnStaticLenCheckHuge {base len words : ℕ}
+    (hhi : 2 ^ 255 ≤ len)
+    (hlo : len < UInt256.size)
+    (hbase : base < UInt256.size)
+    (hneed : 32 * words < 2 ^ 255) :
+    UInt256.slt
+      (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base))
+      (UInt256.ofNat (32 * words)) = ⟨1⟩ := by
+  have hsub :
+      UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base)
+        = UInt256.ofNat len :=
+    usub_uadd_lit_cancel_mod hbase hlo
+  rw [hsub]
+  apply slt_lit_one_high hneed
+  rw [ulit_toNat' len hlo]
+  exact hhi
+
 /-! ### Common solc ABI returndata specialization -/
 
 theorem solcDecodeEndLenCheckOk_128_32 {len : ℕ}
@@ -296,6 +313,15 @@ theorem solcDecodeEndLenCheckShort_128_32 {len : ℕ} (hshort : len < 32) :
       omega)
     (by norm_num)
 
+theorem solcDecodeEndLenCheckHuge_128_32 {len : ℕ}
+    (hhi : 2 ^ 255 ≤ len) (hlo : len < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat len)) ⟨128⟩) ⟨32⟩
+      = ⟨1⟩ := by
+  exact solcReturnStaticLenCheckHuge (base := 128) (words := 1) hhi
+    hlo
+    (by norm_num [UInt256.size])
+    (by norm_num)
+
 /-! ## The free-memory-pointer memory
 
 Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the initial free pointer
@@ -303,7 +329,7 @@ Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the ini
 `MLOAD 0x40` needs — contract-agnostic. -/
 
 /-- Memory after solc stores the free pointer `0x80` at `0x40`. -/
-noncomputable def solcFreePtrMem : ByteArray :=
+def solcFreePtrMem : ByteArray :=
   (UInt256.toByteArray ⟨128⟩).write 0 ByteArray.empty 64 32
 
 theorem solcFreePtrMem_eq :
@@ -349,7 +375,7 @@ theorem solcFreePtrMem_pad_size :
 
 /-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
     the shape every solc ABI-encoder's epilogue produces (its `RETURN`s `mem[0x80 .. 0xa0] = val`). -/
-noncomputable def solcReturnMem (val : UInt256) : ByteArray :=
+def solcReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
 
 theorem solcReturnMem_eq (val : UInt256) :

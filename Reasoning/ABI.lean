@@ -264,6 +264,34 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
               simp only
               cases decodeCalldata.insertValues names values ∅ <;> rfl
 
+theorem decodeReturnValues_scalarWords_eq {types : List ABIType} {returndata : ByteArray}
+    (hscalar : types.all isABIScalarWordType = true) :
+    ABI.decodeReturnValues? types returndata =
+      if types.isEmpty = false ∧ 2 ^ 255 ≤ returndata.toList.length then
+        none
+      else
+        match decodeScalarWords? types returndata.toList 0 with
+        | some values => some values
+        | none => none := by
+  unfold ABI.decodeReturnValues?
+  by_cases hbig : types.isEmpty = false ∧ 2 ^ 255 ≤ returndata.toList.length
+  · conv_lhs => rw [if_pos hbig]
+    conv_rhs => rw [if_pos hbig]
+  · conv_lhs => rw [if_neg hbig]
+    conv_rhs => rw [if_neg hbig]
+    cases types with
+    | nil =>
+        simp [ABI.abiTupleHeadSize?, decodeScalarWords?, ABI.decodeABIValues?]
+    | cons ty tys =>
+        have hhead := abiTupleHeadSize_scalarWords_eq hscalar
+        rw [hhead]
+        simp only [bind, Option.bind]
+        have hvals := decodeABIValues_scalarWords_eq (types := ty :: tys)
+          (bytes := returndata.toList) (cursor := 0) (total := 32 * (ty :: tys).length)
+          hscalar (by simp)
+        rw [hvals]
+        cases decodeScalarWords? (ty :: tys) returndata.toList 0 <;> rfl
+
 /-! ## Common scalar calldata convenience lemmas -/
 
 theorem decodeABIValue_address_ok {bytes : List UInt8} {start : Nat}
@@ -2115,6 +2143,77 @@ theorem decodeCalldata_address_address_uint256_uint256_none_huge {cd : ByteArray
   rw [if_pos]
   · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
+
+/-! ## Return decoding -/
+
+theorem bytesToWord_take32_eq_extract0_32 {returndata : ByteArray} :
+    ABI.bytesToWord (returndata.toList.take 32) =
+      UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)) := by
+  unfold ABI.bytesToWord fromByteArrayBigEndian
+  congr 1
+  rw [byteArray_toList_eq (returndata.extract 0 32), ByteArray.data_extract,
+    Array.toList_extract, List.extract_eq_take_drop, byteArray_toList_eq]
+  rw [byteArray_toList_eq]
+  simp
+
+theorem fromByteArrayBigEndian_extract0_32_lt {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) :
+    fromByteArrayBigEndian (returndata.extract 0 32) < UInt256.size := by
+  unfold fromByteArrayBigEndian fromBytesBigEndian
+  have h := EVM.fromBytes'_le (bs := (returndata.extract 0 32).toList.reverse)
+  rw [List.length_reverse] at h
+  have hsz : (returndata.extract 0 32).toList.length = 32 := by
+    have hszBA : (returndata.extract 0 32).size = 32 := by
+      rw [ByteArray.size_extract]
+      omega
+    rw [byteArray_toList_eq, Array.length_toList]
+    exact hszBA
+  rw [hsz] at h
+  simpa [UInt256.size] using h
+
+theorem decodeReturnValue_uint256_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
+    ABI.decodeReturnValue? abiUInt256 returndata =
+      some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : (returndata.toList.take 32).length = 32 := by
+    rw [List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  unfold ABI.decodeReturnValue?
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+theorem decodeReturnValue_uint256_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValue? abiUInt256 returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  unfold ABI.decodeReturnValue?
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
+
+theorem decodeReturnValue_uint256_none_huge {returndata : ByteArray}
+    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
+    ABI.decodeReturnValue? abiUInt256 returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  unfold ABI.decodeReturnValue?
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
 
 /-! ## Return-value (`RETURN`) ABI encoding -/
 

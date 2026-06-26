@@ -35,10 +35,7 @@ which both become provable by `decide` and can be deleted.
 
 The EVM selector-decode fact (`SHR(calldata,224)` vs `calldata.extract 0 4`) was *also* once
 admitted, but it is **not** opaque — it is now **proved** as `truthEvmSelector` (below), built
-on the contract-agnostic `selector_toNat` in `Memory.lean`.  Beyond these two trusted axioms and
-Lean's standard three, `truthCorrect` depends only on the pre-existing evmlean base axiom
-`ByteArray_zeroes_size` and its companion extern-spec `byteArray_zeroes_toList`
-(`ffi.ByteArray.zeroes` yields zero bytes). -/
+on the contract-agnostic `selector_toNat` in `Memory.lean`. -/
 
 /-- The 4-byte function selector of `truth()` is `0x9e9f51d2` (keccak of `"truth()"`). -/
 axiom truthSelectorBytes :

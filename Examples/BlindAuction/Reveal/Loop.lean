@@ -26,16 +26,7 @@ theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g :
       RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       ∃ a' k' C',
         Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C' := by
-  intro v
-  induction v with
-  | zero =>
-      intro a hInv k C h
-      obtain ⟨k', C', h'⟩ := hexit a hInv k C h
-      exact ⟨a, k', C', hInv, h'⟩
-  | succ v ih =>
-      intro a hInv k C h
-      obtain ⟨a', k', C', hInv', h'⟩ := hbody v a hInv k C h
-      exact ih a' hInv' k' C' h'
+  exact Reasoning.Reach.RD.whileLoopCarryFull header exit Inv stk mem aw acc exitStk hexit hbody
 
 -- LIBRARY CANDIDATE: `Reasoning.SolmBody`.
 -- Variant-indexed for-loop rule that carries both locals and EVM state.
@@ -54,16 +45,10 @@ theorem scratch_execFor_varEVM {cfg : Config} {C : ContractDecl}
     ∀ v L evm, P v L evm → ∃ L' evm',
       ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
         (.ok { contract := C, locals := L' } evm') ∧ P 0 L' evm' := by
-  intro v
-  induction v with
-  | zero =>
-      intro L evm hP
-      exact ⟨L, evm, ExecForLoop.falseDone (hfalse L evm hP), hP⟩
-  | succ v ih =>
-      intro L evm hP
+  exact Reasoning.Theory.execFor_var_state_continue P hfalse htrue
+    (fun v L evm hP => by
       obtain ⟨L1, evm1, hbody, L2, evm2, hpost, hP1⟩ := hstep v L evm hP
-      obtain ⟨L', evm', hloop, hP'⟩ := ih L2 evm2 hP1
-      exact ⟨L', evm', ExecForLoop.iterate (htrue v L evm hP) hbody hpost hloop, hP'⟩
+      exact ⟨L1, evm1, Or.inl hbody, L2, evm2, hpost, hP1⟩)
 
 
 theorem scratch_blindAuctionRevealX_loop_from_body {I} {g : Sat256} {s0 : State}

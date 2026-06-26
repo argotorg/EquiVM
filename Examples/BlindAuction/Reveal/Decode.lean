@@ -340,19 +340,12 @@ theorem blindAuctionRevealX_decode_valuesOffset_ok {cA gh bl σ σ₀ A I} {g : 
 
 theorem ugt_eq_zero_of_ne_one {a b : UInt256}
     (h : ¬ UInt256.gt a b = ⟨1⟩) : UInt256.gt a b = ⟨0⟩ := by
-  by_cases hab : a > b
-  · exact False.elim (h (by
-      simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
-      decide))
-  · simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
-    decide
+  exact Reasoning.Theory.ugt_eq_zero_of_ne_one h
 
 theorem slt_zero_low_high {a b : UInt256}
     (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
     UInt256.slt a b = ⟨0⟩ := by
-  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-  rw [if_neg (by omega : ¬ a.toNat ≥ 2 ^ 255), if_pos hb]
-  rfl
+  exact Reasoning.Theory.slt_zero_low_high ha hb
 
 theorem blindAuctionRevealDecodeValuesCall1806_to_1713
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
@@ -391,44 +384,7 @@ theorem blindAuctionRevealDecodeValuesCall1806_to_1713
 
 theorem uslt_eq_zero_of_ne_one {a b : UInt256}
     (h : ¬ UInt256.slt a b = ⟨1⟩) : UInt256.slt a b = ⟨0⟩ := by
-  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-  by_cases ha : a.toNat ≥ 2 ^ 255
-  · rw [if_pos ha]
-    by_cases hb : b.toNat ≥ 2 ^ 255
-    · rw [if_pos hb]
-      by_cases hab : a < b
-      · exfalso
-        apply h
-        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-        rw [if_pos ha, if_pos hb, if_pos (decide_eq_true hab)]
-        native_decide
-      · have hdf : ¬ decide (a < b) = true := by
-          rw [decide_eq_false hab]
-          decide
-        rw [if_neg hdf]
-        native_decide
-    · rw [if_neg hb]
-      exfalso
-      apply h
-      unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-      rw [if_pos ha, if_neg hb]
-      native_decide
-  · rw [if_neg ha]
-    by_cases hb : b.toNat ≥ 2 ^ 255
-    · rw [if_pos hb]
-      native_decide
-    · rw [if_neg hb]
-      by_cases hab : a < b
-      · exfalso
-        apply h
-        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-        rw [if_neg ha, if_neg hb, if_pos (decide_eq_true hab)]
-        native_decide
-      · have hdf : ¬ decide (a < b) = true := by
-          rw [decide_eq_false hab]
-          decide
-        rw [if_neg hdf]
-        native_decide
+  exact Reasoning.Theory.uslt_eq_zero_of_ne_one h
 
 theorem blindAuctionRevealDecodeFakesOffset1840_reverts
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {I} {g : Sat256}
@@ -892,63 +848,36 @@ theorem decodeABIValue_dynamicArray_is_array {elemTy : ABIType} {bytes : List UI
 
 theorem readBytes32_some_length {bytes : List UInt8} {off : Nat} {out : List UInt8}
     (h : readBytes? bytes off 32 = some out) : off + 32 ≤ bytes.length := by
-  unfold readBytes? at h
-  by_cases hle : 32 ≤ bytes.length - off
-  · omega
-  · simp [hle] at h
+  exact Reasoning.Theory.readBytes32_some_length h
 
 theorem readWord?_some_length {bytes : List UInt8} {off : Nat} {word : EVM.Word}
     (h : readWord? bytes off = some word) : off + 32 ≤ bytes.length := by
-  unfold readWord? at h
-  cases hbytes : readBytes? bytes off 32 with
-  | none => simp [hbytes] at h
-  | some _ => exact readBytes32_some_length hbytes
+  exact Reasoning.Theory.readWord?_some_length h
 
 theorem readNat?_some_length {bytes : List UInt8} {off n : Nat}
     (h : readNat? bytes off = some n) : off + 32 ≤ bytes.length := by
-  unfold readNat? readWord? at h
-  cases hbytes : readBytes? bytes off 32 with
-  | none => simp [hbytes] at h
-  | some _ => exact readBytes32_some_length hbytes
+  exact Reasoning.Theory.readNat?_some_length h
 
 theorem readNat?_exists_of_length {bytes : List UInt8} {off : Nat}
     (h : off + 32 ≤ bytes.length) : ∃ n, readNat? bytes off = some n := by
-  unfold readNat? readWord? readBytes?
-  have hlen : ((bytes.drop off).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop]
-    omega
-  simp [hlen]
+  exact Reasoning.Theory.readNat?_exists_of_length h
 
 theorem readNat?_some_bytesToWord {bytes : List UInt8} {off n : Nat}
     (h : readNat? bytes off = some n) :
     ABI.bytesToWord ((bytes.drop off).take 32) = UInt256.ofNat n := by
-  unfold readNat? readWord? readBytes? at h
-  by_cases hle : 32 ≤ bytes.length - off
-  · simp [hle] at h
-    cases h
-    exact (u256_ofNat_toNat _).symm
-  · simp [hle] at h
+  exact Reasoning.Theory.readNat?_some_bytesToWord h
 
 theorem decodeABIValue_uint256_exists {bytes : List UInt8} {start : Nat}
     (h : start + 32 ≤ bytes.length) :
     ∃ v, decodeABIValue? uint256 bytes start = some (v, start + 32) := by
-  have hlen : ((bytes.drop start).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop]
-    omega
-  refine ⟨.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), ?_⟩
   simpa [uint256, uint256Int, abiUInt256] using
-    decodeABIValue_uint256_ok (bytes := bytes) (start := start) hlen
+    (Reasoning.Theory.decodeABIValue_uint256_exists (bytes := bytes) (start := start) h)
 
 theorem decodeABIValue_bytes32_exists {bytes : List UInt8} {start : Nat}
     (h : start + 32 ≤ bytes.length) :
     ∃ v, decodeABIValue? bytes32 bytes start = some (v, start + 32) := by
-  unfold decodeABIValue? bytes32
-  unfold readBytes?
-  have hlen : ((bytes.drop start).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop]
-    omega
-  refine ⟨.fixedBytes ⟨31, by decide⟩ ((bytes.drop start).take 32), ?_⟩
-  simp [hlen, zeroPadding?, readBytes?]
+  simpa [bytes32, abiBytes32, abiBytes32Width] using
+    (Reasoning.Theory.decodeABIValue_bytes32_exists (bytes := bytes) (start := start) h)
 
 theorem decode_word_at_eq_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size) :
     ABI.bytesToWord ((cd.toList.drop off).take 32) =
@@ -995,169 +924,44 @@ theorem decodeABIValue_elem_end_le {elem : ElemType} {bytes : List UInt8}
     {start : Nat} {v : Value} {endOffset : Nat}
     (h : decodeABIValue? (.elem elem) bytes start = some (v, endOffset)) :
     endOffset = start + 32 ∧ start + 32 ≤ bytes.length := by
-  cases elem <;> unfold decodeABIValue? at h
-  case bool =>
-    cases hread : readWord? bytes start with
-    | none => simp [hread] at h
-    | some word =>
-        cases hdec : decodeABIWord? (.elem .bool) word with
-        | none => simp [hread, hdec] at h
-        | some value =>
-            simp [hread, hdec] at h
-            exact ⟨h.2.symm, readWord?_some_length hread⟩
-  case address =>
-    cases hread : readWord? bytes start with
-    | none => simp [hread] at h
-    | some word =>
-        cases hdec : decodeABIWord? (.elem .address) word with
-        | none => simp [hread, hdec] at h
-        | some value =>
-            simp [hread, hdec] at h
-            exact ⟨h.2.symm, readWord?_some_length hread⟩
-  case int it =>
-    cases hread : readWord? bytes start with
-    | none => simp [hread] at h
-    | some word =>
-        cases hdec : decodeABIWord? (.elem (.int it)) word with
-        | none => simp [hread, hdec] at h
-        | some value =>
-            simp [hread, hdec] at h
-            exact ⟨h.2.symm, readWord?_some_length hread⟩
-  case fixed ft =>
-    cases hread : readWord? bytes start with
-    | none => simp [hread] at h
-    | some word => simp [decodeABIWord?] at h
-  case bytes n =>
-    cases hread : readBytes? bytes start 32 with
-    | none => simp [hread] at h
-    | some wordBytes =>
-        simp [hread] at h
-        cases hzero : zeroPadding? wordBytes (n.val + 1) (31 - n.val) with
-        | none => simp [hzero] at h
-        | some u =>
-            simp [hzero] at h
-            exact ⟨h.2.symm, readBytes32_some_length hread⟩
-  case function =>
-    cases hread : readBytes? bytes start 32 with
-    | none => simp [hread] at h
-    | some wordBytes =>
-        cases hzero : zeroPadding? wordBytes 24 8 with
-        | none => simp [hread, hzero] at h
-        | some u =>
-            simp [hread, hzero] at h
-            exact ⟨h.2.symm, readBytes32_some_length hread⟩
+  exact Reasoning.Theory.decodeABIValue_elem_end_le h
 
 theorem decodeABIArrayStaticElems_elem32_facts {elem : ElemType} {n : Nat}
     {bytes : List UInt8} {start : Nat} {values : List Value} {endOffset : Nat}
     (hstart : start ≤ bytes.length)
     (h : decodeABIArrayStaticElems? (.elem elem) n 32 bytes start = some (values, endOffset)) :
     endOffset = start + 32 * n ∧ endOffset ≤ bytes.length ∧ values.length = n := by
-  induction n generalizing start values endOffset with
-  | zero =>
-      simp [decodeABIArrayStaticElems?] at h
-      rcases h with ⟨hvalues, hend⟩
-      cases hvalues
-      cases hend
-      exact ⟨by omega, hstart, rfl⟩
-  | succ n ih =>
-      rw [decodeABIArrayStaticElems?] at h
-      cases hval : decodeABIValue? (.elem elem) bytes start with
-      | none => simp [hval] at h
-      | some p =>
-          rcases p with ⟨value, end0⟩
-          obtain ⟨hend0, hend0le⟩ := decodeABIValue_elem_end_le hval
-          simp [hval] at h
-          cases hrest : decodeABIArrayStaticElems? (.elem elem) n 32 bytes end0 with
-          | none => simp [hrest] at h
-          | some q =>
-              rcases q with ⟨valuesRest, restEnd⟩
-              simp [hrest] at h
-              rcases h with ⟨hend0', htail⟩
-              rcases htail with ⟨hvalues, hend⟩
-              cases hvalues
-              cases hend
-              obtain ⟨ihEq, ihLe, ihLen⟩ := ih (by omega) hrest
-              exact ⟨by omega, ihLe, by simp [ihLen]⟩
+  exact Reasoning.Theory.decodeABIArrayStaticElems_elem32_facts hstart h
 
 theorem decodeABIArrayStaticElems_uint256_exists_of_length {n : Nat}
     {bytes : List UInt8} {start : Nat} (h : start + 32 * n ≤ bytes.length) :
     ∃ values, decodeABIArrayStaticElems? uint256 n 32 bytes start =
         some (values, start + 32 * n) ∧ values.length = n := by
-  induction n generalizing start with
-  | zero =>
-      refine ⟨[], ?_, rfl⟩
-      simp [decodeABIArrayStaticElems?]
-  | succ n ih =>
-      obtain ⟨v, hv⟩ := decodeABIValue_uint256_exists (bytes := bytes) (start := start) (by omega)
-      obtain ⟨values, hvalues, hlen⟩ := ih (start := start + 32) (by omega)
-      refine ⟨v :: values, ?_, by simp [hlen]⟩
-      rw [decodeABIArrayStaticElems?, hv]
-      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hvalues, hmul, Nat.add_assoc]
+  simpa [uint256, uint256Int, abiUInt256] using
+    (Reasoning.Theory.decodeABIArrayStaticElems_uint256_exists_of_length
+      (n := n) (bytes := bytes) (start := start) h)
 
 theorem decodeABIArrayStaticElems_bytes32_exists_of_length {n : Nat}
     {bytes : List UInt8} {start : Nat} (h : start + 32 * n ≤ bytes.length) :
     ∃ values, decodeABIArrayStaticElems? bytes32 n 32 bytes start =
         some (values, start + 32 * n) ∧ values.length = n := by
-  induction n generalizing start with
-  | zero =>
-      refine ⟨[], ?_, rfl⟩
-      simp [decodeABIArrayStaticElems?]
-  | succ n ih =>
-      obtain ⟨v, hv⟩ := decodeABIValue_bytes32_exists (bytes := bytes) (start := start) (by omega)
-      obtain ⟨values, hvalues, hlen⟩ := ih (start := start + 32) (by omega)
-      refine ⟨v :: values, ?_, by simp [hlen]⟩
-      rw [decodeABIArrayStaticElems?, hv]
-      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hvalues, hmul, Nat.add_assoc]
+  simpa [bytes32, abiBytes32, abiBytes32Width] using
+    (Reasoning.Theory.decodeABIArrayStaticElems_bytes32_exists_of_length
+      (n := n) (bytes := bytes) (start := start) h)
 
 theorem decodeABIRawBoolArrayElems_facts {n : Nat} {bytes : List UInt8}
     {start : Nat} {values : List Value} {endOffset : Nat}
     (hstart : start ≤ bytes.length)
     (h : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset)) :
     endOffset = start + 32 * n ∧ endOffset ≤ bytes.length ∧ values.length = n := by
-  induction n generalizing start values endOffset with
-  | zero =>
-      simp [decodeABIRawBoolArrayElems?] at h
-      rcases h with ⟨hvalues, hend⟩
-      cases hvalues
-      cases hend
-      exact ⟨by omega, hstart, rfl⟩
-  | succ n ih =>
-      rw [decodeABIRawBoolArrayElems?] at h
-      cases hread : readNat? bytes start with
-      | none => simp [hread] at h
-      | some word =>
-          simp [hread] at h
-          cases hrest : decodeABIRawBoolArrayElems? n bytes (start + 32) with
-          | none => simp [hrest] at h
-          | some p =>
-              rcases p with ⟨valuesRest, restEnd⟩
-              simp [hrest] at h
-              rcases h with ⟨hvalues, hend⟩
-              cases hvalues
-              cases hend
-              obtain ⟨ihEq, ihLe, ihLen⟩ :=
-                ih (readNat?_some_length hread) hrest
-              exact ⟨by omega, ihLe, by simp [ihLen]⟩
+  exact Reasoning.Theory.decodeABIRawBoolArrayElems_facts hstart h
 
 theorem decodeABIRawBoolArrayElems_exists_of_length {n : Nat} {bytes : List UInt8}
     {start : Nat} (h : start + 32 * n ≤ bytes.length) :
     ∃ values, decodeABIRawBoolArrayElems? n bytes start =
         some (values, start + 32 * n) ∧ values.length = n := by
-  induction n generalizing start with
-  | zero =>
-      refine ⟨[], ?_, rfl⟩
-      simp [decodeABIRawBoolArrayElems?]
-  | succ n ih =>
-      have hreadLen : start + 32 ≤ bytes.length := by omega
-      obtain ⟨word, hread⟩ := readNat?_exists_of_length hreadLen
-      have htail : start + 32 + 32 * n ≤ bytes.length := by omega
-      obtain ⟨values, hvalues, hlen⟩ := ih htail
-      refine ⟨rawBoolWordValue word :: values, ?_, by simp [hlen]⟩
-      rw [decodeABIRawBoolArrayElems?, hread, hvalues]
-      have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hmul, Nat.add_assoc]
+  exact Reasoning.Theory.decodeABIRawBoolArrayElems_exists_of_length
+    (n := n) (bytes := bytes) (start := start) h
 
 theorem decodeABIValue_dynamicArray_uint256_exists {bytes : List UInt8}
     {start len : Nat}
@@ -1166,16 +970,9 @@ theorem decodeABIValue_dynamicArray_uint256_exists {bytes : List UInt8}
     (hend : start + 32 + 32 * len ≤ bytes.length) :
     ∃ values, decodeABIValue? (.dynamicArray uint256) bytes start =
         some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
-  obtain ⟨values, hvalues, hlen⟩ :=
-    decodeABIArrayStaticElems_uint256_exists_of_length (bytes := bytes) (start := start + 32)
-      (n := len) (by omega)
-  refine ⟨values, ?_, hlen⟩
-  have hvalues' :
-      decodeABIArrayStaticElems? (.elem (.int uint256Int)) len 32 bytes (start + 32) =
-        some (values, start + 32 + 32 * len) := by
-    simpa [uint256] using hvalues
-  unfold decodeABIValue? uint256
-  simp [hread, hmax, isDynamicABIType, staticABIEncodedSize?, hvalues', Nat.add_assoc]
+  simpa [uint256, uint256Int, abiUInt256] using
+    (Reasoning.Theory.decodeABIValue_dynamicArray_uint256_exists
+      (bytes := bytes) (start := start) (len := len) hread hmax hend)
 
 theorem decodeABIValue_dynamicArray_bool_exists {bytes : List UInt8}
     {start len : Nat}
@@ -1184,12 +981,9 @@ theorem decodeABIValue_dynamicArray_bool_exists {bytes : List UInt8}
     (hend : start + 32 + 32 * len ≤ bytes.length) :
     ∃ values, decodeABIValue? (.dynamicArray boolTy) bytes start =
         some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
-  obtain ⟨values, hvalues, hlen⟩ :=
-    decodeABIRawBoolArrayElems_exists_of_length (bytes := bytes) (start := start + 32)
-      (n := len) (by omega)
-  refine ⟨values, ?_, hlen⟩
-  unfold decodeABIValue? boolTy
-  simp [hread, hmax, hvalues, Nat.add_assoc]
+  simpa [boolTy] using
+    (Reasoning.Theory.decodeABIValue_dynamicArray_bool_exists
+      (bytes := bytes) (start := start) (len := len) hread hmax hend)
 
 theorem decodeABIValue_dynamicArray_bytes32_exists {bytes : List UInt8}
     {start len : Nat}
@@ -1198,18 +992,9 @@ theorem decodeABIValue_dynamicArray_bytes32_exists {bytes : List UInt8}
     (hend : start + 32 + 32 * len ≤ bytes.length) :
     ∃ values, decodeABIValue? (.dynamicArray bytes32) bytes start =
         some (.array values, start + 32 + 32 * len) ∧ values.length = len := by
-  obtain ⟨values, hvalues, hlen⟩ :=
-    decodeABIArrayStaticElems_bytes32_exists_of_length (bytes := bytes) (start := start + 32)
-      (n := len) (by omega)
-  refine ⟨values, ?_, hlen⟩
-  unfold bytes32 at hvalues
-  unfold decodeABIValue? bytes32
-  simp [hread, hmax, isDynamicABIType, staticABIEncodedSize?]
-  rw [show (ABIType.elem (ElemType.bytes 31)) =
-      (ABIType.elem (ElemType.bytes ⟨31, bytes32._proof_1⟩)) by
-    congr]
-  rw [hvalues]
-  simp [Nat.add_assoc]
+  simpa [bytes32, abiBytes32, abiBytes32Width] using
+    (Reasoning.Theory.decodeABIValue_dynamicArray_bytes32_exists
+      (bytes := bytes) (start := start) (len := len) hread hmax hend)
 
 theorem decodeABIValue_dynamicArray_elem32_facts {elem : ElemType}
     {bytes : List UInt8} {start : Nat} {values : List Value} {endOffset : Nat}
@@ -1217,68 +1002,17 @@ theorem decodeABIValue_dynamicArray_elem32_facts {elem : ElemType}
       some (.array values, endOffset)) :
     ∃ len, readNat? bytes start = some len ∧ ¬ solcMaxU64 < len ∧
       endOffset = start + 32 + 32 * len ∧ endOffset ≤ bytes.length ∧ values.length = len := by
-  unfold decodeABIValue? at h
-  cases hread : readNat? bytes start with
-  | none => simp [hread] at h
-  | some len =>
-      by_cases hmax : solcMaxU64 < len
-      · simp [hread, hmax] at h
-      · by_cases hbool : elem = .bool
-        · subst elem
-          simp [hread, hmax] at h
-          cases hraw : decodeABIRawBoolArrayElems? len bytes (start + 32) with
-          | none => simp [hraw] at h
-          | some p =>
-              rcases p with ⟨values', end'⟩
-              simp [hraw] at h
-              rcases h with ⟨hvalues, hendOffset⟩
-              obtain ⟨hend, hle, hlen⟩ :=
-                decodeABIRawBoolArrayElems_facts (readNat?_some_length hread) hraw
-              refine ⟨len, rfl, hmax, ?_, ?_, ?_⟩
-              · rw [← hendOffset]
-                exact hend
-              · rwa [hendOffset] at hle
-              · rwa [hvalues] at hlen
-        · simp [hread, hmax, hbool, staticABIEncodedSize?, isDynamicABIType] at h
-          cases hstatic : decodeABIArrayStaticElems? (.elem elem) len 32 bytes (start + 32) with
-          | none => simp [hstatic] at h
-          | some p =>
-              rcases p with ⟨values', end'⟩
-              simp [hstatic] at h
-              rcases h with ⟨hvalues, hendOffset⟩
-              obtain ⟨hend, hle, hlen⟩ :=
-                decodeABIArrayStaticElems_elem32_facts (readNat?_some_length hread) hstatic
-              refine ⟨len, rfl, hmax, ?_, ?_, ?_⟩
-              · rw [← hendOffset]
-                exact hend
-              · rwa [hendOffset] at hle
-              · rwa [hvalues] at hlen
+  exact Reasoning.Theory.decodeABIValue_dynamicArray_elem32_facts h
 
 theorem uadd3_ofNat_toNat {a b c : Nat}
     (ha : a < UInt256.size) (hb : b < UInt256.size) (hc : c < UInt256.size)
     (hab : a + b < UInt256.size) (habc : a + b + c < UInt256.size) :
     ((UInt256.ofNat a + UInt256.ofNat b) + UInt256.ofNat c).toNat = a + b + c := by
-  rw [uadd_toNat]
-  have habWord : (UInt256.ofNat a + UInt256.ofNat b).toNat = a + b :=
-    uadd_ofNat_toNat ha hb hab
-  rw [habWord, ulit_toNat' c hc]
-  exact Nat.mod_eq_of_lt habc
+  exact Reasoning.Theory.uadd3_ofNat_toNat ha hb hc hab habc
 
 theorem shiftLeft5_ofNat_eq {n : Nat} (h : 32 * n < UInt256.size) :
     UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩ = UInt256.ofNat (32 * n) := by
-  apply u256_inj
-  unfold UInt256.shiftLeft
-  rw [if_neg (by decide : ¬ ((⟨5⟩ : UInt256).val ≥ 256))]
-  change (((UInt256.ofNat n).val.val <<< (⟨5⟩ : UInt256).val.val) % UInt256.size) =
-    (UInt256.ofNat (32 * n)).val.val
-  rw [show (⟨5⟩ : UInt256).val.val = 5 by decide]
-  rw [show (UInt256.ofNat n).val.val = n by
-    exact ulit_toNat' n (by
-      have : n ≤ 32 * n := by omega
-      exact lt_of_le_of_lt this h)]
-  rw [show (UInt256.ofNat (32 * n)).val.val = 32 * n by exact ulit_toNat' (32 * n) h]
-  rw [Nat.shiftLeft_eq, Nat.mul_comm]
-  exact Nat.mod_eq_of_lt h
+  exact Reasoning.Theory.shiftLeft5_ofNat_eq h
 
 theorem revealArrayGuards_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat}
     {elem : ElemType} {values : List Value} {endOffset : Nat}
@@ -1705,28 +1439,9 @@ theorem scratch_decodeABIValue_uint256_readNat {bytes : List UInt8} {start endOf
       decodeABIValue? uint256 bytes start =
         some (.int (Int.ofNat value.toNat), endOffset)) :
     readNat? bytes start = some value.toNat ∧ endOffset = start + 32 := by
-  obtain ⟨hend, hle⟩ := decodeABIValue_elem_end_le h
-  have htake : ((bytes.drop start).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop]
-    omega
-  have hok :
-      decodeABIValue? uint256 bytes start =
-        some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
-          start + 32) := by
-    simpa [uint256, uint256Int, abiUInt256] using
-      decodeABIValue_uint256_ok (bytes := bytes) (start := start) htake
-  rw [hok] at h
-  injection h with hpair
-  injection hpair with hval hend'
-  injection hval with hint
-  have hword :
-      (ABI.bytesToWord ((bytes.drop start).take 32)).toNat = value.toNat :=
-    Int.ofNat.inj hint
-  constructor
-  · unfold readNat? readWord? readBytes?
-    simp [htake]
-    simpa [UInt256.toNat] using hword
-  · exact hend'.symm
+  simpa [uint256, uint256Int, abiUInt256] using
+    (Reasoning.Theory.decodeABIValue_uint256_readNat
+      (bytes := bytes) (start := start) (endOffset := endOffset) (value := value) h)
 
 -- LIBRARY CANDIDATE: dynamic-array decoder nth/read bridge for raw bool ABI arrays.
 theorem scratch_decodeABIRawBoolArrayElems_lookup_readNat {n : Nat}
@@ -1734,36 +1449,7 @@ theorem scratch_decodeABIRawBoolArrayElems_lookup_readNat {n : Nat}
     (hdec : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset))
     (hlookup : lookupNth? values i = some (rawBoolWordValue word)) :
     readNat? bytes (start + 32 * i) = some word := by
-  induction n generalizing start endOffset i values with
-  | zero =>
-      simp [decodeABIRawBoolArrayElems?] at hdec
-      rcases hdec with ⟨hvalues, _hend⟩
-      cases hvalues
-      cases i <;> simp [lookupNth?] at hlookup
-  | succ n ih =>
-      rw [decodeABIRawBoolArrayElems?] at hdec
-      cases hread : readNat? bytes start with
-      | none => simp [hread] at hdec
-      | some headWord =>
-          simp [hread] at hdec
-          cases hrest : decodeABIRawBoolArrayElems? n bytes (start + 32) with
-          | none => simp [hrest] at hdec
-          | some p =>
-              rcases p with ⟨tailValues, restEnd⟩
-              simp [hrest] at hdec
-              rcases hdec with ⟨hvalues, hend⟩
-              cases hvalues
-              cases hend
-              cases i with
-              | zero =>
-                  simp [lookupNth?, rawBoolWordValue] at hlookup
-                  cases hlookup
-                  simpa using hread
-              | succ i =>
-                  simp [lookupNth?] at hlookup
-                  have htail := ih hrest hlookup
-                  have hoff : start + 32 * (i + 1) = start + 32 + 32 * i := by omega
-                  simpa [hoff, Nat.add_assoc] using htail
+  exact Reasoning.Theory.decodeABIRawBoolArrayElems_lookup_readNat hdec hlookup
 
 -- LIBRARY CANDIDATE: dynamic-array decoder nth/read bridge for uint256 arrays.
 theorem scratch_decodeABIArrayStaticElems_uint256_lookup_readNat {n : Nat}
@@ -1772,53 +1458,15 @@ theorem scratch_decodeABIArrayStaticElems_uint256_lookup_readNat {n : Nat}
     (hdec : decodeABIArrayStaticElems? uint256 n 32 bytes start = some (values, endOffset))
     (hlookup : lookupNth? values i = some (.int (Int.ofNat value.toNat))) :
     readNat? bytes (start + 32 * i) = some value.toNat := by
-  induction n generalizing start endOffset i values with
-  | zero =>
-      simp [decodeABIArrayStaticElems?] at hdec
-      rcases hdec with ⟨hvalues, _hend⟩
-      cases hvalues
-      cases i <;> simp [lookupNth?] at hlookup
-  | succ n ih =>
-      rw [decodeABIArrayStaticElems?] at hdec
-      cases hval : decodeABIValue? uint256 bytes start with
-      | none => simp [hval] at hdec
-      | some p =>
-          rcases p with ⟨headValue, headEnd⟩
-          by_cases hendHead : headEnd = start + 32
-          · simp [hval, hendHead] at hdec
-            cases hrest : decodeABIArrayStaticElems? uint256 n 32 bytes headEnd with
-            | none =>
-                have hrest' :
-                    decodeABIArrayStaticElems? uint256 n 32 bytes (start + 32) = none := by
-                  simpa [hendHead] using hrest
-                simp [hrest'] at hdec
-            | some q =>
-                rcases q with ⟨tailValues, restEnd⟩
-                have hrest' :
-                    decodeABIArrayStaticElems? uint256 n 32 bytes (start + 32) =
-                      some (tailValues, restEnd) := by
-                  simpa [hendHead] using hrest
-                simp [hrest'] at hdec
-                rcases hdec with ⟨hvalues, hend⟩
-                cases hvalues
-                cases hend
-                cases i with
-                | zero =>
-                    simp [lookupNth?] at hlookup
-                    cases hlookup
-                    exact (scratch_decodeABIValue_uint256_readNat hval).1
-                | succ i =>
-                    simp [lookupNth?] at hlookup
-                    have htail := ih hrest hlookup
-                    have hoff : start + 32 * (i + 1) = headEnd + 32 * i := by omega
-                    simpa [hoff] using htail
-          · simp [hval, hendHead] at hdec
+  simpa [uint256, uint256Int, abiUInt256] using
+    (Reasoning.Theory.decodeABIArrayStaticElems_uint256_lookup_readNat
+      (n := n) (bytes := bytes) (start := start) (endOffset := endOffset)
+      (i := i) (value := value) (values := values) hdec hlookup)
 
 -- LIBRARY CANDIDATE: fixed bytes32 ABI words round-trip through the EVM word encoding.
 theorem scratch_bytesToWord_toBytesBE (w : UInt256) :
     ABI.bytesToWord (EVM.Word.toBytesBE w) = w := by
-  unfold ABI.bytesToWord
-  rw [← toByteArray_eq_toBytesBE w, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  exact Reasoning.Theory.bytesToWord_toBytesBE w
 
 theorem scratch_word_toBytesBE_length_32 (w : UInt256) :
     (EVM.Word.toBytesBE w).length = 32 := by
@@ -1831,30 +1479,9 @@ theorem scratch_decodeABIValue_bytes32_readNat {bytes : List UInt8} {start endOf
       decodeABIValue? bytes32 bytes start =
         some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE value), endOffset)) :
     readNat? bytes start = some value.toNat ∧ endOffset = start + 32 := by
-  obtain ⟨_hend, hle⟩ := decodeABIValue_elem_end_le h
-  have htake : ((bytes.drop start).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop]
-    omega
-  have hok :
-      decodeABIValue? bytes32 bytes start =
-        some (.fixedBytes ⟨31, by decide⟩ ((bytes.drop start).take 32), start + 32) := by
-    unfold bytes32
-    simp only [decodeABIValue?, readBytes?, bind, Option.bind]
-    rw [if_pos htake]
-    simp only
-    unfold zeroPadding? readBytes?
-    simp
-  rw [hok] at h
-  injection h with hpair
-  injection hpair with hval hend'
-  injection hval with _ hbytes
-  constructor
-  · unfold readNat? readWord? readBytes?
-    rw [if_pos htake]
-    simp only [bind, Option.bind]
-    rw [hbytes]
-    simp [scratch_word_toBytesBE_length_32, scratch_bytesToWord_toBytesBE, UInt256.toNat]
-  · exact hend'.symm
+  simpa [bytes32, abiBytes32, abiBytes32Width] using
+    (Reasoning.Theory.decodeABIValue_bytes32_readNat
+      (bytes := bytes) (start := start) (endOffset := endOffset) (value := value) h)
 
 -- LIBRARY CANDIDATE: dynamic-array decoder nth/read bridge for bytes32 arrays.
 theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_readNat {n : Nat}
@@ -1865,47 +1492,10 @@ theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_readNat {n : Nat}
       lookupNth? values i =
         some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE value))) :
     readNat? bytes (start + 32 * i) = some value.toNat := by
-  induction n generalizing start endOffset i values with
-  | zero =>
-      simp [decodeABIArrayStaticElems?] at hdec
-      rcases hdec with ⟨hvalues, _hend⟩
-      cases hvalues
-      cases i <;> simp [lookupNth?] at hlookup
-  | succ n ih =>
-      rw [decodeABIArrayStaticElems?] at hdec
-      cases hval : decodeABIValue? bytes32 bytes start with
-      | none => simp [hval] at hdec
-      | some p =>
-          rcases p with ⟨headValue, headEnd⟩
-          by_cases hendHead : headEnd = start + 32
-          · simp [hval, hendHead] at hdec
-            cases hrest : decodeABIArrayStaticElems? bytes32 n 32 bytes headEnd with
-            | none =>
-                have hrest' :
-                    decodeABIArrayStaticElems? bytes32 n 32 bytes (start + 32) = none := by
-                  simpa [hendHead] using hrest
-                simp [hrest'] at hdec
-            | some q =>
-                rcases q with ⟨tailValues, restEnd⟩
-                have hrest' :
-                    decodeABIArrayStaticElems? bytes32 n 32 bytes (start + 32) =
-                      some (tailValues, restEnd) := by
-                  simpa [hendHead] using hrest
-                simp [hrest'] at hdec
-                rcases hdec with ⟨hvalues, hend⟩
-                cases hvalues
-                cases hend
-                cases i with
-                | zero =>
-                    simp [lookupNth?] at hlookup
-                    cases hlookup
-                    exact (scratch_decodeABIValue_bytes32_readNat hval).1
-                | succ i =>
-                    simp [lookupNth?] at hlookup
-                    have htail := ih hrest hlookup
-                    have hoff : start + 32 * (i + 1) = headEnd + 32 * i := by omega
-                    simpa [hoff] using htail
-          · simp [hval, hendHead] at hdec
+  simpa [bytes32, abiBytes32, abiBytes32Width] using
+    (Reasoning.Theory.decodeABIArrayStaticElems_bytes32_lookup_readNat
+      (n := n) (bytes := bytes) (start := start) (endOffset := endOffset)
+      (i := i) (value := value) (values := values) hdec hlookup)
 
 theorem revealDecode_dynamicArray_uint256_lookup_readNat {bytes : List UInt8}
     {start endOffset i : Nat} {values : List Value} {value : UInt256}
@@ -1997,64 +1587,19 @@ theorem revealDecode_dynamicArray_bytes32_lookup_readNat {bytes : List UInt8}
 theorem scratch_fromBytes'_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)
     (h : fromBytes' xs = fromBytes' ys) : xs = ys := by
-  induction xs generalizing ys with
-  | nil =>
-      cases ys with
-      | nil => rfl
-      | cons _ _ => simp at hlen
-  | cons x xs ih =>
-      cases ys with
-      | nil => simp at hlen
-      | cons y ys =>
-          simp at hlen
-          unfold fromBytes' at h
-          have hx : x.toFin.val < 2^8 := x.toFin.isLt
-          have hy : y.toFin.val < 2^8 := y.toFin.isLt
-          have hheadNat : x.toFin.val = y.toFin.val := by
-            have hmod := congrArg (fun n => n % 2^8) h
-            omega
-          have htail : fromBytes' xs = fromBytes' ys := by
-            have hdiv := congrArg (fun n => n / 2^8) h
-            omega
-          have hxy : x = y := UInt8.toNat_inj.mp hheadNat
-          rw [hxy]
-          congr
-          exact ih hlen htail
+  exact Reasoning.Theory.fromBytes'_inj_of_length hlen h
 
 -- LIBRARY CANDIDATE: fixed-length big-endian byte arrays are injectively decoded.
 theorem scratch_fromBytesBigEndian_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)
     (h : fromBytesBigEndian xs = fromBytesBigEndian ys) : xs = ys := by
-  unfold fromBytesBigEndian at h
-  apply List.reverse_injective
-  apply scratch_fromBytes'_inj_of_length
-  · simpa [hlen]
-  · exact h
+  exact Reasoning.Theory.fromBytesBigEndian_inj_of_length hlen h
 
 -- LIBRARY CANDIDATE: bytes32 decoder words round-trip to their original 32 bytes.
 theorem scratch_toBytesBE_bytesToWord_of_length {bs : List UInt8}
     (hlen : bs.length = 32) :
     EVM.Word.toBytesBE (ABI.bytesToWord bs) = bs := by
-  apply scratch_fromBytesBigEndian_inj_of_length
-  · rw [show (EVM.Word.toBytesBE (ABI.bytesToWord bs)).length = 32 by
-        simpa using word_toBytesBE_toByteArray_size (ABI.bytesToWord bs), hlen]
-  · have hleft :
-        fromBytesBigEndian (EVM.Word.toBytesBE (ABI.bytesToWord bs)) =
-          (ABI.bytesToWord bs).toNat := by
-      have h := congrArg fromByteArrayBigEndian
-        (word_toBytesBE_toByteArray_eq_toByteArray (ABI.bytesToWord bs))
-      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-        h.trans (fromByteArrayBigEndian_toByteArray (ABI.bytesToWord bs))
-    have hright : (ABI.bytesToWord bs).toNat = fromBytesBigEndian bs := by
-      unfold ABI.bytesToWord
-      have hlt : fromBytesBigEndian bs < UInt256.size := by
-        unfold fromBytesBigEndian
-        have hle := fromBytes'_le (bs := bs.reverse)
-        rw [List.length_reverse, hlen] at hle
-        simpa [UInt256.size] using hle
-      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-        (ulit_toNat' (fromBytesBigEndian bs) hlt)
-    rw [hleft, hright]
+  exact Reasoning.Theory.toBytesBE_bytesToWord_of_length hlen
 
 theorem scratch_decodeABIValue_uint256_shape {bytes : List UInt8} {start endOffset : Nat}
     {value : Value}
