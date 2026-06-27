@@ -1652,7 +1652,7 @@ theorem blindAuctionDecode_reveal_callargs_empty_eq {I : ExecutionEnv} {callargs
   obtain ⟨values, fakes, secrets, rfl⟩ :=
     blindAuctionDecode_reveal_callargs_store_shape hdec
   have hvaluesNil : values = [] := by
-    rw [store_get_ne, store_get_ne, store_get_self] at hvalues
+    rw [store_get_ne2, store_get_self] at hvalues
     · cases hvalues
       rfl
     · decide

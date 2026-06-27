@@ -201,7 +201,7 @@ theorem scratch_revealLoopStore_length_get (callargs : Store) (len refund i : UI
     (scratch_revealLoopStore callargs len refund i).get? "length" =
       some (.int (Int.ofNat len.toNat)) := by
   unfold scratch_revealLoopStore scratch_revealRefundStore scratch_revealLengthStore
-  rw [store_get_ne, store_get_ne, store_get_self]
+  rw [store_get_ne2, store_get_self]
   · decide
   · decide
 
@@ -500,7 +500,7 @@ theorem scratch_revealSecretStore_value_get (callargs : Store) (evm : EVM.State)
     (scratch_revealSecretStore callargs evm len refund i value secret fake).get? "value" =
       some (.int (Int.ofNat value.toNat)) := by
   unfold scratch_revealSecretStore scratch_revealFakeStore scratch_revealValueStore
-  rw [store_get_ne, store_get_ne, store_get_self]
+  rw [store_get_ne2, store_get_self]
   · decide
   · decide
 
@@ -851,7 +851,7 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
               (.int (Int.ofNat value.toNat))).insert "fake" (.bool fake)).insert "secret"
           (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))).get? "bidToCheck" =
         some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy)
-    rw [store_get_ne, store_get_ne, store_get_ne]
+    rw [store_get_ne3]
     · exact scratch_revealBidToCheckStore_bid_get callargs evm len refund i
     · decide
     · decide
@@ -2822,7 +2822,7 @@ theorem scratch_revealSecretStoreOf_value_get (locals : Store) (evm : EVM.State)
     (scratch_revealSecretStoreOf locals evm i value secret fake).get? "value" =
       some (.int (Int.ofNat value.toNat)) := by
   unfold scratch_revealSecretStoreOf scratch_revealFakeStoreOf scratch_revealValueStoreOf
-  rw [store_get_ne, store_get_ne, store_get_self]
+  rw [store_get_ne2, store_get_self]
   · decide
   · decide
 

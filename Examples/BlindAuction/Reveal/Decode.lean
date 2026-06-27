@@ -1195,7 +1195,7 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                                             rcases hdec with ⟨_, hstore⟩
                                             cases hstore.symm
                                             refine ⟨values, fakes, secrets, ?_, ?_, ?_⟩
-                                            · rw [store_get_ne, store_get_ne, store_get_self]
+                                            · rw [store_get_ne2, store_get_self]
                                               · decide
                                               · decide
                                             · rw [store_get_ne, store_get_self]
@@ -1424,7 +1424,7 @@ theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs :
                           · simp [hargsShort] at hdec
                             rcases hdec with ⟨_, hstore⟩
                             cases hstore.symm
-                            rw [store_get_ne, store_get_ne, store_get_ne]
+                            rw [store_get_ne3]
                             · simp
                             · exact hvalues
                             · exact hfakes
@@ -1726,8 +1726,8 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
                                                 (.array secrets)).get? "values" at this
-                                        rw [store_get_ne, store_get_ne, store_get_self,
-                                          store_get_ne, store_get_ne, store_get_self] at this
+                                        rw [store_get_ne2, store_get_self, store_get_ne2,
+                                          store_get_self] at this
                                           <;> try decide
                                         injection this with hsome
                                         injection hsome with hv

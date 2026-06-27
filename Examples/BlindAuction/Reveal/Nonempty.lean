@@ -1336,7 +1336,7 @@ theorem scratch_revealRefundPlacedStoreOf_get_preserve (locals : Store) (evm : E
     (scratch_revealRefundPlacedStoreOf locals evm i refund value secret deposit).get? name =
       locals.get? name := by
   unfold scratch_revealRefundPlacedStoreOf
-  rw [store_get_ne, store_get_ne]
+  rw [store_get_ne2]
   · exact scratch_revealRefundAddedStoreOf_get_preserve locals evm i refund value secret
       deposit false hrefund hsecret hfake hvalue hbid
   · exact hok
