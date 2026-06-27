@@ -2289,6 +2289,59 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
           (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
 
+/-- `RD.call` specialized to Solidity's empty-call-data / no-return-copy pattern.
+
+When both `inSize` and `outSize` are zero, the input to `Θ` is `ByteArray.empty` and copying the
+callee return bytes leaves memory unchanged.  The active-word expression is kept explicit so callers
+can rewrite it with their own local active-word facts. -/
+theorem RD.callEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {gasArg target inOffset outOffset : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: ⟨0⟩ :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
+          mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hdepth : ee.depth.val < 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
+          ByteArray.empty (ee.depth + 1) ee.header ee.perm)
+      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+          mem
+          (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
+            (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
+          o (cA', σ') k' C'
+      ∧ o.size < UInt256.size := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd, hoSize⟩ :=
+    RD.call h hdec hdepth hov
+  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
+    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
+      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
+      exact Nat.zero_le _
+    simp [min, hle]
+  have hcd : mem.readWithPadding inOffset.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
+    exact byteArray_readWithPadding_zero _ _
+  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
+      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+        (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+        callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
+        ByteArray.empty (ee.depth + 1) ee.header ee.perm := by
+    rcases hΘ with ⟨g'', A', hΘeq⟩
+    refine ⟨g'', A', ?_⟩
+    rw [hcd] at hΘeq
+    exact hΘeq
+  rw [hmin, byteArray_write_len_zero] at rd
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', rd, hoSize⟩
+
 set_option maxHeartbeats 1000000 in
 /-- **CALL** (arbitrary value, call-made branch) as an `RD → RD` combinator.
 
@@ -2479,6 +2532,57 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
           cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
           (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+
+/-- `RD.callValueMade` specialized to Solidity's empty-call-data / no-return-copy pattern. -/
+theorem RD.callValueMadeEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {gasArg target valueWord inOffset outOffset : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: valueWord :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
+          mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hperm : ee.perm = true)
+    (hbalance : valueWord ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : ee.depth.val < 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
+          ByteArray.empty (ee.depth + 1) ee.header ee.perm)
+      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+          mem
+          (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
+            (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
+          o (cA', σ') k' C'
+      ∧ o.size < UInt256.size := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd, hoSize⟩ :=
+    RD.callValueMade h hdec hperm hbalance hdepth hov
+  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
+    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
+      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
+      exact Nat.zero_le _
+    simp [min, hle]
+  have hcd : mem.readWithPadding inOffset.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
+    exact byteArray_readWithPadding_zero _ _
+  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
+      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+        (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+        callGas (UInt256.ofNat ee.gasPrice) valueWord valueWord
+        ByteArray.empty (ee.depth + 1) ee.header ee.perm := by
+    rcases hΘ with ⟨g'', A', hΘeq⟩
+    refine ⟨g'', A', ?_⟩
+    rw [hcd] at hΘeq
+    exact hΘeq
+  rw [hmin, byteArray_write_len_zero] at rd
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', rd, hoSize⟩
 
 set_option maxHeartbeats 1000000 in
 /-- **`CALL` insufficient-balance branch**, with an arbitrary transferred `value`.
@@ -2841,6 +2945,79 @@ theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
       · exact hee
       · exact hworld
 
+/-- `RD.callValueInsufficientBalance` specialized to empty input and no return-data copy. -/
+theorem RD.callValueInsufficientBalanceEmptyInOut {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
+          mem aw rdata (cA, σ) k C)
+    (hperm : ee.perm = true)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hbalance : ¬ value ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : ee.depth.val < 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+      mem
+      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
+        (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
+      ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨k', C', rd⟩ :=
+    RD.callValueInsufficientBalance h hperm hdec hbalance hdepth hov
+  have hmin :
+      (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    decide
+  rw [hmin, byteArray_write_len_zero] at rd
+  exact ⟨k', C', rd⟩
+
+/-- `RD.callValueDepthLimit` specialized to empty input and no return-data copy. -/
+theorem RD.callValueDepthLimitEmptyInOut {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {k C : ℕ} {gasArg target value inOffset outOffset : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: value :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
+          mem aw rdata (cA, σ) k C)
+    (hperm : ee.perm = true)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hdepth : ee.depth = 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+      mem
+      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
+        (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
+      ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨k', C', rd⟩ := RD.callValueDepthLimit h hperm hdec hdepth hov
+  have hmin :
+      (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    decide
+  rw [hmin, byteArray_write_len_zero] at rd
+  exact ⟨k', C', rd⟩
+
+/-- `RD.callDepthLimit` specialized to empty input and no return-data copy. -/
+theorem RD.callDepthLimitEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {gasArg target inOffset outOffset : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: ⟨0⟩ :: inOffset :: ⟨0⟩ :: outOffset :: ⟨0⟩ :: t)
+          mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hdepth : ee.depth = 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+      mem
+      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat
+        (⟨0⟩ : UInt256).toNat) outOffset.toNat (⟨0⟩ : UInt256).toNat))
+      ByteArray.empty (cA, σ) k' C' := by
+  obtain ⟨k', C', rd⟩ := RD.callDepthLimit h hdec hdepth hov
+  have hmin :
+      (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    decide
+  rw [hmin, byteArray_write_len_zero] at rd
+  exact ⟨k', C', rd⟩
+
 /-- **Hoare while-rule for an `RD` loop** — the EVM analogue of `execWhile_var` (the Solm-side
     while-rule).  A variant-indexed invariant `Inv : ℕ → α → Prop` over the loop-carried state `α`
     (whose stack image is `stk a`), together with:
@@ -2968,6 +3145,83 @@ def RDret (code : ByteArray) (g : Sat256) (s0 : State)
 def RDrev (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
   X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
   ∨ ∃ g' o, X (g.toNat + 1) (D_J code 0) s0 = .ok (.revert g' o)
+
+/-- Coupled variant-indexed loop rule for a solc bytecode loop and a Solm `for` loop.
+
+This is the `RD.whileLoopCarryFull` analogue used when the source loop body may revert before the
+variant reaches zero.  The caller supplies the bytecode transitions for the false-condition exit
+and the true-condition body entry, plus a body step that either reverts both sides or produces the
+next carried state. -/
+theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl}
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {rdata : ByteArray} {α : Type}
+    (header bodyHeader exit : UInt256) (condExpr : Expr) (post body : List Stmt)
+    (Inv : ℕ → α → Store → EVM.State → Prop) (stk : α → List UInt256)
+    (mem : α → ByteArray) (aw : α → UInt256)
+    (acc : α → Batteries.RBSet AccountAddress compare × AccountMap)
+    (exitStk : α → List UInt256)
+    (hfalse : ∀ a L evm, Inv 0 a L evm →
+      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool false))
+    (hexit : ∀ a L evm, Inv 0 a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
+    (htrue : ∀ v a L evm, Inv (v + 1) a L evm →
+      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool true))
+    (henter : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
+    (hbody : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
+      RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (ExecBlock cfg { contract := contract, locals := L } evm body .reverted ∧
+        RDrev code g s0) ∨
+      ∃ a' L1 evm1 L2 evm2 k' C',
+        (ExecBlock cfg { contract := contract, locals := L } evm body
+            (.ok { contract := contract, locals := L1 } evm1) ∨
+          ExecBlock cfg { contract := contract, locals := L } evm body
+            (.continue { contract := contract, locals := L1 } evm1)) ∧
+        ExecBlock cfg { contract := contract, locals := L1 } evm1 post
+          (.ok { contract := contract, locals := L2 } evm2) ∧
+        Inv v a' L2 evm2 ∧
+        RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
+    ∀ v a L evm, Inv v a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (∃ a' L' evm' k' C',
+        ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body
+          (.ok { contract := contract, locals := L' } evm') ∧
+        Inv 0 a' L' evm' ∧
+        RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
+      (ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body .reverted ∧
+        RDrev code g s0) := by
+  intro v
+  induction v with
+  | zero =>
+      intro a L evm hInv k C rd
+      obtain ⟨k', C', rdExit⟩ := hexit a L evm hInv k C rd
+      exact Or.inl ⟨a, L, evm, k', C', ExecForLoop.falseDone (hfalse a L evm hInv),
+        hInv, rdExit⟩
+  | succ v ih =>
+      intro a L evm hInv k C rd
+      obtain ⟨k1, C1, rdBody⟩ := henter v a L evm hInv k C rd
+      rcases hbody v a L evm hInv k1 C1 rdBody with hrev | hstep
+      · exact Or.inr ⟨ExecForLoop.bodyRevert (htrue v a L evm hInv) hrev.1, hrev.2⟩
+      · rcases hstep with
+          ⟨a', L1, evm1, L2, evm2, k2, C2, hbodyStep, hpost, hInv', rdNext⟩
+        rcases ih a' L2 evm2 hInv' k2 C2 rdNext with hdone | hloopRev
+        · rcases hdone with ⟨a'', L', evm', k', C', hloop, hInv0, rdExit⟩
+          rcases hbodyStep with hbodyOk | hbodyCont
+          · exact Or.inl ⟨a'', L', evm', k', C',
+              ExecForLoop.iterate (htrue v a L evm hInv) hbodyOk hpost hloop,
+              hInv0, rdExit⟩
+          · exact Or.inl ⟨a'', L', evm', k', C',
+              ExecForLoop.continueIter (htrue v a L evm hInv) hbodyCont hpost hloop,
+              hInv0, rdExit⟩
+        · rcases hloopRev with ⟨hloop, hrdRev⟩
+          rcases hbodyStep with hbodyOk | hbodyCont
+          · exact Or.inr
+              ⟨ExecForLoop.iterate (htrue v a L evm hInv) hbodyOk hpost hloop, hrdRev⟩
+          · exact Or.inr
+              ⟨ExecForLoop.continueIter (htrue v a L evm hInv) hbodyCont hpost hloop,
+                hrdRev⟩
 
 /-- A terminal opcode whose gas check fails leaves the whole run out of gas (shared by
     `RD.ret`/`RD.rev`).  `stepOOG` does not apply — it wants the *continue* control `.none`,

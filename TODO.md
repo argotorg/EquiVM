@@ -45,3 +45,7 @@
   + string/bytes handling
   + delete for memory arrays
   + StorageRef is not a good name as it is used for locals too.
+
+
+- When a contract inherits other contracts, that we have already proved correct,
+  can we reuse the proofs? 

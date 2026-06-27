@@ -86,10 +86,14 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
-    RD.callValueDepthLimit rd1349 hperm (by decide) hdepthEq (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    RD.callValueDepthLimitEmptyInOut rd1349 hperm (by decide) hdepthEq (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aDone.aw.toNat aDone.fp.toNat 0) aDone.fp.toNat 0) =
+          aDone.aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
   have rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
@@ -99,7 +103,7 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       aDone.mem aDone.aw ByteArray.empty aDone.acc k1350 C1350 := by
-    simpa [revealScratchSenderWord] using rd1350₀
+    simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
   let evmSFail : EVM.State :=
     { evmDone with
       substate := (evmDone.addAccessedAccount
@@ -161,10 +165,15 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
-    RD.callValueInsufficientBalance rd1349 hperm (by decide) hbalance hdepthLt (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    RD.callValueInsufficientBalanceEmptyInOut rd1349 hperm (by decide) hbalance hdepthLt
+      (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aDone.aw.toNat aDone.fp.toNat 0) aDone.fp.toNat 0) =
+          aDone.aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
   have rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
@@ -174,7 +183,7 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       aDone.mem aDone.aw ByteArray.empty aDone.acc k1350 C1350 := by
-    simpa [revealScratchSenderWord] using rd1350₀
+    simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
   let evmEDone : EVM.State :=
     { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := aDone.acc.2,
@@ -298,7 +307,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_step
           (toExecute aDone.acc.2 (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ out.size < 2 ^ 255
+      ∧ out.size < UInt256.size
       ∧ RD blindAuctionBytecode I (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), aDone.fp, aDone.refund,
@@ -308,43 +317,19 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_step
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
           aDone.mem aDone.aw out (cA', σ') k1350 C1350 := by
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, hThetaRaw, rd1350₀⟩ :=
-    RD.callValueMade rd1349 (by decide) hperm hbalance hdepthLt (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat out.size := by
-      show (0 : Nat) ≤ (UInt256.ofNat out.size).val.val
-      exact Nat.zero_le _
-    simp [min, hle]
-  have hcd : aDone.mem.readWithPadding aDone.fp.toNat (⟨0⟩ : UInt256).toNat =
-      ByteArray.empty := by
-    exact byteArray_readWithPadding_zero _ _
-  have hTheta : ∃ (g'' : UInt256) (A' : Substate),
-      (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes aDone.acc.1
-        gh bl aDone.acc.2 σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute aDone.acc.2 (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
-        ByteArray.empty (I.depth + 1) I.header I.perm := by
-    rcases hThetaRaw with ⟨g'', A', hThetaEq⟩
-    refine ⟨g'', A', ?_⟩
-    rw [hcd] at hThetaEq
-    simpa [initState] using hThetaEq
-  have hout255 : out.size < 2 ^ 255 := by
-    rcases hTheta with ⟨g'', A', hThetaEq⟩
-    have hout : out = (Ethereum.EVM.Θ I.blobVersionedHashes aDone.acc.1
-        gh bl aDone.acc.2 σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute aDone.acc.2 (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hThetaEq
-    rw [hout]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
-  refine ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, hTheta, hout255, ?_⟩
-  simpa [revealScratchSenderWord] using rd1350₀
+  obtain ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, hThetaRaw, rd1350₀,
+      houtSize⟩ :=
+    RD.callValueMadeEmptyInOut rd1349 (by decide) hperm hbalance hdepthLt (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aDone.aw.toNat aDone.fp.toNat 0) aDone.fp.toNat 0) =
+          aDone.aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
+    decide
+  refine ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, ?_, houtSize, ?_⟩
+  · simpa [initState] using hThetaRaw
+  · simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
 
 omit hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
   hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
@@ -433,7 +418,7 @@ omit hperm henvDone rd1349 hawCall in
 theorem scratch_blindAuctionReveal_postLoop_callMade_failure
     {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
     {out : ByteArray} {k1350 C1350 : ℕ} {evmSCall : EVM.State}
-    (hout255 : out.size < 2 ^ 255)
+    (houtSize : out.size < UInt256.size)
     (rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
@@ -509,7 +494,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
         (secretsLenWord := secretsLenWord) (fakesLenWord := fakesLenWord)
         (valuesLenWord := valuesLenWord) (aDone := aDone)
         (cA' := cA') (σ' := σ') (out := out) (k := k1350) (C := C1350)
-        (z := ⟨0⟩) rd1350 hout0 (lt_size_of_lt_sign hout255)
+        (z := ⟨0⟩) rd1350 hout0 houtSize
     have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
       have rd1410 := evm_run rd1405 with [
@@ -525,7 +510,7 @@ omit hperm henvDone rd1349 hawCall in
 theorem scratch_blindAuctionReveal_postLoop_callMade_success
     {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
     {out : ByteArray} {k1350 C1350 : ℕ} {evmSCall : EVM.State}
-    (hout255 : out.size < 2 ^ 255)
+    (houtSize : out.size < UInt256.size)
     (hCreated : cA' = evmSCall.createdAccounts)
     (hAccounts : accountMapEquiv σ' evmSCall.accountMap)
     (rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
@@ -614,7 +599,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         (secretsLenWord := secretsLenWord) (fakesLenWord := fakesLenWord)
         (valuesLenWord := valuesLenWord) (aDone := aDone)
         (cA' := cA') (σ' := σ') (out := out) (k := k1350) (C := C1350)
-        (z := ⟨1⟩) rd1350 hout0 (lt_size_of_lt_sign hout255)
+        (z := ⟨1⟩) rd1350 hout0 houtSize
     have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA', σ') ByteArray.empty := by
@@ -647,7 +632,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   obtain ⟨cA', σ', z, out, A_in, callGas, k1350, C1350,
-      hTheta, hout255, rd1350⟩ :=
+      hTheta, houtSize, rd1350⟩ :=
     scratch_blindAuctionReveal_postLoop_callMade_step
       (cA := cA) (gh := gh) (bl := bl)
       (σ_evm := σ_evm) (σ₀ := σ₀) (A := A)
@@ -748,7 +733,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
       (evmSCall := evmSCall)
       hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
       hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
-      hfakesLenLoop hsecretsLenLoop hrefundDone hloop hout255
+      hfakesLenLoop hsecretsLenLoop hrefundDone hloop houtSize
       (by simpa using rd1350)
       (by simpa using hcallS)
   · have hCreated : cA' = evmSCall.createdAccounts := by
@@ -767,7 +752,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
       (evmSCall := evmSCall)
       hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
       hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
-      hfakesLenLoop hsecretsLenLoop hrefundDone hloop hout255 hCreated hAccounts
+      hfakesLenLoop hsecretsLenLoop hrefundDone hloop houtSize hCreated hAccounts
       (by simpa using rd1350)
       (by simpa using hcallS)
 

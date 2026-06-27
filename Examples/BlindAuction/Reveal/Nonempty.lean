@@ -187,7 +187,7 @@ theorem scratch_revealPackedHash_ne_of_u256_eq_zero {blinded value secret : UInt
   exact scratch_revealPackedHash_ne_of_word_ne
     (scratch_word_ne_of_u256_eq_zero h)
 
--- LIBRARY CANDIDATE: arbitrary-length non-overlap reads around 32-byte `MSTORE`s.
+-- Compatibility wrappers around reusable 32-byte `MSTORE` read lemmas.
 theorem scratch_write32_read_prefix_len (src base : ByteArray) (dest len : Nat)
     (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size) (hlen : len ≤ 32)
     (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
@@ -1148,7 +1148,7 @@ theorem scratch_revealSecretStoreOf_get_preserve (locals : Store) (evm : EVM.Sta
       locals.get? name := by
   unfold scratch_revealSecretStoreOf scratch_revealFakeStoreOf scratch_revealValueStoreOf
     scratch_revealBidToCheckStoreOf
-  rw [store_get_ne, store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne4]
   · exact hbid
   · exact hvalue
   · exact hfake
@@ -1234,10 +1234,13 @@ theorem scratch_revealRefundAddedStoreOf_get_preserve (locals : Store) (evm : EV
     (hbid : ("bidToCheck" == name) = false) :
     (scratch_revealRefundAddedStoreOf locals evm i refund value secret deposit fake).get? name =
       locals.get? name := by
-  unfold scratch_revealRefundAddedStoreOf
-  rw [store_get_ne]
-  · exact scratch_revealSecretStoreOf_get_preserve locals evm i value secret fake
-      hsecret hfake hvalue hbid
+  unfold scratch_revealRefundAddedStoreOf scratch_revealSecretStoreOf scratch_revealFakeStoreOf
+    scratch_revealValueStoreOf scratch_revealBidToCheckStoreOf
+  rw [store_get_ne5]
+  · exact hbid
+  · exact hvalue
+  · exact hfake
+  · exact hsecret
   · exact hrefund
 
 theorem scratch_revealRefundAddedStoreOf_i_get (locals : Store) (evm : EVM.State)
@@ -1539,48 +1542,22 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall_general {I} {g : Sat256}
           (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) refund refund
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ o.size < 2 ^ 255
+      ∧ o.size < UInt256.size
       ∧ RD blindAuctionBytecode I g s0 ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), freePtr, refund, revealScratchSenderWord I,
             ⟨0⟩, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
             fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
           mem aw o (cA', σ') k' C' := by
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀⟩ :=
-    RD.callValueMade rd (by decide) hperm hbalance hdepth (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
-      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
-      exact Nat.zero_le _
-    simp [min, hle]
-  have hcd : mem.readWithPadding freePtr.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact byteArray_readWithPadding_zero _ _
-  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
-        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) refund refund
-        ByteArray.empty (I.depth + 1) I.header I.perm := by
-    rcases hΘ with ⟨g'', A', hΘeq⟩
-    refine ⟨g'', A', ?_⟩
-    rw [hcd] at hΘeq
-    exact hΘeq
-  have ho255 : o.size < 2 ^ 255 := by
-    rcases hΘ' with ⟨g'', A', hΘeq⟩
-    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
-        s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) refund refund
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hΘeq
-    rw [ho]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
-  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
-    by simpa [revealScratchSenderWord] using rd1350₀⟩
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀, hoSize⟩ :=
+    RD.callValueMadeEmptyInOut rd (by decide) hperm hbalance hdepth (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat 0) freePtr.toNat 0) = aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
+    decide
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, hoSize,
+    by simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀⟩
 
 set_option maxHeartbeats 1000000 in
 theorem scratch_blindAuctionRevealX_callDepth_fromCall_general {I} {g : Sat256}
@@ -1607,11 +1584,14 @@ theorem scratch_blindAuctionRevealX_callDepth_fromCall_general {I} {g : Sat256}
         valuesEnd, ⟨276⟩, sel]
       mem aw ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd1350₀⟩ :=
-    RD.callValueDepthLimit rd hperm (by decide) hdepth (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    RD.callValueDepthLimitEmptyInOut rd hperm (by decide) hdepth (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat 0) freePtr.toNat 0) = aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
-  exact ⟨k', C', by simpa [revealScratchSenderWord] using rd1350₀⟩
+  exact ⟨k', C', by simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀⟩
 
 set_option maxHeartbeats 1000000 in
 theorem scratch_blindAuctionRevealX_callInsufficient_fromCall_general {I} {g : Sat256}
@@ -1639,11 +1619,14 @@ theorem scratch_blindAuctionRevealX_callInsufficient_fromCall_general {I} {g : S
         valuesEnd, ⟨276⟩, sel]
       mem aw ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd1350₀⟩ :=
-    RD.callValueInsufficientBalance rd hperm (by decide) hbalance hdepth (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    RD.callValueInsufficientBalanceEmptyInOut rd hperm (by decide) hbalance hdepth (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat 0) freePtr.toNat 0) = aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
-  exact ⟨k', C', by simpa [revealScratchSenderWord] using rd1350₀⟩
+  exact ⟨k', C', by simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀⟩
 
 def scratch_revealPanicSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩
@@ -3456,9 +3439,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
     hflag hbids hvalues hfakes hsecrets hi hlen hboundBids hboundValues hboundFakes
     hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded hhashEval
 
--- LIBRARY CANDIDATE: `Reasoning.SolmBody` / `Reasoning.Reach`.
--- Joint loop runner for solc while-loop bytecode paired with a Solm `for` loop whose body may
--- revert before the loop reaches its false condition.
+-- Reveal-specialized wrapper around `Reasoning.Reach.RD.execForLoopOrRevertCarryFull`.
 theorem scratch_revealLoop_from_body_or_revert {I} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {α : Type}
     (len revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd
@@ -3517,56 +3498,47 @@ theorem scratch_revealLoop_from_body_or_revert {I} {g : Sat256} {s0 : State}
           (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
           scratch_revealLoopBodyStmts .reverted ∧
         RDrev blindAuctionBytecode g s0) := by
-  intro v
-  induction v with
-  | zero =>
-      intro a L evm hInv k C rd
-      rcases hshape 0 a L evm hInv with ⟨hi, hlen, _hrefund, hvar, _hle⟩
-      obtain ⟨k', C', rdExit⟩ :=
-        scratch_blindAuctionRevealX_loopCond_exit
-          (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-          (mem := mem a) (aw := aw a) (rdata := rdata) (acc := acc a)
-          (i := idx a) (refund := refund a) (len := len) (revealEnd := revealEnd)
-          (biddingEnd := biddingEnd) (secretsLen := secretsLen)
-          (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
-          (valuesLen := valuesLen) (valuesEnd := valuesEnd) (sel := sel)
-          rd (by omega)
-      have hcond :
-          evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
-            (.binary .lt (.var "i") (.var "length")) = .ok (.bool false) :=
-        scratch_evalExpr_reveal_loop_cond_false_of_get evm L len (idx a) hi hlen (by omega)
-      exact Or.inl ⟨a, L, evm, k', C', ExecForLoop.falseDone hcond, hInv, rdExit⟩
-  | succ v ih =>
-      intro a L evm hInv k C rd
-      rcases hshape (v + 1) a L evm hInv with ⟨hi, hlen, _hrefund, hvar, _hle⟩
-      obtain ⟨k1, C1, rd1023⟩ := blindAuctionRevealX_loopCond_taken
-        (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-        (mem := mem a) (aw := aw a) (rdata := rdata) (acc := acc a)
-        (i := idx a) (refund := refund a) (len := len) (revealEnd := revealEnd)
-        (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
-        (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
-        (valuesEnd := valuesEnd) (sel := sel)
-        (by simpa [scratch_revealEvmLoopStack] using rd) (by omega)
-      have hcond :
-          evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
-            (.binary .lt (.var "i") (.var "length")) = .ok (.bool true) :=
-        scratch_evalExpr_reveal_loop_cond_true_of_get evm L len (idx a) hi hlen (by omega)
-      rcases hbody v a L evm hInv k1 C1
-        (by simpa [scratch_revealEvmLoopStack] using rd1023) with hrev | hstep
-      · exact Or.inr ⟨ExecForLoop.bodyRevert hcond hrev.1, hrev.2⟩
-      · rcases hstep with
-          ⟨a', L1, evm1, L2, evm2, k2, C2, hbodyStep, hpost, hInv', rdNext⟩
-        rcases ih a' L2 evm2 hInv' k2 C2 rdNext with hdone | hloopRev
-        · rcases hdone with ⟨a'', L', evm', k', C', hloop, hInv0, rdExit⟩
-          rcases hbodyStep with hbodyOk | hbodyCont
-          · exact Or.inl ⟨a'', L', evm', k', C',
-              ExecForLoop.iterate hcond hbodyOk hpost hloop, hInv0, rdExit⟩
-          · exact Or.inl ⟨a'', L', evm', k', C',
-              ExecForLoop.continueIter hcond hbodyCont hpost hloop, hInv0, rdExit⟩
-        · rcases hloopRev with ⟨hloop, hrdRev⟩
-          rcases hbodyStep with hbodyOk | hbodyCont
-          · exact Or.inr ⟨ExecForLoop.iterate hcond hbodyOk hpost hloop, hrdRev⟩
-          · exact Or.inr ⟨ExecForLoop.continueIter hcond hbodyCont hpost hloop, hrdRev⟩
+  refine Reasoning.Reach.RD.execForLoopOrRevertCarryFull
+    (cfg := blindAuctionConfig) (contract := blindAuctionContract)
+    (code := blindAuctionBytecode) (ee := I) (g := g) (s0 := s0) (rdata := rdata)
+    (header := ⟨1014⟩) (bodyHeader := ⟨1023⟩) (exit := ⟨1331⟩)
+    (condExpr := (.binary .lt (.var "i") (.var "length")))
+    (post := scratch_revealLoopPostStmts) (body := scratch_revealLoopBodyStmts)
+    (Inv := Inv)
+    (stk := fun a =>
+      scratch_revealEvmLoopStack (idx a) (refund a) len revealEnd biddingEnd secretsLen
+        secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
+    (mem := mem) (aw := aw) (acc := acc)
+    (exitStk := fun a =>
+      scratch_revealEvmLoopStack (idx a) (refund a) len revealEnd biddingEnd secretsLen
+        secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
+    ?_ ?_ ?_ ?_ hbody
+  · intro a L evm hInv
+    rcases hshape 0 a L evm hInv with ⟨hi, hlen, _hrefund, hvar, _hle⟩
+    exact scratch_evalExpr_reveal_loop_cond_false_of_get evm L len (idx a) hi hlen (by omega)
+  · intro a L evm hInv k C rd
+    rcases hshape 0 a L evm hInv with ⟨_hi, _hlen, _hrefund, hvar, _hle⟩
+    exact scratch_blindAuctionRevealX_loopCond_exit
+      (I := I) (g := g) (s0 := s0) (k := k) (C := C)
+      (mem := mem a) (aw := aw a) (rdata := rdata) (acc := acc a)
+      (i := idx a) (refund := refund a) (len := len) (revealEnd := revealEnd)
+      (biddingEnd := biddingEnd) (secretsLen := secretsLen)
+      (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
+      (valuesLen := valuesLen) (valuesEnd := valuesEnd) (sel := sel) rd (by omega)
+  · intro v a L evm hInv
+    rcases hshape (v + 1) a L evm hInv with ⟨hi, hlen, _hrefund, hvar, _hle⟩
+    exact scratch_evalExpr_reveal_loop_cond_true_of_get evm L len (idx a) hi hlen (by omega)
+  · intro v a L evm hInv k C rd
+    rcases hshape (v + 1) a L evm hInv with ⟨_hi, _hlen, _hrefund, hvar, _hle⟩
+    obtain ⟨k1, C1, rd1023⟩ := blindAuctionRevealX_loopCond_taken
+      (I := I) (g := g) (s0 := s0) (k := k) (C := C)
+      (mem := mem a) (aw := aw a) (rdata := rdata) (acc := acc a)
+      (i := idx a) (refund := refund a) (len := len) (revealEnd := revealEnd)
+      (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
+      (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
+      (valuesEnd := valuesEnd) (sel := sel)
+      (by simpa [scratch_revealEvmLoopStack] using rd) (by omega)
+    exact ⟨k1, C1, by simpa [scratch_revealEvmLoopStack] using rd1023⟩
 
 theorem scratch_blindAuctionRevealBodyReverts_fromLoopRevertOfLocals
     (evm : EVM.State) (callargs : Store)

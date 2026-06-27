@@ -1041,7 +1041,7 @@ private theorem scratch_revealRefundAddedStoreOf_get_preserve_cases (locals : St
       locals.get? name := by
   unfold scratch_revealRefundAddedStoreOf scratch_revealSecretStoreOf scratch_revealFakeStoreOf
     scratch_revealValueStoreOf scratch_revealBidToCheckStoreOf
-  rw [store_get_ne, store_get_ne, store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne5]
   · exact hbid
   · exact hvalue
   · exact hfake

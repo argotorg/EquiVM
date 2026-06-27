@@ -6,8 +6,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000
 namespace BlindAuction
 
--- LIBRARY CANDIDATE: `Reasoning.Reach`.
--- Variant-indexed loop rule carrying stack, memory/active words, and account state.
+-- Compatibility wrapper around `Reasoning.Reach.RD.whileLoopCarryFull`.
 theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {rdata : ByteArray} {α : Type}
     (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256)
@@ -28,8 +27,7 @@ theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g :
         Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C' := by
   exact Reasoning.Reach.RD.whileLoopCarryFull header exit Inv stk mem aw acc exitStk hexit hbody
 
--- LIBRARY CANDIDATE: `Reasoning.SolmBody`.
--- Variant-indexed for-loop rule that carries both locals and EVM state.
+-- Compatibility wrapper around `Reasoning.Theory.execFor_var_state_continue`.
 theorem scratch_execFor_varEVM {cfg : Config} {C : ContractDecl}
     {condExpr : Expr} {post body : List Stmt}
     (P : ℕ → Solm.Store → EVM.State → Prop)
@@ -225,7 +223,7 @@ theorem scratch_revealLoopStore_values_get {callargs : Store} {values : List Val
     (hvalues : callargs.get? "values" = some (.array values)) :
     (scratch_revealLoopStore callargs len refund i).get? "values" = some (.array values) := by
   unfold scratch_revealLoopStore scratch_revealRefundStore scratch_revealLengthStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne3]
   · exact hvalues
   · decide
   · decide
@@ -236,7 +234,7 @@ theorem scratch_revealLoopStore_fakes_get {callargs : Store} {fakes : List Value
     (hfakes : callargs.get? "fakes" = some (.array fakes)) :
     (scratch_revealLoopStore callargs len refund i).get? "fakes" = some (.array fakes) := by
   unfold scratch_revealLoopStore scratch_revealRefundStore scratch_revealLengthStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne3]
   · exact hfakes
   · decide
   · decide
@@ -247,7 +245,7 @@ theorem scratch_revealLoopStore_secrets_get {callargs : Store} {secrets : List V
     (hsecrets : callargs.get? "secrets" = some (.array secrets)) :
     (scratch_revealLoopStore callargs len refund i).get? "secrets" = some (.array secrets) := by
   unfold scratch_revealLoopStore scratch_revealRefundStore scratch_revealLengthStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne3]
   · exact hsecrets
   · decide
   · decide
@@ -257,7 +255,7 @@ theorem scratch_revealLoopStore_bids_none {callargs : Store} {len refund i : UIn
     (hbids : callargs.get? "bids" = none) :
     (scratch_revealLoopStore callargs len refund i).get? "bids" = none := by
   unfold scratch_revealLoopStore scratch_revealRefundStore scratch_revealLengthStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne3]
   · exact hbids
   · decide
   · decide
@@ -491,7 +489,7 @@ theorem scratch_revealSecretStore_bid_get (callargs : Store) (evm : EVM.State)
     (scratch_revealSecretStore callargs evm len refund i value secret fake).get? "bidToCheck" =
       some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
   unfold scratch_revealSecretStore scratch_revealFakeStore scratch_revealValueStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne3]
   · exact scratch_revealBidToCheckStore_bid_get callargs evm len refund i
   · decide
   · decide
@@ -519,11 +517,10 @@ theorem scratch_revealSecretStore_refund_get (callargs : Store) (evm : EVM.State
     (scratch_revealSecretStore callargs evm len refund i value secret fake).get? "refund" =
       some (.int (Int.ofNat refund.toNat)) := by
   unfold scratch_revealSecretStore scratch_revealFakeStore scratch_revealValueStore
-  rw [store_get_ne, store_get_ne, store_get_ne]
-  · unfold scratch_revealBidToCheckStore
-    rw [store_get_ne]
-    · exact scratch_revealLoopStore_refund_get callargs len refund i
-    · decide
+    scratch_revealBidToCheckStore
+  rw [store_get_ne4]
+  · exact scratch_revealLoopStore_refund_get callargs len refund i
+  · decide
   · decide
   · decide
   · decide
@@ -2815,7 +2812,7 @@ theorem scratch_revealSecretStoreOf_bid_get (locals : Store) (evm : EVM.State)
       some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
   unfold scratch_revealSecretStoreOf scratch_revealFakeStoreOf scratch_revealValueStoreOf
     scratch_revealBidToCheckStoreOf
-  rw [store_get_ne, store_get_ne, store_get_ne, store_get_self]
+  rw [store_get_ne3, store_get_self]
   · decide
   · decide
   · decide
@@ -2844,7 +2841,7 @@ theorem scratch_revealSecretStoreOf_refund_get (locals : Store) (evm : EVM.State
       some (.int (Int.ofNat refund.toNat)) := by
   unfold scratch_revealSecretStoreOf scratch_revealFakeStoreOf scratch_revealValueStoreOf
     scratch_revealBidToCheckStoreOf
-  rw [store_get_ne, store_get_ne, store_get_ne, store_get_ne]
+  rw [store_get_ne4]
   · exact hrefund
   · decide
   · decide

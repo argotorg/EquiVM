@@ -248,6 +248,40 @@ theorem store_get_ne (L : Solm.Store) {k a : Ident} (v : Value) (h : (k == a) = 
     (L.insert k v).get? a = L.get? a := by
   simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, h]
 
+/-- Reading a key untouched by two different-key inserts. -/
+theorem store_get_ne2 (L : Solm.Store) {k1 k2 a : Ident} (v1 v2 : Value)
+    (h1 : (k1 == a) = false) (h2 : (k2 == a) = false) :
+    ((L.insert k1 v1).insert k2 v2).get? a = L.get? a := by
+  rw [store_get_ne (L.insert k1 v1) (k := k2) (a := a) v2 h2]
+  exact store_get_ne L (k := k1) (a := a) v1 h1
+
+/-- Reading a key untouched by three different-key inserts. -/
+theorem store_get_ne3 (L : Solm.Store) {k1 k2 k3 a : Ident} (v1 v2 v3 : Value)
+    (h1 : (k1 == a) = false) (h2 : (k2 == a) = false) (h3 : (k3 == a) = false) :
+    (((L.insert k1 v1).insert k2 v2).insert k3 v3).get? a = L.get? a := by
+  rw [store_get_ne ((L.insert k1 v1).insert k2 v2) (k := k3) (a := a) v3 h3]
+  exact store_get_ne2 L v1 v2 h1 h2
+
+/-- Reading a key untouched by four different-key inserts. -/
+theorem store_get_ne4 (L : Solm.Store) {k1 k2 k3 k4 a : Ident} (v1 v2 v3 v4 : Value)
+    (h1 : (k1 == a) = false) (h2 : (k2 == a) = false) (h3 : (k3 == a) = false)
+    (h4 : (k4 == a) = false) :
+    ((((L.insert k1 v1).insert k2 v2).insert k3 v3).insert k4 v4).get? a =
+      L.get? a := by
+  rw [store_get_ne (((L.insert k1 v1).insert k2 v2).insert k3 v3) (k := k4) (a := a)
+    v4 h4]
+  exact store_get_ne3 L v1 v2 v3 h1 h2 h3
+
+/-- Reading a key untouched by five different-key inserts. -/
+theorem store_get_ne5 (L : Solm.Store) {k1 k2 k3 k4 k5 a : Ident}
+    (v1 v2 v3 v4 v5 : Value) (h1 : (k1 == a) = false) (h2 : (k2 == a) = false)
+    (h3 : (k3 == a) = false) (h4 : (k4 == a) = false) (h5 : (k5 == a) = false) :
+    (((((L.insert k1 v1).insert k2 v2).insert k3 v3).insert k4 v4).insert k5 v5).get? a =
+      L.get? a := by
+  rw [store_get_ne ((((L.insert k1 v1).insert k2 v2).insert k3 v3).insert k4 v4)
+    (k := k5) (a := a) v5 h5]
+  exact store_get_ne4 L v1 v2 v3 v4 h1 h2 h3 h4
+
 /-! ## Storage-access collapse (post storage-pointer refactor)
 
 After native storage pointers, `evalExpr? (.storage …)` and `assignStorageRef? .storage` route

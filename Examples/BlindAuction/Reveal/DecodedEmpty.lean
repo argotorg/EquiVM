@@ -157,7 +157,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         exact hdepthEq (Fin.ext hv)
       omega
     obtain ⟨cA', σ', z, out, A_in, callGas, _, _, hTheta,
-        hout255, rd1350⟩ :=
+        houtSize, rd1350⟩ :=
       blindAuctionRevealX_from963_empty_callMade
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
         (σ₀ := σ₀) (A := A) (I := I)
@@ -235,7 +235,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
       · obtain ⟨_, _, _, _, rd1405⟩ :=
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
-            (lt_size_of_lt_sign hout255)
+            houtSize
         have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState cA gh bl σ_evm σ₀
               (Sat256.ofUInt256 g) A I) :=
@@ -283,7 +283,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
       · obtain ⟨_, _, _, _, rd1405⟩ :=
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
-            (lt_size_of_lt_sign hout255)
+            houtSize
         have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
             (initState cA gh bl σ_evm σ₀
               (Sat256.ofUInt256 g) A I)

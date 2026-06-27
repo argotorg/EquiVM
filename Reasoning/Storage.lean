@@ -992,20 +992,6 @@ theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
   cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
   exact accountEquiv_storage_findD slot default hστ
 
-/-- Erasing the same persistent storage slot from equivalent accounts preserves equivalence. -/
-theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
-    (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
-    accountEquiv {acc₁ with storage := acc₁.storage.erase slot}
-      {acc₂ with storage := acc₂.storage.erase slot} := by
-  rcases hacc with ⟨hnonce, hbalance, hcode, hstorage, htstorage⟩
-  refine ⟨hnonce, hbalance, hcode, ?_, htstorage⟩
-  intro readSlot
-  by_cases hread : readSlot = slot
-  · subst readSlot
-    rw [storage_find?_erase_self, storage_find?_erase_self]
-  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
-      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
-
 theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
     (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
     (addr : AccountAddress) (slot : UInt256) :

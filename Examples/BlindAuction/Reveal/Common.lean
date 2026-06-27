@@ -1262,7 +1262,7 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
           (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ o.size < 2 ^ 255
+      ∧ o.size < UInt256.size
       ∧ RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), ⟨128⟩, ⟨0⟩, revealScratchSenderWord I,
             ⟨0⟩, ⟨0⟩, ⟨0⟩, revealScratchRevealEndWord σ I,
@@ -1272,52 +1272,15 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
   obtain ⟨gasArg, _, _, rd1349⟩ :=
     blindAuctionRevealX_from963_empty_toCall (cA := cA) (σ := σ) (I := I) (g := g)
       (s0 := initState cA gh bl σ σ₀ g A I) rd hbidsZero hbidsHash
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀⟩ :=
-    rd1349.call (by decide) hdepth (by evm_ov)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
-      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
-      exact Nat.zero_le _
-    simp [min, hle]
-  have hcd : (revealScratchBidsHashMem I).readWithPadding
-      (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact byteArray_readWithPadding_zero _ _
-  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        σ (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-        ByteArray.empty (I.depth + 1) I.header I.perm := by
-    rcases hΘ with ⟨g'', A', hΘeq⟩
-    refine ⟨g'', A', ?_⟩
-    rw [hcd] at hΘeq
-    exact hΘeq
-  have ho255 : o.size < 2 ^ 255 := by
-    rcases hΘ' with ⟨g'', A', hΘeq⟩
-    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        σ (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hΘeq
-    rw [ho]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀, hoSize⟩ :=
+    rd1349.callEmptyInOut (by decide) hdepth (by evm_ov)
   have haw : UInt256.ofNat
       (MachineState.M (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
-  rw [hmin, byteArray_write_len_zero, haw] at rd1350₀
-  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
-    by simpa [revealScratchSenderWord] using rd1350₀⟩
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, hoSize,
+    by simpa [revealScratchSenderWord, haw] using rd1350₀⟩
 
 set_option maxHeartbeats 1000000 in
 theorem blindAuctionRevealX_from963_empty_callDepth {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1341,16 +1304,14 @@ theorem blindAuctionRevealX_from963_empty_callDepth {cA gh bl σ σ₀ A I} {g :
   obtain ⟨gasArg, _, _, rd1349⟩ :=
     blindAuctionRevealX_from963_empty_toCall (cA := cA) (σ := σ) (I := I) (g := g)
       (s0 := initState cA gh bl σ σ₀ g A I) rd hbidsZero hbidsHash
-  obtain ⟨k', C', rd1350₀⟩ := rd1349.callDepthLimit (by decide) hdepth (by evm_ov)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
-    decide
+  obtain ⟨k', C', rd1350₀⟩ :=
+    rd1349.callDepthLimitEmptyInOut (by decide) hdepth (by evm_ov)
   have haw : UInt256.ofNat
       (MachineState.M (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
       (UInt256.ofNat 3) := by
     decide
-  rw [hmin, byteArray_write_len_zero, haw] at rd1350₀
-  exact ⟨k', C', by simpa [revealScratchSenderWord] using rd1350₀⟩
+  exact ⟨k', C', by simpa [revealScratchSenderWord, haw] using rd1350₀⟩
 
 theorem blindAuctionRevealX_postCallEmpty_toRequire {I} {g : Sat256} {s0 : State}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -3500,52 +3461,22 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall {cA gh bl σ σ₀ A I} {g
           (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) refund refund
           ByteArray.empty (I.depth + 1) I.header I.perm)
-      ∧ o.size < 2 ^ 255
+      ∧ o.size < UInt256.size
       ∧ RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), freePtr, refund, revealScratchSenderWord I,
             ⟨0⟩, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
             fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
           mem aw o (cA', σ') k' C' := by
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀⟩ :=
-    RD.callValueMade rd (by decide) hperm hbalance hdepth (by simp)
-  have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
-      show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
-      exact Nat.zero_le _
-    simp [min, hle]
-  have hcd : mem.readWithPadding freePtr.toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
-    exact byteArray_readWithPadding_zero _ _
-  have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        σ (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) refund refund
-        ByteArray.empty (I.depth + 1) I.header I.perm := by
-    rcases hΘ with ⟨g'', A', hΘeq⟩
-    refine ⟨g'', A', ?_⟩
-    rw [hcd] at hΘeq
-    exact hΘeq
-  have ho255 : o.size < 2 ^ 255 := by
-    rcases hΘ' with ⟨g'', A', hΘeq⟩
-    have ho : o = (Ethereum.EVM.Θ I.blobVersionedHashes cA
-        (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-        (initState cA gh bl σ σ₀ g A I).blocks
-        σ (initState cA gh bl σ σ₀ g A I).σ₀ A_in
-        (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-        (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
-        callGas (UInt256.ofNat I.gasPrice) refund refund
-        ByteArray.empty (I.depth + 1) I.header I.perm).2.2.2.2.2 :=
-      congrArg (fun t => t.2.2.2.2.2) hΘeq
-    rw [ho]
-    exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  rw [hmin, byteArray_write_len_zero, hawCall] at rd1350₀
-  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ', ho255,
-    by simpa [revealScratchSenderWord] using rd1350₀⟩
+  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd1350₀, hoSize⟩ :=
+    RD.callValueMadeEmptyInOut rd (by decide) hperm hbalance hdepth (by simp)
+  have hawCall' :
+      UInt256.ofNat
+        (MachineState.M (MachineState.M aw.toNat freePtr.toNat 0) freePtr.toNat 0) = aw := by
+    simpa using hawCall
+  have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
+    decide
+  exact ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, hoSize,
+    by simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀⟩
 
 def scratch_revealPackedBytes (value : UInt256) (fake : Bool) (secret : UInt256) : List UInt8 :=
   EVM.Word.toBytesBE value ++ [if fake then (1 : UInt8) else 0] ++ EVM.Word.toBytesBE secret
