@@ -6,4 +6,4 @@ import Examples.CtorTruth.Correct
 import Examples.CtorStore.Correct
 import Examples.Ballot.Correct
 import Examples.SimpleAuction.Correct
-import Examples.StringStore.Correct
+import Examples.StringStoreLite.Correct

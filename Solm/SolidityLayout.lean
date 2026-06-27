@@ -115,10 +115,15 @@ def solidityPrepareBytesWrite?
       let evmLen := EVM.storageStore evm evm.executionEnv.codeOwner baseSlot
         (solidityBytesHeaderWord newLen)
       .ok <|
-        if oldPacked then
-          evmLen
+        let evmOldClear :=
+          if oldPacked then
+            evmLen
+          else
+            clearSolidityBytesDataWordsFrom evmLen baseSlot 0 ((oldLen + 31) / 32)
+        if newLen < 32 then
+          evmOldClear
         else
-          clearSolidityBytesDataWordsFrom evmLen baseSlot 0 ((oldLen + 31) / 32)
+          clearSolidityBytesDataWordsFrom evmOldClear baseSlot 0 ((newLen + 31) / 32)
   | .revert => .revert
   | .error => .error
 

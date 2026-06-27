@@ -192,6 +192,11 @@ mutual
 
 end
 
+def solcTotalSizeDynamicGuard : List ABIType → Bool
+  | [.string] => true
+  | [.bytes] => true
+  | _ => false
+
 def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray) : Option Solm.Store :=
   if calldata.toList.length < 4 then
     none
@@ -203,6 +208,12 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     -- EVM on (physically unreachable) huge calldata.  Only emitted when there are arguments to
     -- decode — a zero-parameter selector (e.g. `truth()`) does no such check.
     if types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
+      none
+    else
+    -- Top-level string/bytes solc decoders compare dynamic bounds against the full calldata size with signed
+    -- `SLT`; a total calldata size with the sign bit set makes those internal checks revert even
+    -- when the post-selector argument region itself is below the signed boundary.
+    if solcTotalSizeDynamicGuard types = true ∧ 2 ^ 255 ≤ calldata.toList.length then
       none
     else
     let decoded := decodeArgs names types argsArray ∅
