@@ -203,7 +203,7 @@ theorem balanceOfKeccakSlot (I : ExecutionEnv)
       = balanceOfSlot I := by
   rw [balanceOfHashMem_read0_64]
   unfold balanceOfSlot erc20BalanceOfSlot erc20MappingSlot
-  rw [erc20KeyValueToWord_address_of_canonical _ hcanon]
+  rw [keyValueToWord_address_of_canonical _ hcanon]
   exact mappingSlot_single (balanceOfOwnerWord I) ⟨0⟩
 
 /-- Memory after the shared uint256 encoder writes the `balanceOf` return word at `0x80`. -/
@@ -465,7 +465,7 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some balanceOfTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
-    (erc20ByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [approveTransition, totalSupplyTransition, transferFromTransition])
     (post := [transferTransition, allowanceTransition])

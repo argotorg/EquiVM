@@ -75,77 +75,19 @@ theorem bidsDepositWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     bidsDepositWord σ I = bidsDepositWord τ I := by
   exact accountMapEquiv_storage_findD hστ I.codeOwner (bidsDepositSlot I) ⟨0⟩
 
--- PROMOTE -> Common.lean: same canonical address-key bridge used by ERC20/Ballot.
-theorem blindAuctionKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-
--- PROMOTE -> Common.lean: decoded uint256 storage keys round-trip through `KeyValue`.
-theorem blindAuctionKeyValueToWord_int_ofNat_toNat (a : UInt256) :
-    keyValueToWord (.int (Int.ofNat a.toNat)) = a := by
-  unfold keyValueToWord
-  exact blindAuctionWordOfInt_ofNat_toNat a
-
--- PROMOTE -> Common.lean: word addition commutativity, duplicated from Ballot's helper.
-theorem blindAuctionU256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  simp [uadd_toNat, Nat.add_comm]
-
--- PROMOTE -> Common.lean: full-slot BlindAuction uint256 loads.
-theorem blindAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionUint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
-          (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad blindAuctionUint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
-
--- PROMOTE -> Common.lean: full-slot BlindAuction bytes32 loads.
 theorem blindAuctionStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionBytes32Loc slot)
       = .fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
-          (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad blindAuctionBytes32Loc wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  simp only [show 32 - (31 + 1) = 0 by norm_num, List.drop_zero]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
+  simpa [blindAuctionBytes32Loc, Reasoning.Theory.bytes32Loc] using
+    storageLocLoad_bytes32 evm slot
 
 theorem bidsLengthSlot_spec (I : ExecutionEnv)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus) :
     bidsLengthSlot I =
       blindAuctionMappingSlot (bidsAddressWord I) ⟨4⟩ := by
   unfold bidsLengthSlot bidsBase bidsAddressKey blindAuctionMappingSlot
-  rw [blindAuctionKeyValueToWord_address_of_canonical (bidsAddressWord I) hcanon]
+  rw [keyValueToWord_address_of_canonical (bidsAddressWord I) hcanon]
 
 theorem bidsElementSlot_spec (I : ExecutionEnv)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus) :
@@ -153,7 +95,7 @@ theorem bidsElementSlot_spec (I : ExecutionEnv)
       uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) +
         UInt256.mul (bidsIndexWord I) ⟨2⟩ := by
   unfold bidsElementSlot bidsElemSlot bidsIndexKey
-  rw [blindAuctionKeyValueToWord_int_ofNat_toNat, bidsLengthSlot]
+  rw [keyValueToWord_uint256, bidsLengthSlot]
   rw [show UInt256.ofNat ((bidsIndexWord I).toNat * 2) =
       UInt256.mul (bidsIndexWord I) ⟨2⟩ from by
         apply u256_inj
@@ -675,52 +617,6 @@ theorem bidsSubRet64_toNat :
     (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
   decide
 
-end BlindAuction
-
-namespace Reasoning.Theory
-
-open Solm ABI Ethereum Ethereum.EVM
-
--- PROMOTE -> Reasoning.Stepping: generic `SWAP5` xstep, duplicated from Ballot.
-theorem blindAuctionSwap5_xstep {s : State} {code : ByteArray} {pcv a b c d e f : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP5, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: t)
-    (hov : t.length + 6 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stSwap s (f :: b :: c :: d :: e :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP5, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap5 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: e :: f :: t).length - 6 + 6 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-end Reasoning.Theory
-
-namespace Reasoning.Reach
-
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
-
--- PROMOTE -> Reasoning.Reach: generic `RD.swap5`, duplicated from Ballot.
-theorem RD.blindAuctionSwap5 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b c d e f : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP5, .none)) (hov : t.length + 6 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (f :: b :: c :: d :: e :: a :: t) mem aw rdata acc
-      (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => blindAuctionSwap5_xstep hc hp hdec hs hov)
-
-end Reasoning.Reach
-
-namespace BlindAuction
-
 /-! ## EVM trace and ABI dispatch/decode bridge -/
 
 theorem blindAuctionBidsSelector_size {I : ExecutionEnv}
@@ -735,7 +631,7 @@ theorem blindAuctionDispatch_bids {cd : ByteArray}
     (hsel : ((⟨#[0x01, 0x49, 0x5c, 0x1c]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg blindAuctionContract cd = some bidsGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x01, 0x49, 0x5c, 0x1c]⟩ : ByteArray) :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter,
@@ -849,7 +745,7 @@ theorem blindAuctionBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
       jumpdest, dup3, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
       dup2, and, dup2, eq, push2 ⟨1699⟩, jumpiT (by rw [hclean']; decide) (by jump_dest),
       jumpdest ]
-  have rd1701 := RD.blindAuctionSwap5 rd1700 (by decide) (by evm_ov)
+  have rd1701 := RD.swap5 rd1700 (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [bidsAddressWord, bidsIndexWord, calldataWord] using evm_run rd1701 with [
       push1 ⟨32⟩, swap4, swap1, swap4, add, calldataload,
@@ -936,7 +832,7 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.mul (bidsIndexWord I) ⟨2⟩ +
         uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) =
         bidsElementSlot I := by
-    rw [blindAuctionU256_add_comm, hElemSlotL]
+    rw [u256_add_comm, hElemSlotL]
   have rd523 := evm_run rd510 with [
     jumpdest, push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 bidsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost

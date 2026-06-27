@@ -85,11 +85,6 @@ theorem blindAuctionLowArmsWellFormed :
   interval_cases j <;>
     exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem blindAuctionByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 theorem blindAuctionSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
     (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
@@ -131,7 +126,7 @@ theorem blindAuctionLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc i))
         (blindAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = blindAuctionLowSelBytes i :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionLowArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -151,7 +146,7 @@ theorem blindAuctionHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc i))
         (blindAuctionSelWord I) ≠ ⟨0⟩ := by
   have hci : I.calldata.extract 0 4 = blindAuctionHighSelBytes i :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionHighArmEq I hsz j (by omega), hci]
     interval_cases i <;> interval_cases j <;> decide
@@ -517,6 +512,84 @@ theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     obtain ⟨_, _, h154rd⟩ := h154'
     have h155 := h154rd.jumpdest (by decide) (by simp)
     exact h155.revertStub (by decide) (by decide) (by decide) (by simp)
+
+/-! ## Shared one-word getter tails -/
+
+abbrev blindAuctionOneWordRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
+
+theorem blindAuctionSubRet32_toNat :
+    (UInt256.sub blindAuctionOneWordRetEnd ⟨128⟩).toNat = 32 := by
+  decide
+
+theorem blindAuctionRoutineEncodeAddress308 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {val ret : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD blindAuctionBytecode ee g s0 ⟨308⟩ (val :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 8 ≤ 1024) :
+    ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨206⟩ (blindAuctionOneWordRetEnd :: ret :: R)
+      (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
+  let rd := evm_run h with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      solcFreePtrMem_mload64
+      (by decide) (by evm_ov),
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
+    swap1, swap2, and, dup2,
+    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
+  exact ⟨_, _, by simpa using rd⟩
+
+theorem blindAuctionRoutineEncodeWord373 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {val ret : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD blindAuctionBytecode ee g s0 ⟨373⟩ (val :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 8 ≤ 1024) :
+    ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨206⟩ (blindAuctionOneWordRetEnd :: ret :: R)
+      (solcReturnMem val) (UInt256.ofNat 5) rdata acc k' C' := by
+  let rd := evm_run h with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      solcFreePtrMem_mload64
+      (by decide) (by evm_ov),
+    swap1, dup2,
+    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
+  exact ⟨_, _, by simpa using rd⟩
+
+theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {val : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD blindAuctionBytecode ee g s0 ⟨206⟩ (blindAuctionOneWordRetEnd :: R)
+        (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C)
+    (hov : R.length + 5 ≤ 1024) :
+    RDret blindAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (solcReturnMem_mload64 val)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray val) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          blindAuctionSubRet32_toNat]
+        simpa using solcReturnMem_read128 val)
+      (by evm_ov)]
 
 theorem blindAuctionShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)

@@ -172,6 +172,11 @@ def keyValueToWord : KeyValue -> EVM.Word
     { val := (@Fin.castLE Ethereum.AccountAddress.size
                           Ethereum.UInt256.size
                             (by unfold Ethereum.AccountAddress.size Ethereum.UInt256.size; simp) a : Fin Ethereum.UInt256.size) }
+  | .fixedBytes n bs =>
+      if bs.length = n.val + 1 then
+        EVM.Word.ofNat (Ethereum.fromBytesBigEndian bs)
+      else
+        ⟨0⟩
 
 def intTypeSize (t : IntType) : Fin 33 :=
   match t with

@@ -58,11 +58,6 @@ def erc20SelBytes : ℕ → ByteArray
   | 4 => ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
   | _ => ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
 
-/-- `ByteArray` `==` reflects equality (no `LawfulBEq ByteArray` instance is in scope). -/
-theorem byteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 /-- **EVM selector coupling.**  Arm `j`'s `EQ` (its bytecode `PUSH4` value vs the calldata selector
     word) is `1`/`0` exactly as the `j`-th selector's bytes match `calldata[0:4]` — a per-arm
     instance of `evmSelectorDecode`. -/

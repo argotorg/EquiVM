@@ -12,36 +12,11 @@ namespace ERC20
 
 /-! ## ERC20-local storage and ABI helpers -/
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem erc20ByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
-/-- The little-endian serialization used by `storageLocLoad` round-trips for a full EVM word. -/
-theorem fromBytesLE_roundtrip (w : UInt256) :
-    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
-  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
-  rw [fromBytes'_append_zeros, fromBytes'_toBytes']; rfl
-
 /-- Loading an ERC20 full-slot `uint256` location is the source-level integer value of the same word. -/
 theorem erc20StorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (erc20Uint256Loc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad erc20Uint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake, fromBytesLE_roundtrip]
-  rfl
+  simpa [erc20Uint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 /-- ABI-encoding a Solm `uint256` return value produces exactly the EVM's returned word bytes.
     Re-export of `Reasoning.Theory.uint256ReturnEncoding` (`uint256 ≡ .elem (.int (.uint 256))`). -/
@@ -87,15 +62,6 @@ theorem erc20AddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus
 
 theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
     UInt256.land erc20AddrMask w = w := solcAddrMask_clean_left hcanon
-
-theorem erc20KeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-
 
 end ERC20
 

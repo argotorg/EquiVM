@@ -11,33 +11,6 @@ namespace BlindAuction
 def blindAuctionRevealEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
 
--- PROMOTE -> Storage.lean: generic full-word little-endian roundtrip for uint storage loads.
-theorem blindAuctionRevealEndFromBytesLE_roundtrip (w : UInt256) :
-    fromBytes' (EVM.Word.toBytesLEWithSizeProof w).1 = w.toNat := by
-  show fromBytes' (toBytes' w.val ++ List.replicate (32 - (toBytes' w.val).length) 0) = w.toNat
-  rw [fromBytes'_append_zeros, fromBytes'_toBytes']; rfl
-
--- PROMOTE -> Storage.lean: BlindAuction full-slot uint256 `storageLocLoad`.
-theorem blindAuctionRevealEndStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionUint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
-            (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad blindAuctionUint256Loc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake, blindAuctionRevealEndFromBytesLE_roundtrip]
-  rfl
-
 theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals.get? "revealEnd" = none) :
@@ -57,7 +30,7 @@ theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
-      rw [blindAuctionRevealEndStorageLocLoad_uint256])
+      rw [blindAuctionStorageLocLoad_uint256])
 
 theorem blindAuctionX_revealEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -79,34 +52,11 @@ theorem blindAuctionX_revealEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [blindAuctionRevealEndWord, initState] using rd487₀⟩
   have rd373 := evm_run rd487 with [
     dup2, jump (by jump_dest)]
-  have rd206 := evm_run rd373 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost
-      solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
-    swap1, dup2,
-    raw mstore 6 (solcReturnMem (blindAuctionRevealEndWord σ I)) (UInt256.ofNat 5)
-      (by decide) mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
-        rfl)
-      (by decide) (by evm_ov),
-    push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
-  exact evm_run rd206 with [
-    jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost
-      (solcReturnMem_mload64 (blindAuctionRevealEndWord σ I))
-      (by decide) (by evm_ov),
-    dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (blindAuctionRevealEndWord σ I)) (by decide)
-      mem_cost
-      (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide]
-        simpa using solcReturnMem_read128 (blindAuctionRevealEndWord σ I))
-      (by evm_ov)]
+  obtain ⟨_, _, rd206⟩ := blindAuctionRoutineEncodeWord373
+    (val := blindAuctionRevealEndWord σ I) (ret := ⟨373⟩) (R := [blindAuctionSelWord I])
+    rd373 (by simp only [List.length_singleton]; omega)
+  exact blindAuctionReturnOneWord206 (R := [⟨373⟩, blindAuctionSelWord I]) rd206
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem blindAuctionX_revealEnd_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
@@ -133,7 +83,7 @@ theorem blindAuctionDispatch_revealEnd {cd : ByteArray}
     (hsel : ((⟨#[0xa6, 0xe6, 0x64, 0x77]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg blindAuctionContract cd = some revealEndGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0xa6, 0xe6, 0x64, 0x77]⟩ : ByteArray) :=
-    (blindAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter])

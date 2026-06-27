@@ -1,6 +1,7 @@
 import Solm.Storage
 import Solm.Value
 import ABI.Encode
+import ABI.Decode
 
 namespace Solm
 
@@ -64,6 +65,9 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .callvalue => .int (Int.ofNat evm.executionEnv.weiValue.val)
   | .this => .address evm.executionEnv.codeOwner
   | .timestamp => .int (Int.ofNat (Ethereum.UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+  | .selfbalance =>
+      .int (Int.ofNat ((evm.lookupAccount evm.executionEnv.codeOwner).option
+        (EVM.Word.ofNat 0) (·.balance)).toNat)
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -91,6 +95,7 @@ def valueToKey? (v : Value) : Option KeyValue :=
   | .int i => pure $ .int i
   | .bool b => pure $ .bool b
   | .address a => pure $ .address a
+  | .fixedBytes n bs => pure $ .fixedBytes n bs
   | _ => .none
 
 def lookupAssoc [DecidableEq α] (entries : List (α × β)) (key : α) : Option β :=
@@ -287,11 +292,23 @@ def evalByteIndex? (bytes : List UInt8) (i : Int) : EvalResult Value :=
 def evalFixedBytesIndex? (n : Fin 32) (bytes : List UInt8) (i : Int) : EvalResult Value :=
   if fixedBytesValid n bytes then evalByteIndex? bytes i else .error .typeError
 
+def normalizeRawBoolWord? : Value -> EvalResult Value
+  | .tuple [.unit, .int n] =>
+      if n = 0 then
+        .ok (.bool false)
+      else if n = 1 then
+        .ok (.bool true)
+      else
+        .revert
+  | v => .ok v
+
 def evalIndex? (container key : Value) : EvalResult Value :=
   match container, key with
   | .array elems, .int i =>
       if 0 ≤ i ∧ i < elems.length then
-        EvalResult.ofOption .typeError (lookupNth? elems i.toNat)
+        match lookupNth? elems i.toNat with
+        | some v => normalizeRawBoolWord? v
+        | none => .error .typeError
       else
         .revert
   | .fixedBytes n bytes, .int i => evalFixedBytesIndex? n bytes i
@@ -457,6 +474,8 @@ mutual
         exprEvalSize cond + exprEvalSize thenExpr + exprEvalSize elseExpr + 1
     | .keccak256 e => exprEvalSize e + 1
     | .abiEncodePacked args => typedArgsEvalSize args + 1
+    | .extCodeSize e => exprEvalSize e + 1
+    | .fixedBytesLit _ _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
     all_goals simp_wf
@@ -1193,6 +1212,14 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .abiEncodePacked args => do
       let bytes <- evalPackedArgs? cfg solm evm args
       pure (.bytes (ByteArray.mk bytes.toArray))
+  | .extCodeSize e => do
+      let value <- evalExpr? cfg solm evm e
+      match value with
+      -- EXTCODESIZE: the deployed code size at `a`; 0 for a non-existent account or an EOA.
+      -- Mirrors `Ethereum.State.extCodeSize` (which the EVM's EXTCODESIZE opcode dispatches to).
+      | .address a => pure (.int (Int.ofNat ((evm.lookupAccount a).option 0 (fun acc => acc.code.size))))
+      | _ => .error .typeError
+  | .fixedBytesLit n bs => pure (.fixedBytes n bs)
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]
@@ -1272,14 +1299,9 @@ def defaultEncodeCall? (_name : Ident) (args : List Value) : Option EVM.Bytes :=
   some (words.foldl (fun bytes word => bytes ++ (Ethereum.UInt256.toByteArray word)) ByteArray.empty)
 
 def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option Value :=
-  -- The solc-generated ABI return decoder for an `int`/`uint` value reverts unless at least one
-  -- full word (32 bytes) of return data is present (`if slt(returndatasize, 32) { revert }`).  We
-  -- mirror that *partiality*: under-length return data decodes to `none`, which the
-  -- `externalCallReturnDecodeRevert` rule turns into a revert — matching the bytecode.
-  if bytes.size < 32 then
-    none
-  else
-    some (.int (Ethereum.fromByteArrayBigEndian (bytes.extract 0 32)))
+  -- Default typed external calls expect one `uint256` return word.  The ABI decoder models solc's
+  -- generated signed-size guard, so under-length and huge return data both decode to `none`.
+  ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) bytes
 
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }

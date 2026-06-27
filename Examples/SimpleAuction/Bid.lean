@@ -91,36 +91,17 @@ noncomputable def bidPendingEventMemCaller (σ : AccountMap) (I : ExecutionEnv) 
 noncomputable def bidPendingEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray I.weiValue).write 0 (bidPendingEventMemCaller σ I) 160 32
 
-theorem bidWordOfInt_ofNat_toNat (a : UInt256) :
-    EVM.wordOfInt (Int.ofNat a.toNat) = a := by
-  rw [EVM.wordOfInt, if_neg (by simp)]
-  apply u256_inj
-  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
-  show a.toNat % EVM.twoPow 256 = a.toNat
-  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
-
 theorem bidSenderWord_canonical (I : ExecutionEnv) :
     (bidSenderWord I).toNat < EVM.addressModulus := by
   unfold bidSenderWord
   rw [ulit_toNat' _ (lt_of_lt_of_le I.source.isLt (by decide))]
   exact I.source.isLt
 
-theorem bidKeyValueToWord_highestBidder (σ : AccountMap) (I : ExecutionEnv) :
-    keyValueToWord (bidHighestBidderKey σ I) = bidHighestBidderWord σ I := by
-  unfold bidHighestBidderKey keyValueToWord AccountAddress.ofNat
-  apply u256_inj
-  have hcanon := simpleAuctionSolcAddrMask_result_canonical (bidHighestBidderRawWord σ I)
-  simp only [Fin.val_castLE, Fin.val_ofNat, UInt256.toNat]
-  change (bidHighestBidderWord σ I).toNat % AccountAddress.size =
-    (bidHighestBidderWord σ I).val.val
-  rw [Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)]
-  rfl
-
 theorem bidPendingSlot_eq (σ : AccountMap) (I : ExecutionEnv) :
     bidPendingSlot σ I = simpleAuctionMappingSlot (bidHighestBidderWord σ I) ⟨4⟩ := by
-  unfold bidPendingSlot pendingReturnsSlot simpleAuctionMappingSlot
-  rw [bidKeyValueToWord_highestBidder]
+  unfold bidPendingSlot pendingReturnsSlot simpleAuctionMappingSlot bidHighestBidderKey
+  rw [keyValueToWord_address_of_canonical]
+  exact solcAddrMask_result_canonical (bidHighestBidderRawWord σ I)
 
 theorem bidPendingBaseMem_size : bidPendingBaseMem.size = 96 := by
   unfold bidPendingBaseMem
@@ -408,92 +389,9 @@ theorem bidStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
   exact simpleAuctionStorageLocStore_uint256 evm slot val
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem bidU256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
-
 theorem bidSolcAddrMask_eval :
     UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
   decide
-
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic OR xstep.
-theorem bidOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic OR combinator.
-theorem bidRDOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => bidOr_xstep hc hp hdec hs hov)
-
--- LIBRARY CANDIDATE: `Reasoning.Stepping` / `Reasoning.Reach`, generic TIMESTAMP combinator.
-def bidStTimestamp (s : State) : State :=
-  { s with machineState := { s.machineState with
-      pc := s.machineState.pc + ⟨1⟩,
-      stack := UInt256.ofNat s.executionEnv.header.timestamp :: s.machineState.stack,
-      execLength := s.machineState.execLength + 1,
-      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
-
-theorem bidTimestamp_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.TIMESTAMP, .none))
-    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
-         else .ok (bidStTimestamp s, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.TIMESTAMP, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by
-    rw [hstk]
-    omega
-  rw [← hcode, step_timestamp s hd, if_neg hov']
-  simp only [GasConstants.Gbase, bidStTimestamp]
-
-theorem bidRDTimestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.TIMESTAMP, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.header.timestamp :: stk) mem aw rdata acc
-      (k + 1) (C + 2) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := bidTimestamp_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 2
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨bidStTimestamp s,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [bidStTimestamp]; exact hcode
-      · simp only [bidStTimestamp]; rw [hpc]
-      · simp only [bidStTimestamp]; rw [hee, hstk]
-      · simp only [bidStTimestamp]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [bidStTimestamp]; exact hmem
-      · simp only [bidStTimestamp]; exact haw
-      · simp only [bidStTimestamp]; exact hrdata
-      · simp only [bidStTimestamp]; exact hacc
-      · exact hee
-      · exact hworld
 
 theorem bidCheckedAddNoOverflowGt (a b : UInt256)
     (hfit : a.toNat + b.toNat < UInt256.size) :
@@ -643,7 +541,7 @@ theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [bidAuctionEndWord, initState] using rd330₀⟩
   have hgt : UInt256.gt (bidTimestampWord I) (bidAuctionEndWord σ I) = ⟨1⟩ :=
     ugt_one htime
-  have rd331 := bidRDTimestamp rd330 (by decide) (by evm_ov)
+  have rd331 := RD.timestamp rd330 (by decide) (by evm_ov)
   have rd333₀ := evm_run rd331 with [gt, iszero]
   have rd333 := rd333₀
   rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (bidAuctionEndWord σ I) = ⟨1⟩
@@ -687,7 +585,7 @@ theorem simpleAuctionX_bid_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [bidAuctionEndWord, initState] using rd330₀⟩
   have hgt : UInt256.gt (bidTimestampWord I) (bidAuctionEndWord σ I) = ⟨0⟩ :=
     ugt_zero htime
-  have rd331 := bidRDTimestamp rd330 (by decide) (by evm_ov)
+  have rd331 := RD.timestamp rd330 (by decide) (by evm_ov)
   have rd333₀ := evm_run rd331 with [gt, iszero]
   have rd333 := rd333₀
   rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (bidAuctionEndWord σ I) = ⟨0⟩
@@ -836,7 +734,7 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
   have rd435₀ := evm_run rd425 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, push0, swap1, dup2]
   have rd435 := rd435₀
-  rw [hmask, simpleAuctionU256_land_comm solcAddrMask (bidHighestBidderRawWord σ I)] at rd435
+  rw [hmask, u256_land_comm solcAddrMask (bidHighestBidderRawWord σ I)] at rd435
   have rd438 := evm_run rd435 with [
     raw mstore 0 (bidPendingKeyMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
@@ -892,7 +790,7 @@ theorem simpleAuctionX_bid_afterPending {cA gh bl σ σ₀ A I} {g : Sat256}
       (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3) ByteArray.empty
       (cA, bidPendingMap σ I) k C := by
     exact ⟨_, _, by
-      simpa [bidPendingMap, bidU256_add_comm] using rd466₀⟩
+      simpa [bidPendingMap, u256_add_comm] using rd466₀⟩
   exact ⟨_, _, evm_run rd466 with [pop, pop]⟩
 
 theorem simpleAuctionX_bid_pendingOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -934,7 +832,7 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
   have rd486 := rd486₀
   rw [hmask] at rd486
-  have rd487 := bidRDOr rd486 (by decide) (by evm_ov)
+  have rd487 := RD.lor rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
   obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]
@@ -999,7 +897,7 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
   have rd486 := rd486₀
   rw [hmask] at rd486
-  have rd487 := bidRDOr rd486 (by decide) (by evm_ov)
+  have rd487 := RD.lor rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
   obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]
@@ -1085,26 +983,12 @@ theorem bidSender_ofNat (I : ExecutionEnv) :
   rw [bidSenderWord_toNat, Fin.val_ofNat]
   exact Nat.mod_eq_of_lt I.source.isLt
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem bidNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem bidU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show Nat.lor a.toNat b.toNat % UInt256.size =
-    Nat.lor b.toNat a.toNat % UInt256.size
-  rw [bidNat_lor_comm]
-
 theorem bidPackedSenderWord_eq_setAddress (old : UInt256) (I : ExecutionEnv) :
     bidPackedSenderWord old I = simpleAuctionSetAddressWord old (bidSenderWord I) := by
   unfold bidPackedSenderWord simpleAuctionSetAddressWord
-  rw [simpleAuctionU256_land_comm (UInt256.lnot solcAddrMask) old]
+  rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
   rw [solcAddrMask_clean (bidSenderWord_canonical I)]
-  exact bidU256_lor_comm (bidSenderWord I) (UInt256.land old (UInt256.lnot solcAddrMask))
+  exact u256_lor_comm (bidSenderWord I) (UInt256.land old (UInt256.lnot solcAddrMask))
 
 theorem evalExpr_bid_auctionEndTime (evm : EVM.State) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm

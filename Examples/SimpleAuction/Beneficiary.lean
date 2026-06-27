@@ -58,8 +58,8 @@ theorem simpleAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     (R := [simpleAuctionSelWord I]) rd174 (by simp only [List.length_singleton]; omega)
   have hclean : UInt256.land (UInt256.land solcAddrMask (beneficiaryWord σ I)) solcAddrMask =
       beneficiaryReturnWord σ I := by
-    rw [simpleAuctionU256_land_comm solcAddrMask (beneficiaryWord σ I)]
-    exact solcAddrMask_clean (simpleAuctionSolcAddrMask_result_canonical (beneficiaryWord σ I))
+    rw [u256_land_comm solcAddrMask (beneficiaryWord σ I)]
+    exact solcAddrMask_clean (solcAddrMask_result_canonical (beneficiaryWord σ I))
   have hret := RD.simpleAuctionReturnOneWord194 (R := [⟨174⟩, simpleAuctionSelWord I]) rd194
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [beneficiaryReturnWord, hclean] using hret
@@ -88,7 +88,7 @@ theorem simpleAuctionDispatch_beneficiary {cd : ByteArray}
     (hsel : ((⟨#[0x38, 0xaf, 0x3e, 0xed]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg simpleAuctionContract cd = some beneficiaryGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x38, 0xaf, 0x3e, 0xed]⟩ : ByteArray) :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, withdrawTransition, auctionEndTransition])
     (post := [auctionEndTimeGetter, highestBidderGetter, highestBidGetter])
@@ -138,7 +138,7 @@ theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ_solm σ₀ A I}
     exact (simpleAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody
         (by simp [beneficiaryReturnWord, hword]) hAccounts
-        (returnEquiv_of_encode (simpleAuctionAddressReturnEncoding (beneficiaryWord σ_evm I)))
+        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body

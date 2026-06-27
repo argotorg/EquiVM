@@ -1,3 +1,4 @@
+import Reasoning.ABI
 import Reasoning.Memory
 import Reasoning.Stepping
 import Reasoning.Reach
@@ -16,7 +17,7 @@ matching `UInt256` constant.
 
 namespace Reasoning.Theory
 
-open Ethereum Ethereum.EVM Reasoning.Reach
+open ABI Ethereum Ethereum.EVM Reasoning.Reach
 
 /-! ## Selector word -/
 
@@ -273,6 +274,23 @@ theorem solcReturnStaticLenCheckShort {base len words : ℕ}
     usub_uadd_lit_cancel hbase (lt_size_of_lt_sign hhi) hadd
   rw [hsub, slt_ofNat_lit_one_low hneed hshort]
 
+theorem solcReturnStaticLenCheckHuge {base len words : ℕ}
+    (hhi : 2 ^ 255 ≤ len)
+    (hlo : len < UInt256.size)
+    (hbase : base < UInt256.size)
+    (hneed : 32 * words < 2 ^ 255) :
+    UInt256.slt
+      (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base))
+      (UInt256.ofNat (32 * words)) = ⟨1⟩ := by
+  have hsub :
+      UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat len)) (UInt256.ofNat base)
+        = UInt256.ofNat len :=
+    usub_uadd_lit_cancel_mod hbase hlo
+  rw [hsub]
+  apply slt_lit_one_high hneed
+  rw [ulit_toNat' len hlo]
+  exact hhi
+
 /-! ### Common solc ABI returndata specialization -/
 
 theorem solcDecodeEndLenCheckOk_128_32 {len : ℕ}
@@ -295,6 +313,15 @@ theorem solcDecodeEndLenCheckShort_128_32 {len : ℕ} (hshort : len < 32) :
       omega)
     (by norm_num)
 
+theorem solcDecodeEndLenCheckHuge_128_32 {len : ℕ}
+    (hhi : 2 ^ 255 ≤ len) (hlo : len < UInt256.size) :
+    UInt256.slt (UInt256.sub (UInt256.add ⟨128⟩ (UInt256.ofNat len)) ⟨128⟩) ⟨32⟩
+      = ⟨1⟩ := by
+  exact solcReturnStaticLenCheckHuge (base := 128) (words := 1) hhi
+    hlo
+    (by norm_num [UInt256.size])
+    (by norm_num)
+
 /-! ## The free-memory-pointer memory
 
 Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the initial free pointer
@@ -302,7 +329,7 @@ Every solc contract opens with `PUSH1 0x80; PUSH1 0x40; MSTORE`, storing the ini
 `MLOAD 0x40` needs — contract-agnostic. -/
 
 /-- Memory after solc stores the free pointer `0x80` at `0x40`. -/
-noncomputable def solcFreePtrMem : ByteArray :=
+def solcFreePtrMem : ByteArray :=
   (UInt256.toByteArray ⟨128⟩).write 0 ByteArray.empty 64 32
 
 theorem solcFreePtrMem_eq :
@@ -348,7 +375,7 @@ theorem solcFreePtrMem_pad_size :
 
 /-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
     the shape every solc ABI-encoder's epilogue produces (its `RETURN`s `mem[0x80 .. 0xa0] = val`). -/
-noncomputable def solcReturnMem (val : UInt256) : ByteArray :=
+def solcReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
 
 theorem solcReturnMem_eq (val : UInt256) :
@@ -462,6 +489,47 @@ high 96 bits.  These facts couple that mask to address canonicality (`< 2^160`).
 /-- The address-cleanup mask literal `0xff…ff` (`PUSH20`), shared by every solc contract. -/
 def solcAddrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975⟩
 
+/-- Reading the low 20 bytes of a little-endian EVM word is the solc address mask. -/
+theorem fromBytes'_take20_wordLE_solcAddrMask (w : UInt256) :
+    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =
+      (UInt256.land w solcAddrMask).toNat := by
+  simpa [solcAddrMask] using
+    fromBytes'_take_wordLE_land_mask w 20 (by decide)
+
+/-- Reading bytes `[1, 21)` of a little-endian EVM word is the address mask after dropping
+    the low byte. -/
+theorem fromBytes'_drop1_take20_wordLE_solcAddrMask (w : UInt256) :
+    fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop 1).take 20) =
+      (UInt256.land (UInt256.div w ⟨256⟩) solcAddrMask).toNat := by
+  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
+  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
+    rw [← fromBytes'_eq_ofDigits bs]
+    exact fromBytes'_toBytesLEWithSizeProof w
+  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
+    intro l hl
+    simp only [List.mem_map] at hl
+    rcases hl with ⟨b, _hb, rfl⟩
+    exact b.toFin.isLt
+  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) 1 (by decide)
+    (bs.map (fun b : UInt8 => b.toNat)) hlt
+  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 20 (by decide)
+    ((bs.map (fun b : UInt8 => b.toNat)).drop 1)
+    (fun l hl => hlt l (List.mem_of_mem_drop hl))
+  rw [fromBytes'_eq_ofDigits (((EVM.Word.toBytesLEWithSizeProof w).1.drop 1).take 20)]
+  change Nat.ofDigits 256 ((((bs.drop 1).take 20).map fun b : UInt8 => b.toNat)) = _
+  rw [List.map_take, List.map_drop, ← htake, ← hdrop, hfull]
+  show w.toNat / 256 % 256 ^ 20 =
+    (Nat.land (UInt256.div w ⟨256⟩).toNat solcAddrMask.toNat) % UInt256.size
+  unfold UInt256.div UInt256.toNat
+  simp only
+  change w.toNat / 256 % 256 ^ 20 = Nat.land (w.toNat / 256) solcAddrMask.toNat % UInt256.size
+  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
+  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
+  rw [nat_land_mask_eq_mod]
+  have hsmall : w.toNat / 256 % 2 ^ 160 < UInt256.size :=
+    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160)) (by norm_num [UInt256.size])
+  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+
 /-- A canonical address word (`< 2^160`) is unchanged by the solc address mask, so `EQ` returns `1`. -/
 theorem solcAddrCanon_eq {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
     UInt256.eq w (UInt256.land w solcAddrMask) = ⟨1⟩ := by
@@ -486,21 +554,44 @@ theorem solcAddrCanonical_of_clean {w : UInt256}
     simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
       Bool.false_eq_true, ↓reduceIte] at hclean
     exact absurd hclean (by decide)
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
   have hland : w.toNat = Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 := by
     conv_lhs => rw [heq]
     rfl
+  have hlandle := nat_land_le_right w.toNat solcAddrMask.toNat
   have hmod : Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 =
       Nat.land w.toNat solcAddrMask.toNat :=
-    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
+    Nat.mod_eq_of_lt (lt_of_le_of_lt hlandle (by decide))
   have hmask : solcAddrMask.toNat < EVM.addressModulus := by decide
-  rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
+  rw [hland, hmod]; exact lt_of_le_of_lt hlandle hmask
+
+/-- Applying solc's address mask always yields a canonical address-sized word. -/
+theorem solcAddrMask_result_canonical (w : UInt256) :
+    (UInt256.land w solcAddrMask).toNat < EVM.addressModulus := by
+  show Nat.land w.toNat solcAddrMask.toNat % UInt256.size < EVM.addressModulus
+  have hle := nat_land_le_right w.toNat solcAddrMask.toNat
+  have hltSize : Nat.land w.toNat solcAddrMask.toNat < UInt256.size :=
+    lt_of_le_of_lt hle (by decide)
+  rw [Nat.mod_eq_of_lt hltSize]
+  exact lt_of_le_of_lt hle (by decide)
+
+/-- ABI-encoding a solc-masked address return is exactly the masked 32-byte word. -/
+theorem solcAddressReturnEncoding {addrTy : ABIType} (haddr : addrTy = .elem .address)
+    (w : UInt256) :
+    encodeReturnValue? addrTy
+        (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
+      some (UInt256.toByteArray (UInt256.land w solcAddrMask)) := by
+  subst addrTy
+  have hcanon := solcAddrMask_result_canonical w
+  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
+      (UInt256.land w solcAddrMask).toNat := by
+    apply Nat.mod_eq_of_lt
+    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
+  have hword : EVM.word (UInt256.land w solcAddrMask).toNat = UInt256.land w solcAddrMask :=
+    u256_ofNat_toNat _
+  refine scalarReturnEncoding (t := .address) (w := UInt256.land w solcAddrMask) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    decide
+  · simp [encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
 
 /-- A canonical address word is left unchanged by the solc address mask (mask on the right). -/
 theorem solcAddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
@@ -545,6 +636,169 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
   h.push0 hd0 (by omega)
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
     |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+
+/-! ## Inlined solc address decoder
+
+Newer optimized solc output can inline the usual address canonicality check instead of sharing a
+small cleanup subroutine.  The block shape is:
+
+`JUMPDEST; DUP1; CALLDATALOAD; PUSH1 1; PUSH1 1; PUSH1 160; SHL; SUB; DUP2; AND; DUP2; EQ;
+PUSH2 ok; JUMPI; PUSH0; PUSH0; REVERT; JUMPDEST; SWAP2; SWAP1; POP; JUMP`.
+-/
+
+@[reducible] def solcInlinedDecodeAddrPc1 (pc : UInt256) : UInt256 := pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc2 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc1 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc3 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc2 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc5 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc3 pc + UInt256.ofNat 2
+@[reducible] def solcInlinedDecodeAddrPc7 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc5 pc + UInt256.ofNat 2
+@[reducible] def solcInlinedDecodeAddrPc9 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc7 pc + UInt256.ofNat 2
+@[reducible] def solcInlinedDecodeAddrPc10 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc9 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc11 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc10 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc12 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc11 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc13 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc12 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc14 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc13 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc15 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc14 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc18 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc15 pc + UInt256.ofNat 3
+@[reducible] def solcInlinedDecodeAddrPc19 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc18 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc22 (pc : UInt256) : UInt256 :=
+  pc + UInt256.ofNat 22
+@[reducible] def solcInlinedDecodeAddrPc23 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc22 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc24 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc23 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc25 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc24 pc + ⟨1⟩
+@[reducible] def solcInlinedDecodeAddrPc26 (pc : UInt256) : UInt256 :=
+  solcInlinedDecodeAddrPc25 pc + ⟨1⟩
+
+set_option maxHeartbeats 400000 in
+theorem RD.solcInlinedDecodeAddrOk {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ}
+    (h : RD code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
+    (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
+        < EVM.addressModulus)
+    (hret : (D_J code 0).contains ret = true)
+    (hd0 : decode code pc = some (.JUMPDEST, .none))
+    (hd1 : decode code (solcInlinedDecodeAddrPc1 pc) = some (.DUP1, .none))
+    (hd2 : decode code (solcInlinedDecodeAddrPc2 pc) = some (.CALLDATALOAD, .none))
+    (hd3 : decode code (solcInlinedDecodeAddrPc3 pc) = some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd5 : decode code (solcInlinedDecodeAddrPc5 pc) = some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd7 : decode code (solcInlinedDecodeAddrPc7 pc) = some (.Push .PUSH1, some (⟨160⟩, 1)))
+    (hd9 : decode code (solcInlinedDecodeAddrPc9 pc) = some (.SHL, .none))
+    (hd10 : decode code (solcInlinedDecodeAddrPc10 pc) = some (.SUB, .none))
+    (hd11 : decode code (solcInlinedDecodeAddrPc11 pc) = some (.DUP2, .none))
+    (hd12 : decode code (solcInlinedDecodeAddrPc12 pc) = some (.AND, .none))
+    (hd13 : decode code (solcInlinedDecodeAddrPc13 pc) = some (.DUP2, .none))
+    (hd14 : decode code (solcInlinedDecodeAddrPc14 pc) = some (.EQ, .none))
+    (hd15 : decode code (solcInlinedDecodeAddrPc15 pc)
+        = some (.Push .PUSH2, some (solcInlinedDecodeAddrPc22 pc, 2)))
+    (hd18 : decode code (solcInlinedDecodeAddrPc18 pc) = some (.JUMPI, .none))
+    (hd22 : decode code (solcInlinedDecodeAddrPc22 pc) = some (.JUMPDEST, .none))
+    (hjd22 : (D_J code 0).contains (solcInlinedDecodeAddrPc22 pc) = true)
+    (hd23 : decode code (solcInlinedDecodeAddrPc23 pc) = some (.SWAP2, .none))
+    (hd24 : decode code (solcInlinedDecodeAddrPc24 pc) = some (.SWAP1, .none))
+    (hd25 : decode code (solcInlinedDecodeAddrPc25 pc) = some (.POP, .none))
+    (hd26 : decode code (solcInlinedDecodeAddrPc26 pc) = some (.JUMP, .none))
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret
+      (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32) :: R) mem aw rdata acc k' C' := by
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hb : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)) ≠ ⟨0⟩ := by
+    rw [hmask, solcAddrCanon_eq hcanon]
+    decide
+  exact ⟨_, _, h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+    |>.dup1 hd1 (by simp only [List.length_cons]; omega)
+    |>.calldataload hd2 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨1⟩ hd5 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨160⟩ hd7 (by simp only [List.length_cons]; omega)
+    |>.shl hd9 (by simp only [List.length_cons]; omega)
+    |>.sub hd10 (by simp only [List.length_cons]; omega)
+    |>.dup2 hd11 (by simp only [List.length_cons]; omega)
+    |>.and hd12 (by simp only [List.length_cons]; omega)
+    |>.dup2 hd13 (by simp only [List.length_cons]; omega)
+    |>.eq hd14 (by simp only [List.length_cons]; omega)
+    |>.push2 (solcInlinedDecodeAddrPc22 pc) hd15 (by simp only [List.length_cons]; omega)
+    |>.jumpiT hd18 hb hjd22 (by simp only [List.length_cons]; omega)
+    |>.jumpdest hd22 (by simp only [List.length_cons]; omega)
+    |>.swap2 hd23 (by omega)
+    |>.swap1 hd24 (by simp only [List.length_cons]; omega)
+    |>.pop hd25 (by simp only [List.length_cons]; omega)
+    |>.jump hd26 hret (by simp only [List.length_cons]; omega)⟩
+
+set_option maxHeartbeats 400000 in
+theorem RD.solcInlinedDecodeAddrRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ}
+    (h : RD code ee g s0 pc (off :: ret :: R) mem aw rdata acc k C)
+    (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+        (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+          solcAddrMask) = ⟨0⟩)
+    (hd0 : decode code pc = some (.JUMPDEST, .none))
+    (hd1 : decode code (solcInlinedDecodeAddrPc1 pc) = some (.DUP1, .none))
+    (hd2 : decode code (solcInlinedDecodeAddrPc2 pc) = some (.CALLDATALOAD, .none))
+    (hd3 : decode code (solcInlinedDecodeAddrPc3 pc) = some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd5 : decode code (solcInlinedDecodeAddrPc5 pc) = some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd7 : decode code (solcInlinedDecodeAddrPc7 pc) = some (.Push .PUSH1, some (⟨160⟩, 1)))
+    (hd9 : decode code (solcInlinedDecodeAddrPc9 pc) = some (.SHL, .none))
+    (hd10 : decode code (solcInlinedDecodeAddrPc10 pc) = some (.SUB, .none))
+    (hd11 : decode code (solcInlinedDecodeAddrPc11 pc) = some (.DUP2, .none))
+    (hd12 : decode code (solcInlinedDecodeAddrPc12 pc) = some (.AND, .none))
+    (hd13 : decode code (solcInlinedDecodeAddrPc13 pc) = some (.DUP2, .none))
+    (hd14 : decode code (solcInlinedDecodeAddrPc14 pc) = some (.EQ, .none))
+    (hd15 : decode code (solcInlinedDecodeAddrPc15 pc)
+        = some (.Push .PUSH2, some (solcInlinedDecodeAddrPc22 pc, 2)))
+    (hd18 : decode code (solcInlinedDecodeAddrPc18 pc) = some (.JUMPI, .none))
+    (hr0 : decode code (solcInlinedDecodeAddrPc19 pc) = some (.PUSH0, .none))
+    (hr1 : decode code (solcInlinedDecodeAddrPc19 pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hr2 : decode code (solcInlinedDecodeAddrPc19 pc + ⟨1⟩ + ⟨1⟩)
+        = some (.REVERT, .none))
+    (hov : R.length + 6 ≤ 1024) :
+    RDrev code g s0 := by
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hb : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+      (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)) = ⟨0⟩ := by
+    rw [hmask]
+    exact hnc
+  exact (h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+    |>.dup1 hd1 (by simp only [List.length_cons]; omega)
+    |>.calldataload hd2 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨1⟩ hd5 (by simp only [List.length_cons]; omega)
+    |>.push1 ⟨160⟩ hd7 (by simp only [List.length_cons]; omega)
+    |>.shl hd9 (by simp only [List.length_cons]; omega)
+    |>.sub hd10 (by simp only [List.length_cons]; omega)
+    |>.dup2 hd11 (by simp only [List.length_cons]; omega)
+    |>.and hd12 (by simp only [List.length_cons]; omega)
+    |>.dup2 hd13 (by simp only [List.length_cons]; omega)
+    |>.eq hd14 (by simp only [List.length_cons]; omega)
+    |>.push2 (solcInlinedDecodeAddrPc22 pc) hd15 (by simp only [List.length_cons]; omega)
+    |>.jumpiNT hd18 hb (by simp only [List.length_cons]; omega)
+    |>.revertStub hr0 hr1 hr2 (by simp only [List.length_cons]; omega) :
+    RDrev code g s0)
 
 /-! ## Solc dispatcher scaffold — small staged lemmas off the prologue
 

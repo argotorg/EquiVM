@@ -7,3 +7,8 @@ import Examples.CtorStore.Correct
 import Examples.Ballot.Correct
 import Examples.SimpleAuction.Correct
 import Examples.StringStoreLite.Correct
+import Examples.BlindAuction.Correct
+import Examples.OpenZeppelinBench.Ownable2Step.Correct
+import Examples.OpenZeppelinBench.AccessControl.Correct
+import Examples.OpenZeppelinBench.Pausable.Correct
+import Examples.OpenZeppelinBench.ERC6909.Correct

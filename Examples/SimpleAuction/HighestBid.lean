@@ -97,7 +97,7 @@ theorem simpleAuctionDispatch_highestBid {cd : ByteArray}
     (hsel : ((⟨#[0xd5, 0x7b, 0xde, 0x79]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg simpleAuctionContract cd = some highestBidGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0xd5, 0x7b, 0xde, 0x79]⟩ : ByteArray) :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter,
       auctionEndTimeGetter, highestBidderGetter])

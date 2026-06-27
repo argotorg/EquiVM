@@ -171,27 +171,19 @@ theorem voteSourceWord_toNat (I : ExecutionEnv) :
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
     (show AccountAddress.size ≤ UInt256.size from by decide))
 
-theorem voteSourceKeyValueToWord (I : ExecutionEnv) :
-    keyValueToWord (.address I.source) = voteSourceWord I := by
-  unfold keyValueToWord voteSourceWord
-  apply congrArg UInt256.mk
-  apply Fin.ext
-  simp only [Fin.val_ofNat, Fin.val_castLE]
-  exact (Nat.mod_eq_of_lt (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))).symm
-
 theorem voteSenderSlot_eq_hash (I : ExecutionEnv) :
     voteSenderSlot I =
       uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (voteSourceWord I) ++
         UInt256.toByteArray (⟨1⟩ : UInt256))) := by
   unfold voteSenderSlot voterBase mapSlot
-  rw [voteSourceKeyValueToWord]
+  rw [show keyValueToWord (.address I.source) = voteSourceWord I by
+    simpa [voteSourceWord] using keyValueToWord_address I.source]
 
 theorem voteProposalCountSlot_spec (I : ExecutionEnv) :
     voteProposalCountSlot I =
       proposalElemSlot (.int (Int.ofNat (voteProposalWord I).toNat)) + ⟨1⟩ := by
   unfold voteProposalCountSlot proposalElemSlot
-  rw [ballotKeyValueToWord_int_ofNat_toNat, u256_mul_two_ofNat]
+  rw [keyValueToWord_uint256, u256_mul_two_ofNat]
   rw [u256_add_comm (UInt256.ofNat ((voteProposalWord I).toNat * 2)) proposalsDataBase]
 
 theorem ballotDecode_vote_ok {I : ExecutionEnv}
@@ -222,43 +214,7 @@ theorem ballotDecode_vote_none_huge {I : ExecutionEnv}
 theorem voteStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  unfold storageLocStore storageLocWriteWord wordLoc
-  simp only [valueToWord, ballotWordOfInt_ofNat_toNat, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = val.toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
-
-theorem voteFromBytes'_take1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 1) =
-      (UInt256.land w ⟨255⟩).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits (bs.take 1), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 1 = (Nat.land w.toNat (⟨255⟩ : UInt256).toNat) % UInt256.size
-  rw [show 256 ^ 1 = 2 ^ 8 by norm_num]
-  rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
-  rw [nat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 8 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
 
 theorem voteStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32} :
@@ -266,13 +222,7 @@ theorem voteStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool }
       = wordToElem .bool
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  unfold storageLocLoad
-  simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 1) = _
-  rw [voteFromBytes'_take1_wordLE]
-  rfl
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
 theorem voteStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
@@ -281,8 +231,7 @@ theorem voteStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
     storageLocLoad evm
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
       .bool false := by
-  rw [voteStorageLocLoad_bool_offset0 evm slot]
-  simp [wordToElem, hzero]
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
 
 theorem voteStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
@@ -291,173 +240,7 @@ theorem voteStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
     storageLocLoad evm
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
       .bool true := by
-  rw [voteStorageLocLoad_bool_offset0 evm slot]
-  have hbeq : ((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0) = false := by
-    rw [beq_eq_false_iff_ne]
-    intro hval
-    apply hnz
-    apply u256_inj
-    simpa [UInt256.toNat] using hval
-  simp [wordToElem, hbeq]
-
-theorem voteFromBytes'_drop1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop 1) = w.toNat / 256 := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits (bs.drop 1), List.map_drop]
-  rw [← hdrop, hfull]
-  norm_num
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, generic `Nat.testBit` form of left shift.
-theorem voteTestBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
-  induction k generalizing i with
-  | zero => simp
-  | succ k ih =>
-      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
-      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
-      cases i with
-      | zero => simp
-      | succ i =>
-          rw [Nat.testBit_bit_succ]
-          rw [Nat.shiftLeft'_false]
-          rw [ih]
-          by_cases hi : i < k
-          · have his : i.succ < k.succ := Nat.succ_lt_succ hi
-            simp [his, hi]
-          · have hns : ¬ i.succ < k.succ := by omega
-            simp [hns, hi]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, bit access after dropping the low byte.
-theorem voteDivPow8_testBit (n i : Nat) (h8 : 8 ≤ i) :
-    (n / 2 ^ 8).testBit (i - 8) = n.testBit i := by
-  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
-  rw [Nat.div_div_eq_div_mul]
-  change n / (2 ^ 8 * 2 ^ (i - 8)) % 2 = 1 ↔ n / 2 ^ i % 2 = 1
-  rw [← Nat.pow_add]
-  rw [show 8 + (i - 8) = i by omega]
-
-theorem voteNatLandClearLow8 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 8) = (n / 2 ^ 8) * 2 ^ 8 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 8)).testBit i =
-    ((n / 2 ^ 8) * 2 ^ 8).testBit i
-  rw [Nat.testBit_and]
-  rw [show (2 : Nat) ^ 256 - 2 ^ 8 = (2 ^ 248 - 1) <<< 8 by
-    rw [Nat.shiftLeft_eq]
-    norm_num [Nat.pow_add]]
-  rw [voteTestBit_shiftLeft]
-  rw [show (n / 2 ^ 8) * 2 ^ 8 = (n / 2 ^ 8) <<< 8 by rw [Nat.shiftLeft_eq]]
-  rw [voteTestBit_shiftLeft]
-  by_cases hi8 : i < 8
-  · simp [hi8]
-  · simp [hi8]
-    have h8 : 8 ≤ i := Nat.le_of_not_gt hi8
-    by_cases hi256 : i < 256
-    · have hlt : i - 8 < 248 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 248 - 1).testBit (i - 8))) =
-        (n / 2 ^ 8).testBit (i - 8)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hlt]
-      exact (voteDivPow8_testBit n i h8).symm
-    · have hnlt : ¬ i - 8 < 248 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 248 - 1).testBit (i - 8))) =
-        (n / 2 ^ 8).testBit (i - 8)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hnlt]
-      change (n / 2 ^ 8).testBit (i - 8) = false
-      have hq : n / 2 ^ 8 < 2 ^ 248 := by
-        apply Nat.div_lt_of_lt_mul
-        rw [show 2 ^ 8 * 2 ^ 248 = (2 : Nat) ^ 256 by
-          rw [← Nat.pow_add]]
-        exact hn
-      have hpow : n / 2 ^ 8 < 2 ^ (i - 8) := by
-        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
-      exact Nat.testBit_lt_two_pow hpow
-
-theorem voteNatLorShift8One (q : Nat) : Nat.lor (q * 2 ^ 8) 1 = 1 + q * 2 ^ 8 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change ((q * 2 ^ 8) ||| 1).testBit i = (1 + q * 2 ^ 8).testBit i
-  rw [Nat.testBit_or]
-  conv_lhs => rw [show q * 2 ^ 8 = q <<< 8 by rw [Nat.shiftLeft_eq]]
-  rw [voteTestBit_shiftLeft]
-  cases i with
-  | zero =>
-      simp [Nat.testBit]
-      rw [Nat.add_mod]
-      have hmul : q * 256 % 2 = 0 := by
-        rw [show q * 256 = (q * 128) * 2 by ring]
-        exact Nat.mul_mod_left (q * 128) 2
-      rw [hmul]
-  | succ k =>
-      have h1bit : (1 : Nat).testBit (k + 1) = false := by
-        apply Nat.testBit_lt_two_pow
-        exact Nat.lt_of_lt_of_le (by norm_num : 1 < 2)
-          (Nat.pow_le_pow_right (n := 2) (by norm_num) (by omega : 1 ≤ k + 1))
-      rw [h1bit, Bool.or_false]
-      rw [show 1 + q * 2 ^ 8 = Nat.bit true (q * 2 ^ 7) by
-        simp [Nat.bit]
-        omega]
-      rw [Nat.testBit_bit_succ]
-      conv_rhs => rw [show q * 2 ^ 7 = q <<< 7 by rw [Nat.shiftLeft_eq]]
-      rw [voteTestBit_shiftLeft]
-      by_cases hk : k < 7
-      · have hk8 : k + 1 < 8 := by omega
-        simp [hk, hk8]
-      · have hnk8 : ¬ k + 1 < 8 := by omega
-        simp [hk, hnk8]
-
-theorem votePackedSetTrueNat_lt_size (n : Nat) (hn : n < UInt256.size) :
-    1 + 256 * (n / 256) < UInt256.size := by
-  have hq : n / 256 < 2 ^ 248 := by
-    norm_num [UInt256.size] at hn ⊢
-    omega
-  have hmul : 256 * (n / 256) ≤ 256 * (2 ^ 248 - 1) :=
-    Nat.mul_le_mul_left 256 (Nat.le_pred_of_lt hq)
-  norm_num [UInt256.size] at hmul ⊢
-  omega
-
-theorem votePackedSetTrueWord_eq (w : UInt256) :
-    UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩ =
-      UInt256.ofNat (1 + 256 * (w.toNat / 256)) := by
-  apply u256_inj
-  unfold UInt256.lor UInt256.land UInt256.toNat Fin.lor Fin.land
-  change (Nat.lor ((Nat.land w.val.val (UInt256.lnot (⟨255⟩ : UInt256)).toNat) %
-      UInt256.size) 1) %
-      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
-  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
-    native_decide
-  rw [hlnot]
-  change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 1) %
-      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
-  have hwlt : w.toNat < 2 ^ 256 := by
-    change w.val.val < 2 ^ 256
-    simpa [UInt256.size] using w.val.isLt
-  have hland_lt : Nat.land w.toNat (2 ^ 256 - 2 ^ 8) < UInt256.size := by
-    rw [voteNatLandClearLow8 w.toNat hwlt]
-    exact lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
-  rw [Nat.mod_eq_of_lt hland_lt]
-  rw [voteNatLandClearLow8 w.toNat hwlt]
-  rw [show 256 = 2 ^ 8 by norm_num]
-  rw [Nat.mul_comm (2 ^ 8) (w.toNat / 2 ^ 8)]
-  rw [voteNatLorShift8One]
-
-theorem votePackedSetTrueWord_toNat (w : UInt256) :
-    (UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat =
-      1 + 256 * (w.toNat / 256) := by
-  rw [votePackedSetTrueWord_eq]
-  exact ulit_toNat' _ (votePackedSetTrueNat_lt_size w.toNat w.val.isLt)
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
 theorem voteStorageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32} :
@@ -468,27 +251,7 @@ theorem voteStorageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256)
         (UInt256.lor
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
             (UInt256.lnot ⟨255⟩)) ⟨1⟩)) := by
-  unfold storageLocStore storageLocWriteWord
-  simp only [valueToWord, Bool.toUInt256_true, bind, Option.bind]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof (⟨1⟩ : UInt256)).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
-        (UInt256.lor
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-            (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
-    List.take_zero, List.nil_append]
-  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 1)).1 =
-      [1] by
-        native_decide]
-  rw [fromBytes'_append, voteFromBytes'_drop1_wordLE]
-  simp [fromBytes']
-  rw [votePackedSetTrueWord_toNat]
+  simpa [boolOffset0Loc] using storageLocStore_bool_true_offset0 evm slot
 
 theorem evalStorageRef_vote_sender (evm : EVM.State) (I : ExecutionEnv)
     (hsource : evm.executionEnv.source = I.source) :
@@ -1300,48 +1063,11 @@ theorem voteVotedErrorMem3_mload64 (I : ExecutionEnv) :
   mloadFreePtrValue (by rw [voteVotedErrorMem3_size]; decide) (by decide)
     (voteVotedErrorMem3_read64 I)
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`; local copy of the delegate helper.
-theorem voteU256_zero_sub_ne_zero {w : UInt256} (h : w ≠ ⟨0⟩) :
-    UInt256.sub ⟨0⟩ w ≠ ⟨0⟩ := by
-  intro hz
-  have htoNat : w.toNat ≠ 0 := by
-    intro hnat
-    apply h
-    apply u256_inj
-    exact hnat
-  have hpos : 0 < w.toNat := Nat.pos_of_ne_zero htoNat
-  have hsub := usub_toNat_underflow (a := (⟨0⟩ : UInt256)) (b := w) hpos
-  rw [hz] at hsub
-  have hwlt : w.toNat < UInt256.size := w.val.isLt
-  have hgt : 0 < UInt256.size + (⟨0⟩ : UInt256).toNat - w.toNat := by
-    omega
-  omega
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem voteNat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a ||| b).testBit i = (b ||| a).testBit i
-  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem voteU256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj
-  show (Nat.lor a.toNat b.toNat) % UInt256.size =
-    (Nat.lor b.toNat a.toNat) % UInt256.size
-  rw [voteNat_lor_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem voteU256_mul_comm (a b : UInt256) : UInt256.mul a b = UInt256.mul b a := by
-  apply u256_inj
-  show (a.val * b.val).val = (b.val * a.val).val
-  rw [Fin.val_mul, Fin.val_mul, Nat.mul_comm]
-
 theorem voteProposalCountSlot_evm (I : ExecutionEnv) :
     (⟨1⟩ : UInt256) + (UInt256.mul ⟨2⟩ (voteProposalWord I) + proposalsDataBase) =
       voteProposalCountSlot I := by
   unfold voteProposalCountSlot
-  rw [voteU256_mul_comm ⟨2⟩ (voteProposalWord I)]
+  rw [u256_mul_comm ⟨2⟩ (voteProposalWord I)]
   exact u256_add_comm _ _
 
 end Ballot
@@ -1350,38 +1076,11 @@ namespace Reasoning.Theory
 
 open Solm ABI Ethereum Ethereum.EVM
 
--- LIBRARY CANDIDATE: `Reasoning.Stepping`, generic OR xstep.
-theorem voteOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
-
--- LIBRARY CANDIDATE: `Reasoning.Reach`, generic OR combinator.
-theorem RD.voteOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => Reasoning.Theory.voteOr_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -1476,7 +1175,7 @@ theorem ballotVoteX_afterWeight {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     exact ⟨_, _, by simpa [voteSenderWeightWord, initState] using rd442₀⟩
   have rd444 := evm_run rd442 with [swap1, swap2, sub]
   exact ⟨_, _, evm_run rd444 with [
-    push2 ⟨516⟩, jumpiT (voteU256_zero_sub_ne_zero hweight) (by jump_dest)]⟩
+    push2 ⟨516⟩, jumpiT (u256_zero_sub_ne_zero hweight) (by jump_dest)]⟩
 
 theorem ballotVoteX_afterNotVoted {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1525,7 +1224,7 @@ theorem ballotVoteX_afterSenderStores {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
   have rd593 := evm_run rd586 with [jumpdest, push1 ⟨1⟩, dup2, dup2, add, dup1]
   obtain ⟨_, _, rd594⟩ := rd593.sload (by decide) (by evm_ov)
   have rd600 := evm_run rd594 with [push1 ⟨255⟩, not, and, swap1, swap2]
-  have rd601 := RD.voteOr rd600 (by decide) (by evm_ov)
+  have rd601 := RD.lor rd600 (by decide) (by evm_ov)
   have rd602 := evm_run rd601 with [swap1]
   obtain ⟨_, _, rd603⟩ := rd602.sstore hperm (by decide) (by evm_ov)
   have rd610 := evm_run rd603 with [push1 ⟨2⟩, dup1, dup3, add, dup4, swap1]
@@ -1533,7 +1232,7 @@ theorem ballotVoteX_afterSenderStores {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
   exact ⟨_, _, by
     simpa [voteAfterVoteMap, voteAfterVotedMap, voteSenderVotedStoreWord,
       voteSenderPackedWord, voteSenderPackedSlot, voteSenderVoteSlot, u256_add_comm,
-      u256_land_comm, voteU256_lor_comm, initState] using rd611⟩
+      u256_land_comm, u256_lor_comm, initState] using rd611⟩
 
 theorem ballotVoteX_afterBounds {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

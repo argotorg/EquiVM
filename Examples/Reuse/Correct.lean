@@ -72,11 +72,6 @@ noncomputable def cPanicMem0 (mem : ByteArray) : ByteArray :=
 noncomputable def cPanicMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨17⟩ : UInt256)).write 0 (cPanicMem0 mem) 4 32
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem cByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
 /-- Both selector arms decode as `DUP1; PUSH4; EQ; PUSH1; JUMPI`. -/
 theorem cArmsWellFormed :
     ∀ j, j ≤ 1 → armWellFormed cBytecode (nthArmPc cBytecode cFirstArmPc j) := by
@@ -113,7 +108,7 @@ theorem cMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 2) (hsz : 4 ≤ I.callda
         (cSelWord I) = ⟨0⟩)
     ∧ UInt256.eq (armSelNat cBytecode (nthArmPc cBytecode cFirstArmPc i))
         (cSelWord I) ≠ ⟨0⟩ := by
-  have hci : I.calldata.extract 0 4 = cSelBytes i := (cByteArray_eq_of_beq hsel).symm
+  have hci : I.calldata.extract 0 4 = cSelBytes i := (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [cArmEq I hsz j (by omega), hci]
     interval_cases i
@@ -310,54 +305,6 @@ theorem cDecode_g_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldat
 
 namespace Reasoning.Theory
 
-theorem cOr_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.OR, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.lor a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.OR, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_or s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
-theorem cGt_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.GT, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.gt a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.GT, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_gt s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
-theorem cDiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DIV, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
-         else .ok (stMul s (UInt256.div a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DIV, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_div s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Glow, stMul]
-
 theorem cDiv_mul2 {v : UInt256} (h : 2 * v.toNat < UInt256.size) :
     UInt256.div (UInt256.mul v ⟨2⟩) ⟨2⟩ = v := by
   apply u256_inj
@@ -436,54 +383,6 @@ end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-/-- Reuse-local `OR` combinator used by solc's checked-multiply routine. -/
-theorem RD.cOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.OR, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => Reasoning.Theory.cOr_xstep hc hp hdec hs hov)
-
-/-- Reuse-local `GT` combinator used by solc's checked-add routine. -/
-theorem RD.cGt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.GT, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.gt a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepBinop (fun _ hc hp hs => Reasoning.Theory.cGt_xstep hc hp hdec hs hov)
-
-/-- Reuse-local `DIV` combinator used by solc's checked-multiply routine. -/
-theorem RD.cDiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DIV, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := Reasoning.Theory.cDiv_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 5
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stMul s (UInt256.div a b) t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stMul]; exact hcode
-      · simp only [stMul]; rw [hpc]
-      · rfl
-      · simp only [stMul]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stMul]; exact hmem
-      · simp only [stMul]; exact haw
-      · simp only [stMul]; exact hrdata
-      · simp only [stMul]; exact hacc
-      · exact hee
-      · exact hworld
-
 /-- Reuse's Solidity checked-arithmetic panic block at pc 161. -/
 theorem RD.cPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
@@ -524,7 +423,7 @@ theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     rw [Reasoning.Theory.cDiv_mul2 hmul, uInt256_eq_self]
     decide
   exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, cDiv, dup5, eq, cOr,
+    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, lor,
     push1 ⟨121⟩, jumpiT hcond (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump hret ]⟩
 
@@ -545,7 +444,7 @@ theorem RD.cCheckedMul2_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     rw [heq]
     decide
   have rd193₀ := evm_run h with [
-    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, cDiv, dup5, eq, cOr ]
+    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, lor ]
   have rd193 := rd193₀
   rw [hcond] at rd193
   have rd196 := evm_run rd193 with [ push1 ⟨121⟩, jumpiNT (by decide) ]
@@ -570,7 +469,7 @@ theorem RD.cCheckedAdd1 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     rw [hgt]
     decide
   exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, dup3, add, dup1, dup3, cGt, iszero,
+    jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero,
     push1 ⟨121⟩, jumpiT hcond (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump hret ]⟩
 
@@ -585,7 +484,7 @@ theorem RD.cCheckedAdd1_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
   have hgt : UInt256.gt ⟨1⟩ (v + ⟨1⟩) = ⟨1⟩ :=
     Reasoning.Theory.cAdd1_overflow_gt hover
   have rd208₀ := evm_run h with [
-    jumpdest, dup1, dup3, add, dup1, dup3, cGt ]
+    jumpdest, dup1, dup3, add, dup1, dup3, gt ]
   have rd208 := rd208₀
   rw [hgt] at rd208
   have rd209₀ := evm_run rd208 with [ iszero ]
@@ -1022,19 +921,11 @@ theorem cBindFArg (I : ExecutionEnv) :
     some ((∅ : Store).insert "v" (cArgValue I))
   rfl
 
-theorem cWordOfInt_ofNat_toNat (a : UInt256) :
-    EVM.wordOfInt (Int.ofNat a.toNat) = a := by
-  rw [EVM.wordOfInt, if_neg (by simp)]
-  apply u256_inj
-  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
-  show a.toNat % EVM.twoPow 256 = a.toNat
-  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
-
 theorem cStorageLocStore_uint256 (evm : EVM.State) (val : UInt256) :
     storageLocStore evm Reuse.sLoc (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ val) := by
   unfold storageLocStore storageLocWriteWord Reuse.sLoc
-  simp only [valueToWord, cWordOfInt_ofNat_toNat, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2

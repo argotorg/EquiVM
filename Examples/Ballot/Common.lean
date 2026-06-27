@@ -16,180 +16,18 @@ namespace Ballot
 
 /-! ## Ballot-wide storage and ABI helpers -/
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem ballotByteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
-
--- LIBRARY CANDIDATE: `Reasoning.Memory`.
--- `fromBytes'` is `Nat.ofDigits 256` over little-endian byte values.
-theorem fromBytes'_eq_ofDigits (bs : List UInt8) :
-    fromBytes' bs = Nat.ofDigits 256 (bs.map (fun b => b.toNat)) := by
-  induction bs with
-  | nil => rfl
-  | cons b bs ih => simp [fromBytes', Nat.ofDigits, ih]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
--- `Nat.land` is commutative (via test bits).
-theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show (Nat.land a.toNat b.toNat) % UInt256.size =
-    (Nat.land b.toNat a.toNat) % UInt256.size
-  rw [nat_land_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
-  apply u256_inj
-  simp [uadd_toNat, Nat.add_assoc]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_mul_two_ofNat (a : UInt256) :
-    UInt256.mul a ⟨2⟩ = UInt256.ofNat (a.toNat * 2) := by
-  apply u256_inj
-  show (a.val * (⟨2⟩ : UInt256).val).val = (Fin.ofNat UInt256.size (a.toNat * 2)).val
-  rw [Fin.val_mul]
-  rfl
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, generic `Nat.testBit` form of left shift.
-theorem ballotTestBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
-  induction k generalizing i with
-  | zero => simp
-  | succ k ih =>
-      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
-      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
-      cases i with
-      | zero => simp
-      | succ i =>
-          rw [Nat.testBit_bit_succ]
-          rw [Nat.shiftLeft'_false]
-          rw [ih]
-          by_cases hi : i < k
-          · have his : i.succ < k.succ := Nat.succ_lt_succ hi
-            simp [his, hi]
-          · have hns : ¬ i.succ < k.succ := by omega
-            simp [hns, hi]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`, bit access after dropping low bits.
-theorem ballotDivPow_testBit (n k i : Nat) (hk : k ≤ i) :
-    (n / 2 ^ k).testBit (i - k) = n.testBit i := by
-  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
-  rw [Nat.div_div_eq_div_mul]
-  rw [show 2 ^ k * 2 ^ (i - k) = 2 ^ i by
-    rw [← Nat.pow_add]
-    congr
-    omega]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
--- Appending high bits above a low field is the same as addition when the low field fits.
-theorem ballotNat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
-    Nat.lor a (b * 2 ^ k) = a + b * 2 ^ k := by
-  induction k generalizing a b with
-  | zero =>
-      have ha0 : a = 0 := by omega
-      subst a
-      norm_num
-      change (0 ||| b) = b
-      simp
-  | succ k ih =>
-      have hdiv : Nat.div2 a < 2 ^ k := by
-        rw [Nat.div2_val]
-        apply Nat.div_lt_of_lt_mul
-        rw [show 2 * 2 ^ k = 2 ^ (k + 1) by ring_nf]
-        exact ha
-      nth_rewrite 1 [← Nat.bit_bodd_div2 a]
-      rw [show b * 2 ^ (k + 1) = Nat.bit false (b * 2 ^ k) by
-        rw [Nat.bit_val, Bool.toNat_false, Nat.pow_succ]
-        ring]
-      change (Nat.bit (Nat.bodd a) (Nat.div2 a) ||| Nat.bit false (b * 2 ^ k)) =
-        a + Nat.bit false (b * 2 ^ k)
-      rw [Nat.lor_bit]
-      rw [Bool.or_false]
-      change Nat.bit (Nat.bodd a) (Nat.lor (Nat.div2 a) (b * 2 ^ k)) =
-        a + Nat.bit false (b * 2 ^ k)
-      rw [ih (Nat.div2 a) b hdiv]
-      rw [Nat.bit_val, Nat.bit_val, Bool.toNat_false]
-      have hdecomp : (Nat.bodd a).toNat + Nat.div2 a * 2 = a := by
-        simpa [Nat.mul_comm] using Nat.bodd_add_div2 a
-      omega
-
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
 -- Byte ranges `[0]`, `[1, 21)`, and `[21, 32)` do not overlap.
 theorem ballotNat_lor_packed_address (a q : Nat) (ha : a < 2 ^ 160) :
     Nat.lor 1 (Nat.lor (a * 2 ^ 8) (q * 2 ^ 168)) =
       1 + a * 2 ^ 8 + q * 2 ^ 168 := by
-  rw [ballotNat_lor_shift_add (a * 2 ^ 8) q 168]
+  rw [nat_lor_shift_add (a * 2 ^ 8) q 168]
   · rw [show a * 2 ^ 8 + q * 2 ^ 168 = (a + q * 2 ^ 160) * 2 ^ 8 by ring]
-    rw [ballotNat_lor_shift_add 1 (a + q * 2 ^ 160) 8 (by norm_num)]
+    rw [nat_lor_shift_add 1 (a + q * 2 ^ 160) 8 (by norm_num)]
     ring
   · calc
       a * 2 ^ 8 < 2 ^ 160 * 2 ^ 8 := Nat.mul_lt_mul_of_pos_right ha (by norm_num)
       _ = 2 ^ 168 := by norm_num [Nat.pow_add]
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
--- Clearing the low 168 bits keeps the bytes above an address-at-offset-1 field.
-theorem ballotNatLandClearLow168 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n (2 ^ 256 - 2 ^ 168) = (n / 2 ^ 168) * 2 ^ 168 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 168)).testBit i =
-    ((n / 2 ^ 168) * 2 ^ 168).testBit i
-  rw [Nat.testBit_and]
-  rw [show (2 : Nat) ^ 256 - 2 ^ 168 = (2 ^ 88 - 1) <<< 168 by
-    rw [Nat.shiftLeft_eq]
-    norm_num [Nat.pow_add]]
-  rw [ballotTestBit_shiftLeft]
-  rw [show (n / 2 ^ 168) * 2 ^ 168 = (n / 2 ^ 168) <<< 168 by
-    rw [Nat.shiftLeft_eq]]
-  rw [ballotTestBit_shiftLeft]
-  by_cases hi168 : i < 168
-  · simp [hi168]
-  · simp [hi168]
-    have h168 : 168 ≤ i := Nat.le_of_not_gt hi168
-    by_cases hi256 : i < 256
-    · have hlt : i - 168 < 88 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 88 - 1).testBit (i - 168))) =
-        (n / 2 ^ 168).testBit (i - 168)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hlt]
-      exact (ballotDivPow_testBit n 168 i h168).symm
-    · have hnlt : ¬ i - 168 < 88 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 88 - 1).testBit (i - 168))) =
-        (n / 2 ^ 168).testBit (i - 168)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hnlt]
-      change (n / 2 ^ 168).testBit (i - 168) = false
-      have hq : n / 2 ^ 168 < 2 ^ 88 := by
-        apply Nat.div_lt_of_lt_mul
-        rw [show 2 ^ 168 * 2 ^ 88 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
-        exact hn
-      have hpow : n / 2 ^ 168 < 2 ^ (i - 168) := by
-        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
-      exact Nat.testBit_lt_two_pow hpow
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_lor_toNat (a b : UInt256) :
-    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size := rfl
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_land_toNat (a b : UInt256) :
-    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
-
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
-theorem u256_mul_toNat (a b : UInt256) :
-    (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size := rfl
 
 -- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
 theorem ballotHigh168Mask_toNat (old : UInt256) :
@@ -198,7 +36,7 @@ theorem ballotHigh168Mask_toNat (old : UInt256) :
   rw [u256_land_toNat]
   rw [ulit_toNat' _ (by norm_num [UInt256.size])]
   rw [nat_land_comm]
-  rw [ballotNatLandClearLow168 old.toNat (by
+  rw [natLandClearLow old.toNat 168 (by norm_num) (by
     change old.val.val < 2 ^ 256
     simpa [UInt256.size] using old.val.isLt)]
   have hlt : old.toNat / 2 ^ 168 * 2 ^ 168 < UInt256.size :=
@@ -247,7 +85,7 @@ theorem ballotPackedAddressAfterBoolTrueWord_eq (old val : UInt256)
   have hinnerlt :
       Nat.lor (val.toNat * 2 ^ 8) (old.toNat / 2 ^ 168 * 2 ^ 168) <
         UInt256.size := by
-    rw [ballotNat_lor_shift_add (val.toNat * 2 ^ 8) (old.toNat / 2 ^ 168) 168]
+    rw [nat_lor_shift_add (val.toNat * 2 ^ 8) (old.toNat / 2 ^ 168) 168]
     · have hvle : val.toNat ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hv
       have hqle : old.toNat / 2 ^ 168 ≤ 2 ^ 88 - 1 := Nat.le_pred_of_lt hq
       have hvterm : val.toNat * 2 ^ 8 ≤ (2 ^ 160 - 1) * 2 ^ 8 :=
@@ -280,45 +118,6 @@ theorem ballotPackedAddressAfterBoolTrueWord_eq (old val : UInt256)
     omega
   rw [ulit_toNat' _ hlt, Nat.mod_eq_of_lt hlt]
 
--- LIBRARY CANDIDATE: `Reasoning.EVMWord`.
--- `n &&& (2^k - 1)` keeps exactly the low `k` bits.
-theorem nat_land_mask_eq_mod (n k : Nat) : Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
-  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  by_cases hi : i < k
-  · rw [decide_eq_true hi]
-    simp
-  · rw [decide_eq_false hi]
-    simp
-
--- LIBRARY CANDIDATE: `Reasoning.Memory` / `Reasoning.Solc`.
--- The low 20 little-endian bytes of an EVM word are the solc address-mask result.
-theorem fromBytes'_take20_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =
-      (UInt256.land w solcAddrMask).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 20 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits (bs.take 20), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 20 = (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size
-  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [nat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 160 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
-
 /-- Loading a Solidity `address` stored at byte offset 0 returns the low-160-bit address word. -/
 theorem ballotStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm
@@ -326,33 +125,13 @@ theorem ballotStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) 
       = .address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
             solcAddrMask).toNat) := by
-  unfold storageLocLoad wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  change Value.address (AccountAddress.ofNat
-      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
-  rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [fromBytes'_take20_wordLE]
+  simpa [addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
 
 /-- Loading a full-slot Solidity `uint256` returns the source-level integer for that word. -/
 theorem ballotStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (wordLoc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad wordLoc wordToElem
-  simp only [uint256Int, Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
+  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 /-- Loading a full-slot Solidity `bytes32` returns the big-endian fixed-bytes value. -/
 theorem ballotStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
@@ -361,56 +140,7 @@ theorem ballotStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
           type := .bytes ⟨31, by decide⟩ }
       = .fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  have htake :
-      (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
-        (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
-    rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
-  unfold storageLocLoad wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  simp only [show 32 - (31 + 1) = 0 by norm_num, List.drop_zero]
-  congr
-  rw [htake]
-  exact fromBytes'_toBytesLEWithSizeProof _
-
-/-- The result of applying solc's address mask is always canonical. -/
-theorem solcAddrMask_result_canonical (w : UInt256) :
-    (UInt256.land w solcAddrMask).toNat < EVM.addressModulus := by
-  have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
-    intro a b
-    refine Nat.le_of_testBit fun i hi => ?_
-    change (a &&& b).testBit i = true at hi
-    rw [Nat.testBit_and] at hi
-    simp only [Bool.and_eq_true] at hi
-    exact hi.2
-  show (Nat.land w.toNat solcAddrMask.toNat) % UInt256.size < EVM.addressModulus
-  have hle : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat := hlandle _ _
-  have hltSize : Nat.land w.toNat solcAddrMask.toNat < UInt256.size :=
-    lt_of_le_of_lt hle (by decide)
-  rw [Nat.mod_eq_of_lt hltSize]
-  exact lt_of_le_of_lt hle (by decide)
-
-/-- ABI-encoding an address return is exactly the 32-byte masked address word. -/
-theorem ballotAddressReturnEncoding (w : UInt256) :
-    encodeReturnValue? addr (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
-      some (UInt256.toByteArray (UInt256.land w solcAddrMask)) := by
-  have hcanon := solcAddrMask_result_canonical w
-  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-      (UInt256.land w solcAddrMask).toNat := by
-    apply Nat.mod_eq_of_lt
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-  have hword : EVM.word (UInt256.land w solcAddrMask).toNat = UInt256.land w solcAddrMask :=
-    u256_ofNat_toNat _
-  refine scalarReturnEncoding (t := .address) (w := UInt256.land w solcAddrMask) rfl ?_ ?_
-  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  · simp [encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
+  simpa [Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
 
 /-- ABI-encoding a `Proposal` getter tuple is exactly `name || voteCount`. -/
 theorem ballotProposalReturnEncoding (name count : UInt256) :
@@ -455,15 +185,6 @@ theorem ballotProposalReturnEncoding (name count : UInt256) :
   apply Array.toList_inj.mp
   simp
 
-/-- `wordOfInt (Int.ofNat a.toNat) = a` for an EVM word. -/
-theorem ballotWordOfInt_ofNat_toNat (a : UInt256) :
-    EVM.wordOfInt (Int.ofNat a.toNat) = a := by
-  rw [EVM.wordOfInt, if_neg (by simp)]
-  apply u256_inj
-  rw [show (Int.ofNat a.toNat).toNat = a.toNat from rfl]
-  show a.toNat % EVM.twoPow 256 = a.toNat
-  exact Nat.mod_eq_of_lt (lt_of_lt_of_le a.val.isLt (by decide))
-
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 -- A nonzero storage write to an existing account is read back from the same slot.
 theorem ballotStorageLoad_storageStore_self_nonzero (evm : EVM.State) (a : AccountAddress)
@@ -479,12 +200,6 @@ theorem ballotStorageLoad_storageStore_self_nonzero (evm : EVM.State) (a : Accou
   rw [Batteries.RBMap.find?_insert_of_eq (t := acc.storage) (k := slot) (v := val)
     (k' := slot) (h := (Std.ReflCmp.compare_self (cmp := compare) : compare slot slot = .eq))]
   rfl
-
-/-- A decoded `uint256` used as a storage key is the original EVM word. -/
-theorem ballotKeyValueToWord_int_ofNat_toNat (a : UInt256) :
-    keyValueToWord (.int (Int.ofNat a.toNat)) = a := by
-  unfold keyValueToWord
-  exact ballotWordOfInt_ofNat_toNat a
 
 /-- The shared solc return wrapper computes the fixed one-word return length. -/
 abbrev ballotRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩

@@ -1,5 +1,7 @@
 import Reasoning.Theory
 import Mathlib.Data.Nat.Bitwise
+import Mathlib.Data.Nat.Digits.Defs
+import Mathlib.Data.Nat.Digits.Lemmas
 
 /-!
 # EVMWord — arithmetic facts for EVM 256-bit stack words
@@ -44,24 +46,6 @@ theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt2
   show (a.val + b.val).val = (a.val.val + b.val.val) % UInt256.size
   rw [Fin.add_def]
 
-theorem u256_add_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj
-  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
-
-theorem u256_one_add_ofNat (n : ℕ) : (⟨1⟩ : UInt256) + UInt256.ofNat n =
-    UInt256.ofNat (n + 1) := by
-  apply u256_inj
-  show ((⟨1⟩ : UInt256) + UInt256.ofNat n).toNat =
-    (UInt256.ofNat (n + 1)).toNat
-  rw [uadd_toNat]
-  change (1 + (Fin.ofNat UInt256.size n).val) % UInt256.size =
-    (Fin.ofNat UInt256.size (n + 1)).val
-  rw [Fin.val_ofNat, Fin.val_ofNat]
-  rw [Nat.add_comm 1 (n % UInt256.size)]
-  have h1 : 1 % UInt256.size = 1 := by norm_num [UInt256.size]
-  rw [← h1, ← Nat.add_mod]
-  rw [h1]
-
 /-- General `SUB` `toNat` (no wrap, given `b ≤ a`). -/
 theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
     (UInt256.sub a b).toNat = a.toNat - b.toNat := by
@@ -76,6 +60,49 @@ theorem usub_toNat_underflow {a b : UInt256} (h : a.toNat < b.toNat) :
   rw [Fin.coe_sub_iff_lt.mpr (by rw [Fin.lt_def]; exact h)]
   rfl
 
+/-- Subtracting a word from itself gives zero. -/
+theorem u256_sub_self (w : UInt256) : UInt256.sub w w = ⟨0⟩ := by
+  apply u256_inj
+  rw [usub_toNat (a := w) (b := w) le_rfl, Nat.sub_self]
+  rfl
+
+/-- Subtracting distinct words cannot give zero. -/
+theorem u256_sub_ne_zero_of_ne {a b : UInt256} (h : a ≠ b) :
+    UInt256.sub a b ≠ ⟨0⟩ := by
+  intro hz
+  by_cases hle : b.toNat ≤ a.toNat
+  · have hsub := usub_toNat (a := a) (b := b) hle
+    rw [hz] at hsub
+    have hzero : a.toNat - b.toNat = 0 := hsub.symm
+    have hnat : a.toNat = b.toNat := by omega
+    apply h
+    apply u256_inj
+    exact hnat
+  · have hlt : a.toNat < b.toNat := Nat.lt_of_not_ge hle
+    have hsub := usub_toNat_underflow (a := a) (b := b) hlt
+    rw [hz] at hsub
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    have hzero : UInt256.size + a.toNat - b.toNat = 0 := hsub.symm
+    have hpos : 0 < UInt256.size + a.toNat - b.toNat := by omega
+    omega
+
+/-- Subtracting a nonzero word from zero cannot give zero. -/
+theorem u256_zero_sub_ne_zero {w : UInt256} (h : w ≠ ⟨0⟩) :
+    UInt256.sub ⟨0⟩ w ≠ ⟨0⟩ := by
+  intro hz
+  have htoNat : w.toNat ≠ 0 := by
+    intro hnat
+    apply h
+    apply u256_inj
+    exact hnat
+  have hpos : 0 < w.toNat := Nat.pos_of_ne_zero htoNat
+  have hsub := usub_toNat_underflow (a := (⟨0⟩ : UInt256)) (b := w) hpos
+  rw [hz] at hsub
+  have hwlt : w.toNat < UInt256.size := w.val.isLt
+  have hgt : 0 < UInt256.size + (⟨0⟩ : UInt256).toNat - w.toNat := by
+    omega
+  omega
+
 /-- `ADD` of two in-range naturals does not wrap. -/
 theorem uadd_ofNat_toNat {a b : ℕ}
     (ha : a < UInt256.size) (hb : b < UInt256.size) (hab : a + b < UInt256.size) :
@@ -83,17 +110,6 @@ theorem uadd_ofNat_toNat {a b : ℕ}
   rw [show UInt256.add (UInt256.ofNat a) (UInt256.ofNat b)
         = UInt256.ofNat a + UInt256.ofNat b from rfl,
       uadd_toNat, ulit_toNat' a ha, ulit_toNat' b hb, Nat.mod_eq_of_lt hab]
-
-/-- `ADD` of three in-range naturals does not wrap. -/
-theorem uadd3_ofNat_toNat {a b c : ℕ}
-    (ha : a < UInt256.size) (hb : b < UInt256.size) (hc : c < UInt256.size)
-    (hab : a + b < UInt256.size) (habc : a + b + c < UInt256.size) :
-    ((UInt256.ofNat a + UInt256.ofNat b) + UInt256.ofNat c).toNat = a + b + c := by
-  rw [uadd_toNat]
-  have habWord : (UInt256.ofNat a + UInt256.ofNat b).toNat = a + b :=
-    uadd_ofNat_toNat ha hb hab
-  rw [habWord, ulit_toNat' c hc]
-  exact Nat.mod_eq_of_lt habc
 
 /-- `SUB` of `ofNat n` and an in-range literal `c` is `n - c`, assuming no underflow. -/
 theorem usub_ofNat_lit_toNat {n c : ℕ} (hc : c ≤ n) (hn : n < UInt256.size) :
@@ -139,7 +155,238 @@ theorem usub_uadd_lit_cancel {base n : ℕ}
       UInt256.toNat_sub_ofNat_of_le (by rw [haddn]; omega), haddn, ulit_toNat' n hn]
   omega
 
+/-- `(base + n) - base = n` in word arithmetic, allowing the addition to wrap. -/
+theorem usub_uadd_lit_cancel_mod {base n : ℕ}
+    (hbase : base < UInt256.size) (hn : n < UInt256.size) :
+    UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)) (UInt256.ofNat base)
+      = UInt256.ofNat n := by
+  apply u256_inj
+  by_cases hadd : base + n < UInt256.size
+  · exact congrArg UInt256.toNat (usub_uadd_lit_cancel hbase hn hadd)
+  · have hsum_ge : UInt256.size ≤ base + n := by omega
+    have hsum_lt2 : base + n < 2 * UInt256.size := by omega
+    have hmod : (base + n) % UInt256.size = base + n - UInt256.size := by
+      rw [Nat.mod_eq_sub_mod hsum_ge]
+      exact Nat.mod_eq_of_lt (by omega)
+    have haddn :
+        (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)).toNat =
+          base + n - UInt256.size := by
+      rw [show UInt256.add (UInt256.ofNat base) (UInt256.ofNat n)
+            = UInt256.ofNat base + UInt256.ofNat n from rfl,
+          uadd_toNat, ulit_toNat' base hbase, ulit_toNat' n hn, hmod]
+    change (UInt256.sub (UInt256.add (UInt256.ofNat base) (UInt256.ofNat n))
+        (UInt256.ofNat base)).toNat = (UInt256.ofNat n).toNat
+    rw [usub_toNat_underflow (a := UInt256.add (UInt256.ofNat base) (UInt256.ofNat n))
+        (b := UInt256.ofNat base) (by rw [haddn, ulit_toNat' base hbase]; omega),
+        haddn, ulit_toNat' base hbase, ulit_toNat' n hn]
+    omega
+
 /-! ## Unsigned comparisons and small arithmetic helpers -/
+
+/-! ### Arithmetic and bitwise normalization -/
+
+theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (a &&& b).testBit i = (b &&& a).testBit i
+  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
+
+/-- Bitwise `AND` is bounded by its right operand. -/
+theorem nat_land_le_right (a b : ℕ) : Nat.land a b ≤ b := by
+  refine Nat.le_of_testBit fun i hi => ?_
+  change (a &&& b).testBit i = true at hi
+  rw [Nat.testBit_and] at hi
+  simp only [Bool.and_eq_true] at hi
+  exact hi.2
+
+theorem u256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
+  apply u256_inj
+  show Nat.land a.toNat b.toNat % UInt256.size =
+    Nat.land b.toNat a.toNat % UInt256.size
+  rw [nat_land_comm]
+
+theorem nat_lor_comm (a b : ℕ) : Nat.lor a b = Nat.lor b a := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (a ||| b).testBit i = (b ||| a).testBit i
+  rw [Nat.testBit_or, Nat.testBit_or, Bool.or_comm]
+
+/-- Appending high bits above a bounded low field is ordinary addition. -/
+theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
+    Nat.lor a (b * 2 ^ k) = a + b * 2 ^ k := by
+  induction k generalizing a b with
+  | zero =>
+      have ha0 : a = 0 := by omega
+      subst a
+      norm_num
+      change (0 ||| b) = b
+      simp
+  | succ k ih =>
+      have hdiv : Nat.div2 a < 2 ^ k := by
+        rw [Nat.div2_val]
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 * 2 ^ k = 2 ^ (k + 1) by ring_nf]
+        exact ha
+      nth_rewrite 1 [← Nat.bit_bodd_div2 a]
+      rw [show b * 2 ^ (k + 1) = Nat.bit false (b * 2 ^ k) by
+        rw [Nat.bit_val, Bool.toNat_false, Nat.pow_succ]
+        ring]
+      change (Nat.bit (Nat.bodd a) (Nat.div2 a) ||| Nat.bit false (b * 2 ^ k)) =
+        a + Nat.bit false (b * 2 ^ k)
+      rw [Nat.lor_bit]
+      rw [Bool.or_false]
+      change Nat.bit (Nat.bodd a) (Nat.lor (Nat.div2 a) (b * 2 ^ k)) =
+        a + Nat.bit false (b * 2 ^ k)
+      rw [ih (Nat.div2 a) b hdiv]
+      rw [Nat.bit_val, Nat.bit_val, Bool.toNat_false]
+      have hdecomp : (Nat.bodd a).toNat + Nat.div2 a * 2 = a := by
+        simpa [Nat.mul_comm] using Nat.bodd_add_div2 a
+      omega
+
+theorem u256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
+  apply u256_inj
+  show Nat.lor a.toNat b.toNat % UInt256.size =
+    Nat.lor b.toNat a.toNat % UInt256.size
+  rw [nat_lor_comm]
+
+theorem u256_lor_zero (a : UInt256) : UInt256.lor a ⟨0⟩ = a := by
+  apply u256_inj
+  change Nat.lor a.toNat 0 % UInt256.size = a.toNat
+  have hlor : Nat.lor a.toNat 0 = a.toNat := by
+    refine Nat.eq_of_testBit_eq fun i => ?_
+    change Nat.testBit (a.toNat ||| 0) i = Nat.testBit a.toNat i
+    rw [Nat.testBit_or]
+    simp
+  rw [hlor]
+  exact Nat.mod_eq_of_lt a.val.isLt
+
+theorem u256_add_comm (a b : UInt256) : a + b = b + a := by
+  apply u256_inj
+  rw [uadd_toNat, uadd_toNat, Nat.add_comm]
+
+theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
+  apply u256_inj
+  simp [uadd_toNat, Nat.add_assoc]
+
+theorem u256_zero_add (a : UInt256) : (⟨0⟩ : UInt256) + a = a := by
+  apply u256_inj
+  show (0 + a.val).val = a.val
+  simp
+
+theorem u256_mul_comm (a b : UInt256) : UInt256.mul a b = UInt256.mul b a := by
+  apply u256_inj
+  show (a.val * b.val).val = (b.val * a.val).val
+  rw [Fin.val_mul, Fin.val_mul, Nat.mul_comm]
+
+theorem u256_lor_toNat (a b : UInt256) :
+    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size := rfl
+
+theorem u256_land_toNat (a b : UInt256) :
+    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
+
+theorem u256_mul_toNat (a b : UInt256) :
+    (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size := by
+  show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
+  rw [Fin.val_mul]
+  rfl
+
+/-- General `HMul.hMul` `toNat` (mod `size`). -/
+theorem u256_mul_op_toNat (a b : UInt256) :
+    (a * b).toNat = a.toNat * b.toNat % UInt256.size := by
+  show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
+  rw [Fin.val_mul]
+  rfl
+
+/-- Multiplication by two agrees with rebuilding the wrapped natural product. -/
+theorem u256_mul_two_ofNat (a : UInt256) :
+    UInt256.mul a ⟨2⟩ = UInt256.ofNat (a.toNat * 2) := by
+  apply u256_inj
+  show (a.val * (⟨2⟩ : UInt256).val).val = (Fin.ofNat UInt256.size (a.toNat * 2)).val
+  rw [Fin.val_mul]
+  rfl
+
+/-- Bit access for a natural left shift, phrased to avoid expanding shift internals at call sites. -/
+theorem testBit_shiftLeft (m k i : Nat) :
+    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
+  induction k generalizing i with
+  | zero => simp
+  | succ k ih =>
+      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
+      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
+      cases i with
+      | zero => simp
+      | succ i =>
+          rw [Nat.testBit_bit_succ]
+          rw [Nat.shiftLeft'_false]
+          rw [ih]
+          by_cases hi : i + 1 < k + 1
+          · have hik : i < k := by omega
+            simp [hi, hik]
+          · have hnk : ¬ i < k := by omega
+            simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
+
+/-- Bit access after dropping the low `k` bits by division. -/
+theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
+    (n / 2 ^ k).testBit (i - k) = n.testBit i := by
+  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
+  rw [Nat.div_div_eq_div_mul]
+  rw [show 2 ^ k * 2 ^ (i - k) = 2 ^ i by
+    rw [← Nat.pow_add]
+    congr
+    omega]
+
+theorem nat_land_mask_eq_mod (n k : Nat) :
+    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  show (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
+  rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
+  by_cases hi : i < k
+  · rw [decide_eq_true hi]
+    simp
+  · rw [decide_eq_false hi]
+    simp
+
+/-- Clearing the low `k` bits of a 256-bit natural leaves the high field shifted back in place. -/
+theorem natLandClearLow (n k : Nat) (hk : k ≤ 256) (hn : n < 2 ^ 256) :
+    Nat.land n ((2 : Nat) ^ 256 - 2 ^ k) = (n / 2 ^ k) * 2 ^ k := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change (n &&& ((2 : Nat) ^ 256 - 2 ^ k)).testBit i =
+    ((n / 2 ^ k) * 2 ^ k).testBit i
+  rw [Nat.testBit_and]
+  rw [show (2 : Nat) ^ 256 - 2 ^ k = (2 ^ (256 - k) - 1) <<< k by
+    rw [Nat.shiftLeft_eq]
+    rw [Nat.sub_mul]
+    rw [one_mul]
+    rw [show 2 ^ (256 - k) * 2 ^ k = (2 : Nat) ^ 256 by
+      rw [← Nat.pow_add]
+      congr
+      omega]]
+  rw [testBit_shiftLeft]
+  rw [show (n / 2 ^ k) * 2 ^ k = (n / 2 ^ k) <<< k by rw [Nat.shiftLeft_eq]]
+  rw [testBit_shiftLeft]
+  by_cases hik : i < k
+  · simp [hik]
+  · simp [hik]
+    have hki : k ≤ i := Nat.le_of_not_gt hik
+    by_cases hi256 : i < 256
+    · have hlt : i - k < 256 - k := by omega
+      simp [hlt]
+      exact (divPow_testBit n k i hki).symm
+    · have hnlt : ¬ i - k < 256 - k := by omega
+      simp [hnlt]
+      change (n / 2 ^ k).testBit (i - k) = false
+      have hq : n / 2 ^ k < 2 ^ (256 - k) := by
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 ^ k * 2 ^ (256 - k) = (2 : Nat) ^ 256 by
+          rw [← Nat.pow_add]
+          congr
+          omega]
+        exact hn
+      have hpow : n / 2 ^ k < 2 ^ (i - k) := by
+        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
+      exact Nat.testBit_lt_two_pow hpow
 
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
@@ -170,142 +417,6 @@ theorem pow_lt_size {m : ℕ} (h : m < 256) : (2:ℕ) ^ m < UInt256.size := by
   have : (2:ℕ)^m < 2^256 := Nat.pow_lt_pow_right (by norm_num) h
   simpa [UInt256.size] using this
 
-/-- Low-bit masking by `1` is the same as reducing modulo `2`. -/
-theorem nat_land_one_eq_mod_two (n : ℕ) :
-    Nat.land n 1 = n % 2 := by
-  have hmask : Nat.land n (2 ^ 1 - 1) = n % 2 ^ 1 := by
-    apply Nat.eq_of_testBit_eq
-    intro i
-    show (n &&& (2 ^ 1 - 1)).testBit i = (n % 2 ^ 1).testBit i
-    rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-    by_cases hi : i < 1
-    · rw [decide_eq_true hi]
-      simp
-    · rw [decide_eq_false hi]
-      simp
-  simpa using hmask
-
-/-- `UInt256.land w 1` exposes the same low bit as `w.toNat % 2`. -/
-theorem uInt256_land_one_toNat (w : UInt256) :
-    (UInt256.land w ⟨1⟩).toNat = w.toNat % 2 := by
-  unfold UInt256.land UInt256.toNat
-  cases w with
-  | mk val =>
-      cases val with
-      | mk n hn =>
-          have hlt : n % 2 < UInt256.size := by
-            have h2 : n % 2 < 2 := Nat.mod_lt _ (by norm_num)
-            norm_num [UInt256.size] at h2 ⊢
-            omega
-          change Nat.land n (1 % UInt256.size) % UInt256.size = n % 2
-          rw [show 1 % UInt256.size = 1 from by norm_num [UInt256.size],
-            nat_land_one_eq_mod_two, Nat.mod_eq_of_lt hlt]
-
-/-- `Nat.land` is commutative. -/
-theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
-
-/-- `UInt256.land` is commutative. -/
-theorem u256_land_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show (Nat.land a.toNat b.toNat) % UInt256.size =
-    (Nat.land b.toNat a.toNat) % UInt256.size
-  rw [nat_land_comm]
-
-theorem u256_lor_toNat (a b : UInt256) :
-    (UInt256.lor a b).toNat = Nat.lor a.toNat b.toNat % UInt256.size := rfl
-
-theorem u256_land_toNat (a b : UInt256) :
-    (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
-
-theorem u256_mul_toNat (a b : UInt256) :
-    (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size := rfl
-
-/-- Generic `Nat.testBit` form of left shift. -/
-theorem nat_testBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
-  induction k generalizing i with
-  | zero => simp
-  | succ k ih =>
-      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
-      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
-      cases i with
-      | zero => simp
-      | succ i =>
-          rw [Nat.testBit_bit_succ]
-          rw [Nat.shiftLeft'_false]
-          rw [ih]
-          by_cases hi : i < k
-          · have his : i.succ < k.succ := Nat.succ_lt_succ hi
-            simp [his, hi]
-          · have hns : ¬ i.succ < k.succ := by omega
-            simp [hns, hi]
-
-/-- Bit access after dropping low bits. -/
-theorem nat_div_pow_testBit (n k i : Nat) (hk : k ≤ i) :
-    (n / 2 ^ k).testBit (i - k) = n.testBit i := by
-  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
-  rw [Nat.div_div_eq_div_mul]
-  rw [show 2 ^ k * 2 ^ (i - k) = 2 ^ i by
-    rw [← Nat.pow_add]
-    congr
-    omega]
-
-/-- If the low `k` bits of a 256-bit natural are zero, masking those low bits is a no-op. -/
-theorem nat_land_high_mask_eq_self {n k : Nat}
-    (hn : n < 2 ^ 256) (hk : k ≤ 256) (hzero : n % 2 ^ k = 0) :
-    Nat.land n (2 ^ 256 - 2 ^ k) = n := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& (2 ^ 256 - 2 ^ k)).testBit i = n.testBit i
-  rw [Nat.testBit_and]
-  by_cases hik : i < k
-  · have hbitMod := congrArg (fun m => m.testBit i) hzero
-    change (n % 2 ^ k).testBit i = (0 : Nat).testBit i at hbitMod
-    rw [Nat.testBit_mod_two_pow] at hbitMod
-    simp [hik] at hbitMod
-    rw [hbitMod]
-    simp
-  · have hki : k ≤ i := Nat.le_of_not_gt hik
-    by_cases hi256 : i < 256
-    · have hmask :
-          (2 ^ 256 - 2 ^ k).testBit i = true := by
-        rw [show (2 : Nat) ^ 256 - 2 ^ k = (2 ^ (256 - k) - 1) <<< k by
-          rw [Nat.shiftLeft_eq]
-          rw [Nat.sub_mul]
-          simp
-          rw [← Nat.pow_add]
-          rw [Nat.sub_add_cancel hk]]
-        rw [nat_testBit_shiftLeft]
-        simp [hik]
-        simpa [Nat.testBit_two_pow_sub_one] using (by omega : i - k < 256 - k)
-      rw [hmask]
-      simp
-    · have hnbit : n.testBit i = false := by
-        exact Nat.testBit_lt_two_pow (lt_of_lt_of_le hn
-          (Nat.pow_le_pow_right (by norm_num) (Nat.le_of_not_gt hi256)))
-      rw [hnbit]
-      simp
-
-/-- `UInt256.land` with a high mask is a no-op when the low masked bits are already zero. -/
-theorem u256_land_high_mask_eq_self {w : UInt256} {k : Nat}
-    (hk : k ≤ 256) (hzero : w.toNat % 2 ^ k = 0) :
-    UInt256.land w (UInt256.ofNat (2 ^ 256 - 2 ^ k)) = w := by
-  apply u256_inj
-  rw [u256_land_toNat]
-  rw [ulit_toNat' _ (by
-    have hpos : 0 < 2 ^ k := Nat.pow_pos (by norm_num)
-    have hle : 2 ^ k ≤ 2 ^ 256 := Nat.pow_le_pow_right (by norm_num) hk
-    change 2 ^ 256 - 2 ^ k < 2 ^ 256
-    omega)]
-  rw [nat_land_high_mask_eq_self (by
-    change w.val.val < 2 ^ 256
-    simpa [UInt256.size] using w.val.isLt) hk hzero]
-  exact Nat.mod_eq_of_lt w.val.isLt
-
 /-- `(ofNat (2^m)).toNat = 2^m` when `2^m` is in range. -/
 theorem ofNat_pow_toNat {m : ℕ} (h : m < 256) : (UInt256.ofNat (2 ^ m)).toNat = 2 ^ m := by
   show (Fin.ofNat _ (2^m)).val = 2 ^ m
@@ -326,27 +437,6 @@ theorem mul2_toNat {r : UInt256} (h : 2 * r.toNat < UInt256.size) :
   rw [Fin.val_mul]
   show (r.toNat * 2) % UInt256.size = 2 * r.toNat
   rw [Nat.mul_comm]
-  exact Nat.mod_eq_of_lt h
-
-theorem umul_toNat {a b : UInt256} (h : a.toNat * b.toNat < UInt256.size) :
-    (a * b).toNat = a.toNat * b.toNat := by
-  show (a.val * b.val).val = a.toNat * b.toNat
-  rw [Fin.val_mul]
-  exact Nat.mod_eq_of_lt h
-
-theorem udiv_toNat (a b : UInt256) : (UInt256.div a b).toNat = a.toNat / b.toNat := by
-  unfold UInt256.div UInt256.toNat
-  rfl
-
-theorem uadd_lit32_toNat {a : UInt256} (h : a.toNat + 32 < UInt256.size) :
-    (((⟨32⟩ : UInt256) + a).toNat = a.toNat + 32) := by
-  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-  rw [Nat.add_comm 32 a.toNat]
-  exact Nat.mod_eq_of_lt h
-
-theorem uadd_word_lit32_toNat {a : UInt256} (h : a.toNat + 32 < UInt256.size) :
-    ((a + (⟨32⟩ : UInt256)).toNat = a.toNat + 32) := by
-  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
   exact Nat.mod_eq_of_lt h
 
 /-- `i + 1` does not wrap when `i.toNat + 1` is in range. -/
@@ -393,6 +483,23 @@ theorem slt_lit_one_low {a : UInt256} {m : ℕ}
   rw [hbool]
   rfl
 
+/-- `SGT a m = 1` when both words are non-negative and `a > m`. -/
+theorem sgt_lit_one {a : UInt256} {m : ℕ}
+    (hm : m < 2 ^ 255) (hlo : m < a.toNat) (hhi : a.toNat < 2 ^ 255) :
+    UInt256.sgt a (UInt256.ofNat m) = ⟨1⟩ := by
+  have hmNat : (UInt256.ofNat m).toNat = m := ulit_toNat' m (lt_size_of_lt_sign hm)
+  have hbool : UInt256.sgtBool a (UInt256.ofNat m) = true := by
+    unfold UInt256.sgtBool
+    rw [if_neg (show ¬ a.toNat ≥ 2 ^ 255 by omega),
+        if_neg (show ¬ (UInt256.ofNat m).toNat ≥ 2 ^ 255 by rw [hmNat]; omega)]
+    exact decide_eq_true (show a > UInt256.ofNat m by
+      show (UInt256.ofNat m).toNat < a.toNat
+      rw [hmNat]
+      omega)
+  show UInt256.fromBool (UInt256.sgtBool a (UInt256.ofNat m)) = ⟨1⟩
+  rw [hbool]
+  rfl
+
 /-- `SLT a m = 1` when `a` has the sign bit set and `m` is non-negative. -/
 theorem slt_lit_one_high {a : UInt256} {m : ℕ}
     (hm : m < 2 ^ 255) (hhi : 2 ^ 255 ≤ a.toNat) :
@@ -403,17 +510,6 @@ theorem slt_lit_one_high {a : UInt256} {m : ℕ}
     rw [if_pos (show a.toNat ≥ 2 ^ 255 by omega),
         if_neg (show ¬ (UInt256.ofNat m).toNat ≥ 2 ^ 255 by rw [hmNat]; omega)]
   show UInt256.fromBool (UInt256.sltBool a (UInt256.ofNat m)) = ⟨1⟩
-  rw [hbool]
-  rfl
-
-/-- `SLT a b = 0` when `a` is non-negative and `b` has the sign bit set. -/
-theorem slt_zero_of_left_low_right_high {a b : UInt256}
-    (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
-    UInt256.slt a b = ⟨0⟩ := by
-  have hbool : UInt256.sltBool a b = false := by
-    unfold UInt256.sltBool
-    rw [if_neg (show ¬ a.toNat ≥ 2 ^ 255 by omega), if_pos hb]
-  show UInt256.fromBool (UInt256.sltBool a b) = ⟨0⟩
   rw [hbool]
   rfl
 
@@ -465,6 +561,23 @@ theorem uInt256_eq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) 
   · show UInt256.fromBool (decide (a = b)) = ⟨0⟩
     rw [decide_eq_false hab]; rfl
 
+/-- `EQ` returning `1` reflects word equality. -/
+theorem uInt256_eq_one_eq {a b : UInt256} (h : UInt256.eq a b = ⟨1⟩) : a = b := by
+  by_contra hne
+  simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false,
+    Bool.false_eq_true, ↓reduceIte] at h
+  exact absurd h (by decide)
+
+/-- EVM word equality is symmetric. -/
+theorem uInt256_eq_comm (a b : UInt256) : UInt256.eq a b = UInt256.eq b a := by
+  by_cases h : a = b
+  · subst b
+    rfl
+  · have hba : b ≠ a := by
+      intro hb
+      exact h hb.symm
+    simp [UInt256.eq, UInt256.fromBool, h, hba]
+
 /-- `AND` with the low-160-bit mask is the identity on values below `2^160`. -/
 theorem land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n := by
   apply Nat.eq_of_testBit_eq; intro i
@@ -515,5 +628,70 @@ instance : Std.LawfulEqCmp (compare : UInt256 → UInt256 → Ordering) where
     cases b
     cases hv
     rfl
+
+/-! ## Bitwise word-rounding (solc memory allocation)
+
+solc rounds an allocation size up to the next 32-byte word with `(size + 0x3f) & ~0x1f`.  These
+lemmas evaluate that rounding for a size that is already a multiple of 32 (the dynamic-array data
+length `0x20 * n`), giving the clean `size + 0x20`. -/
+
+/-- Big-endian `Nat`-level mask: anding off the low 5 bits floors to a multiple of 32.  Proved by
+    `(2^256 - 32) = (2^251 - 1) * 2^5` and bit extensionality. -/
+theorem nat_land_mask (m : ℕ) (h : m < 2 ^ 256) : m &&& (2 ^ 256 - 32) = 32 * (m / 32) := by
+  have hmask : (2:ℕ) ^ 256 - 32 = (2 ^ 251 - 1) * 2 ^ 5 := by norm_num
+  apply Nat.eq_of_testBit_eq
+  intro i
+  rw [hmask, Nat.testBit_and, Nat.testBit_mul_two_pow, Nat.testBit_two_pow_sub_one,
+    show 32 * (m / 32) = (m >>> 5) * 2 ^ 5 by rw [Nat.shiftRight_eq_div_pow]; ring,
+    Nat.testBit_mul_two_pow, Nat.testBit_shiftRight]
+  by_cases hi : 5 ≤ i
+  · simp only [hi, decide_true, Bool.true_and]
+    by_cases hi256 : i - 5 < 251
+    · simp only [hi256, decide_true, Bool.and_true]
+      rw [show 5 + (i - 5) = i by omega]
+    · simp only [hi256, decide_false, Bool.and_false]
+      have hb : m.testBit i = false := Nat.testBit_lt_two_pow (lt_of_lt_of_le h
+        (Nat.pow_le_pow_right (by norm_num) (by omega : (256:ℕ) ≤ i)))
+      rw [show 5 + (i - 5) = i by omega, hb]
+  · simp only [hi, decide_false, Bool.false_and, Bool.and_false]
+
+/-- `UInt256.land` is `Nat`-level `&&&` on `toNat` (the mask never grows past either operand). -/
+theorem uland_toNat (a b : UInt256) : (UInt256.land a b).toNat = a.toNat &&& b.toNat := by
+  unfold UInt256.land UInt256.toNat Fin.land
+  simp only []
+  exact Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.and_le_left) a.val.isLt)
+
+/-- `~0x1f` as a 256-bit word is `2^256 - 32`. -/
+theorem lnot31_toNat : (UInt256.lnot ⟨31⟩).toNat = 2 ^ 256 - 32 := by unfold UInt256.lnot; decide
+
+/-- The solc allocation word-rounding: `(x + 0x3f) &&& ~0x1f = x + 0x20` when `x` is a multiple of
+    32 (here `x = 0x20 * length` is the dynamic-array data byte-size). -/
+theorem alloc_round (x : UInt256) (n : ℕ) (hx : x.toNat = 32 * n) (hxb : x.toNat + 63 < 2 ^ 256) :
+    UInt256.land (UInt256.lnot ⟨31⟩) (x + ⟨63⟩) = x + ⟨32⟩ := by
+  apply u256_inj
+  have h63 : ((⟨63⟩ : UInt256)).toNat = 63 := by decide
+  have h32 : ((⟨32⟩ : UInt256)).toNat = 32 := by decide
+  have hsz : UInt256.size = 2 ^ 256 := by decide
+  rw [uland_toNat, lnot31_toNat, uadd_toNat, uadd_toNat, h63, h32, hsz,
+      Nat.mod_eq_of_lt (by omega : x.toNat + 63 < 2 ^ 256),
+      Nat.mod_eq_of_lt (by omega : x.toNat + 32 < 2 ^ 256),
+      Nat.and_comm, nat_land_mask _ (by omega)]
+  omega
+
+/-- `SHL` by 5 of a length literal is multiplication by 32 (no wrap for `n < 2^251`).  solc uses
+    `n << 5` to turn an element count into the `0x20 * n` data byte-size. -/
+theorem ushl5_ofNat_toNat (n : ℕ) (hn : n < 2 ^ 251) :
+    (UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩).toNat = 32 * n := by
+  have hofn : ((UInt256.ofNat n) : UInt256).toNat = n := ulit_toNat' n (lt_trans hn (by decide))
+  unfold UInt256.shiftLeft
+  rw [if_neg (by decide : ¬ ((⟨5⟩ : UInt256).val ≥ 256))]
+  show (Fin.shiftLeft (UInt256.ofNat n).val (⟨5⟩ : UInt256).val).val = 32 * n
+  unfold Fin.shiftLeft
+  show ((UInt256.ofNat n).toNat <<< (5 : ℕ)) % UInt256.size = 32 * n
+  rw [hofn, Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by
+    have hub : (2:ℕ) ^ 251 * 2 ^ 5 ≤ UInt256.size := by decide
+    calc n * 2 ^ 5 < 2 ^ 251 * 2 ^ 5 := Nat.mul_lt_mul_of_pos_right hn (by norm_num)
+      _ ≤ UInt256.size := hub)]
+  ring
 
 end Reasoning.Theory

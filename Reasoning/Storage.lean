@@ -1,4 +1,6 @@
 import Reasoning.EVMWord
+import Reasoning.Memory
+import Reasoning.Solc
 import Reasoning.Stepping
 import Ethereum.Theory.StorageExtensionality
 
@@ -24,6 +26,468 @@ theorem storage_findD_insert_ne (storage : Storage) (readSlot writeSlot val defa
   rw [Batteries.RBMap.find?_insert_of_ne]
   intro hcmp
   exact hne (Std.LawfulEqCmp.eq_of_compare hcmp)
+
+theorem keyValueToWord_address_of_canonical (w : UInt256)
+    (hcanon : w.toNat < EVM.addressModulus) :
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
+  apply u256_inj
+  unfold keyValueToWord AccountAddress.ofNat
+  exact Nat.mod_eq_of_lt (by
+    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
+
+theorem keyValueToWord_address (a : AccountAddress) :
+    keyValueToWord (.address a) = UInt256.ofNat a.val := by
+  apply u256_inj
+  simp [keyValueToWord, UInt256.ofNat]
+  exact (Nat.mod_eq_of_lt
+    (lt_of_lt_of_le a.isLt (show AccountAddress.size ≤ UInt256.size from by decide))).symm
+
+theorem keyValueToWord_uint256 (w : UInt256) :
+    keyValueToWord (.int (Int.ofNat w.toNat)) = w := by
+  unfold keyValueToWord EVM.wordOfInt
+  simp only [Int.ofNat_eq_natCast]
+  apply u256_inj
+  show w.toNat % EVM.twoPow 256 = w.toNat
+  exact Nat.mod_eq_of_lt (lt_of_lt_of_le w.val.isLt (by decide))
+
+theorem keyValueToWord_fixedBytes32 (w : UInt256) :
+    keyValueToWord (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE w)) = w := by
+  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size w
+  simp [keyValueToWord, hlen]
+  apply u256_inj
+  have hfrom : fromBytesBigEndian (EVM.Word.toBytesBE w) = w.toNat := by
+    have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray w)
+    simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+      h.trans (fromByteArrayBigEndian_toByteArray w)
+  rw [EVM.Word.ofNat, hfrom]
+  exact Nat.mod_eq_of_lt w.val.isLt
+
+/-! ## Full-slot uint256 storage -/
+
+def uint256Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, hbound := by decide,
+    type := .int (.uint ⟨256, by decide⟩) }
+
+theorem storageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (uint256Loc slot) =
+      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
+  have htake :
+      (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
+        (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
+    rw [List.extract_eq_take_drop, List.drop_zero]
+    exact List.take_of_length_le (by
+      rw [(EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
+      norm_num)
+  unfold storageLocLoad uint256Loc wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  congr
+  rw [htake, fromBytes'_toBytesLEWithSizeProof]
+  rfl
+
+theorem storageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
+    storageLocStore evm (uint256Loc slot) (.int (Int.ofNat val.toNat)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
+  unfold storageLocStore storageLocWriteWord uint256Loc
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = val.toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
+    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
+    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+/-! ## Full-slot bytes32 storage -/
+
+def bytes32Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, hbound := by decide,
+    type := .bytes ⟨31, by decide⟩ }
+
+theorem storageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (bytes32Loc slot) =
+      .fixedBytes ⟨31, by decide⟩
+        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
+  have htake :
+      (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
+        (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
+    rw [List.extract_eq_take_drop, List.drop_zero]
+    exact List.take_of_length_le (by
+      rw [(EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
+      norm_num)
+  unfold storageLocLoad bytes32Loc wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  congr
+  simp only [show 32 - (31 + 1) = 0 by norm_num, List.drop_zero]
+  congr
+  rw [htake]
+  exact fromBytes'_toBytesLEWithSizeProof _
+
+theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Value)
+    (hval : valueToWord v = some word) :
+    storageLocStore evm (bytes32Loc slot) v =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
+  unfold storageLocStore storageLocWriteWord bytes32Loc
+  simp only [hval, bind, Option.bind]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof word).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = word.toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
+    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
+    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+/-! ## Solidity address storage at byte offset 0 -/
+
+def addressOffset0Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
+
+theorem storageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (addressOffset0Loc slot) =
+      .address (AccountAddress.ofNat
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          solcAddrMask).toNat) := by
+  unfold storageLocLoad addressOffset0Loc wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  change Value.address (AccountAddress.ofNat
+      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
+  rw [List.extract_eq_take_drop, List.drop_zero]
+  rw [fromBytes'_take20_wordLE_solcAddrMask]
+
+def setAddressOffset0Word (old addr : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask)) (UInt256.land addr solcAddrMask)
+
+theorem addressOffset0High160Mask_toNat (old : UInt256) :
+    (UInt256.land old (UInt256.lnot solcAddrMask)).toNat =
+      (old.toNat / 2 ^ 160) * 2 ^ 160 := by
+  rw [u256_land_toNat]
+  have hlnot : (UInt256.lnot solcAddrMask).toNat = 2 ^ 256 - 2 ^ 160 := by
+    native_decide
+  rw [hlnot]
+  have hwlt : old.toNat < 2 ^ 256 := by
+    change old.val.val < 2 ^ 256
+    exact old.val.isLt
+  rw [natLandClearLow old.toNat 160 (by norm_num) hwlt]
+  have hlt : old.toNat / 2 ^ 160 * 2 ^ 160 < UInt256.size :=
+    lt_of_le_of_lt (Nat.div_mul_le_self _ _) old.val.isLt
+  rw [Nat.mod_eq_of_lt hlt]
+
+theorem setAddressOffset0Nat_lt_size (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160 < UInt256.size := by
+  have hq : old.toNat / 2 ^ 160 < 2 ^ 96 := by
+    apply Nat.div_lt_of_lt_mul
+    rw [show 2 ^ 160 * 2 ^ 96 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+    change old.val.val < 2 ^ 256
+    exact old.val.isLt
+  have hv : addr.toNat < 2 ^ 160 := by
+    simpa [EVM.addressModulus, EVM.twoPow] using hcanon
+  have hvle : addr.toNat ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hv
+  have hqle : old.toNat / 2 ^ 160 ≤ 2 ^ 96 - 1 := Nat.le_pred_of_lt hq
+  have hqterm :
+      old.toNat / 2 ^ 160 * 2 ^ 160 ≤ (2 ^ 96 - 1) * 2 ^ 160 :=
+    Nat.mul_le_mul_right _ hqle
+  have hmax : (2 ^ 160 - 1) + (2 ^ 96 - 1) * 2 ^ 160 < UInt256.size := by
+    norm_num [UInt256.size, Nat.pow_add]
+  omega
+
+theorem setAddressOffset0Word_eq (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    setAddressOffset0Word old addr =
+      UInt256.ofNat (addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160) := by
+  unfold setAddressOffset0Word
+  apply u256_inj
+  rw [u256_lor_toNat, addressOffset0High160Mask_toNat, u256_land_toNat]
+  have hcleanNat :
+      Nat.land addr.toNat solcAddrMask.toNat % UInt256.size = addr.toNat := by
+    simpa [u256_land_toNat] using congrArg UInt256.toNat
+      (solcAddrMask_clean hcanon)
+  rw [hcleanNat]
+  have hv : addr.toNat < 2 ^ 160 := by
+    simpa [EVM.addressModulus, EVM.twoPow] using hcanon
+  rw [nat_lor_comm]
+  rw [nat_lor_shift_add addr.toNat (old.toNat / 2 ^ 160) 160 hv]
+  rw [Nat.mod_eq_of_lt (setAddressOffset0Nat_lt_size old addr hcanon)]
+  rw [ulit_toNat' _ (setAddressOffset0Nat_lt_size old addr hcanon)]
+
+theorem setAddressOffset0Word_toNat (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    (setAddressOffset0Word old addr).toNat =
+      addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160 := by
+  rw [setAddressOffset0Word_eq old addr hcanon]
+  exact ulit_toNat' _ (setAddressOffset0Nat_lt_size old addr hcanon)
+
+theorem valueToWord_address_ofNat_canonical (addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    valueToWord (.address (AccountAddress.ofNat addr.toNat)) = some addr := by
+  have haddrWord : EVM.Word.ofNat (↑(AccountAddress.ofNat addr.toNat) : Nat) = addr := by
+    apply u256_inj
+    unfold EVM.Word.ofNat UInt256.ofNat AccountAddress.ofNat UInt256.toNat
+    change ((addr.val.val % AccountAddress.size) % UInt256.size) = addr.val.val
+    nth_rewrite 2 [Nat.mod_eq_of_lt (by
+      simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size, UInt256.toNat] using hcanon)]
+    exact Nat.mod_eq_of_lt addr.val.isLt
+  simp [valueToWord, haddrWord]
+
+theorem storageLocStore_address_offset0 (evm : EVM.State)
+    (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
+    storageLocStore evm (addressOffset0Loc slot)
+        (.address (AccountAddress.ofNat addr.toNat)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) := by
+  unfold storageLocStore storageLocWriteWord addressOffset0Loc
+  simp only [valueToWord_address_ofNat_canonical addr hcanon, bind, Option.bind]
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof addr).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (20 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (20 : Fin 33).val) _) =
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (20 : Fin 33).val = 20 from rfl,
+    List.take_zero, List.nil_append]
+  rw [fromBytes'_append, fromBytes'_take20_wordLE_solcAddrMask, fromBytes'_drop_wordLE]
+  have hclean : (UInt256.land addr solcAddrMask).toNat = addr.toNat := by
+    simpa using congrArg UInt256.toNat (solcAddrMask_clean hcanon)
+  rw [hclean]
+  have hlen20 : ((EVM.Word.toBytesLEWithSizeProof addr).1.take 20).length = 20 := by
+    rw [List.length_take, hvlen]
+    norm_num
+  rw [hlen20]
+  rw [show 2 ^ (8 * 20) = 2 ^ 160 by norm_num]
+  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
+  rw [setAddressOffset0Word_toNat _ _ hcanon]
+  ring
+
+/-! ## Solidity address storage at byte offset 1 -/
+
+def addressOffset1Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 1, size := 20, hbound := by decide, type := .address }
+
+theorem storageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256)
+    {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32} :
+    storageLocLoad evm
+        { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address } =
+      .address (AccountAddress.ofNat
+        (UInt256.land
+          (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
+          solcAddrMask).toNat) := by
+  unfold storageLocLoad wordToElem
+  simp only [Fin.val_one]
+  change Value.address (AccountAddress.ofNat
+      (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
+  rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]
+
+/-! ## Packed bool storage at byte offset 0 -/
+
+def boolOffset0Loc (slot : UInt256) : StorageLoc :=
+  { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
+
+def setBoolOffset0Word (old word : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩))
+    (UInt256.isZero (UInt256.isZero word))
+
+theorem storageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (boolOffset0Loc slot) =
+      wordToElem .bool
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
+  unfold storageLocLoad boolOffset0Loc
+  simp only [Fin.val_zero, Nat.zero_add]
+  congr
+  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 1) = _
+  rw [fromBytes'_take_wordLE_land_mask (n := 1) _ (by decide)]
+  rfl
+
+theorem storageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
+    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
+      ⟨0⟩) :
+    storageLocLoad evm (boolOffset0Loc slot) = .bool false := by
+  rw [storageLocLoad_bool_offset0 evm slot]
+  simp [wordToElem, hzero]
+
+theorem storageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
+    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
+      ⟨0⟩) :
+    storageLocLoad evm (boolOffset0Loc slot) = .bool true := by
+  rw [storageLocLoad_bool_offset0 evm slot]
+  have hbeq :
+      ((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0) =
+        false := by
+    rw [beq_eq_false_iff_ne]
+    intro hval
+    apply hnz
+    apply u256_inj
+    simpa [UInt256.toNat] using hval
+  simp [wordToElem, hbeq]
+
+theorem natLandClearLow8 (n : Nat) (hn : n < 2 ^ 256) :
+    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 8) = (n / 2 ^ 8) * 2 ^ 8 := by
+  simpa using natLandClearLow n 8 (by norm_num) hn
+
+theorem natLorShift8One (q : Nat) : Nat.lor (q * 2 ^ 8) 1 = 1 + q * 2 ^ 8 := by
+  rw [nat_lor_comm, nat_lor_shift_add 1 q 8 (by norm_num)]
+
+theorem packedSetTrueNat_lt_size (n : Nat) (hn : n < UInt256.size) :
+    1 + 256 * (n / 256) < UInt256.size := by
+  have hq : n / 256 < 2 ^ 248 := by
+    norm_num [UInt256.size] at hn ⊢
+    omega
+  have hmul : 256 * (n / 256) ≤ 256 * (2 ^ 248 - 1) :=
+    Nat.mul_le_mul_left 256 (Nat.le_pred_of_lt hq)
+  norm_num [UInt256.size] at hmul ⊢
+  omega
+
+theorem packedSetTrueWord_eq (w : UInt256) :
+    UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩ =
+      UInt256.ofNat (1 + 256 * (w.toNat / 256)) := by
+  apply u256_inj
+  unfold UInt256.lor UInt256.land UInt256.toNat Fin.lor Fin.land
+  change (Nat.lor ((Nat.land w.val.val (UInt256.lnot (⟨255⟩ : UInt256)).toNat) %
+      UInt256.size) 1) %
+      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
+    native_decide
+  rw [hlnot]
+  change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 1) %
+      UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
+  have hwlt : w.toNat < 2 ^ 256 := by
+    change w.val.val < 2 ^ 256
+    simpa [UInt256.size] using w.val.isLt
+  have hland_lt : Nat.land w.toNat (2 ^ 256 - 2 ^ 8) < UInt256.size := by
+    rw [natLandClearLow8 w.toNat hwlt]
+    exact lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
+  rw [Nat.mod_eq_of_lt hland_lt]
+  rw [natLandClearLow8 w.toNat hwlt]
+  rw [show 256 = 2 ^ 8 by norm_num]
+  rw [Nat.mul_comm (2 ^ 8) (w.toNat / 2 ^ 8)]
+  rw [natLorShift8One]
+
+theorem packedSetTrueWord_toNat (w : UInt256) :
+    (UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat =
+      1 + 256 * (w.toNat / 256) := by
+  rw [packedSetTrueWord_eq]
+  exact ulit_toNat' _ (packedSetTrueNat_lt_size w.toNat w.val.isLt)
+
+theorem packedSetFalseWord_eq (w : UInt256) :
+    UInt256.land w (UInt256.lnot ⟨255⟩) =
+      UInt256.ofNat (256 * (w.toNat / 256)) := by
+  apply u256_inj
+  rw [u256_land_toNat]
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
+    native_decide
+  rw [hlnot]
+  have hwlt : w.toNat < 2 ^ 256 := by
+    change w.val.val < 2 ^ 256
+    simpa [UInt256.size] using w.val.isLt
+  rw [natLandClearLow8 w.toNat hwlt]
+  have hlt : w.toNat / 2 ^ 8 * 2 ^ 8 < UInt256.size :=
+    lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
+  rw [Nat.mod_eq_of_lt hlt]
+  have hlt' : 256 * (w.toNat / 256) < UInt256.size := by
+    simpa [Nat.mul_comm] using hlt
+  rw [show 2 ^ 8 = 256 by norm_num]
+  rw [Nat.mul_comm (w.toNat / 256) 256]
+  rw [ulit_toNat' _ hlt']
+
+theorem packedSetFalseWord_toNat (w : UInt256) :
+    (UInt256.land w (UInt256.lnot ⟨255⟩)).toNat = 256 * (w.toNat / 256) := by
+  rw [packedSetFalseWord_eq]
+  have hlt : 256 * (w.toNat / 256) < UInt256.size := by
+    have hle : 256 * (w.toNat / 256) ≤ w.toNat :=
+      Nat.mul_div_le w.toNat 256
+    exact lt_of_le_of_lt hle w.val.isLt
+  exact ulit_toNat' _ hlt
+
+theorem storageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (.bool true) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.lor
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            (UInt256.lnot ⟨255⟩)) ⟨1⟩)) := by
+  unfold storageLocStore storageLocWriteWord boolOffset0Loc
+  simp only [valueToWord, Bool.toUInt256_true, bind, Option.bind]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof (⟨1⟩ : UInt256)).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
+        (UInt256.lor
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            (UInt256.lnot ⟨255⟩)) ⟨1⟩).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
+    List.take_zero, List.nil_append]
+  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 1)).1 =
+      [1] by
+        native_decide]
+  rw [fromBytes'_append, fromBytes'_drop_wordLE]
+  simp [fromBytes']
+  rw [packedSetTrueWord_toNat]
+
+theorem storageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (.bool false) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          (UInt256.lnot ⟨255⟩))) := by
+  unfold storageLocStore storageLocWriteWord boolOffset0Loc
+  simp only [valueToWord, Bool.toUInt256_false, bind, Option.bind]
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (1 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (1 : Fin 33).val) _) =
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          (UInt256.lnot ⟨255⟩)).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
+    List.take_zero, List.nil_append]
+  rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 0)).1 =
+      [0] by
+        native_decide]
+  rw [fromBytes'_append, fromBytes'_drop_wordLE]
+  simp [fromBytes']
+  rw [packedSetFalseWord_toNat]
+
+theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256) :
+    storageLocStore evm (boolOffset0Loc slot) (wordToElem .bool word) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setBoolOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) word)) := by
+  by_cases hzero : word = ⟨0⟩
+  · subst hzero
+    have hbool : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by
+      native_decide
+    simp only [wordToElem, beq_self_eq_true, ↓reduceIte]
+    simpa [setBoolOffset0Word, hbool, u256_lor_zero] using
+      storageLocStore_bool_false_offset0 evm slot
+  · have hbeq : (word.val == 0) = false := by
+      rw [beq_eq_false_iff_ne]
+      intro hval
+      apply hzero
+      apply u256_inj
+      simpa [UInt256.toNat] using hval
+    have hiszero : UInt256.isZero word = ⟨0⟩ := isZero_eq_zero_of_ne hzero
+    simp only [wordToElem, hbeq, Bool.false_eq_true, ↓reduceIte]
+    simpa [setBoolOffset0Word, hiszero] using storageLocStore_bool_true_offset0 evm slot
 
 private theorem rbnode_append_toList {α : Type u} (l r : Batteries.RBNode α) :
     (l.append r).toList = l.toList ++ r.toList := by
@@ -226,107 +690,14 @@ theorem rbmap_find?_erase_ne {α : Type u} {β : Type v}
       | none =>
           rw [hnew] at hnewSome
           cases hnewSome
-      | some vNew =>
-          have holdFromNew : m.find? read = some vNew := by
+      | some v' =>
+          have holdFromNew : m.find? read = some v' := by
             obtain ⟨y, hyErase, hcmp⟩ := (Batteries.RBMap.find?_some).1 hnew
             exact (Batteries.RBMap.find?_some).2
               ⟨y, rbmap_mem_toList_of_mem_toList_erase hyErase, hcmp⟩
           rw [hold] at holdFromNew
-          exact holdFromNew.symm
-
-private theorem rbnode_suffix_eq {α : Type u} {b' c' b c d : List α} {z y : α}
-    (ih : b' ++ z :: c' = b ++ c) :
-    b' ++ z :: (c' ++ y :: d) = b ++ (c ++ y :: d) := by
-  calc
-    b' ++ z :: (c' ++ y :: d) = (b' ++ z :: c') ++ y :: d := by
-      simp [List.append_assoc]
-    _ = (b ++ c) ++ y :: d := by rw [ih]
-    _ = b ++ (c ++ y :: d) := by simp [List.append_assoc]
-
-private theorem rbnode_filter_all_bool {α : Type u} {t : Batteries.RBNode α} {p : α → Bool}
-    (h : ∀ x, x ∈ t → p x = true) : t.toList.filter p = t.toList := by
-  apply List.filter_eq_self.2
-  intro x hx
-  exact h x (by simpa using hx)
-
-private theorem rbnode_del_toList_filter {α : Type u} {cmp : α → α → Ordering}
-    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut] :
-    ∀ (t : Batteries.RBNode α), Batteries.RBNode.Ordered cmp t →
-      (t.del cut).toList = t.toList.filter (fun x => cut x != .eq)
-  | .nil, _ => by simp [Batteries.RBNode.del]
-  | .node _ a y b, ht => by
-      rcases ht with ⟨hay, hyb, ha, hb⟩
-      unfold Batteries.RBNode.del
-      cases hy : cut y
-      · have hbfilter : b.toList.filter (fun x => cut x != .eq) = b.toList := by
-          apply rbnode_filter_all_bool
-          intro z hz
-          have hzlt : cut z = .lt :=
-            Batteries.RBNode.IsCut.lt_trans (Batteries.RBNode.All_def.1 hyb z hz).1 hy
-          simp [hzlt]
-        cases a.isBlack <;>
-          simp [hy, rbnode_del_toList_filter a ha, Batteries.RBNode.balLeft_toList,
-            hbfilter]
-      · have hafilter : a.toList.filter (fun x => cut x != .eq) = a.toList := by
-          apply rbnode_filter_all_bool
-          intro z hz
-          have hzy : cmp z y = .lt := (Batteries.RBNode.All_def.1 hay z hz).1
-          have hyz : cmp y z = .gt := Std.OrientedCmp.gt_iff_lt.2 hzy
-          have hcut : cut z = .gt := by
-            have htmp : cmp y z = cut z :=
-              Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut) hy
-            simpa [hyz] using htmp.symm
-          simp [hcut]
-        have hbfilter : b.toList.filter (fun x => cut x != .eq) = b.toList := by
-          apply rbnode_filter_all_bool
-          intro z hz
-          have hyz : cmp y z = .lt := (Batteries.RBNode.All_def.1 hyb z hz).1
-          have hcut : cut z = .lt := by
-            have htmp : cmp y z = cut z :=
-              Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut) hy
-            simpa [hyz] using htmp.symm
-          simp [hcut]
-        simp [hy, rbnode_append_toList, hafilter, hbfilter]
-      · have hafilter : a.toList.filter (fun x => cut x != .eq) = a.toList := by
-          apply rbnode_filter_all_bool
-          intro z hz
-          have hzgt : cut z = .gt :=
-            Batteries.RBNode.IsCut.gt_trans (Batteries.RBNode.All_def.1 hay z hz).1 hy
-          simp [hzgt]
-        cases b.isBlack <;>
-          simp [hy, rbnode_del_toList_filter b hb, Batteries.RBNode.balRight_toList,
-            hafilter]
-termination_by t => t.size
-
-private theorem rbnode_erase_toList_filter {α : Type u} {cmp : α → α → Ordering}
-    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut]
-    (t : Batteries.RBNode α) (ht : Batteries.RBNode.Ordered cmp t) :
-    (t.erase cut).toList = t.toList.filter (fun x => cut x != .eq) := by
-  simp [Batteries.RBNode.erase, rbnode_del_toList_filter t ht]
-
-private theorem storage_erase_toList_filter (storage : Storage) (slot : UInt256) :
-    (storage.erase slot).toList =
-      storage.toList.filter (fun entry => compare slot entry.1 != .eq) := by
-  cases storage with
-  | mk val wf =>
-      exact rbnode_erase_toList_filter val wf.out.1
-
-theorem storage_find?_erase_eq (storage : Storage) (slot query : UInt256)
-    (hquery : compare query slot = .eq) :
-    (storage.erase slot).find? query = none := by
-  cases hfind : (storage.erase slot).find? query with
-  | none => rfl
-  | some value =>
-      obtain ⟨key, hmem, hcmp⟩ := Batteries.RBMap.find?_some_mem_toList hfind
-      rw [storage_erase_toList_filter storage slot] at hmem
-      simp at hmem
-      rcases hmem with ⟨_horig, hnot⟩
-      have hslotkey : compare slot key = .eq := by
-        have hqkey : compare query key = .eq := hcmp
-        rw [Std.TransCmp.congr_left hquery] at hqkey
-        exact hqkey
-      exact False.elim (hnot
-        (congrArg UInt256.val (Std.LawfulEqCmp.eq_of_compare hslotkey)))
+          cases holdFromNew
+          rfl
 
 /-- Erasing a storage word preserves lookup at a different storage slot. -/
 theorem storage_findD_erase_ne (storage : Storage) (readSlot writeSlot default : UInt256)
@@ -360,120 +731,101 @@ theorem storage_find?_erase_ne (storage : Storage) (readSlot writeSlot : UInt256
     (storage.erase writeSlot).find? readSlot = storage.find? readSlot :=
   rbmap_find?_erase_ne storage readSlot writeSlot hne
 
-theorem storage_find?_erase (storage : Storage) (slot query : UInt256) :
-    (storage.erase slot).find? query =
-      if compare query slot = .eq then none else storage.find? query := by
-  by_cases h : compare query slot = .eq
-  · rw [if_pos h]
-    exact storage_find?_erase_eq storage slot query h
-  · have hne : query ≠ slot := by
-      intro hqs
-      subst query
-      exact h Std.ReflCmp.compare_self
-    rw [if_neg h]
-    exact storage_find?_erase_ne storage query slot hne
+private theorem rbnode_not_memP_del {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut] :
+    ∀ {t : Batteries.RBNode α}, Batteries.RBNode.Ordered cmp t →
+      ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.del cut t)
+  | .nil, _, h => by cases h
+  | .node _ a y b, ht, h => by
+      unfold Batteries.RBNode.del at h
+      rcases ht with ⟨ay, yb, ha, hb⟩
+      cases hcut : cut y with
+      | lt =>
+          cases hblack : Batteries.RBNode.isBlack a <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hdel | hbmem
+            · exact nomatch heq.symm.trans hcut
+            · exact rbnode_not_memP_del ha (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.lt_trans
+                  (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases rbnode_mem_of_mem_balLeft hx with hdel | hrest
+            · exact rbnode_not_memP_del ha (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+            · rcases hrest with rfl | hbmem
+              · exact nomatch heq.symm.trans hcut
+              · exact nomatch heq.symm.trans
+                  (Batteries.RBNode.IsCut.lt_trans
+                    (Batteries.RBNode.All_def.1 yb _ hbmem).1 hcut)
+      | eq =>
+          simp [hcut] at h
+          rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+          rcases rbnode_mem_of_mem_append hx with hamem | hbmem
+          · have hcmp : cmp y x = .gt :=
+              Std.OrientedCmp.gt_iff_lt.2 (Batteries.RBNode.All_def.1 ay _ hamem).1
+            have hcutx : cut x = .gt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+          · have hcmp : cmp y x = .lt := (Batteries.RBNode.All_def.1 yb _ hbmem).1
+            have hcutx : cut x = .lt := by
+              rw [← Batteries.RBNode.IsStrictCut.exact (cmp := cmp) (cut := cut)
+                (x := y) (y := x) hcut]
+              exact hcmp
+            exact nomatch heq.symm.trans hcutx
+      | gt =>
+          cases hblack : Batteries.RBNode.isBlack b <;> simp [hcut, hblack] at h
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases hx with rfl | hamem | hdel
+            · exact nomatch heq.symm.trans hcut
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · exact rbnode_not_memP_del hb (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
+          · rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+            rcases rbnode_mem_of_mem_balRight hx with hamem | hrest
+            · exact nomatch heq.symm.trans
+                (Batteries.RBNode.IsCut.gt_trans
+                  (Batteries.RBNode.All_def.1 ay _ hamem).1 hcut)
+            · rcases hrest with rfl | hdel
+              · exact nomatch heq.symm.trans hcut
+              · exact rbnode_not_memP_del hb
+                  (Batteries.RBNode.memP_def.2 ⟨x, hdel, heq⟩)
 
-theorem storageExtensionalEq_erase_comm (storage : Storage) (slot₁ slot₂ : UInt256) :
-    storageExtensionalEq ((storage.erase slot₁).erase slot₂)
-      ((storage.erase slot₂).erase slot₁) := by
-  intro query
-  repeat rw [storage_find?_erase]
-  by_cases h₁ : compare query slot₁ = .eq
-  · by_cases h₂ : compare query slot₂ = .eq
-    · simp [h₁, h₂]
-    · simp [h₁]
-  · by_cases h₂ : compare query slot₂ = .eq
-    · simp [h₂]
-    · have h₁v : ¬ query.val = slot₁.val := by simpa using h₁
-      have h₂v : ¬ query.val = slot₂.val := by simpa using h₂
-      simp [h₁v, h₂v]
+private theorem rbnode_not_memP_erase {α : Type u} {cmp : α → α → Ordering}
+    {cut : α → Ordering} [Std.TransCmp cmp] [Batteries.RBNode.IsStrictCut cmp cut]
+    {t : Batteries.RBNode α} (ht : Batteries.RBNode.Ordered cmp t) :
+    ¬ Batteries.RBNode.MemP cut (Batteries.RBNode.erase cut t) := by
+  intro h
+  rcases Batteries.RBNode.memP_def.1 h with ⟨x, hx, heq⟩
+  have hxdel : x ∈ Batteries.RBNode.del cut t := by
+    rw [← Batteries.RBNode.mem_toList] at hx ⊢
+    unfold Batteries.RBNode.erase at hx
+    simpa using hx
+  exact rbnode_not_memP_del ht (Batteries.RBNode.memP_def.2 ⟨x, hxdel, heq⟩)
 
-/-- Inserting at one storage slot commutes, observationally, with erasing a distinct slot. -/
-theorem storageExtensionalEq_insert_erase_comm (storage : Storage)
-    (insertSlot eraseSlot val : UInt256) (hne : insertSlot ≠ eraseSlot) :
-    storageExtensionalEq ((storage.erase eraseSlot).insert insertSlot val)
-      ((storage.insert insertSlot val).erase eraseSlot) := by
-  intro query
-  by_cases hqi : query = insertSlot
-  · subst query
-    rw [Batteries.RBMap.find?_insert_of_eq
-      (t := storage.erase eraseSlot) (k := insertSlot) (v := val)
-      (k' := insertSlot) Std.ReflCmp.compare_self]
-    rw [storage_find?_erase_ne (storage.insert insertSlot val) insertSlot eraseSlot hne]
-    rw [Batteries.RBMap.find?_insert_of_eq
-      (t := storage) (k := insertSlot) (v := val)
-      (k' := insertSlot) Std.ReflCmp.compare_self]
-  · by_cases hqe : query = eraseSlot
-    · subst query
-      rw [storage_find?_insert_ne (storage.erase eraseSlot) eraseSlot insertSlot val
-        (Ne.symm hne)]
-      rw [storage_find?_erase_eq (storage.insert insertSlot val) eraseSlot eraseSlot
-        Std.ReflCmp.compare_self]
-      rw [storage_find?_erase_eq storage eraseSlot eraseSlot Std.ReflCmp.compare_self]
-    · rw [storage_find?_insert_ne (storage.erase eraseSlot) query insertSlot val hqi]
-      rw [storage_find?_erase_ne storage query eraseSlot hqe]
-      rw [storage_find?_erase_ne (storage.insert insertSlot val) query eraseSlot hqe]
-      rw [storage_find?_insert_ne storage query insertSlot val hqi]
+private theorem rbmap_find?_erase_self {α : Type u} {β : Type v}
+    {cmp : α → α → Ordering} [Std.TransCmp cmp]
+    (m : Batteries.RBMap α β cmp) (write : α) :
+    (m.erase write).find? write = none := by
+  cases hfind : (m.erase write).find? write with
+  | none => rfl
+  | some v =>
+      have hsome : ∃ y, (y, v) ∈ (m.erase write).toList ∧ cmp write y = .eq :=
+        (Batteries.RBMap.find?_some).1 hfind
+      rcases hsome with ⟨y, hymem, hcmp⟩
+      have hmemNode : (y, v) ∈ (m.erase write).1 := Batteries.RBMap.mem_toList.1 hymem
+      have hno := rbnode_not_memP_erase
+        (cmp := Ordering.byKey Prod.fst cmp)
+        (cut := Ordering.byKey Prod.fst cmp (write, v))
+        (t := m.1) m.2.out.1
+      cases hno (Batteries.RBNode.memP_def.2 ⟨(y, v), hmemNode, hcmp⟩)
 
-/-- Inserting at two distinct storage slots commutes observationally. -/
-theorem storageExtensionalEq_insert_insert_comm (storage : Storage)
-    (slot₁ slot₂ val₁ val₂ : UInt256) (hne : slot₁ ≠ slot₂) :
-    storageExtensionalEq ((storage.insert slot₁ val₁).insert slot₂ val₂)
-      ((storage.insert slot₂ val₂).insert slot₁ val₁) := by
-  intro query
-  by_cases hq₁ : query = slot₁
-  · subst query
-    rw [storage_find?_insert_ne (storage.insert slot₁ val₁) slot₁ slot₂ val₂ hne]
-    rw [Batteries.RBMap.find?_insert_of_eq
-      (t := storage) (k := slot₁) (v := val₁)
-      (k' := slot₁) Std.ReflCmp.compare_self]
-    rw [Batteries.RBMap.find?_insert_of_eq
-      (t := storage.insert slot₂ val₂) (k := slot₁) (v := val₁)
-      (k' := slot₁) Std.ReflCmp.compare_self]
-  · by_cases hq₂ : query = slot₂
-    · subst query
-      rw [Batteries.RBMap.find?_insert_of_eq
-        (t := storage.insert slot₁ val₁) (k := slot₂) (v := val₂)
-        (k' := slot₂) Std.ReflCmp.compare_self]
-      rw [storage_find?_insert_ne (storage.insert slot₂ val₂) slot₂ slot₁ val₁
-        (Ne.symm hne)]
-      rw [Batteries.RBMap.find?_insert_of_eq
-        (t := storage) (k := slot₂) (v := val₂)
-        (k' := slot₂) Std.ReflCmp.compare_self]
-    · rw [storage_find?_insert_ne (storage.insert slot₁ val₁) query slot₂ val₂ hq₂]
-      rw [storage_find?_insert_ne storage query slot₁ val₁ hq₁]
-      rw [storage_find?_insert_ne (storage.insert slot₂ val₂) query slot₁ val₁ hq₁]
-      rw [storage_find?_insert_ne storage query slot₂ val₂ hq₂]
-
-theorem storageExtensionalEq_erase_erase_self (storage : Storage) (slot : UInt256) :
-    storageExtensionalEq (storage.erase slot) ((storage.erase slot).erase slot) := by
-  intro query
-  rw [storage_find?_erase]
-  rw [storage_find?_erase]
-  by_cases h : compare query slot = .eq
-  · simp [h]
-  · have hval : query.val ≠ slot.val := by simpa using h
-    simp [hval]
-    have hne : query ≠ slot := by
-      intro hqs
-      subst query
-      exact h Std.ReflCmp.compare_self
-    exact (storage_find?_erase_ne storage query slot hne).symm
-
-theorem storageExtensionalEq_insert_erase_self (storage : Storage) (slot val : UInt256) :
-    storageExtensionalEq (storage.erase slot) ((storage.insert slot val).erase slot) := by
-  intro query
-  rw [storage_find?_erase]
-  rw [storage_find?_erase]
-  by_cases h : compare query slot = .eq
-  · simp [h]
-  · have hval : query.val ≠ slot.val := by simpa using h
-    simp [hval]
-    have hne : query ≠ slot := by
-      intro hqs
-      subst query
-      exact h Std.ReflCmp.compare_self
-    exact (storage_find?_insert_ne storage query slot val hne).symm
+/-- Erasing a storage slot removes lookup at that same slot. -/
+theorem storage_find?_erase_self (storage : Storage) (slot : UInt256) :
+    (storage.erase slot).find? slot = none :=
+  rbmap_find?_erase_self storage slot
 
 /-- Updating a storage slot with EVM/Solidity semantics preserves `find?` at a different slot.
     Nonzero writes insert; zero writes erase. -/
@@ -619,17 +971,6 @@ theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
 
-theorem sstoreAccountMap_find?_ne (σ : AccountMap) (a addr : AccountAddress)
-    (slot val : UInt256) (haddr : addr ≠ a) :
-    (sstoreAccountMap a σ slot val).find? addr = σ.find? addr := by
-  unfold sstoreAccountMap
-  cases hσ : σ.find? a with
-  | none =>
-      simp [Option.option]
-  | some acc =>
-      simp [Option.option]
-      rw [accountMap_find?_insert_ne σ addr a _ haddr]
-
 theorem accountEquiv_refl (acc : Account) : accountEquiv acc acc := by
   exact ⟨rfl, rfl, rfl, fun _ => rfl, fun _ => rfl⟩
 
@@ -651,16 +992,19 @@ theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
   cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
   exact accountEquiv_storage_findD slot default hστ
 
-theorem accountMapEquiv_find?_some_exists {σ τ : AccountMap} {addr : AccountAddress}
-    (hστ : accountMapEquiv σ τ) {acc : Account} (hacc : σ.find? addr = some acc) :
-    ∃ acc', τ.find? addr = some acc' := by
-  specialize hστ addr
-  rw [hacc] at hστ
-  cases hτ : τ.find? addr with
-  | none =>
-      simp [hτ] at hστ
-  | some acc' =>
-      exact ⟨acc', rfl⟩
+/-- Erasing the same persistent storage slot from equivalent accounts preserves equivalence. -/
+theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
+    (slot : UInt256) (hacc : accountEquiv acc₁ acc₂) :
+    accountEquiv {acc₁ with storage := acc₁.storage.erase slot}
+      {acc₂ with storage := acc₂.storage.erase slot} := by
+  rcases hacc with ⟨hnonce, hbalance, hcode, hstorage, htstorage⟩
+  refine ⟨hnonce, hbalance, hcode, ?_, htstorage⟩
+  intro readSlot
+  by_cases hread : readSlot = slot
+  · subst readSlot
+    rw [storage_find?_erase_self, storage_find?_erase_self]
+  · rw [storage_find?_erase_ne acc₁.storage readSlot slot hread,
+      storage_find?_erase_ne acc₂.storage readSlot slot hread, hstorage readSlot]
 
 theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
     (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
@@ -689,16 +1033,6 @@ theorem accountEquiv_insert_storage_of_equiv {acc₁ acc₂ : Account} (slot val
     rw [storage_find?_insert_ne acc₂.storage readSlot slot val hread]
     exact hs readSlot
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
-/-- Erasing the same storage slot from equivalent accounts preserves account equivalence. -/
-theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account} (slot : UInt256)
-    (hacc : accountEquiv acc₁ acc₂) :
-    accountEquiv {acc₁ with storage := acc₁.storage.erase slot}
-      {acc₂ with storage := acc₂.storage.erase slot} := by
-  rcases hacc with ⟨hn, hb, hc, hs, ht⟩
-  refine ⟨hn, hb, hc, ?_, ht⟩
-  exact storageExtensionalEq_erase_same hs slot
-
 theorem accountEquiv_update_insert_self (acc : Account) (slot val1 val2 : UInt256) :
     accountEquiv {acc with storage := acc.storage.insert slot val2}
       {acc with storage :=
@@ -707,17 +1041,6 @@ theorem accountEquiv_update_insert_self (acc : Account) (slot val1 val2 : UInt25
   refine ⟨rfl, rfl, rfl, ?_, ?_⟩
   · intro readSlot
     exact (storage_find?_update_insert_self acc.storage slot readSlot val1 val2).symm
-  · simp
-
-theorem accountEquiv_update_erase_self (acc : Account) (slot val1 : UInt256) :
-    accountEquiv {acc with storage := acc.storage.erase slot}
-      {acc with storage :=
-        (if val1 = (default : UInt256) then acc.storage.erase slot
-         else acc.storage.insert slot val1).erase slot} := by
-  refine ⟨rfl, rfl, rfl, ?_, ?_⟩
-  · by_cases hzero : val1 = (default : UInt256)
-    · simpa [hzero] using storageExtensionalEq_erase_erase_self acc.storage slot
-    · simpa [hzero] using storageExtensionalEq_insert_erase_self acc.storage slot val1
   · simp
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
@@ -818,115 +1141,6 @@ theorem accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
       cases h : (val == (default : UInt256)) <;> simp [h] at hval ⊢
     exact accountMapEquiv_sstoreAccountMap_insert a slot val hστ hfalse
 
-theorem accountMapEquiv_sstoreAccountMap_zero_comm
-    (σ : AccountMap) (a : AccountAddress) (slot₁ slot₂ : UInt256) :
-    accountMapEquiv
-      (sstoreAccountMap a (sstoreAccountMap a σ slot₁ ⟨0⟩) slot₂ ⟨0⟩)
-      (sstoreAccountMap a (sstoreAccountMap a σ slot₂ ⟨0⟩) slot₁ ⟨0⟩) := by
-  intro addr
-  by_cases haddr : addr = a
-  · subst addr
-    unfold sstoreAccountMap
-    cases hσ : σ.find? a with
-    | none =>
-        simp [hσ, Option.option]
-    | some acc =>
-        simp [Option.option, accountMap_find_insert_self]
-        exact ⟨rfl, rfl, rfl, storageExtensionalEq_erase_comm acc.storage slot₁ slot₂,
-          fun _ => rfl⟩
-  · rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    cases σ.find? addr <;> simp [accountEquiv_refl]
-
-theorem accountMapEquiv_sstoreAccountMap_erase_comm
-    (σ : AccountMap) (a : AccountAddress) (slot val eraseSlot : UInt256)
-    (hne : slot ≠ eraseSlot) :
-    accountMapEquiv
-      (sstoreAccountMap a (sstoreAccountMap a σ eraseSlot ⟨0⟩) slot val)
-      (sstoreAccountMap a (sstoreAccountMap a σ slot val) eraseSlot ⟨0⟩) := by
-  by_cases hzero : (val == (default : UInt256)) = true
-  · have hz : val = (default : UInt256) := by
-      exact beq_iff_eq.mp hzero
-    subst val
-    simpa using accountMapEquiv_sstoreAccountMap_zero_comm σ a eraseSlot slot
-  · intro addr
-    by_cases haddr : addr = a
-    · subst addr
-      unfold sstoreAccountMap
-      cases hσ : σ.find? a with
-      | none =>
-          simp [hσ, Option.option]
-      | some acc =>
-          simp [Option.option, hzero, accountMap_find_insert_self]
-          exact ⟨rfl, rfl, rfl,
-            storageExtensionalEq_insert_erase_comm acc.storage slot eraseSlot val hne,
-            fun _ => rfl⟩
-    · rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-      rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-      rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-      rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-      cases σ.find? addr <;> simp [accountEquiv_refl]
-
-theorem accountMapEquiv_sstoreAccountMap_comm
-    (σ : AccountMap) (a : AccountAddress) (slot₁ val₁ slot₂ val₂ : UInt256)
-    (hne : slot₁ ≠ slot₂) :
-    accountMapEquiv
-      (sstoreAccountMap a (sstoreAccountMap a σ slot₁ val₁) slot₂ val₂)
-      (sstoreAccountMap a (sstoreAccountMap a σ slot₂ val₂) slot₁ val₁) := by
-  intro addr
-  by_cases haddr : addr = a
-  · subst addr
-    unfold sstoreAccountMap
-    cases hσ : σ.find? a with
-    | none =>
-        simp [hσ, Option.option]
-    | some acc =>
-        simp [Option.option, accountMap_find_insert_self]
-        by_cases hval₁ : (val₁ == (default : UInt256)) = true
-        · have hv₁ : val₁ = (default : UInt256) := beq_iff_eq.mp hval₁
-          by_cases hval₂ : (val₂ == (default : UInt256)) = true
-          · have hv₂ : val₂ = (default : UInt256) := beq_iff_eq.mp hval₂
-            simp [hv₁, hv₂]
-            exact ⟨rfl, rfl, rfl,
-              storageExtensionalEq_erase_comm acc.storage slot₁ slot₂, fun _ => rfl⟩
-          · have hv₂ : val₂ ≠ (default : UInt256) := by
-              intro h
-              subst val₂
-              simp at hval₂
-            simp [hv₁, hv₂]
-            exact ⟨rfl, rfl, rfl,
-              storageExtensionalEq_insert_erase_comm acc.storage slot₂ slot₁ val₂
-                (Ne.symm hne),
-              fun _ => rfl⟩
-        · have hv₁ : val₁ ≠ (default : UInt256) := by
-            intro h
-            subst val₁
-            simp at hval₁
-          by_cases hval₂ : (val₂ == (default : UInt256)) = true
-          · have hv₂ : val₂ = (default : UInt256) := beq_iff_eq.mp hval₂
-            simp [hv₁, hv₂]
-            exact ⟨rfl, rfl, rfl,
-              (fun slot =>
-                (storageExtensionalEq_insert_erase_comm acc.storage slot₁ slot₂ val₁
-                  hne slot).symm),
-              fun _ => rfl⟩
-          · have hv₂ : val₂ ≠ (default : UInt256) := by
-              intro h
-              subst val₂
-              simp at hval₂
-            simp [hv₁, hv₂]
-            exact ⟨rfl, rfl, rfl,
-              storageExtensionalEq_insert_insert_comm acc.storage slot₁ slot₂ val₁ val₂
-                hne,
-              fun _ => rfl⟩
-  · rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    rw [sstoreAccountMap_find?_ne _ _ _ _ _ haddr]
-    cases σ.find? addr <;> simp [accountEquiv_refl]
-
 theorem storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
     (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
     (addr : AccountAddress) (slot val : UInt256) :
@@ -940,36 +1154,6 @@ theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem storageStore_absent (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) (hacc : evm.accountMap.find? addr = none) :
-    Solm.EVM.storageStore evm addr slot val = evm := by
-  simp [Solm.EVM.storageStore, State.lookupAccount, Option.option, hacc]
-
-theorem storageLoad_storageStore_ne (evm : EVM.State) (addr : AccountAddress)
-    {readSlot writeSlot val : UInt256} (hne : readSlot ≠ writeSlot) :
-    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
-      Solm.EVM.storageLoad evm addr readSlot := by
-  simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    storageStore_accountMap] using
-    sstoreAccountMap_storage_findD_ne evm.accountMap addr readSlot writeSlot val hne
-
-theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountAddress)
-    {slot val : UInt256} {acc : Account} (hacc : evm.accountMap.find? addr = some acc) :
-    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr slot val) addr slot = val := by
-  unfold Solm.EVM.storageLoad Solm.EVM.storageStore State.lookupAccount Account.lookupStorage
-  simp [hacc, Option.option, State.setAccount, Account.updateStorage, accountMap_find_insert_self]
-  by_cases hzero : val = (default : UInt256)
-  · subst val
-    simp only [if_true]
-    unfold Batteries.RBMap.findD
-    rw [storage_find?_erase_eq acc.storage slot slot Std.ReflCmp.compare_self]
-    rfl
-  · simp only [hzero, if_false]
-    unfold Batteries.RBMap.findD
-    rw [Batteries.RBMap.find?_insert_of_eq (t := acc.storage) (k := slot) (v := val)
-      (k' := slot) Std.ReflCmp.compare_self]
-    rfl
 
 structure EVMStateEquiv (evm₁ evm₂ : EVM.State) : Prop where
   executionEnv : evm₁.executionEnv = evm₂.executionEnv
@@ -1080,39 +1264,6 @@ theorem accountMapEquiv_sstoreAccountMap_self_update_insert
       rw [accountMap_find?_insert_ne (σ.insert a _) addr a _ haddr]
       rw [accountMap_find?_insert_ne σ addr a _ haddr]
       cases σ.find? addr <;> simp [accountEquiv_refl]
-
-theorem accountMapEquiv_sstoreAccountMap_self_update
-    (σ : AccountMap) (a : AccountAddress) (slot val1 val2 : UInt256) :
-    accountMapEquiv (sstoreAccountMap a σ slot val2)
-      (sstoreAccountMap a (sstoreAccountMap a σ slot val1) slot val2) := by
-  by_cases hfinal : (val2 == (default : UInt256)) = false
-  · exact accountMapEquiv_sstoreAccountMap_self_update_insert σ a slot val1 val2 hfinal
-  · have hfinalTrue : (val2 == (default : UInt256)) = true := by
-      cases h : (val2 == (default : UInt256)) <;> simp [h] at hfinal ⊢
-    intro addr
-    by_cases haddr : addr = a
-    · subst addr
-      unfold sstoreAccountMap
-      cases hσ : σ.find? a with
-      | none =>
-          simp [hσ, Option.option]
-      | some acc =>
-          simp [hfinalTrue, accountMap_find_insert_self, Option.option]
-          have hval2 : val2 = (default : UInt256) := beq_iff_eq.mp hfinalTrue
-          subst val2
-          by_cases hzero : val1 = (default : UInt256)
-          · simpa [hzero] using accountEquiv_update_erase_self acc slot val1
-          · simpa [hzero] using accountEquiv_update_erase_self acc slot val1
-    · unfold sstoreAccountMap
-      cases hσ : σ.find? a
-      · simp only [hσ, Option.option]
-        cases σ.find? addr <;> simp [accountEquiv_refl]
-      · simp only [Option.option, hfinalTrue, if_true]
-        rw [accountMap_find_insert_self]
-        rw [accountMap_find?_insert_ne σ addr a _ haddr]
-        rw [accountMap_find?_insert_ne (σ.insert a _) addr a _ haddr]
-        rw [accountMap_find?_insert_ne σ addr a _ haddr]
-        cases σ.find? addr <;> simp [accountEquiv_refl]
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Same-account/same-slot overwrite at the lookup level for `sstoreAccountMap` when the final write

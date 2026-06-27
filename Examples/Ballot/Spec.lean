@@ -150,7 +150,12 @@ covers the deployed code, not the creation code.)
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "proposalNames", ty := .dynamicArray bytes32 }]
     body :=
-      [ .assign .storage chairpersonRef sender,
+      -- The constructor is **non-payable**: solc emits a `callvalue` guard that reverts when the
+      -- creation message carries value, exactly as for every non-payable transition (cf.
+      -- `giveRightToVoteTransition`, `voteTransition`, …).  Modelled explicitly so the
+      -- creation-code equivalence holds for an arbitrary `weiValue`.
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .assign .storage chairpersonRef sender,
         .assign .storage (voterF (.storage chairpersonRef) "weight") (.intLit 1),
         .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]

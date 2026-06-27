@@ -50,7 +50,7 @@ theorem simpleAuctionDispatch_highestBidder {cd : ByteArray}
     (hsel : ((⟨#[0x91, 0xf9, 0x01, 0x57]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg simpleAuctionContract cd = some highestBidderGetter := by
   have hcd : cd.extract 0 4 = (⟨#[0x91, 0xf9, 0x01, 0x57]⟩ : ByteArray) :=
-    (simpleAuctionByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter,
       auctionEndTimeGetter])
@@ -91,12 +91,12 @@ theorem simpleAuctionX_highestBidder {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     rd174 (by simp only [List.length_singleton]; omega)
   have hval : UInt256.land solcAddrMask (highestBidderWord σ I) =
       UInt256.land (highestBidderWord σ I) solcAddrMask :=
-    simpleAuctionU256_land_comm solcAddrMask (highestBidderWord σ I)
+    u256_land_comm solcAddrMask (highestBidderWord σ I)
   have hclean :
       UInt256.land (UInt256.land solcAddrMask (highestBidderWord σ I)) solcAddrMask =
         UInt256.land (highestBidderWord σ I) solcAddrMask := by
     rw [hval]
-    exact solcAddrMask_clean (simpleAuctionSolcAddrMask_result_canonical (highestBidderWord σ I))
+    exact solcAddrMask_clean (solcAddrMask_result_canonical (highestBidderWord σ I))
   have hret := RD.simpleAuctionReturnOneWord194 (R := [⟨174⟩, sel]) rd194
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [highestBidderReturnWord, hclean] using hret
@@ -144,7 +144,7 @@ theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ_solm σ₀ A I}
     exact (simpleAuctionX_highestBidder (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [highestBidderReturnWord, hword])
         hAccounts
-        (returnEquiv_of_encode (simpleAuctionAddressReturnEncoding (highestBidderWord σ_evm I)))
+        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (highestBidderWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

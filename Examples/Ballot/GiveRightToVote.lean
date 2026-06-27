@@ -91,14 +91,6 @@ theorem giveRightSource_ofNat (I : ExecutionEnv) :
   rw [giveRightSourceWord_toNat, Fin.val_ofNat]
   exact Nat.mod_eq_of_lt I.source.isLt
 
-theorem giveRightKeyValueToWord_address_of_canonical (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) = w := by
-  apply u256_inj
-  unfold keyValueToWord AccountAddress.ofNat
-  exact Nat.mod_eq_of_lt (by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-
 theorem giveRightMaskedAddress_eq_source_of_word_eq {w : UInt256} {I : ExecutionEnv}
     (h : UInt256.land w solcAddrMask = giveRightSourceWord I) :
     AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source := by
@@ -161,50 +153,10 @@ theorem ballotDecode_giveRightToVote_none_huge {I : ExecutionEnv}
 
 /-! ### Storage helpers -/
 
--- SHARED HELPER CANDIDATE: `Examples/Ballot/Storage.lean`.
--- Same full-slot `uint256` store lemma as ERC20, specialized to Ballot's `wordLoc`.
 theorem ballotStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  unfold storageLocStore storageLocWriteWord wordLoc
-  simp only [valueToWord, ballotWordOfInt_ofNat_toNat, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = val.toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
-
--- LIBRARY CANDIDATE: `Reasoning.Memory` / `Reasoning.EVMWord`.
--- One-byte little-endian extraction is the low-byte mask.
-theorem giveRightFromBytes'_take1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 1) =
-      (UInt256.land w ⟨255⟩).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) 1 (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  rw [fromBytes'_eq_ofDigits (bs.take 1), List.map_take]
-  rw [← htake, hfull]
-  show w.toNat % 256 ^ 1 = (Nat.land w.toNat (⟨255⟩ : UInt256).toNat) % UInt256.size
-  rw [show 256 ^ 1 = 2 ^ 8 by norm_num]
-  rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
-  rw [nat_land_mask_eq_mod]
-  have hsmall : w.toNat % 2 ^ 8 < UInt256.size :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by norm_num [UInt256.size])
-  conv_rhs => rw [Nat.mod_eq_of_lt hsmall]
+  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
 
 theorem giveRightStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32} :
@@ -212,13 +164,7 @@ theorem giveRightStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool }
       = wordToElem .bool
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  unfold storageLocLoad
-  simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 1) = _
-  rw [giveRightFromBytes'_take1_wordLE]
-  rfl
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
 theorem giveRightStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
@@ -227,8 +173,7 @@ theorem giveRightStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UIn
     storageLocLoad evm
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
       .bool false := by
-  rw [giveRightStorageLocLoad_bool_offset0 evm slot]
-  simp [wordToElem, hzero]
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
 
 theorem giveRightStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
     {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
@@ -237,14 +182,7 @@ theorem giveRightStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt
     storageLocLoad evm
         { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
       .bool true := by
-  rw [giveRightStorageLocLoad_bool_offset0 evm slot]
-  have hbeq : ((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0) = false := by
-    rw [beq_eq_false_iff_ne]
-    intro hval
-    apply hnz
-    apply u256_inj
-    simpa [UInt256.toNat] using hval
-  simp [wordToElem, hbeq]
+  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
 /-! ### Source-level body facts -/
 
@@ -583,11 +521,6 @@ theorem giveRightHashMem_read64 (voter : UInt256) :
       (by rw [giveRightKeyMem_size]),
     giveRightKeyMem_read64]
 
-theorem giveRightByteArray_extract_all (b : ByteArray) : b.extract 0 b.size = b := by
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by rfl)
-
 theorem giveRightHashMem_writeKey (voter : UInt256) :
     (UInt256.toByteArray voter).write 0 (giveRightHashMem voter) 0 32 =
       giveRightHashMem voter := by
@@ -629,7 +562,7 @@ theorem giveRightHashMem_writeKey (voter : UInt256) :
     have hprefixSize : ((giveRightKeyMem voter).extract 0 32).size = 32 := by
       rw [ByteArray.size_extract, giveRightKeyMem_size]
       omega
-    simpa [hprefixSize, ByteArray.size_append] using giveRightByteArray_extract_all
+    simpa [hprefixSize, ByteArray.size_append] using byteArray_extract_self
       (UInt256.toByteArray (⟨1⟩ : UInt256) ++
         (giveRightKeyMem voter).extract 64 (giveRightKeyMem voter).size)
   have hkey0 :
@@ -686,7 +619,7 @@ theorem giveRightHashMem_writeBase (voter : UInt256) :
       rw [ByteArray.size_append, ByteArray.size_extract, giveRightKeyMem_size,
         toByteArray_size]
       norm_num
-    simpa [hprefixSize, ByteArray.size_append] using giveRightByteArray_extract_all
+    simpa [hprefixSize, ByteArray.size_append] using byteArray_extract_self
       ((giveRightKeyMem voter).extract (32 + 32) (giveRightKeyMem voter).size)
   rw [hhead, hbaseFull, htail]
   unfold giveRightHashMem
@@ -755,7 +688,7 @@ theorem giveRightVoterKeccakSlot (I : ExecutionEnv)
       = giveRightVoterSlot I := by
   rw [giveRightHashMem_read0_64]
   unfold giveRightVoterSlot voterBase mapSlot
-  rw [giveRightKeyValueToWord_address_of_canonical _ hcanon]
+  rw [keyValueToWord_address_of_canonical _ hcanon]
   exact mappingSlot_single (giveRightVoterWord I) ⟨1⟩
 
 def ballotErrorSelector : UInt256 :=
@@ -1513,7 +1446,7 @@ theorem ballotDispatch_giveRightToVote {cd : ByteArray}
     (hsel : ((⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg ballotContract cd = some giveRightToVoteTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ : ByteArray) :=
-    (ballotByteArray_eq_of_beq hsel).symm
+    (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition])
