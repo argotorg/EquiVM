@@ -993,7 +993,7 @@ theorem cGBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
 theorem cUint256ReturnEncoding (I : ExecutionEnv) :
     encodeReturnValue? Reuse.uint256 (cFResultValue I) =
       some (UInt256.toByteArray (cFResultWord I)) := by
-  simpa [Reuse.uint256, cFResultValue] using uint256ReturnEncoding (cFResultWord I)
+  exact uint256ReturnEncoding (cFResultWord I)
 
 /-! ## Top-level revert obligations -/
 

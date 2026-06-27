@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.SolidityLayout
 
 /-!
 # ERC20 — Solm specification for `ERC20Standalone.sol`
@@ -74,7 +75,7 @@ their declaration indices: `balanceOf` at slot 0, `allowance` at slot 1, and `to
 Mapping entries then use Solidity's standard `keccak256(key ++ baseSlot)` slot derivation.
 -/
 def erc20StorageLayout : StorageLayout where
-  layout ref :=
+  layout ref _ :=
     match ref.base, ref.steps with
     | "balanceOf", [.mindex owner] => some (erc20Uint256Loc (erc20BalanceOfSlot owner))
     | "allowance", [.mindex owner, .mindex spender] =>
@@ -83,32 +84,33 @@ def erc20StorageLayout : StorageLayout where
     | _, _ => none
 
 @[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } = some (erc20Uint256Loc ⟨2⟩) :=
+    erc20StorageLayout.layout { base := "totalSupply", steps := [] } =
+      fun _ => some (erc20Uint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
     erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
-      some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
+      fun _ => some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
     erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
+      fun _ => some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf_missingIndex :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = none :=
+    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = fun _ => none :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance_missingSpender (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = none :=
+    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = fun _ => none :=
   rfl
 
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "initialSupply", ty := uint256 }]
     body :=
-      [ .assign (balanceOfRef sender) (.var "initialSupply"),
-        .assign totalSupplyRef (.var "initialSupply") ] }
+      [ .assign .storage (balanceOfRef sender) (.var "initialSupply"),
+        .assign .storage totalSupplyRef (.var "initialSupply") ] }
 
 def totalSupplyTransition : TransitionDecl :=
   { name := "totalSupply"
@@ -140,7 +142,7 @@ def approveTransition : TransitionDecl :=
     returnType := some (.elem .bool)
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .assign (allowanceRef sender (.var "spender")) (.var "value"),
+        .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
         .return (.boolLit true) ] }
 
 def transferTransition : TransitionDecl :=
@@ -151,11 +153,11 @@ def transferTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
+        .assign .storage (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return (.boolLit true) ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -169,13 +171,13 @@ def transferFromTransition : TransitionDecl :=
         .require (.binary .ge (.var "currentAllowance") (.var "value")),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign (allowanceRef (.var "from") sender)
+        .assign .storage (allowanceRef (.var "from") sender)
           (.binary .sub (.var "currentAllowance") (.var "value")),
-        .assign (balanceOfRef (.var "from")) (.binary .sub (.var "fromBalance") (.var "value")),
+        .assign .storage (balanceOfRef (.var "from")) (.binary .sub (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return (.boolLit true) ] }
 
 def erc20Contract : ContractDecl :=
@@ -194,19 +196,20 @@ end ERC20Standalone
 
 def erc20Config : Config :=
   { storage := ERC20Standalone.erc20StorageLayout
-    externalABI := defaultExternalCallABI }
+    externalABI := defaultExternalCallABI
+    selfDeployment := genSolidityConstructorDeployment ERC20Standalone.erc20Contract.ctor.params }
 
 @[simp] theorem erc20Config_storage_totalSupply :
     erc20Config.storage.layout { base := "totalSupply", steps := [] } =
-      some (ERC20Standalone.erc20Uint256Loc ⟨2⟩) :=
+      fun _ => some (ERC20Standalone.erc20Uint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20Config_storage_balanceOf (owner : KeyValue) :
     erc20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
-      some (ERC20Standalone.erc20Uint256Loc (ERC20Standalone.erc20BalanceOfSlot owner)) :=
+      fun _ => some (ERC20Standalone.erc20Uint256Loc (ERC20Standalone.erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20Config_storage_allowance (owner spender : KeyValue) :
     erc20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      some (ERC20Standalone.erc20Uint256Loc (ERC20Standalone.erc20AllowanceSlot owner spender)) :=
+      fun _ => some (ERC20Standalone.erc20Uint256Loc (ERC20Standalone.erc20AllowanceSlot owner spender)) :=
   rfl

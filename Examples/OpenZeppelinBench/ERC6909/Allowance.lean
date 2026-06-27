@@ -49,13 +49,9 @@ theorem erc6909Decode_allowance_ok {I : ExecutionEnv}
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     decodeCalldata (allowanceTransition.params.map Param.name)
       (transitionSignature allowanceTransition).paramTypes I.calldata = some (allowanceStore I) := by
-  show decodeCalldata ["owner", "spender", "id"] [addr, addr, uint256] I.calldata = _
-  simpa [allowanceStore, allowanceOwnerValue, allowanceSpenderValue, allowanceIdValue,
-    allowanceOwnerWord, allowanceSpenderWord, allowanceIdWord, calldataWord, addr, uint256,
-    uint256Int, abiUInt256]
-    using Reasoning.Theory.decodeCalldata_address_address_uint256_ok
-      (cd := I.calldata) (x := "owner") (y := "spender") (z := "id")
-      hsz100 hbig hcanonOwner hcanonSpender
+  exact Reasoning.Theory.decodeCalldata_address_address_uint256_ok
+    (cd := I.calldata) (x := "owner") (y := "spender") (z := "id")
+    hsz100 hbig hcanonOwner hcanonSpender
 
 theorem erc6909Decode_allowance_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
@@ -155,7 +151,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)),
                   .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
       fun _ => some (wordLoc (allowanceSlotOf I)) := by
-    simp [config, storageLayout, allowanceSlotOf]
+    rfl
   rw [evalExpr_storage_scalar
     (hbase := by
       rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
@@ -969,7 +965,7 @@ theorem erc6909AllowanceBodyCore
                 (.returned { contract := contract, locals := allowanceStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                   (some (.int (Int.ofNat (allowanceWord σ_solm I).toNat)))) := by
-            simpa [allowanceWord, allowanceSlotOf, initState, Solm.EVM.storageLoad,
+            simpa [allowanceWord, initState, Solm.EVM.storageLoad,
               State.lookupAccount] using erc6909AllowanceBodyReturns
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)
