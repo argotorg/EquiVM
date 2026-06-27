@@ -447,7 +447,95 @@ theorem add1_toNat {i : UInt256} (h : i.toNat + 1 < UInt256.size) :
   show (i.toNat + 1) % UInt256.size = i.toNat + 1
   exact Nat.mod_eq_of_lt h
 
+/-- Addition of three in-range naturals does not wrap. -/
+theorem uadd3_ofNat_toNat {a b c : Nat}
+    (ha : a < UInt256.size) (hb : b < UInt256.size) (hc : c < UInt256.size)
+    (hab : a + b < UInt256.size) (habc : a + b + c < UInt256.size) :
+    ((UInt256.ofNat a + UInt256.ofNat b) + UInt256.ofNat c).toNat = a + b + c := by
+  rw [uadd_toNat]
+  have habWord : (UInt256.ofNat a + UInt256.ofNat b).toNat = a + b :=
+    uadd_ofNat_toNat ha hb hab
+  rw [habWord, ulit_toNat' c hc]
+  exact Nat.mod_eq_of_lt habc
+
+/-- `SHL 5` of a non-wrapping natural word is multiplication by 32. -/
+theorem shiftLeft5_ofNat_eq {n : Nat} (h : 32 * n < UInt256.size) :
+    UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩ = UInt256.ofNat (32 * n) := by
+  apply u256_inj
+  unfold UInt256.shiftLeft
+  rw [if_neg (by decide : ¬ ((⟨5⟩ : UInt256).val ≥ 256))]
+  change (((UInt256.ofNat n).val.val <<< (⟨5⟩ : UInt256).val.val) % UInt256.size) =
+    (UInt256.ofNat (32 * n)).val.val
+  rw [show (⟨5⟩ : UInt256).val.val = 5 by decide]
+  rw [show (UInt256.ofNat n).val.val = n by
+    exact ulit_toNat' n (by
+      have : n ≤ 32 * n := by omega
+      exact lt_of_le_of_lt this h)]
+  rw [show (UInt256.ofNat (32 * n)).val.val = 32 * n by exact ulit_toNat' (32 * n) h]
+  rw [Nat.shiftLeft_eq, Nat.mul_comm]
+  exact Nat.mod_eq_of_lt h
+
 /-! ## Signed `SLT` over EVM words -/
+
+/-- `GT` is boolean-valued, so if it is not `1` then it is `0`. -/
+theorem ugt_eq_zero_of_ne_one {a b : UInt256}
+    (h : ¬ UInt256.gt a b = ⟨1⟩) : UInt256.gt a b = ⟨0⟩ := by
+  by_cases hab : a > b
+  · exact False.elim (h (by
+      simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
+      decide))
+  · simp [UInt256.gt, UInt256.fromBool, Bool.toUInt256, hab]
+    decide
+
+/-- `SLT` of a non-negative word against a negative word is zero. -/
+theorem slt_zero_low_high {a b : UInt256}
+    (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
+    UInt256.slt a b = ⟨0⟩ := by
+  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+  rw [if_neg (by omega : ¬ a.toNat ≥ 2 ^ 255), if_pos hb]
+  rfl
+
+/-- `SLT` is boolean-valued, so if it is not `1` then it is `0`. -/
+theorem uslt_eq_zero_of_ne_one {a b : UInt256}
+    (h : ¬ UInt256.slt a b = ⟨1⟩) : UInt256.slt a b = ⟨0⟩ := by
+  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+  by_cases ha : a.toNat ≥ 2 ^ 255
+  · rw [if_pos ha]
+    by_cases hb : b.toNat ≥ 2 ^ 255
+    · rw [if_pos hb]
+      by_cases hab : a < b
+      · exfalso
+        apply h
+        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+        rw [if_pos ha, if_pos hb, if_pos (decide_eq_true hab)]
+        native_decide
+      · have hdf : ¬ decide (a < b) = true := by
+          rw [decide_eq_false hab]
+          decide
+        rw [if_neg hdf]
+        native_decide
+    · rw [if_neg hb]
+      exfalso
+      apply h
+      unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+      rw [if_pos ha, if_neg hb]
+      native_decide
+  · rw [if_neg ha]
+    by_cases hb : b.toNat ≥ 2 ^ 255
+    · rw [if_pos hb]
+      native_decide
+    · rw [if_neg hb]
+      by_cases hab : a < b
+      · exfalso
+        apply h
+        unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
+        rw [if_neg ha, if_neg hb, if_pos (decide_eq_true hab)]
+        native_decide
+      · have hdf : ¬ decide (a < b) = true := by
+          rw [decide_eq_false hab]
+          decide
+        rw [if_neg hdf]
+        native_decide
 
 /-- `SLT a m = 0` when both words are non-negative and `a ≥ m`. -/
 theorem slt_lit_zero {a : UInt256} {m : ℕ}

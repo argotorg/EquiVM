@@ -639,6 +639,63 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
       show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size = readAddr + 32 from by
         omega]
 
+/-- Read back a prefix of a 32-byte write. -/
+theorem write32_read_prefix_len (src base : ByteArray) (dest len : Nat)
+    (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size) (hlen : len ≤ 32)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (src.write 0 base dest 32).readWithPadding dest len = src.extract 0 len := by
+  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  rw [write32_eq src base dest hsrc hlo]
+  rw [readWithPadding_eq_extract' _ dest len hpos hlen64 (by
+    rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega)]
+  rw [extract_append_right_window _ _ _ _ (by rw [hbsz])]
+  rw [hbsz]
+  rw [show dest - dest = 0 by omega, show dest + len - dest = len by omega]
+  rw [extract_extract_BA]
+  rw [show 0 + 0 = 0 by omega, show min (0 + len) 32 = len by omega]
+
+/-- A variable-length read below a 32-byte write is unaffected. -/
+theorem write32_read_below_len (src base : ByteArray) (dest read len : Nat)
+    (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size)
+    (hbelow : read + len ≤ dest) (hin : read + len ≤ base.size)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
+  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  rw [write32_eq src base dest hsrc hlo]
+  rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+    rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega)]
+  rw [extract_append_left _ _ _ _ (by rw [hbsz]; omega)]
+  rw [extract_prefix _ _ _ _ (by omega)]
+  rw [← readWithPadding_eq_extract' base read len hpos hlen64 hin]
+
+/-- A variable-length read above a 32-byte write is unaffected. -/
+theorem write32_read_above_len (src base : ByteArray) (dest read len : Nat)
+    (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size)
+    (habove : dest + 32 ≤ read) (hin : read + len ≤ base.size)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
+  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  have hcsz : (base.extract (dest + 32) base.size).size = base.size - (dest + 32) := by
+    rw [ByteArray.size_extract]; omega
+  have habsz : (base.extract 0 dest ++ src.extract 0 32).size = dest + 32 := by
+    rw [ByteArray.size_append, hbsz, hsz32]
+  rw [write32_eq src base dest hsrc hlo]
+  rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+    rw [ByteArray.size_append, habsz, hcsz]
+    omega)]
+  rw [readWithPadding_eq_extract' base read len hpos hlen64 hin]
+  rw [extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz]
+  rw [extract_extract_BA]
+  rw [show dest + 32 + (read - (dest + 32)) = read by omega]
+  rw [show min (dest + 32 + (read + len - (dest + 32))) base.size = read + len by omega]
+
 /-- **Append-shaped write at memory end.**  A nonempty write from source offset `0` to
     destination offset `base.size` appends the requested source prefix. -/
 theorem write_at_end_eq (src base : ByteArray) (len : ℕ)
@@ -1077,6 +1134,31 @@ theorem decode_word_at_eq (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.si
   congr 2
   rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList _ _ hsz hoff]
   simp [byteArray_toList_eq]
+
+/-- Decoding 32 bytes as an ABI word and writing it back big-endian returns the same 32 bytes. -/
+theorem toBytesBE_bytesToWord_of_length {bs : List UInt8}
+    (hlen : bs.length = 32) :
+    EVM.Word.toBytesBE (ABI.bytesToWord bs) = bs := by
+  apply fromBytesBigEndian_inj_of_length
+  · rw [show (EVM.Word.toBytesBE (ABI.bytesToWord bs)).length = 32 by
+        simpa using word_toBytesBE_toByteArray_size (ABI.bytesToWord bs), hlen]
+  · have hleft :
+        fromBytesBigEndian (EVM.Word.toBytesBE (ABI.bytesToWord bs)) =
+          (ABI.bytesToWord bs).toNat := by
+      have h := congrArg fromByteArrayBigEndian
+        (word_toBytesBE_toByteArray_eq_toByteArray (ABI.bytesToWord bs))
+      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+        h.trans (fromByteArrayBigEndian_toByteArray (ABI.bytesToWord bs))
+    have hright : (ABI.bytesToWord bs).toNat = fromBytesBigEndian bs := by
+      unfold ABI.bytesToWord
+      have hlt : fromBytesBigEndian bs < UInt256.size := by
+        unfold fromBytesBigEndian
+        have hle := fromBytes'_le (bs := bs.reverse)
+        rw [List.length_reverse, hlen] at hle
+        simpa [UInt256.size] using hle
+      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
+        (ulit_toNat' (fromBytesBigEndian bs) hlt)
+    rw [hleft, hright]
 
 /-! ## Mapping storage-slot and load coupling
 
