@@ -1,0 +1,876 @@
+import Examples.UniswapV2Pair.Bytecode
+import Reasoning.ABI
+import Reasoning.Dispatch
+import Reasoning.Refinement
+import Reasoning.Solc
+import Reasoning.SolmBody
+import Reasoning.Storage
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+
+namespace Reasoning.Theory
+
+-- GENERALIZES Reasoning.Solc.fromBytes'_drop1_take20_wordLE_solcAddrMask — same little-endian
+-- byte-slice arithmetic, parameterized by byte offset and slice width.
+-- LIBRARY CANDIDATE: Reasoning.Solc — packed storage byte-slice-to-mask/division bridge.
+set_option maxHeartbeats 1000000 in
+theorem fromBytes'_drop_take_wordLE_land_div_mask (w : UInt256) (off size : Nat)
+    (hoff : 8 * off < 256) (hsize : 8 * size ≤ 256) :
+    fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size) =
+      (UInt256.land (UInt256.div w (UInt256.ofNat (256 ^ off)))
+        (UInt256.ofNat (256 ^ size - 1))).toNat := by
+  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
+  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
+    rw [← fromBytes'_eq_ofDigits bs]
+    exact fromBytes'_toBytesLEWithSizeProof w
+  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
+    intro l hl
+    simp only [List.mem_map] at hl
+    rcases hl with ⟨b, _hb, rfl⟩
+    exact b.toFin.isLt
+  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) off (by decide)
+    (bs.map (fun b : UInt8 => b.toNat)) hlt
+  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) size (by decide)
+    ((bs.map (fun b : UInt8 => b.toNat)).drop off)
+    (fun l hl => hlt l (List.mem_of_mem_drop hl))
+  rw [fromBytes'_eq_ofDigits (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size)]
+  change Nat.ofDigits 256 ((((bs.drop off).take size).map fun b : UInt8 => b.toNat)) = _
+  rw [List.map_take, List.map_drop, ← htake, ← hdrop, hfull]
+  have hshiftNat : (UInt256.ofNat (256 ^ off)).toNat = 256 ^ off := by
+    rw [show 256 ^ off = (2 : Nat) ^ (8 * off) by
+      rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+    exact ofNat_pow_toNat hoff
+  have hdivNat : (UInt256.div w (UInt256.ofNat (256 ^ off))).toNat =
+      w.toNat / 256 ^ off := by
+    unfold UInt256.div UInt256.toNat
+    simp only
+    change w.toNat / (UInt256.ofNat (256 ^ off)).toNat = w.toNat / 256 ^ off
+    rw [hshiftNat]
+  rw [uland_toNat, hdivNat]
+  have hmaskNat : (UInt256.ofNat (256 ^ size - 1)).toNat = 256 ^ size - 1 := by
+    have hmaskLt : 256 ^ size - 1 < UInt256.size := by
+      have hpow : 256 ^ size ≤ UInt256.size := by
+        rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
+          rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+        simpa [UInt256.size] using
+          Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat)) hsize
+      have hpos : 0 < 256 ^ size := by positivity
+      omega
+    exact ulit_toNat' _ hmaskLt
+  rw [hmaskNat]
+  rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
+    rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+  symm
+  exact nat_land_mask_eq_mod (w.toNat / 256 ^ off) (8 * size)
+
+end Reasoning.Theory
+
+namespace UniswapV2Pair
+
+/-! # Shared Uniswap V2 Pair proof helpers -/
+
+/-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/
+abbrev uniswapSelWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
+
+/-- The 4-byte selector of `I`'s calldata equals `sel`. -/
+abbrev selIs (I : ExecutionEnv) (sel : ByteArray) : Prop :=
+  (sel == I.calldata.extract 0 4) = true
+
+/-! ## Shared scalar storage and return helpers -/
+
+theorem uniswapStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (addrLoc slot) =
+      .address (AccountAddress.ofNat
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          solcAddrMask).toNat) := by
+  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
+
+theorem uniswapStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (wordLoc slot) =
+      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
+  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
+
+theorem uniswapStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (bytes32Loc slot) =
+      .fixedBytes ⟨31, by decide⟩
+        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
+  simpa [bytes32Loc, Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
+
+/-! ## Packed reserve-slot helpers -/
+
+abbrev reserve112Shift : UInt256 := UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩
+abbrev reserve112Mask : UInt256 := UInt256.sub reserve112Shift ⟨1⟩
+abbrev reserve224Shift : UInt256 := UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩
+abbrev reserve32Mask : UInt256 := ⟨4294967295⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
+theorem uniswapStorageLocLoad_uint112_offset0 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (uint112Loc0 slot) =
+      .int (Int.ofNat (UInt256.land
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) reserve112Mask).toNat) := by
+  unfold storageLocLoad uint112Loc0 wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 14))) = _
+  rw [List.extract_eq_take_drop, List.drop_zero]
+  rw [fromBytes'_take_wordLE_land_mask _ 14 (by decide)]
+  rw [show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by native_decide]
+
+-- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
+theorem uniswapStorageLocLoad_uint112_offset14 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (uint112Loc14 slot) =
+      .int (Int.ofNat (UInt256.land
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          reserve112Shift) reserve112Mask).toNat) := by
+  unfold storageLocLoad uint112Loc14 wordToElem
+  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 14 28))) = _
+  rw [List.extract_eq_take_drop]
+  rw [fromBytes'_drop_take_wordLE_land_div_mask _ 14 14 (by decide) (by decide)]
+  rw [show UInt256.ofNat (256 ^ 14) = reserve112Shift by native_decide]
+  rw [show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by native_decide]
+
+-- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
+theorem uniswapStorageLocLoad_uint32_offset28 (evm : EVM.State) (slot : UInt256) :
+    storageLocLoad evm (uint32Loc28 slot) =
+      .int (Int.ofNat (UInt256.land
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          reserve224Shift) reserve32Mask).toNat) := by
+  unfold storageLocLoad uint32Loc28 wordToElem
+  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 28 32))) = _
+  rw [List.extract_eq_take_drop]
+  rw [fromBytes'_drop_take_wordLE_land_div_mask _ 28 4 (by decide) (by decide)]
+  rw [show UInt256.ofNat (256 ^ 28) = reserve224Shift by native_decide]
+  rw [show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by native_decide]
+
+def uniswapSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+
+abbrev uniswapAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  UInt256.land (uniswapSlotWord slot σ I) solcAddrMask
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar address-storage getter body,
+-- parameterized by config, contract, storage ref, and concrete storage location.
+theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
+    {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hbase : locals.get? ref.base = none)
+    (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
+    (hty : storageTypeAt? contract.storage er = some (.elem .address))
+    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+      (.returned { contract := contract, locals := locals } evm
+        (some (.address (AccountAddress.ofNat
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            solcAddrMask).toNat)))) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm slot))
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar uint256 storage getter body,
+-- parameterized by config, contract, storage ref, and concrete storage location.
+theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
+    {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hbase : locals.get? ref.base = none)
+    (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
+    (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
+    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+      (.returned { contract := contract, locals := locals } evm
+        (some (.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat)))) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm slot))
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar bytes32 storage getter body,
+-- parameterized by config, contract, storage ref, and concrete storage location.
+theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
+    {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hbase : locals.get? ref.base = none)
+    (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
+    (hty : storageTypeAt? contract.storage er = some (.elem (.bytes bytes32Width)))
+    (hloc : config.storage.layout er = fun _ => some (bytes32Loc slot)) :
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+      (.returned { contract := contract, locals := locals } evm
+        (some (.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      exact congrArg EvalResult.ok (uniswapStorageLocLoad_bytes32 evm slot))
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable integer-literal return body.
+theorem uniswapIntLiteralBodyReturns (evm : EVM.State) (locals : Store) (n : Int)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.intLit n) ])
+      (.returned { contract := contract, locals := locals } evm (some (.int n))) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp [evalExpr?, pure])
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable fixed-bytes-literal return body.
+theorem uniswapFixedBytesLiteralBodyReturns (evm : EVM.State) (locals : Store)
+    (n : Fin 32) (bytes : List UInt8) (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    ExecTransitionBody config contract evm locals
+      (nonpayable ++ [ .return (.fixedBytesLit n bytes) ])
+      (.returned { contract := contract, locals := locals } evm (some (.fixedBytes n bytes))) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp [evalExpr?, pure])
+
+-- LIBRARY CANDIDATE: Reasoning.ABI — generic uint8 scalar return encoding.
+theorem uniswapUint8ReturnEncoding (v : UInt256) (h8 : v.toNat < EVM.twoPow 8) :
+    encodeReturnValue? (.elem (.int (.uint ⟨8, by decide⟩)))
+        (.int (Int.ofNat v.toNat)) =
+      some (UInt256.toByteArray v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  refine scalarReturnEncoding (t := (.int (.uint ⟨8, by decide⟩))) (w := v) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    decide
+  · simp [encodeABIValue?, encodeABIWord?, hword, h8]
+
+abbrev uniswapRetEnd : UInt256 := (⟨128⟩ : UInt256) + ⟨32⟩
+
+theorem uniswapSubRet32_toNat :
+    (UInt256.sub uniswapRetEnd ⟨128⟩).toNat = 32 := by
+  decide
+
+-- LIBRARY CANDIDATE: Reasoning.Solc — unsigned `LT` variant of the common solc
+-- static-argument length check (`calldatasize - 4 < 32`).
+theorem uniswapDecodeLenCheckOk_4_32_lt {sz : ℕ}
+    (hsz36 : 36 ≤ sz) (hsize : sz < UInt256.size) :
+    UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
+  apply ult_zero
+  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide
+  rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+    usub_ofNat_word_toNat (by rw [h4]; omega) hsize]
+  omega
+
+-- LIBRARY CANDIDATE: Reasoning.Solc — unsigned `LT` variant of the common solc
+-- static-argument length check (`calldatasize - 4 < 64`).
+theorem uniswapDecodeLenCheckOk_4_64_lt {sz : ℕ}
+    (hsz68 : 68 ≤ sz) (hsize : sz < UInt256.size) :
+    UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨0⟩ := by
+  apply ult_zero
+  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide
+  rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+    usub_ofNat_word_toNat (by rw [h4]; omega) hsize]
+  omega
+
+end UniswapV2Pair
+
+namespace Reasoning.Reach
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+/-! ## Shared getter routines -/
+
+/-- Bytecode shape for Uniswap's generated full-slot address getter routines.
+
+The routine loads `slot`, masks the low 160 bits, duplicates the dynamic return address, and jumps
+back to the caller.  It appears at pc 2917 (`token0`), pc 5443 (`factory`), and pc 5458 (`token1`).
+-/
+@[reducible] def uniswapAddressSlotGetterWf (pc slot : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p3 := p1 + UInt256.ofNat 2
+  let p4 := p3 + ⟨1⟩
+  let p6 := p4 + UInt256.ofNat 2
+  let p8 := p6 + UInt256.ofNat 2
+  let p10 := p8 + UInt256.ofNat 2
+  let p11 := p10 + ⟨1⟩
+  let p12 := p11 + ⟨1⟩
+  let p13 := p12 + ⟨1⟩
+  let p14 := p13 + ⟨1⟩
+  decode UniswapV2Pair.uniswapV2PairBytecode pc = some (.JUMPDEST, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p1 = some (.Push .PUSH1, some (slot, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p3 = some (.SLOAD, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p4 = some (.Push .PUSH1, some (⟨1⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p6 = some (.Push .PUSH1, some (⟨1⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p8 = some (.Push .PUSH1, some (⟨160⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p10 = some (.SHL, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p11 = some (.SUB, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p12 = some (.AND, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p13 = some (.DUP2, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p14 = some (.JUMP, .none)
+
+/-- Discharge a Uniswap address-slot getter bytecode-shape proof at a concrete PC/slot. -/
+macro "uniswap_address_slot_getter_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapAddressSlotGetterWf
+    repeat' first | apply And.intro | native_decide)
+
+/-- Bytecode shape for an external getter thunk that jumps to an internal getter routine. -/
+@[reducible] def uniswapGetterEntryWf (pc returnPc routine : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p4 := p1 + UInt256.ofNat 3
+  let p7 := p4 + UInt256.ofNat 3
+  decode UniswapV2Pair.uniswapV2PairBytecode pc = some (.JUMPDEST, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p1 =
+      some (.Push .PUSH2, some (returnPc, 2))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p4 =
+      some (.Push .PUSH2, some (routine, 2))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p7 = some (.JUMP, .none)
+
+/-- Bytecode shape for the external thunk that jumps to an address-slot getter routine. -/
+@[reducible] def uniswapAddressGetterEntryWf (pc routine : UInt256) : Prop :=
+  uniswapGetterEntryWf pc ⟨825⟩ routine
+
+/-- Bytecode shape for the external thunk that jumps to a word-slot getter routine. -/
+@[reducible] def uniswapWordGetterEntryWf (pc routine : UInt256) : Prop :=
+  uniswapGetterEntryWf pc ⟨861⟩ routine
+
+/-- Discharge a Uniswap getter external-thunk bytecode-shape proof. -/
+macro "uniswap_getter_entry_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapGetterEntryWf
+    repeat' first | apply And.intro | native_decide)
+
+/-- Discharge a Uniswap address getter external-thunk bytecode-shape proof. -/
+macro "uniswap_address_getter_entry_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapAddressGetterEntryWf Reasoning.Reach.uniswapGetterEntryWf
+    repeat' first | apply And.intro | native_decide)
+
+/-- Discharge a Uniswap word getter external-thunk bytecode-shape proof. -/
+macro "uniswap_word_getter_entry_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapWordGetterEntryWf Reasoning.Reach.uniswapGetterEntryWf
+    repeat' first | apply And.intro | native_decide)
+
+/-- Bytecode shape for Uniswap's generated full-slot word getter routines. -/
+@[reducible] def uniswapWordSlotGetterWf (pc slot : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p3 := p1 + UInt256.ofNat 2
+  let p4 := p3 + ⟨1⟩
+  let p5 := p4 + ⟨1⟩
+  decode UniswapV2Pair.uniswapV2PairBytecode pc = some (.JUMPDEST, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p1 = some (.Push .PUSH1, some (slot, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p3 = some (.SLOAD, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p4 = some (.DUP2, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p5 = some (.JUMP, .none)
+
+/-- Discharge a Uniswap full-slot word getter bytecode-shape proof at a concrete PC/slot. -/
+macro "uniswap_word_slot_getter_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapWordSlotGetterWf
+    repeat' first | apply And.intro | native_decide)
+
+/-! ## Constant getter routines -/
+
+/-- Bytecode shape for Uniswap's generated constant getter routines.
+
+The routine pushes a literal of width `width`, duplicates the dynamic return address, and jumps
+back to the caller.  It appears for `PERMIT_TYPEHASH`, `decimals`, and `MINIMUM_LIQUIDITY`.
+-/
+@[reducible] def uniswapConstGetterWf
+    (pc val : UInt256) (width : Nat) (op : Operation.POp) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let pNext := p1 + UInt256.ofNat width.succ
+  decode UniswapV2Pair.uniswapV2PairBytecode pc = some (.JUMPDEST, .none)
+  ∧ op ≠ .PUSH0
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p1 = some (.Push op, some (val, width))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pNext = some (.DUP2, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode (pNext + ⟨1⟩) = some (.JUMP, .none)
+
+/-- Discharge a Uniswap constant getter bytecode-shape proof at a concrete PC/value/width. -/
+macro "uniswap_const_getter_wf" : term =>
+  `(by
+    unfold Reasoning.Reach.uniswapConstGetterWf
+    repeat' first | apply And.intro | native_decide)
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc external getter thunk,
+-- parameterized by bytecode, thunk PC, return-wrapper PC, and getter-routine PC.
+theorem RD.uniswapGetterThunk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {entry returnPc routine : UInt256}
+    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hentry : uniswapGetterEntryWf entry returnPc routine)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true) :
+    ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) routine (returnPc :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rdEntry⟩ := hreach
+  rcases hentry with ⟨hd0, hd1, hd4, hd7⟩
+  have rd1 := rdEntry.jumpdest hd0 (by simp only [List.length_singleton]; omega)
+  have rd4 := rd1.push2 returnPc hd1 (by simp only [List.length_singleton]; omega)
+  have rd7 := rd4.push2 routine hd4
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rdRoutine := rd7.jump hd7 hroutine
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨_, _, rdRoutine⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc full-slot address getter routine,
+-- parameterized by bytecode, entry PC, storage slot, and the same shape predicate.
+theorem RD.uniswapAddressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
+        (cA, σ) k C)
+    (hwf : uniswapAddressSlotGetterWf pc slot)
+    (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+      (UInt256.land solcAddrMask
+        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+        ret :: R) mem aw rdata (cA, σ) k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
+  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+  have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
+  have rd6 := rd4.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
+  have rd8 := rd6.push1 ⟨1⟩ hd4 (by simp only [List.length_cons]; omega)
+  have rd10 := rd8.push1 ⟨160⟩ hd5 (by simp only [List.length_cons]; omega)
+  have rd11 := rd10.shl hd6 (by simp only [List.length_cons]; omega)
+  have rd12 := rd11.sub hd7 (by simp only [List.length_cons]; omega)
+  have rd13 := rd12.and hd8 (by simp only [List.length_cons]; omega)
+  have rd14 := rd13.dup2 hd9 (by omega)
+  have rdRet := rd14.jump hd10 hret (by simp only [List.length_cons]; omega)
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  exact ⟨_, _, by simpa [hmask] using rdRet⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc full-slot uint256 getter routine,
+-- parameterized by bytecode, entry PC, storage slot, and the same shape predicate.
+theorem RD.uniswapWordSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
+        (cA, σ) k C)
+    (hwf : uniswapWordSlotGetterWf pc slot)
+    (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
+      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+        ret :: R) mem aw rdata (cA, σ) k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
+  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+  have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
+  have rd5 := rd4.dup2 hd3 (by omega)
+  have rdRet := rd5.jump hd4 hret (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rdRet⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc constant getter routine, parameterized by
+-- bytecode, entry PC, pushed value, push width/opcode, and the same shape predicate.
+theorem RD.uniswapConstGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc val ret : UInt256} {width : Nat} {op : Operation.POp} {R : List UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
+        (cA, σ) k C)
+    (hwf : uniswapConstGetterWf pc val width op)
+    (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret (val :: ret :: R)
+      mem aw rdata (cA, σ) k' C' := by
+  rcases hwf with ⟨hd0, hop, hd1, hdNext, hdJump⟩
+  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+  have rdNext := rd1.pushConst val (width := width) (op := op) hop hd1
+    (by simp only [List.length_cons]; omega)
+  have rdDup := rdNext.dup2 hdNext (by omega)
+  have rdRet := rdDup.jump hdJump hret (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rdRet⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc one-word address return wrapper,
+-- parameterized by bytecode, entry PC, and return-tail bytecode shape.
+/-- Uniswap's address-return wrapper at pc 825. -/
+theorem RD.uniswapReturnAddress825 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨825⟩ (val :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 9 ≤ 1024) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc
+      (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      solcFreePtrMem_mload64
+      (by decide) (by evm_ov),
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap3, and, dup3,
+    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rfl)
+      (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (solcReturnMem_mload64 (UInt256.land val solcAddrMask))
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1,
+    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
+            from by decide]
+        simpa using solcReturnMem_read128 (UInt256.land val solcAddrMask))
+      (by evm_ov) ]
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc one-word uint256 return wrapper,
+-- parameterized by bytecode, entry PC, and return-tail bytecode shape.
+/-- Uniswap's uint256-return wrapper at pc 861. -/
+theorem RD.uniswapReturnWord861 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 5 ≤ 1024) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc (UInt256.toByteArray val) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      solcFreePtrMem_mload64
+      (by decide) (by evm_ov),
+    swap2, dup3,
+    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (solcReturnMem_mload64 val)
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1,
+    raw ret 0 (UInt256.toByteArray val) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
+            from by decide]
+        simpa using solcReturnMem_read128 val)
+      (by evm_ov) ]
+
+-- GENERALIZES Reasoning.Reach/RD.uniswapReturnWord861 — same solc one-word return wrapper,
+-- but parameterized over the incoming scratch memory and the post-MSTORE return memory.
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc one-word return wrapper from arbitrary memory.
+theorem RD.uniswapReturnWord861FromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {val ret : UInt256} {R : List UInt256} {mem memout rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
+        mem (UInt256.ofNat 3) rdata acc k C)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
+    (hmemoutLoad64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray val)
+    (hov : R.length + 5 ≤ 1024) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc (UInt256.toByteArray val) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      hmload64
+      (by decide) (by evm_ov),
+    swap2, dup3,
+    raw mstore 6 memout (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
+      (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      hmemoutLoad64
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1,
+    raw ret 0 (UInt256.toByteArray val) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
+            from by decide]
+        exact hread128)
+      (by evm_ov) ]
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc one-word uint8 return wrapper,
+-- parameterized by bytecode, entry PC, and return-tail bytecode shape.
+/-- Uniswap's uint8-return wrapper for `decimals()` at pc 949. -/
+theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨949⟩ (val :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
+    (hov : R.length + 9 ≤ 1024) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc
+      (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
+  exact evm_run h with [
+    jumpdest, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      solcFreePtrMem_mload64
+      (by decide) (by evm_ov),
+    push1 ⟨255⟩, swap1, swap3, and, dup3,
+    raw mstore 6 (solcReturnMem (UInt256.land val ⟨255⟩)) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (solcReturnMem_mload64 (UInt256.land val ⟨255⟩))
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1,
+    raw ret 0 (UInt256.toByteArray (UInt256.land val ⟨255⟩)) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
+            from by decide]
+        simpa using solcReturnMem_read128 (UInt256.land val ⟨255⟩))
+      (by evm_ov) ]
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc external thunk for a storage address getter,
+-- parameterized by bytecode, thunk PC, getter-routine PC, return-wrapper PC, and storage slot.
+theorem RD.uniswapAddressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {entry routine slot : UInt256}
+    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hentry : uniswapAddressGetterEntryWf entry routine)
+    (hgetter : uniswapAddressSlotGetterWf routine slot)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hret825 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨825⟩ = true) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (UInt256.toByteArray (UniswapV2Pair.uniswapAddressReturnWord slot σ I)) := by
+  obtain ⟨_, _, rdRoutine⟩ := RD.uniswapGetterThunk (returnPc := ⟨825⟩)
+    hreach hentry hroutine
+  obtain ⟨_, _, rd825⟩ := RD.uniswapAddressSlotGetter (slot := slot) (R := [sel]) rdRoutine
+    hgetter hret825 (by simp only [List.length_singleton]; omega)
+  have hret := RD.uniswapReturnAddress825
+    (val := UInt256.land solcAddrMask (UniswapV2Pair.uniswapSlotWord slot σ I))
+    (ret := ⟨825⟩) (R := [sel]) rd825
+    (by simp only [List.length_singleton]; omega)
+  have hclean :
+      UInt256.land
+          (UInt256.land solcAddrMask (UniswapV2Pair.uniswapSlotWord slot σ I)) solcAddrMask =
+        UniswapV2Pair.uniswapAddressReturnWord slot σ I := by
+    rw [u256_land_comm solcAddrMask (UniswapV2Pair.uniswapSlotWord slot σ I)]
+    exact solcAddrMask_clean
+      (solcAddrMask_result_canonical (UniswapV2Pair.uniswapSlotWord slot σ I))
+  simpa [hclean] using hret
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc external thunk for a storage uint256 getter,
+-- parameterized by bytecode, thunk PC, getter-routine PC, return-wrapper PC, and storage slot.
+theorem RD.uniswapWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {entry routine slot : UInt256}
+    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hentry : uniswapWordGetterEntryWf entry routine)
+    (hgetter : uniswapWordSlotGetterWf routine slot)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hret861 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨861⟩ = true) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (UInt256.toByteArray (UniswapV2Pair.uniswapSlotWord slot σ I)) := by
+  obtain ⟨_, _, rdRoutine⟩ := RD.uniswapGetterThunk (returnPc := ⟨861⟩)
+    hreach hentry hroutine
+  obtain ⟨_, _, rd861⟩ := RD.uniswapWordSlotGetter (slot := slot) (R := [sel]) rdRoutine
+    hgetter hret861 (by simp only [List.length_singleton]; omega)
+  exact RD.uniswapReturnWord861
+    (val := UniswapV2Pair.uniswapSlotWord slot σ I) (ret := ⟨861⟩) (R := [sel]) rd861
+    (by simp only [List.length_singleton]; omega)
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc external thunk for a word-returning constant
+-- getter, parameterized by bytecode, thunk PC, getter-routine PC, return-wrapper PC, and literal.
+theorem RD.uniswapWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
+    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hentry : uniswapWordGetterEntryWf entry routine)
+    (hgetter : uniswapConstGetterWf routine val width op)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hret861 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨861⟩ = true) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (UInt256.toByteArray val) := by
+  obtain ⟨_, _, rdRoutine⟩ := RD.uniswapGetterThunk (returnPc := ⟨861⟩)
+    hreach hentry hroutine
+  obtain ⟨_, _, rd861⟩ := RD.uniswapConstGetter (val := val) (width := width) (op := op)
+    (R := [sel]) rdRoutine hgetter hret861 (by simp only [List.length_singleton]; omega)
+  exact RD.uniswapReturnWord861 (val := val) (ret := ⟨861⟩) (R := [sel]) rd861
+    (by simp only [List.length_singleton]; omega)
+
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc external thunk for a uint8-returning constant
+-- getter, parameterized by bytecode, thunk PC, getter-routine PC, return-wrapper PC, and literal.
+theorem RD.uniswapUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
+    (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hentry : uniswapGetterEntryWf entry ⟨949⟩ routine)
+    (hgetter : uniswapConstGetterWf routine val width op)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hret949 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨949⟩ = true) :
+    RDret UniswapV2Pair.uniswapV2PairBytecode g
+      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
+  obtain ⟨_, _, rdRoutine⟩ := RD.uniswapGetterThunk (returnPc := ⟨949⟩)
+    hreach hentry hroutine
+  obtain ⟨_, _, rd949⟩ := RD.uniswapConstGetter (val := val) (width := width) (op := op)
+    (R := [sel]) rdRoutine hgetter hret949 (by simp only [List.length_singleton]; omega)
+  exact RD.uniswapReturnUint8_949 (val := val) (ret := ⟨949⟩) (R := [sel]) rd949
+    (by simp only [List.length_singleton]; omega)
+
+end Reasoning.Reach
+
+namespace UniswapV2Pair
+
+open Reasoning.Refinement
+
+theorem uniswapAddressGetterBodyCore
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {transition : TransitionDecl} {entry routine slot : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some transition)
+    (hdecode :
+      decodeCalldata (transition.params.map Param.name)
+        (transitionSignature transition).paramTypes I.calldata = some ∅)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hentry : Reasoning.Reach.uniswapAddressGetterEntryWf entry routine)
+    (hgetter : Reasoning.Reach.uniswapAddressSlotGetterWf routine slot)
+    (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
+    (hreturn : transition.returnType = some addr)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (.returned { contract := contract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (some (.address (AccountAddress.ofNat
+            (uniswapAddressReturnWord slot σ_solm I).toNat))))) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  have hval :
+      some (Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_solm I).toNat)) =
+        some (Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)) := by
+    have hslot : uniswapSlotWord slot σ_solm I = uniswapSlotWord slot σ_evm I := hword.symm
+    simp [uniswapAddressReturnWord, hslot]
+  have henc :
+      returnEquiv (UInt256.toByteArray (uniswapAddressReturnWord slot σ_evm I))
+        (some (.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)))
+        transition.returnType := by
+    rw [hreturn]
+    simpa [uniswapAddressReturnWord] using
+      (returnEquiv_of_encode
+        (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ_evm I)))
+  exact (RD.uniswapAddressGetterExternal (g := Sat256.ofUInt256 g)
+      (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
+      (by jump_dest)).reEquivExecutionTransport
+    hcode hdispatch hdecode hbody hval hAccounts henc
+
+theorem uniswapUint256GetterBodyCore
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {transition : TransitionDecl} {entry routine slot : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some transition)
+    (hdecode :
+      decodeCalldata (transition.params.map Param.name)
+        (transitionSignature transition).paramTypes I.calldata = some ∅)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
+    (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
+    (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
+    (hreturn : transition.returnType = some uint256)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (.returned { contract := contract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (some (.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat))))) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  have hval :
+      some (Value.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat)) =
+        some (Value.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)) := by
+    rw [hword]
+  have henc :
+      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
+        (some (.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)))
+        transition.returnType := by
+    rw [hreturn]
+    exact returnEquiv_of_encode
+      (by simpa [uint256] using uint256ReturnEncoding (uniswapSlotWord slot σ_evm I))
+  exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
+      (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
+      (by jump_dest)).reEquivExecutionTransport
+    hcode hdispatch hdecode hbody hval hAccounts henc
+
+theorem uniswapBytes32GetterBodyCore
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {transition : TransitionDecl} {entry routine slot : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some transition)
+    (hdecode :
+      decodeCalldata (transition.params.map Param.name)
+        (transitionSignature transition).paramTypes I.calldata = some ∅)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
+    (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
+    (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
+    (hreturn : transition.returnType = some bytes32)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (.returned { contract := contract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (some (.fixedBytes ⟨31, by decide⟩
+            (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I)))))) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  have hval :
+      some (Value.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I))) =
+        some (Value.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))) := by
+    rw [← hword]
+  have henc :
+      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
+        (some (.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))))
+        transition.returnType := by
+    rw [hreturn]
+    exact returnEquiv_of_encode
+      (by simpa [bytes32] using bytes32ReturnEncoding (uniswapSlotWord slot σ_evm I))
+  exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
+      (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
+      (by jump_dest)).reEquivExecutionTransport
+    hcode hdispatch hdecode hbody hval hAccounts henc
+
+end UniswapV2Pair
