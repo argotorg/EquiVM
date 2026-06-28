@@ -367,6 +367,53 @@ theorem RD.uniswapTwoAddressExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd21 := rd20.dup1 hd20 (by evm_ov)
   exact rd21.rev 0 hd21 mem_cost (by evm_ov)
 
+-- GENERALIZES Reasoning.Reach.RD.uniswapTwoAddressGetterMaskAndJump -
+-- parameterizes the return/continuation pc instead of hardcoding Uniswap's one-word return wrapper
+-- at pc 861, and exposes both masked address words instead of requiring canonical calldata.
+-- LIBRARY CANDIDATE: Reasoning.Reach - optimizer-on solc two-address external wrapper that
+-- returns the low-160-bit masked address words.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+      (uniswapTwoAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hwf : uniswapTwoAddressExternalEntryWf entry ret routine)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+      (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
+        UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+  rcases hwf with
+    ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
+      _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd26, hd28, hd30, hd31,
+      hd32, hd33, hd34, hd35, hd36, hd37, hd39, hd40, hd41, hd42, hd45⟩
+  have rd23 := h.jumpdest hd22 (by evm_ov)
+  have rd24 := rd23.pop hd23 (by evm_ov)
+  have rd26 := rd24.push1 ⟨1⟩ hd24 (by evm_ov)
+  have rd28 := rd26.push1 ⟨1⟩ hd26 (by evm_ov)
+  have rd30 := rd28.push1 ⟨160⟩ hd28 (by evm_ov)
+  have rd31 := rd30.shl hd30 (by evm_ov)
+  have rd32 := rd31.sub hd31 (by evm_ov)
+  have rd33 := rd32.dup2 hd32 (by evm_ov)
+  have rd34 := rd33.calldataload hd33 (by evm_ov)
+  have rd35 := rd34.dup2 hd34 (by evm_ov)
+  have rd36 := rd35.and hd35 (by evm_ov)
+  have rd37 := rd36.swap2 hd36 (by evm_ov)
+  have rd39 := rd37.push1 ⟨32⟩ hd37 (by evm_ov)
+  have rd40 := rd39.add hd39 (by evm_ov)
+  have rd41 := rd40.calldataload hd40 (by evm_ov)
+  have rd42 := rd41.and hd41 (by evm_ov)
+  have rd45 := rd42.push2 routine hd42 (by evm_ov)
+  exact ⟨_, _, by
+    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
+      show ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 from by decide,
+      show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide, u256_land_comm]
+      using rd45.jump hd45 hroutine (by evm_ov)⟩
+
 -- GENERALIZES Examples.UniswapV2Pair.Routines.RD.uniswapAddressUint256ExternalLenOk -
 -- same optimized address/uint256 external wrapper prefix, but the failing short-calldata branch.
 -- LIBRARY CANDIDATE: Reasoning.Reach - optimizer-on solc address/uint256 external wrapper
@@ -464,5 +511,61 @@ theorem RD.uniswapAddressAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g 
   have rd20 := rd18.push1 ⟨0⟩ hd18 (by evm_ov)
   have rd21 := rd20.dup1 hd20 (by evm_ov)
   exact rd21.rev 0 hd21 mem_cost (by evm_ov)
+
+-- GENERALIZES Reasoning.Reach.RD.uniswapTwoAddressGetterMaskAndJump - keeps the third static ABI
+-- word raw, and exposes both masked address words instead of requiring canonical calldata.
+-- LIBRARY CANDIDATE: Reasoning.Reach - optimizer-on solc address/address/uint256 external
+-- wrapper that returns the low-160-bit masked address words.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapAddressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+      (uniswapAddressAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hwf : uniswapAddressAddressUint256ExternalEntryWf entry ret routine)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+      (calldataWord ee.calldata 68 :: UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
+        UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+  rcases hwf with
+    ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
+      _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd26, hd28, hd30, hd31,
+      hd32, hd33, hd34, hd35, hd36, hd37, hd39, hd40, hd41, hd42, hd43, hd44,
+      hd45, hd46, hd48, hd49, hd50, hd53⟩
+  have rd23 := h.jumpdest hd22 (by evm_ov)
+  have rd24 := rd23.pop hd23 (by evm_ov)
+  have rd26 := rd24.push1 ⟨1⟩ hd24 (by evm_ov)
+  have rd28 := rd26.push1 ⟨1⟩ hd26 (by evm_ov)
+  have rd30 := rd28.push1 ⟨160⟩ hd28 (by evm_ov)
+  have rd31 := rd30.shl hd30 (by evm_ov)
+  have rd32 := rd31.sub hd31 (by evm_ov)
+  have rd33 := rd32.dup2 hd32 (by evm_ov)
+  have rd34 := rd33.calldataload hd33 (by evm_ov)
+  have rd35 := rd34.dup2 hd34 (by evm_ov)
+  have rd36 := rd35.and hd35 (by evm_ov)
+  have rd37 := rd36.swap2 hd36 (by evm_ov)
+  have rd39 := rd37.push1 ⟨32⟩ hd37 (by evm_ov)
+  have rd40 := rd39.dup2 hd39 (by evm_ov)
+  have rd41 := rd40.add hd40 (by evm_ov)
+  have rd42 := rd41.calldataload hd41 (by evm_ov)
+  have rd43 := rd42.swap1 hd42 (by evm_ov)
+  have rd44 := rd43.swap2 hd43 (by evm_ov)
+  have rd45 := rd44.and hd44 (by evm_ov)
+  have rd46 := rd45.swap1 hd45 (by evm_ov)
+  have rd48 := rd46.push1 ⟨64⟩ hd46 (by evm_ov)
+  have rd49 := rd48.add hd48 (by evm_ov)
+  have rd50 := rd49.calldataload hd49 (by evm_ov)
+  have rd53 := rd50.push2 routine hd50 (by evm_ov)
+  exact ⟨_, _, by
+    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
+      show ((⟨4⟩ : UInt256) + ⟨32⟩).toNat = 36 from by decide,
+      show ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 from by decide,
+      show ((⟨64⟩ : UInt256) + ⟨4⟩).toNat = 68 from by decide,
+      show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide, u256_land_comm]
+      using rd53.jump hd53 hroutine (by evm_ov)⟩
 
 end UniswapV2Pair

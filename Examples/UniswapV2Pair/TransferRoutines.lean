@@ -7,6 +7,272 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
+/-! ## Shared `Error(string)` revert memory -/
+
+def uniswapErrorStringSelector : UInt256 :=
+  UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` selector write over a
+-- 96-byte scratch buffer that preserves the free pointer at `0x40`.
+noncomputable def uniswapErrorStringMem0 (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem 128 32
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` offset-word write over a
+-- previously built selector buffer.
+noncomputable def uniswapErrorStringMem1 (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (uniswapErrorStringMem0 mem) 132 32
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` length-word write.
+noncomputable def uniswapErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray len).write 0 (uniswapErrorStringMem1 mem) 164 32
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` payload-word write.
+noncomputable def uniswapErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray word).write 0 (uniswapErrorStringMem2 len mem) 196 32
+
+theorem uniswapErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
+    (uniswapErrorStringMem0 mem).size = 160 := by
+  unfold uniswapErrorStringMem0
+  rw [toByteArray_write_eq _ _ _ (by rw [hmem]; omega)
+      (by rw [hmem]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append, hmem, ByteArray_zeroes_size,
+    show (USize.ofNat (128 - 96)).toNat = 32 from
+      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    toByteArray_size]
+
+theorem uniswapErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 96) :
+    (uniswapErrorStringMem1 mem).size = 164 := by
+  unfold uniswapErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [uniswapErrorStringMem0_size hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem0_size hmem,
+    toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem2_size (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (uniswapErrorStringMem2 len mem).size = 196 := by
+  unfold uniswapErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by simp [uniswapErrorStringMem1_size hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem1_size hmem,
+    toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (uniswapErrorStringMem3 len word mem).size = 228 := by
+  unfold uniswapErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by simp [uniswapErrorStringMem2_size len hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem2_size len hmem,
+    toByteArray_size]
+  omega
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - `Error(string)` memory construction preserves the solc
+-- free pointer word at `0x40`.
+theorem uniswapErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (uniswapErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold uniswapErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [uniswapErrorStringMem2_size len hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem2_size len hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [uniswapErrorStringMem1_size hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [uniswapErrorStringMem0_size hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap uniswapErrorStringSelector _ 128 64
+      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+-- LIBRARY CANDIDATE: Reasoning.Memory - `MLOAD 0x40` over generic solc `Error(string)` memory.
+theorem uniswapErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((uniswapErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [uniswapErrorStringMem3_size len word hmem]; decide)
+    (by decide) (uniswapErrorStringMem3_read64 len word hmem hread64)
+
+def uniswapSafeMathSubUnderflowStringWord : UInt256 :=
+  UInt256.shiftLeft
+    (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256) ⟨88⟩
+
+def uniswapSafeMathAddOverflowStringWord : UInt256 :=
+  UInt256.shiftLeft
+    (⟨573467620053399432670716995166075968196518375287⟩ : UInt256) ⟨96⟩
+
+-- GENERALIZES Examples.ERC20.Transfer.erc20RoutineCheckedSub_underflow - same checked-sub
+-- underflow branch, but for Uniswap's optimizer-on DS-Math string-revert routine.
+-- LIBRARY CANDIDATE: Reasoning.Reach - generic solc SafeMath/DS-Math checked-sub underflow
+-- terminal branch, parameterized by bytecode, entry pc, success pc, and error-string payload.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeMathSubUnderflow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
+      mem (UInt256.ofNat 3) rdata acc k C)
+    (hlt : a.toNat < b.toNat)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have rd6886 := evm_run h with [jumpdest, dup1, dup3, sub, dup3, dup2]
+  have rd6887₀ := evm_run rd6886 with [gt]
+  have rd6887 := rd6887₀
+  rw [hgt] at rd6887
+  have rd6888₀ := evm_run rd6887 with [iszero]
+  have rd6888 := rd6888₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6888
+  have rd6891 := evm_run rd6888 with [
+    push2 ⟨2911⟩, jumpiNT (by decide)]
+  have rd6895 := evm_run rd6891 with [
+    push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) (by decide) (by evm_ov)
+  have rd6918 := evm_run rd6899 with [
+    push1 ⟨229⟩, shl, dup2,
+    raw mstore 6 (UniswapV2Pair.uniswapErrorStringMem0 mem) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (UniswapV2Pair.uniswapErrorStringMem1 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨21⟩, push1 ⟨36⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem2 (⟨21⟩ : UInt256) mem)
+      (UInt256.ofNat 7) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov)]
+  have rd6940 := rd6918.pushConst
+    (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
+    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+  exact evm_run rd6940 with [
+    push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem3 (⟨21⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathSubUnderflowStringWord mem)
+      (UInt256.ofNat 8) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+      mem_cost
+      (UniswapV2Pair.uniswapErrorStringMem3_mload64 (⟨21⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathSubUnderflowStringWord hmem hread64)
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov)]
+
+-- GENERALIZES Examples.ERC20.Transfer.erc20RoutineCheckedAdd_overflow - same checked-add
+-- overflow branch, but for Uniswap's optimizer-on DS-Math string-revert routine.
+-- LIBRARY CANDIDATE: Reasoning.Reach - generic solc SafeMath/DS-Math checked-add overflow
+-- terminal branch, parameterized by bytecode, entry pc, success pc, and error-string payload.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeMathAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
+      mem (UInt256.ofNat 3) rdata acc k C)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
+    have ha : a.toNat < UInt256.size := a.val.isLt
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have hmod : (a.toNat + b.toNat) % UInt256.size =
+      a.toNat + b.toNat - UInt256.size := by
+    rw [Nat.mod_eq_sub_mod hover]
+    exact Nat.mod_eq_of_lt (by omega)
+  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
+    rw [uadd_toNat, hmod]
+  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have rd8521 := evm_run h with [jumpdest, dup1, dup3, add, dup3, dup2]
+  have rd8522₀ := evm_run rd8521 with [lt]
+  have rd8522 := rd8522₀
+  rw [hlt] at rd8522
+  have rd8523₀ := evm_run rd8522 with [iszero]
+  have rd8523 := rd8523₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8523
+  have rd8526 := evm_run rd8523 with [
+    push2 ⟨2911⟩, jumpiNT (by decide)]
+  have rd8530 := evm_run rd8526 with [
+    push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rd8534 := rd8530.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) (by decide) (by evm_ov)
+  have rd8553 := evm_run rd8534 with [
+    push1 ⟨229⟩, shl, dup2,
+    raw mstore 6 (UniswapV2Pair.uniswapErrorStringMem0 mem) (UInt256.ofNat 5)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (UniswapV2Pair.uniswapErrorStringMem1 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨20⟩, push1 ⟨36⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem2 (⟨20⟩ : UInt256) mem)
+      (UInt256.ofNat 7) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov)]
+  have rd8574 := rd8553.pushConst
+    (⟨573467620053399432670716995166075968196518375287⟩ : UInt256)
+    (width := 20) (op := .PUSH20) (by decide) (by decide) (by evm_ov)
+  exact evm_run rd8574 with [
+    push1 ⟨96⟩, shl, push1 ⟨68⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem3 (⟨20⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathAddOverflowStringWord mem)
+      (UInt256.ofNat 8) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+      mem_cost
+      (UniswapV2Pair.uniswapErrorStringMem3_mload64 (⟨20⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathAddOverflowStringWord hmem hread64)
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov)]
+
 /-! # Shared `_transfer` suffix helpers
 
 This file continues the shared `_transfer` routine lemmas once `Routines.lean` is close to the
@@ -487,12 +753,12 @@ theorem RD.uniswapTransferFromFiniteAllowanceStore {g : Sat256} {s0 : State}
   exact ⟨_, _, by simpa [uniswapTransferFromAllowanceStoreMem] using rd3071⟩
 
 -- GENERALIZES Examples.UniswapV2Pair.Routines.RD.uniswapTransferFromAllowanceMaxBranch —
--- shares the nested allowance-slot load, then follows the finite-allowance branch through the
--- checked-sub routine return.
+-- shares the nested allowance-slot load, then stops at the checked-sub routine entry so both
+-- success and underflow branches can reuse the same trace.
 -- LIBRARY CANDIDATE: Reasoning.Reach — optimizer-on solc `transferFrom` finite-allowance branch
--- that reloads a nested mapping slot and jumps through a checked-sub routine.
+-- prefix that reloads a nested mapping slot and jumps to a checked-sub routine.
 set_option maxHeartbeats 4000000 in
-theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
+theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
@@ -504,15 +770,12 @@ theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
       (uniswapCodeOwnerStorageWord ee σ
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat ≠
         UInt256.size - 1)
-    (hallowance : value.toNat ≤
-      (uniswapCodeOwnerStorageWord ee σ
-        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3034⟩
-      (UInt256.sub
-          (uniswapCodeOwnerStorageWord ee σ
-            (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))) value ::
-        ⟨0⟩ :: value :: toWord :: src :: ret :: R)
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+      (value ::
+        uniswapCodeOwnerStorageWord ee σ
+          (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)) ::
+        ⟨3034⟩ :: ⟨0⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
       (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
   let allowanceSlot := mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)
@@ -568,8 +831,6 @@ theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
     rw [← hword, hlnot0]
   have heq : UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256)) allowanceWord = ⟨0⟩ :=
     u256_eq_of_ne hneq
-  have hallowance' : value.toNat ≤ allowanceWord.toNat := by
-    simpa [allowanceWord, allowanceSlot] using hallowance
   have rd2949 := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and]
   rw [hmaskLiteral] at rd2949
@@ -640,11 +901,84 @@ theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
   have rd6879 := rd3034ret.jump (by decide) (by jump_dest) (by evm_ov)
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
     at rd6879
+  exact ⟨_, _, by simpa [allowanceWord, allowanceSlot] using rd6879⟩
+
+-- GENERALIZES Examples.UniswapV2Pair.Routines.RD.uniswapTransferFromAllowanceMaxBranch —
+-- shares the nested allowance-slot load, then follows the finite-allowance branch through the
+-- checked-sub routine return.
+-- LIBRARY CANDIDATE: Reasoning.Reach — optimizer-on solc `transferFrom` finite-allowance branch
+-- that reloads a nested mapping slot and jumps through a checked-sub routine.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
+    {R : List UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
+      (value :: toWord :: src :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hnotMax :
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat ≠
+        UInt256.size - 1)
+    (hallowance : value.toNat ≤
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat)
+    (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3034⟩
+      (UInt256.sub
+          (uniswapCodeOwnerStorageWord ee σ
+            (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))) value ::
+        ⟨0⟩ :: value :: toWord :: src :: ret :: R)
+      (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
+      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+  let allowanceSlot := mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)
+  let allowanceWord := uniswapCodeOwnerStorageWord ee σ allowanceSlot
+  have hallowance' : value.toNat ≤ allowanceWord.toNat := by
+    simpa [allowanceWord, allowanceSlot] using hallowance
+  obtain ⟨_, _, rd6879⟩ := RD.uniswapTransferFromAllowanceBranchToSubRoutine
+    h hcanonSrc hnotMax hov
   obtain ⟨_, _, rd3034⟩ := RD.uniswapSafeMathSubSuccess
     (a := allowanceWord) (b := value) (ret := ⟨3034⟩)
     (R := ⟨0⟩ :: value :: toWord :: src :: ret :: R)
     rd6879 hallowance' (by jump_dest) (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [allowanceWord, allowanceSlot] using rd3034⟩
+
+-- GENERALIZES Examples.UniswapV2Pair.TransferRoutines.RD.uniswapTransferFromAllowanceFiniteBranch —
+-- shares the nested allowance-slot reload and checked-sub routine entry, then follows underflow.
+-- LIBRARY CANDIDATE: Reasoning.Reach — optimizer-on solc `transferFrom` finite-allowance failure
+-- branch that reloads a nested mapping slot and reverts through checked-sub underflow.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapTransferFromAllowanceFailureBranch {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
+    {R : List UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
+      (value :: toWord :: src :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hnotMax :
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat ≠
+        UInt256.size - 1)
+    (hltAllowance :
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat < value.toNat)
+    (hov : R.length + 16 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  let allowanceSlot := mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)
+  let allowanceWord := uniswapCodeOwnerStorageWord ee σ allowanceSlot
+  have hltAllowance' : allowanceWord.toNat < value.toNat := by
+    simpa [allowanceWord, allowanceSlot] using hltAllowance
+  obtain ⟨_, _, rd6879⟩ := RD.uniswapTransferFromAllowanceBranchToSubRoutine
+    h hcanonSrc hnotMax hov
+  exact RD.uniswapSafeMathSubUnderflow
+    (a := allowanceWord) (b := value) (ret := ⟨3034⟩)
+    (R := ⟨0⟩ :: value :: toWord :: src :: ret :: R)
+    rd6879 hltAllowance'
+    (uniswapTransferFromAllowanceStoreMem_size src (uniswapSourceWord ee))
+    (uniswapTransferFromAllowanceStoreMem_read64 src (uniswapSourceWord ee))
+    (by simp only [List.length_cons]; omega)
 
 -- Reusable Uniswap-local chain from the finite allowance branch into the shared internal
 -- `_transfer` routine setup.

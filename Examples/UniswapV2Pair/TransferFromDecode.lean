@@ -1,6 +1,9 @@
 import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
+import Examples.UniswapV2Pair.TransferFromMasked
+import Examples.UniswapV2Pair.TransferFromMaskedFinite
 import Examples.UniswapV2Pair.TransferFromSuccess
+import Examples.UniswapV2Pair.TransferFromReverts
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -77,8 +80,11 @@ theorem uniswapTransferFromBody
                 UInt256.size
             · exact uniswapTransferFromBodyOk_maxAllowance hcode hsize hperm hwv hsel
                 hsz100 hcanonFrom hcanonTo hmax hbalance hfit hdispatch hAccounts
-            · sorry
-          · sorry
+            · exact uniswapTransferFromBodyRevert_overflow_maxAllowance hcode hsize hperm
+                hwv hsel hsz100 hcanonFrom hcanonTo hmax hbalance (by omega)
+                hdispatch hAccounts
+          · exact uniswapTransferFromBodyRevert_balance_maxAllowance hcode hsize hwv hsel
+              hsz100 hcanonFrom hcanonTo hmax (by omega) hdispatch hAccounts
         · by_cases hallowance : (transferFromValueWord I).toNat ≤
             (transferFromCurrentAllowanceWord
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
@@ -91,11 +97,130 @@ theorem uniswapTransferFromBody
               · exact uniswapTransferFromBodyOk_finiteAllowance hcode hsize hperm hwv
                   hsel hsz100 hcanonFrom hcanonTo hmax hallowance hbalance hfit
                   hdispatch hAccounts
-              · sorry
-            · sorry
-          · sorry
-      · sorry
-    · sorry
+              · exact uniswapTransferFromBodyRevert_overflow_finiteAllowance hcode hsize
+                  hperm hwv hsel hsz100 hcanonFrom hcanonTo hmax hallowance hbalance
+                  (by omega) hdispatch hAccounts
+            · exact uniswapTransferFromBodyRevert_balance_finiteAllowance hcode hsize
+                hperm hwv hsel hsz100 hcanonFrom hcanonTo hmax hallowance (by omega)
+                hdispatch hAccounts
+          · exact uniswapTransferFromBodyRevert_allowance hcode hsize hwv hsel
+              hsz100 hcanonFrom hcanonTo hmax (by omega) hdispatch hAccounts
+      · by_cases hallowance : (transferFromValueWord I).toNat ≤
+          (transferFromCurrentAllowanceWord
+            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+        · by_cases hmax : (transferFromCurrentAllowanceWord
+            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat =
+              UInt256.size - 1
+          · by_cases hbalance : (transferFromValueWord I).toNat ≤
+              (transferFromFromBalanceWord
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+            · by_cases hfit : transferFromNewToNatMax
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+                  UInt256.size
+              · exact uniswapTransferFromBodyOk_maxAllowance_masked hcode hsize hperm
+                  hwv hsel hsz100 hmax hbalance hfit hdispatch
+                  (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                  hAccounts
+              · exact uniswapTransferFromBodyRevert_overflow_maxAllowance_masked hcode hsize
+                  hperm hwv hsel hsz100 hmax hbalance (by omega) hdispatch
+                  (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                  hAccounts
+            · exact uniswapTransferFromBodyRevert_balance_maxAllowance_masked hcode hsize
+                hwv hsel hsz100 hmax (by omega) hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                hAccounts
+          · by_cases hbalance : (transferFromValueWord I).toNat ≤
+              (transferFromFromBalanceWord (transferFromAfterAllowanceState
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
+            · by_cases hfit : transferFromNewToNat
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+                  UInt256.size
+              · exact uniswapTransferFromBodyOk_finiteAllowance_masked hcode hsize hperm
+                  hwv hsel hsz100 hmax hallowance hbalance hfit hdispatch
+                  (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                  hAccounts
+              · exact uniswapTransferFromBodyRevert_overflow_finiteAllowance_masked hcode
+                  hsize hperm hwv hsel hsz100 hmax hallowance hbalance (by omega)
+                  hdispatch
+                  (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                  hAccounts
+            · exact uniswapTransferFromBodyRevert_balance_finiteAllowance_masked hcode hsize
+                hperm hwv hsel hsz100 hmax hallowance (by omega) hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+                hAccounts
+        · have hnotMax :
+            (transferFromCurrentAllowanceWord
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠
+                UInt256.size - 1 := by
+            have hlt : (transferFromCurrentAllowanceWord
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
+                  (transferFromValueWord I).toNat := by
+              omega
+            have hvalueLt : (transferFromValueWord I).toNat < UInt256.size :=
+              (transferFromValueWord I).val.isLt
+            omega
+          exact uniswapTransferFromBodyRevert_allowance_masked hcode hsize hwv hsel
+            hsz100 hnotMax (by omega) hdispatch
+            (uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo)
+            hAccounts
+    · by_cases hallowance : (transferFromValueWord I).toNat ≤
+        (transferFromCurrentAllowanceWord
+          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+      · by_cases hmax : (transferFromCurrentAllowanceWord
+          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat =
+            UInt256.size - 1
+        · by_cases hbalance : (transferFromValueWord I).toNat ≤
+            (transferFromFromBalanceWord
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+          · by_cases hfit : transferFromNewToNatMax
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+                UInt256.size
+            · exact uniswapTransferFromBodyOk_maxAllowance_masked hcode hsize hperm
+                hwv hsel hsz100 hmax hbalance hfit hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+                hAccounts
+            · exact uniswapTransferFromBodyRevert_overflow_maxAllowance_masked hcode hsize
+                hperm hwv hsel hsz100 hmax hbalance (by omega) hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+                hAccounts
+          · exact uniswapTransferFromBodyRevert_balance_maxAllowance_masked hcode hsize
+              hwv hsel hsz100 hmax (by omega) hdispatch
+              (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+              hAccounts
+        · by_cases hbalance : (transferFromValueWord I).toNat ≤
+            (transferFromFromBalanceWord (transferFromAfterAllowanceState
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
+          · by_cases hfit : transferFromNewToNat
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+                UInt256.size
+            · exact uniswapTransferFromBodyOk_finiteAllowance_masked hcode hsize hperm
+                hwv hsel hsz100 hmax hallowance hbalance hfit hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+                hAccounts
+            · exact uniswapTransferFromBodyRevert_overflow_finiteAllowance_masked hcode
+                hsize hperm hwv hsel hsz100 hmax hallowance hbalance (by omega)
+                hdispatch
+                (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+                hAccounts
+          · exact uniswapTransferFromBodyRevert_balance_finiteAllowance_masked hcode hsize
+              hperm hwv hsel hsz100 hmax hallowance (by omega) hdispatch
+              (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+              hAccounts
+      · have hnotMax :
+          (transferFromCurrentAllowanceWord
+            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠
+              UInt256.size - 1 := by
+          have hlt : (transferFromCurrentAllowanceWord
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
+                (transferFromValueWord I).toNat := by
+            omega
+          have hvalueLt : (transferFromValueWord I).toNat < UInt256.size :=
+            (transferFromValueWord I).val.isLt
+          omega
+        exact uniswapTransferFromBodyRevert_allowance_masked hcode hsize hwv hsel
+          hsz100 hnotMax (by omega) hdispatch
+          (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
+          hAccounts
   · exact uniswapTransferFromBodyDecodeFailed_short hcode hsize hwv hsel (by omega)
       hdispatch
 

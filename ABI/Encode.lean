@@ -93,7 +93,11 @@ mutual
         | .bytes bytes =>
             some (natBytes bytes.size ++ padRightToWord bytes.toList)
         | _ => none
-    | .string => none
+    | .string =>
+        match value with
+        | .bytes bytes =>
+            some (natBytes bytes.size ++ padRightToWord bytes.toList)
+        | _ => none
     | .dynamicArray elemTy =>
         match value with
         | .array values => do
@@ -160,3 +164,10 @@ def encodeReturnValues? (types : List ABIType) (values : List Solm.Value) : Opti
 
 def encodeReturnValue? (ty : ABIType) (value : Solm.Value) : Option ByteArray :=
   encodeReturnValues? [ty] [value]
+
+-- GENERALIZES Examples.Auction.Spec.encodeCallWithSelector? — same generic ABI helper,
+-- promoted so benchmark specs do not duplicate selector-prefix call encoding.
+def encodeCallWithSelector? (sel : ByteArray) (tys : List ABIType)
+    (args : List Solm.Value) : Option EVM.Bytes := do
+  let payload <- encodeABIValues? tys args
+  some (sel ++ payload.toByteArray)

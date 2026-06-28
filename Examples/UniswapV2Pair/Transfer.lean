@@ -1,4 +1,5 @@
 import Examples.UniswapV2Pair.ExternalWrappers
+import Examples.UniswapV2Pair.TransferRoutines
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
@@ -15,6 +16,9 @@ namespace UniswapV2Pair
 /-- The raw ABI word for `transfer`'s `to` argument. -/
 abbrev transferToWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
+
+abbrev transferToMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (transferToWord I)
 
 /-- The raw ABI word for `transfer`'s `value` argument. -/
 abbrev transferValueWord (I : ExecutionEnv) : UInt256 :=
@@ -37,6 +41,11 @@ def transferSenderSlot (evm : EVM.State) : UInt256 :=
 
 def transferToSlot (I : ExecutionEnv) : UInt256 :=
   balanceOfSlot (transferToKey I)
+
+theorem transferToSlot_eq_mapSlot_masked (I : ExecutionEnv) :
+    transferToSlot I = mapSlot (transferToMaskedWord I) ⟨1⟩ := by
+  unfold transferToSlot balanceOfSlot transferToKey transferToMaskedWord
+  rw [keyValueToWord_address_ofNat_mask]
 
 def transferFromBalanceWord (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (transferSenderSlot evm)
@@ -91,8 +100,7 @@ theorem transferNewToWord_toNat (evm : EVM.State) (I : ExecutionEnv)
   exact ulit_toNat' _ hfit
 
 theorem uniswapDecode_transfer_ok {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size)
-    (_hcanon : (transferToWord I).toNat < EVM.addressModulus) :
+    (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldata (transferTransition.params.map Param.name)
       (transitionSignature transferTransition).paramTypes I.calldata = some (transferStore I) := by
   show decodeCalldata ["to", "value"] [legacyAddr, uint256] I.calldata = _
@@ -397,26 +405,24 @@ theorem uniswapTransferBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transfer_newToBalance_revert evm I hover))
 
-/-- The optimized external wrapper for `transfer(address,uint256)` accepts canonical calldata and
+/-- The optimized external wrapper for `transfer(address,uint256)` masks address calldata and
     jumps to the external transfer routine at pc 5061. -/
 theorem uniswapTransferX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5061⟩
-      [transferValueWord I, transferToWord I, ⟨797⟩, sel]
+      [transferValueWord I, transferToMaskedWord I, ⟨797⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd1256⟩ := RD.uniswapAddressUint256ExternalLenOk
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩) hreach
     uniswap_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
-  obtain ⟨_, _, rd5061⟩ := RD.uniswapAddressUint256ExternalMaskAndJump
+  obtain ⟨_, _, rd5061⟩ := RD.uniswapAddressUint256ExternalMaskAndJumpMasked
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩) (R := [sel]) rd1256
     uniswap_address_uint256_external_entry_wf
-    (by simpa [transferToWord] using hcanonTo)
     (by jump_dest) (by simp only [List.length_singleton]; omega)
-  exact ⟨_, _, by simpa [transferToWord, transferValueWord] using rd5061⟩
+  exact ⟨_, _, by simpa [transferToWord, transferToMaskedWord, transferValueWord] using rd5061⟩
 
 /-- Short-calldata path for `transfer(address,uint256)` from the dispatcher body entry.
 
@@ -451,30 +457,28 @@ theorem RD.uniswapTransferExternalToInternal {g : Sat256} {s0 : State} {ee : Exe
   exact ⟨_, _, by
     simpa [uniswapSourceWord] using rd7510₀.jump (by decide) (by jump_dest) (by evm_ov)⟩
 
-/-- Chained canonical-success prefix for `transfer(address,uint256)`, from the dispatcher body pc
+/-- Chained success prefix for `transfer(address,uint256)`, from the dispatcher body pc
     to the shared internal `_transfer` routine at pc 7510. -/
 theorem uniswapTransferX_toInternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7510⟩
-      (transferValueWord I :: transferToWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
-        ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
+      (transferValueWord I :: transferToMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
+        ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd5061⟩ := uniswapTransferX_decoded (g := g)
-    hsz68 hsize hcanonTo hreach
+    hsz68 hsize hreach
   obtain ⟨_, _, rd7510⟩ := RD.uniswapTransferExternalToInternal
-    (value := transferValueWord I) (toWord := transferToWord I) (ret := ⟨797⟩)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (ret := ⟨797⟩)
     (R := [sel]) rd5061 (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, rd7510⟩
 
-/-- Chained canonical-success prefix for `transfer(address,uint256)`, from the dispatcher body pc
+/-- Chained success prefix for `transfer(address,uint256)`, from the dispatcher body pc
     through the sender-balance checked subtraction in the shared `_transfer` routine. -/
 theorem uniswapTransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
@@ -482,12 +486,12 @@ theorem uniswapTransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7551⟩
       (transferDebitWord (initState cA gh bl σ σ₀ g A I) I :: transferValueWord I ::
-        transferToWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
-        transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
+        transferToMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
+        transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
       (twoWordHashMem (uniswapSourceWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd7510⟩ := uniswapTransferX_toInternal (g := g)
-    hsz68 hsize hcanonTo hreach
+    hsz68 hsize hreach
   have hbalanceWord :
       uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩) =
         transferFromBalanceWord (initState cA gh bl σ σ₀ g A I) := by
@@ -500,9 +504,9 @@ theorem uniswapTransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     rw [hbalanceWord]
     exact henough
   obtain ⟨_, _, rd7551₀⟩ := RD.uniswapTransferInternalAfterDebit
-    (value := transferValueWord I) (toWord := transferToWord I) (src := uniswapSourceWord I)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
     (ret := ⟨2907⟩)
-    (R := ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
     rd7510 (uniswapSourceWord_canonical I) hbalance
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hdebit :
@@ -521,43 +525,81 @@ theorem uniswapTransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   rw [hdebit] at rd7551
   exact ⟨_, _, rd7551⟩
 
-/-- Chained canonical-success prefix for `transfer(address,uint256)`, through the sender-balance
+/-- Revert path for `transfer(address,uint256)` when the sender balance is smaller than
+    `value`, through the checked subtraction in the shared `_transfer` routine. -/
+theorem uniswapTransferX_insufficient {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hlt : (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat <
+      (transferValueWord I).toNat)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd7510⟩ := uniswapTransferX_toInternal (g := g)
+    hsz68 hsize hreach
+  have hbalanceWord :
+      uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩) =
+        transferFromBalanceWord (initState cA gh bl σ σ₀ g A I) := by
+    simp [uniswapCodeOwnerStorageWord, transferFromBalanceWord, transferSenderSlot,
+      balanceOfSlot, initState, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage, keyValueToWord_address, uniswapSourceWord]
+  have hltWord :
+      (uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩)).toNat <
+        (transferValueWord I).toNat := by
+    rw [hbalanceWord]
+    exact hlt
+  obtain ⟨_, _, rd6879⟩ := RD.uniswapTransferInternalFromBalanceLoad
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
+    (ret := ⟨2907⟩)
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd7510 (uniswapSourceWord_canonical I)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact RD.uniswapSafeMathSubUnderflow
+    (a := uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩))
+    (b := transferValueWord I) (ret := ⟨7551⟩)
+    (R := transferValueWord I :: transferToMaskedWord I :: uniswapSourceWord I ::
+      ⟨2907⟩ :: ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd6879 hltWord
+    (twoWordHashMem_size_96 (uniswapSourceWord I) ⟨1⟩ solcFreePtrMem_size)
+    (twoWordHashMem_read64 (uniswapSourceWord I) ⟨1⟩ solcFreePtrMem_size
+      solcFreePtrMem_read64)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+/-- Chained success prefix for `transfer(address,uint256)`, through the sender-balance
     `SSTORE` in the shared `_transfer` routine. -/
 theorem uniswapTransferX_afterSenderStore {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7582⟩
-      (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferValueWord I :: transferToWord I ::
+      (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferValueWord I :: transferToMaskedWord I ::
         uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ :: transferValueWord I ::
-        transferToWord I :: ⟨797⟩ :: [sel])
+        transferToMaskedWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferDebitHashMem (uniswapSourceWord I)) (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
         (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7551⟩ := uniswapTransferX_afterDebit (g := g)
-    hsz68 hsize hcanonTo henough hreach
+    hsz68 hsize henough hreach
   obtain ⟨_, _, rd7582⟩ := RD.uniswapTransferInternalStoreDebit
     (debit := transferDebitWord (initState cA gh bl σ σ₀ g A I) I)
-    (value := transferValueWord I) (toWord := transferToWord I) (src := uniswapSourceWord I)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
     (ret := ⟨2907⟩)
-    (R := ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
     rd7551 hperm (uniswapSourceWord_canonical I)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, rd7582⟩
 
-/-- Chained canonical-success prefix for `transfer(address,uint256)`, through the recipient-balance
+/-- Chained success prefix for `transfer(address,uint256)`, through the recipient-balance
     checked addition in the shared `_transfer` routine. -/
 theorem uniswapTransferX_afterCreditCalc {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
     (hfit : transferNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
@@ -566,39 +608,40 @@ theorem uniswapTransferX_afterCreditCalc {cA gh bl σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7604⟩
       (transferNewToWord (initState cA gh bl σ σ₀ g A I) I :: transferValueWord I ::
-        transferToWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
-        transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
-      (uniswapTransferToHashMem (uniswapSourceWord I) (transferToWord I))
+        transferToMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
+        transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+      (uniswapTransferToHashMem (uniswapSourceWord I) (transferToMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
         (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7582⟩ := uniswapTransferX_afterSenderStore (g := g)
-    hsz68 hsize hperm hcanonTo henough hreach
+    hsz68 hsize hperm henough hreach
   let σDebit := sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
     (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)
-  have htoKeyWord : keyValueToWord (transferToKey I) = transferToWord I := by
-    unfold transferToKey
-    exact keyValueToWord_address_of_canonical _ hcanonTo
   have htoBalanceWord :
-      uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToWord I) ⟨1⟩) =
+      uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩) =
         transferToBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+    have htoSlot := transferToSlot_eq_mapSlot_masked I
     simp [σDebit, uniswapCodeOwnerStorageWord, transferToBalanceWord, transferAfterDebitState,
-      transferToSlot, transferSenderSlot, balanceOfSlot, initState, Solm.EVM.storageLoad,
+      transferSenderSlot, balanceOfSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap, keyValueToWord_address,
-      uniswapSourceWord, htoKeyWord]
+      uniswapSourceWord, htoSlot]
   have hfitWord :
-      (uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToWord I) ⟨1⟩)).toNat +
+      (uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩)).toNat +
         (transferValueWord I).toNat < UInt256.size := by
     rw [htoBalanceWord]
     simpa [transferNewToNat] using hfit
+  have hcanonToMasked : (transferToMaskedWord I).toNat < EVM.addressModulus := by
+    simpa [transferToMaskedWord, u256_land_comm] using
+      solcAddrMask_result_canonical (transferToWord I)
   obtain ⟨_, _, rd7604₀⟩ := RD.uniswapTransferInternalAfterCreditCalc
-    (value := transferValueWord I) (toWord := transferToWord I) (src := uniswapSourceWord I)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
     (ret := ⟨2907⟩)
-    (R := ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
-    rd7582 hcanonTo hfitWord
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd7582 hcanonToMasked hfitWord
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hnew :
-      uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToWord I) ⟨1⟩) +
+      uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩) +
           transferValueWord I =
         transferNewToWord (initState cA gh bl σ σ₀ g A I) I := by
     apply u256_inj
@@ -609,13 +652,63 @@ theorem uniswapTransferX_afterCreditCalc {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hnew] at rd7604
   exact ⟨_, _, rd7604⟩
 
-/-- Chained canonical-success prefix for `transfer(address,uint256)`, through the recipient-balance
+/-- Revert path for `transfer(address,uint256)` when crediting the recipient balance overflows
+    the checked addition in the shared `_transfer` routine. -/
+theorem uniswapTransferX_overflow {cA gh bl σ σ₀ A I} {g : Sat256}
+    {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true)
+    (henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
+    (hover : UInt256.size ≤
+      transferNewToNat (initState cA gh bl σ σ₀ g A I) I)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd7582⟩ := uniswapTransferX_afterSenderStore (g := g)
+    hsz68 hsize hperm henough hreach
+  let σDebit := sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
+    (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)
+  have htoBalanceWord :
+      uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩) =
+        transferToBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+    have htoSlot := transferToSlot_eq_mapSlot_masked I
+    simp [σDebit, uniswapCodeOwnerStorageWord, transferToBalanceWord, transferAfterDebitState,
+      transferSenderSlot, balanceOfSlot, initState, Solm.EVM.storageLoad,
+      State.lookupAccount, Account.lookupStorage, storageStore_accountMap, keyValueToWord_address,
+      uniswapSourceWord, htoSlot]
+  have hoverWord :
+      UInt256.size ≤
+        (uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩)).toNat +
+          (transferValueWord I).toNat := by
+    rw [htoBalanceWord]
+    simpa [transferNewToNat] using hover
+  have hcanonToMasked : (transferToMaskedWord I).toNat < EVM.addressModulus := by
+    simpa [transferToMaskedWord, u256_land_comm] using
+      solcAddrMask_result_canonical (transferToWord I)
+  obtain ⟨_, _, rd8515⟩ := RD.uniswapTransferInternalToBalanceLoad
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
+    (ret := ⟨2907⟩)
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd7582 hcanonToMasked
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact RD.uniswapSafeMathAddOverflow
+    (a := uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩))
+    (b := transferValueWord I) (ret := ⟨7604⟩)
+    (R := transferValueWord I :: transferToMaskedWord I :: uniswapSourceWord I ::
+      ⟨2907⟩ :: ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd8515 hoverWord
+    (uniswapTransferToHashMem_size (uniswapSourceWord I) (transferToMaskedWord I))
+    (uniswapTransferToHashMem_read64 (uniswapSourceWord I) (transferToMaskedWord I))
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+/-- Chained success prefix for `transfer(address,uint256)`, through the recipient-balance
     `SSTORE` in the shared `_transfer` routine. -/
 theorem uniswapTransferX_afterCreditStore {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
     (hfit : transferNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
@@ -623,24 +716,27 @@ theorem uniswapTransferX_afterCreditStore {cA gh bl σ σ₀ A I} {g : Sat256}
       (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7638⟩
-      (⟨64⟩ :: transferToWord I :: solcAddrMask :: ⟨32⟩ :: transferValueWord I ::
-        transferToWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
-        transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
-      (uniswapTransferCreditHashMem (uniswapSourceWord I) (transferToWord I))
+      (⟨64⟩ :: transferToMaskedWord I :: solcAddrMask :: ⟨32⟩ :: transferValueWord I ::
+        transferToMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
+        transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+      (uniswapTransferCreditHashMem (uniswapSourceWord I) (transferToMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
           (transferDebitWord (initState cA gh bl σ σ₀ g A I) I))
-        (mapSlot (transferToWord I) ⟨1⟩)
+        (mapSlot (transferToMaskedWord I) ⟨1⟩)
         (transferNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7604⟩ := uniswapTransferX_afterCreditCalc (g := g)
-    hsz68 hsize hperm hcanonTo henough hfit hreach
+    hsz68 hsize hperm henough hfit hreach
+  have hcanonToMasked : (transferToMaskedWord I).toNat < EVM.addressModulus := by
+    simpa [transferToMaskedWord, u256_land_comm] using
+      solcAddrMask_result_canonical (transferToWord I)
   obtain ⟨_, _, rd7638⟩ := RD.uniswapTransferInternalStoreCredit
     (newTo := transferNewToWord (initState cA gh bl σ σ₀ g A I) I)
-    (value := transferValueWord I) (toWord := transferToWord I) (src := uniswapSourceWord I)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
     (ret := ⟨2907⟩)
-    (R := ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
-    rd7604 hperm hcanonTo
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
+    rd7604 hperm hcanonToMasked
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, rd7638⟩
 
@@ -649,7 +745,6 @@ theorem uniswapTransferX_afterCreditStore {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem uniswapX_transfer {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState cA gh bl σ σ₀ g A I)).toNat)
     (hfit : transferNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
@@ -660,56 +755,56 @@ theorem uniswapX_transfer {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (cA, sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (uniswapSourceWord I) ⟨1⟩)
           (transferDebitWord (initState cA gh bl σ σ₀ g A I) I))
-        (mapSlot (transferToWord I) ⟨1⟩)
+        (mapSlot (transferToMaskedWord I) ⟨1⟩)
         (transferNewToWord (initState cA gh bl σ σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd7638⟩ := uniswapTransferX_afterCreditStore (g := g)
-    hsz68 hsize hperm hcanonTo henough hfit hreach
+    hsz68 hsize hperm henough hfit hreach
   obtain ⟨_, _, rd2907⟩ := RD.uniswapTransferInternalEmitAndJump
-    (value := transferValueWord I) (toWord := transferToWord I) (src := uniswapSourceWord I)
+    (value := transferValueWord I) (toWord := transferToMaskedWord I) (src := uniswapSourceWord I)
     (ret := ⟨2907⟩)
-    (R := ⟨0⟩ :: transferValueWord I :: transferToWord I :: ⟨797⟩ :: [sel])
+    (R := ⟨0⟩ :: transferValueWord I :: transferToMaskedWord I :: ⟨797⟩ :: [sel])
     rd7638 hperm (uniswapSourceWord_canonical I) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd797⟩ := RD.uniswapInternalTransferReturnTrue
-    (discard := ⟨0⟩) (a := transferValueWord I) (b := transferToWord I) (ret := ⟨797⟩)
+    (discard := ⟨0⟩) (a := transferValueWord I) (b := transferToMaskedWord I) (ret := ⟨797⟩)
     (R := [sel]) rd2907 (by jump_dest) (by simp only [List.length_singleton]; omega)
   have htrue : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by decide
   have hstore :
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
-          (uniswapTransferLogMem (uniswapSourceWord I) (transferToWord I)
+          (uniswapTransferLogMem (uniswapSourceWord I) (transferToMaskedWord I)
             (transferValueWord I))
           128 32 =
-        uniswapTransferReturnMem (uniswapSourceWord I) (transferToWord I)
+        uniswapTransferReturnMem (uniswapSourceWord I) (transferToMaskedWord I)
           (transferValueWord I) ⟨1⟩ := by
     rw [htrue]
     rfl
   have hread :
-      (uniswapTransferReturnMem (uniswapSourceWord I) (transferToWord I)
+      (uniswapTransferReturnMem (uniswapSourceWord I) (transferToMaskedWord I)
           (transferValueWord I) ⟨1⟩).readWithPadding 128 32 =
         UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256))) := by
     rw [htrue]
-    exact uniswapTransferReturnMem_read128 (uniswapSourceWord I) (transferToWord I)
+    exact uniswapTransferReturnMem_read128 (uniswapSourceWord I) (transferToMaskedWord I)
       (transferValueWord I) ⟨1⟩
   simpa [htrue] using RD.uniswapReturnBool797FromMem
     (val := (⟨1⟩ : UInt256)) (R := [sel])
-    (mem := uniswapTransferLogMem (uniswapSourceWord I) (transferToWord I)
+    (mem := uniswapTransferLogMem (uniswapSourceWord I) (transferToMaskedWord I)
       (transferValueWord I))
-    (memout := uniswapTransferReturnMem (uniswapSourceWord I) (transferToWord I)
+    (memout := uniswapTransferReturnMem (uniswapSourceWord I) (transferToMaskedWord I)
       (transferValueWord I) ⟨1⟩)
     rd797
-    (uniswapTransferLogMem_mload64 (uniswapSourceWord I) (transferToWord I)
+    (uniswapTransferLogMem_mload64 (uniswapSourceWord I) (transferToMaskedWord I)
       (transferValueWord I))
     hstore
-    (uniswapTransferReturnMem_mload64 (uniswapSourceWord I) (transferToWord I)
+    (uniswapTransferReturnMem_mload64 (uniswapSourceWord I) (transferToMaskedWord I)
       (transferValueWord I) ⟨1⟩)
     hread
     (by simp only [List.length_singleton]; omega)
 
-/- Canonical-success refinement slice for `transfer(address,uint256)`.
+/- Success refinement slice for `transfer(address,uint256)`.
 
-The malformed calldata, insufficient-balance, and checked-add overflow branches are left as
-separate revert-slice work, matching the incremental style used by the surrounding scaffold.
+Malformed calldata remains as separate decode-failure work, matching the incremental style used by
+the surrounding scaffold.
 -/
 set_option maxHeartbeats 2000000 in
 theorem uniswapTransferBodyCoreOk
@@ -717,7 +812,6 @@ theorem uniswapTransferBodyCoreOk
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat)
@@ -772,12 +866,8 @@ theorem uniswapTransferBodyCoreOk
           (transferPostState evmS I) (some (.bool true))) := by
     exact uniswapTransferBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
       henoughS hfitS
-  have htoKeyWord : keyValueToWord (transferToKey I) = transferToWord I := by
-    unfold transferToKey
-    exact keyValueToWord_address_of_canonical _ hcanonTo
-  have htoSlot : transferToSlot I = mapSlot (transferToWord I) ⟨1⟩ := by
-    unfold transferToSlot balanceOfSlot
-    rw [htoKeyWord]
+  have htoSlot : transferToSlot I = mapSlot (transferToMaskedWord I) ⟨1⟩ :=
+    transferToSlot_eq_mapSlot_masked I
   have hsenderSlot : transferSenderSlot evmE = mapSlot (uniswapSourceWord I) ⟨1⟩ := by
     simp [transferSenderSlot, balanceOfSlot, evmE, initState, keyValueToWord_address,
       uniswapSourceWord]
@@ -785,7 +875,7 @@ theorem uniswapTransferBodyCoreOk
       (cA, sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ_evm (mapSlot (uniswapSourceWord I) ⟨1⟩)
             (transferDebitWord evmE I))
-          (mapSlot (transferToWord I) ⟨1⟩) (transferNewToWord evmE I)).1 =
+          (mapSlot (transferToMaskedWord I) ⟨1⟩) (transferNewToWord evmE I)).1 =
         (transferPostState evmE I).createdAccounts := by
     simp [transferPostState, transferAfterDebitState, evmE, initState,
       storageStore_createdAccounts]
@@ -794,7 +884,7 @@ theorem uniswapTransferBodyCoreOk
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ_evm (mapSlot (uniswapSourceWord I) ⟨1⟩)
             (transferDebitWord evmE I))
-          (mapSlot (transferToWord I) ⟨1⟩) (transferNewToWord evmE I))
+          (mapSlot (transferToMaskedWord I) ⟨1⟩) (transferNewToWord evmE I))
         (transferPostState evmE I).accountMap := by
     apply accountMapEquiv.of_eq
     simp only [transferPostState, storageStore_accountMap]
@@ -802,9 +892,101 @@ theorem uniswapTransferBodyCoreOk
     rw [hsenderSlot, htoSlot]
     simp only [evmE, initState]
   exact (uniswapX_transfer (g := Sat256.ofUInt256 g)
-      hsz68 hsize hperm hcanonTo henough hfit hreach)
+      hsz68 hsize hperm henough hfit hreach)
     |>.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
       hcreated hAccountsPost hσPost (returnEquiv_of_encode boolTrueReturnEncoding)
+
+/-- Insufficient-balance revert refinement slice for `transfer(address,uint256)`. -/
+theorem uniswapTransferBodyCoreRevert_insufficient
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hlt : (transferFromBalanceWord
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat <
+        (transferValueWord I).toNat)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
+    (hdecode :
+      decodeCalldata (transferTransition.params.map Param.name)
+        (transitionSignature transferTransition).paramTypes I.calldata = some (transferStore I))
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hσ : EVMStateEquiv evmE evmS := by
+    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
+  have hFromBalance : transferFromBalanceWord evmE = transferFromBalanceWord evmS := by
+    unfold transferFromBalanceWord transferSenderSlot
+    rw [hσ.executionEnv]
+    exact hσ.storageLoad_codeOwner (balanceOfSlot (.address evmS.executionEnv.source))
+  have hltS : (transferFromBalanceWord evmS).toNat < (transferValueWord I).toNat := by
+    simpa [evmE, hFromBalance] using hlt
+  have hbody :
+      ExecTransitionBody config contract evmS (transferStore I) transferTransition.body
+        .reverted := by
+    exact uniswapTransferBodyReverts_insufficient evmS I
+      (by simp only [evmS, initState]; exact hwv) hltS
+  exact (uniswapTransferX_insufficient (g := Sat256.ofUInt256 g)
+      hsz68 hsize hlt hreach)
+    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+/-- Checked-add overflow revert refinement slice for `transfer(address,uint256)`. -/
+theorem uniswapTransferBodyCoreRevert_overflow
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat)
+    (hover : UInt256.size ≤
+      transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
+    (hdecode :
+      decodeCalldata (transferTransition.params.map Param.name)
+        (transitionSignature transferTransition).paramTypes I.calldata = some (transferStore I))
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hσ : EVMStateEquiv evmE evmS := by
+    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
+  have hFromBalance : transferFromBalanceWord evmE = transferFromBalanceWord evmS := by
+    unfold transferFromBalanceWord transferSenderSlot
+    rw [hσ.executionEnv]
+    exact hσ.storageLoad_codeOwner (balanceOfSlot (.address evmS.executionEnv.source))
+  have hDebit : transferDebitWord evmE I = transferDebitWord evmS I := by
+    simp [transferDebitWord, hFromBalance]
+  have hσDebit : EVMStateEquiv (transferAfterDebitState evmE I)
+      (transferAfterDebitState evmS I) := by
+    unfold transferAfterDebitState transferSenderSlot
+    rw [hσ.executionEnv, hDebit]
+    exact hσ.storageStore_codeOwner (balanceOfSlot (.address evmS.executionEnv.source)) rfl
+  have hToBalance : transferToBalanceWord evmE I = transferToBalanceWord evmS I := by
+    unfold transferToBalanceWord
+    exact hσDebit.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
+      (transferToSlot I)
+  have hNewToNat : transferNewToNat evmE I = transferNewToNat evmS I := by
+    simp [transferNewToNat, hToBalance]
+  have henoughS :
+      (transferValueWord I).toNat ≤ (transferFromBalanceWord evmS).toNat := by
+    simpa [evmE, hFromBalance] using henough
+  have hoverS : UInt256.size ≤ transferNewToNat evmS I := by
+    simpa [evmE, hNewToNat] using hover
+  have hbody :
+      ExecTransitionBody config contract evmS (transferStore I) transferTransition.body
+        .reverted := by
+    exact uniswapTransferBodyReverts_overflow evmS I
+      (by simp only [evmS, initState]; exact hwv) henoughS hoverS
+  exact (uniswapTransferX_overflow (g := Sat256.ofUInt256 g)
+      hsz68 hsize hperm henough hover hreach)
+    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 /-- Short-calldata decode-failure refinement slice for `transfer(address,uint256)`.
 
@@ -824,7 +1006,7 @@ theorem uniswapTransferBodyCoreDecodeFailed_short
       hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
-/-- Canonical-success `transfer(address,uint256)` refinement slice, packaged from selector
+/-- Success `transfer(address,uint256)` refinement slice, packaged from selector
 dispatch through the body core. -/
 theorem uniswapTransferBodyOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -832,7 +1014,6 @@ theorem uniswapTransferBodyOk
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat)
@@ -844,9 +1025,9 @@ theorem uniswapTransferBodyOk
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
-  exact uniswapTransferBodyCoreOk hcode hsize hperm hwv hsz68 hcanonTo henough hfit
+  exact uniswapTransferBodyCoreOk hcode hsize hperm hwv hsz68 henough hfit
     hdispatch
-    (uniswapDecode_transfer_ok hsz68 hcanonTo)
+    (uniswapDecode_transfer_ok hsz68)
     (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -864,6 +1045,52 @@ theorem uniswapTransferBodyDecodeFailed_short
   exact uniswapTransferBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+/-- Insufficient-balance `transfer(address,uint256)` refinement slice, packaged from selector
+dispatch through the body core. -/
+theorem uniswapTransferBodyRevert_insufficient
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hlt : (transferFromBalanceWord
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat <
+        (transferValueWord I).toNat)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
+  exact uniswapTransferBodyCoreRevert_insufficient hcode hsize hwv hsz68 hlt
+    hdispatch
+    (uniswapDecode_transfer_ok hsz68)
+    (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+    hAccounts
+
+/-- Checked-add overflow `transfer(address,uint256)` refinement slice, packaged from selector
+dispatch through the body core. -/
+theorem uniswapTransferBodyRevert_overflow
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat)
+    (hover : UInt256.size ≤
+      transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
+  exact uniswapTransferBodyCoreRevert_overflow hcode hsize hperm hwv hsz68
+    henough hover hdispatch
+    (uniswapDecode_transfer_ok hsz68)
+    (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+    hAccounts
+
 theorem uniswapTransferBody
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -873,18 +1100,18 @@ theorem uniswapTransferBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hcanonTo : (transferToWord I).toNat < EVM.addressModulus
-    · by_cases henough : (transferValueWord I).toNat ≤
-        (transferFromBalanceWord
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
-      · by_cases hfit :
-          transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
-            UInt256.size
-        · exact uniswapTransferBodyOk hcode hsize hperm hwv hsel hsz68
-            hcanonTo henough hfit hdispatch hAccounts
-        · sorry
-      · sorry
-    · sorry
+  · by_cases henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
+    · by_cases hfit :
+        transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+          UInt256.size
+      · exact uniswapTransferBodyOk hcode hsize hperm hwv hsel hsz68
+          henough hfit hdispatch hAccounts
+      · exact uniswapTransferBodyRevert_overflow hcode hsize hperm hwv hsel hsz68
+          henough (by omega) hdispatch hAccounts
+    · exact uniswapTransferBodyRevert_insufficient hcode hsize hwv hsel hsz68
+        (by omega) hdispatch hAccounts
   · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

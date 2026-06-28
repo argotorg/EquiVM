@@ -10,12 +10,6 @@ namespace UniswapV2Pair
 
 /-! ## `PERMIT_TYPEHASH()` constant getter -/
 
-def permitTypehashBytes : List UInt8 :=
-  [ 0x6e, 0x71, 0xed, 0xae, 0x12, 0xb1, 0xb9, 0x7f,
-    0x4d, 0x1f, 0x60, 0x37, 0x0f, 0xef, 0x10, 0x10,
-    0x5f, 0xa2, 0xfa, 0xae, 0x01, 0x26, 0x11, 0x4a,
-    0x16, 0x9c, 0x64, 0x84, 0x5d, 0x61, 0x26, 0xc9 ]
-
 def permitTypehashWord : UInt256 :=
   ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
 
@@ -53,10 +47,7 @@ theorem uniswapDecode_permitTypehash {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-/-- Runtime-only `PERMIT_TYPEHASH()` slice from selector dispatch through return.
-
-This deliberately does not claim refinement: `permitTypehashBytes_ne_runtimeWordBytes` records the
-source/runtime literal mismatch below. -/
+/-- Runtime-only `PERMIT_TYPEHASH()` slice from selector dispatch through return. -/
 theorem uniswapPermitTypehashRuntimeBody
     {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)

@@ -15,6 +15,9 @@ namespace UniswapV2Pair
 abbrev approveSpenderWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
 
+abbrev approveSpenderMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (approveSpenderWord I)
+
 /-- The raw ABI word for `approve`'s `value` argument. -/
 abbrev approveValueWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 36
@@ -48,6 +51,13 @@ theorem approveStorageSlot_eq_mapSlot (evm : EVM.State) (I : ExecutionEnv)
       mapSlot (approveSpenderWord I) (mapSlot (UInt256.ofNat evm.executionEnv.source.val) ⟨2⟩) := by
   unfold approveStorageSlot allowanceSlot allowanceOwnerSlot approveSpenderKey
   rw [keyValueToWord_address_of_canonical _ hcanonSpender, keyValueToWord_address]
+
+theorem approveStorageSlot_eq_mapSlot_masked (evm : EVM.State) (I : ExecutionEnv) :
+    approveStorageSlot evm I =
+      mapSlot (approveSpenderMaskedWord I)
+        (mapSlot (UInt256.ofNat evm.executionEnv.source.val) ⟨2⟩) := by
+  unfold approveStorageSlot allowanceSlot allowanceOwnerSlot approveSpenderKey approveSpenderMaskedWord
+  rw [keyValueToWord_address_ofNat_mask, keyValueToWord_address]
 
 theorem approveStore_spender (I : ExecutionEnv) :
     (approveStore I).get? "spender" = some (approveSpenderValue I) := by
@@ -95,8 +105,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
   simp [approvePostState, approveStorageSlot]
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size)
-    (_hcanon : (approveSpenderWord I).toNat < EVM.addressModulus) :
+    (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldata (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
   show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = _
@@ -144,22 +153,21 @@ theorem uniswapApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     jumps to the external approve routine at pc 2894. -/
 theorem uniswapApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2894⟩
-        [approveValueWord I, approveSpenderWord I, ⟨797⟩, sel]
+        [approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd775⟩ := RD.uniswapAddressUint256ExternalLenOk
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩) hreach
     uniswap_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
-  obtain ⟨_, _, rd2894⟩ := RD.uniswapAddressUint256ExternalMaskAndJump
+  obtain ⟨_, _, rd2894⟩ := RD.uniswapAddressUint256ExternalMaskAndJumpMasked
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩) (R := [sel]) rd775
     uniswap_address_uint256_external_entry_wf
-    (by simpa [approveSpenderWord] using hcanonSpender)
     (by jump_dest) (by simp only [List.length_singleton]; omega)
-  exact ⟨_, _, by simpa [approveSpenderWord, approveValueWord] using rd2894⟩
+  exact ⟨_, _, by simpa [approveSpenderWord, approveSpenderMaskedWord, approveValueWord]
+    using rd2894⟩
 
 /-- Short-calldata path for `approve(address,uint256)` from the dispatcher body entry.
 
@@ -213,18 +221,17 @@ theorem RD.uniswapApproveExternalFinish {g : Sat256} {s0 : State} {ee : Executio
     to the shared internal `_approve` routine at pc 7412. -/
 theorem uniswapApproveX_toInternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7412⟩
-      (approveValueWord I :: approveSpenderWord I :: uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ ::
-        approveValueWord I :: approveSpenderWord I :: ⟨797⟩ :: [sel])
+      (approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
+        ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd2894⟩ := uniswapApproveX_decoded (g := g)
-    hsz68 hsize hcanonSpender hreach
+    hsz68 hsize hreach
   obtain ⟨_, _, rd7412⟩ := RD.uniswapApproveExternalToInternal
-    (value := approveValueWord I) (spender := approveSpenderWord I) (ret := ⟨797⟩)
+    (value := approveValueWord I) (spender := approveSpenderMaskedWord I) (ret := ⟨797⟩)
     (R := [sel]) rd2894 (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, rd7412⟩
 
@@ -232,23 +239,22 @@ theorem uniswapApproveX_toInternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     nested-mapping hash inside the shared internal `_approve` routine. -/
 theorem uniswapApproveX_innerHash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7441⟩
       (mapSlot (uniswapSourceWord I) ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ ::
-        uniswapSourceWord I :: solcAddrMask :: approveValueWord I :: approveSpenderWord I ::
+        uniswapSourceWord I :: solcAddrMask :: approveValueWord I :: approveSpenderMaskedWord I ::
         uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ :: approveValueWord I ::
-        approveSpenderWord I :: ⟨797⟩ :: [sel])
+        approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       (twoWordHashMem (uniswapSourceWord I) ⟨2⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd7412⟩ := uniswapApproveX_toInternal (g := g)
-    hsz68 hsize hcanonSpender hreach
+    hsz68 hsize hreach
   obtain ⟨_, _, rd7441⟩ := RD.uniswapApproveInternalInnerHash
-    (value := approveValueWord I) (spender := approveSpenderWord I)
+    (value := approveValueWord I) (spender := approveSpenderMaskedWord I)
     (owner := uniswapSourceWord I) (ret := ⟨2907⟩)
-    (R := [⟨0⟩, approveValueWord I, approveSpenderWord I, ⟨797⟩, sel])
+    (R := [⟨0⟩, approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel])
     rd7412 (uniswapSourceWord_canonical I)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd7441⟩
@@ -258,28 +264,30 @@ theorem uniswapApproveX_innerHash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
 theorem uniswapApproveX_store {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7457⟩
-      (⟨32⟩ :: ⟨64⟩ :: uniswapSourceWord I :: approveSpenderWord I ::
-        approveValueWord I :: approveSpenderWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
-        ⟨0⟩ :: approveValueWord I :: approveSpenderWord I :: ⟨797⟩ :: [sel])
-      (twoWordHashMem (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩)
+      (⟨32⟩ :: ⟨64⟩ :: uniswapSourceWord I :: approveSpenderMaskedWord I ::
+        approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
+        ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
+      (twoWordHashMem (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩)
         (twoWordHashMem (uniswapSourceWord I) ⟨2⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ
-        (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       k C := by
   obtain ⟨_, _, rd7441⟩ := uniswapApproveX_innerHash (g := g)
-    hsz68 hsize hcanonSpender hreach
+    hsz68 hsize hreach
+  have hcanonMasked : (approveSpenderMaskedWord I).toNat < EVM.addressModulus := by
+    simpa [approveSpenderMaskedWord, u256_land_comm] using
+      solcAddrMask_result_canonical (approveSpenderWord I)
   obtain ⟨_, _, rd7457⟩ := RD.uniswapApproveInternalStore
-    (value := approveValueWord I) (spender := approveSpenderWord I)
+    (value := approveValueWord I) (spender := approveSpenderMaskedWord I)
     (owner := uniswapSourceWord I) (ret := ⟨2907⟩)
-    (R := [⟨0⟩, approveValueWord I, approveSpenderWord I, ⟨797⟩, sel])
-    rd7441 hperm hcanonSpender
+    (R := [⟨0⟩, approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel])
+    rd7441 hperm hcanonMasked
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd7457⟩
 
@@ -288,90 +296,84 @@ theorem uniswapApproveX_store {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
 theorem uniswapApproveX_emit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2907⟩
-      (⟨0⟩ :: approveValueWord I :: approveSpenderWord I :: ⟨797⟩ :: [sel])
-      (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderWord I) (approveValueWord I))
+      (⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
+      (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
+        (approveValueWord I))
       (UInt256.ofNat 5) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ
-        (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       k C := by
   obtain ⟨_, _, rd7457⟩ := uniswapApproveX_store (g := g)
-    hperm hsz68 hsize hcanonSpender hreach
+    hperm hsz68 hsize hreach
   obtain ⟨_, _, rd2907⟩ := RD.uniswapApproveInternalEmitAndJump
-    (value := approveValueWord I) (spender := approveSpenderWord I)
+    (value := approveValueWord I) (spender := approveSpenderMaskedWord I)
     (owner := uniswapSourceWord I) (ret := ⟨2907⟩)
-    (R := [⟨0⟩, approveValueWord I, approveSpenderWord I, ⟨797⟩, sel])
+    (R := [⟨0⟩, approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel])
     rd7457 hperm (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [uniswapApproveHashMem] using rd2907⟩
 
-/-- Complete canonical-success EVM path for `approve(address,uint256)`, returning ABI `true`. -/
+/-- Complete EVM path for `approve(address,uint256)`, returning ABI `true`. -/
 theorem uniswapApproveX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
       (cA, sstoreAccountMap I.codeOwner σ
-        (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd2907⟩ := uniswapApproveX_emit (g := g)
-    hperm hsz68 hsize hcanonSpender hreach
+    hperm hsz68 hsize hreach
   obtain ⟨_, _, rd797⟩ := RD.uniswapApproveExternalFinish
-    (value := approveValueWord I) (spender := approveSpenderWord I) (ret := ⟨797⟩)
+    (value := approveValueWord I) (spender := approveSpenderMaskedWord I) (ret := ⟨797⟩)
     (R := [sel]) rd2907 (by jump_dest) (by simp only [List.length_singleton]; omega)
   have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by decide
   have hmemout :
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
-          (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderWord I)
+          (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
             (approveValueWord I)) 128 32 =
-        uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderWord I)
+        uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
           (approveValueWord I) ⟨1⟩ := by
     rw [hbool]
     rfl
   have hread128 :
-      (uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderWord I)
+      (uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
         (approveValueWord I) ⟨1⟩).readWithPadding 128 32 =
           UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256))) := by
     rw [hbool]
-    exact uniswapApproveReturnMem_read128 (uniswapSourceWord I) (approveSpenderWord I)
+    exact uniswapApproveReturnMem_read128 (uniswapSourceWord I) (approveSpenderMaskedWord I)
       (approveValueWord I) ⟨1⟩
   have hret := RD.uniswapReturnBool797FromMem
     (val := (⟨1⟩ : UInt256)) (R := [sel])
-    (mem := uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderWord I)
+    (mem := uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
       (approveValueWord I))
-    (memout := uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderWord I)
+    (memout := uniswapApproveReturnMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
       (approveValueWord I) ⟨1⟩)
     rd797
-    (uniswapApproveLogMem_mload64 (uniswapSourceWord I) (approveSpenderWord I)
+    (uniswapApproveLogMem_mload64 (uniswapSourceWord I) (approveSpenderMaskedWord I)
       (approveValueWord I))
     hmemout
-    (uniswapApproveReturnMem_mload64 (uniswapSourceWord I) (approveSpenderWord I)
+    (uniswapApproveReturnMem_mload64 (uniswapSourceWord I) (approveSpenderMaskedWord I)
       (approveValueWord I) ⟨1⟩)
     hread128
       (by simp only [List.length_singleton]; omega)
   simpa [hbool] using hret
 
-/- Canonical-success refinement slice for `approve(address,uint256)`.
-
-The non-canonical address case is still separate proof work: the optimized bytecode masks the
-address word, and the `legacyAddr` ABI annotation decodes it the same way.
--/
+/- Success refinement slice for `approve(address,uint256)`. -/
 set_option maxHeartbeats 2000000 in
 theorem uniswapApproveBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hdecode :
       decodeCalldata (approveTransition.params.map Param.name)
@@ -389,19 +391,19 @@ theorem uniswapApproveBodyCoreOk
     exact uniswapApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
   have hslotS :
       approveStorageSlot evmS I =
-        mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩) := by
+        mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩) := by
     simpa [evmS, initState, uniswapSourceWord] using
-      approveStorageSlot_eq_mapSlot evmS I hcanonSpender
+      approveStorageSlot_eq_mapSlot_masked evmS I
   have hcreated :
       (cA, sstoreAccountMap I.codeOwner σ_evm
-          (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+          (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
           (approveValueWord I)).1 =
         (approvePostState evmS I).createdAccounts := by
     simp [approvePostState, evmS, initState, storageStore_createdAccounts]
   have hAccountsPost :
       accountMapEquiv
         (sstoreAccountMap I.codeOwner σ_evm
-          (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+          (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
           (approveValueWord I))
         (approvePostState evmS I).accountMap := by
     unfold approvePostState
@@ -409,16 +411,16 @@ theorem uniswapApproveBodyCoreOk
     rw [hslotS]
     change accountMapEquiv
       (sstoreAccountMap I.codeOwner σ_evm
-        (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       (sstoreAccountMap I.codeOwner σ_solm
-        (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
     exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (mapSlot (approveSpenderWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+      (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
       (approveValueWord I) hAccounts
   exact (uniswapApproveX_success (g := Sat256.ofUInt256 g)
-      hperm hsz68 hsize hcanonSpender hreach)
+      hperm hsz68 hsize hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody hcreated
       hAccountsPost (returnEquiv_of_encode boolTrueReturnEncoding)
 
@@ -440,7 +442,7 @@ theorem uniswapApproveBodyCoreDecodeFailed_short
       hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
-/-- Canonical-success `approve(address,uint256)` refinement slice, packaged from selector dispatch
+/-- Success `approve(address,uint256)` refinement slice, packaged from selector dispatch
 through the body core. -/
 theorem uniswapApproveBodyOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -448,15 +450,14 @@ theorem uniswapApproveBodyOk
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
-  exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68 hcanonSpender
+  exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68
     hdispatch
-    (uniswapDecode_approve_ok hsz68 hcanonSpender)
+    (uniswapDecode_approve_ok hsz68)
     (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -483,10 +484,7 @@ theorem uniswapApproveBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
-    · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68
-        hcanonSpender hdispatch hAccounts
-    · sorry
+  · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch hAccounts
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair
