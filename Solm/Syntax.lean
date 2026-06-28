@@ -1633,6 +1633,7 @@ structure ContractDecl where
   structs : List StructDecl := [] -- Maybe these should not be per-contract. Zoe: if we are inlining them anyway, do we still need this?
   functions : List FunctionDecl := []
   transitions : List TransitionDecl := []
+  fallback : Option TransitionDecl := none
   deriving DecidableEq, Repr, Inhabited
 
 abbrev Program := List ContractDecl
