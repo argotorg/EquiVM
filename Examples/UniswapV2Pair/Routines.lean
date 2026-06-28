@@ -1913,4 +1913,46 @@ theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : Execution
         exact hread128)
       (by evm_ov) ]
 
+set_option maxHeartbeats 1000000 in
+/-- Shared `_update` success guard: both balances fit in the packed `uint112` reserve fields,
+so control jumps past the `UniswapV2: OVERFLOW` revert block. -/
+theorem RD.uniswapUpdateOverflowGuardOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256} {R : List UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
+    (hfit0 : balance0.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
+    (hfit1 : balance1.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k' C' := by
+  have hgt0 : UInt256.gt balance0 UniswapV2Pair.reserve112Mask = ⟨0⟩ :=
+    ugt_zero hfit0
+  have hgt1 : UInt256.gt balance1 UniswapV2Pair.reserve112Mask = ⟨0⟩ :=
+    ugt_zero hfit1
+  have hgt0Lit :
+      UInt256.gt balance0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨0⟩ := by
+    simpa [UniswapV2Pair.reserve112Mask] using hgt0
+  have hgt1Lit :
+      UInt256.gt balance1
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨0⟩ := by
+    simpa [UniswapV2Pair.reserve112Mask] using hgt1
+  have rd6973₀ := evm_run h with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, gt,
+    dup1, iszero, swap1, push2 ⟨6989⟩]
+  have rd6973 := rd6973₀
+  rw [hgt0Lit] at rd6973
+  have rd6977 := evm_run rd6973 with [jumpiNT (by decide)]
+  have rd6978 := evm_run rd6977 with [pop]
+  have rd6989₀ := evm_run rd6978 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup4, gt, iszero,
+    jumpdest, push2 ⟨7060⟩]
+  have rd6989 := rd6989₀
+  rw [hgt1Lit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6989
+  exact ⟨_, _, evm_run rd6989 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
+
 end UniswapV2Pair

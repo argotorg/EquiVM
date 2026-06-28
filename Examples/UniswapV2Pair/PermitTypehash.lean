@@ -13,12 +13,6 @@ namespace UniswapV2Pair
 def permitTypehashBytes : List UInt8 :=
   [ 0x6e, 0x71, 0xed, 0xae, 0x12, 0xb1, 0xb9, 0x7f,
     0x4d, 0x1f, 0x60, 0x37, 0x0f, 0xef, 0x10, 0x10,
-    0x5f, 0xa2, 0x77, 0x6a, 0xe0, 0x12, 0x61, 0x14,
-    0xa1, 0x69, 0xc6, 0x48, 0x45, 0xd6, 0x12, 0x6c ]
-
-def permitTypehashRuntimeBytes : List UInt8 :=
-  [ 0x6e, 0x71, 0xed, 0xae, 0x12, 0xb1, 0xb9, 0x7f,
-    0x4d, 0x1f, 0x60, 0x37, 0x0f, 0xef, 0x10, 0x10,
     0x5f, 0xa2, 0xfa, 0xae, 0x01, 0x26, 0x11, 0x4a,
     0x16, 0x9c, 0x64, 0x84, 0x5d, 0x61, 0x26, 0xc9 ]
 
@@ -26,17 +20,8 @@ def permitTypehashWord : UInt256 :=
   ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
 
 theorem permitTypehashWord_toBytesBE :
-    EVM.Word.toBytesBE permitTypehashWord = permitTypehashRuntimeBytes := by
+    EVM.Word.toBytesBE permitTypehashWord = permitTypehashBytes := by
   native_decide
-
-theorem permitTypehashBytes_ne_runtimeBytes :
-    permitTypehashBytes ≠ permitTypehashRuntimeBytes := by
-  native_decide
-
-theorem permitTypehashBytes_ne_runtimeWordBytes :
-    permitTypehashBytes ≠ EVM.Word.toBytesBE permitTypehashWord := by
-  rw [permitTypehashWord_toBytesBE]
-  exact permitTypehashBytes_ne_runtimeBytes
 
 /-- The Solm `PERMIT_TYPEHASH()` body returns the bytes32 literal from Uniswap V2 ERC20. -/
 theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
@@ -84,10 +69,60 @@ theorem uniswapPermitTypehashRuntimeBody
   exact uniswapX_permitTypehash
     (uniswapReachPermitTypehashBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
-/-!
-`PERMIT_TYPEHASH()` is intentionally left without a body-core refinement here.  The runtime bytecode
-pushes `permitTypehashRuntimeBytes`, while `Spec.lean` currently returns `permitTypehashBytes`.
-Per `prompt.md`, this file records the exact mismatch without changing trusted semantics.
--/
+/-- `PERMIT_TYPEHASH()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
+theorem uniswapPermitTypehashBodyCore
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition)
+    (hdecode :
+      decodeCalldata (permitTypehashTransition.params.map Param.name)
+        (transitionSignature permitTypehashTransition).paramTypes I.calldata = some ∅)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨933⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        permitTypehashTransition.body
+        (.returned { contract := contract, locals := ∅ }
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (some (.fixedBytes bytes32Width permitTypehashBytes))) := by
+    exact uniswapPermitTypehashBodyReturns
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (by simp only [initState]; exact hwv)
+  have henc :
+      returnEquiv (UInt256.toByteArray permitTypehashWord)
+        (some (.fixedBytes bytes32Width permitTypehashBytes))
+        permitTypehashTransition.returnType := by
+    rw [permitTypehashTransition]
+    exact returnEquiv_of_encode
+      (by
+        simpa [bytes32, bytes32Width, permitTypehashWord_toBytesBE] using
+          bytes32ReturnEncoding permitTypehashWord)
+  exact (RD.uniswapWordConstGetterExternal (g := Sat256.ofUInt256 g)
+      (entry := ⟨933⟩) (routine := ⟨3092⟩) (val := permitTypehashWord)
+      (width := 32) (op := .PUSH32) hreach uniswap_word_getter_entry_wf
+      (by
+        unfold permitTypehashWord Reasoning.Reach.uniswapConstGetterWf
+        repeat' first | apply And.intro | native_decide)
+      (by jump_dest) (by jump_dest)).reEquivExecutionTransport
+    hcode hdispatch hdecode hbody rfl hAccounts henc
+
+/-- `PERMIT_TYPEHASH()` body wrapper for top-level routing: selector match supplies decode and reach. -/
+theorem uniswapPermitTypehashBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩ rfl hsel
+  exact uniswapPermitTypehashBodyCore hcode hwv hdispatch
+    (uniswapDecode_permitTypehash hsz)
+    (uniswapReachPermitTypehashBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
+    hAccounts
 
 end UniswapV2Pair

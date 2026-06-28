@@ -1,4 +1,5 @@
 import Examples.UniswapV2Pair.ExternalCalls
+import Examples.UniswapV2Pair.UpdateRoutines
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -1220,6 +1221,334 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
   obtain ⟨k'', C'', rd6959⟩ := uniswapSyncReserveSlotUnpack rd6336
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨k'', C'', by simpa using rd6959⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only `sync()` slice through the shared `_update` overflow guard. When both
+`balanceOf` return words fit in `uint112`, control reaches pc 7060. -/
+theorem uniswapSyncRuntimeUpdateOverflowGuardOk
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hunlocked :
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (htoken0Code :
+      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+        (UInt256.land solcAddrMask
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+        ⟨0⟩) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+          (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+          (AccountAddress.ofUInt256
+            (UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+            (AccountAddress.ofUInt256
+              (UInt256.land solcAddrMask
+                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+          callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+          ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
+          (I.depth + 1) I.header false)
+      ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
+          [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+          (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
+          balanceOfThisStaticcallActiveWords o (cA', σ') k C
+      ∧ (z = true → 32 ≤ o.size →
+        uniswapExtCodeSizeWord σ'
+          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+        ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+          (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
+          (k' C' : ℕ),
+          (∃ (g'' : UInt256) (A' : Substate),
+            (cA'', σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl
+              σ' σ₀ A_in1
+              (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+              (AccountAddress.ofUInt256
+                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+              (toExecute σ'
+                (AccountAddress.ofUInt256
+                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+              callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+              ((balanceOfThisRebuiltCalldataMem
+                (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
+              (I.depth + 1) I.header false)
+          ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
+            [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+              ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+            balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k' C'
+          ∧ (z1 = true → 32 ≤ o1.size →
+            (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
+              [UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+                  reserve112Mask,
+                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
+                UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+                ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+              (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+              balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k'' C'')
+          ∧ o1.size < UInt256.size)
+      ∧ o.size < UInt256.size := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hmade, hoSize⟩ :=
+    uniswapSyncRuntimeReserveSlotUnpacked
+      (g := g) hcode hsize hwv hsel hperm hdepth hunlocked htoken0Code
+  refine ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, ?_, hoSize⟩
+  intro hz ho32 htoken1Code
+  obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, hupdate, ho1Size⟩ :=
+    hmade hz ho32 htoken1Code
+  refine ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, ?_, ho1Size⟩
+  intro hz1 ho132 hfit0 hfit1
+  obtain ⟨_, _, rd6959⟩ := hupdate hz1 ho132
+  obtain ⟨k'', C'', rd7060⟩ := RD.uniswapUpdateOverflowGuardOk rd6959 hfit0 hfit1
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨k'', C'', by simpa using rd7060⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only `sync()` slice through the shared `_update` `timeElapsed == 0` branch, reaching
+the reserve-write block at pc 7241 and skipping cumulative price updates. -/
+theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hunlocked :
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (htoken0Code :
+      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+        (UInt256.land solcAddrMask
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+        ⟨0⟩) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+          (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+          (AccountAddress.ofUInt256
+            (UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+            (AccountAddress.ofUInt256
+              (UInt256.land solcAddrMask
+                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+          callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+          ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
+          (I.depth + 1) I.header false)
+      ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
+          [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+          (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
+          balanceOfThisStaticcallActiveWords o (cA', σ') k C
+      ∧ (z = true → 32 ≤ o.size →
+        uniswapExtCodeSizeWord σ'
+          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+        ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+          (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
+          (k' C' : ℕ),
+          (∃ (g'' : UInt256) (A' : Substate),
+            (cA'', σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl
+              σ' σ₀ A_in1
+              (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+              (AccountAddress.ofUInt256
+                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+              (toExecute σ'
+                (AccountAddress.ofUInt256
+                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+              callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+              ((balanceOfThisRebuiltCalldataMem
+                (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
+              (I.depth + 1) I.header false)
+          ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
+            [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+              ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+            balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k' C'
+          ∧ (z1 = true → 32 ≤ o1.size →
+            (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            UInt256.land
+              (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp))
+                (UInt256.land reserve32Mask
+                  (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve224Shift)))
+              reserve32Mask = ⟨0⟩ →
+            ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7241⟩
+              [UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp))
+                  (UInt256.land reserve32Mask
+                    (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve224Shift)),
+                UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp),
+                UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+                  reserve112Mask,
+                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
+                UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+                ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+              (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+              balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k'' C'')
+          ∧ o1.size < UInt256.size)
+      ∧ o.size < UInt256.size := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hmade, hoSize⟩ :=
+    uniswapSyncRuntimeUpdateOverflowGuardOk
+      (g := g) hcode hsize hwv hsel hperm hdepth hunlocked htoken0Code
+  refine ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, ?_, hoSize⟩
+  intro hz ho32 htoken1Code
+  obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, hupdate,
+    ho1Size⟩ := hmade hz ho32 htoken1Code
+  refine ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, ?_, ho1Size⟩
+  intro hz1 ho132 hfit0 hfit1 helapsed0
+  obtain ⟨_, _, rd7060⟩ := hupdate hz1 ho132 hfit0 hfit1
+  obtain ⟨k'', C'', rd7241⟩ :=
+    RD.uniswapUpdateElapsedZeroSkipsCumulatives rd7060
+      (by simpa [uniswapSlotWord] using helapsed0)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨k'', C'', by simpa [uniswapSlotWord] using rd7241⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only `sync()` slice for the `timeElapsed == 0` path through the packed reserve
+`SSTORE`, stopping just before the `Sync` event emission. -/
+theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hunlocked :
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (htoken0Code :
+      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+        (UInt256.land solcAddrMask
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+        ⟨0⟩) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+          (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+          (AccountAddress.ofUInt256
+            (UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+            (AccountAddress.ofUInt256
+              (UInt256.land solcAddrMask
+                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+          callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+          ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
+          (I.depth + 1) I.header false)
+      ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
+          [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+          (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
+          balanceOfThisStaticcallActiveWords o (cA', σ') k C
+      ∧ (z = true → 32 ≤ o.size →
+        uniswapExtCodeSizeWord σ'
+          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+        ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+          (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
+          (k' C' : ℕ),
+          (∃ (g'' : UInt256) (A' : Substate),
+            (cA'', σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl
+              σ' σ₀ A_in1
+              (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+              (AccountAddress.ofUInt256
+                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+              (toExecute σ'
+                (AccountAddress.ofUInt256
+                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+              callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+              ((balanceOfThisRebuiltCalldataMem
+                (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
+              (I.depth + 1) I.header false)
+          ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
+            [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
+              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+              ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+            balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k' C'
+          ∧ (z1 = true → 32 ≤ o1.size →
+            (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))).toNat ≤
+              reserve112Mask.toNat →
+            UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I)
+              reserve32Mask = ⟨0⟩ →
+            ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+              (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7339⟩
+              [reserve112Shift, reserve112Mask,
+                uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+                  (uniswapUpdateTimestampWord I)
+                  (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
+                  (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))),
+                uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I,
+                uniswapUpdateTimestampWord I,
+                UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+                  reserve112Mask,
+                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
+                UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+                ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
+              (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+              balanceOfThisStaticcallActiveWords o1
+              (cA'', sstoreAccountMap I.codeOwner σ'' ⟨8⟩
+                (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+                  (uniswapUpdateTimestampWord I)
+                  (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
+                  (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))))
+              k'' C'')
+          ∧ o1.size < UInt256.size)
+      ∧ o.size < UInt256.size := by
+  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hmade, hoSize⟩ :=
+    uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
+      (g := g) hcode hsize hwv hsel hperm hdepth hunlocked htoken0Code
+  refine ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, ?_, hoSize⟩
+  intro hz ho32 htoken1Code
+  obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, hupdate,
+    ho1Size⟩ := hmade hz ho32 htoken1Code
+  refine ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd6295, ?_, ho1Size⟩
+  intro hz1 ho132 hfit0 hfit1 helapsed0
+  obtain ⟨_, _, rd7241⟩ := hupdate hz1 ho132 hfit0 hfit1
+    (by simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord] using helapsed0)
+  obtain ⟨k'', C'', rd7339⟩ :=
+    RD.uniswapUpdateStorePackedReserves
+      (by simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord] using rd7241)
+      hperm
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨k'', C'', by
+    simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using rd7339⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Runtime-only `sync()` slice showing that the first `balanceOf` guard reverts before the
