@@ -526,4 +526,26 @@ theorem uniswapInitializeBodyDecodeFailed_short
   exact uniswapInitializeBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachInitializeBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapInitializeBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some initializeTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus
+      · by_cases hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus
+        · by_cases hfactory :
+            UInt256.land (initializeFactoryWord σ_evm I) solcAddrMask = uniswapSourceWord I
+          · exact uniswapInitializeBodyOk hcode hsize hperm hwv hsel hsz68 hbig
+              hcanon0 hcanon1 hfactory hdispatch hAccounts
+          · sorry
+        · sorry
+      · sorry
+    · sorry
+  · exact uniswapInitializeBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

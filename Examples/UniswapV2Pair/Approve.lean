@@ -484,4 +484,21 @@ theorem uniswapApproveBodyDecodeFailed_short
   exact uniswapApproveBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapApproveBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
+      · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hbig
+          hcanonSpender hdispatch hAccounts
+      · sorry
+    · sorry
+  · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

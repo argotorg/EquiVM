@@ -874,4 +874,29 @@ theorem uniswapTransferBodyDecodeFailed_short
   exact uniswapTransferBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapTransferBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonTo : (transferToWord I).toNat < EVM.addressModulus
+      · by_cases henough : (transferValueWord I).toNat ≤
+          (transferFromBalanceWord
+            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
+        · by_cases hfit :
+            transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+              UInt256.size
+          · exact uniswapTransferBodyOk hcode hsize hperm hwv hsel hsz68 hbig
+              hcanonTo henough hfit hdispatch hAccounts
+          · sorry
+        · sorry
+      · sorry
+    · sorry
+  · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

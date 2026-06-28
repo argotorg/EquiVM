@@ -55,6 +55,8 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) : Option Solm.Value :=
         some (.address (Ethereum.AccountAddress.ofNat n))
       else
         none
+  | .elem .legacyAddress =>
+      some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
       if bits.val = 0 then
         none
@@ -218,7 +220,7 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     -- two's-complement word (i.e. `≥ 2^255`).  Model that revert here so the spec agrees with the
     -- EVM on (physically unreachable) huge calldata.  Only emitted when there are arguments to
     -- decode — a zero-parameter selector (e.g. `truth()`) does no such check.
-    if types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
+    if usesLegacyAddressTypes types = false ∧ types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
       none
     else
     let decoded := decodeArgs names types argsArray ∅

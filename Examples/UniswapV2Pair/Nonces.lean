@@ -261,4 +261,20 @@ theorem uniswapNoncesBodyDecodeFailed_short
   exact uniswapNoncesBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachNoncesBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapNoncesBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some noncesTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus
+      · exact uniswapNoncesBodyOk hcode hsize hwv hsel hsz36 hbig hcanon
+          hdispatch hAccounts
+      · sorry
+    · sorry
+  · exact uniswapNoncesBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

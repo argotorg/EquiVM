@@ -180,6 +180,23 @@ def safeTransferStmts (token _recipient _value : Expr) (okVar dataVar : Ident) :
   [ .lowLevelCall token (.intLit 0) (.bytesLit ByteArray.empty) okVar dataVar,
     .require (.var okVar) ]
 
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar ]
+
+def balanceOfThisStmts (token : Expr) (retVar : Ident) : List Stmt :=
+  checkedExternalCallStmts token "balanceOf" (.intLit 0) [this] retVar
+
+def token0BalanceOfThisStmts (retVar : Ident) : List Stmt :=
+  balanceOfThisStmts (.storage token0Ref) retVar
+
+def token1BalanceOfThisStmts (retVar : Ident) : List Stmt :=
+  balanceOfThisStmts (.storage token1Ref) retVar
+
+def pairBalanceOfThisStmts (ret0 ret1 : Ident) : List Stmt :=
+  token0BalanceOfThisStmts ret0 ++ token1BalanceOfThisStmts ret1
+
 /-! ## Constructor -/
 
 def constructorDecl : ConstructorDecl :=
@@ -351,10 +368,8 @@ def mintTransition : TransitionDecl :=
     params := [{ name := "to", ty := addr }]
     returnType := some uint256
     body :=
-      lockEnter ++
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1",
-          .letDecl "amount0" (some uint256)
+      lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
+        [ .letDecl "amount0" (some uint256)
             (.binary .sub (.var "balance0") (.storage reserve0Ref)),
           .letDecl "amount1" (some uint256)
             (.binary .sub (.var "balance1") (.storage reserve1Ref)),
@@ -378,10 +393,8 @@ def burnTransition : TransitionDecl :=
     params := [{ name := "to", ty := addr }]
     returnType := some (.tuple [uint256, uint256])
     body :=
-      lockEnter ++
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1",
-          .letDecl "liquidity" (some uint256) (.storage (balanceOfRef this)),
+      lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
+        [ .letDecl "liquidity" (some uint256) (.storage (balanceOfRef this)),
           .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
           .require (.binary .gt (.var "_totalSupply") (.intLit 0)),
           .letDecl "amount0" (some uint256)
@@ -399,8 +412,7 @@ def burnTransition : TransitionDecl :=
             (.binary .sub (.storage totalSupplyRef) (.var "liquidity")) ] ++
       safeTransferStmts (.storage token0Ref) (.var "to") (.var "amount0") "ok0" "_ret0" ++
       safeTransferStmts (.storage token1Ref) (.var "to") (.var "amount1") "ok1" "_ret1" ++
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "newBalance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "newBalance1" ] ++
+      pairBalanceOfThisStmts "newBalance0" "newBalance1" ++
       updateReservesStmts (.var "newBalance0") (.var "newBalance1") ++
       lockExit ++
         [ .return (.tupleLit [.var "amount0", .var "amount1"]) ] }
@@ -434,10 +446,9 @@ def swapTransition : TransitionDecl :=
           .ite (.binary .gt (.arrayLength .localVar { base := "data" }) (.intLit 0))
             [ .lowLevelCall (.var "to") (.intLit 0) (.var "data") "callbackOk" "_callbackRet",
               .require (.var "callbackOk") ]
-            [],
-          .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1",
-          .letDecl "amount0In" (some uint256)
+            [] ] ++
+      pairBalanceOfThisStmts "balance0" "balance1" ++
+        [ .letDecl "amount0In" (some uint256)
             (.ite
               (.binary .gt (.var "balance0")
                 (.binary .sub (.var "_reserve0") (.var "amount0Out")))
@@ -472,10 +483,8 @@ def skimTransition : TransitionDecl :=
     params := [{ name := "to", ty := addr }]
     returnType := none
     body :=
-      lockEnter ++
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1",
-          .letDecl "excess0" (some uint256)
+      lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
+        [ .letDecl "excess0" (some uint256)
             (.binary .sub (.var "balance0") (.storage reserve0Ref)),
           .letDecl "excess1" (some uint256)
             (.binary .sub (.var "balance1") (.storage reserve1Ref)) ] ++
@@ -488,9 +497,7 @@ def syncTransition : TransitionDecl :=
     params := []
     returnType := none
     body :=
-      lockEnter ++
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-          .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ] ++
+      lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
       updateReservesStmts (.var "balance0") (.var "balance1") ++
       lockExit }
 

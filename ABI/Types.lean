@@ -24,6 +24,9 @@ inductive FixedType where
 inductive ElemType where
   | bool : ElemType
   | address : ElemType
+  /-- Legacy/optimizer solc external wrappers that mask address calldata words instead of rejecting
+      non-canonical high bits. It has the same ABI signature and encoding as `address`. -/
+  | legacyAddress : ElemType
   | int : IntType -> ElemType
   | fixed : FixedType -> ElemType
   | bytes : Fin 32 -> ElemType
@@ -118,6 +121,20 @@ mutual
   def isDynamicABITypeList : List ABIType → Bool
     | [] => false
     | ty :: tys => isDynamicABIType ty || isDynamicABITypeList tys
+end
+
+mutual
+  def usesLegacyAddressType : ABIType → Bool
+    | .elem .legacyAddress => true
+    | .elem _ => false
+    | .array ty _ => usesLegacyAddressType ty
+    | .tuple tys => usesLegacyAddressTypes tys
+    | .bytes | .string => false
+    | .dynamicArray ty => usesLegacyAddressType ty
+
+  def usesLegacyAddressTypes : List ABIType → Bool
+    | [] => false
+    | ty :: tys => usesLegacyAddressType ty || usesLegacyAddressTypes tys
 end
 
 mutual

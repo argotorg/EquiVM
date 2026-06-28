@@ -338,4 +338,22 @@ theorem uniswapAllowanceBodyDecodeFailed_short
   exact uniswapAllowanceBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachAllowanceBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapAllowanceBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus
+      · by_cases hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus
+        · exact uniswapAllowanceBodyOk hcode hsize hwv hsel hsz68 hbig hcanonOwner
+            hcanonSpender hdispatch hAccounts
+        · sorry
+      · sorry
+    · sorry
+  · exact uniswapAllowanceBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

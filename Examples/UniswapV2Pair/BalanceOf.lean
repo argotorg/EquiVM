@@ -261,4 +261,20 @@ theorem uniswapBalanceOfBodyDecodeFailed_short
   exact uniswapBalanceOfBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachBalanceOfBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
+theorem uniswapBalanceOfBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus
+      · exact uniswapBalanceOfBodyOk hcode hsize hwv hsel hsz36 hbig hcanon
+          hdispatch hAccounts
+      · sorry
+    · sorry
+  · exact uniswapBalanceOfBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair
