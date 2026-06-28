@@ -194,23 +194,23 @@ theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv)
     (initializeStore_token1Base I) her hty (by rfl) (by trivial) hstore
 
 theorem uniswapDecode_initialize_ok {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus)
-    (hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (_hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus)
+    (_hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus) :
     decodeCalldata (initializeTransition.params.map Param.name)
       (transitionSignature initializeTransition).paramTypes I.calldata =
         some (initializeStore I) := by
   simpa [initializeTransition, initializeStore, initializeToken0Value, initializeToken1Value,
-    initializeToken0Word, initializeToken1Word, addr] using
-    (decodeCalldata_address_address_ok (cd := I.calldata) (x := "_token0") (y := "_token1")
-      hsz68 hbig hcanon0 hcanon1)
+    initializeToken0Word, initializeToken1Word, calldataWord] using
+    (decodeCalldata_legacyAddress_legacyAddress_ok (cd := I.calldata) (x := "_token0")
+      (y := "_token1") hsz68)
 
 theorem uniswapDecode_initialize_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
     decodeCalldata (initializeTransition.params.map Param.name)
       (transitionSignature initializeTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["_token0", "_token1"] [addr, addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_address_none_short
+  show decodeCalldata ["_token0", "_token1"] [legacyAddr, legacyAddr] I.calldata = none
+  simpa using decodeCalldata_legacyAddress_legacyAddress_none_short
     (cd := I.calldata) (x := "_token0") (y := "_token1") hsz4 hshort
 
 theorem uniswapInitializeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -388,7 +388,7 @@ theorem uniswapInitializeBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus)
     (hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus)
     (hfactory :
@@ -496,7 +496,7 @@ theorem uniswapInitializeBodyOk
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus)
     (hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus)
     (hfactory :
@@ -506,9 +506,9 @@ theorem uniswapInitializeBodyOk
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
-  exact uniswapInitializeBodyCoreOk hcode hsize hperm hwv hsz68 hbig hcanon0 hcanon1
+  exact uniswapInitializeBodyCoreOk hcode hsize hperm hwv hsz68 hcanon0 hcanon1
     hfactory hdispatch
-    (uniswapDecode_initialize_ok hsz68 hbig hcanon0 hcanon1)
+    (uniswapDecode_initialize_ok hsz68 hcanon0 hcanon1)
     (uniswapReachInitializeBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -535,14 +535,12 @@ theorem uniswapInitializeBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus
-      · by_cases hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus
-        · by_cases hfactory :
-            UInt256.land (initializeFactoryWord σ_evm I) solcAddrMask = uniswapSourceWord I
-          · exact uniswapInitializeBodyOk hcode hsize hperm hwv hsel hsz68 hbig
-              hcanon0 hcanon1 hfactory hdispatch hAccounts
-          · sorry
+  · by_cases hcanon0 : (initializeToken0Word I).toNat < EVM.addressModulus
+    · by_cases hcanon1 : (initializeToken1Word I).toNat < EVM.addressModulus
+      · by_cases hfactory :
+          UInt256.land (initializeFactoryWord σ_evm I) solcAddrMask = uniswapSourceWord I
+        · exact uniswapInitializeBodyOk hcode hsize hperm hwv hsel hsz68
+            hcanon0 hcanon1 hfactory hdispatch hAccounts
         · sorry
       · sorry
     · sorry

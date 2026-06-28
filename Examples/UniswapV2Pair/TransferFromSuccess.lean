@@ -24,7 +24,7 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsz100 : 100 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz100 : 100 ≤ I.calldata.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hmax : (transferFromCurrentAllowanceWord
@@ -136,7 +136,7 @@ theorem uniswapTransferFromBodyOk_maxAllowance
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
-    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz100 : 100 ≤ I.calldata.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hmax : (transferFromCurrentAllowanceWord
@@ -152,9 +152,9 @@ theorem uniswapTransferFromBodyOk_maxAllowance
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
-  exact uniswapTransferFromBodyCoreOk_maxAllowance hcode hsize hperm hwv hsz100 hbig
+  exact uniswapTransferFromBodyCoreOk_maxAllowance hcode hsize hperm hwv hsz100
     hcanonFrom hcanonTo hmax hbalance hfit hdispatch
-    (uniswapDecode_transferFrom_ok hsz100 hbig hcanonFrom hcanonTo)
+    (uniswapDecode_transferFrom_ok hsz100 hcanonFrom hcanonTo)
     (uniswapReachTransferFromBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 

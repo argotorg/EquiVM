@@ -94,37 +94,30 @@ theorem evalExpr_skim_safeTransfer0_ok (storeEvm evalEvm : EVM.State) (I : Execu
   rw [skimSafeTransfer0Store_ok0]
 
 theorem uniswapDecode_skim_ok {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (skimToWord I).toNat < EVM.addressModulus) :
+    (hsz36 : 36 ≤ I.calldata.size)
+    (_hcanon : (skimToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (skimTransition.params.map Param.name)
       (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I) := by
-  show decodeCalldata ["to"] [addr] I.calldata = _
+  show decodeCalldata ["to"] [legacyAddr] I.calldata = _
   simpa [skimStore, skimToValue, skimToWord, calldataWord]
-    using decodeCalldata_address_ok (cd := I.calldata) (x := "to") hsz36 hbig hcanon
+    using decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "to") hsz36
 
 theorem uniswapDecode_skim_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldata (skimTransition.params.map Param.name)
       (transitionSignature skimTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_short (cd := I.calldata) (x := "to")
+  show decodeCalldata ["to"] [legacyAddr] I.calldata = none
+  simpa using decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "to")
     hsz4 hshort
 
-theorem uniswapDecode_skim_none_noncanon {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (skimToWord I).toNat < EVM.addressModulus) :
+theorem uniswapDecode_skim_ok_noncanon {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size)
+    (_hnc : ¬ (skimToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (skimTransition.params.map Param.name)
-      (transitionSignature skimTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to"] [addr] I.calldata = none
-  simpa [addr, skimToWord, calldataWord]
-    using decodeCalldata_address_none_noncanon (cd := I.calldata) (x := "to") hsz36 hbig hnc
-
-theorem uniswapDecode_skim_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (skimTransition.params.map Param.name)
-      (transitionSignature skimTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_huge (cd := I.calldata) (x := "to") hbig
+      (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I) := by
+  show decodeCalldata ["to"] [legacyAddr] I.calldata = _
+  simpa [skimStore, skimToValue, skimToWord, calldataWord]
+    using decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "to") hsz36
 
 /-! ## EVM trace prefix -/
 
@@ -1615,7 +1608,7 @@ theorem uniswapSkimBodyRevert_locked
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
     (hlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
@@ -1626,7 +1619,7 @@ theorem uniswapSkimBodyRevert_locked
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
   exact uniswapSkimBodyCoreRevert_locked hcode hsize hwv hsz36 hcanonTo hlocked hdispatch
-    (uniswapDecode_skim_ok hsz36 hbig hcanonTo)
+    (uniswapDecode_skim_ok hsz36 hcanonTo)
     (uniswapReachSkimBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -1653,14 +1646,12 @@ theorem uniswapSkimBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanonTo : (skimToWord I).toNat < EVM.addressModulus
-      · by_cases hlocked :
-          (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
-        · exact uniswapSkimBodyRevert_locked hcode hsize hwv hsel hsz36 hbig hcanonTo
-            hlocked hdispatch hAccounts
-        · sorry
+  · by_cases hcanonTo : (skimToWord I).toNat < EVM.addressModulus
+    · by_cases hlocked :
+        (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+      · exact uniswapSkimBodyRevert_locked hcode hsize hwv hsel hsz36 hcanonTo
+          hlocked hdispatch hAccounts
       · sorry
     · sorry
   · exact uniswapSkimBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

@@ -85,61 +85,61 @@ theorem transferFromCurrentAllowanceWord_initState_eq_uniswapCodeOwnerStorageWor
   exact uniswapCodeOwnerStorageWord_initState _
 
 theorem uniswapDecode_transferFrom_ok {I : ExecutionEnv}
-    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus) :
+    (hsz100 : 100 ≤ I.calldata.size)
+    (_hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
+    (_hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (transferFromTransition.params.map Param.name)
       (transitionSignature transferFromTransition).paramTypes I.calldata =
         some (transferFromStore I) := by
-  change decodeCalldata ["from", "to", "value"] [.elem .address, .elem .address, abiUInt256]
+  change decodeCalldata ["from", "to", "value"] [legacyAddr, legacyAddr, abiUInt256]
     I.calldata =
     some ((((∅ : Store).insert "from"
       (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).insert "to"
       (.address (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))).insert "value"
       (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
-  exact Reasoning.Theory.decodeCalldata_address_address_uint256_ok
-      (cd := I.calldata) (x := "from") (y := "to") (z := "value")
-      hsz100 hbig hcanonFrom hcanonTo
+  exact decodeCalldata_legacyAddress_legacyAddress_uint256_ok
+    (cd := I.calldata) (x := "from") (y := "to") (z := "value") hsz100
 
 theorem uniswapDecode_transferFrom_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
     decodeCalldata (transferFromTransition.params.map Param.name)
       (transitionSignature transferFromTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["from", "to", "value"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_short
+  show decodeCalldata ["from", "to", "value"] [legacyAddr, legacyAddr, uint256]
+    I.calldata = none
+  simpa [uint256, abiUInt256]
+    using decodeCalldata_legacyAddress_legacyAddress_uint256_none_short
       (cd := I.calldata) (x := "from") (y := "to") (z := "value") hsz4 hshort
 
-theorem uniswapDecode_transferFrom_none_noncanon_from {I : ExecutionEnv}
-    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (transferFromFromWord I).toNat < EVM.addressModulus) :
+theorem uniswapDecode_transferFrom_ok_noncanon_from {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size)
+    (_hnc : ¬ (transferFromFromWord I).toNat < EVM.addressModulus) :
     decodeCalldata (transferFromTransition.params.map Param.name)
-      (transitionSignature transferFromTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["from", "to", "value"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256, calldataWord, transferFromFromWord]
-    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon0
-      (cd := I.calldata) (x := "from") (y := "to") (z := "value") hsz100 hbig hnc
+      (transitionSignature transferFromTransition).paramTypes I.calldata =
+        some (transferFromStore I) := by
+  change decodeCalldata ["from", "to", "value"] [legacyAddr, legacyAddr, abiUInt256]
+    I.calldata =
+    some ((((∅ : Store).insert "from"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).insert "to"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))).insert "value"
+      (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
+  exact decodeCalldata_legacyAddress_legacyAddress_uint256_ok
+    (cd := I.calldata) (x := "from") (y := "to") (z := "value") hsz100
 
-theorem uniswapDecode_transferFrom_none_noncanon_to {I : ExecutionEnv}
-    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hnc : ¬ (transferFromToWord I).toNat < EVM.addressModulus) :
+theorem uniswapDecode_transferFrom_ok_noncanon_to {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size)
+    (_hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
+    (_hnc : ¬ (transferFromToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (transferFromTransition.params.map Param.name)
-      (transitionSignature transferFromTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["from", "to", "value"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256, calldataWord, transferFromFromWord, transferFromToWord]
-    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon1
-      (cd := I.calldata) (x := "from") (y := "to") (z := "value")
-      hsz100 hbig hcanonFrom hnc
-
-theorem uniswapDecode_transferFrom_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (transferFromTransition.params.map Param.name)
-      (transitionSignature transferFromTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["from", "to", "value"] [addr, addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using Reasoning.Theory.decodeCalldata_address_address_uint256_none_huge
-      (cd := I.calldata) (x := "from") (y := "to") (z := "value") hbig
+      (transitionSignature transferFromTransition).paramTypes I.calldata =
+        some (transferFromStore I) := by
+  change decodeCalldata ["from", "to", "value"] [legacyAddr, legacyAddr, abiUInt256]
+    I.calldata =
+    some ((((∅ : Store).insert "from"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).insert "to"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))).insert "value"
+      (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
+  exact decodeCalldata_legacyAddress_legacyAddress_uint256_ok
+    (cd := I.calldata) (x := "from") (y := "to") (z := "value") hsz100
 
 /-! ## `transferFrom(address,address,uint256)` EVM decode prefix -/
 

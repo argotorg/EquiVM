@@ -95,43 +95,35 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
   simp [approvePostState, approveStorageSlot]
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (approveSpenderWord I).toNat < EVM.addressModulus) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (_hcanon : (approveSpenderWord I).toNat < EVM.addressModulus) :
     decodeCalldata (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
-  show decodeCalldata ["spender", "value"] [addr, uint256] I.calldata = _
+  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = _
   simpa [addr, uint256, abiUInt256, approveStore, approveSpenderValue, approveValueValue,
     approveSpenderWord, approveValueWord, calldataWord]
-    using decodeCalldata_addr_uint256_ok
-      (cd := I.calldata) (x := "spender") (y := "value") hsz68 hbig hcanon
+    using decodeCalldata_legacyAddress_uint256_ok
+      (cd := I.calldata) (x := "spender") (y := "value") hsz68
 
 theorem uniswapDecode_approve_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
     decodeCalldata (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["spender", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using decodeCalldata_addr_uint256_none_short
+  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = none
+  simpa [uint256, abiUInt256]
+    using decodeCalldata_legacyAddress_uint256_none_short
       (cd := I.calldata) (x := "spender") (y := "value") hsz4 hshort
 
-theorem uniswapDecode_approve_none_noncanon {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus) :
+theorem uniswapDecode_approve_ok_noncanon {I : ExecutionEnv}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (_hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus) :
     decodeCalldata (approveTransition.params.map Param.name)
-      (transitionSignature approveTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["spender", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256, calldataWord, approveSpenderWord]
-    using decodeCalldata_addr_uint256_none_noncanon
-      (cd := I.calldata) (x := "spender") (y := "value") hsz68 hbig hnc
-
-theorem uniswapDecode_approve_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (approveTransition.params.map Param.name)
-      (transitionSignature approveTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["spender", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using decodeCalldata_addr_uint256_none_huge
-      (cd := I.calldata) (x := "spender") (y := "value") hbig
+      (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
+  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = _
+  simpa [addr, uint256, abiUInt256, approveStore, approveSpenderValue, approveValueValue,
+    approveSpenderWord, approveValueWord, calldataWord]
+    using decodeCalldata_legacyAddress_uint256_ok
+      (cd := I.calldata) (x := "spender") (y := "value") hsz68
 
 /-- The Solm `approve(address,uint256)` body writes `allowance[msg.sender][spender]` and returns
     `true`. -/
@@ -370,15 +362,15 @@ theorem uniswapApproveX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 
 /- Canonical-success refinement slice for `approve(address,uint256)`.
 
-The non-canonical address case is intentionally not claimed here: the optimized bytecode masks the
-address word, while the current ABI decoder rejects non-canonical address encodings.
+The non-canonical address case is still separate proof work: the optimized bytecode masks the
+address word, and the `legacyAddr` ABI annotation decodes it the same way.
 -/
 set_option maxHeartbeats 2000000 in
 theorem uniswapApproveBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hdecode :
@@ -432,9 +424,7 @@ theorem uniswapApproveBodyCoreOk
 
 /-- Short-calldata decode-failure refinement slice for `approve(address,uint256)`.
 
-The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
-bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
-rejects those cases before execution.
+The non-canonical branch is intentionally not claimed here; it remains explicit proof work.
 -/
 theorem uniswapApproveBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -457,16 +447,16 @@ theorem uniswapApproveBodyOk
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
-  exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68 hbig hcanonSpender
+  exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68 hcanonSpender
     hdispatch
-    (uniswapDecode_approve_ok hsz68 hbig hcanonSpender)
+    (uniswapDecode_approve_ok hsz68 hcanonSpender)
     (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -493,11 +483,9 @@ theorem uniswapApproveBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
-      · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hbig
-          hcanonSpender hdispatch hAccounts
-      · sorry
+  · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
+    · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68
+        hcanonSpender hdispatch hAccounts
     · sorry
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 

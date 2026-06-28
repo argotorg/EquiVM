@@ -64,38 +64,36 @@ theorem uniswapTransferFromBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
-      · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
-        · by_cases hmax : (transferFromCurrentAllowanceWord
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat =
-              UInt256.size - 1
+  · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
+    · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
+      · by_cases hmax : (transferFromCurrentAllowanceWord
+          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat =
+            UInt256.size - 1
+        · by_cases hbalance : (transferFromValueWord I).toNat ≤
+            (transferFromFromBalanceWord
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+          · by_cases hfit : transferFromNewToNatMax
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+                UInt256.size
+            · exact uniswapTransferFromBodyOk_maxAllowance hcode hsize hperm hwv hsel
+                hsz100 hcanonFrom hcanonTo hmax hbalance hfit hdispatch hAccounts
+            · sorry
+          · sorry
+        · by_cases hallowance : (transferFromValueWord I).toNat ≤
+            (transferFromCurrentAllowanceWord
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
           · by_cases hbalance : (transferFromValueWord I).toNat ≤
-              (transferFromFromBalanceWord
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
-            · by_cases hfit : transferFromNewToNatMax
+              (transferFromFromBalanceWord (transferFromAfterAllowanceState
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
+            · by_cases hfit : transferFromNewToNat
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
                   UInt256.size
-              · exact uniswapTransferFromBodyOk_maxAllowance hcode hsize hperm hwv hsel
-                  hsz100 hbig hcanonFrom hcanonTo hmax hbalance hfit hdispatch hAccounts
+              · exact uniswapTransferFromBodyOk_finiteAllowance hcode hsize hperm hwv
+                  hsel hsz100 hcanonFrom hcanonTo hmax hallowance hbalance hfit
+                  hdispatch hAccounts
               · sorry
             · sorry
-          · by_cases hallowance : (transferFromValueWord I).toNat ≤
-              (transferFromCurrentAllowanceWord
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat
-            · by_cases hbalance : (transferFromValueWord I).toNat ≤
-                (transferFromFromBalanceWord (transferFromAfterAllowanceState
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
-              · by_cases hfit : transferFromNewToNat
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
-                    UInt256.size
-                · exact uniswapTransferFromBodyOk_finiteAllowance hcode hsize hperm hwv
-                    hsel hsz100 hbig hcanonFrom hcanonTo hmax hallowance hbalance hfit
-                    hdispatch hAccounts
-                · sorry
-              · sorry
-            · sorry
-        · sorry
+          · sorry
       · sorry
     · sorry
   · exact uniswapTransferFromBodyDecodeFailed_short hcode hsize hwv hsel (by omega)

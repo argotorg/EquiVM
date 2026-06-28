@@ -12,6 +12,7 @@ open ABI
 def defaultAbiValue : ABIType -> Option Value
   | .elem .bool    => some (.bool false)
   | .elem .address => some (.address (.ofNat 0))
+  | .elem .legacyAddress => some (.address (.ofNat 0))
   | .elem (.int _) => some (.int 0)
   | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none

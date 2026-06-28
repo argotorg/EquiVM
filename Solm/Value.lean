@@ -229,6 +229,7 @@ def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   | .int (.sint _) => .int (EVM.signed w)
   | .bool => if w.val == 0 then .bool false else .bool true
   | .address => .address (.ofNat $ w.toNat)
+  | .legacyAddress => .address (.ofNat $ w.toNat)
   | .bytes n => .fixedBytes n (w.toBytesBE.drop (32 - (n.val + 1)))
   -- TODO: implement
   | .function => panic! "TODO: wordToElem: implement function"

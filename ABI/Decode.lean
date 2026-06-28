@@ -215,12 +215,12 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
       none
     else
-    -- solc's ABI decoder guards the argument region with a **signed** check,
+    -- Most solc ABI decoders guard the argument region with a **signed** check,
     -- `SLT(calldatasize − 4, headSize)`, reverting when `calldatasize − 4` is a negative
-    -- two's-complement word (i.e. `≥ 2^255`).  Model that revert here so the spec agrees with the
-    -- EVM on (physically unreachable) huge calldata.  Only emitted when there are arguments to
-    -- decode — a zero-parameter selector (e.g. `truth()`) does no such check.
-    if usesLegacyAddressTypes types = false ∧ types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
+    -- two's-complement word (i.e. `≥ 2^255`). Optimized legacy address wrappers instead use
+    -- unsigned static length checks and mask address words, so opt out when a `legacyAddress`
+    -- parameter marks that wrapper shape.
+    if types.isEmpty = false ∧ usesLegacyAddressTypes types = false ∧ 2 ^ 255 ≤ argsArray.length then
       none
     else
     let decoded := decodeArgs names types argsArray ∅

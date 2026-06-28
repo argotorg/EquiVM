@@ -9,11 +9,14 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-/-! ## `nonces(address)` canonical-success slice -/
+/-! ## `nonces(address)` success slice -/
 
 /-- The raw ABI word for `nonces`'s `owner` argument. -/
 abbrev noncesOwnerWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
+
+abbrev noncesOwnerMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (noncesOwnerWord I)
 
 abbrev noncesOwnerValue (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (noncesOwnerWord I).toNat)
@@ -37,38 +40,26 @@ theorem noncesStorageSlot_eq_mapSlot (I : ExecutionEnv)
   unfold noncesStorageSlot nonceSlot noncesOwnerKey
   rw [keyValueToWord_address_of_canonical _ hcanon]
 
+theorem noncesStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
+    noncesStorageSlot I = mapSlot (noncesOwnerMaskedWord I) ⟨4⟩ := by
+  unfold noncesStorageSlot nonceSlot noncesOwnerKey noncesOwnerMaskedWord
+  rw [keyValueToWord_address_ofNat_mask]
+
 theorem uniswapDecode_nonces_ok {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus) :
+    (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldata (noncesTransition.params.map Param.name)
       (transitionSignature noncesTransition).paramTypes I.calldata = some (noncesStore I) := by
-  show decodeCalldata ["owner"] [addr] I.calldata = _
+  show decodeCalldata ["owner"] [legacyAddr] I.calldata = _
   simpa [noncesStore, noncesOwnerValue, noncesOwnerWord, calldataWord]
-    using decodeCalldata_address_ok (cd := I.calldata) (x := "owner") hsz36 hbig hcanon
+    using decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "owner") hsz36
 
 theorem uniswapDecode_nonces_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldata (noncesTransition.params.map Param.name)
       (transitionSignature noncesTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_short (cd := I.calldata) (x := "owner")
+  show decodeCalldata ["owner"] [legacyAddr] I.calldata = none
+  simpa using decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "owner")
     hsz4 hshort
-
-theorem uniswapDecode_nonces_none_noncanon {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (noncesOwnerWord I).toNat < EVM.addressModulus) :
-    decodeCalldata (noncesTransition.params.map Param.name)
-      (transitionSignature noncesTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr, noncesOwnerWord, calldataWord]
-    using decodeCalldata_address_none_noncanon (cd := I.calldata) (x := "owner") hsz36 hbig hnc
-
-theorem uniswapDecode_nonces_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (noncesTransition.params.map Param.name)
-      (transitionSignature noncesTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_huge (cd := I.calldata) (x := "owner") hbig
 
 /-- The Solm `nonces(address)` body returns `nonces[owner]`. -/
 theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -95,25 +86,24 @@ theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-/-- The optimized external wrapper for `nonces(address)` accepts canonical calldata and jumps to
-    the shared mapping getter routine at pc 4075. -/
+/-- The optimized external wrapper for `nonces(address)` masks the address calldata word and jumps
+    to the shared mapping getter routine at pc 4075. -/
 theorem uniswapNoncesX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1125⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4075⟩
-        [noncesOwnerWord I, ⟨861⟩, sel]
+        [noncesOwnerMaskedWord I, ⟨861⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd1147⟩ := RD.uniswapOneAddressGetterLenOk
     (entry := ⟨1125⟩) (routine := ⟨4075⟩) hreach
     uniswap_one_address_getter_entry_wf (by jump_dest) hsz36 hsize
-  obtain ⟨_, _, rd4075⟩ := RD.uniswapOneAddressGetterMaskAndJump
+  obtain ⟨_, _, rd4075⟩ := RD.uniswapOneAddressGetterMaskAndJumpMasked
     (entry := ⟨1125⟩) (routine := ⟨4075⟩) (R := [sel]) rd1147
-    uniswap_one_address_getter_entry_wf (by simpa [noncesOwnerWord] using hcanon)
+    uniswap_one_address_getter_entry_wf
     (by jump_dest) (by simp only [List.length_singleton]; omega)
-  exact ⟨_, _, by simpa [noncesOwnerWord] using rd4075⟩
+  exact ⟨_, _, by simpa [noncesOwnerMaskedWord, noncesOwnerWord] using rd4075⟩
 
 /-- Short-calldata path for `nonces(address)` from the dispatcher body entry.
 
@@ -134,51 +124,46 @@ theorem uniswapNoncesX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 /-- The EVM `nonces(address)` success path loads the explicit mapping slot and returns it. -/
 theorem uniswapX_nonces_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1125⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
       (UInt256.toByteArray (noncesWord σ I)) := by
-  obtain ⟨_, _, rd4075⟩ := uniswapNoncesX_decoded (g := g) hsz36 hsize hcanon hreach
+  obtain ⟨_, _, rd4075⟩ := uniswapNoncesX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨k861, C861, rd861raw⟩ := RD.uniswapSingleMappingGetter (pc := ⟨4075⟩)
-    (baseSlot := ⟨4⟩) (key := noncesOwnerWord I) (ret := ⟨861⟩) (R := [sel])
+    (baseSlot := ⟨4⟩) (key := noncesOwnerMaskedWord I) (ret := ⟨861⟩) (R := [sel])
     rd4075 uniswap_single_mapping_getter_wf (by jump_dest)
     (by simp only [List.length_singleton]; omega)
-  have hslot := noncesStorageSlot_eq_mapSlot I hcanon
+  have hslot := noncesStorageSlot_eq_mapSlot_masked I
   have hword :
       (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (noncesOwnerWord I) ⟨4⟩) ⟨0⟩))
+          (fun acc => acc.storage.findD (mapSlot (noncesOwnerMaskedWord I) ⟨4⟩) ⟨0⟩))
         = noncesWord σ I := by
     unfold noncesWord
     rw [hslot]
   have rd861 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨861⟩
       (noncesWord σ I :: ⟨861⟩ :: [sel])
-      (uniswapMappingHashMem ⟨4⟩ (noncesOwnerWord I))
+      (uniswapMappingHashMem ⟨4⟩ (noncesOwnerMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k861 C861 := by
     simpa [hword] using rd861raw
   exact RD.uniswapReturnWord861FromMem
     (val := noncesWord σ I) (ret := ⟨861⟩) (R := [sel])
-    (mem := uniswapMappingHashMem ⟨4⟩ (noncesOwnerWord I))
-    (memout := uniswapMappingReturnMem ⟨4⟩ (noncesOwnerWord I) (noncesWord σ I))
+    (mem := uniswapMappingHashMem ⟨4⟩ (noncesOwnerMaskedWord I))
+    (memout := uniswapMappingReturnMem ⟨4⟩ (noncesOwnerMaskedWord I) (noncesWord σ I))
     rd861
-    (uniswapMappingHashMem_mload64 ⟨4⟩ (noncesOwnerWord I))
+    (uniswapMappingHashMem_mload64 ⟨4⟩ (noncesOwnerMaskedWord I))
     (by rfl)
-    (uniswapMappingReturnMem_mload64 ⟨4⟩ (noncesOwnerWord I) (noncesWord σ I))
-    (uniswapMappingReturnMem_read128 ⟨4⟩ (noncesOwnerWord I) (noncesWord σ I))
+    (uniswapMappingReturnMem_mload64 ⟨4⟩ (noncesOwnerMaskedWord I) (noncesWord σ I))
+    (uniswapMappingReturnMem_read128 ⟨4⟩ (noncesOwnerMaskedWord I) (noncesWord σ I))
     (by simp only [List.length_singleton]; omega)
 
-/-- Canonical-success refinement slice for `nonces(address)`.
-
-The non-canonical address case is intentionally not claimed here: the optimized bytecode masks the
-address word, while the current ABI decoder rejects non-canonical address encodings.
--/
+/-- Success refinement slice for `nonces(address)`, including masked noncanonical address calldata
+words. -/
 theorem uniswapNoncesBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some noncesTransition)
     (hdecode :
       decodeCalldata (noncesTransition.params.map Param.name)
@@ -203,7 +188,7 @@ theorem uniswapNoncesBodyCoreOk
       uniswapNoncesBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
-  exact (uniswapX_nonces_ok (g := Sat256.ofUInt256 g) hsz36 hsize hcanon hreach)
+  exact (uniswapX_nonces_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
       hAccounts
       (returnEquiv_of_encode
@@ -212,8 +197,8 @@ theorem uniswapNoncesBodyCoreOk
 /-- Short-calldata decode-failure refinement slice for `nonces(address)`.
 
 The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
-bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
-rejects those cases before execution.
+bytecode masks address words and uses an unsigned static length check, and the `legacyAddr` ABI
+annotation models that behavior.
 -/
 theorem uniswapNoncesBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -229,21 +214,20 @@ theorem uniswapNoncesBodyCoreDecodeFailed_short
       hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
-/-- Canonical-success `nonces(address)` refinement slice, packaged from selector dispatch through
-the body core. -/
+/-- Success `nonces(address)` refinement slice, packaged from selector dispatch through the body
+core. -/
 theorem uniswapNoncesBodyOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some noncesTransition)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ rfl hsel
-  exact uniswapNoncesBodyCoreOk hcode hsize hwv hsz36 hbig hcanon hdispatch
-    (uniswapDecode_nonces_ok hsz36 hbig hcanon)
+  exact uniswapNoncesBodyCoreOk hcode hsize hwv hsz36 hdispatch
+    (uniswapDecode_nonces_ok hsz36)
     (uniswapReachNoncesBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -269,12 +253,7 @@ theorem uniswapNoncesBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus
-      · exact uniswapNoncesBodyOk hcode hsize hwv hsel hsz36 hbig hcanon
-          hdispatch hAccounts
-      · sorry
-    · sorry
+  · exact uniswapNoncesBodyOk hcode hsize hwv hsel hsz36 hdispatch hAccounts
   · exact uniswapNoncesBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

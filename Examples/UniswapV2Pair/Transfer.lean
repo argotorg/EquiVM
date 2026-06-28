@@ -91,43 +91,35 @@ theorem transferNewToWord_toNat (evm : EVM.State) (I : ExecutionEnv)
   exact ulit_toNat' _ hfit
 
 theorem uniswapDecode_transfer_ok {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (transferToWord I).toNat < EVM.addressModulus) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (_hcanon : (transferToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (transferTransition.params.map Param.name)
       (transitionSignature transferTransition).paramTypes I.calldata = some (transferStore I) := by
-  show decodeCalldata ["to", "value"] [addr, uint256] I.calldata = _
+  show decodeCalldata ["to", "value"] [legacyAddr, uint256] I.calldata = _
   simpa [addr, uint256, abiUInt256, transferStore, transferToValue, transferValueValue,
     transferToWord, transferValueWord, calldataWord]
-    using decodeCalldata_addr_uint256_ok
-      (cd := I.calldata) (x := "to") (y := "value") hsz68 hbig hcanon
+    using decodeCalldata_legacyAddress_uint256_ok
+      (cd := I.calldata) (x := "to") (y := "value") hsz68
 
 theorem uniswapDecode_transfer_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
     decodeCalldata (transferTransition.params.map Param.name)
       (transitionSignature transferTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using decodeCalldata_addr_uint256_none_short
+  show decodeCalldata ["to", "value"] [legacyAddr, uint256] I.calldata = none
+  simpa [uint256, abiUInt256]
+    using decodeCalldata_legacyAddress_uint256_none_short
       (cd := I.calldata) (x := "to") (y := "value") hsz4 hshort
 
-theorem uniswapDecode_transfer_none_noncanon {I : ExecutionEnv}
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (transferToWord I).toNat < EVM.addressModulus) :
+theorem uniswapDecode_transfer_ok_noncanon {I : ExecutionEnv}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (_hnc : ¬ (transferToWord I).toNat < EVM.addressModulus) :
     decodeCalldata (transferTransition.params.map Param.name)
-      (transitionSignature transferTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256, calldataWord, transferToWord]
-    using decodeCalldata_addr_uint256_none_noncanon
-      (cd := I.calldata) (x := "to") (y := "value") hsz68 hbig hnc
-
-theorem uniswapDecode_transfer_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (transferTransition.params.map Param.name)
-      (transitionSignature transferTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["to", "value"] [addr, uint256] I.calldata = none
-  simpa [addr, uint256, abiUInt256]
-    using decodeCalldata_addr_uint256_none_huge
-      (cd := I.calldata) (x := "to") (y := "value") hbig
+      (transitionSignature transferTransition).paramTypes I.calldata = some (transferStore I) := by
+  show decodeCalldata ["to", "value"] [legacyAddr, uint256] I.calldata = _
+  simpa [addr, uint256, abiUInt256, transferStore, transferToValue, transferValueValue,
+    transferToWord, transferValueWord, calldataWord]
+    using decodeCalldata_legacyAddress_uint256_ok
+      (cd := I.calldata) (x := "to") (y := "value") hsz68
 
 theorem transferStore_to (I : ExecutionEnv) :
     (transferStore I).get? "to" = some (transferToValue I) := by
@@ -724,7 +716,7 @@ theorem uniswapTransferBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord
@@ -816,9 +808,7 @@ theorem uniswapTransferBodyCoreOk
 
 /-- Short-calldata decode-failure refinement slice for `transfer(address,uint256)`.
 
-The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
-bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
-rejects those cases before execution.
+The non-canonical branch is intentionally not claimed here; it remains explicit proof work.
 -/
 theorem uniswapTransferBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -841,7 +831,7 @@ theorem uniswapTransferBodyOk
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
-    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord
@@ -854,9 +844,9 @@ theorem uniswapTransferBodyOk
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
-  exact uniswapTransferBodyCoreOk hcode hsize hperm hwv hsz68 hbig hcanonTo henough hfit
+  exact uniswapTransferBodyCoreOk hcode hsize hperm hwv hsz68 hcanonTo henough hfit
     hdispatch
-    (uniswapDecode_transfer_ok hsz68 hbig hcanonTo)
+    (uniswapDecode_transfer_ok hsz68 hcanonTo)
     (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -883,17 +873,15 @@ theorem uniswapTransferBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanonTo : (transferToWord I).toNat < EVM.addressModulus
-      · by_cases henough : (transferValueWord I).toNat ≤
-          (transferFromBalanceWord
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
-        · by_cases hfit :
-            transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
-              UInt256.size
-          · exact uniswapTransferBodyOk hcode hsize hperm hwv hsel hsz68 hbig
-              hcanonTo henough hfit hdispatch hAccounts
-          · sorry
+  · by_cases hcanonTo : (transferToWord I).toNat < EVM.addressModulus
+    · by_cases henough : (transferValueWord I).toNat ≤
+        (transferFromBalanceWord
+          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)).toNat
+      · by_cases hfit :
+          transferNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I <
+            UInt256.size
+        · exact uniswapTransferBodyOk hcode hsize hperm hwv hsel hsz68
+            hcanonTo henough hfit hdispatch hAccounts
         · sorry
       · sorry
     · sorry

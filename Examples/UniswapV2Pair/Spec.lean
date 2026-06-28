@@ -37,6 +37,7 @@ def uint32 : ABIType := .elem (.int uint32Int)
 def uint112 : ABIType := .elem (.int uint112Int)
 def uint256 : ABIType := .elem (.int uint256Int)
 def addr : ABIType := .elem .address
+def legacyAddr : ABIType := .elem .legacyAddress
 def boolTy : ABIType := .elem .bool
 def bytes32 : ABIType := .elem (.bytes bytes32Width)
 
@@ -223,19 +224,19 @@ def totalSupplyTransition : TransitionDecl :=
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
-    params := [{ name := "owner", ty := addr }]
+    params := [{ name := "owner", ty := legacyAddr }]
     returnType := some uint256
     body := nonpayable ++ [ .return (.storage (balanceOfRef (.var "owner"))) ] }
 
 def allowanceTransition : TransitionDecl :=
   { name := "allowance"
-    params := [{ name := "owner", ty := addr }, { name := "spender", ty := addr }]
+    params := [{ name := "owner", ty := legacyAddr }, { name := "spender", ty := legacyAddr }]
     returnType := some uint256
     body := nonpayable ++ [ .return (.storage (allowanceRef (.var "owner") (.var "spender"))) ] }
 
 def approveTransition : TransitionDecl :=
   { name := "approve"
-    params := [{ name := "spender", ty := addr }, { name := "value", ty := uint256 }]
+    params := [{ name := "spender", ty := legacyAddr }, { name := "value", ty := uint256 }]
     returnType := some boolTy
     body :=
       nonpayable ++
@@ -244,7 +245,7 @@ def approveTransition : TransitionDecl :=
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
-    params := [{ name := "to", ty := addr }, { name := "value", ty := uint256 }]
+    params := [{ name := "to", ty := legacyAddr }, { name := "value", ty := uint256 }]
     returnType := some boolTy
     body :=
       nonpayable ++
@@ -259,7 +260,7 @@ def transferTransition : TransitionDecl :=
 
 def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
-    params := [{ name := "from", ty := addr }, { name := "to", ty := addr },
+    params := [{ name := "from", ty := legacyAddr }, { name := "to", ty := legacyAddr },
       { name := "value", ty := uint256 }]
     returnType := some boolTy
     body :=
@@ -295,14 +296,14 @@ def permitTypehashTransition : TransitionDecl :=
 
 def noncesTransition : TransitionDecl :=
   { name := "nonces"
-    params := [{ name := "owner", ty := addr }]
+    params := [{ name := "owner", ty := legacyAddr }]
     returnType := some uint256
     body := nonpayable ++ [ .return (.storage (noncesRef (.var "owner"))) ] }
 
 def permitTransition : TransitionDecl :=
   { name := "permit"
     params :=
-      [ { name := "owner", ty := addr }, { name := "spender", ty := addr },
+      [ { name := "owner", ty := legacyAddr }, { name := "spender", ty := legacyAddr },
         { name := "value", ty := uint256 }, { name := "deadline", ty := uint256 },
         { name := "v", ty := uint8 }, { name := "r", ty := bytes32 }, { name := "s", ty := bytes32 } ]
     returnType := none
@@ -355,7 +356,7 @@ def kLastTransition : TransitionDecl :=
 
 def initializeTransition : TransitionDecl :=
   { name := "initialize"
-    params := [{ name := "_token0", ty := addr }, { name := "_token1", ty := addr }]
+    params := [{ name := "_token0", ty := legacyAddr }, { name := "_token1", ty := legacyAddr }]
     returnType := none
     body :=
       nonpayable ++
@@ -365,7 +366,7 @@ def initializeTransition : TransitionDecl :=
 
 def mintTransition : TransitionDecl :=
   { name := "mint"
-    params := [{ name := "to", ty := addr }]
+    params := [{ name := "to", ty := legacyAddr }]
     returnType := some uint256
     body :=
       lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
@@ -390,7 +391,7 @@ def mintTransition : TransitionDecl :=
 
 def burnTransition : TransitionDecl :=
   { name := "burn"
-    params := [{ name := "to", ty := addr }]
+    params := [{ name := "to", ty := legacyAddr }]
     returnType := some (.tuple [uint256, uint256])
     body :=
       lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
@@ -421,7 +422,7 @@ def swapTransition : TransitionDecl :=
   { name := "swap"
     params :=
       [ { name := "amount0Out", ty := uint256 }, { name := "amount1Out", ty := uint256 },
-        { name := "to", ty := addr }, { name := "data", ty := .bytes } ]
+        { name := "to", ty := legacyAddr }, { name := "data", ty := .bytes } ]
     returnType := none
     body :=
       lockEnter ++
@@ -480,7 +481,7 @@ def swapTransition : TransitionDecl :=
 
 def skimTransition : TransitionDecl :=
   { name := "skim"
-    params := [{ name := "to", ty := addr }]
+    params := [{ name := "to", ty := legacyAddr }]
     returnType := none
     body :=
       lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++

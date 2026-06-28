@@ -9,11 +9,14 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-/-! ## `balanceOf(address)` canonical-success slice -/
+/-! ## `balanceOf(address)` success slice -/
 
 /-- The raw ABI word for `balanceOf`'s `owner` argument. -/
 abbrev balanceOfOwnerWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
+
+abbrev balanceOfOwnerMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (balanceOfOwnerWord I)
 
 abbrev balanceOfOwnerValue (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)
@@ -37,38 +40,26 @@ theorem balanceOfStorageSlot_eq_mapSlot (I : ExecutionEnv)
   unfold balanceOfStorageSlot balanceOfSlot balanceOfOwnerKey
   rw [keyValueToWord_address_of_canonical _ hcanon]
 
+theorem balanceOfStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
+    balanceOfStorageSlot I = mapSlot (balanceOfOwnerMaskedWord I) ⟨1⟩ := by
+  unfold balanceOfStorageSlot balanceOfSlot balanceOfOwnerKey balanceOfOwnerMaskedWord
+  rw [keyValueToWord_address_ofNat_mask]
+
 theorem uniswapDecode_balanceOf_ok {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
+    (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldata (balanceOfTransition.params.map Param.name)
       (transitionSignature balanceOfTransition).paramTypes I.calldata = some (balanceOfStore I) := by
-  show decodeCalldata ["owner"] [addr] I.calldata = _
+  show decodeCalldata ["owner"] [legacyAddr] I.calldata = _
   simpa [balanceOfStore, balanceOfOwnerValue, balanceOfOwnerWord, calldataWord]
-    using decodeCalldata_address_ok (cd := I.calldata) (x := "owner") hsz36 hbig hcanon
+    using decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "owner") hsz36
 
 theorem uniswapDecode_balanceOf_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldata (balanceOfTransition.params.map Param.name)
       (transitionSignature balanceOfTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_short (cd := I.calldata) (x := "owner")
+  show decodeCalldata ["owner"] [legacyAddr] I.calldata = none
+  simpa using decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "owner")
     hsz4 hshort
-
-theorem uniswapDecode_balanceOf_none_noncanon {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hnc : ¬ (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
-    decodeCalldata (balanceOfTransition.params.map Param.name)
-      (transitionSignature balanceOfTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr, balanceOfOwnerWord, calldataWord]
-    using decodeCalldata_address_none_noncanon (cd := I.calldata) (x := "owner") hsz36 hbig hnc
-
-theorem uniswapDecode_balanceOf_none_huge {I : ExecutionEnv}
-    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata (balanceOfTransition.params.map Param.name)
-      (transitionSignature balanceOfTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["owner"] [addr] I.calldata = none
-  simpa [addr] using decodeCalldata_address_none_huge (cd := I.calldata) (x := "owner") hbig
 
 /-- The Solm `balanceOf(address)` body returns `balanceOf[owner]`. -/
 theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -95,25 +86,24 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-/-- The optimized external wrapper for `balanceOf(address)` accepts canonical calldata and jumps to
-    the shared mapping getter routine at pc 4051. -/
+/-- The optimized external wrapper for `balanceOf(address)` masks the address calldata word and
+    jumps to the shared mapping getter routine at pc 4051. -/
 theorem uniswapBalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1079⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4051⟩
-        [balanceOfOwnerWord I, ⟨861⟩, sel]
+        [balanceOfOwnerMaskedWord I, ⟨861⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd1101⟩ := RD.uniswapOneAddressGetterLenOk
     (entry := ⟨1079⟩) (routine := ⟨4051⟩) hreach
     uniswap_one_address_getter_entry_wf (by jump_dest) hsz36 hsize
-  obtain ⟨_, _, rd4051⟩ := RD.uniswapOneAddressGetterMaskAndJump
+  obtain ⟨_, _, rd4051⟩ := RD.uniswapOneAddressGetterMaskAndJumpMasked
     (entry := ⟨1079⟩) (routine := ⟨4051⟩) (R := [sel]) rd1101
-    uniswap_one_address_getter_entry_wf (by simpa [balanceOfOwnerWord] using hcanon)
-    (by jump_dest) (by simp only [List.length_singleton]; omega)
-  exact ⟨_, _, by simpa [balanceOfOwnerWord] using rd4051⟩
+    uniswap_one_address_getter_entry_wf (by jump_dest)
+    (by simp only [List.length_singleton]; omega)
+  exact ⟨_, _, by simpa [balanceOfOwnerMaskedWord, balanceOfOwnerWord] using rd4051⟩
 
 /-- Short-calldata path for `balanceOf(address)` from the dispatcher body entry.
 
@@ -134,51 +124,46 @@ theorem uniswapBalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
 /-- The EVM `balanceOf(address)` success path loads the explicit mapping slot and returns it. -/
 theorem uniswapX_balanceOf_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1079⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
       (UInt256.toByteArray (balanceOfWord σ I)) := by
-  obtain ⟨_, _, rd4051⟩ := uniswapBalanceOfX_decoded (g := g) hsz36 hsize hcanon hreach
+  obtain ⟨_, _, rd4051⟩ := uniswapBalanceOfX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨k861, C861, rd861raw⟩ := RD.uniswapSingleMappingGetter (pc := ⟨4051⟩)
-    (baseSlot := ⟨1⟩) (key := balanceOfOwnerWord I) (ret := ⟨861⟩) (R := [sel])
+    (baseSlot := ⟨1⟩) (key := balanceOfOwnerMaskedWord I) (ret := ⟨861⟩) (R := [sel])
     rd4051 uniswap_single_mapping_getter_wf (by jump_dest)
     (by simp only [List.length_singleton]; omega)
-  have hslot := balanceOfStorageSlot_eq_mapSlot I hcanon
+  have hslot := balanceOfStorageSlot_eq_mapSlot_masked I
   have hword :
       (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (balanceOfOwnerWord I) ⟨1⟩) ⟨0⟩))
+          (fun acc => acc.storage.findD (mapSlot (balanceOfOwnerMaskedWord I) ⟨1⟩) ⟨0⟩))
         = balanceOfWord σ I := by
     unfold balanceOfWord
     rw [hslot]
   have rd861 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨861⟩
       (balanceOfWord σ I :: ⟨861⟩ :: [sel])
-      (uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerWord I))
+      (uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k861 C861 := by
     simpa [hword] using rd861raw
   exact RD.uniswapReturnWord861FromMem
     (val := balanceOfWord σ I) (ret := ⟨861⟩) (R := [sel])
-    (mem := uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerWord I))
-    (memout := uniswapMappingReturnMem ⟨1⟩ (balanceOfOwnerWord I) (balanceOfWord σ I))
+    (mem := uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerMaskedWord I))
+    (memout := uniswapMappingReturnMem ⟨1⟩ (balanceOfOwnerMaskedWord I) (balanceOfWord σ I))
     rd861
-    (uniswapMappingHashMem_mload64 ⟨1⟩ (balanceOfOwnerWord I))
+    (uniswapMappingHashMem_mload64 ⟨1⟩ (balanceOfOwnerMaskedWord I))
     (by rfl)
-    (uniswapMappingReturnMem_mload64 ⟨1⟩ (balanceOfOwnerWord I) (balanceOfWord σ I))
-    (uniswapMappingReturnMem_read128 ⟨1⟩ (balanceOfOwnerWord I) (balanceOfWord σ I))
+    (uniswapMappingReturnMem_mload64 ⟨1⟩ (balanceOfOwnerMaskedWord I) (balanceOfWord σ I))
+    (uniswapMappingReturnMem_read128 ⟨1⟩ (balanceOfOwnerMaskedWord I) (balanceOfWord σ I))
     (by simp only [List.length_singleton]; omega)
 
-/-- Canonical-success refinement slice for `balanceOf(address)`.
-
-The non-canonical address case is intentionally not claimed here: the optimized bytecode masks the
-address word, while the current ABI decoder rejects non-canonical address encodings.
--/
+/-- Success refinement slice for `balanceOf(address)`, including masked noncanonical address
+calldata words. -/
 theorem uniswapBalanceOfBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (_hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition)
     (hdecode :
       decodeCalldata (balanceOfTransition.params.map Param.name)
@@ -203,7 +188,7 @@ theorem uniswapBalanceOfBodyCoreOk
       uniswapBalanceOfBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
-  exact (uniswapX_balanceOf_ok (g := Sat256.ofUInt256 g) hsz36 hsize hcanon hreach)
+  exact (uniswapX_balanceOf_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
       hAccounts
       (returnEquiv_of_encode
@@ -212,8 +197,8 @@ theorem uniswapBalanceOfBodyCoreOk
 /-- Short-calldata decode-failure refinement slice for `balanceOf(address)`.
 
 The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
-bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
-rejects those cases before execution.
+bytecode masks address words and uses an unsigned static length check, and the `legacyAddr` ABI
+annotation models that behavior.
 -/
 theorem uniswapBalanceOfBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -229,21 +214,20 @@ theorem uniswapBalanceOfBodyCoreDecodeFailed_short
       hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
-/-- Canonical-success `balanceOf(address)` refinement slice, packaged from selector dispatch
-through the body core. -/
+/-- Success `balanceOf(address)` refinement slice, packaged from selector dispatch through the body
+core. -/
 theorem uniswapBalanceOfBodyOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
-    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
-    (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition)
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ rfl hsel
-  exact uniswapBalanceOfBodyCoreOk hcode hsize hwv hsz36 hbig hcanon hdispatch
-    (uniswapDecode_balanceOf_ok hsz36 hbig hcanon)
+  exact uniswapBalanceOfBodyCoreOk hcode hsize hwv hsz36 hdispatch
+    (uniswapDecode_balanceOf_ok hsz36)
     (uniswapReachBalanceOfBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     hAccounts
 
@@ -269,12 +253,7 @@ theorem uniswapBalanceOfBody
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
-    · by_cases hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus
-      · exact uniswapBalanceOfBodyOk hcode hsize hwv hsel hsz36 hbig hcanon
-          hdispatch hAccounts
-      · sorry
-    · sorry
+  · exact uniswapBalanceOfBodyOk hcode hsize hwv hsel hsz36 hdispatch hAccounts
   · exact uniswapBalanceOfBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair
