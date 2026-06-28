@@ -27,6 +27,10 @@ globs = ["Reasoning.+"]
 name = "Proofs"
 globs = ["Proofs.+"]
 
+[[lean_lib]]
+name = "Benchmarks"
+globs = ["Benchmarks.+"]
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"

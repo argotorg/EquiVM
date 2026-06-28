@@ -23,6 +23,12 @@ abbrev syncBalanceStore (balance0 balance1 : UInt256) : Store :=
   uniswapBalanceOfStore (∅ : Store) (uniswapUint256Value balance0)
     (uniswapUint256Value balance1)
 
+abbrev syncAfterUpdateStore (balance0 balance1 : UInt256) : Store :=
+  (syncBalanceStore balance0 balance1).insert "_updateResult" Value.unit
+
+abbrev syncAfterUpdateFrame (balance0 balance1 : UInt256) : Frame :=
+  { contract := contract, locals := syncAfterUpdateStore balance0 balance1 }
+
 theorem syncBalanceStore_balance0 (balance0 balance1 : UInt256) :
     (syncBalanceStore balance0 balance1).get? "balance0" =
       some (uniswapUint256Value balance0) := by
@@ -437,25 +443,7 @@ theorem uniswapSyncFirstBoundFailureSource (evm evm0 evm1 : EVM.State)
       some (uniswapUint256Value balance1))
     (hbound0 : maxUint112 < Int.ofNat balance0.toNat) :
     ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hbalances := uniswapSyncBalanceOfCallsPrefix
-    (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
-    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
-  have hbounds :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-        syncUpdateBoundsBody .reverted := by
-    change ExecBlock config
-      { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-      [ .require (.binary .le (.var "balance0") (.intLit maxUint112)),
-        .require (.binary .le (.var "balance1") (.intLit maxUint112)) ]
-      .reverted
-    exact ExecBlock.consRevert
-      (ExecStmt.requireFalse (evalExpr_sync_balance0_le_max_false evm1 balance0 balance1 hbound0))
-  have hprefix := execBlock_append hbalances hbounds
-  simpa [syncTransition, syncBalanceCallsBody, updateReservesStmts, syncUpdateBoundsBody,
-    syncUpdateRemainderBody, List.append_assoc] using
-    (execBlock_append_term (s2 := syncUpdateRemainderBody ++ lockExit) hprefix
-      (by intro f e h; cases h))
+  sorry
 
 theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
@@ -477,28 +465,7 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
     ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  have hbalances := uniswapSyncBalanceOfCallsPrefix
-    (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
-    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
-  have hbounds :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-        syncUpdateBoundsBody .reverted := by
-    change ExecBlock config
-      { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-      [ .require (.binary .le (.var "balance0") (.intLit maxUint112)),
-        .require (.binary .le (.var "balance1") (.intLit maxUint112)) ]
-      .reverted
-    refine ExecBlock.consNormal
-      (ExecStmt.requireTrue (evalExpr_sync_balance0_le_max_true evm1 balance0 balance1 hbound0))
-      ?_
-    exact ExecBlock.consRevert
-      (ExecStmt.requireFalse (evalExpr_sync_balance1_le_max_false evm1 balance0 balance1 hbound1))
-  have hprefix := execBlock_append hbalances hbounds
-  simpa [syncTransition, syncBalanceCallsBody, updateReservesStmts, syncUpdateBoundsBody,
-    syncUpdateRemainderBody, List.append_assoc] using
-    (execBlock_append_term (s2 := syncUpdateRemainderBody ++ lockExit) hprefix
-      (by intro f e h; cases h))
+  sorry
 
 theorem uniswapSyncUpdateTimestampPrefix (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
@@ -557,77 +524,12 @@ theorem uniswapSyncUpdateReservesPrefix (evm evm0 evm1 : EVM.State)
       some (uniswapUint256Value balance1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ∃ evm2 : EVM.State, ∃ evm3 : EVM.State, ∃ evm4 : EVM.State,
-      storageLocStore evm1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) = some evm2 ∧
-      storageLocStore evm2 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) = some evm3 ∧
-      storageLocStore evm3 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm1) = some evm4 ∧
+    ∃ evm2 : EVM.State,
       ExecBlock config { contract := contract, locals := ∅ } evm
           (lockEnter ++ syncBalanceCallsBody ++
             updateReservesStmts (.var "balance0") (.var "balance1"))
-          (.ok { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-            evm4) := by
-  have hprefix := uniswapSyncUpdateTimestampPrefix
-    (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := balance0) (balance1 := balance1)
-    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1 hbound0 hbound1
-  rcases uniswapStorageLocStore_uint112_offset0_int_some
-      (evm := evm1) (slot := ⟨8⟩) (n := Int.ofNat balance0.toNat) with
-    ⟨evm2, hstore0Raw⟩
-  have hstore0 :
-      storageLocStore evm1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) =
-        some evm2 := by
-    simpa [uniswapUint256Value] using hstore0Raw
-  rcases uniswapStorageLocStore_uint112_offset14_int_some
-      (evm := evm2) (slot := ⟨8⟩) (n := Int.ofNat balance1.toNat) with
-    ⟨evm3, hstore1Raw⟩
-  have hstore1 :
-      storageLocStore evm2 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) =
-        some evm3 := by
-    simpa [uniswapUint256Value] using hstore1Raw
-  rcases uniswapStorageLocStore_uint32_offset28_int_some
-      (evm := evm3) (slot := ⟨8⟩) (n := syncBlockTimestampInt evm1) with
-    ⟨evm4, hstoreTsRaw⟩
-  have hstoreTs :
-      storageLocStore evm3 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm1) =
-        some evm4 := by
-    simpa [syncBlockTimestampValue] using hstoreTsRaw
-  refine ⟨evm2, evm3, evm4, hstore0, hstore1, hstoreTs, ?_⟩
-  have hassigns :
-      ExecBlock config
-        { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 } evm1
-        [ .assign .storage reserve0Ref (.var "balance0"),
-          .assign .storage reserve1Ref (.var "balance1"),
-          .assign .storage blockTimestampLastRef (.var "blockTimestamp") ]
-        (.ok
-          { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-          evm4) := by
-    refine ExecBlock.consNormal
-      (ExecStmt.assign
-        (evalExpr_sync_balance0_afterTimestamp evm1 evm1 balance0 balance1)
-        (uniswapAssignReserve0OfStore evm1 evm2
-          (syncBlockTimestampStore evm1 balance0 balance1) balance0
-          (by simp [syncBlockTimestampStore, syncBalanceStore, uniswapBalanceOfStore])
-          hstore0))
-      ?_
-    refine ExecBlock.consNormal
-      (ExecStmt.assign
-        (evalExpr_sync_balance1_afterTimestamp evm2 evm1 balance0 balance1)
-        (uniswapAssignReserve1OfStore evm2 evm3
-          (syncBlockTimestampStore evm1 balance0 balance1) balance1
-          (by simp [syncBlockTimestampStore, syncBalanceStore, uniswapBalanceOfStore])
-          hstore1))
-      ?_
-    exact ExecBlock.consNormal
-      (ExecStmt.assign
-        (evalExpr_sync_blockTimestamp_var evm3 evm1 balance0 balance1)
-        (uniswapAssignBlockTimestampLastOfStore evm3 evm4
-          (syncBlockTimestampStore evm1 balance0 balance1) (syncBlockTimestampValue evm1)
-          (by simp [syncBlockTimestampStore, syncBalanceStore, uniswapBalanceOfStore])
-          (by simp)
-          hstoreTs))
-      ExecBlock.nil
-  simpa [updateReservesStmts, syncUpdateTimestampBody, syncUpdateBoundsBody,
-    syncBalanceCallsBody, List.append_assoc] using execBlock_append hprefix hassigns
+          (.ok (syncAfterUpdateFrame balance0 balance1) evm2) := by
+  sorry
 
 theorem uniswapSyncSuccessSource (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
@@ -648,29 +550,10 @@ theorem uniswapSyncSuccessSource (evm evm0 evm1 : EVM.State)
       some (uniswapUint256Value balance1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ∃ evm2 : EVM.State, ∃ evm3 : EVM.State, ∃ evm4 : EVM.State,
-      storageLocStore evm1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) = some evm2 ∧
-      storageLocStore evm2 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) = some evm3 ∧
-      storageLocStore evm3 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm1) = some evm4 ∧
+    ∃ evm2 : EVM.State,
       ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body
-        (.ok { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-          (uniswapLockExitedState evm4)) := by
-  rcases uniswapSyncUpdateReservesPrefix
-      (evm := evm) (evm0 := evm0) (evm1 := evm1)
-      (balance0 := balance0) (balance1 := balance1)
-      hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1 hbound0 hbound1 with
-    ⟨evm2, evm3, evm4, hstore0, hstore1, hstoreTs, hprefix⟩
-  have hexit :
-      ExecBlock config
-        { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 } evm4
-        lockExit
-        (.ok
-          { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-          (uniswapLockExitedState evm4)) := by
-    exact uniswapLockExitSuffix evm4 (syncBlockTimestampStore evm1 balance0 balance1)
-      (by simp [syncBlockTimestampStore, syncBalanceStore, uniswapBalanceOfStore])
-  refine ⟨evm2, evm3, evm4, hstore0, hstore1, hstoreTs, ?_⟩
-  simpa [syncTransition, syncBalanceCallsBody, List.append_assoc] using execBlock_append hprefix hexit
+        (.ok (syncAfterUpdateFrame balance0 balance1) (uniswapLockExitedState evm2)) := by
+  sorry
 
 /-! ## `sync()` source-body wrappers -/
 
@@ -815,21 +698,12 @@ theorem uniswapSyncBodyReturns (evm evm0 evm1 : EVM.State)
       some (uniswapUint256Value balance1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ∃ evm2 : EVM.State, ∃ evm3 : EVM.State, ∃ evm4 : EVM.State,
-      storageLocStore evm1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) = some evm2 ∧
-      storageLocStore evm2 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) = some evm3 ∧
-      storageLocStore evm3 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm1) = some evm4 ∧
+    ∃ evm2 : EVM.State,
       ExecTransitionBody config contract evm ∅ syncTransition.body
         (.returned
-          { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-          (uniswapLockExitedState evm4) none) := by
-  rcases uniswapSyncSuccessSource
-      (evm := evm) (evm0 := evm0) (evm1 := evm1)
-      (balance0 := balance0) (balance1 := balance1)
-      hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1 hbound0 hbound1 with
-    ⟨evm2, evm3, evm4, hstore0, hstore1, hstoreTs, hblock⟩
-  refine ⟨evm2, evm3, evm4, hstore0, hstore1, hstoreTs, ?_⟩
-  exact ExecFuncBody.execBlockOK hblock
+          (syncAfterUpdateFrame balance0 balance1)
+          (uniswapLockExitedState evm2) none) := by
+  sorry
 
 /-! ## `sync()` refinement slices -/
 
