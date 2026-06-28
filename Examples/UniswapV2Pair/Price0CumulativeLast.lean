@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -76,5 +76,20 @@ theorem uniswapPrice0CumulativeLastBodyCore
     hcode hdispatch hdecode hreach hAccounts uniswap_word_getter_entry_wf
     uniswap_word_slot_getter_wf (by jump_dest) (by rfl)
     (by simpa [price0CumulativeLastWord] using hbody)
+
+/-- `price0CumulativeLast()` wrapper: selector match supplies decode and reach. -/
+theorem uniswapPrice0CumulativeLastBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some price0CumulativeLastTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩ rfl hsel
+  exact uniswapPrice0CumulativeLastBodyCore hcode hwv hdispatch
+    (uniswapDecode_price0CumulativeLast hsz)
+    (uniswapReachPrice0CumulativeLastBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
+    hAccounts
 
 end UniswapV2Pair

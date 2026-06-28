@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -536,5 +536,19 @@ theorem uniswapGetReservesBodyCore
             reserve32Word_lt (UInt256.div (getReservesSlotWord σ_evm I) reserve224Shift)))
   exact (uniswapX_getReserves (g := Sat256.ofUInt256 g) hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+
+/-- `getReserves()` refinement slice, packaged from selector dispatch through the body core. -/
+theorem uniswapGetReservesBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩ rfl hsel
+  exact uniswapGetReservesBodyCore hcode hwv hdispatch (uniswapDecode_getReserves hsz)
+    (uniswapReachGetReservesBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
+    hAccounts
 
 end UniswapV2Pair

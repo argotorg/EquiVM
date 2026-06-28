@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -29,6 +29,15 @@ theorem permitTypehashWord_toBytesBE :
     EVM.Word.toBytesBE permitTypehashWord = permitTypehashRuntimeBytes := by
   native_decide
 
+theorem permitTypehashBytes_ne_runtimeBytes :
+    permitTypehashBytes ≠ permitTypehashRuntimeBytes := by
+  native_decide
+
+theorem permitTypehashBytes_ne_runtimeWordBytes :
+    permitTypehashBytes ≠ EVM.Word.toBytesBE permitTypehashWord := by
+  rw [permitTypehashWord_toBytesBE]
+  exact permitTypehashBytes_ne_runtimeBytes
+
 /-- The Solm `PERMIT_TYPEHASH()` body returns the bytes32 literal from Uniswap V2 ERC20. -/
 theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -58,6 +67,22 @@ theorem uniswapDecode_permitTypehash {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
       (transitionSignature permitTypehashTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
+
+/-- Runtime-only `PERMIT_TYPEHASH()` slice from selector dispatch through return.
+
+This deliberately does not claim refinement: `permitTypehashBytes_ne_runtimeWordBytes` records the
+source/runtime literal mismatch below. -/
+theorem uniswapPermitTypehashRuntimeBody
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩) :
+    RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (UInt256.toByteArray permitTypehashWord) := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩ rfl hsel
+  exact uniswapX_permitTypehash
+    (uniswapReachPermitTypehashBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 /-!
 `PERMIT_TYPEHASH()` is intentionally left without a body-core refinement here.  The runtime bytecode

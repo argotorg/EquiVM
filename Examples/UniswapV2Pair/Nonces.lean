@@ -1,4 +1,5 @@
-import Examples.UniswapV2Pair.Storage
+import Examples.UniswapV2Pair.ExternalWrappers
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -114,6 +115,22 @@ theorem uniswapNoncesX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by jump_dest) (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [noncesOwnerWord] using rd4075⟩
 
+/-- Short-calldata path for `nonces(address)` from the dispatcher body entry.
+
+This covers calldata with a selector present but fewer than one ABI word. The dispatcher-level
+`calldatasize < 4` branch remains in `Correct.lean`.
+-/
+theorem uniswapNoncesX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 36)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1125⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  exact RD.uniswapOneAddressGetterShort
+    (entry := ⟨1125⟩) (routine := ⟨4075⟩)
+    hreach uniswap_one_address_getter_entry_wf hsz4 hsize hshort
+
 /-- The EVM `nonces(address)` success path loads the explicit mapping slot and returns it. -/
 theorem uniswapX_nonces_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -191,5 +208,57 @@ theorem uniswapNoncesBodyCoreOk
       hAccounts
       (returnEquiv_of_encode
         (by simpa [uint256] using uint256ReturnEncoding (noncesWord σ_evm I)))
+
+/-- Short-calldata decode-failure refinement slice for `nonces(address)`.
+
+The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
+bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
+rejects those cases before execution.
+-/
+theorem uniswapNoncesBodyCoreDecodeFailed_short
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
+    (hdispatch : dispatchMsg contract I.calldata = some noncesTransition)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1125⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdec := uniswapDecode_nonces_none_short (I := I) hsz4 hshort
+  exact (uniswapNoncesX_shortarg (g := Sat256.ofUInt256 g)
+      hsz4 hsize hshort hreach)
+    |>.reEquivDecodingFailed hcode hdispatch hdec
+
+/-- Canonical-success `nonces(address)` refinement slice, packaged from selector dispatch through
+the body core. -/
+theorem uniswapNoncesBodyOk
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
+    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus)
+    (hdispatch : dispatchMsg contract I.calldata = some noncesTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ rfl hsel
+  exact uniswapNoncesBodyCoreOk hcode hsize hwv hsz36 hbig hcanon hdispatch
+    (uniswapDecode_nonces_ok hsz36 hbig hcanon)
+    (uniswapReachNoncesBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+    hAccounts
+
+/-- Short-calldata decode-failure `nonces(address)` refinement slice, packaged from selector
+dispatch through the body core. -/
+theorem uniswapNoncesBodyDecodeFailed_short
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
+    (hshort : I.calldata.size < 36)
+    (hdispatch : dispatchMsg contract I.calldata = some noncesTransition) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ rfl hsel
+  exact uniswapNoncesBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
+    (uniswapReachNoncesBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
 end UniswapV2Pair

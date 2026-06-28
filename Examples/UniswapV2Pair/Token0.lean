@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -76,5 +76,18 @@ theorem uniswapToken0BodyCore
     hcode hdispatch hdecode hreach hAccounts uniswap_address_getter_entry_wf
     uniswap_address_slot_getter_wf (by jump_dest) (by rfl)
     (by simpa [token0ReturnWord] using hbody)
+
+/-- `token0()` body wrapper for top-level routing: selector match supplies decode and reach. -/
+theorem uniswapToken0Body
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some token0Transition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩ rfl hsel
+  exact uniswapToken0BodyCore hcode hwv hdispatch (uniswapDecode_token0 hsz)
+    (uniswapReachToken0Body (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
 
 end UniswapV2Pair

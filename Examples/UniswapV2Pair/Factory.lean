@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -75,5 +75,18 @@ theorem uniswapFactoryBodyCore
   exact uniswapAddressGetterBodyCore (entry := ⟨1324⟩) (routine := ⟨5443⟩) (slot := ⟨5⟩)
     hcode hdispatch hdecode hreach hAccounts uniswap_address_getter_entry_wf
     uniswap_address_slot_getter_wf (by jump_dest) (by rfl) hbody
+
+/-- `factory()` body wrapper for top-level routing: selector match supplies decode and reach. -/
+theorem uniswapFactoryBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some factoryTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩ rfl hsel
+  exact uniswapFactoryBodyCore hcode hwv hdispatch (uniswapDecode_factory hsz)
+    (uniswapReachFactoryBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
 
 end UniswapV2Pair

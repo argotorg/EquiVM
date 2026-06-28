@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -76,5 +76,20 @@ theorem uniswapDomainSeparatorBodyCore
     hcode hdispatch hdecode hreach hAccounts uniswap_word_getter_entry_wf
     uniswap_word_slot_getter_wf (by jump_dest) (by rfl)
     (by simpa [domainSeparatorWord] using hbody)
+
+/-- `DOMAIN_SEPARATOR()` body wrapper for top-level routing: selector match supplies decode and reach. -/
+theorem uniswapDomainSeparatorBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x36, 0x44, 0xe5, 0x15]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some domainSeparatorTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0x36, 0x44, 0xe5, 0x15]⟩ rfl hsel
+  exact uniswapDomainSeparatorBodyCore hcode hwv hdispatch
+    (uniswapDecode_domainSeparator hsz)
+    (uniswapReachDomainSeparatorBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
+    hAccounts
 
 end UniswapV2Pair

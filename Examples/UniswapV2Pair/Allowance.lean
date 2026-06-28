@@ -1,4 +1,5 @@
-import Examples.UniswapV2Pair.Storage
+import Examples.UniswapV2Pair.ExternalWrappers
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -170,6 +171,22 @@ theorem uniswapAllowanceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (by jump_dest) (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [allowanceOwnerWord, allowanceSpenderWord] using rd5987⟩
 
+/-- Short-calldata path for `allowance(address,address)` from the dispatcher body entry.
+
+This covers calldata with a selector present but fewer than two ABI words. The dispatcher-level
+`calldatasize < 4` branch remains in `Correct.lean`.
+-/
+theorem uniswapAllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 68)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1421⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  exact RD.uniswapTwoAddressGetterShort
+    (entry := ⟨1421⟩) (routine := ⟨5987⟩)
+    hreach uniswap_two_address_getter_entry_wf hsz4 hsize hshort
+
 /-- The EVM `allowance(address,address)` success path loads the explicit nested mapping slot and
     returns it. -/
 theorem uniswapX_allowance_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -266,5 +283,59 @@ theorem uniswapAllowanceBodyCoreOk
       hAccounts
       (returnEquiv_of_encode
         (by simpa [uint256] using uint256ReturnEncoding (allowanceWord σ_evm I)))
+
+/-- Short-calldata decode-failure refinement slice for `allowance(address,address)`.
+
+The non-canonical and huge-calldata branches are intentionally not claimed here: the optimized
+bytecode masks address words and uses an unsigned length check, while the current Solm ABI decoder
+rejects those cases before execution.
+-/
+theorem uniswapAllowanceBodyCoreDecodeFailed_short
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
+    (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1421⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdec := uniswapDecode_allowance_none_short (I := I) hsz4 hshort
+  exact (uniswapAllowanceX_shortarg (g := Sat256.ofUInt256 g)
+      hsz4 hsize hshort hreach)
+    |>.reEquivDecodingFailed hcode hdispatch hdec
+
+/-- Canonical-success `allowance(address,address)` refinement slice, packaged from selector
+dispatch through the body core. -/
+theorem uniswapAllowanceBodyOk
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
+    (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
+    (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus)
+    (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ rfl hsel
+  exact uniswapAllowanceBodyCoreOk hcode hsize hwv hsz68 hbig hcanonOwner hcanonSpender
+    hdispatch
+    (uniswapDecode_allowance_ok hsz68 hbig hcanonOwner hcanonSpender)
+    (uniswapReachAllowanceBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+    hAccounts
+
+/-- Short-calldata decode-failure `allowance(address,address)` refinement slice, packaged from
+selector dispatch through the body core. -/
+theorem uniswapAllowanceBodyDecodeFailed_short
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
+    (hshort : I.calldata.size < 68)
+    (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ rfl hsel
+  exact uniswapAllowanceBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
+    (uniswapReachAllowanceBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
 end UniswapV2Pair

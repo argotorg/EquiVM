@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.Common
+import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Refinement
 import Reasoning.SolmBody
 
@@ -81,5 +81,20 @@ theorem uniswapMinimumLiquidityBodyCore
       (by jump_dest)
       (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody rfl hAccounts henc
+
+/-- `MINIMUM_LIQUIDITY()` body wrapper for top-level routing: selector match supplies decode and reach. -/
+theorem uniswapMinimumLiquidityBody
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some minimumLiquidityTransition)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩ rfl hsel
+  exact uniswapMinimumLiquidityBodyCore hcode hwv hdispatch
+    (uniswapDecode_minimumLiquidity hsz)
+    (uniswapReachMinimumLiquidityBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
+    hAccounts
 
 end UniswapV2Pair
