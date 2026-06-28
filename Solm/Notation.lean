@@ -136,6 +136,7 @@ macro_rules
       | "msg.value"       => `(Solm.Expr.env Solm.EnvVar.callvalue)
       | "tx.origin"       => `(Solm.Expr.env Solm.EnvVar.origin)
       | "block.timestamp" => `(Solm.Expr.env Solm.EnvVar.timestamp)
+      | "block.chainid"   => `(Solm.Expr.env Solm.EnvVar.chainid)
       | s                 => `(Solm.Expr.var $(quote s))
   | `(sExpr% ( $e:solmExpr ))  => `(sExpr% $e)
   | `(sExpr% @ $r:solmRef)     => `(Solm.Expr.storage (sRef% $r))

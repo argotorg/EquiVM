@@ -191,6 +191,7 @@ inductive EnvVar where
   | callvalue
   | this
   | timestamp
+  | chainid
   | selfbalance
   deriving DecidableEq, Repr, Inhabited
 

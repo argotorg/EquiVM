@@ -65,6 +65,7 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .callvalue => .int (Int.ofNat evm.executionEnv.weiValue.val)
   | .this => .address evm.executionEnv.codeOwner
   | .timestamp => .int (Int.ofNat (Ethereum.UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+  | .chainid => .int (Int.ofNat Ethereum.chainId)
   | .selfbalance =>
       .int (Int.ofNat ((evm.lookupAccount evm.executionEnv.codeOwner).option
         (EVM.Word.ofNat 0) (·.balance)).toNat)
@@ -208,6 +209,11 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
       some (.fixedBytes expected ((EVM.Word.ofNat n.toNat).toBytesBE.drop (32 - (expected.val + 1))))
   -- `address(n)`: an integer cast to `address` (e.g. `address(0)`), truncated to the address width.
   | .elem (.address), .int n => some (.address (.ofNat n.toNat))
+  | .elem (.int (.uint bits)), .address a =>
+      if a.toNat < EVM.twoPow bits.val then
+        some (.int (Int.ofNat a.toNat))
+      else
+        none
   | .elem (.int _), .int _ => some v
   | .contract _, .address _ => some v
   | .struct expected _, .struct actual _ =>
