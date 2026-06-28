@@ -560,6 +560,17 @@ def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option S
   let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
   er.steps.foldlM storageTypeStep? baseTy
 
+def storageNatResultToEval : StorageReadResult Nat -> EvalResult Nat
+  | .ok n => .ok n
+  | .revert => .revert
+  | .error => .error .storageError
+
+def readStorageBytesLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    EvalResult Nat :=
+  match cfg.storage.readBytesLength er evm with
+  | some result => storageNatResultToEval result
+  | none => .error .storageError
+
 /-- Bounds-check a single array index `i` against the array reached by the evaled prefix `pre`.
     Fixed arrays are checked against their declared static bound. Dynamic arrays are checked by
     asking the layout for the distinct `.length` ref `layout {base, pre ++ [.length]}` and reading
@@ -585,83 +596,23 @@ def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option S
   | some (.dynamicArray _), _ => .error .typeError
   | some (.bytes), .int iv
   | some (.string), .int iv =>
-      match cfg.storage.layout { base := base, steps := pre ++ [.length] } evm with
-      | some lenLoc =>
-          match storageLocLoad evm lenLoc with
-          | .int len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
-          | _ => .error .storageError
-      | none => .error .storageError
+      match readStorageBytesLength? cfg evm { base := base, steps := pre } with
+      | .ok len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
+      | .revert => .revert
+      | .error e => .error e
   | some (.bytes), _ | some (.string), _ => .error .typeError
   | some _, _ => .error .typeError
   | none, _ => .error .storageError
-
-def bytesLikeLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    EvalResult Nat := do
-  match cfg.storage.readBytesLength er evm with
-  | some (.ok len) => pure len
-  | some .revert => .revert
-  | some .error => .error .storageError
-  | none =>
-      let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-      match storageLocLoad evm lenLoc with
-      | .int len =>
-          if len < 0 then .error .storageError else pure len.toNat
-      | _ => .error .storageError
-
-def readBytesLikeByte? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
-    (idx : Nat) : EvalResult UInt8 := do
-  let loc <- EvalResult.ofOption .storageError
-    (cfg.storage.layout { er with steps := er.steps ++ [.aindex (.int idx)] } evm)
-  match storageLocLoad evm loc with
-  | .int byte =>
-      if 0 ≤ byte ∧ byte < 256 then
-        pure (UInt8.ofNat byte.toNat)
-      else
-        .error .storageError
-  | _ => .error .storageError
-
-def readBytesLikeData? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
-    (idx : Nat) : Nat -> EvalResult (List UInt8)
-  | 0 => .ok []
-  | n+1 => do
-      let byte <- readBytesLikeByte? cfg evm er idx
-      let rest <- readBytesLikeData? cfg evm er (idx + 1) n
-      pure (byte :: rest)
-
-def readStorageBytesLike? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    EvalResult Value := do
-  let len <- bytesLikeLength? cfg evm er
-  let bytes <- readBytesLikeData? cfg evm er 0 len
-  pure (.bytes (ByteArray.mk bytes.toArray))
 
 def storagePrepareResultToEval : StorageReadResult EVM.State -> EvalResult EVM.State
   | .ok evm => .ok evm
   | .revert => .revert
   | .error => .error .storageError
 
-def writeBytesLikeData? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
-    (idx : Nat) : List UInt8 -> EvalResult EVM.State
-  | [] => .ok evm
-  | byte :: rest => do
-      let loc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.aindex (.int idx)] } evm)
-      let evm1 <- EvalResult.ofOption .storageError
-        (storageLocStore evm loc (.int byte.toNat))
-      writeBytesLikeData? cfg evm1 er (idx + 1) rest
-
-def writeStorageBytesLike? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
-    (bytes : ByteArray) : EvalResult EVM.State := do
-  match cfg.storage.writeBytes er bytes evm with
-  | some result => storagePrepareResultToEval result
-  | none =>
-      let data := bytes.toList
-      let evm0 <- storagePrepareResultToEval (cfg.storage.prepareBytesWrite er data.length evm)
-      writeBytesLikeData? cfg evm0 er 0 data
-
-def clearStorageBytesLike? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
-    EvalResult EVM.State :=
-  storagePrepareResultToEval (cfg.storage.prepareBytesWrite er 0 evm)
+def storageValueResultToEval : StorageReadResult Value -> EvalResult Value
+  | .ok v => .ok v
+  | .revert => .revert
+  | .error => .error .storageError
 
 /- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
    `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
@@ -690,7 +641,14 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               | r => r
           | _ => .error .storageError
       | none => .error .storageError
-  | .bytes | .string => clearStorageBytesLike? cfg evm er
+  | .bytes =>
+      match cfg.storage.clearValue? er .bytes evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
+  | .string =>
+      match cfg.storage.clearValue? er .string evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
   termination_by t => (sizeOf t, 0)
 
 def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -748,8 +706,14 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let lenLoc <- EvalResult.ofOption .storageError
         (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
       EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
-  | .bytes, .bytes bs => writeStorageBytesLike? cfg evm er bs
-  | .string, .bytes bs => writeStorageBytesLike? cfg evm er bs
+  | .bytes, .bytes bs =>
+      match cfg.storage.writeValue? er .bytes (.bytes bs) evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
+  | .string, .bytes bs =>
+      match cfg.storage.writeValue? er .string (.bytes bs) evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
   | _, _ => .error .typeError
   termination_by t => (sizeOf t, 0)
 
@@ -817,7 +781,14 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               pure (.array vs)
           | _ => .error .storageError
       | none => .error .storageError
-  | .bytes | .string => readStorageBytesLike? cfg evm er
+  | .bytes =>
+      match cfg.storage.readValue? er .bytes evm with
+      | some result => storageValueResultToEval result
+      | none => .error .storageError
+  | .string =>
+      match cfg.storage.readValue? er .string evm with
+      | some result => storageValueResultToEval result
+      | none => .error .storageError
   termination_by t => (sizeOf t, 0)
 
 def readFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -860,7 +831,7 @@ def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
           | _ => .error .storageError
       | none => .error .storageError
   | .bytes | .string => do
-      let len <- bytesLikeLength? cfg evm er
+      let len <- readStorageBytesLength? cfg evm er
       pure (.int len)
   | _ => .error .typeError
 

@@ -305,6 +305,13 @@ theorem decodeCalldata_set_none_headShort {I : ExecutionEnv}
     unfold ABI.readNat? ABI.readWord? ABI.readBytes?
     simp [hnotRead]
   rw [if_neg hlen4]
+  have hnotDyn :
+      ¬ ([ABIType.string].any ABI.isDynamicABIType = true ∧
+        2 ^ 255 ≤ I.calldata.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
   have hnotHuge :
       ¬ ([ABIType.string].isEmpty = false ∧ 2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
     intro h
@@ -316,8 +323,8 @@ theorem decodeCalldata_set_none_headShort {I : ExecutionEnv}
         2 ^ 255 ≤ I.calldata.toList.length
   · rw [if_pos htotalHuge]
   · rw [if_neg htotalHuge]
-    simp only [decodeCalldata.decodeArgs, ABI.abiTupleHeadSize?, ABI.decodeABIValues?,
-      ABI.isDynamicABIType, hread, bind, Option.bind_none, Option.bind_some, if_true]
+    simp [decodeCalldata.decodeArgs, ABI.abiTupleHeadSize?, ABI.decodeABIValues?,
+      ABI.isDynamicABIType, hread, bind, Option.bind_none, Option.bind_some]
 
 theorem decodeCalldata_set_none_huge {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
@@ -380,7 +387,7 @@ theorem decodeCalldata_set_none_payloadShort {I : ExecutionEnv}
     hlenMax hpayload
 
 theorem decodeCalldata_set_empty {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hsz36 : 36 ≤ I.calldata.size) (_hhi : I.calldata.size < 2 ^ 255 + 4)
     (hsizeSign : I.calldata.size < 2 ^ 255)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -456,7 +463,7 @@ theorem setDecodedValueBytes_readWithPadding_short_toList {I : ExecutionEnv}
     readWithPadding_zero_toList_of_size_lt32 (setDecodedValueBytes I) hpos hshort'
 
 theorem decodeCalldata_set_some {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hsz36 : 36 ≤ I.calldata.size) (_hhi : I.calldata.size < 2 ^ 255 + 4)
     (hsizeSign : I.calldata.size < 2 ^ 255)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -515,7 +522,7 @@ theorem currentLengthBodyReturns {evm : EVM.State} {n : Nat}
     (hresolve : resolveStorageRef? stringStoreLiteConfig
       { contract := stringStoreLiteContract, locals := ∅ } evm currentRef =
         .ok ({ base := "current", steps := [] }, .string))
-    (hlen : bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
+    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some (.int n))) := by
   exact ExecFuncBody.execBlockRet <|
@@ -527,7 +534,7 @@ theorem currentLengthBodyReverts {evm : EVM.State}
     (hresolve : resolveStorageRef? stringStoreLiteConfig
       { contract := stringStoreLiteContract, locals := ∅ } evm currentRef =
         .ok ({ base := "current", steps := [] }, .string))
-    (hlen : bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       .reverted := by
   exact ExecFuncBody.execBlockRevert <|
@@ -537,29 +544,43 @@ theorem currentLengthBodyReverts {evm : EVM.State}
 
 theorem currentLengthBodyReturnsOfLength {evm : EVM.State} {n : Nat}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
+    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some (.int n))) :=
   currentLengthBodyReturns hwv (currentLengthResolve evm) hlen
 
 theorem currentLengthBodyRevertsOfLength {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       .reverted :=
   currentLengthBodyReverts hwv (currentLengthResolve evm) hlen
 
 theorem clearCurrentBodyRevertsOfRead {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ clearCurrentTransition.body
       .reverted := by
   have hresolve := currentLengthResolve evm
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
       (ExecBlock.consRevert (ExecStmt.letDeclRevert (by
-        simp only [evalExpr?, hresolve, readStorage?, readStorageBytesLike?, EvalResult.bind,
-          bind, hlen])))
+        rw [evalExpr?, hresolve]
+        simp [stringStoreLiteConfig, stringStoreLiteStorageLayout,
+          solidityStorageLayout, readStorageBytesLength?, solidityReadBytesLength?,
+          stringStoreLiteLayout, bind] at hlen
+        have hdecode :
+            solidityDecodeBytesLengthHeader
+              (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) = .revert := by
+          cases h :
+              solidityDecodeBytesLengthHeader
+                (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) <;>
+            simp [h, storageNatResultToEval] at hlen
+          rfl
+        simp [readStorage?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+          solidityStorageLayout, solidityReadValue?, solidityReadBytesValue?,
+          solidityBytesBaseSlotAndLength?, storageValueResultToEval,
+          stringStoreLiteLayout, hdecode, EvalResult.bind, bind])))
 
 theorem clearCurrentBodyReturnsZero {evm evm' : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -616,68 +637,6 @@ theorem clearCurrentBodyReturnsBytes {evm evm' : EVM.State} {copy : ByteArray}
       ExecBlock.consNormal (ExecStmt.letDecl hread) <|
         ExecBlock.consNormal (ExecStmt.delete (by simpa [solm1] using hdel)) <|
           ExecBlock.consReturn (ExecStmt.return hret)
-
-theorem readBytesLikeData_exists_of_byte_reads {cfg : Config} {evm : EVM.State}
-    {er : EvaledStorageRef} :
-    ∀ (idx n : Nat),
-      (∀ j, idx ≤ j → j < idx + n → ∃ b, readBytesLikeByte? cfg evm er j = .ok b) →
-      ∃ bytes, readBytesLikeData? cfg evm er idx n = .ok bytes ∧ bytes.length = n
-  | idx, 0, _ => ⟨[], rfl, rfl⟩
-  | idx, n + 1, hbyte => by
-      obtain ⟨b, hb⟩ := hbyte idx (by omega) (by omega)
-      obtain ⟨rest, hrest, hlen⟩ :=
-        readBytesLikeData_exists_of_byte_reads (idx + 1) n (by
-          intro j hjlo hjhi
-          exact hbyte j (by omega) (by omega))
-      refine ⟨b :: rest, ?_, by simp [hlen]⟩
-      simp [readBytesLikeData?, hb, hrest, EvalResult.bind, bind, pure]
-
-theorem readBytesLikeByte_current_short_exists {evm : EVM.State} {header len : UInt256}
-    {idx : Nat}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
-    (hpacked : checkBytesPacked ⟨0⟩ evm = true)
-    (hlt32 : len.toNat < 32)
-    (hidx : idx < len.toNat) :
-    ∃ b, readBytesLikeByte? stringStoreLiteConfig evm { base := "current" } idx = .ok b := by
-  have hidx31 : idx < 31 := by omega
-  have hidxNonneg : ¬ (idx : Int) < 0 := by omega
-  unfold readBytesLikeByte?
-  unfold storageLocLoad wordToElem
-  simp [stringStoreLiteConfig, stringStoreLiteStorageLayout, stringStoreLiteLayout,
-    bytesLikeByteLoc?, hidxNonneg, hpacked, hidx31, uint8Loc, EvalResult.ofOption,
-    EvalResult.bind, bind, pure, hload, uint8Int]
-  have hbyteLt :
-      ({
-        val :=
-          ⟨fromBytes' (List.take 1 (List.drop (31 - idx)
-            (EVM.Word.toBytesLEWithSizeProof header).1)), by
-            apply lt_of_lt_of_le (b := 2 ^ (8 * (List.take 1
-              (List.drop (31 - idx) (EVM.Word.toBytesLEWithSizeProof header).1)).length))
-            · exact EVM.fromBytes'_le
-            · apply le_trans (b := 2 ^ 8)
-              · apply Nat.pow_le_pow_right (by decide)
-                have hlenTake :
-                    (List.take 1
-                      (List.drop (31 - idx) (EVM.Word.toBytesLEWithSizeProof header).1)).length ≤
-                      1 := by
-                    simp
-                nlinarith
-              · norm_num [UInt256.size]⟩ } : UInt256).toNat < 256 := by
-    let bs : List UInt8 :=
-      List.take 1 (List.drop (31 - idx) (EVM.Word.toBytesLEWithSizeProof header).1)
-    have hlenBs : bs.length ≤ 1 := by
-      simp [bs]
-    have hfrom := EVM.fromBytes'_le (bs := bs)
-    have hpow : 2 ^ (8 * bs.length) ≤ 256 := by
-      have hmul : 8 * bs.length ≤ 8 := by
-        nlinarith
-      calc
-        2 ^ (8 * bs.length) ≤ 2 ^ 8 := Nat.pow_le_pow_right (by decide) hmul
-        _ = 256 := by norm_num
-    have hltFrom : fromBytes' bs < 256 := lt_of_lt_of_le hfrom hpow
-    simpa [bs, UInt256.toNat] using hltFrom
-  rw [if_pos hbyteLt]
-  exact ⟨_, rfl⟩
 
 theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -749,6 +708,65 @@ theorem setBodyReturnsOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
   exact setBodyReturns (evm := evm) (evmCurrent := evmCurrent) (value := value)
     hwv (assignCurrentOfWrite hwrite)
 
+theorem setRuntimeOfWriteAccountMapEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {value o : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {evmCurrent : EVM.State}
+    (hcode : I.code = stringStoreLiteBytecode)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hret : RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc o)
+    (hd : dispatchMsg stringStoreLiteContract I.calldata = some setTransition)
+    (hdec : decodeCalldata (setTransition.params.map Param.name)
+      (transitionSignature setTransition).paramTypes I.calldata =
+        some ((∅ : Store).insert "value" (.bytes value)))
+    (hwrite : writeStorage? stringStoreLiteConfig
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
+    (hCreated : acc.1 = evmCurrent.createdAccounts)
+    (hAccounts : accountMapEquiv acc.2 evmCurrent.accountMap)
+    (henc : returnEquiv o (some (.int value.size)) setTransition.returnType) :
+    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hbody := setBodyReturnsOfWrite
+    (evm := evmSolm0) (evmCurrent := evmCurrent) (value := value)
+    (by simp [evmSolm0, initState]; exact hwv)
+    (by simpa [evmSolm0] using hwrite)
+  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    hCreated hAccounts henc
+
+theorem setRuntimeOfWriteEVMStateEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {value o : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {evmEvm evmCurrent : EVM.State}
+    (hcode : I.code = stringStoreLiteBytecode)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hret : RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc o)
+    (hd : dispatchMsg stringStoreLiteContract I.calldata = some setTransition)
+    (hdec : decodeCalldata (setTransition.params.map Param.name)
+      (transitionSignature setTransition).paramTypes I.calldata =
+        some ((∅ : Store).insert "value" (.bytes value)))
+    (hwrite : writeStorage? stringStoreLiteConfig
+      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
+    (hCreated : acc.1 = evmEvm.createdAccounts)
+    (hAccounts : accountMapEquiv acc.2 evmEvm.accountMap)
+    (hState : EVMStateEquiv evmEvm evmCurrent)
+    (henc : returnEquiv o (some (.int value.size)) setTransition.returnType) :
+    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hbody := setBodyReturnsOfWrite
+    (evm := evmSolm0) (evmCurrent := evmCurrent) (value := value)
+    (by simp [evmSolm0, initState]; exact hwv)
+    (by simpa [evmSolm0] using hwrite)
+  exact hret.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+    hCreated hAccounts hState henc
+
 theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hwrite : writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
@@ -783,119 +801,16 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
 def currentLengthHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
 
-theorem uInt256_shiftRight_zero_left (s : UInt256) :
-    UInt256.shiftRight (⟨0⟩ : UInt256) s = ⟨0⟩ := by
-  cases s with
-  | mk val =>
-    unfold UInt256.shiftRight
-    simp
-    intro _
-    apply Fin.ext
-    rw [Fin.shiftRight_val]
-    simp [Nat.zero_shiftRight]
+theorem slt_zero_of_left_low_right_high {a b : UInt256}
+    (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
+    UInt256.slt a b = ⟨0⟩ :=
+  slt_zero_low_high ha hb
 
-theorem fromBytes'_zero_take1_wordLE :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).1.take 1) = 0 := by
-  native_decide
-
-theorem storageLocLoad_bytesLikeLengthLoc_zero {evm : EVM.State} {base : UInt256}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner base = ⟨0⟩) :
-    storageLocLoad evm (bytesLikeLengthLoc base evm) = .int 0 := by
-  unfold bytesLikeLengthLoc checkBytesPacked storageLocLoad wordToElem
-  simp [hload, uint256Int, fromBytes'_zero_take1_wordLE, uInt256_shiftRight_zero_left]
-
-theorem solidityDecodeBytesLengthHeader_zero :
-    solidityDecodeBytesLengthHeader ⟨0⟩ = .ok 0 := by
-  have hflag : UInt256.land (⟨0⟩ : UInt256) ⟨1⟩ = ⟨0⟩ := by native_decide
-  have hraw : UInt256.div (⟨0⟩ : UInt256) ⟨2⟩ = ⟨0⟩ := by native_decide
-  have hmask : UInt256.land (⟨0⟩ : UInt256) ⟨127⟩ = ⟨0⟩ := by native_decide
-  have hvalidFinal : UInt256.sub (⟨0⟩ : UInt256)
-      (UInt256.lt (⟨0⟩ : UInt256) ⟨32⟩) ≠ ⟨0⟩ := by
-    native_decide
-  simp [solidityDecodeBytesLengthHeader, hflag, hraw, hmask, hvalidFinal]
-
-theorem solidityDecodeBytesLengthHeader_short_valid {header len : UInt256}
-    (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
-    (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
-    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    solidityDecodeBytesLengthHeader header = .ok len.toNat := by
-  have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
-    simpa [hflag] using hvalid
-  simp [solidityDecodeBytesLengthHeader, hflag, ← hlen, hvalid0]
-
-theorem solidityDecodeBytesLengthHeader_long_valid {header len : UInt256}
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
-    (hlen : len = UInt256.div header ⟨2⟩)
-    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    solidityDecodeBytesLengthHeader header = .ok len.toNat := by
-  simp [solidityDecodeBytesLengthHeader, hflag, ← hlen, hvalid]
-
-theorem checkBytesPacked_of_storageLoad_land_one_zero {evm : EVM.State}
-    {base header : UInt256}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner base = header)
-    (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩) :
-    checkBytesPacked base evm = true := by
-  unfold checkBytesPacked
-  rw [hload]
-  have hmod : header.toNat % 2 = 0 := by
-    have h := congrArg UInt256.toNat hflag
-    simpa [uInt256_land_one_toNat] using h
-  cases header with
-  | mk val =>
-      cases val with
-      | mk n hn =>
-          have hnmod : n % 2 = 0 := by
-            simpa [UInt256.toNat] using hmod
-          have hfin :
-              (⟨n, hn⟩ : Fin UInt256.size) % (2 : Fin UInt256.size) = 0 := by
-            apply Fin.ext
-            change n % (2 % UInt256.size) = 0
-            rw [show 2 % UInt256.size = 2 from by norm_num [UInt256.size], hnmod]
-          simp [hfin]
-
-theorem checkBytesPacked_of_storageLoad_land_one_ne_zero {evm : EVM.State}
-    {base header : UInt256}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner base = header)
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩) :
-    checkBytesPacked base evm = false := by
-  have hlandOne : UInt256.land header ⟨1⟩ = ⟨1⟩ := by
-    have hbit := uInt256_land_one_toNat header
-    have hbitLt : (UInt256.land header ⟨1⟩).toNat < 2 := by
-      rw [hbit]
-      exact Nat.mod_lt _ (by decide)
-    have hbitNeZero : (UInt256.land header ⟨1⟩).toNat ≠ 0 := by
-      intro hzero
-      apply hflag
-      rw [← u256_ofNat_toNat (UInt256.land header ⟨1⟩), hzero]
-      rfl
-    have hto : (UInt256.land header ⟨1⟩).toNat = 1 := by
-      omega
-    rw [← u256_ofNat_toNat (UInt256.land header ⟨1⟩), hto]
-    rfl
-  have hmod : header.toNat % 2 = 1 := by
-    have h := congrArg UInt256.toNat hlandOne
-    simpa [uInt256_land_one_toNat] using h
-  unfold checkBytesPacked
-  rw [hload]
-  cases header with
-  | mk val =>
-      cases val with
-      | mk n hn =>
-          have hnmod : n % 2 = 1 := by
-            simpa [UInt256.toNat] using hmod
-          have hfinNe :
-              ¬ ((⟨n, hn⟩ : Fin UInt256.size) % (2 : Fin UInt256.size) = 0) := by
-            intro hfin
-            have hval := congrArg Fin.val hfin
-            change n % (2 % UInt256.size) = 0 at hval
-            rw [show 2 % UInt256.size = 2 from by norm_num [UInt256.size]] at hval
-            omega
-          exact decide_eq_false hfinNe
-
-@[simp] theorem bytesLikeLengthLoc_slot (baseSlot : UInt256) (evm : EVM.State) :
-    (bytesLikeLengthLoc baseSlot evm).slot = baseSlot := by
-  unfold bytesLikeLengthLoc
-  split <;> rfl
+theorem currentLengthBaseSlot {evm : EVM.State} :
+    ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
+      some loc ∧ loc.slot = ⟨0⟩ := by
+  refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
+  simp [stringStoreLiteLayout]
 
 theorem deleteCurrentShortZero {evm : EVM.State}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩) :
@@ -904,15 +819,19 @@ theorem deleteCurrentShortZero {evm : EVM.State}
         locals := (∅ : Store).insert "copy" (.bytes ByteArray.empty) }
       evm currentRef =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩) := by
-  have hdecode : solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256) = .ok 0 :=
-    solidityDecodeBytesLengthHeader_zero
-  simp [deleteStorage?, resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
-    storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
-    clearStorage?, clearStorageBytesLike?, stringStoreLiteStorageLayout,
-    solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-    hdecode, checkBytesPacked, solidityBytesHeaderWord, hload,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rfl
+  let solm : Frame :=
+    { contract := stringStoreLiteContract, locals := (∅ : Store).insert "copy" (.bytes ByteArray.empty) }
+  have hresolve :
+      resolveStorageRef? stringStoreLiteConfig solm evm currentRef =
+        .ok ({ base := "current", steps := [] }, .string) := by
+    simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
+      storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, solm]
+  exact deleteSolidityStringShortZero
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := solm)
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) rfl hresolve currentLengthBaseSlot hload
 
 theorem deleteCurrentShortPacked {evm : EVM.State} {header len : UInt256} {copy : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -925,15 +844,20 @@ theorem deleteCurrentShortPacked {evm : EVM.State} {header len : UInt256} {copy 
         locals := (∅ : Store).insert "copy" (.bytes copy) }
       evm currentRef =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩) := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_short_valid hflag hlen hvalid
-  simp [deleteStorage?, resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
-    storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
-    clearStorage?, clearStorageBytesLike?, stringStoreLiteStorageLayout,
-    solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-    hdecode, bytesLikeLengthLoc, hload, hpacked, solidityBytesHeaderWord,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rfl
+  let solm : Frame :=
+    { contract := stringStoreLiteContract, locals := (∅ : Store).insert "copy" (.bytes copy) }
+  have hresolve :
+      resolveStorageRef? stringStoreLiteConfig solm evm currentRef =
+        .ok ({ base := "current", steps := [] }, .string) := by
+    simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
+      storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, solm]
+  exact deleteSolidityStringShortPacked
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := solm)
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len)
+    rfl hresolve currentLengthBaseSlot hload hpacked hflag hlen hvalid
 
 theorem deleteCurrentLongPrepared {evm : EVM.State} {header len : UInt256} {copy : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -947,17 +871,20 @@ theorem deleteCurrentLongPrepared {evm : EVM.State} {header len : UInt256} {copy
         .ok (clearSolidityBytesDataWordsFrom
           (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩)
           ⟨0⟩ 0 ((len.toNat + 31) / 32)) := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalid
-  have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-    checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-  simp [deleteStorage?, resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
-    storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
-    clearStorage?, clearStorageBytesLike?, stringStoreLiteStorageLayout,
-    solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-    hdecode, bytesLikeLengthLoc, hload, hpacked, solidityBytesHeaderWord,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rfl
+  let solm : Frame :=
+    { contract := stringStoreLiteContract, locals := (∅ : Store).insert "copy" (.bytes copy) }
+  have hresolve :
+      resolveStorageRef? stringStoreLiteConfig solm evm currentRef =
+        .ok ({ base := "current", steps := [] }, .string) := by
+    simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
+      storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, solm]
+  exact deleteSolidityStringLongPrepared
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := solm)
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len)
+    rfl hresolve currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem writeCurrentShortPacked {evm : EVM.State} {header len : UInt256}
     {value : ByteArray}
@@ -971,12 +898,11 @@ theorem writeCurrentShortPacked {evm : EVM.State} {header len : UInt256}
       .string (.bytes value) =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
           (solidityShortBytesWord value)) := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_short_valid hflag hlen hvalid
-  simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-    stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-    solidityBytesBaseSlotAndLength?, stringStoreLiteLayout, hdecode, bytesLikeLengthLoc,
-    hload, hpacked, hvalueSize]
+  exact writeSolidityStringShortPacked
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len) (value := value)
+    rfl currentLengthBaseSlot hvalueSize hload hpacked hflag hlen hvalid
 
 theorem writeCurrentShortFromLongPrepared {evm : EVM.State} {header len : UInt256}
     {value : ByteArray}
@@ -987,32 +913,16 @@ theorem writeCurrentShortFromLongPrepared {evm : EVM.State} {header len : UInt25
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
-        .ok (clearSolidityBytesDataWordsFrom
-          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-            (solidityShortBytesWord value))
-          ⟨0⟩ 0 ((len.toNat + 31) / 32)) := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalid
-  have hbase :
-      solidityBytesBaseSlotAndLength? stringStoreLiteLayout { base := "current", steps := [] } evm =
-        .ok (⟨0⟩, len.toNat) := by
-    unfold solidityBytesBaseSlotAndLength?
-    change
-      (match solidityDecodeBytesLengthHeader
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (bytesLikeLengthLoc ⟨0⟩ evm).slot) with
-        | StorageReadResult.ok len =>
-            StorageReadResult.ok ((bytesLikeLengthLoc ⟨0⟩ evm).slot, len)
-        | StorageReadResult.revert => StorageReadResult.revert
-        | StorageReadResult.error => StorageReadResult.error) =
-          StorageReadResult.ok (⟨0⟩, len.toNat)
-    rw [show (bytesLikeLengthLoc ⟨0⟩ evm).slot = ⟨0⟩ by simp]
-    rw [hload, hdecode]
-  have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-    checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-  simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-    stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-    hbase, hpacked, hvalueSize]
+        .ok (Solm.EVM.storageStore
+          (clearSolidityBytesDataWordsFrom evm ⟨0⟩ 0 ((len.toNat + 31) / 32))
+          (clearSolidityBytesDataWordsFrom evm ⟨0⟩ 0
+            ((len.toNat + 31) / 32)).executionEnv.codeOwner
+          ⟨0⟩ (solidityShortBytesWord value)) := by
+  exact writeSolidityStringShortFromLongPrepared
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len) (value := value)
+    rfl currentLengthBaseSlot hvalueSize hload hflag hlen hvalid
 
 theorem writeCurrentLongPacked {evm : EVM.State} {header len : UInt256}
     {value : ByteArray}
@@ -1024,22 +934,34 @@ theorem writeCurrentLongPacked {evm : EVM.State} {header len : UInt256}
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
-        writeBytesLikeData? stringStoreLiteConfig
-          (clearSolidityBytesDataWordsFrom
-            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-              (solidityBytesHeaderWord value.size))
-            ⟨0⟩ 0 ((value.size + 31) / 32))
-          { base := "current", steps := [] } 0 value.toList := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_short_valid hflag hlen hvalid
-  have hvalueListLen : value.toList.length = value.size := by
-    rw [byteArray_toList_eq value, Array.length_toList]
-    rfl
-  simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-    stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-    solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-    hdecode, bytesLikeLengthLoc, hload, hpacked, hvalueSize, hvalueListLen,
-    EvalResult.bind, bind]
+        .ok (Solm.EVM.storageStore
+          (writeSolidityBytesDataWordsFrom evm ⟨0⟩ value 0
+            (solidityBytesDataWordCount value.size))
+          (writeSolidityBytesDataWordsFrom evm ⟨0⟩ value 0
+            (solidityBytesDataWordCount value.size)).executionEnv.codeOwner
+          ⟨0⟩ (solidityBytesHeaderWord value.size)) := by
+  exact writeSolidityStringLongPacked
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len) (value := value)
+    rfl currentLengthBaseSlot hvalueSize hload hpacked hflag hlen hvalid
+
+theorem writeCurrentLongPackedAbsent {evm : EVM.State} {header len : UInt256}
+    {value : ByteArray}
+    (hvalueSize : ¬ value.size < 32)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
+    (hpacked : checkBytesPacked ⟨0⟩ evm = true)
+    (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
+    (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
+    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
+    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none) :
+    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+      .string (.bytes value) = .ok evm := by
+  exact writeSolidityStringLongPackedAbsent
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len) (value := value)
+    rfl currentLengthBaseSlot hvalueSize hload hpacked hflag hlen hvalid hmissing
 
 theorem writeCurrentLongFromLongPrepared {evm : EVM.State} {header len : UInt256}
     {value : ByteArray}
@@ -1050,40 +972,23 @@ theorem writeCurrentLongFromLongPrepared {evm : EVM.State} {header len : UInt256
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
-        writeBytesLikeData? stringStoreLiteConfig
-          (clearSolidityBytesDataWordsFrom
-            (clearSolidityBytesDataWordsFrom
-              (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-                (solidityBytesHeaderWord value.size))
-              ⟨0⟩ 0 ((len.toNat + 31) / 32))
-            ⟨0⟩ 0 ((value.size + 31) / 32))
-          { base := "current", steps := [] } 0 value.toList := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalid
-  have hbase :
-      solidityBytesBaseSlotAndLength? stringStoreLiteLayout { base := "current", steps := [] } evm =
-        .ok (⟨0⟩, len.toNat) := by
-    unfold solidityBytesBaseSlotAndLength?
-    change
-      (match solidityDecodeBytesLengthHeader
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (bytesLikeLengthLoc ⟨0⟩ evm).slot) with
-        | StorageReadResult.ok len =>
-            StorageReadResult.ok ((bytesLikeLengthLoc ⟨0⟩ evm).slot, len)
-        | StorageReadResult.revert => StorageReadResult.revert
-        | StorageReadResult.error => StorageReadResult.error) =
-          StorageReadResult.ok (⟨0⟩, len.toNat)
-    rw [show (bytesLikeLengthLoc ⟨0⟩ evm).slot = ⟨0⟩ by simp]
-    rw [hload, hdecode]
-  have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-    checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-  have hvalueListLen : value.toList.length = value.size := by
-    rw [byteArray_toList_eq value, Array.length_toList]
-    rfl
-  simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-    stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-    solidityPrepareBytesWrite?, hbase, hpacked, hvalueSize, hvalueListLen,
-    EvalResult.bind, bind]
+        .ok (Solm.EVM.storageStore
+          (writeSolidityBytesDataWordsFrom
+            (clearSolidityBytesDataWordsFrom evm ⟨0⟩
+              (solidityBytesDataWordCount value.size)
+              (solidityBytesDataWordCount len.toNat - solidityBytesDataWordCount value.size))
+            ⟨0⟩ value 0 (solidityBytesDataWordCount value.size))
+          (writeSolidityBytesDataWordsFrom
+              (clearSolidityBytesDataWordsFrom evm ⟨0⟩
+                (solidityBytesDataWordCount value.size)
+                (solidityBytesDataWordCount len.toNat - solidityBytesDataWordCount value.size))
+              ⟨0⟩ value 0 (solidityBytesDataWordCount value.size)).executionEnv.codeOwner
+          ⟨0⟩ (solidityBytesHeaderWord value.size)) := by
+  exact writeSolidityStringLongFromLongPrepared
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len) (value := value)
+    rfl currentLengthBaseSlot hvalueSize hload hflag hlen hvalid
 
 theorem writeCurrentMalformedLong {evm : EVM.State} {header : UInt256} {value : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -1092,25 +997,16 @@ theorem writeCurrentMalformedLong {evm : EVM.State} {header : UInt256} {value : 
         (UInt256.lt (UInt256.div header ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .revert := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .revert := by
-    simp [solidityDecodeBytesLengthHeader, hflag, hbad]
-  have hlenSlot : (bytesLikeLengthLoc ⟨0⟩ evm).slot = ⟨0⟩ := by
-    unfold bytesLikeLengthLoc
-    split <;> rfl
-  have hdecodeLoad :
-      solidityDecodeBytesLengthHeader
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (bytesLikeLengthLoc ⟨0⟩ evm).slot) = .revert := by
-    rw [hlenSlot, hload]
-    exact hdecode
-  by_cases hvalueSize : value.size < 32
-  · simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-      stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-      solidityBytesBaseSlotAndLength?, stringStoreLiteLayout, hload, hdecode, hvalueSize]
-  · simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-      stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-      solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-      hload, hdecode, hvalueSize, EvalResult.bind, bind]
+  have hbase :
+      ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
+        some loc ∧ loc.slot = ⟨0⟩ := by
+    refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
+    simp [stringStoreLiteLayout]
+  exact writeSolidityStringMalformedLong
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (value := value)
+    rfl hbase hload hflag hbad
 
 theorem writeCurrentMalformedShort {evm : EVM.State} {header : UInt256} {value : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -1119,49 +1015,26 @@ theorem writeCurrentMalformedShort {evm : EVM.State} {header : UInt256} {value :
         (UInt256.lt (UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .revert := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .revert := by
-    have hbad0 :
-        UInt256.sub ⟨0⟩
-          (UInt256.lt (UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ := by
-      simpa [hflag] using hbad
-    simp [solidityDecodeBytesLengthHeader, hflag, hbad0]
-  have hlenSlot : (bytesLikeLengthLoc ⟨0⟩ evm).slot = ⟨0⟩ := by
-    unfold bytesLikeLengthLoc
-    split <;> rfl
-  have hdecodeLoad :
-      solidityDecodeBytesLengthHeader
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (bytesLikeLengthLoc ⟨0⟩ evm).slot) = .revert := by
-    rw [hlenSlot, hload]
-    exact hdecode
-  by_cases hvalueSize : value.size < 32
-  · simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-      stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-      solidityBytesBaseSlotAndLength?, stringStoreLiteLayout, hload, hdecode, hvalueSize]
-  · simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-      stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-      solidityPrepareBytesWrite?, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-      hload, hdecode, hvalueSize, EvalResult.bind, bind]
-
-theorem empty_readWithPadding_word_zero :
-    uInt256OfByteArray (ByteArray.empty.readWithPadding 0 32) = (⟨0⟩ : UInt256) := by
-  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  simp [byteArray_zeroes_toList, uInt256OfByteArray, fromBytes'_replicate_zero]
-  rfl
+  have hbase :
+      ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
+        some loc ∧ loc.slot = ⟨0⟩ := by
+    refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
+    simp [stringStoreLiteLayout]
+  exact writeSolidityStringMalformedShort
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (value := value)
+    rfl hbase hload hflag hbad
 
 theorem writeCurrentEmptyFromZero {evm : EVM.State}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes ByteArray.empty) =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩) := by
-  have hdecode : solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256) = .ok 0 :=
-    solidityDecodeBytesLengthHeader_zero
-  simp [writeStorage?, writeStorageBytesLike?, storagePrepareResultToEval,
-    stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityWriteBytes?,
-    solidityShortBytesWord, solidityBytesBaseSlotAndLength?, stringStoreLiteLayout,
-    bytesLikeLengthLoc, checkBytesPacked, hload, hdecode]
-  rw [empty_readWithPadding_word_zero]
-  rfl
+  exact writeSolidityStringEmptyFromZero
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (evm := evm) (er := { base := "current", steps := [] }) (baseSlot := ⟨0⟩)
+    rfl currentLengthBaseSlot hload
 
 theorem assignCurrentEmptyFromZero {evm : EVM.State}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩) :
@@ -1175,17 +1048,21 @@ theorem assignCurrentEmptyFromZero {evm : EVM.State}
              locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
                (.bytes ByteArray.empty) },
            Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩) := by
-  have hwrite := writeCurrentEmptyFromZero (evm := evm) hload
+  let solm : Frame :=
+    { contract := stringStoreLiteContract
+      locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
+        (.bytes ByteArray.empty) }
   have hresolve :
-      resolveStorageRef? stringStoreLiteConfig
-        { contract := stringStoreLiteContract
-          locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
-            (.bytes ByteArray.empty) }
-        evm currentRef = .ok ({ base := "current", steps := [] }, .string) := by
+      resolveStorageRef? stringStoreLiteConfig solm evm currentRef =
+        .ok ({ base := "current", steps := [] }, .string) := by
     simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
       storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
-      EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+      EvalResult.ofOption, EvalResult.bind, bind, pure, solm]
+  exact assignSolidityStringEmptyFromZero
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := solm)
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) rfl hresolve currentLengthBaseSlot hload
 
 theorem setLengthWord_eq_abi
     (cd : ByteArray)
@@ -1627,103 +1504,38 @@ noncomputable def currentLengthPayloadMem (len header : UInt256) : ByteArray :=
 noncomputable def currentLengthPayloadReturnMem (len header : UInt256) : ByteArray :=
   len.toByteArray.write 0 (currentLengthPayloadMem len header) 192 32
 
-theorem toByteArray_extract_all (v : UInt256) :
-    (UInt256.toByteArray v).extract 0 32 = UInt256.toByteArray v := by
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (Nat.le_of_eq (toByteArray_size v))
-
 theorem currentLengthAllocMem_size (len : UInt256) : (currentLengthAllocMem len).size = 96 := by
-  have hEq :
-      currentLengthAllocMem len =
-        solcFreePtrMem.extract 0 64 ++ UInt256.toByteArray (currentLengthFreePtr len) ++
-          solcFreePtrMem.extract 96 solcFreePtrMem.size := by
-    rw [currentLengthAllocMem,
-      write32_eq (UInt256.toByteArray (currentLengthFreePtr len)) solcFreePtrMem 64
-        (by rw [toByteArray_size])
-        (by rw [solcFreePtrMem_size]; decide)]
-    rw [toByteArray_extract_all]
-  rw [hEq, ByteArray.size_append, ByteArray.size_append,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, solcFreePtrMem_size]
-  omega
+  exact solcBytesReturnAllocMem_size len
 
 theorem currentLengthMem_size (len : UInt256) : (currentLengthMem len).size = 160 := by
-  rw [currentLengthMem,
-    toByteArray_write_eq _ _ _ (by rw [currentLengthAllocMem_size]; decide)
-      (by rw [currentLengthAllocMem_size]; exact lt_usize _ (by norm_num))]
-  rw [ByteArray.size_append, ByteArray.size_append, currentLengthAllocMem_size,
-    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+  exact solcBytesReturnLengthMem_size len
 
 theorem currentLengthMem_read128 (len : UInt256) :
     (currentLengthMem len).readWithPadding 128 32 = UInt256.toByteArray len := by
-  rw [readWithPadding_eq_extract _ _ (by have := currentLengthMem_size len; omega),
-    currentLengthMem,
-    toByteArray_write_eq _ _ _
-      (by rw [currentLengthAllocMem_size]; decide)
-      (by rw [currentLengthAllocMem_size]; exact lt_usize _ (by norm_num)),
-    extract_append_right' _ _ _ _
-      (by
-        rw [ByteArray.size_append, currentLengthAllocMem_size,
-          zeroes_ofNat_size _ (by norm_num)])
-      (by
-        rw [ByteArray.size_append, currentLengthAllocMem_size,
-          zeroes_ofNat_size _ (by norm_num), toByteArray_size])]
+  exact solcBytesReturnLengthMem_read128 len
 
 theorem currentLengthAllocMem_read64 (len : UInt256) :
     (currentLengthAllocMem len).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  rw [currentLengthAllocMem]
-  rw [write32_read_back (UInt256.toByteArray (currentLengthFreePtr len)) solcFreePtrMem 64
-    (by rw [toByteArray_size])
-    (by rw [solcFreePtrMem_size]; decide)]
-  rw [toByteArray_extract_all]
+  exact solcBytesReturnAllocMem_read64 len
 
 theorem currentLengthMem_read64 (len : UInt256) :
     (currentLengthMem len).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  rw [readWithPadding_eq_extract _ _ (by have := currentLengthMem_size len; omega),
-    currentLengthMem,
-    toByteArray_write_eq _ _ _
-      (by rw [currentLengthAllocMem_size]; decide)
-      (by rw [currentLengthAllocMem_size]; exact lt_usize _ (by norm_num)),
-    extract_append_left _ _ _ _
-      (by
-        rw [ByteArray.size_append, currentLengthAllocMem_size,
-          zeroes_ofNat_size _ (by norm_num)]
-        omega),
-    extract_append_left _ _ _ _
-      (by rw [currentLengthAllocMem_size]),
-    ← readWithPadding_eq_extract _ _ (by have := currentLengthAllocMem_size len; omega),
-    currentLengthAllocMem_read64]
+  exact solcBytesReturnLengthMem_read64 len
 
 theorem currentLengthPayloadMem_read128 (len header : UInt256) :
     (currentLengthPayloadMem len header).readWithPadding 128 32 = UInt256.toByteArray len := by
-  rw [currentLengthPayloadMem]
-  rw [write32_read_below (UInt256.toByteArray (currentLengthPayloadWord header))
-    (currentLengthMem len) 160 128
-    (by rw [toByteArray_size])
-    (by rw [currentLengthMem_size])
-    (by decide)]
-  exact currentLengthMem_read128 len
+  exact solcBytesReturnPayloadMem_read128 len (currentLengthPayloadWord header)
 
 theorem currentLengthPayloadMem_size (len header : UInt256) :
     (currentLengthPayloadMem len header).size = 192 := by
-  rw [currentLengthPayloadMem,
-    toByteArray_write_eq _ _ _ (by rw [currentLengthMem_size])
-      (by rw [currentLengthMem_size]; exact lt_usize _ (by norm_num))]
-  rw [ByteArray.size_append, ByteArray.size_append, currentLengthMem_size,
-    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+  exact solcBytesReturnPayloadMem_size len (currentLengthPayloadWord header)
 
 theorem currentLengthPayloadMem_read64 (len header : UInt256) :
     (currentLengthPayloadMem len header).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  rw [currentLengthPayloadMem]
-  rw [write32_read_below (UInt256.toByteArray (currentLengthPayloadWord header))
-    (currentLengthMem len) 160 64
-    (by rw [toByteArray_size])
-    (by rw [currentLengthMem_size])
-    (by decide)]
-  exact currentLengthMem_read64 len
+  exact solcBytesReturnPayloadMem_read64 len (currentLengthPayloadWord header)
 
 theorem currentLengthPayloadMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
@@ -1733,12 +1545,8 @@ theorem currentLengthPayloadMem_mload64 (len header freePtr : UInt256)
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         freePtr := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := freePtr)
-    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, currentLengthPayloadMem_size]; decide)
-    (by decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
-      currentLengthPayloadMem_read64 len header)
+  exact solcBytesReturnPayloadMem_mload64 len (currentLengthPayloadWord header) freePtr
+    (UInt256.ofNat 6) hfree (by decide)
 
 theorem currentLengthPayloadMem_mload128 (len header : UInt256) :
     (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size
@@ -1747,30 +1555,17 @@ theorem currentLengthPayloadMem_mload128 (len header : UInt256) :
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         len := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := len)
-    (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, currentLengthPayloadMem_size]; decide)
-    (by decide)
-    (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
-      currentLengthPayloadMem_read128 len header)
+  exact solcBytesReturnPayloadMem_mload128 len (currentLengthPayloadWord header)
+    (UInt256.ofNat 6) (by decide)
 
 theorem currentLengthPayloadReturnMem_size (len header : UInt256) :
     (currentLengthPayloadReturnMem len header).size = 224 := by
-  rw [currentLengthPayloadReturnMem,
-    toByteArray_write_eq _ _ _ (by rw [currentLengthPayloadMem_size])
-      (by rw [currentLengthPayloadMem_size]; exact lt_usize _ (by norm_num))]
-  rw [ByteArray.size_append, ByteArray.size_append, currentLengthPayloadMem_size,
-    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+  exact solcBytesReturnPayloadReturnMem_size len (currentLengthPayloadWord header)
 
 theorem currentLengthPayloadReturnMem_read64 (len header : UInt256) :
     (currentLengthPayloadReturnMem len header).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  rw [currentLengthPayloadReturnMem]
-  rw [write32_read_below (UInt256.toByteArray len) (currentLengthPayloadMem len header) 192 64
-    (by rw [toByteArray_size])
-    (by rw [currentLengthPayloadMem_size])
-    (by decide)]
-  exact currentLengthPayloadMem_read64 len header
+  exact solcBytesReturnPayloadReturnMem_read64 len (currentLengthPayloadWord header)
 
 theorem currentLengthPayloadReturnMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
@@ -1780,31 +1575,13 @@ theorem currentLengthPayloadReturnMem_mload64 (len header freePtr : UInt256)
         (fromByteArrayBigEndian
           ((currentLengthPayloadReturnMem len header).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 7) (v := freePtr)
-    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-      currentLengthPayloadReturnMem_size]; decide)
-    (by decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
-      currentLengthPayloadReturnMem_read64 len header)
+  exact solcBytesReturnPayloadReturnMem_mload64 len (currentLengthPayloadWord header) freePtr
+    (UInt256.ofNat 7) hfree (by decide)
 
 theorem currentLengthPayloadReturnMem_read192 (len header : UInt256) :
     (currentLengthPayloadReturnMem len header).readWithPadding 192 32 =
       UInt256.toByteArray len := by
-  rw [readWithPadding_eq_extract _ _ (by
-      have := currentLengthPayloadReturnMem_size len header
-      omega),
-    currentLengthPayloadReturnMem,
-    toByteArray_write_eq _ _ _
-      (by rw [currentLengthPayloadMem_size])
-      (by rw [currentLengthPayloadMem_size]; exact lt_usize _ (by norm_num)),
-    extract_append_right' _ _ _ _
-      (by
-        rw [ByteArray.size_append, currentLengthPayloadMem_size,
-          zeroes_ofNat_size _ (by norm_num)])
-      (by
-        rw [ByteArray.size_append, currentLengthPayloadMem_size,
-          zeroes_ofNat_size _ (by norm_num), toByteArray_size])]
+  exact solcBytesReturnPayloadReturnMem_read192 len (currentLengthPayloadWord header)
 
 theorem ult_ne_zero_toNat_lt {a b : UInt256} (h : UInt256.lt a b ≠ ⟨0⟩) :
     a.toNat < b.toNat := by
@@ -1830,30 +1607,7 @@ theorem currentLength_notGt31_of_lt32 {len : UInt256} (hlt32 : len.toNat < 32) :
 theorem currentLengthFreePtr_eq_192_of_short_nonzero {len : UInt256}
     (hnonzero : len ≠ ⟨0⟩) (hlt32 : len.toNat < 32) :
     currentLengthFreePtr len = ⟨192⟩ := by
-  have hpos : 0 < len.toNat := by
-    cases hzero : len.toNat
-    · exact False.elim (hnonzero (uint256_toNat_eq_zero hzero))
-    · omega
-  have h31len :
-      ((⟨31⟩ : UInt256) + len).toNat = 31 + len.toNat := by
-    rw [uadd_toNat, show (⟨31⟩ : UInt256).toNat = 31 from by decide]
-    exact Nat.mod_eq_of_lt (by norm_num [UInt256.size]; omega)
-  have hdivNat :
-      (((⟨31⟩ : UInt256) + len) / ⟨32⟩).toNat = 1 := by
-    change (((⟨31⟩ : UInt256) + len).toNat / 32) = 1
-    rw [h31len]
-    have hge : 32 ≤ 31 + len.toNat := by omega
-    have hlt : 31 + len.toNat < 64 := by omega
-    have hposDiv : 0 < (31 + len.toNat) / 32 := Nat.div_pos hge (by decide)
-    have hltDiv : (31 + len.toNat) / 32 < 2 := by
-      exact Nat.div_lt_of_lt_mul (by omega)
-    omega
-  have hdiv :
-      (((⟨31⟩ : UInt256) + len) / ⟨32⟩) = ⟨1⟩ := by
-    apply u256_inj
-    simpa [show (⟨1⟩ : UInt256).toNat = 1 from rfl] using hdivNat
-  rw [currentLengthFreePtr, currentLengthAllocSize, hdiv]
-  native_decide
+  exact solcBytesReturnFreePtr_eq_192_of_short_nonzero hnonzero hlt32
 
 theorem readCurrentShortPackedExists {evm : EVM.State} {header len : UInt256}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -1863,96 +1617,12 @@ theorem readCurrentShortPackedExists {evm : EVM.State} {header len : UInt256}
     ∃ copy : ByteArray,
       evalExpr? stringStoreLiteConfig { contract := stringStoreLiteContract, locals := ∅ }
         evm (.storage currentRef) = .ok (.bytes copy) ∧ copy.size = len.toNat := by
-  have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
-    simpa [hflag] using hvalid
-  have hlt32 : len.toNat < 32 := currentLength_short_valid_lt32 hvalid0
-  have hpacked : checkBytesPacked ⟨0⟩ evm = true :=
-    checkBytesPacked_of_storageLoad_land_one_zero hload hflag
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_short_valid hflag hlen hvalid
-  obtain ⟨bytes, hbytes, hbytesLen⟩ :=
-    readBytesLikeData_exists_of_byte_reads (cfg := stringStoreLiteConfig) (evm := evm)
-      (er := { base := "current" }) 0 len.toNat (by
-        intro j _ hj
-        exact readBytesLikeByte_current_short_exists
-          (evm := evm) (header := header) (len := len) (idx := j)
-          hload hpacked hlt32 (by simpa using hj))
-  let copy : ByteArray := ByteArray.mk bytes.toArray
-  have hcopySize : copy.size = len.toNat := by
-    change bytes.toArray.size = len.toNat
-    simpa [hbytesLen]
-  have hlenRead :
-      bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .ok len.toNat := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-      solidityReadBytesLength?, stringStoreLiteLayout, hload, hdecode, pure]
-  refine ⟨copy, ?_, hcopySize⟩
-  simp only [evalExpr?, currentLengthResolve, readStorage?, readStorageBytesLike?,
-    EvalResult.bind, bind, hlenRead, hbytes, pure]
-  rfl
-
-theorem readBytesLikeByte_current_long_exists {evm : EVM.State} {header : UInt256}
-    {idx : Nat}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩) :
-    ∃ b, readBytesLikeByte? stringStoreLiteConfig evm { base := "current" } idx = .ok b := by
-  have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-    checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-  have hidxNonneg : ¬ (idx : Int) < 0 := by omega
-  unfold readBytesLikeByte?
-  unfold storageLocLoad wordToElem
-  simp [stringStoreLiteConfig, stringStoreLiteStorageLayout, stringStoreLiteLayout,
-    bytesLikeByteLoc?, hidxNonneg, hpacked, uint8Loc, EvalResult.ofOption,
-    EvalResult.bind, bind, pure, uint8Int]
-  have hbyteLt :
-      ({
-        val :=
-          ⟨fromBytes'
-            (List.take 1
-              (List.drop
-                (31 - idx % 32)
-                (EVM.Word.toBytesLEWithSizeProof
-                  (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-                    (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)))).1)), by
-            apply lt_of_lt_of_le (b := 2 ^ (8 * (List.take 1
-              (List.drop
-                (31 - idx % 32)
-                (EVM.Word.toBytesLEWithSizeProof
-                  (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-                    (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)))).1)).length))
-            · exact EVM.fromBytes'_le
-            · apply le_trans (b := 2 ^ 8)
-              · apply Nat.pow_le_pow_right (by decide)
-                have hlenTake :
-                    (List.take 1
-                      (List.drop
-                        (31 - idx % 32)
-                        (EVM.Word.toBytesLEWithSizeProof
-                          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-                            (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)))).1)).length ≤
-                      1 := by
-                    simp
-                nlinarith
-              · norm_num [UInt256.size]⟩ } : UInt256).toNat < 256 := by
-    let bs : List UInt8 :=
-      List.take 1
-        (List.drop
-          (31 - idx % 32)
-          (EVM.Word.toBytesLEWithSizeProof
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-              (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)))).1)
-    have hlenBs : bs.length ≤ 1 := by
-      simp [bs]
-    have hfrom := EVM.fromBytes'_le (bs := bs)
-    have hpow : 2 ^ (8 * bs.length) ≤ 256 := by
-      have hmul : 8 * bs.length ≤ 8 := by
-        nlinarith
-      calc
-        2 ^ (8 * bs.length) ≤ 2 ^ 8 := Nat.pow_le_pow_right (by decide) hmul
-        _ = 256 := by norm_num
-    have hltFrom : fromBytes' bs < 256 := lt_of_lt_of_le hfrom hpow
-    simpa [bs, UInt256.toNat] using hltFrom
-  rw [if_pos hbyteLt]
-  exact ⟨_, rfl⟩
+  exact evalSolidityStringShortPackedExists
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := { contract := stringStoreLiteContract, locals := ∅ })
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len)
+    rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem readCurrentLongExists {evm : EVM.State} {header len : UInt256}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -1962,26 +1632,12 @@ theorem readCurrentLongExists {evm : EVM.State} {header len : UInt256}
     ∃ copy : ByteArray,
       evalExpr? stringStoreLiteConfig { contract := stringStoreLiteContract, locals := ∅ }
         evm (.storage currentRef) = .ok (.bytes copy) ∧ copy.size = len.toNat := by
-  have hdecode : solidityDecodeBytesLengthHeader header = .ok len.toNat :=
-    solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalid
-  obtain ⟨bytes, hbytes, hbytesLen⟩ :=
-    readBytesLikeData_exists_of_byte_reads (cfg := stringStoreLiteConfig) (evm := evm)
-      (er := { base := "current" }) 0 len.toNat (by
-        intro j _ _
-        exact readBytesLikeByte_current_long_exists
-          (evm := evm) (header := header) (idx := j) hload hflag)
-  let copy : ByteArray := ByteArray.mk bytes.toArray
-  have hcopySize : copy.size = len.toNat := by
-    change bytes.toArray.size = len.toNat
-    simpa [hbytesLen]
-  have hlenRead :
-      bytesLikeLength? stringStoreLiteConfig evm { base := "current" } = .ok len.toNat := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-      solidityReadBytesLength?, stringStoreLiteLayout, hload, hdecode, pure]
-  refine ⟨copy, ?_, hcopySize⟩
-  simp only [evalExpr?, currentLengthResolve, readStorage?, readStorageBytesLike?,
-    EvalResult.bind, bind, hlenRead, hbytes, pure]
-  rfl
+  exact evalSolidityStringLongExists
+    (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
+    (solm := { contract := stringStoreLiteContract, locals := ∅ })
+    (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
+    (baseSlot := ⟨0⟩) (header := header) (len := len)
+    rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem currentLengthZeroAllocMem_eq :
     currentLengthZeroAllocMem =
@@ -3428,11 +3084,7 @@ theorem setCalldataMem_read128
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (setCalldataMem cd len payloadStart).readWithPadding 128 32 =
       UInt256.toByteArray len := by
-  have hpres := write_read_below_end_from cd (currentLengthMem len)
-    payloadStart.toNat len.toNat 128 hlen hsrc (by
-      rw [currentLengthMem_size])
-  rw [setCalldataMem, ← currentLengthMem_size len]
-  exact hpres.trans (currentLengthMem_read128 len)
+  exact solcBytesSetCalldataMem_read128 cd len payloadStart hlen hsrc
 
 theorem setCalldataMem_read64
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3440,23 +3092,14 @@ theorem setCalldataMem_read64
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (setCalldataMem cd len payloadStart).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  have hpres := write_read_below_end_from cd (currentLengthMem len)
-    payloadStart.toNat len.toNat 64 hlen hsrc (by
-      rw [currentLengthMem_size]
-      decide)
-  rw [setCalldataMem, ← currentLengthMem_size len]
-  exact hpres.trans (currentLengthMem_read64 len)
+  exact solcBytesSetCalldataMem_read64 cd len payloadStart hlen hsrc
 
 theorem setCalldataMem_size
     (cd : ByteArray) (len payloadStart : UInt256)
     (hlen : len.toNat ≠ 0)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (setCalldataMem cd len payloadStart).size = 160 + len.toNat := by
-  rw [setCalldataMem]
-  have hsize := write_end_size_from cd (currentLengthMem len)
-    payloadStart.toNat len.toNat hlen hsrc
-  rw [currentLengthMem_size] at hsize
-  simpa using hsize
+  exact solcBytesSetCalldataMem_size cd len payloadStart hlen hsrc
 
 set_option maxHeartbeats 800000 in
 theorem setCalldataMem_extract_payload
@@ -3465,28 +3108,17 @@ theorem setCalldataMem_extract_payload
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (setCalldataMem cd len payloadStart).extract 160 (160 + len.toNat) =
       cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat) := by
-  rw [setCalldataMem, ← currentLengthMem_size len]
-  exact write_end_extract_tail_from cd (currentLengthMem len)
-    payloadStart.toNat len.toNat hlen hsrc
+  exact solcBytesSetCalldataMem_extract_payload cd len payloadStart hlen hsrc
 
 theorem setDataEnd_toNat_of_short {len : UInt256}
     (hshort : len.toNat < 32) :
     (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
-  rw [uadd_toNat]
-  rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
-  exact Nat.mod_eq_of_lt (by
-    have hle : 160 + len.toNat < 192 := by omega
-    exact lt_of_lt_of_le hle (by norm_num [UInt256.size]))
+  exact solcBytesSetDataEnd_toNat_of_short hshort
 
 theorem setDataEnd_toNat_of_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
     (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
-  rw [uadd_toNat]
-  rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
-  exact Nat.mod_eq_of_lt (by
-    have hmax : ABI.solcMaxU64 + 160 < UInt256.size := by
-      norm_num [ABI.solcMaxU64, UInt256.size]
-    omega)
+  exact solcBytesSetDataEnd_toNat_of_u64 hlenMax
 
 theorem setPaddedMem_read128
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3495,15 +3127,7 @@ theorem setPaddedMem_read128
     (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
     (setPaddedMem cd len payloadStart).readWithPadding 128 32 =
       UInt256.toByteArray len := by
-  rw [setPaddedMem]
-  rw [write32_read_below (UInt256.toByteArray (⟨0⟩ : UInt256))
-    (setCalldataMem cd len payloadStart)
-    (((⟨160⟩ : UInt256) + len).toNat) 128
-    (by rw [toByteArray_size])
-    (by
-      rw [hadd, setCalldataMem_size cd len payloadStart hlen hsrc])
-    (by rw [hadd]; omega)]
-  exact setCalldataMem_read128 cd len payloadStart hlen hsrc
+  exact solcBytesSetPaddedMem_read128 cd len payloadStart hlen hsrc hadd
 
 theorem setPaddedMem_read64
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3512,15 +3136,7 @@ theorem setPaddedMem_read64
     (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
     (setPaddedMem cd len payloadStart).readWithPadding 64 32 =
       UInt256.toByteArray (currentLengthFreePtr len) := by
-  rw [setPaddedMem]
-  rw [write32_read_below (UInt256.toByteArray (⟨0⟩ : UInt256))
-    (setCalldataMem cd len payloadStart)
-    (((⟨160⟩ : UInt256) + len).toNat) 64
-    (by rw [toByteArray_size])
-    (by
-      rw [hadd, setCalldataMem_size cd len payloadStart hlen hsrc])
-    (by rw [hadd]; omega)]
-  exact setCalldataMem_read64 cd len payloadStart hlen hsrc
+  exact solcBytesSetPaddedMem_read64 cd len payloadStart hlen hsrc hadd
 
 theorem setPaddedMem_size_ge160
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3528,23 +3144,7 @@ theorem setPaddedMem_size_ge160
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
     (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
     160 ≤ (setPaddedMem cd len payloadStart).size := by
-  rw [setPaddedMem]
-  have hbase := setCalldataMem_size cd len payloadStart hlen hsrc
-  rw [toByteArray_write_eq (⟨0⟩ : UInt256)
-    (setCalldataMem cd len payloadStart)
-    (((⟨160⟩ : UInt256) + len).toNat)
-    (by rw [hadd, hbase])
-    (by
-      rw [hadd, hbase]
-      rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-      exact lt_usize 0 (by norm_num))]
-  rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
-      ByteArray.empty by
-        rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
-    ByteArray.size_empty]
-  omega
+  exact solcBytesSetPaddedMem_size_ge160 cd len payloadStart hlen hsrc hadd
 
 theorem setPaddedMem_size
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3552,23 +3152,7 @@ theorem setPaddedMem_size
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
     (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
     (setPaddedMem cd len payloadStart).size = 192 + len.toNat := by
-  rw [setPaddedMem]
-  have hbase := setCalldataMem_size cd len payloadStart hlen hsrc
-  rw [toByteArray_write_eq (⟨0⟩ : UInt256)
-    (setCalldataMem cd len payloadStart)
-    (((⟨160⟩ : UInt256) + len).toNat)
-    (by rw [hadd, hbase])
-    (by
-      rw [hadd, hbase]
-      rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-      exact lt_usize 0 (by norm_num))]
-  rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
-      ByteArray.empty by
-        rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
-    ByteArray.size_empty]
-  omega
+  exact solcBytesSetPaddedMem_size cd len payloadStart hlen hsrc hadd
 
 theorem byteArray_eq_of_toList_eq {a b : ByteArray} (h : a.toList = b.toList) : a = b := by
   apply ByteArray.ext
@@ -3615,29 +3199,7 @@ theorem setPaddedMem_read160_short_toList
     ((setPaddedMem cd len payloadStart).readWithPadding 160 32).toList =
       (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).toList ++
         List.replicate (32 - len.toNat) 0 := by
-  have hadd := setDataEnd_toNat_of_short (len := len) hshort
-  have hbaseSize := setCalldataMem_size cd len payloadStart hnz hsrc
-  have hread :
-      (setPaddedMem cd len payloadStart).readWithPadding 160 32 =
-        ((setCalldataMem cd len payloadStart).extract 160 (160 + len.toNat) ++
-          (UInt256.toByteArray (⟨0⟩ : UInt256)).extract 0 (32 - len.toNat)) := by
-    rw [setPaddedMem]
-    simpa [hadd, hbaseSize, show 160 + 32 - (160 + len.toNat) = 32 - len.toNat by omega]
-      using
-        write32_read_span_end (UInt256.toByteArray (⟨0⟩ : UInt256))
-          (setCalldataMem cd len payloadStart) 160
-          (by rw [toByteArray_size])
-          (by rw [hbaseSize]; omega)
-          (by rw [hbaseSize]; omega)
-  rw [hread]
-  rw [setCalldataMem_extract_payload cd len payloadStart hnz hsrc]
-  rw [byteArray_toList_eq (_ ++ _), ByteArray.data_append, Array.toList_append]
-  rw [byteArray_toList_eq (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat))]
-  rw [zero_toByteArray_eq_zeroes32]
-  rw [zeroes32_extract_zeroes (32 - len.toNat) (by omega)]
-  rw [byteArray_zeroes_toList]
-  congr 1
-  rw [USize.toNat_ofNat_of_lt' (lt_usize (32 - len.toNat) (by omega))]
+  exact solcBytesSetPaddedMem_read160_short_toList cd len payloadStart hnz hshort hsrc
 
 theorem setHelperEntryAw_eq_7_of_short_nonzero {len : UInt256}
     (hnz : len.toNat ≠ 0) (hshort : len.toNat < 32) :
@@ -4365,7 +3927,7 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4483,7 +4045,7 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {cA gh bl σ σ₀ A I} {g : Sa
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4531,7 +4093,7 @@ theorem stringStoreLiteX_setWriteShortPackedFrom1436 {cA gh bl σinit σ₀ A I}
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4589,7 +4151,7 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {cA gh bl σinit σ�
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         setHelperPayloadAw, haddr])
-    (by simpa only [setHelperPayloadWord, haddrWord])
+    (by simp only [setHelperPayloadWord, haddrWord])
     (by simp [setHelperPayloadAw, haddr])
     (by evm_ov)
   exact ⟨_, _, by simpa only using evm_run rd1434 with [swap1, pop]⟩
@@ -5831,174 +5393,12 @@ noncomputable def clearCurrentBaseWord : UInt256 :=
 
 theorem clearCurrentBaseMem_read0 :
     clearCurrentBaseMem.readWithPadding 0 32 = UInt256.toByteArray ⟨0⟩ := by
-  rw [clearCurrentBaseMem]
-  rw [write32_read_back (UInt256.toByteArray ⟨0⟩) solcFreePtrMem 0
-    (by rw [toByteArray_size])
-    (by decide)]
-  rw [toByteArray_extract_all]
+  exact wordAt0Mem_read0 ⟨0⟩ solcFreePtrMem
 
 theorem clearCurrentBaseWord_eq_solidityBytesDataBaseSlot :
     clearCurrentBaseWord = solidityBytesDataBaseSlot ⟨0⟩ := by
   rw [clearCurrentBaseWord, solidityBytesDataBaseSlot, clearCurrentBaseMem_read0,
     uInt256OfByteArray_eq]
-
-/- The semantic fact needed to commute writes at `current`'s length/header slot with writes in
-   Solidity's `keccak256(0)` data area. This is a keccak layout non-aliasing fact. -/
-axiom stringStoreLite_currentDataSlot_ne_lengthSlot
-    (idx : Nat) (hidx : idx < 2 ^ 251) :
-    solidityBytesDataBaseSlot ⟨0⟩ + UInt256.ofNat idx ≠ ⟨0⟩
-
-theorem stringStoreLite_currentByteDataSlot_ne_lengthSlot
-    (idx : Nat) (hidx : idx ≤ ABI.solcMaxU64) :
-    bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32) ≠ ⟨0⟩ := by
-  have hword : idx / 32 < 2 ^ 251 := by
-    have hmax : ABI.solcMaxU64 < 2 ^ 251 * 32 := by
-      norm_num [ABI.solcMaxU64]
-    exact Nat.div_lt_of_lt_mul (lt_of_le_of_lt hidx hmax)
-  simpa [bytesLikeDataBase, solidityBytesDataBaseSlot] using
-    stringStoreLite_currentDataSlot_ne_lengthSlot (idx / 32) hword
-
-theorem storageLocStore_currentLongByte_preserves_length_load
-    {evm evm1 : EVM.State} {idx : Nat} {off : Fin 32} {byte : UInt8}
-    (hidx : idx ≤ ABI.solcMaxU64)
-    (hstore :
-      storageLocStore evm
-        (uint8Loc (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)) off)
-        (.int byte.toNat) = some evm1) :
-    Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ =
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ := by
-  have hne :
-      ⟨0⟩ ≠ bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32) := by
-    exact (stringStoreLite_currentByteDataSlot_ne_lengthSlot idx hidx).symm
-  unfold storageLocStore at hstore
-  simp [uint8Loc, storageLocWriteWord] at hstore
-  injection hstore with hstoreEq
-  subst evm1
-  rw [storageStore_executionEnv]
-  exact storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hne
-
-theorem storageLocStore_currentLongByte_exists
-    (evm : EVM.State) (idx : Nat) (off : Fin 32) (byte : UInt8) :
-    ∃ evm1,
-      storageLocStore evm
-        (uint8Loc (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)) off)
-        (.int byte.toNat) = some evm1 := by
-  unfold storageLocStore
-  simp [uint8Loc, storageLocWriteWord, valueToWord]
-
-theorem storageLocStore_currentLongByte_preserves_length_load_of_eval
-    {evm evm1 : EVM.State} {idx : Nat} {off : Fin 32} {byte : UInt8}
-    (hidx : idx ≤ ABI.solcMaxU64)
-    (hstore :
-      (match
-          storageLocStore evm
-            (uint8Loc (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)) off)
-            (.int byte.toNat) with
-        | some evm' => EvalResult.ok evm'
-        | none => EvalResult.error EvalError.storageError) = EvalResult.ok evm1) :
-    Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ =
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ := by
-  cases hraw :
-      storageLocStore evm
-        (uint8Loc (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (idx / 32)) off)
-        (.int byte.toNat) with
-  | none =>
-      rw [hraw] at hstore
-      cases hstore
-  | some evm2 =>
-      rw [hraw] at hstore
-      injection hstore with hstate
-      subst evm1
-      exact storageLocStore_currentLongByte_preserves_length_load
-        (evm := evm) (evm1 := evm2) (idx := idx) (off := off) (byte := byte)
-        hidx hraw
-
-theorem writeBytesLikeData_currentLong_preserves_length_load :
-    ∀ {evm evm1 : EVM.State} {header : UInt256} {idx : Nat} {bytes : List UInt8},
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header →
-      UInt256.land header ⟨1⟩ ≠ ⟨0⟩ →
-      idx + bytes.length ≤ ABI.solcMaxU64 + 1 →
-      writeBytesLikeData? stringStoreLiteConfig evm { base := "current", steps := [] }
-        idx bytes = .ok evm1 →
-      Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ = header
-  | evm, evm1, header, idx, [], hload, _hflag, _hbound, hwrite => by
-      simp [writeBytesLikeData?] at hwrite
-      subst evm1
-      exact hload
-  | evm, evm1, header, idx, byte :: rest, hload, hflag, hbound, hwrite => by
-      have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-        checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-      have hidxNonneg : ¬ (idx : Int) < 0 := by omega
-      have hidx : idx ≤ ABI.solcMaxU64 := by
-        simp at hbound
-        omega
-      simp [writeBytesLikeData?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-        stringStoreLiteLayout, bytesLikeByteLoc?, hidxNonneg, hpacked,
-        EvalResult.ofOption, EvalResult.bind, bind] at hwrite
-      split at hwrite
-      · rename_i evm2 hstore
-        simp at hwrite
-        have hloadStep :
-            Solm.EVM.storageLoad evm2 evm2.executionEnv.codeOwner ⟨0⟩ = header := by
-          exact (storageLocStore_currentLongByte_preserves_length_load_of_eval
-            (evm := evm) (evm1 := evm2) (idx := idx) (byte := byte)
-            hidx hstore).trans hload
-        have hboundTail : idx + 1 + rest.length ≤ ABI.solcMaxU64 + 1 := by
-          rw [List.length_cons] at hbound
-          omega
-        exact writeBytesLikeData_currentLong_preserves_length_load
-          (evm := evm2) (evm1 := evm1) (header := header) (idx := idx + 1)
-          (bytes := rest) hloadStep hflag hboundTail hwrite
-      · simp at hwrite
-      · simp at hwrite
-
-theorem writeBytesLikeData_currentLong_exists :
-    ∀ {evm : EVM.State} {header : UInt256} {idx : Nat} {bytes : List UInt8},
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header →
-      UInt256.land header ⟨1⟩ ≠ ⟨0⟩ →
-      idx + bytes.length ≤ ABI.solcMaxU64 + 1 →
-      ∃ evm1,
-        writeBytesLikeData? stringStoreLiteConfig evm { base := "current", steps := [] }
-          idx bytes = .ok evm1 ∧
-        Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ = header
-  | evm, header, idx, [], hload, _hflag, _hbound => by
-      refine ⟨evm, ?_, hload⟩
-      simp [writeBytesLikeData?]
-  | evm, header, idx, byte :: rest, hload, hflag, hbound => by
-      have hpacked : checkBytesPacked ⟨0⟩ evm = false :=
-        checkBytesPacked_of_storageLoad_land_one_ne_zero hload hflag
-      have hidxNonneg : ¬ (idx : Int) < 0 := by omega
-      have hidx : idx ≤ ABI.solcMaxU64 := by
-        simp at hbound
-        omega
-      simp [writeBytesLikeData?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-        stringStoreLiteLayout, bytesLikeByteLoc?, hidxNonneg, hpacked,
-        EvalResult.ofOption, EvalResult.bind, bind]
-      split
-      · rename_i evm2 hstore
-        simp
-        have hloadStep :
-            Solm.EVM.storageLoad evm2 evm2.executionEnv.codeOwner ⟨0⟩ = header := by
-          exact (storageLocStore_currentLongByte_preserves_length_load_of_eval
-            (evm := evm) (evm1 := evm2) (idx := idx) (byte := byte)
-            hidx hstore).trans hload
-        have hboundTail : idx + 1 + rest.length ≤ ABI.solcMaxU64 + 1 := by
-          rw [List.length_cons] at hbound
-          omega
-        exact writeBytesLikeData_currentLong_exists (evm := evm2) (header := header)
-          (idx := idx + 1) (bytes := rest) hloadStep hflag hboundTail
-      · simp [storageLocStore, uint8Loc, storageLocWriteWord, valueToWord] at *
-      · simp [storageLocStore, uint8Loc, storageLocWriteWord, valueToWord] at *
-
-theorem writeBytesLikeData_currentPacked_idx31_error
-    {evm : EVM.State} {byte : UInt8} {rest : List UInt8}
-    (hpacked : checkBytesPacked ⟨0⟩ evm = true) :
-    writeBytesLikeData? stringStoreLiteConfig evm { base := "current", steps := [] }
-      31 (byte :: rest) = .error .storageError := by
-  have hidxNonneg : ¬ (31 : Int) < 0 := by norm_num
-  simp [writeBytesLikeData?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-    stringStoreLiteLayout, bytesLikeByteLoc?, hidxNonneg, hpacked,
-    EvalResult.ofOption, EvalResult.bind, bind]
 
 theorem storageLocStore_currentPackedByte_absent_same
     {evm : EVM.State} {off : Fin 32} {byte : UInt8}
@@ -6007,44 +5407,6 @@ theorem storageLocStore_currentPackedByte_absent_same
   unfold storageLocStore
   simp [uint8Loc, storageLocWriteWord, valueToWord,
     storageStore_absent evm evm.executionEnv.codeOwner, hmissing]
-
-theorem writeBytesLikeData_currentPacked_absent_error_aux :
-    ∀ {evm : EVM.State} {bytes : List UInt8} {idx : Nat},
-      evm.accountMap.find? evm.executionEnv.codeOwner = none →
-      checkBytesPacked ⟨0⟩ evm = true →
-      idx ≤ 31 →
-      32 ≤ idx + bytes.length →
-      writeBytesLikeData? stringStoreLiteConfig evm { base := "current", steps := [] }
-        idx bytes = .error .storageError
-  | evm, [], idx, _hmissing, _hpacked, _hidx, hlen => by
-      simp at hlen
-      omega
-  | evm, byte :: rest, idx, hmissing, hpacked, hidx, hlen => by
-      by_cases hidxEq : idx = 31
-      · subst idx
-        exact writeBytesLikeData_currentPacked_idx31_error hpacked
-      · have hidxLt : idx < 31 := by omega
-        have hidxNonneg : ¬ (idx : Int) < 0 := by omega
-        simp [writeBytesLikeData?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-          stringStoreLiteLayout, bytesLikeByteLoc?, hidxNonneg, hpacked, hidxLt,
-          EvalResult.ofOption, EvalResult.bind, bind,
-          storageLocStore_currentPackedByte_absent_same hmissing]
-        have hlenTail : 32 ≤ idx + 1 + rest.length := by
-          simp at hlen
-          omega
-        exact writeBytesLikeData_currentPacked_absent_error_aux
-          (evm := evm) (bytes := rest) (idx := idx + 1)
-          hmissing hpacked (by omega) hlenTail
-
-theorem writeBytesLikeData_currentPacked_absent_error_of_length_ge32
-    {evm : EVM.State} {bytes : List UInt8}
-    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none)
-    (hpacked : checkBytesPacked ⟨0⟩ evm = true)
-    (hlen : 32 ≤ bytes.length) :
-    writeBytesLikeData? stringStoreLiteConfig evm { base := "current", steps := [] }
-      0 bytes = .error .storageError := by
-  exact writeBytesLikeData_currentPacked_absent_error_aux
-    (evm := evm) (bytes := bytes) (idx := 0) hmissing hpacked (by omega) (by simpa using hlen)
 
 theorem solidityBytesHeaderWord_long_flag {len : Nat}
     (hlong : ¬ len < 32) (hlenMax : len ≤ ABI.solcMaxU64) :
@@ -6064,171 +5426,9 @@ theorem solidityBytesHeaderWord_long_flag {len : Nat}
   have hzeroNat := congrArg UInt256.toNat hzero
   simp [hbit] at hzeroNat
 
-theorem clearSolidityBytesDataWordsFrom_current_preserves_length_load :
-    ∀ {evm : EVM.State} {header : UInt256} {idx fuel : Nat},
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header →
-      idx + fuel ≤ 2 ^ 251 →
-      Solm.EVM.storageLoad
-          (clearSolidityBytesDataWordsFrom evm ⟨0⟩ idx fuel)
-          (clearSolidityBytesDataWordsFrom evm ⟨0⟩ idx fuel).executionEnv.codeOwner
-          ⟨0⟩ = header
-  | evm, header, idx, 0, hload, _hbound => by
-      exact hload
-  | evm, header, idx, fuel + 1, hload, hbound => by
-      let evm1 := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-        (solidityBytesDataSlot ⟨0⟩ idx) ⟨0⟩
-      have hidx : idx < 2 ^ 251 := by omega
-      have hne : ⟨0⟩ ≠ solidityBytesDataSlot ⟨0⟩ idx := by
-        simpa [solidityBytesDataSlot] using
-          (stringStoreLite_currentDataSlot_ne_lengthSlot idx hidx).symm
-      have hloadStep :
-          Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ = header := by
-        change Solm.EVM.storageLoad
-            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-              (solidityBytesDataSlot ⟨0⟩ idx) ⟨0⟩)
-            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-              (solidityBytesDataSlot ⟨0⟩ idx) ⟨0⟩).executionEnv.codeOwner ⟨0⟩ = header
-        rw [storageStore_executionEnv]
-        exact (storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hne).trans hload
-      have hboundTail : idx + 1 + fuel ≤ 2 ^ 251 := by omega
-      simpa [clearSolidityBytesDataWordsFrom, evm1] using
-        clearSolidityBytesDataWordsFrom_current_preserves_length_load
-          (evm := evm1) (header := header) (idx := idx + 1) (fuel := fuel)
-          hloadStep hboundTail
-
-theorem writeBytesLikeData_currentLong_prepared_exists
-    {evm : EVM.State} {acc : Account} {bytes : ByteArray}
-    (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
-    (hlong : ¬ bytes.size < 32)
-    (hlenMax : bytes.size ≤ ABI.solcMaxU64) :
-    ∃ evm1,
-      writeBytesLikeData? stringStoreLiteConfig
-          (clearSolidityBytesDataWordsFrom
-            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-              (solidityBytesHeaderWord bytes.size))
-            ⟨0⟩ 0 ((bytes.size + 31) / 32))
-          { base := "current", steps := [] } 0 bytes.toList = .ok evm1 ∧
-        Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ =
-          solidityBytesHeaderWord bytes.size := by
-  let evmHeader := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-    (solidityBytesHeaderWord bytes.size)
-  have hload :
-      Solm.EVM.storageLoad evmHeader evmHeader.executionEnv.codeOwner ⟨0⟩ =
-        solidityBytesHeaderWord bytes.size := by
-    change Solm.EVM.storageLoad
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-          (solidityBytesHeaderWord bytes.size))
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-          (solidityBytesHeaderWord bytes.size)).executionEnv.codeOwner ⟨0⟩ =
-      solidityBytesHeaderWord bytes.size
-    rw [storageStore_executionEnv]
-    exact storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
-  let evmClear := clearSolidityBytesDataWordsFrom evmHeader ⟨0⟩ 0
-    ((bytes.size + 31) / 32)
-  have hclearFuel : ((bytes.size + 31) / 32) ≤ 2 ^ 251 := by
-    have hmax : ABI.solcMaxU64 + 31 < 2 ^ 251 * 32 := by
-      norm_num [ABI.solcMaxU64]
-    apply Nat.le_of_lt
-    exact Nat.div_lt_of_lt_mul (by omega)
-  have hclearFuel0 : 0 + ((bytes.size + 31) / 32) ≤ 2 ^ 251 := by
-    simpa using hclearFuel
-  have hloadClear :
-      Solm.EVM.storageLoad evmClear evmClear.executionEnv.codeOwner ⟨0⟩ =
-        solidityBytesHeaderWord bytes.size := by
-    simpa [evmClear] using
-      clearSolidityBytesDataWordsFrom_current_preserves_length_load
-        (evm := evmHeader) (header := solidityBytesHeaderWord bytes.size)
-        (idx := 0) (fuel := ((bytes.size + 31) / 32)) hload hclearFuel0
-  have hflag :
-      UInt256.land (solidityBytesHeaderWord bytes.size) ⟨1⟩ ≠ ⟨0⟩ :=
-    solidityBytesHeaderWord_long_flag hlong hlenMax
-  have hbound : 0 + bytes.toList.length ≤ ABI.solcMaxU64 + 1 := by
-    have hlen : bytes.toList.length = bytes.size := by
-      rw [byteArray_toList_eq bytes, Array.length_toList]
-      rfl
-    rw [hlen]
-    omega
-  simpa [evmHeader, evmClear] using
-    writeBytesLikeData_currentLong_exists
-      (evm := evmClear) (header := solidityBytesHeaderWord bytes.size)
-      (idx := 0) (bytes := bytes.toList) hloadClear hflag hbound
-
-theorem writeBytesLikeData_currentLong_preparedCleared_exists
-    {evm : EVM.State} {acc : Account} {bytes : ByteArray} {fuel : Nat}
-    (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
-    (hlong : ¬ bytes.size < 32)
-    (hlenMax : bytes.size ≤ ABI.solcMaxU64)
-    (hfuel : fuel ≤ 2 ^ 251) :
-    ∃ evm1,
-      writeBytesLikeData? stringStoreLiteConfig
-          (clearSolidityBytesDataWordsFrom
-            (clearSolidityBytesDataWordsFrom
-              (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-                (solidityBytesHeaderWord bytes.size))
-              ⟨0⟩ 0 fuel)
-            ⟨0⟩ 0 ((bytes.size + 31) / 32))
-          { base := "current", steps := [] } 0 bytes.toList = .ok evm1 ∧
-        Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨0⟩ =
-          solidityBytesHeaderWord bytes.size := by
-  let evmHeader := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-    (solidityBytesHeaderWord bytes.size)
-  have hloadHeader :
-      Solm.EVM.storageLoad evmHeader evmHeader.executionEnv.codeOwner ⟨0⟩ =
-        solidityBytesHeaderWord bytes.size := by
-    change Solm.EVM.storageLoad
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-          (solidityBytesHeaderWord bytes.size))
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-          (solidityBytesHeaderWord bytes.size)).executionEnv.codeOwner ⟨0⟩ =
-      solidityBytesHeaderWord bytes.size
-    rw [storageStore_executionEnv]
-    exact storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
-  let evmOldClear := clearSolidityBytesDataWordsFrom evmHeader ⟨0⟩ 0 fuel
-  have hloadClear :
-      Solm.EVM.storageLoad evmOldClear evmOldClear.executionEnv.codeOwner ⟨0⟩ =
-        solidityBytesHeaderWord bytes.size := by
-    simpa [evmOldClear] using
-      clearSolidityBytesDataWordsFrom_current_preserves_length_load
-        (evm := evmHeader) (header := solidityBytesHeaderWord bytes.size)
-        (idx := 0) (fuel := fuel) hloadHeader (by simpa using hfuel)
-  let evmClear := clearSolidityBytesDataWordsFrom evmOldClear ⟨0⟩ 0
-    ((bytes.size + 31) / 32)
-  have hnewFuel : ((bytes.size + 31) / 32) ≤ 2 ^ 251 := by
-    have hmax : ABI.solcMaxU64 + 31 < 2 ^ 251 * 32 := by
-      norm_num [ABI.solcMaxU64]
-    apply Nat.le_of_lt
-    exact Nat.div_lt_of_lt_mul (by omega)
-  have hnewFuel0 : 0 + ((bytes.size + 31) / 32) ≤ 2 ^ 251 := by
-    simpa using hnewFuel
-  have hloadNewClear :
-      Solm.EVM.storageLoad evmClear evmClear.executionEnv.codeOwner ⟨0⟩ =
-        solidityBytesHeaderWord bytes.size := by
-    simpa [evmClear] using
-      clearSolidityBytesDataWordsFrom_current_preserves_length_load
-        (evm := evmOldClear) (header := solidityBytesHeaderWord bytes.size)
-        (idx := 0) (fuel := ((bytes.size + 31) / 32)) hloadClear hnewFuel0
-  have hflag :
-      UInt256.land (solidityBytesHeaderWord bytes.size) ⟨1⟩ ≠ ⟨0⟩ :=
-    solidityBytesHeaderWord_long_flag hlong hlenMax
-  have hbound : 0 + bytes.toList.length ≤ ABI.solcMaxU64 + 1 := by
-    have hlen : bytes.toList.length = bytes.size := by
-      rw [byteArray_toList_eq bytes, Array.length_toList]
-      rfl
-    rw [hlen]
-    omega
-  simpa [evmHeader, evmClear] using
-    writeBytesLikeData_currentLong_exists
-      (evm := evmClear) (header := solidityBytesHeaderWord bytes.size)
-      (idx := 0) (bytes := bytes.toList) hloadNewClear hflag hbound
-
 theorem clearCurrentBaseMemFrom_read0 (mem : ByteArray) :
     (clearCurrentBaseMemFrom mem).readWithPadding 0 32 = UInt256.toByteArray ⟨0⟩ := by
-  rw [clearCurrentBaseMemFrom]
-  rw [write0_read_back_gen (UInt256.toByteArray ⟨0⟩) mem 32
-    (by norm_num)
-    (by rw [toByteArray_size])
-    (by norm_num)]
-  rw [toByteArray_extract_all]
+  exact wordAt0Mem_read0 ⟨0⟩ mem
 
 theorem clearCurrentBaseMemFrom_keccak (mem : ByteArray) :
     UInt256.ofNat
@@ -6253,13 +5453,6 @@ theorem clearDataWordsLoopIndex_succ_base (idx : UInt256) :
   | 0 => rfl
   | i + 1 => by
       simp [clearDataWordsLoopIndex, clearDataWordsLoopIndex_succ_base idx i]
-
-def clearDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
-    (base idx : UInt256) : Nat → AccountMap
-  | 0 => τ
-  | n + 1 =>
-      clearDataWordsForwardFrom owner
-        (sstoreAccountMap owner τ (base + idx) ⟨0⟩) base ((⟨1⟩ : UInt256) + idx) n
 
 theorem stringStoreLiteX_clearDataWordsLoopDone {cA gh bl σinit σ₀ A I} {g : Sat256}
     {τ : AccountMap} {idx count base ret : UInt256} {rest : List UInt256}
@@ -6647,10 +5840,10 @@ theorem stringStoreLiteCurrentLengthLongMalformedBodyCore {cA gh bl σ_evm σ_so
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
     simpa [initState] using hload
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad]
   have hbody :
@@ -6717,10 +5910,10 @@ theorem stringStoreLiteCurrentLengthShortMalformedBodyCore {cA gh bl σ_evm σ_s
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ := by
     simpa [hflag] using hbad
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad0]
   have hbody :
@@ -6781,12 +5974,12 @@ theorem stringStoreLiteCurrentLengthLongValidBodyCore {cA gh bl σ_evm σ_solm �
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
     simpa [initState] using hload
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .ok (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩).toNat := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
-      initState, hload', hflag, hvalid, pure]
+      initState, hload', hflag, hvalid]
   have hbody :
       ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -6856,12 +6049,12 @@ theorem stringStoreLiteCurrentLengthShortValidBodyCore {cA gh bl σ_evm σ_solm 
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .ok (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩).toNat := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
-      initState, hload', hflag, hvalid0, pure]
+      initState, hload', hflag, hvalid0]
   have hbody :
       ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -6975,10 +6168,10 @@ theorem stringStoreLiteClearCurrentLongMalformedRuntime {cA gh bl σ_evm σ_solm
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
     simpa [initState] using hload
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad]
   have hbody :
@@ -7043,10 +6236,10 @@ theorem stringStoreLiteClearCurrentShortMalformedRuntime {cA gh bl σ_evm σ_sol
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ := by
     simpa [hflag] using hbad
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig
+      readStorageBytesLength? stringStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad0]
   have hbody :
@@ -7110,16 +6303,20 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {cA gh bl σ_evm σ_solm σ�
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
     simpa [evmSolm0, initState] using hload
   have hlen :
-      bytesLikeLength? stringStoreLiteConfig evmSolm0 { base := "current" } = .ok 0 := by
-    simp [bytesLikeLength?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
+      readStorageBytesLength? stringStoreLiteConfig evmSolm0 { base := "current" } = .ok 0 := by
+    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader_zero, stringStoreLiteLayout,
-      hloadBytes, pure]
+      hloadBytes]
   have hread :
       evalExpr? stringStoreLiteConfig { contract := stringStoreLiteContract, locals := ∅ }
         evmSolm0 (.storage currentRef) = .ok (.bytes ByteArray.empty) := by
-    simp only [evalExpr?, currentLengthResolve, readStorage?, readStorageBytesLike?,
-      EvalResult.bind, bind, hlen, readBytesLikeData?, pure]
-    rfl
+    rw [evalExpr?, currentLengthResolve]
+    set_option linter.unusedSimpArgs false in
+    simp [readStorage?, stringStoreLiteConfig,
+      stringStoreLiteStorageLayout, solidityStorageLayout, solidityReadValue?,
+      solidityReadBytesValue?, solidityBytesBaseSlotAndLength?, storageValueResultToEval,
+      stringStoreLiteLayout, hloadBytes, solidityDecodeBytesLengthHeader_zero,
+      EvalResult.bind, bind, pure]
   have hdel :
       deleteStorage? stringStoreLiteConfig
         { contract := stringStoreLiteContract,
@@ -7346,32 +6543,12 @@ theorem stringStoreLiteSetShortEmptyRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
     simpa [evmSolm0, initState] using hload
-  have hassign :
-      assignStorageRef? stringStoreLiteConfig
-        { contract := stringStoreLiteContract
-          locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
-            (.bytes ByteArray.empty) }
-        evmSolm0 .storage currentRef (.bytes ByteArray.empty) =
-          .ok
-            ({ contract := stringStoreLiteContract
-               locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
-                 (.bytes ByteArray.empty) },
-             evmSolm1) := by
+  have hwrite :
+      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+        .string (.bytes ByteArray.empty) = .ok evmSolm1 := by
     simpa [evmSolm0, evmSolm1, initState] using
-      assignCurrentEmptyFromZero (evm := evmSolm0) hloadBytes
-  have hbody :
-      ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evmSolm0
-        ((∅ : Store).insert "value" (.bytes ByteArray.empty)) setTransition.body
-        (.returned
-          { contract := stringStoreLiteContract
-            locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
-              (.bytes ByteArray.empty) }
-          evmSolm1 (some (.int 0))) := by
-    simpa using setBodyReturns (evm := evmSolm0) (evmCurrent := evmSolm1)
-      (value := ByteArray.empty)
-      (by simp [evmSolm0, initState]; exact hwv)
-      hassign
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+      writeCurrentEmptyFromZero (evm := evmSolm0) hloadBytes
+  exact setRuntimeOfWriteAccountMapEquiv hcode hwv hret hd hdec hwrite
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
@@ -7478,17 +6655,7 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {cA gh bl σ_evm σ_solm σ₀ 
       (header := currentLengthHeaderWord σ_evm I) (len := len) (value := ByteArray.empty)
       (by decide) hloadBytes hpacked hflag rfl (by simpa [len] using hvalid)
     simpa [evmSolm1, hshortEmpty] using hwrite₀
-  have hbody :
-      ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evmSolm0
-        ((∅ : Store).insert "value" (.bytes ByteArray.empty)) setTransition.body
-        (.returned
-          { contract := stringStoreLiteContract
-            locals := ((∅ : Store).insert "value" (.bytes ByteArray.empty)).insert "copy"
-              (.bytes ByteArray.empty) }
-          evmSolm1 (some (.int 0))) := by
-    simpa using setBodyReturnsOfWrite (evm := evmSolm0) (evmCurrent := evmSolm1)
-      (value := ByteArray.empty) (by simp [evmSolm0, initState]; exact hwv) hwrite
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+  exact setRuntimeOfWriteAccountMapEquiv hcode hwv hret hd hdec hwrite
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]

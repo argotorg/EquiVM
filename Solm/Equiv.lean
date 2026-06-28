@@ -279,10 +279,6 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
     -- The Solm-side initial maps need only be observationally (`accountMapEquiv`) equal to the
     -- EVM-side maps, not syntactically equal — see `runtimeEquivalenceFor`.
     accountMapEquiv σ_evm σ_solm →
-    -- Runtime bytecode execution models a deployed contract account. Without this, `I.code`
-    -- can name bytecode for an address absent from the account map, making storage writes
-    -- degenerate in the EVM model while Solm storage layout can still reject them.
-    (∃ acc, σ_evm.find? I.codeOwner = some acc) →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
     ) →
     runtimeEquivalence!?! cfg bytecode contract

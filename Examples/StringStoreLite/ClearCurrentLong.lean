@@ -2865,47 +2865,6 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
   exact rd172.ret retCost (UInt256.toByteArray len)
     (by native_decide) hretCost hretBytes (by evm_ov)
 
-theorem clearSolidityBytesDataWordsFrom_executionEnv
-    (evm : EVM.State) (baseSlot : UInt256) (idx fuel : Nat) :
-    (clearSolidityBytesDataWordsFrom evm baseSlot idx fuel).executionEnv =
-      evm.executionEnv := by
-  induction fuel generalizing evm idx with
-  | zero => rfl
-  | succ n ih =>
-      simp [clearSolidityBytesDataWordsFrom, ih, storageStore_executionEnv]
-
-theorem clearSolidityBytesDataWordsFrom_createdAccounts
-    (evm : EVM.State) (baseSlot : UInt256) (idx fuel : Nat) :
-    (clearSolidityBytesDataWordsFrom evm baseSlot idx fuel).createdAccounts =
-      evm.createdAccounts := by
-  induction fuel generalizing evm idx with
-  | zero => rfl
-  | succ n ih =>
-      simp [clearSolidityBytesDataWordsFrom, ih, storageStore_createdAccounts]
-
-theorem clearSolidityBytesDataWordsFrom_accountMap
-    (evm : EVM.State) (baseSlot : UInt256) (idx fuel : Nat) :
-    (clearSolidityBytesDataWordsFrom evm baseSlot idx fuel).accountMap =
-      clearDataWordsForwardFrom evm.executionEnv.codeOwner evm.accountMap
-        (solidityBytesDataBaseSlot baseSlot) (UInt256.ofNat idx) fuel := by
-  induction fuel generalizing evm idx with
-  | zero => rfl
-  | succ n ih =>
-      simp [clearSolidityBytesDataWordsFrom, clearDataWordsForwardFrom, solidityBytesDataSlot,
-        storageStore_accountMap, storageStore_executionEnv, ih, u256_one_add_ofNat]
-
-theorem accountMapEquiv_clearDataWordsForwardFrom {σ τ : AccountMap}
-    (owner : AccountAddress) (base idx : UInt256) :
-    ∀ fuel, accountMapEquiv σ τ →
-      accountMapEquiv
-        (clearDataWordsForwardFrom owner σ base idx fuel)
-        (clearDataWordsForwardFrom owner τ base idx fuel)
-  | 0, hAccounts => hAccounts
-  | n + 1, hAccounts => by
-      simp [clearDataWordsForwardFrom]
-      exact accountMapEquiv_clearDataWordsForwardFrom owner base ((⟨1⟩ : UInt256) + idx) n
-        (accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts)
-
 theorem activeWordsMstore0_eq_self {aw : UInt256} (hge : 1 ≤ aw.toNat) :
     UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := by
   apply u256_inj
@@ -3140,7 +3099,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
   have hwrapperAwStore :
       UInt256.ofNat (MachineState.M deleteAw.toNat (freePtr + ⟨0⟩).toNat 32) =
         wrapperAwStore := by
-    simpa [wrapperAwStore, currentLength_add_zero_toNat]
+    simp [wrapperAwStore, currentLength_add_zero_toNat]
   have hfreePtrLeMem : freePtr.toNat ≤ deleteMem.size := by
     rw [hdeleteSize, hcopySize]
   have hreturnRead64 : returnMem.readWithPadding 64 32 = UInt256.toByteArray freePtr := by

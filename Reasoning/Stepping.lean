@@ -1215,6 +1215,45 @@ theorem returndatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256
         simp only [List.length_cons]; omega
       simp only [hg1, hg2, hmemok, hov', if_false, stReturndatacopy]
 
+/-! ### CALLDATACOPY (`a :: b :: c :: t ↦ t`, copy calldata bytes into memory) -/
+
+def stCalldatacopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      memory := s.executionEnv.calldata.write b.toNat s.machineState.memory a.toNat c.toNat,
+      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat c.toNat),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CALLDATACOPY)).subNat
+          (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) } }
+
+theorem calldatacopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CALLDATACOPY, .none))
+    (hstk : s.machineState.stack = a :: b :: c :: t)
+    (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .CALLDATACOPY
+         then .error .OutOfGass
+         else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .CALLDATACOPY)).toNat
+                < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+              then .error .OutOfGass
+              else .ok (stCalldatacopy s a b c t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CALLDATACOPY, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_calldatacopy s hd, hstk]
+  by_cases hg1 : s.machineState.gasAvailable.toNat < memoryExpansionCost s .CALLDATACOPY
+  · simp only [hg1, if_true]
+  · by_cases hg2 : (s.machineState.gasAvailable.subNat
+        (memoryExpansionCost s .CALLDATACOPY)).toNat
+        < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
+    · simp only [hg1, hg2, if_true, if_false]
+    · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
+        simp only [List.length_cons]; omega
+      simp only [hg1, hg2, hov', if_false, stCalldatacopy]
+
 /-! ### CODECOPY (`a :: b :: c :: t ↦ t`, copy `code[b .. b+c]` to `mem[a .. a+c]`) -/
 
 def stCodecopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=

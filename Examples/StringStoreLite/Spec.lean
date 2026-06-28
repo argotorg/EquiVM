@@ -85,13 +85,7 @@ def uint8Loc (slot : Ethereum.UInt256) (offset : Fin 32) : StorageLoc :=
 def bytesLikeDataBase (baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
   Ethereum.uInt256OfByteArray (ffi.KEC baseSlot.toByteArray)
 
-def bytesLikeLengthLoc (baseSlot : Ethereum.UInt256) (evm : EVM.State) : StorageLoc :=
-  if checkBytesPacked baseSlot evm then
-    { slot := baseSlot, offset := 0, size := 1, hbound := by decide,
-      bitOffset := some 1, type := .int uint256Int }
-  else
-    { slot := baseSlot, offset := 0, size := 32, hbound := by decide,
-      bitOffset := some 1, type := .int uint256Int }
+abbrev bytesLikeLengthLoc := Solm.bytesLikeLengthLoc
 
 def bytesLikeByteLoc? (baseSlot : Ethereum.UInt256) (index : KeyValue)
     (evm : EVM.State) : Option StorageLoc :=
@@ -119,11 +113,8 @@ def stringStoreLiteLayout : EvaledStorageRef -> EVM.State -> Option StorageLoc
   | { base := "current", steps := [.aindex i] }, evm => bytesLikeByteLoc? ⟨0⟩ i evm
   | _, _ => none
 
-def stringStoreLiteStorageLayout : StorageLayout where
-  layout := stringStoreLiteLayout
-  readBytesLength := solidityReadBytesLength? stringStoreLiteLayout
-  prepareBytesWrite := solidityPrepareBytesWrite? stringStoreLiteLayout
-  writeBytes := solidityWriteBytes? stringStoreLiteLayout
+def stringStoreLiteStorageLayout : StorageLayout :=
+  solidityStorageLayout stringStoreLiteLayout
 
 end StringStoreLite
 
