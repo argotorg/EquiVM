@@ -86,8 +86,7 @@ theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
   simp only [transferCalldataExpr, evalExpr?, evalExprList?, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
   rw [safeTransferCalleeStore_to, safeTransferCalleeStore_value]
-  simp [transferCalldata?, transferCallArgs, safeTransferUintValue, hdata, EvalResult.bind, bind,
-    pure, EvalResult.ofOption]
+  simpa [transferCalldata?, transferCallArgs, safeTransferUintValue] using hdata
 
 theorem bindParams_safeTransfer (token recipient : AccountAddress) (value : UInt256) :
     bindParams? safeTransferFunction.params (safeTransferArgs token recipient value) =
@@ -136,7 +135,7 @@ theorem evalExpr_safeTransferReturnOk_decodeRevert (evm : EVM.State)
     exact hint hi
   simp only [safeTransferReturnOkExpr, evalExpr?, EvalResult.ofOption]
   rw [safeTransferCallStore_success, safeTransferCallStore_data]
-  simp [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
+  simp only [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
 
 theorem evalExpr_safeTransferReturnOk_decodeFalse (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) {out : ByteArray}
@@ -156,7 +155,7 @@ theorem evalExpr_safeTransferReturnOk_decodeFalse (evm : EVM.State)
     exact hint hi
   simp only [safeTransferReturnOkExpr, evalExpr?, EvalResult.ofOption]
   rw [safeTransferCallStore_success, safeTransferCallStore_data]
-  simp [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
+  simp only [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
 
 theorem evalExpr_safeTransferReturnOk_decodeTrue (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) {out : ByteArray}
@@ -176,7 +175,7 @@ theorem evalExpr_safeTransferReturnOk_decodeTrue (evm : EVM.State)
     exact hint hi
   simp only [safeTransferReturnOkExpr, evalExpr?, EvalResult.ofOption]
   rw [safeTransferCallStore_success, safeTransferCallStore_data]
-  simp [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
+  simp only [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
 
 -- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side low-level call followed by a
 -- Solidity `require` whose condition may inspect `(success, returndata)`.
@@ -328,11 +327,12 @@ theorem safeTransferFunctionBodyReturns_decodeTrue
       ExecBlock.nil
 
 -- LIBRARY CANDIDATE: Reasoning.SolmBody — packaged `FunctionDecl` internal-call revert helper
--- specialized recipient a callee whose body is proved as `ExecFuncBody`.
+-- specialized to a callee whose body is proved as `ExecFuncBody`.
 theorem safeTransferInternalCallReverts_callFailure
     (caller : Frame) (evm evm' : EVM.State)
     {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (token recipient : AccountAddress) (value : UInt256) {calldata out : ByteArray}
+    (hcaller : caller.contract = contract)
     (hargs :
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
@@ -345,13 +345,15 @@ theorem safeTransferInternalCallReverts_callFailure
     (retVar := retVar) (args := [tokenExpr, toExpr, valueExpr])
     (argVals := safeTransferArgs token recipient value) (callee := safeTransferFunction)
     (locals := safeTransferCalleeStore token recipient value)
-    hargs lookupCallable_safeTransfer (bindParams_safeTransfer token recipient value)
+    hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
+    (bindParams_safeTransfer token recipient value)
     (safeTransferFunctionBodyReverts_callFailure evm evm' token recipient value hdata hcall)
 
 theorem safeTransferInternalCallReturns_empty
     (caller : Frame) (evm evm' : EVM.State)
     {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (token recipient : AccountAddress) (value : UInt256) {calldata out : ByteArray}
+    (hcaller : caller.contract = contract)
     (hargs :
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
@@ -367,16 +369,18 @@ theorem safeTransferInternalCallReturns_empty
     (args := [tokenExpr, toExpr, valueExpr])
     (argVals := safeTransferArgs token recipient value) (callee := safeTransferFunction)
     (locals := safeTransferCalleeStore token recipient value)
-    (calleeSolm := { contract := contract,
-      locals := safeTransferCallStore token recipient value true out })
+    (calleeSolm :=
+      { contract := contract, locals := safeTransferCallStore token recipient value true out })
     (value := none)
-    hargs lookupCallable_safeTransfer (bindParams_safeTransfer token recipient value)
+    hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
+    (bindParams_safeTransfer token recipient value)
     (safeTransferFunctionBodyReturns_empty evm evm' token recipient value hdata hcall hout)
 
 theorem safeTransferInternalCallReturns_decodeTrue
     (caller : Frame) (evm evm' : EVM.State)
     {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
     (token recipient : AccountAddress) (value : UInt256) {calldata out : ByteArray}
+    (hcaller : caller.contract = contract)
     (hargs :
       evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
         .ok (safeTransferArgs token recipient value))
@@ -393,10 +397,11 @@ theorem safeTransferInternalCallReturns_decodeTrue
     (args := [tokenExpr, toExpr, valueExpr])
     (argVals := safeTransferArgs token recipient value) (callee := safeTransferFunction)
     (locals := safeTransferCalleeStore token recipient value)
-    (calleeSolm := { contract := contract,
-      locals := safeTransferCallStore token recipient value true out })
+    (calleeSolm :=
+      { contract := contract, locals := safeTransferCallStore token recipient value true out })
     (value := none)
-    hargs lookupCallable_safeTransfer (bindParams_safeTransfer token recipient value)
+    hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
+    (bindParams_safeTransfer token recipient value)
     (safeTransferFunctionBodyReturns_decodeTrue evm evm' token recipient value hdata hcall hsize hdec)
 
 end UniswapV2Pair
