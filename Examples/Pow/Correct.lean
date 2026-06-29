@@ -932,13 +932,13 @@ theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract
 /-! ## Constructor and full-contract equivalence -/
 
 noncomputable def powInitReturnMem : ByteArray :=
-  powInitcode.write 12 ByteArray.empty 0 290
+  (powInitcode).write 12 ByteArray.empty 0 290
 
 theorem powBytecode_size : powBytecode.size = 290 := by
   native_decide
 
 theorem powInitcode_runtime_window :
-    powInitcode.extract 12 (12 + 290) = powBytecode := by
+    (powInitcode).extract 12 (12 + 290) = powBytecode := by
   native_decide
 
 theorem powInitcodeDecode0 :

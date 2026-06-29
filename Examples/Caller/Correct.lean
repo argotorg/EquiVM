@@ -674,7 +674,7 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
         (EVM.address (AccountAddress.ofNat (callerArg0 I).toNat)) "pow2" 0
         [.int (Int.ofNat (callerArg1 I).toNat)]
         (z, { initState cA gh bl σ σ₀ g A I with
-                accountMap := σ', substate := A', createdAccounts := cA' }, o)
+                accountMap := σ', substate := A', createdAccounts := cA' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
@@ -693,12 +693,12 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
       (targetWord := UInt256.land addrMask (callerArg0 I))
       (mem := callerCalldataMem I) (inOff := callerOutPtr I)
       (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I))
-      (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      (callerTarget_eq hclean) ?_ ?_
-    rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
-        show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
-    exact callerEncode_eq I
-    simpa [initState, hperm] using hΘ
+      (hdepth := fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+      (htgt := callerTarget_eq hclean) (hcd := ?_) (hΘ := ?_)
+    · rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
+          show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
+      exact callerEncode_eq I
+    · simpa [initState, hperm] using hΘ
   · exact hosz
 
 /-- **Post-call failure tail** (`z = false`): the `CALL` returned `0`, so the solc check
@@ -1127,7 +1127,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
       (A := A) (I := I) (g := g) hcode hwv (by omega) hsize hsz68 hbig hmatch hclean
       hperm hdepth
   obtain ⟨σ'_solm, A'_solm, hcoin_solm, hStateCall⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv hcoin (by simp [initState]) hAccounts
+    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcoin) (by simp [initState]) hAccounts
   cases z
   · -- z = false: external call failed ⇒ revert
     simp only [Bool.false_eq_true, if_false] at rd144 hcoin hcoin_solm
@@ -1253,8 +1253,19 @@ theorem callerReEquiv_callvalueZero
               refine (callerX_callDepthLimit hcode hwv (by omega) hsize hsz68 hbig hmatch
                   (callerCanon_eq hcanon) hdepth1024).reEquivExecutionRevert hcode hd
                 (callerDecode_n hsz68 hbig hcanon) ?_
+              have hdepthInit :
+                  (initState cA gh bl σ_solm σ₀ g A I).executionEnv.depth = 1024 := by
+                simpa [initState] using hdepth1024
               exact callerBodyExtFail _ (callerDecStore I) (by exact hwv) (callerStore_t I)
-                (callerStore_n I) (callNotMade_depthLimit (callerEncode_eq I) hdepth1024)
+                (callerStore_n I)
+                (callNotMade_depthLimit
+                  (cfg := callerConfig)
+                  (evm := initState cA gh bl σ_solm σ₀ g A I)
+                  (tgt := EVM.address (AccountAddress.ofNat (callerArg0 I).toNat))
+                  (name := "pow2")
+                  (args := [.int (Int.ofNat (callerArg1 I).toNat)])
+                  (callPerm := true)
+                  (callerEncode_eq I) hdepthInit)
           · exact (callerX_noncanon hcode hwv (by omega) hsize hsz68 hbig hmatch
                 (ueq_zero_of_ne (fun he => hcanon (callerArg0_canonical he)))).reEquivDecodingFailed
               hcode hd (callerDecode_none_noncanon hsz68 hbig hcanon)
@@ -1283,13 +1294,13 @@ theorem callerCorrect :
 /-! ## Constructor and full-contract equivalence -/
 
 noncomputable def callerInitReturnMem : ByteArray :=
-  callerInitcode.write 12 ByteArray.empty 0 567
+  (callerInitcode).write 12 ByteArray.empty 0 567
 
 theorem callerBytecode_size : callerBytecode.size = 567 := by
   native_decide
 
 theorem callerInitcode_runtime_window :
-    callerInitcode.extract 12 (12 + 567) = callerBytecode := by
+    (callerInitcode).extract 12 (12 + 567) = callerBytecode := by
   native_decide
 
 theorem callerInitcodeDecode0 :
