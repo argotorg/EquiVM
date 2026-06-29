@@ -3451,8 +3451,8 @@ theorem RDrev.reEquivDecodingFailed
     {code : ByteArray} {t}
     (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = none) :
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = none) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev

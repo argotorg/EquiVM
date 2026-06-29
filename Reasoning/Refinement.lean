@@ -955,8 +955,8 @@ theorem equivTransition.toRuntime {cfg : Config} {contract : ContractDecl} {t : 
     {callargs : Store}
     (hcode : I.code = code)
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (h : equivTransition cfg contract t cA gh bl σ_evm σ_solm σ₀ A I g code
       callargs) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀

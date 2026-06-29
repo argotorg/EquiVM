@@ -12,7 +12,6 @@ open ABI
 def defaultAbiValue : ABIType -> Option Value
   | .elem .bool    => some (.bool false)
   | .elem .address => some (.address (.ofNat 0))
-  | .elem .legacyAddress => some (.address (.ofNat 0))
   | .elem (.int _) => some (.int 0)
   | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none
@@ -156,7 +155,8 @@ inductive solmExec
     /- Solm transition dispatch -/
     dispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
-    decodeCalldata (transition.params.map Param.name) transitionSig.paramTypes I.calldata = .some callargs →
+    decodeCalldataWithMode conf.abiDecodeMode (transition.params.map Param.name)
+      transitionSig.paramTypes I.calldata = .some callargs →
     evmState =
       { (default : EVM.State) with
           accountMap := σ
@@ -236,7 +236,8 @@ inductive runtimeEquivalenceFor (cfg : Config)
   | decodingFailed {transition transitionSig g' o} : /- Decoding fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
-    decodeCalldata (transition.params.map Param.name) transitionSig.paramTypes I.calldata = .none →
+    decodeCalldataWithMode cfg.abiDecodeMode (transition.params.map Param.name)
+      transitionSig.paramTypes I.calldata = .none →
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .ok (.revert g' o) →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
   | outOfGas : /- EVM runs out of gas -/
