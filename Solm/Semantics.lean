@@ -1572,7 +1572,7 @@ inductive ExecStmt (cfg : Config) :
       typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = some value ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm)
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm))
         (.ok { solm with locals := solm.locals.insert retVar value } evm')
   | externalCallFailure :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
@@ -1580,7 +1580,7 @@ inductive ExecStmt (cfg : Config) :
       evalExprs? cfg solm evm args = .ok argVals ->
       typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
         (false, evm', out) perm ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | externalCallReturnDecodeRevert :
       -- The sub-call *succeeds* (`z = true`) but the returned bytes do not ABI-decode to the
       -- expected return value (`decode? = none`).  The caller's solc-generated return decoder then
@@ -1591,19 +1591,19 @@ inductive ExecStmt (cfg : Config) :
       typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = none ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | externalCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | externalCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | externalCallArgsRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
-      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar perm) .reverted
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | lowLevelCallSuccess :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -1639,7 +1639,7 @@ inductive ExecStmt (cfg : Config) :
       cfg.externalABI.decode? name out = some value ->
       ExecBlock cfg { solm with locals := solm.locals.insert retVar value } evm' onSuccess result ->
       ExecStmt cfg solm evm
-        (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm) result
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) result
   | checkedCallFail :
       -- callee reverted: bind the raw returndata to `errVar` and run `onFail`.  The per-contract spec
       -- decides there (via `ite` on `errVar`) whether to recover or re-revert (`require false`).
@@ -1650,22 +1650,22 @@ inductive ExecStmt (cfg : Config) :
         (false, evm', out) perm ->
       ExecBlock cfg { solm with locals := solm.locals.insert errVar (.bytes out) } evm' onFail result ->
       ExecStmt cfg solm evm
-        (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm) result
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) result
   | checkedCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
       ExecStmt cfg solm evm
-        (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm) .reverted
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
   | checkedCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
       ExecStmt cfg solm evm
-        (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm) .reverted
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
   | checkedCallArgsRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm
-        (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm) .reverted
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
   | newSuccess :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->

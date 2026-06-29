@@ -711,7 +711,8 @@ theorem CoupledState.refines.externalCall {code : ByteArray} {ee : ExecutionEnv}
         (hworld' : cur'.world = worldOf evm') (hrel' : R' cur' frame' evm'),
         CoupledState.refines (CoupledState.mk cur' k' C' frame' evm' hpc' hRD' hworld' hrel')
           cfg rest Post) :
-    CoupledState.refines st cfg (.externalCall receiver name eth args retVar perm :: rest) Post := by
+    CoupledState.refines st cfg
+      (.externalCall receiver name eth args retVar (perm := perm) :: rest) Post := by
   obtain ⟨target, sendVal, argVals, evm', out, value, cur', k', C',
     hrec, heth, hargs, hcallEVM, hdec, hpc', hRD', hw', hR'⟩ := hcall
   obtain ⟨result, hblock, hpost⟩ :=
@@ -737,7 +738,8 @@ theorem CoupledState.refines.externalCallFailure {code : ByteArray} {ee : Execut
         typedCallViaEVM cfg st.evm (EVM.address target) name sendVal argVals
           (false, evm', out) perm)
     (hpost : Post .reverted) :
-    CoupledState.refines st cfg (.externalCall receiver name eth args retVar perm :: rest) Post := by
+    CoupledState.refines st cfg
+      (.externalCall receiver name eth args retVar (perm := perm) :: rest) Post := by
   obtain ⟨target, sendVal, argVals, evm', out, hrec, heth, hargs, hcallEVM⟩ := hcall
   exact ⟨.reverted,
     ExecBlock.consRevert (ExecStmt.externalCallFailure hrec heth hargs hcallEVM),
@@ -760,7 +762,8 @@ theorem CoupledState.refines.externalCallDecodeRevert {code : ByteArray} {ee : E
           (true, evm', out) perm ∧
         cfg.externalABI.decode? name out = none)
     (hpost : Post .reverted) :
-    CoupledState.refines st cfg (.externalCall receiver name eth args retVar perm :: rest) Post := by
+    CoupledState.refines st cfg
+      (.externalCall receiver name eth args retVar (perm := perm) :: rest) Post := by
   obtain ⟨target, sendVal, argVals, evm', out, hrec, heth, hargs, hcallEVM, hdec⟩ := hcall
   exact ⟨.reverted,
     ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert hrec heth hargs hcallEVM hdec),
@@ -786,7 +789,7 @@ theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
           R' cur' { frame with locals := frame.locals.insert retVar value } evm')
     (hrest : equivStmts code ee g s0 cfg pc' R' rest Post) :
     equivStmts code ee g s0 cfg pc R
-      (.externalCall receiver name eth args retVar perm :: rest) Post := by
+      (.externalCall receiver name eth args retVar (perm := perm) :: rest) Post := by
   intro cur k C frame evm hpc hRD hw hR
   obtain ⟨target, sendVal, argVals, evm', out, value, cur', k', C',
     hrec, heth, hargs, hcallEVM, hdec, hpc', hRD', hw', hR'⟩ := hcall cur k C frame evm hpc hRD hw hR

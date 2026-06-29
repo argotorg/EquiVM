@@ -78,7 +78,8 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header callPerm) :
     typedCallViaEVM cfg evm tgt name 0 args
-      (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o) := by
+      (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o)
+      callPerm := by
   -- rewrite the EVM `Θ`-link into the Solm form (round-trip sender, `tgt`)
   have h := hΘ
   rw [accountAddress_roundtrip, ← htgt] at h
