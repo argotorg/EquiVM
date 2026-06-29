@@ -55,7 +55,7 @@ theorem simpleAuctionDispatch_highestBidder {cd : ByteArray}
     (pre := [bidTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter,
       auctionEndTimeGetter])
     (post := [highestBidGetter])
-    rfl ?_ (by rw [selectorOf, simpleAuctionHighestBidderSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, simpleAuctionHighestBidderSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl

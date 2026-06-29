@@ -52,7 +52,7 @@ theorem erc6909Dispatch_balanceOf {cd : ByteArray}
     (pre := [allowanceTransition, approveTransition])
     (post := [isOperatorTransition, setOperatorTransition, supportsInterfaceTransition,
       transferTransition, transferFromTransition])
-    rfl ?_ (by rw [selectorOf, erc6909BalanceOfSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, erc6909BalanceOfSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl

@@ -87,7 +87,7 @@ theorem erc20Dispatch_totalSupply {cd : ByteArray}
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [approveTransition])
     (post := [transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
-    rfl ?_ (by rw [selectorOf, erc20TotalSupplySelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, erc20TotalSupplySelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_singleton] at ht; subst ht
   rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide

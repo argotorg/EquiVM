@@ -83,7 +83,7 @@ theorem pausableDispatch_guardedWhenPaused {cd : ByteArray}
   have hcd : cd.extract 0 4 = (⟨#[0xdd, 0xf7, 0x03, 0x09]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [guardedWhenNotPausedTransition])
-    (post := [pauseTransition, pausedTransition, unpauseTransition]) rfl ?_
+    (post := [pauseTransition, pausedTransition, unpauseTransition]) rfl rfl ?_
     (by rw [selectorOf, guardedWhenPausedSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_singleton] at ht

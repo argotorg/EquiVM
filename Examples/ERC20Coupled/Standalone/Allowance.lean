@@ -718,7 +718,7 @@ theorem erc20Dispatch_allowance {cd : ByteArray}
     dispatchMsg erc20Contract cd = some allowanceTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) :=
     (erc20ByteArray_eq_of_beq hsel).symm
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList erc20Contract cd (by rfl)]
   change dispatchList
     [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
       transferTransition, allowanceTransition] cd = some allowanceTransition

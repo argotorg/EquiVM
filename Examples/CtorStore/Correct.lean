@@ -21,7 +21,7 @@ set_option maxRecDepth 10000
 
 theorem ctorStoreDispatch_none (cd : ByteArray) :
     dispatchMsg CtorStore.contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList CtorStore.contract cd (by rfl)]
   rfl
 
 set_option maxHeartbeats 400000 in

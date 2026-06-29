@@ -71,7 +71,7 @@ theorem ownable2StepDispatch_owner {cd : ByteArray}
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (pre := [acceptOwnershipTransition])
     (post := [pendingOwnerTransition, renounceOwnershipTransition, transferOwnershipTransition])
-    rfl ?_ (by rw [selectorOf, ownerSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, ownerSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_singleton] at ht
   subst ht

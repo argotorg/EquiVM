@@ -261,7 +261,7 @@ theorem ownable2StepDispatch_renounceOwnership {cd : ByteArray}
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [acceptOwnershipTransition, ownerTransition, pendingOwnerTransition])
-    (post := [transferOwnershipTransition]) rfl ?_
+    (post := [transferOwnershipTransition]) rfl rfl ?_
     (by rw [selectorOf, renounceOwnershipSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht

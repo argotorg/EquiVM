@@ -495,7 +495,7 @@ theorem ownable2StepDispatch_acceptOwnership {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split (pre := [])
     (post := [ownerTransition, pendingOwnerTransition, renounceOwnershipTransition,
       transferOwnershipTransition])
-    rfl ?_ (by rw [selectorOf, acceptOwnershipSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, acceptOwnershipSelectorBytes]; exact hsel)
   intro t ht
   simp at ht
 

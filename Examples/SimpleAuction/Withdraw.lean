@@ -1528,7 +1528,7 @@ theorem simpleAuctionDispatch_withdraw {cd : ByteArray}
     (pre := [bidTransition])
     (post := [auctionEndTransition, beneficiaryGetter, auctionEndTimeGetter,
       highestBidderGetter, highestBidGetter])
-    rfl ?_ (by rw [selectorOf, simpleAuctionWithdrawSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, simpleAuctionWithdrawSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl

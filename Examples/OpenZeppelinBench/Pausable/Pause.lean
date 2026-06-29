@@ -26,7 +26,7 @@ theorem pausableDispatch_pause {cd : ByteArray}
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
     (pre := [guardedWhenNotPausedTransition, guardedWhenPausedTransition])
-    (post := [pausedTransition, unpauseTransition]) rfl ?_
+    (post := [pausedTransition, unpauseTransition]) rfl rfl ?_
     (by rw [selectorOf, pauseSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht

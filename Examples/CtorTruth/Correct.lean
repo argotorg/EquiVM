@@ -28,12 +28,12 @@ theorem ctorTruthRuntime_eq_truthBytecode :
 /-- Single-selector dispatch bundle for the `truth()` selector. -/
 theorem ctorTruthDispatch :
     SingleSelectorDispatch CtorTruth.contract CtorTruth.truthTransition ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ :=
-  singleSelectorDispatch rfl ctorTruthSelectorBytes rfl
+  singleSelectorDispatch rfl rfl ctorTruthSelectorBytes rfl
 
 /-- `CtorTruth` has exactly one transition, so any successful dispatch yields it. -/
 theorem ctorTruthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg CtorTruth.contract cd = some t) : t = CtorTruth.truthTransition :=
-  dispatch_unique rfl h
+  dispatch_unique rfl rfl h
 
 
 /-- With zero call value, the Solm body returns `true`. -/
@@ -97,7 +97,7 @@ theorem ctorTruthRuntimeCorrect :
   · have hcode' : I.code = truthBytecode := by
       rw [← ctorTruthRuntime_eq_truthBytecode]
       exact hcode
-    exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode' hwv).reEquivNonPayable hcode' rfl
+    exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode' hwv).reEquivNonPayable hcode' rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 /-! ## Constructor side -/

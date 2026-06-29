@@ -634,7 +634,7 @@ theorem blindAuctionDispatch_withdraw {cd : ByteArray}
     (pre := [bidTransition, revealTransition])
     (post := [auctionEndTransition, beneficiaryGetter, biddingEndGetter, revealEndGetter,
       endedGetter, highestBidderGetter, highestBidGetter, bidsGetter])
-    rfl ?_ (by rw [selectorOf, blindAuctionWithdrawSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, blindAuctionWithdrawSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl

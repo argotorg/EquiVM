@@ -38,7 +38,7 @@ theorem accessControlDispatch_defaultAdminRole {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split (pre := [])
     (post := [getRoleAdminTransition, grantRoleTransition, hasRoleTransition,
       renounceRoleTransition, revokeRoleTransition, supportsInterfaceTransition])
-    rfl ?_ (by rw [selectorOf, defaultAdminRoleSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, defaultAdminRoleSelectorBytes]; exact hsel)
   intro t ht
   simp at ht
 

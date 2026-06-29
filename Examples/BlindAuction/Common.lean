@@ -338,7 +338,7 @@ theorem blindAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem blindAuctionDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg blindAuctionContract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList blindAuctionContract cd (by rfl)]
   change dispatchList
     [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter,
@@ -362,7 +362,7 @@ theorem blindAuctionDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem blindAuctionDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 11 → (blindAuctionSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg blindAuctionContract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [blindAuctionContract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl

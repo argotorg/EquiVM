@@ -356,7 +356,7 @@ theorem simpleAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem simpleAuctionDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg simpleAuctionContract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList simpleAuctionContract cd (by rfl)]
   change dispatchList
     [bidTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter,
       auctionEndTimeGetter, highestBidderGetter, highestBidGetter] cd = none
@@ -375,7 +375,7 @@ theorem simpleAuctionDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem simpleAuctionDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg simpleAuctionContract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [simpleAuctionContract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl

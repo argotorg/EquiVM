@@ -58,7 +58,7 @@ theorem erc6909Dispatch_supportsInterface {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [allowanceTransition, approveTransition, balanceOfTransition, isOperatorTransition,
       setOperatorTransition])
-    (post := [transferTransition, transferFromTransition]) rfl ?_
+    (post := [transferTransition, transferFromTransition]) rfl rfl ?_
     (by rw [selectorOf, erc6909SupportsInterfaceSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht

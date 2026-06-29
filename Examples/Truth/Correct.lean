@@ -28,12 +28,12 @@ set_option maxRecDepth 10000
     comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
 theorem truthDispatch :
     SingleSelectorDispatch truthContract truthTransition ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ :=
-  singleSelectorDispatch rfl truthSelectorBytes rfl
+  singleSelectorDispatch rfl rfl truthSelectorBytes rfl
 
 /-- `truthContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg truthContract cd = some t) : t = truthTransition :=
-  dispatch_unique rfl h
+  dispatch_unique rfl rfl h
 
 
 /-- With zero call value, the Solm body returns `true`: `require(callvalue == 0)` passes and
@@ -252,5 +252,5 @@ theorem truthCorrect :
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
-    exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
+    exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)

@@ -457,7 +457,7 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
     dispatchMsg erc20Contract cd = some balanceOfTransition := by
   have hcd : cd.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
     (erc20ByteArray_eq_of_beq hsel).symm
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList erc20Contract cd (by rfl)]
   change dispatchList
     [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
       transferTransition, allowanceTransition] cd = some balanceOfTransition

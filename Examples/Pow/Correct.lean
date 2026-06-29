@@ -675,12 +675,12 @@ theorem powX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
     comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
 theorem powDispatch :
     SingleSelectorDispatch Pow.powContract Pow.powTransition ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ :=
-  singleSelectorDispatch rfl powSelectorBytes rfl
+  singleSelectorDispatch rfl rfl powSelectorBytes rfl
 
 /-- `powContract` has exactly one transition, so any successful dispatch yields it. -/
 theorem powDispatch_unique {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchMsg Pow.powContract cd = some t) : t = Pow.powTransition :=
-  dispatch_unique rfl h
+  dispatch_unique rfl rfl h
 
 /-! ## Store / expression-evaluation helpers -/
 
@@ -927,7 +927,7 @@ theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize hσ
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
-    exact (powX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
+    exact (powX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 end Pow

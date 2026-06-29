@@ -599,7 +599,7 @@ theorem erc6909Dispatch_transferFrom {cd : ByteArray}
     (pre := [allowanceTransition, approveTransition, balanceOfTransition, isOperatorTransition,
       setOperatorTransition, supportsInterfaceTransition, transferTransition])
     (post := [])
-    rfl ?_ (by
+    rfl rfl ?_ (by
       rw [selectorOf, erc6909TransferFromSelectorBytes]
       simpa [erc6909SelBytes] using hsel)
   intro t ht

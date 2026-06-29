@@ -31,7 +31,7 @@ theorem accessControlNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         have htmem : t ∈ contract.transitions := by
-          rw [dispatchMsg_eq_dispatchList] at ht
+          rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
         by_cases hdec : decodeCalldata (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none

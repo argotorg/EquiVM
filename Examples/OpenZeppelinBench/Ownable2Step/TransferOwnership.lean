@@ -203,7 +203,7 @@ theorem ownable2StepDispatch_transferOwnership {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [acceptOwnershipTransition, ownerTransition, pendingOwnerTransition,
       renounceOwnershipTransition])
-    (post := []) rfl ?_ (by rw [selectorOf, transferOwnershipSelectorBytes]; exact hsel)
+    (post := []) rfl rfl ?_ (by rw [selectorOf, transferOwnershipSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl

@@ -769,7 +769,7 @@ theorem erc20Dispatch_approve {cd : ByteArray}
     dispatchMsg erc20Contract cd = some approveTransition :=
   dispatchMsg_eq_some_of_split (pre := []) (post := [totalSupplyTransition,
       transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
-    rfl (by simp) (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
+    rfl rfl (by simp) (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
 
 theorem erc20ApproveBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

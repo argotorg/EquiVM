@@ -33,7 +33,7 @@ namespace Caller
     calldata-prefix comparison, `.none_short` / `.none_nomatch` the no-dispatch cases. -/
 theorem callerDispatch :
     SingleSelectorDispatch callerContract runTransition ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ :=
-  singleSelectorDispatch rfl callerSelectorBytes rfl
+  singleSelectorDispatch rfl rfl callerSelectorBytes rfl
 
 
 /-- **The Solm body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
@@ -1272,7 +1272,7 @@ theorem callerCorrect :
       hcode hsize hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hperm hσ
-  · exact (callerX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl
+  · exact (callerX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
 end Caller

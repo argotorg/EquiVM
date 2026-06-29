@@ -419,7 +419,7 @@ theorem ballotWinnerNameBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 /-- No calldata shorter than four bytes can dispatch to a Ballot function. -/
 theorem ballotDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg ballotContract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList ballotContract cd (by rfl)]
   change dispatchList
     [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition, giveRightToVoteTransition, votersGetter, winnerNameTransition]
@@ -441,7 +441,7 @@ theorem ballotDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem ballotDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 8 → (ballotSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg ballotContract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [ballotContract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -564,7 +564,7 @@ theorem ballotNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         have htmem : t ∈ ballotContract.transitions := by
-          rw [dispatchMsg_eq_dispatchList] at ht
+          rw [dispatchMsg_eq_dispatchList ballotContract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
         by_cases hdec : decodeCalldata (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none

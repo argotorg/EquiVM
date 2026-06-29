@@ -106,7 +106,7 @@ theorem blindAuctionDispatch_beneficiary {cd : ByteArray}
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition])
     (post := [biddingEndGetter, revealEndGetter, endedGetter, highestBidderGetter,
       highestBidGetter, bidsGetter])
-    rfl ?_ (by rw [selectorOf, blindAuctionBeneficiarySelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, blindAuctionBeneficiarySelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl

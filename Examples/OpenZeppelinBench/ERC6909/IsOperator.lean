@@ -728,7 +728,7 @@ theorem erc6909Dispatch_isOperator {cd : ByteArray}
     (pre := [allowanceTransition, approveTransition, balanceOfTransition])
     (post := [setOperatorTransition, supportsInterfaceTransition, transferTransition,
       transferFromTransition])
-    rfl ?_ (by rw [selectorOf, erc6909IsOperatorSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, erc6909IsOperatorSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl

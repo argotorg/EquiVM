@@ -676,7 +676,7 @@ theorem blindAuctionDispatch_bid {cd : ByteArray}
     (pre := [])
     (post := [revealTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter,
       biddingEndGetter, revealEndGetter, endedGetter, highestBidderGetter, highestBidGetter,
-      bidsGetter]) rfl ?_ (by rw [selectorOf, blindAuctionBidSelectorBytes]; exact hsel)
+      bidsGetter]) rfl rfl ?_ (by rw [selectorOf, blindAuctionBidSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.not_mem_nil] at ht
 

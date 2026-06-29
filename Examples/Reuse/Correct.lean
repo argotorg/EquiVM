@@ -140,7 +140,7 @@ theorem cReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1
 
 theorem cDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg Reuse.cContract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList Reuse.cContract cd (by rfl)]
   change dispatchList [Reuse.fTransition, Reuse.gTransition] cd = none
   exact dispatchList_none_short _ (by
     intro t ht
@@ -152,7 +152,7 @@ theorem cDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem cDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 2 → (cSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg Reuse.cContract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [Reuse.cContract] at ht
   rcases ht with rfl | rfl
@@ -1031,7 +1031,7 @@ theorem cNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         have htmem : t ∈ Reuse.cContract.transitions := by
-          rw [dispatchMsg_eq_dispatchList] at ht
+          rw [dispatchMsg_eq_dispatchList Reuse.cContract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
         by_cases hdec : decodeCalldata (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none

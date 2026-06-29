@@ -1686,7 +1686,7 @@ theorem ballotDispatch_vote {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split (pre := []) (post := [proposalsGetter,
       chairpersonGetter, delegateTransition, winningProposalTransition, giveRightToVoteTransition,
       votersGetter, winnerNameTransition])
-    rfl ?_ (by rw [selectorOf, ballotVoteSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, ballotVoteSelectorBytes]; exact hsel)
   intro t ht
   cases ht
 

@@ -90,7 +90,7 @@ theorem blindAuctionDispatch_highestBid {cd : ByteArray}
     (pre := [bidTransition, revealTransition, withdrawTransition, auctionEndTransition,
       beneficiaryGetter, biddingEndGetter, revealEndGetter, endedGetter, highestBidderGetter])
     (post := [bidsGetter])
-    rfl ?_ (by rw [selectorOf, blindAuctionHighestBidSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, blindAuctionHighestBidSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl

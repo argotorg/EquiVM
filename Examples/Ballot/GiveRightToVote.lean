@@ -1451,7 +1451,7 @@ theorem ballotDispatch_giveRightToVote {cd : ByteArray}
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition])
     (post := [votersGetter, winnerNameTransition])
-    rfl ?_ (by rw [selectorOf, ballotGiveRightToVoteSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, ballotGiveRightToVoteSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl

@@ -40,16 +40,16 @@ theorem callerDispatch_eq (cd : ByteArray) :
     dispatchMsg callerContract cd
       = if ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4)
         then some runTransition else none :=
-  dispatch_eq rfl callerSelectorBytes cd
+  dispatch_eq rfl rfl callerSelectorBytes cd
 
 theorem callerDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg callerContract cd = none :=
-  dispatch_none_short rfl callerSelectorBytes rfl h
+  dispatch_none_short rfl rfl callerSelectorBytes rfl h
 
 theorem callerDispatch_none_nomatch {cd : ByteArray}
     (h : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4) = false) :
     dispatchMsg callerContract cd = none :=
-  dispatch_none_nomatch rfl callerSelectorBytes h
+  dispatch_none_nomatch rfl rfl callerSelectorBytes h
 
 theorem callerBodyReverts (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :

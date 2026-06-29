@@ -3845,9 +3845,11 @@ theorem scratch_blindAuctionDecode_reveal_some_of_guards {I : ExecutionEnv}
   have hnotHugeArgs :
       ¬([ABIType.dynamicArray uint256, ABIType.dynamicArray boolTy,
             ABIType.dynamicArray bytes32].isEmpty = false ∧
+          usesLegacyAddressTypes [ABIType.dynamicArray uint256, ABIType.dynamicArray boolTy,
+            ABIType.dynamicArray bytes32] = false ∧
           2 ^ 255 ≤ (List.drop 4 I.calldata.toList).length) := by
     intro hhuge
-    rcases hhuge with ⟨_, hhuge⟩
+    rcases hhuge with ⟨_, _, hhuge⟩
     rw [List.length_drop, htlen] at hhuge
     omega
   have hnotArgsShort : ¬ (List.drop 4 I.calldata.toList).length < 96 := by

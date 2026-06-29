@@ -931,7 +931,7 @@ theorem erc6909Dispatch_allowance {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split (pre := [])
     (post := [approveTransition, balanceOfTransition, isOperatorTransition, setOperatorTransition,
       supportsInterfaceTransition, transferTransition, transferFromTransition])
-    rfl ?_ (by rw [selectorOf, erc6909AllowanceSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, erc6909AllowanceSelectorBytes]; exact hsel)
   intro t ht
   simp at ht
 

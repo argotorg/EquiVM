@@ -749,7 +749,7 @@ theorem erc20Dispatch_allowance {cd : ByteArray}
     (pre := [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
       transferTransition])
     (post := [])
-    rfl ?_ (by rw [selectorOf, erc20AllowanceSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, erc20AllowanceSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl

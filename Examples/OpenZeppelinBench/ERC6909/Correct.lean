@@ -27,7 +27,7 @@ per-function `…BodyCore` files land.
 
 theorem erc6909Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList contract cd (by rfl)]
   change dispatchList
     [allowanceTransition, approveTransition, balanceOfTransition, isOperatorTransition,
       setOperatorTransition, supportsInterfaceTransition, transferTransition,
@@ -48,7 +48,7 @@ theorem erc6909Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem erc6909Dispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -188,7 +188,7 @@ theorem erc6909NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         have htmem : t ∈ contract.transitions := by
-          rw [dispatchMsg_eq_dispatchList] at ht
+          rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
         by_cases hdec : decodeCalldata (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none

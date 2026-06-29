@@ -654,7 +654,7 @@ theorem ballotDispatch_winningProposal {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition])
     (post := [giveRightToVoteTransition, votersGetter, winnerNameTransition])
-    rfl ?_ (by rw [selectorOf, ballotWinningProposalSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, ballotWinningProposalSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl

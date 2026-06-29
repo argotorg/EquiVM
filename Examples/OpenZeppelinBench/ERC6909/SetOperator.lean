@@ -338,7 +338,7 @@ theorem erc6909Dispatch_setOperator {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [allowanceTransition, approveTransition, balanceOfTransition, isOperatorTransition])
     (post := [supportsInterfaceTransition, transferTransition, transferFromTransition])
-    rfl ?_ (by
+    rfl rfl ?_ (by
       rw [selectorOf, erc6909SetOperatorSelectorBytes]
       simpa [erc6909SelBytes] using hsel)
   intro t ht

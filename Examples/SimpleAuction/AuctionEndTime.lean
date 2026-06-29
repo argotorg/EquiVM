@@ -109,7 +109,7 @@ theorem simpleAuctionDispatch_auctionEndTime {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [bidTransition, withdrawTransition, auctionEndTransition, beneficiaryGetter])
     (post := [highestBidderGetter, highestBidGetter])
-    rfl ?_ (by rw [selectorOf, simpleAuctionAuctionEndTimeSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, simpleAuctionAuctionEndTimeSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl

@@ -368,7 +368,7 @@ theorem ballotDispatch_winnerName {cd : ByteArray}
     (pre := [voteTransition, proposalsGetter, chairpersonGetter, delegateTransition,
       winningProposalTransition, giveRightToVoteTransition, votersGetter])
     (post := [])
-    rfl ?_ (by rw [selectorOf, ballotWinnerNameSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, ballotWinnerNameSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl

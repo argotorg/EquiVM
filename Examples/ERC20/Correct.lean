@@ -106,7 +106,7 @@ theorem erc20ReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i �
 
 theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg erc20Contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList erc20Contract cd (by rfl)]
   change dispatchList
     [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
       transferTransition, allowanceTransition] cd = none
@@ -124,7 +124,7 @@ theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem erc20Dispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == cd.extract 0 4) = false) :
     dispatchMsg erc20Contract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [erc20Contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
@@ -333,7 +333,7 @@ theorem erc20NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
         have htmem : t ∈ erc20Contract.transitions := by
-          rw [dispatchMsg_eq_dispatchList] at ht
+          rw [dispatchMsg_eq_dispatchList erc20Contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
         by_cases hdec : decodeCalldata (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none

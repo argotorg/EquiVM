@@ -303,20 +303,6 @@ theorem evalExpr_sync_blockTimestamp_var (evm timestampEvm : EVM.State)
   simp only [evalExpr?, EvalResult.ofOption]
   rw [syncBlockTimestampStore_blockTimestamp]
 
-abbrev syncUpdateBoundsBody : List Stmt :=
-  [ .require (.binary .le (.var "balance0") (.intLit maxUint112)),
-    .require (.binary .le (.var "balance1") (.intLit maxUint112)) ]
-
-abbrev syncUpdateTimestampBody : List Stmt :=
-  syncUpdateBoundsBody ++
-    [ .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))) ]
-
-abbrev syncUpdateRemainderBody : List Stmt :=
-  [ .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
-    .assign .storage reserve0Ref (.var "balance0"),
-    .assign .storage reserve1Ref (.var "balance1"),
-    .assign .storage blockTimestampLastRef (.var "blockTimestamp") ]
-
 abbrev syncBalanceCallsBody : List Stmt :=
   pairBalanceOfThisStmts "balance0" "balance1"
 
@@ -543,49 +529,6 @@ theorem uniswapSyncSecondCallDecodeRevertSource (evm evm0 evm1 : EVM.State)
       (s2 := updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit)
       hprefix (by intro f e h; cases h))
 
-theorem uniswapSyncUpdateBoundsPrefix (evm evm0 evm1 : EVM.State)
-    {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
-      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
-      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
-      (true, evm0, out0))
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some (uniswapUint256Value balance0))
-    (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some (uniswapUint256Value balance1))
-    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
-    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
-      (lockEnter ++ syncBalanceCallsBody ++ syncUpdateBoundsBody)
-      (.ok { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1) := by
-  have hbalances := uniswapSyncBalanceOfCallsPrefix
-    (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
-    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
-  have hbounds :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-        syncUpdateBoundsBody
-        (.ok { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1) := by
-    change ExecBlock config
-      { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-      [ .require (.binary .le (.var "balance0") (.intLit maxUint112)),
-        .require (.binary .le (.var "balance1") (.intLit maxUint112)) ]
-      (.ok { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1)
-    refine ExecBlock.consNormal
-      (ExecStmt.requireTrue (evalExpr_sync_balance0_le_max_true evm1 balance0 balance1 hbound0))
-      ?_
-    exact ExecBlock.consNormal
-      (ExecStmt.requireTrue (evalExpr_sync_balance1_le_max_true evm1 balance0 balance1 hbound1))
-      ExecBlock.nil
-  simpa [syncBalanceStore] using execBlock_append hbalances hbounds
-
 theorem uniswapSyncFirstBoundFailureSource (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -648,94 +591,6 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
       (uniswapSyncUpdateCallReverts_secondBound evm1 balance0 balance1 hbound0 hbound1)
   simpa [syncTransition, syncBalanceCallsBody, updateReservesStmts, List.append_assoc] using
     execBlock_append hbalances hupdate
-
-theorem uniswapSyncUpdateTimestampPrefix (evm evm0 evm1 : EVM.State)
-    {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
-      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
-      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
-      (true, evm0, out0))
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some (uniswapUint256Value balance0))
-    (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some (uniswapUint256Value balance1))
-    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
-    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ExecBlock config { contract := contract, locals := ∅ } evm
-      (lockEnter ++ syncBalanceCallsBody ++ syncUpdateTimestampBody)
-      (.ok { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-        evm1) := by
-  have hprefix := uniswapSyncUpdateBoundsPrefix
-    (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := balance0) (balance1 := balance1)
-    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1 hbound0 hbound1
-  have htimestamp :
-      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
-        [ .letDecl "blockTimestamp" (some uint32)
-            (u32 (.binary .mod now (.intLit twoPow32))) ]
-        (.ok { contract := contract, locals := syncBlockTimestampStore evm1 balance0 balance1 }
-          evm1) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_sync_blockTimestamp evm1 balance0 balance1))
-      ExecBlock.nil
-  simpa [syncUpdateTimestampBody, List.append_assoc] using execBlock_append hprefix htimestamp
-
-theorem uniswapSyncUpdateReservesPrefix (evm evm0 evm1 : EVM.State)
-    {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
-      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
-      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
-      (true, evm0, out0))
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some (uniswapUint256Value balance0))
-    (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some (uniswapUint256Value balance1))
-    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
-    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ∃ evm2 : EVM.State,
-      ExecBlock config { contract := contract, locals := ∅ } evm
-          (lockEnter ++ syncBalanceCallsBody ++
-            updateReservesStmts (.var "balance0") (.var "balance1"))
-          (.ok (syncAfterUpdateFrame balance0 balance1) evm2) := by
-  sorry
-
-theorem uniswapSyncSuccessSource (evm evm0 evm1 : EVM.State)
-    {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
-    (hguard0 : syncToken0GuardTrue evm)
-    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
-      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
-      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
-      (true, evm0, out0))
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some (uniswapUint256Value balance0))
-    (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some (uniswapUint256Value balance1))
-    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
-    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
-    ∃ evm2 : EVM.State,
-      ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body
-        (.ok (syncAfterUpdateFrame balance0 balance1) (uniswapLockExitedState evm2)) := by
-  sorry
 
 /-! ## `sync()` source-body wrappers -/
 

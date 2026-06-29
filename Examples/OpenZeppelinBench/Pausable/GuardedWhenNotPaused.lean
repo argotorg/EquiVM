@@ -41,7 +41,7 @@ theorem pausableDispatch_guardedWhenNotPaused {cd : ByteArray}
     dispatchMsg contract cd = some guardedWhenNotPausedTransition := by
   refine dispatchMsg_eq_some_of_split (pre := [])
     (post := [guardedWhenPausedTransition, pauseTransition, pausedTransition, unpauseTransition])
-    rfl ?_ (by rw [selectorOf, guardedWhenNotPausedSelectorBytes]; exact hsel)
+    rfl rfl ?_ (by rw [selectorOf, guardedWhenNotPausedSelectorBytes]; exact hsel)
   intro t ht
   simp at ht
 

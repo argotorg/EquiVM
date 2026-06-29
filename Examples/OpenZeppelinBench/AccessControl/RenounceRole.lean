@@ -83,7 +83,7 @@ theorem accessControlDispatch_renounceRole {cd : ByteArray}
   refine dispatchMsg_eq_some_of_split
     (pre := [defaultAdminRoleTransition, getRoleAdminTransition, grantRoleTransition,
       hasRoleTransition])
-    (post := [revokeRoleTransition, supportsInterfaceTransition]) rfl ?_
+    (post := [revokeRoleTransition, supportsInterfaceTransition]) rfl rfl ?_
     (by rw [selectorOf, renounceRoleSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht

@@ -504,7 +504,7 @@ theorem simpleAuctionDispatch_bid {cd : ByteArray}
     dispatchMsg simpleAuctionContract cd = some bidTransition := by
   refine dispatchMsg_eq_some_of_split
     (pre := []) (post := [withdrawTransition, auctionEndTransition, beneficiaryGetter,
-      auctionEndTimeGetter, highestBidderGetter, highestBidGetter]) rfl ?_
+      auctionEndTimeGetter, highestBidderGetter, highestBidGetter]) rfl rfl ?_
       (by rw [selectorOf, simpleAuctionBidSelectorBytes]; exact hsel)
   intro _ ht
   simp at ht

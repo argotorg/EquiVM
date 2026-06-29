@@ -310,7 +310,7 @@ theorem accessControlReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem accessControlDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]
+  rw [dispatchMsg_eq_dispatchList contract cd (by rfl)]
   change dispatchList
     [defaultAdminRoleTransition, getRoleAdminTransition, grantRoleTransition, hasRoleTransition,
       renounceRoleTransition, revokeRoleTransition, supportsInterfaceTransition] cd = none
@@ -329,7 +329,7 @@ theorem accessControlDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
 theorem accessControlDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
-  apply dispatchMsg_none_of_all_ne
+  apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl
