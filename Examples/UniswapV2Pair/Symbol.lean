@@ -145,7 +145,7 @@ theorem uniswapSymbolBodyCore
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some symbolTransition)
     (hdecode :
-      decodeCalldata (symbolTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (symbolTransition.params.map Param.name)
         (transitionSignature symbolTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1226⟩ [sel]

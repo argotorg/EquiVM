@@ -225,7 +225,7 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]

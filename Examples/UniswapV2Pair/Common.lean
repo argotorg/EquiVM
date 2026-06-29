@@ -123,6 +123,35 @@ theorem internalCallFunctionRevert {cfg : Config} {caller : Frame} {evm : EVM.St
     hargs hlookup (by simpa [FunctionDecl.toCallable] using hbind)
     (by simpa [FunctionDecl.toCallable] using hbody)
 
+-- LIBRARY CANDIDATE: Reasoning.EVMWord — normalize EVM-word address coercions.
+theorem accountAddress_ofUInt256_eq_ofNat_toNat (w : UInt256) :
+    AccountAddress.ofUInt256 w = AccountAddress.ofNat w.toNat := by
+  apply Fin.ext
+  simp [AccountAddress.ofUInt256, AccountAddress.ofNat, UInt256.toNat]
+
+-- LIBRARY CANDIDATE: Reasoning.Stepping — generic account-code-size word used by
+-- `EXTCODESIZE`, parameterized by account map and target word.
+def uniswapExtCodeSizeWord (σ : AccountMap) (target : UInt256) : UInt256 :=
+  σ.find? (AccountAddress.ofUInt256 target) |>.option ⟨0⟩
+    (UInt256.ofNat ∘ ByteArray.size ∘ (·.code))
+
+-- LIBRARY CANDIDATE: Reasoning.Storage — `accountMapEquiv` preserves account code size words.
+theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) :
+    ((σ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) =
+      ((τ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) := by
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
+    simp [hσ, hτ, Option.option] at hστ ⊢
+  exact congrArg (fun code => EVM.Word.ofNat code.size) hστ.2.2.1
+
+-- LIBRARY CANDIDATE: Reasoning.Storage — `accountMapEquiv` preserves `EXTCODESIZE` words.
+theorem uniswapExtCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (target : UInt256) :
+    uniswapExtCodeSizeWord σ target = uniswapExtCodeSizeWord τ target := by
+  simpa [uniswapExtCodeSizeWord] using
+    accountMapEquiv_code_size_word hστ (AccountAddress.ofUInt256 target)
+
 end Reasoning.Theory
 
 namespace UniswapV2Pair
@@ -2154,7 +2183,7 @@ theorem uniswapAddressGetterBodyCore
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
     (hdecode :
-      decodeCalldata (transition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
@@ -2198,7 +2227,7 @@ theorem uniswapUint256GetterBodyCore
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
     (hdecode :
-      decodeCalldata (transition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
@@ -2239,7 +2268,7 @@ theorem uniswapBytes32GetterBodyCore
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
     (hdecode :
-      decodeCalldata (transition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]

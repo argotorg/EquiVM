@@ -27,8 +27,8 @@ Generated artifacts:
 - `runtime.hex`: optimized deployed runtime bytecode.
 - `UniswapV2Pair.abi.json`: ABI emitted by solc.
 - `Bytecode.lean`: runtime bytecode as a Lean `ByteArray` plus the verified `JUMPDEST` set.
-- `Spec.lean`: full ABI/storage benchmark stub.
-- `Correct.lean`: top-level runtime-equivalence theorem, intentionally `sorry`.
+- `Spec.lean`: full ABI/storage benchmark scaffold.
+- `Correct.lean`: top-level runtime-equivalence theorem routed to the per-function proof files.
 
 The current Solm source bodies are a proof scaffold.  Storage layout and ABI coverage are explicit,
 but the largest AMM paths still need proof-ready elaboration for legacy-solc details such as

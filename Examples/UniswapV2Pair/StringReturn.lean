@@ -96,15 +96,15 @@ theorem uniswapBytesLiteralBodyReturns (evm : EVM.State) (locals : Store) (bytes
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp [evalExpr?, pure])
 
 theorem uniswapDecode_name {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata (nameTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (nameTransition.params.map Param.name)
       (transitionSignature nameTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldata [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 theorem uniswapDecode_symbol {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata (symbolTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (symbolTransition.params.map Param.name)
       (transitionSignature symbolTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldata [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 /-- Reach the `name()` body entry through the optimized dispatcher. -/

@@ -31,7 +31,7 @@ def uint32 : ABIType := .elem (.int uint32Int)
 def uint112 : ABIType := .elem (.int uint112Int)
 def uint256 : ABIType := .elem (.int uint256Int)
 def addr : ABIType := .elem .address
-def legacyAddr : ABIType := .elem .legacyAddress
+def legacyAddr : ABIType := addr
 def boolTy : ABIType := .elem .bool
 def bytes32 : ABIType := .elem (.bytes bytes32Width)
 def bytes2 : ABIType := .elem (.bytes bytes2Width)
@@ -755,7 +755,7 @@ def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option Value :=
   if out.size = 0 then
     some .unit
   else
-    match ABI.decodeReturnValue? boolTy out with
+    match ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy out with
     | some (.bool true) => some .unit
     | _ => none
 
@@ -781,15 +781,15 @@ def uniswapExternalABI : ExternalCallABI where
       none
   decode? := fun name out =>
     if name = "balanceOf" then
-      ABI.decodeReturnValue? uint256 out
+      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 uint256 out
     else if name = "transfer" then
       decodeOptionalBoolOrEmpty? out
     else if name = "feeTo" then
-      ABI.decodeReturnValue? addr out
+      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out
     else if name = "uniswapV2Call" then
       some .unit
     else if name = "ecrecover" then
-      ABI.decodeReturnValue? addr out
+      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out
     else
       none
 
@@ -832,6 +832,7 @@ def contract : ContractDecl :=
 def config : Config :=
   { storage := storageLayout
     externalABI := uniswapExternalABI
+    abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end UniswapV2Pair

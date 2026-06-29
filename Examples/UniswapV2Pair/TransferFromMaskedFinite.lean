@@ -661,7 +661,7 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance_masked
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
@@ -787,7 +787,7 @@ theorem uniswapTransferFromBodyOk_finiteAllowance_masked
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -813,7 +813,7 @@ theorem uniswapTransferFromBodyCoreRevert_balance_finiteAllowance_masked
         (transferFromValueWord I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
@@ -876,7 +876,7 @@ theorem uniswapTransferFromBodyRevert_balance_finiteAllowance_masked
         (transferFromValueWord I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -904,7 +904,7 @@ theorem uniswapTransferFromBodyCoreRevert_overflow_finiteAllowance_masked
       transferFromNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
@@ -987,7 +987,7 @@ theorem uniswapTransferFromBodyRevert_overflow_finiteAllowance_masked
       transferFromNewToNat (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
-      decodeCalldata (transferFromTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
