@@ -219,12 +219,12 @@ def safeTransferReturnOkExpr : Expr :=
     (.boolLit false)
 
 def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
-    (args : List Expr) (retVar : Ident) : List Stmt :=
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
   [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
-    .externalCall receiver name eth args retVar ]
+    .externalCall receiver name eth args retVar (perm := perm) ]
 
 def balanceOfThisStmts (token : Expr) (retVar : Ident) : List Stmt :=
-  checkedExternalCallStmts token "balanceOf" (.intLit 0) [this] retVar
+  checkedExternalCallStmts token "balanceOf" (.intLit 0) [this] retVar (perm := false)
 
 def token0BalanceOfThisStmts (retVar : Ident) : List Stmt :=
   balanceOfThisStmts (.storage token0Ref) retVar
@@ -383,7 +383,8 @@ def mintFeeFunction : FunctionDecl :=
     params := [{ name := "_reserve0", ty := uint112 }, { name := "_reserve1", ty := uint112 }]
     returnType := some boolTy
     body :=
-      checkedExternalCallStmts (.storage factoryRef) "feeTo" (.intLit 0) [] "feeTo" ++
+      checkedExternalCallStmts (.storage factoryRef) "feeTo" (.intLit 0) [] "feeTo"
+        (perm := false) ++
       [ .letDecl "feeOn" (some boolTy) (.binary .ne (.var "feeTo") zeroAddr),
         .letDecl "_kLast" (some uint256) (.storage kLastRef),
         .ite (.var "feeOn")
@@ -526,7 +527,7 @@ def permitTransition : TransitionDecl :=
           .letDecl "structHash" (some bytes32) permitStructHashExpr,
           .letDecl "digest" (some bytes32) permitDigestExpr,
           .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
-            [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress",
+            [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false),
           .require (.binary .and
             (.binary .ne (.var "recoveredAddress") zeroAddr)
             (.binary .eq (.var "recoveredAddress") (.var "owner"))),

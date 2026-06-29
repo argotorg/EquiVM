@@ -675,6 +675,74 @@ theorem balanceOfThisCalldataMem_mload64 (self : UInt256) :
   mloadFreePtrValue (by rw [balanceOfThisCalldataMem_size]; decide) (by decide)
     (balanceOfThisCalldataMem_read64 self)
 
+-- LIBRARY CANDIDATE: Reasoning.Memory — split an in-bounds padded read into adjacent pieces.
+theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂ : Nat)
+    (hpos₁ : 0 < len₁) (hpos₂ : 0 < len₂)
+    (hlen₁ : len₁ < 2 ^ 64) (hlen₂ : len₂ < 2 ^ 64)
+    (hsum : len₁ + len₂ < 2 ^ 64)
+    (hin : addr + len₁ + len₂ ≤ source.size) :
+    source.readWithPadding addr (len₁ + len₂) =
+      source.readWithPadding addr len₁ ++ source.readWithPadding (addr + len₁) len₂ := by
+  rw [readWithPadding_eq_extract' source addr (len₁ + len₂) (by omega) hsum (by omega)]
+  rw [readWithPadding_eq_extract' source addr len₁ hpos₁ hlen₁ (by omega)]
+  rw [readWithPadding_eq_extract' source (addr + len₁) len₂ hpos₂ hlen₂ (by omega)]
+  symm
+  rw [ByteArray.extract_append_extract]
+  congr <;> omega
+
+theorem balanceOfThisSelectorMem_read128_4 :
+    balanceOfThisSelectorMem.readWithPadding 128 4 = balanceOfSelector := by
+  have hzero32 : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
+    rw [ByteArray_zeroes_size]
+    exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))
+  rw [show balanceOfThisSelectorMem = solcReturnMem balanceOfSelectorShifted from rfl]
+  rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
+      (by rw [solcReturnMem_size]; omega)]
+  rw [solcReturnMem_eq]
+  rw [extract_append_right_window
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      (UInt256.toByteArray balanceOfSelectorShifted) 128 132 (by
+        simp [ByteArray.size_append, solcFreePtrMem_size, hzero32])]
+  rw [ByteArray.size_append, solcFreePtrMem_size, hzero32]
+  native_decide
+
+theorem balanceOfThisCalldataMem_read132_32 (self : UInt256) :
+    (balanceOfThisCalldataMem self).readWithPadding 132 32 = UInt256.toByteArray self := by
+  unfold balanceOfThisCalldataMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by simp [balanceOfThisSelectorMem_size])]
+  rw [show (UInt256.toByteArray self).extract 0 32 = UInt256.toByteArray self by
+    rw [show 32 = (UInt256.toByteArray self).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
+
+theorem balanceOfThisCalldataMem_read128_4 (self : UInt256) :
+    (balanceOfThisCalldataMem self).readWithPadding 128 4 = balanceOfSelector := by
+  unfold balanceOfThisCalldataMem
+  rw [write32_read_below_len _ _ 132 128 4 (by rw [toByteArray_size])
+      (by simp [balanceOfThisSelectorMem_size]) (by omega)
+      (by simp [balanceOfThisSelectorMem_size]) (by norm_num) (by norm_num)]
+  exact balanceOfThisSelectorMem_read128_4
+
+theorem balanceOfThisCalldataMem_read128_36 (self : UInt256) :
+    (balanceOfThisCalldataMem self).readWithPadding 128 36 =
+      balanceOfSelector ++ UInt256.toByteArray self := by
+  rw [byteArray_readWithPadding_split _ 128 4 32 (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num)
+      (by simp [balanceOfThisCalldataMem_size])]
+  rw [balanceOfThisCalldataMem_read128_4, balanceOfThisCalldataMem_read132_32]
+
+theorem balanceOfThisCalldataMem_encode (self : AccountAddress) :
+    config.externalABI.encode? "balanceOf" [.address self] =
+      some ((balanceOfThisCalldataMem (UInt256.ofNat self.val)).readWithPadding 128 36) := by
+  rw [balanceOfThisCalldataMem_read128_36]
+  change uniswapExternalABI.encode? "balanceOf" [.address self] =
+    some (balanceOfSelector ++ (UInt256.ofNat self.val).toByteArray)
+  unfold uniswapExternalABI ABI.encodeCallWithSelector? ABI.encodeABIValues?
+  simp [addr, ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
+    ABI.isDynamicABIType, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.encodeABIValuesFrom?]
+  rw [word_toBytesBE_toByteArray_eq_toByteArray]
+  rfl
+
 -- LIBRARY CANDIDATE: Reasoning.EVMWord — `min (literal word) (UInt256.ofNat n)` collapses
 -- to the literal when `n` is large enough and in range.
 theorem balanceOfThisStaticcallWriteLen_of_size_ge (o : ByteArray)

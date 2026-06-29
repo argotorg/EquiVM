@@ -688,14 +688,16 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
       rw [callerOutPtr_eq]; decide
     exact haw ▸ rd144
   · -- the Solm-side coincidence, fed the same `Θ`-link
-    refine callCoincides (targetWord := UInt256.land addrMask (callerArg0 I))
+    refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas) (callPerm := true)
+      (targetWord := UInt256.land addrMask (callerArg0 I))
       (mem := callerCalldataMem I) (inOff := callerOutPtr I)
-      (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I)) hperm
+      (inSize := UInt256.sub ⟨164⟩ (callerOutPtr I))
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      (callerTarget_eq hclean) ?_ hΘ
+      (callerTarget_eq hclean) ?_ ?_
     rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
         show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
     exact callerEncode_eq I
+    simpa [initState, hperm] using hΘ
   · exact hosz
 
 /-- **Post-call failure tail** (`z = false`): the `CALL` returned `0`, so the solc check

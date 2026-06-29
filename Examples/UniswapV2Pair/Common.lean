@@ -677,10 +677,10 @@ theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Sto
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = some value) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ]
+      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
   exact ExecBlock.consNormal
     (ExecStmt.externalCallSuccess
@@ -700,9 +700,9 @@ theorem uniswapExternalBalanceOfThisFailure (evm evm' : EVM.State) (locals : Sto
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out)) :
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ] .reverted := by
+      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ] .reverted := by
   exact ExecBlock.consRevert
     (ExecStmt.externalCallFailure
       (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
@@ -720,10 +720,10 @@ theorem uniswapExternalBalanceOfThisDecodeRevert (evm evm' : EVM.State) (locals 
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ] .reverted := by
+      [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ] .reverted := by
   exact ExecBlock.consRevert
     (ExecStmt.externalCallReturnDecodeRevert
       (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
@@ -750,19 +750,19 @@ theorem uniswapTokenBalanceOfThisCallsPrefix (evm evm0 evm1 : EVM.State) (locals
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = some balance1) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
+        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
       (.ok (uniswapBalanceOfFrame locals balance0 balance1) evm1) := by
   have htoken0 :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" ]
+        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
         (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
     exact uniswapExternalBalanceOfThisSuccess
       (evm := evm) (evm' := evm0) (locals := locals)
@@ -773,7 +773,7 @@ theorem uniswapTokenBalanceOfThisCallsPrefix (evm evm0 evm1 : EVM.State) (locals
       (by decide) (by rfl) hcall0 hdec0
   have htoken1 :
       ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
         (.ok (uniswapBalanceOfFrame locals balance0 balance1) evm1) := by
     exact uniswapExternalBalanceOfThisSuccess
       (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
@@ -788,14 +788,14 @@ theorem uniswapTokenBalanceOfThisFirstCallFailure (evm evm0 : EVM.State) (locals
     {out0 : ByteArray}
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm0, out0)) :
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm0, out0) false) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
+        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
       .reverted := by
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" ]
+        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
         .reverted := by
     exact uniswapExternalBalanceOfThisFailure
       (evm := evm) (evm' := evm0) (locals := locals)
@@ -805,22 +805,22 @@ theorem uniswapTokenBalanceOfThisFirstCallFailure (evm evm0 : EVM.State) (locals
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0
   exact Reasoning.Refinement.execBlock_append_term (s2 :=
-      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ])
+      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ])
     hfirst (by intro f e h; cases h)
 
 theorem uniswapTokenBalanceOfThisFirstCallDecodeRevert (evm evm0 : EVM.State) (locals : Store)
     {out0 : ByteArray}
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
+        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
       .reverted := by
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" ]
+        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
         .reverted := by
     exact uniswapExternalBalanceOfThisDecodeRevert
       (evm := evm) (evm' := evm0) (locals := locals)
@@ -830,7 +830,7 @@ theorem uniswapTokenBalanceOfThisFirstCallDecodeRevert (evm evm0 : EVM.State) (l
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0 hdec0
   exact Reasoning.Refinement.execBlock_append_term (s2 :=
-      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ])
+      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ])
     hfirst (by intro f e h; cases h)
 
 theorem uniswapTokenBalanceOfThisSecondCallFailure (evm evm0 evm1 : EVM.State)
@@ -838,18 +838,18 @@ theorem uniswapTokenBalanceOfThisSecondCallFailure (evm evm0 evm1 : EVM.State)
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (false, evm1, out1)) :
+      [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
+        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
       .reverted := by
   have htoken0 :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" ]
+        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
         (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
     exact uniswapExternalBalanceOfThisSuccess
       (evm := evm) (evm' := evm0) (locals := locals)
@@ -860,7 +860,7 @@ theorem uniswapTokenBalanceOfThisSecondCallFailure (evm evm0 evm1 : EVM.State)
       (by decide) (by rfl) hcall0 hdec0
   have htoken1 :
       ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
         .reverted := by
     exact uniswapExternalBalanceOfThisFailure
       (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
@@ -876,19 +876,19 @@ theorem uniswapTokenBalanceOfThisSecondCallDecodeRevert (evm evm0 evm1 : EVM.Sta
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = none) :
     ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0",
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
+        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
       .reverted := by
   have htoken0 :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" ]
+        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
         (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
     exact uniswapExternalBalanceOfThisSuccess
       (evm := evm) (evm' := evm0) (locals := locals)
@@ -899,7 +899,7 @@ theorem uniswapTokenBalanceOfThisSecondCallDecodeRevert (evm evm0 evm1 : EVM.Sta
       (by decide) (by rfl) hcall0 hdec0
   have htoken1 :
       ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" ]
+        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
         .reverted := by
     exact uniswapExternalBalanceOfThisDecodeRevert
       (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
@@ -923,14 +923,14 @@ theorem uniswapCheckedExternalBalanceOfThisSuccess (evm evm' : EVM.State) (local
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = some value) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar)
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ]
+      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
     (.ok { contract := contract, locals := locals.insert retVar value } evm')
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact uniswapExternalBalanceOfThisSuccess evm evm' locals
@@ -950,12 +950,12 @@ theorem uniswapCheckedExternalBalanceOfThisFailure (evm evm' : EVM.State) (local
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out)) :
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ]
+      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
     .reverted
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact uniswapExternalBalanceOfThisFailure evm evm' locals
@@ -976,13 +976,13 @@ theorem uniswapCheckedExternalBalanceOfThisDecodeRevert
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ]
+      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
     .reverted
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact uniswapExternalBalanceOfThisDecodeRevert evm evm' locals
@@ -1000,7 +1000,7 @@ theorem uniswapCheckedExternalBalanceOfThisNoCode (evm : EVM.State) (locals : St
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar ]
+      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
     .reverted
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
 
@@ -1016,11 +1016,11 @@ theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = some balance1) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1")
@@ -1073,7 +1073,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm0, out0)) :
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm0, out0) false) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
   have hfirst :
@@ -1097,7 +1097,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
@@ -1125,7 +1125,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
         (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool false))
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
@@ -1161,11 +1161,11 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (false, evm1, out1)) :
+      [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
   have htoken0 :
@@ -1204,11 +1204,11 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (hbase0 : locals.get? "token0" = none)
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0))
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1))
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 = none) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
