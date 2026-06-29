@@ -75,7 +75,7 @@ theorem evalExpr_safeTransfer_value (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) :
     evalExpr? config { contract := contract, locals := safeTransferCalleeStore token recipient value }
       evm (.intLit 0) = .ok (.int 0) := by
-  change (pure (.int 0) : EvalResult Value) = .ok (.int 0)
+  simp only [evalExpr?]
   rfl
 
 theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
@@ -86,7 +86,9 @@ theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
   simp only [transferCalldataExpr, evalExpr?, evalExprList?, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
   rw [safeTransferCalleeStore_to, safeTransferCalleeStore_value]
-  simpa [transferCalldata?, transferCallArgs, safeTransferUintValue] using hdata
+  simp
+  rw [show config.externalABI.encode? "transfer" (transferCallArgs recipient value) =
+    some calldata from by simpa [transferCalldata?, transferCallArgs] using hdata]
 
 theorem bindParams_safeTransfer (token recipient : AccountAddress) (value : UInt256) :
     bindParams? safeTransferFunction.params (safeTransferArgs token recipient value) =
@@ -126,8 +128,7 @@ theorem evalExpr_safeTransferReturnOk_decodeRevert (evm : EVM.State)
       safeTransferReturnOkExpr = .revert := by
   have hint : Int.ofNat out.size ≠ 0 := by
     intro hi
-    apply hsize
-    exact_mod_cast hi
+    exact hsize (Nat.cast_eq_zero.mp hi)
   have hneq : (Value.int (Int.ofNat out.size) == Value.int 0) = false := by
     rw [beq_eq_false_iff_ne]
     intro h
@@ -146,8 +147,7 @@ theorem evalExpr_safeTransferReturnOk_decodeFalse (evm : EVM.State)
       safeTransferReturnOkExpr = .ok (.bool false) := by
   have hint : Int.ofNat out.size ≠ 0 := by
     intro hi
-    apply hsize
-    exact_mod_cast hi
+    exact hsize (Nat.cast_eq_zero.mp hi)
   have hneq : (Value.int (Int.ofNat out.size) == Value.int 0) = false := by
     rw [beq_eq_false_iff_ne]
     intro h
@@ -166,8 +166,7 @@ theorem evalExpr_safeTransferReturnOk_decodeTrue (evm : EVM.State)
       safeTransferReturnOkExpr = .ok (.bool true) := by
   have hint : Int.ofNat out.size ≠ 0 := by
     intro hi
-    apply hsize
-    exact_mod_cast hi
+    exact hsize (Nat.cast_eq_zero.mp hi)
   have hneq : (Value.int (Int.ofNat out.size) == Value.int 0) = false := by
     rw [beq_eq_false_iff_ne]
     intro h
@@ -347,7 +346,9 @@ theorem safeTransferInternalCallReverts_callFailure
     (locals := safeTransferCalleeStore token recipient value)
     hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
     (bindParams_safeTransfer token recipient value)
-    (safeTransferFunctionBodyReverts_callFailure evm evm' token recipient value hdata hcall)
+    (by
+      simpa [hcaller] using
+        (safeTransferFunctionBodyReverts_callFailure evm evm' token recipient value hdata hcall))
 
 theorem safeTransferInternalCallReturns_empty
     (caller : Frame) (evm evm' : EVM.State)
@@ -374,7 +375,9 @@ theorem safeTransferInternalCallReturns_empty
     (value := none)
     hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
     (bindParams_safeTransfer token recipient value)
-    (safeTransferFunctionBodyReturns_empty evm evm' token recipient value hdata hcall hout)
+    (by
+      simpa [hcaller] using
+        (safeTransferFunctionBodyReturns_empty evm evm' token recipient value hdata hcall hout))
 
 theorem safeTransferInternalCallReturns_decodeTrue
     (caller : Frame) (evm evm' : EVM.State)
@@ -402,6 +405,9 @@ theorem safeTransferInternalCallReturns_decodeTrue
     (value := none)
     hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
     (bindParams_safeTransfer token recipient value)
-    (safeTransferFunctionBodyReturns_decodeTrue evm evm' token recipient value hdata hcall hsize hdec)
+    (by
+      simpa [hcaller] using
+        (safeTransferFunctionBodyReturns_decodeTrue evm evm' token recipient value hdata hcall hsize
+          hdec))
 
 end UniswapV2Pair

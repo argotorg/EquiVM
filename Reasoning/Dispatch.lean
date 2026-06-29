@@ -45,14 +45,16 @@ theorem dispatchList_cons (t : TransitionDecl) (ts : List TransitionDecl) (cd : 
     dispatchList (t :: ts) cd =
       if selectorOf t == cd.extract 0 4 then some t else dispatchList ts cd := rfl
 
-/-- `dispatchMsg` agrees with its pure list form on every contract — the bridge that lets the
-    single-selector lemmas (and any example's N-way dispatch) reason about `dispatchList`. -/
-theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray) :
+/-- `dispatchMsg` agrees with its pure list form for contracts with no fallback — the bridge that
+    lets the single-selector lemmas (and any example's N-way dispatch) reason about
+    `dispatchList`. -/
+theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray)
+    (hfallback : contract.fallback = none := by rfl) :
     dispatchMsg contract cd = dispatchList contract.transitions cd := by
   simp only [dispatchMsg]
   generalize contract.transitions = ts
   induction ts with
-  | nil => rfl
+  | nil => simpa [dispatchList, hfallback]
   | cons t ts ih =>
     simp only [List.map_cons, List.find?_cons, Prod.map, id_eq, Function.comp_apply]
     rw [dispatchList_cons, selectorOf]
@@ -117,31 +119,37 @@ theorem dispatchList_eq_some_of_split {pre post : List TransitionDecl} {ti : Tra
 
 /-- `dispatchMsg` no-match, n-ary: no transition selector matches ⇒ no dispatch. -/
 theorem dispatchMsg_none_of_all_ne {contract : ContractDecl} {cd : ByteArray}
+    (hfallback : contract.fallback = none := by rfl)
     (h : ∀ t ∈ contract.transitions, (selectorOf t == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList]; exact dispatchList_none_of_all_ne h
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback]; exact dispatchList_none_of_all_ne h
 
 /-- `dispatchMsg` first-match, n-ary: the transitions split as `pre ++ ti :: post`, every `pre`
     selector misses and `ti`'s hits ⇒ dispatch returns `ti`. -/
 theorem dispatchMsg_eq_some_of_split {contract : ContractDecl} {pre post : List TransitionDecl}
     {ti : TransitionDecl} {cd : ByteArray}
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = pre ++ ti :: post)
     (hpre : ∀ t ∈ pre, (selectorOf t == cd.extract 0 4) = false)
     (hhit : (selectorOf ti == cd.extract 0 4) = true) :
     dispatchMsg contract cd = some ti := by
-  rw [dispatchMsg_eq_dispatchList, htr]; exact dispatchList_eq_some_of_split hpre hhit
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback, htr]
+  exact dispatchList_eq_some_of_split hpre hhit
 
 /-- `dispatchMsg` of a single-transition contract is the selector compare — the `n = 1` instance of
     the `dispatchList` framework above. -/
 theorem dispatch_eq
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (cd : ByteArray) :
     dispatchMsg contract cd = if (selBytes == cd.extract 0 4) then some transition else none := by
-  rw [dispatchMsg_eq_dispatchList, htr, dispatchList_cons, dispatchList_nil, selectorOf, hsel]
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback, htr, dispatchList_cons,
+    dispatchList_nil, selectorOf, hsel]
 
 /-- A single-transition contract dispatches only to that transition. -/
 theorem dispatch_unique
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     {cd : ByteArray} {t : TransitionDecl} (h : dispatchMsg contract cd = some t) :
     t = transition := by
@@ -152,15 +160,17 @@ theorem dispatch_unique
     simp only [List.mem_singleton, Prod.map, id_eq, Prod.mk.injEq] at hmem
     rw [Option.some.injEq] at h
     rw [← h, hmem.1]
-  · exact absurd h (by simp)
+  · rw [hfallback] at h
+    exact absurd h (by simp)
 
 /-- Calldata shorter than the 4-byte selector cannot dispatch. -/
 theorem dispatch_none_short
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (hsize : selBytes.size = 4) {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
-  rw [dispatch_eq htr hsel]
+  rw [dispatch_eq hfallback htr hsel]
   have hfalse : (selBytes == cd.extract 0 4) = false := by
     by_contra hc
     rw [Bool.not_eq_false] at hc
@@ -172,11 +182,12 @@ theorem dispatch_none_short
 
 /-- A selector mismatch cannot dispatch. -/
 theorem dispatch_none_nomatch
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
-  rw [dispatch_eq htr hsel]; simp [h]
+  rw [dispatch_eq hfallback htr hsel]; simp [h]
 
 /-! ## Single-selector bundle
 
@@ -197,13 +208,14 @@ structure SingleSelectorDispatch (contract : ContractDecl) (transition : Transit
 /-- Build the single-selector bundle from a single-transition contract proof (`htr`), its selector
     axiom (`hsel`, the usual `keccak(sig)[0:4] = selBytes`), and `selBytes.size = 4`. -/
 theorem singleSelectorDispatch
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (hsize : selBytes.size = 4) :
     SingleSelectorDispatch contract transition selBytes where
-  eq cd := dispatch_eq htr hsel cd
-  none_short h := dispatch_none_short htr hsel hsize h
-  none_nomatch h := dispatch_none_nomatch htr hsel h
+  eq cd := dispatch_eq hfallback htr hsel cd
+  none_short h := dispatch_none_short hfallback htr hsel hsize h
+  none_nomatch h := dispatch_none_nomatch hfallback htr hsel h
 
 /-- The EVM return bytes `o` couple to the Solm return value `rv` whenever `o` is `rv`'s ABI
     encoding (the `returned` case of `returnEquiv`). -/
@@ -224,6 +236,7 @@ namespace Reasoning.Reach
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
+    (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hbody : ∀ callargs, ExecTransitionBody cfg contract
@@ -235,7 +248,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     by_cases hdisp : dispatchMsg contract I.calldata = none
     · exact reEquiv_noDispatch hdisp hrev
     · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-      cases Reasoning.Theory.dispatch_unique htr ht
+      cases Reasoning.Theory.dispatch_unique hfallback htr ht
       by_cases hdec : decodeCalldata (transition.params.map Param.name)
           (transitionSignature transition).paramTypes I.calldata = none
       · exact reEquiv_decodingFailed ht hdec hrev
