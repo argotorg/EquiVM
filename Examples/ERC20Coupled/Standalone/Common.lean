@@ -252,7 +252,7 @@ theorem decodeCalldata_address_none_huge {cd : ByteArray} {x : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [addr]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by decide, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Two-address calldata decoding -/
 
@@ -428,7 +428,7 @@ theorem decodeCalldata_address_address_none_huge {cd : ByteArray} {x y : Solm.Id
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by decide, by rw [List.length_drop, htlen]; omega⟩
 
 end ERC20Standalone
 

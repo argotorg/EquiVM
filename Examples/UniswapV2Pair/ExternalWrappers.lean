@@ -179,6 +179,43 @@ theorem RD.uniswapOneAddressExternalMaskAndJump {g : Sat256} {s0 : State} {ee : 
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hmask]
       using rd37.jump hd37 hroutine (by evm_ov)⟩
 
+-- GENERALIZES Reasoning.Reach.RD.uniswapOneAddressGetterMaskAndJump - exposes the masked
+-- address word instead of requiring canonical calldata.
+-- LIBRARY CANDIDATE: Reasoning.Reach - optimizer-on solc one-address external wrapper that
+-- returns the low-160-bit masked address word.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapOneAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
+      (uniswapOneAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hwf : uniswapOneAddressExternalEntryWf entry ret routine)
+    (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
+    (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 routine
+      (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+  rcases hwf with
+    ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
+      _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd25, hd27, hd29, hd31,
+      hd32, hd33, hd34, hd37⟩
+  have rd23 := h.jumpdest hd22 (by evm_ov)
+  have rd24 := rd23.pop hd23 (by evm_ov)
+  have rd25 := rd24.calldataload hd24 (by evm_ov)
+  have rd27 := rd25.push1 ⟨1⟩ hd25 (by evm_ov)
+  have rd29 := rd27.push1 ⟨1⟩ hd27 (by evm_ov)
+  have rd31 := rd29.push1 ⟨160⟩ hd29 (by evm_ov)
+  have rd32 := rd31.shl hd31 (by evm_ov)
+  have rd33 := rd32.sub hd32 (by evm_ov)
+  have rd34 := rd33.and hd33 (by evm_ov)
+  have rd37 := rd34.push2 routine hd34 (by evm_ov)
+  exact ⟨_, _, by
+    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
+      show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide, u256_land_comm]
+      using rd37.jump hd37 hroutine (by evm_ov)⟩
+
 -- GENERALIZES Reasoning.Reach.RD.uniswapOneAddressGetterLenOk -
 -- same optimized one-address ABI wrapper prefix, but with a parameterized continuation pc.
 -- LIBRARY CANDIDATE: Reasoning.Reach - optimizer-on solc one-address external wrapper

@@ -337,6 +337,100 @@ theorem RD.uniswapCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
     (by omega)
   exact ⟨_, _, rdPop⟩
 
+-- LIBRARY CANDIDATE: Reasoning.Reach — generic solc high-level-call success guard for the
+-- branch where a CALL-like status word is zero and the revert-data bubbling tail is executed.
+theorem RD.uniswapCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {status : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (status :: R) mem aw rdata acc k C)
+    (hstatus : status = ⟨0⟩)
+    (hIszero0 : decode code pc = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi : decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+      some (.JUMPI, .none))
+    (hReturndatasize :
+      decode code (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) =
+        some (.RETURNDATASIZE, .none))
+    (hPush0 :
+      decode code
+          ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) =
+      some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hDupZero :
+      decode code
+          (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+            UInt256.ofNat 2) =
+        some (.DUP1, .none))
+    (hReturndatacopy :
+      decode code
+          ((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+              UInt256.ofNat 2) + ⟨1⟩) =
+        some (.RETURNDATACOPY, .none))
+    (hReturndatasizeRevert :
+      decode code
+          (((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) =
+        some (.RETURNDATASIZE, .none))
+    (hPushRevert0 :
+      decode code
+          ((((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                  UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hRevert :
+      decode code
+          (((((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                    UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) + ⟨1⟩) + UInt256.ofNat 2) =
+        some (.REVERT, .none))
+    (hrdataSize : rdata.size < UInt256.size)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  have rdIszero0 := RD.iszero h hIszero0
+    (by omega)
+  have rdDup1 := RD.dup1 rdIszero0 hDup1
+    (by omega)
+  have rdIszero1 := RD.iszero rdDup1 hIszero1
+    (by simp only [List.length_cons]; omega)
+  have rdPush := RD.push2 rdIszero1 okPc hPush
+    (by simp only [List.length_cons]; omega)
+  have hcond : UInt256.isZero (UInt256.isZero status) = ⟨0⟩ := by
+    rw [hstatus]
+    decide
+  have rdFallthrough := RD.jumpiNT rdPush hJumpi hcond
+    (by simp only [List.length_cons]; omega)
+  have rdReturndatasize := RD.returndatasize rdFallthrough hReturndatasize
+    (by simp only [List.length_cons]; omega)
+  have rdPush0 := RD.push1 rdReturndatasize ⟨0⟩ hPush0
+    (by simp only [List.length_cons]; omega)
+  have rdDupZero := RD.dup1 rdPush0 hDupZero
+    (by simp only [List.length_cons]; omega)
+  let len := UInt256.ofNat rdata.size
+  let memout := rdata.write 0 mem 0 len.toNat
+  let awout := UInt256.ofNat (MachineState.M aw.toNat 0 len.toNat)
+  have rdCopy := RD.returndatacopy
+    (Cₘ awout - Cₘ aw) memout awout rdDupZero hReturndatacopy
+    (by
+      change 0 + len.toNat ≤ rdata.size
+      dsimp [len]
+      rw [ulit_toNat' rdata.size hrdataSize]
+      omega)
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, len, awout])
+    (by rfl) (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rdReturndatasizeRevert := RD.returndatasize rdCopy hReturndatasizeRevert
+    (by simp only [List.length_cons]; omega)
+  have rdPushRevert0 := RD.push1 rdReturndatasizeRevert ⟨0⟩ hPushRevert0
+    (by simp only [List.length_cons]; omega)
+  exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
+    rdPushRevert0 hRevert
+    (fun s haw hstk => by
+      simpa [awout, len, haw] using memExpRevertZeroOff s hstk)
+    (by simp only [List.length_cons]; omega)
+
 -- GENERALIZES Reasoning.Reach.RD.call — same opaque `Θ` reach proof for
 -- `STATICCALL`, parameterizing the call opcode, stack arity, transferred value, and callee
 -- static-permission flag.
