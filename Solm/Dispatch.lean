@@ -25,5 +25,4 @@ def dispatchMsg (contract : ContractDecl) (calldata : ByteArray)
   let currentSelector := calldata.extract 0 4
   match selectors.find? (λ (_,s) ↦ s == currentSelector) with
   | some (t,_) => t
-  | none => .none -- fallback function/transition?
-
+  | none => contract.fallback
