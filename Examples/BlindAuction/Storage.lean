@@ -39,6 +39,38 @@ theorem blindAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UIn
           solcAddrMask).toNat) := by
   simpa [blindAuctionAddrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
 
+def blindAuctionSetAddressWord (old addr : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask)) (UInt256.land addr solcAddrMask)
+
+theorem blindAuctionSetAddressNat_lt_size (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160 < UInt256.size := by
+  exact setAddressOffset0Nat_lt_size old addr hcanon
+
+theorem blindAuctionSetAddressWord_eq (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    blindAuctionSetAddressWord old addr =
+      UInt256.ofNat (addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160) := by
+  simpa [blindAuctionSetAddressWord, setAddressOffset0Word] using
+    setAddressOffset0Word_eq old addr hcanon
+
+theorem blindAuctionSetAddressWord_toNat (old addr : UInt256)
+    (hcanon : addr.toNat < EVM.addressModulus) :
+    (blindAuctionSetAddressWord old addr).toNat =
+      addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160 := by
+  simpa [blindAuctionSetAddressWord, setAddressOffset0Word] using
+    setAddressOffset0Word_toNat old addr hcanon
+
+theorem blindAuctionStorageLocStore_address_offset0 (evm : EVM.State)
+    (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
+    storageLocStore evm (blindAuctionAddrLoc slot)
+        (.address (AccountAddress.ofNat addr.toNat)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (blindAuctionSetAddressWord
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) := by
+  simpa [blindAuctionAddrLoc, addressOffset0Loc, blindAuctionSetAddressWord,
+    setAddressOffset0Word] using storageLocStore_address_offset0 evm slot addr hcanon
+
 theorem blindAuctionStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionBoolLoc slot) =
       wordToElem .bool

@@ -1,5 +1,6 @@
 import Examples.Truth.Bytecode
 import Examples.Truth.Spec
+import Examples.CtorTruth.Bytecode
 import Reasoning.ABI
 import Reasoning.Theory
 import Reasoning.Dispatch
@@ -8,6 +9,7 @@ import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Reach
+import Reasoning.Constructor
 
 /-!
 # Truth — runtime-equivalence proof for `truth()`
@@ -254,3 +256,85 @@ theorem truthCorrect :
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (truthX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
+
+/-! ## 7. Constructor and full-contract equivalence -/
+
+noncomputable def truthInitReturnMem : ByteArray :=
+  truthBytecode.write 0 solcFreePtrMem 0 123
+
+theorem truthRuntime_size : truthBytecode.size = 123 := by
+  native_decide
+
+theorem truthRuntime_extract_all :
+    truthBytecode.extract 0 123 = truthBytecode := by
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by native_decide)
+
+theorem truthInitcode_runtime_window :
+    ctorTruthInitcode.extract 15 (15 + 123) = truthBytecode := by
+  native_decide
+
+theorem truthInitcode_codecopy_mem :
+    ctorTruthInitcode.write 15 solcFreePtrMem 0 123 = truthInitReturnMem := by
+  unfold truthInitReturnMem
+  apply ByteArray.ext
+  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by native_decide)]
+  rw [write0_data truthBytecode solcFreePtrMem 123 (by decide)
+    (by rw [truthRuntime_size])]
+  have hwindow :
+      ctorTruthInitcode.data.extract 15 (15 + 123) =
+        truthBytecode.data.extract 0 123 := by
+    have h1 := congrArg ByteArray.data truthInitcode_runtime_window
+    have h2 := congrArg ByteArray.data truthRuntime_extract_all
+    simpa [ByteArray.data_extract] using h1.trans h2.symm
+  rw [hwindow]
+
+theorem truthFinal_read :
+    truthInitReturnMem.readWithPadding 0 123 = truthBytecode := by
+  unfold truthInitReturnMem
+  rw [write0_read_back_gen truthBytecode solcFreePtrMem 123
+    (by decide) (by rw [truthRuntime_size]) (by decide)]
+  exact truthRuntime_extract_all
+
+set_option maxHeartbeats 400000 in
+theorem truthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = ctorTruthInitcode) :
+    RDret ctorTruthInitcode g
+      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      truthBytecode := by
+  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  have rd0 :
+      RD ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+        (createdAccounts, σ) 0 0 := by
+    rw [hs0]; exact RD.initState hcode
+  exact evm_run rd0 with [
+    raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
+    raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),
+    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
+      mem_cost
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    raw push1 ⟨123⟩ ctorTruthDecode5 (by evm_ov),
+    raw dup1 ctorTruthDecode7 (by evm_ov),
+    raw push1 ⟨15⟩ ctorTruthDecode8 (by evm_ov),
+    raw push0 ctorTruthDecode10 (by evm_ov),
+    raw codecopy 3 truthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
+      mem_cost
+      truthInitcode_codecopy_mem
+      (by decide) (by evm_ov),
+    raw push0 ctorTruthDecode12 (by evm_ov),
+    raw ret 0 truthBytecode ctorTruthDecode13
+      mem_cost
+      truthFinal_read
+      (by evm_ov)]
+
+/-- The creation/initcode bytecode refines the Solm constructor specification. -/
+theorem truthConstructorCorrect :
+    constructorEquivalence truthConfig ctorTruthInitcode truthContract truthBytecode :=
+  emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode)
+
+/-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
+theorem truthContractCorrect :
+    contractEquivalence truthConfig ctorTruthInitcode truthBytecode truthContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode) truthCorrect

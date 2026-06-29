@@ -22,6 +22,11 @@ def powBytecode : ByteArray :=
     0, 156, 86, 91, 130, 82, 80, 80, 86, 91, 95, 96, 32, 130, 1, 144, 80, 97, 1, 28, 95, 131, 1,
     132, 97, 0, 250, 86, 91, 146, 145, 80, 80, 86]⟩
 
+/-- Minimal empty-constructor initcode that copies and returns `powBytecode`. -/
+def powInitcode : ByteArray :=
+  ⟨#[0x61, 0x01, 0x22, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x01, 0x22, 0x5f, 0xf3]⟩
+    ++ powBytecode
+
 /-- `keccak("pow2(uint256)")[0:4] = 0x442b7ffb`. -/
 axiom powSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr Pow.powTransition))).extract 0 4

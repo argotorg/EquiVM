@@ -73,7 +73,8 @@ def constructorDecl : ConstructorDecl :=
       [ { name := "biddingTime", ty := uint256 },
         { name := "beneficiaryAddress", ty := addr } ]
     body :=
-      [ .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
         .assign .storage auctionEndTimeRef (u256 (.binary .add now (.var "biddingTime"))) ] }
 
 /-! ## Transitions -/

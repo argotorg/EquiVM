@@ -1,4 +1,5 @@
 import Ethereum.Semantics
+import Reasoning.EVMWord
 
 /-!
 # Initcode — decoding stable prefixes with appended constructor arguments
@@ -182,5 +183,90 @@ theorem D_J_contains_append_left (A B : ByteArray) (pc : UInt256)
   simp only [D_J] at h hsuf ⊢
   rw [hsuf, Array.mem_append]
   exact Or.inl h
+
+/-! ## Constructor argument arithmetic
+
+Solidity constructor proofs repeatedly need the same facts about canonical `uint256` ABI arguments
+and checked addition over constructor parameters.  These lemmas keep that arithmetic independent of
+any particular contract's storage layout or constructor trace.
+-/
+
+theorem constructorUInt256Word_toNat (x : Int)
+    (h0 : 0 ≤ x)
+    (hlt : x < Int.ofNat (EVM.twoPow 256)) :
+    (EVM.word x.toNat).toNat = x.toNat := by
+  exact ulit_toNat' _ (by
+    have hltNat : x.toNat < EVM.twoPow 256 := by
+      have hlt' : Int.ofNat x.toNat < Int.ofNat (EVM.twoPow 256) := by
+        simpa [Int.toNat_of_nonneg h0] using hlt
+      exact Int.ofNat_lt.mp hlt'
+    simpa [EVM.twoPow, UInt256.size] using hltNat)
+
+theorem constructorCheckedAddOverflowLt (base addend : UInt256)
+    (hover : UInt256.size ≤ base.toNat + addend.toNat) :
+    UInt256.lt (addend + base) base = ⟨1⟩ := by
+  have hover' : UInt256.size ≤ addend.toNat + base.toNat := by omega
+  have hsum_lt2 : addend.toNat + base.toNat < 2 * UInt256.size := by
+    have hb : base.toNat < UInt256.size := base.val.isLt
+    have ha : addend.toNat < UInt256.size := addend.val.isLt
+    omega
+  have hmod : (addend.toNat + base.toNat) % UInt256.size =
+      addend.toNat + base.toNat - UInt256.size := by
+    rw [Nat.mod_eq_sub_mod hover']
+    rw [Nat.mod_eq_of_lt (by omega)]
+  have hsum : (addend + base).toNat =
+      addend.toNat + base.toNat - UInt256.size := by
+    rw [uadd_toNat, hmod]
+  exact ult_one (by
+    rw [hsum]
+    have ha : addend.toNat < UInt256.size := addend.val.isLt
+    omega)
+
+theorem constructorCheckedAddNoOverflowLt (base addend : UInt256)
+    (hno : ¬ UInt256.size ≤ base.toNat + addend.toNat) :
+    UInt256.lt (addend + base) base = ⟨0⟩ := by
+  have hsum_lt : addend.toNat + base.toNat < UInt256.size := by omega
+  have hsum : (addend + base).toNat =
+      addend.toNat + base.toNat := by
+    rw [uadd_toNat]
+    exact Nat.mod_eq_of_lt hsum_lt
+  exact ult_zero (by
+    rw [hsum]
+    omega)
+
+theorem constructorCheckedAddWord_eq (base addend : UInt256)
+    (hno : ¬ UInt256.size ≤ base.toNat + addend.toNat) :
+    EVM.word (base.toNat + addend.toNat) = addend + base := by
+  have hsumlt : base.toNat + addend.toNat < UInt256.size := by omega
+  apply u256_inj
+  rw [uadd_toNat]
+  rw [Nat.add_comm addend.toNat base.toNat]
+  rw [Nat.mod_eq_of_lt hsumlt]
+  exact ulit_toNat' _ hsumlt
+
+theorem constructorCheckedAddWordBaseFirst_eq (base addend : UInt256)
+    (hno : ¬ UInt256.size ≤ base.toNat + addend.toNat) :
+    EVM.word (base.toNat + addend.toNat) = base + addend := by
+  have hsumlt : base.toNat + addend.toNat < UInt256.size := by omega
+  apply u256_inj
+  rw [uadd_toNat]
+  rw [Nat.mod_eq_of_lt hsumlt]
+  exact ulit_toNat' _ hsumlt
+
+theorem constructorCheckedAddIntWord_eq (base : UInt256) (x : Int)
+    (h0 : 0 ≤ x)
+    (hlt : x < Int.ofNat (EVM.twoPow 256))
+    (hno : ¬ UInt256.size ≤ base.toNat + (EVM.word x.toNat).toNat) :
+    EVM.word (base.toNat + x.toNat) = EVM.word x.toNat + base := by
+  have hword := constructorUInt256Word_toNat x h0 hlt
+  simpa [hword] using constructorCheckedAddWord_eq base (EVM.word x.toNat) hno
+
+theorem constructorCheckedAddIntWordBaseFirst_eq (base : UInt256) (x : Int)
+    (h0 : 0 ≤ x)
+    (hlt : x < Int.ofNat (EVM.twoPow 256))
+    (hno : ¬ UInt256.size ≤ base.toNat + (EVM.word x.toNat).toNat) :
+    EVM.word (base.toNat + x.toNat) = base + EVM.word x.toNat := by
+  have hword := constructorUInt256Word_toNat x h0 hlt
+  simpa [hword] using constructorCheckedAddWordBaseFirst_eq base (EVM.word x.toNat) hno
 
 end Reasoning.Theory

@@ -102,7 +102,8 @@ def constructorDecl : ConstructorDecl :=
         { name := "revealTime", ty := uint256 },
         { name := "beneficiaryAddress", ty := addr } ]
     body :=
-      [ .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
         .assign .storage biddingEndRef (u256 (.binary .add now (.var "biddingTime"))),
         .assign .storage revealEndRef
           (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) ] }

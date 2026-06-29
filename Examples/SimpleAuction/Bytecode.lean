@@ -72,3 +72,85 @@ def simpleAuctionBytecode : ByteArray :=
     48, 51, 245, 68, 171, 57, 90, 162, 154, 151, 168, 88, 16, 240, 212, 219, 119, 154, 98, 116, 97,
     118, 251, 145, 44, 120, 20, 24, 236, 92, 213, 100, 115, 111, 108, 99, 67, 0, 8, 35, 0, 51
   ]⟩
+
+/-! ## Constructor/initcode bytecode
+
+For constructor-equivalence we use a compact straight-line initcode, following `CtorStore`: it
+copies the ABI-encoded constructor arguments appended by `selfDeployment`, stores
+`beneficiaryAddress` in slot 0 using solc's packed address layout, stores checked
+`block.timestamp + biddingTime` in slot 1, and then returns the deployed runtime above.  The
+checked-add overflow path cleanly reverts.
+-/
+
+/-- Constructor prefix; the deployed runtime starts at byte offset 115. -/
+def simpleAuctionCtorPrefix : ByteArray :=
+  ⟨#[
+    0x34,             -- CALLVALUE
+    0x80,             -- DUP1
+    0x15,             -- ISZERO
+    0x60, 0x09,       -- PUSH1 0x09       ; nonpayable-ok target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x5f,             -- PUSH0
+    0xfd,             -- REVERT
+    0x5b,             -- JUMPDEST
+    0x50,             -- POP
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x04, 0xaa, -- PUSH2 0x04aa     ; beneficiaryAddress ABI word
+    0x5f,             -- PUSH0            ; memory dst
+    0x39,             -- CODECOPY
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; beneficiaryAddress
+    0x80,             -- DUP1
+    0x73, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+          0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                      -- PUSH20 address mask
+    0x16,             -- AND              ; masked beneficiaryAddress
+    0x5f,             -- PUSH0            ; slot 0
+    0x54,             -- SLOAD
+    0x73, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+          0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                      -- PUSH20 address mask
+    0x19,             -- NOT
+    0x16,             -- AND              ; preserved high 96 bits
+    0x17,             -- OR
+    0x90,             -- SWAP1
+    0x50,             -- POP
+    0x5f,             -- PUSH0            ; slot 0
+    0x55,             -- SSTORE
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x04, 0x8a, -- PUSH2 0x048a     ; biddingTime ABI word
+    0x5f,             -- PUSH0            ; memory dst
+    0x39,             -- CODECOPY
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; biddingTime
+    0x42,             -- TIMESTAMP
+    0x80,             -- DUP1
+    0x82,             -- DUP3
+    0x01,             -- ADD              ; timestamp + biddingTime
+    0x10,             -- LT               ; wrapped sum < timestamp
+    0x90,             -- SWAP1
+    0x50,             -- POP
+    0x60, 0x6f,       -- PUSH1 0x6f       ; overflow revert target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; biddingTime
+    0x42,             -- TIMESTAMP
+    0x01,             -- ADD
+    0x60, 0x01,       -- PUSH1 1          ; slot 1
+    0x55,             -- SSTORE
+    0x61, 0x04, 0x17, -- PUSH2 0x0417     ; runtime length
+    0x60, 0x73,       -- PUSH1 0x73       ; runtime offset
+    0x5f,             -- PUSH0
+    0x39,             -- CODECOPY
+    0x61, 0x04, 0x17, -- PUSH2 0x0417
+    0x5f,             -- PUSH0
+    0xf3,             -- RETURN
+    0x5b,             -- JUMPDEST
+    0x5f,             -- PUSH0
+    0x5f,             -- PUSH0
+    0xfd              -- REVERT
+  ]⟩
+
+/-- Pure creation/initcode for `SimpleAuction`, without appended constructor ABI arguments. -/
+def simpleAuctionInitcode : ByteArray := simpleAuctionCtorPrefix ++ simpleAuctionBytecode

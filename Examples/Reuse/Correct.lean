@@ -3,10 +3,12 @@ import Examples.Reuse.Spec
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.EVMWord
+import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Reach
+import Reasoning.Constructor
 import Solm.Equiv
 import Mathlib.Tactic.IntervalCases
 
@@ -1133,3 +1135,86 @@ theorem cCorrect : runtimeEquivalence!?! cConfig cBytecode Reuse.cContract := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact cReEquiv_callvalueZero hcode hsize hperm hwv hσ
   · exact cNonPayable hcode hwv
+
+/-! ## Constructor and full-contract equivalence -/
+
+noncomputable def cInitReturnMem : ByteArray :=
+  cInitcode.write 12 ByteArray.empty 0 271
+
+theorem cBytecode_size : cBytecode.size = 271 := by
+  native_decide
+
+theorem cInitcode_runtime_window :
+    cInitcode.extract 12 (12 + 271) = cBytecode := by
+  native_decide
+
+theorem cInitcodeDecode0 :
+    decode cInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨271⟩, 2)) := by
+  native_decide
+
+theorem cInitcodeDecode3 :
+    decode cInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
+  native_decide
+
+theorem cInitcodeDecode5 :
+    decode cInitcode ⟨5⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem cInitcodeDecode6 :
+    decode cInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
+  native_decide
+
+theorem cInitcodeDecode7 :
+    decode cInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨271⟩, 2)) := by
+  native_decide
+
+theorem cInitcodeDecode10 :
+    decode cInitcode ⟨10⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem cInitcodeDecode11 :
+    decode cInitcode ⟨11⟩ = some (.RETURN, .none) := by
+  native_decide
+
+theorem cFinal_read :
+    cInitReturnMem.readWithPadding 0 271 = cBytecode := by
+  unfold cInitReturnMem
+  rw [write0_read_back_from_gen cInitcode ByteArray.empty 12 271
+    (by decide) (by native_decide) (by decide)]
+  exact cInitcode_runtime_window
+
+set_option maxHeartbeats 400000 in
+theorem cInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = cInitcode) :
+    RDret cInitcode g
+      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      cBytecode := by
+  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  have rd0 :
+      RD cInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+        (createdAccounts, σ) 0 0 := by
+    rw [hs0]; exact RD.initState hcode
+  exact evm_run rd0 with [
+    raw push2 ⟨271⟩ cInitcodeDecode0 (by evm_ov),
+    raw push1 ⟨12⟩ cInitcodeDecode3 (by evm_ov),
+    raw push0 cInitcodeDecode5 (by evm_ov),
+    raw codecopy 27 cInitReturnMem (UInt256.ofNat 9) cInitcodeDecode6
+      mem_cost
+      rfl
+      (by decide) (by evm_ov),
+    raw push2 ⟨271⟩ cInitcodeDecode7 (by evm_ov),
+    raw push0 cInitcodeDecode10 (by evm_ov),
+    raw ret 0 cBytecode cInitcodeDecode11
+      mem_cost
+      cFinal_read
+      (by evm_ov)]
+
+/-- The creation/initcode bytecode refines the Solm constructor specification. -/
+theorem cConstructorCorrect :
+    constructorEquivalence cConfig cInitcode Reuse.cContract cBytecode :=
+  emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode)
+
+/-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
+theorem cContractCorrect :
+    contractEquivalence cConfig cInitcode cBytecode Reuse.cContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode) cCorrect

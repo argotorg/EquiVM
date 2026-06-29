@@ -29,6 +29,11 @@ def cBytecode : ByteArray :=
     66, 74, 143, 158, 1, 199, 216, 56, 223, 231, 10, 214, 105, 28, 100, 115, 111, 108, 99, 67, 0, 8,
     35, 0, 51]⟩
 
+/-- Minimal empty-constructor initcode that copies and returns `cBytecode`. -/
+def cInitcode : ByteArray :=
+  ⟨#[0x61, 0x01, 0x0f, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x01, 0x0f, 0x5f, 0xf3]⟩
+    ++ cBytecode
+
 /-- `keccak("f(uint256)")[0:4] = 0xb3de648b`. -/
 axiom cFSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr Reuse.fTransition))).extract 0 4

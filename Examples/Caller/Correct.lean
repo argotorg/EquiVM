@@ -10,6 +10,7 @@ import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Storage
 import Reasoning.Reach
+import Reasoning.Constructor
 import Reasoning.ExternalCall
 
 /-!
@@ -995,7 +996,9 @@ theorem callerCanon_eq {I : ExecutionEnv} (hcanon : (callerArg0 I).toNat < EVM.a
     show Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256 = (callerArg0 I).toNat
     rw [show addrMask.toNat = 2 ^ 160 - 1 from by decide,
         land_mask160 _ (by rw [show EVM.addressModulus = 2^160 from by decide] at hcanon; exact hcanon)]
-    exact Nat.mod_eq_of_lt (by have := (callerArg0 I).val.isLt; simpa [UInt256.size, EVM.twoPow, UInt256.toNat] using this)
+    exact Nat.mod_eq_of_lt (by
+      have hlt : (callerArg0 I).toNat < UInt256.size := (callerArg0 I).val.isLt
+      simpa [UInt256.size, EVM.twoPow] using hlt)
   rw [hland]; exact ueq_self (callerArg0 I)
 
 /-! ## Decode-failure EVM revert traces (datalen / signed / clean-address checks) -/
@@ -1276,5 +1279,88 @@ theorem callerCorrect :
   · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hperm hσ
   · exact (callerX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
+
+/-! ## Constructor and full-contract equivalence -/
+
+noncomputable def callerInitReturnMem : ByteArray :=
+  callerInitcode.write 12 ByteArray.empty 0 567
+
+theorem callerBytecode_size : callerBytecode.size = 567 := by
+  native_decide
+
+theorem callerInitcode_runtime_window :
+    callerInitcode.extract 12 (12 + 567) = callerBytecode := by
+  native_decide
+
+theorem callerInitcodeDecode0 :
+    decode callerInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨567⟩, 2)) := by
+  native_decide
+
+theorem callerInitcodeDecode3 :
+    decode callerInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
+  native_decide
+
+theorem callerInitcodeDecode5 :
+    decode callerInitcode ⟨5⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem callerInitcodeDecode6 :
+    decode callerInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
+  native_decide
+
+theorem callerInitcodeDecode7 :
+    decode callerInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨567⟩, 2)) := by
+  native_decide
+
+theorem callerInitcodeDecode10 :
+    decode callerInitcode ⟨10⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem callerInitcodeDecode11 :
+    decode callerInitcode ⟨11⟩ = some (.RETURN, .none) := by
+  native_decide
+
+theorem callerFinal_read :
+    callerInitReturnMem.readWithPadding 0 567 = callerBytecode := by
+  unfold callerInitReturnMem
+  rw [write0_read_back_from_gen callerInitcode ByteArray.empty 12 567
+    (by decide) (by native_decide) (by decide)]
+  exact callerInitcode_runtime_window
+
+set_option maxHeartbeats 400000 in
+theorem callerInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = callerInitcode) :
+    RDret callerInitcode g
+      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      callerBytecode := by
+  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  have rd0 :
+      RD callerInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+        (createdAccounts, σ) 0 0 := by
+    rw [hs0]; exact RD.initState hcode
+  exact evm_run rd0 with [
+    raw push2 ⟨567⟩ callerInitcodeDecode0 (by evm_ov),
+    raw push1 ⟨12⟩ callerInitcodeDecode3 (by evm_ov),
+    raw push0 callerInitcodeDecode5 (by evm_ov),
+    raw codecopy 54 callerInitReturnMem (UInt256.ofNat 18) callerInitcodeDecode6
+      mem_cost
+      rfl
+      (by decide) (by evm_ov),
+    raw push2 ⟨567⟩ callerInitcodeDecode7 (by evm_ov),
+    raw push0 callerInitcodeDecode10 (by evm_ov),
+    raw ret 0 callerBytecode callerInitcodeDecode11
+      mem_cost
+      callerFinal_read
+      (by evm_ov)]
+
+/-- The creation/initcode bytecode refines the Solm constructor specification. -/
+theorem callerConstructorCorrect :
+    constructorEquivalence callerConfig callerInitcode callerContract callerBytecode :=
+  emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
+
+/-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
+theorem callerContractCorrect :
+    contractEquivalence callerConfig callerInitcode callerBytecode callerContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode) callerCorrect
 
 end Caller

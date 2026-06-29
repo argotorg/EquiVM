@@ -67,7 +67,7 @@ theorem fromBytesBigEndian_inj4 {l l' : List UInt8} (hl : l.length = 4) (hl' : l
 
 /-- The dispatcher's `ByteArray` selector compare `#[c0,c1,c2,c3] == calldata[0:4]` equals the
     list condition on the first four calldata bytes. -/
-theorem extract4_eq_iff (cd : ByteArray) (c0 c1 c2 c3 : UInt8) (hsz : 4 ≤ cd.size) :
+theorem extract4_eq_iff (cd : ByteArray) (c0 c1 c2 c3 : UInt8) (_hsz : 4 ≤ cd.size) :
     ((⟨#[c0, c1, c2, c3]⟩ : ByteArray) == cd.extract 0 4) = true
       ↔ cd.data.toList.take 4 = [c0, c1, c2, c3] := by
   rw [show ((⟨#[c0, c1, c2, c3]⟩ : ByteArray) == cd.extract 0 4)
@@ -422,7 +422,8 @@ theorem memExpRevert0 (s : State) {t : List UInt256}
     (hstk : s.machineState.stack = ⟨0⟩ :: ⟨0⟩ :: t) :
     memoryExpansionCost s .REVERT = 0 := by
   have hlt : s.machineState.activeWords.toNat < UInt256.size := by
-    simpa [UInt256.toNat] using s.machineState.activeWords.val.isLt
+    show s.machineState.activeWords.val.val < UInt256.size
+    exact s.machineState.activeWords.val.isLt
   have hof : UInt256.ofNat s.machineState.activeWords.toNat = s.machineState.activeWords :=
     u256_inj (by show (Fin.ofNat _ _).val = _
                  simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hlt)

@@ -370,8 +370,8 @@ theorem packedSetTrueWord_eq (w : UInt256) :
   change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 1) %
       UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
   have hwlt : w.toNat < 2 ^ 256 := by
-    change w.val.val < 2 ^ 256
-    simpa [UInt256.size] using w.val.isLt
+    change w.val.val < UInt256.size
+    exact w.val.isLt
   have hland_lt : Nat.land w.toNat (2 ^ 256 - 2 ^ 8) < UInt256.size := by
     rw [natLandClearLow8 w.toNat hwlt]
     exact lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
@@ -396,8 +396,8 @@ theorem packedSetFalseWord_eq (w : UInt256) :
     native_decide
   rw [hlnot]
   have hwlt : w.toNat < 2 ^ 256 := by
-    change w.val.val < 2 ^ 256
-    simpa [UInt256.size] using w.val.isLt
+    change w.val.val < UInt256.size
+    exact w.val.isLt
   rw [natLandClearLow8 w.toNat hwlt]
   have hlt : w.toNat / 2 ^ 8 * 2 ^ 8 < UInt256.size :=
     lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt

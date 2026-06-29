@@ -39,6 +39,11 @@ def callerBytecode : ByteArray :=
     234, 232, 49, 155, 5, 166, 18, 105, 83, 101, 199, 167, 227, 2, 116, 100, 115, 111, 108, 99, 67,
     0, 8, 35, 0, 51]⟩
 
+/-- Minimal empty-constructor initcode that copies and returns `callerBytecode`. -/
+def callerInitcode : ByteArray :=
+  ⟨#[0x61, 0x02, 0x37, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x02, 0x37, 0x5f, 0xf3]⟩
+    ++ callerBytecode
+
 /-- `keccak("run(address,uint256)")[0:4] = 0x381fd190`. -/
 axiom callerSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr Caller.runTransition))).extract 0 4

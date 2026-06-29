@@ -124,3 +124,107 @@ def blindAuctionBytecode : ByteArray :=
     209, 235, 186, 193, 2, 202, 128, 168, 139, 123, 3, 231, 136, 253, 75, 31, 252, 169, 161, 234,
     63, 100, 115, 111, 108, 99, 67, 0, 8, 35, 0, 51
   ]⟩
+
+/-! ## Constructor/initcode bytecode
+
+For constructor-equivalence we use compact straight-line initcode, following `SimpleAuction`: it
+enforces the nonpayable constructor guard, copies the appended ABI words, stores
+`beneficiaryAddress`, stores checked `block.timestamp + biddingTime`, stores checked
+`biddingEnd + revealTime`, and returns the deployed runtime above.
+-/
+
+/-- Constructor prefix; the deployed runtime starts at byte offset 146. -/
+def blindAuctionCtorPrefix : ByteArray :=
+  ⟨#[
+    0x34,             -- CALLVALUE
+    0x80,             -- DUP1
+    0x15,             -- ISZERO
+    0x60, 0x09,       -- PUSH1 0x09       ; nonpayable-ok target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x5f,             -- PUSH0
+    0xfd,             -- REVERT
+    0x5b,             -- JUMPDEST
+    0x50,             -- POP
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x09, 0x2b, -- PUSH2 0x092b     ; beneficiaryAddress ABI word
+    0x5f,             -- PUSH0            ; memory dst
+    0x39,             -- CODECOPY
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; beneficiaryAddress
+    0x80,             -- DUP1
+    0x73, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+          0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                      -- PUSH20 address mask
+    0x16,             -- AND              ; masked beneficiaryAddress
+    0x5f,             -- PUSH0            ; slot 0
+    0x54,             -- SLOAD
+    0x73, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+          0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                      -- PUSH20 address mask
+    0x19,             -- NOT
+    0x16,             -- AND              ; preserved high 96 bits
+    0x17,             -- OR
+    0x90,             -- SWAP1
+    0x50,             -- POP
+    0x5f,             -- PUSH0            ; slot 0
+    0x55,             -- SSTORE
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x08, 0xeb, -- PUSH2 0x08eb     ; biddingTime ABI word
+    0x5f,             -- PUSH0            ; memory dst
+    0x39,             -- CODECOPY
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; biddingTime
+    0x42,             -- TIMESTAMP
+    0x80,             -- DUP1
+    0x82,             -- DUP3
+    0x01,             -- ADD              ; timestamp + biddingTime
+    0x10,             -- LT               ; wrapped sum < timestamp
+    0x90,             -- SWAP1
+    0x50,             -- POP
+    0x60, 0x8e,       -- PUSH1 0x8e       ; overflow revert target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; biddingTime
+    0x42,             -- TIMESTAMP
+    0x01,             -- ADD
+    0x60, 0x01,       -- PUSH1 1          ; biddingEnd slot
+    0x55,             -- SSTORE
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x09, 0x0b, -- PUSH2 0x090b     ; revealTime ABI word
+    0x5f,             -- PUSH0            ; memory dst
+    0x39,             -- CODECOPY
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; revealTime
+    0x60, 0x01,       -- PUSH1 1
+    0x54,             -- SLOAD            ; biddingEnd
+    0x80,             -- DUP1
+    0x82,             -- DUP3
+    0x01,             -- ADD              ; biddingEnd + revealTime
+    0x10,             -- LT               ; wrapped sum < biddingEnd
+    0x90,             -- SWAP1
+    0x50,             -- POP
+    0x60, 0x8e,       -- PUSH1 0x8e       ; overflow revert target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x51,             -- MLOAD            ; revealTime
+    0x60, 0x01,       -- PUSH1 1
+    0x54,             -- SLOAD            ; biddingEnd
+    0x01,             -- ADD
+    0x60, 0x02,       -- PUSH1 2          ; revealEnd slot
+    0x55,             -- SSTORE
+    0x61, 0x08, 0x59, -- PUSH2 0x0859     ; runtime length
+    0x61, 0x00, 0x92, -- PUSH2 0x0092     ; runtime offset
+    0x5f,             -- PUSH0
+    0x39,             -- CODECOPY
+    0x61, 0x08, 0x59, -- PUSH2 0x0859
+    0x5f,             -- PUSH0
+    0xf3,             -- RETURN
+    0x5b,             -- JUMPDEST
+    0x5f,             -- PUSH0
+    0x5f,             -- PUSH0
+    0xfd              -- REVERT
+  ]⟩
+
+/-- Pure creation/initcode for `BlindAuction`, without appended constructor ABI arguments. -/
+def blindAuctionInitcode : ByteArray := blindAuctionCtorPrefix ++ blindAuctionBytecode

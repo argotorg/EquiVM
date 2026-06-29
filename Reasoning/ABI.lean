@@ -1030,7 +1030,7 @@ theorem decodeScalarWord_bool_none_noncanon {bytes : List UInt8} {start : Nat}
     apply hno
     apply u256_inj
     simpa [UInt256.toNat] using h
-  simp only [Option.bind, bind]
+  dsimp only [Option.bind]
   rw [if_neg (by simpa [UInt256.toNat] using hnzNat),
     if_neg (by simpa [UInt256.toNat] using hnoNat)]
 
@@ -1250,8 +1250,6 @@ theorem decodeScalarWords_address_ok {bytes : List UInt8}
     (hcanon : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
     decodeScalarWords? [(.elem .address)] bytes 0 =
       some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address] bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat)]
   simp only [decodeScalarWords?]
   rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
     (by simpa using hcanon)]
@@ -1261,7 +1259,6 @@ theorem decodeScalarWords_address_none_noncanon {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hnc : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
     decodeScalarWords? [(.elem .address)] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address] bytes 0 = none
   simp only [decodeScalarWords?]
   rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
     (by simpa using hnc)]
@@ -1270,7 +1267,6 @@ theorem decodeScalarWords_address_none_noncanon {bytes : List UInt8}
 theorem decodeScalarWords_address_none_short {bytes : List UInt8}
     (hshort : bytes.length < 32) :
     decodeScalarWords? [(.elem .address)] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address] bytes 0 = none
   simp only [decodeScalarWords?]
   have htake0n : ¬ (bytes.take 32).length = 32 := by
     rw [List.length_take]
@@ -1358,10 +1354,6 @@ theorem decodeScalarWords_address_address_ok {bytes : List UInt8}
       some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
         .address (Ethereum.AccountAddress.ofNat
           (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-      .address (Ethereum.AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)]
   simp only [decodeScalarWords?, Nat.zero_add]
   rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
     (by simpa using hcanon0)]
@@ -1373,7 +1365,6 @@ theorem decodeScalarWords_address_address_none_noncanon0 {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
     decodeScalarWords? [(.elem .address), (.elem .address)] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
   simp only [decodeScalarWords?, Nat.zero_add]
   rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
     (by simpa using hnc0)]
@@ -1385,7 +1376,6 @@ theorem decodeScalarWords_address_address_none_noncanon1 {bytes : List UInt8}
     (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
     (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
     decodeScalarWords? [(.elem .address), (.elem .address)] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
   simp only [decodeScalarWords?, Nat.zero_add]
   rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
     (by simpa using hcanon0)]
@@ -1395,7 +1385,6 @@ theorem decodeScalarWords_address_address_none_noncanon1 {bytes : List UInt8}
 theorem decodeScalarWords_address_address_none_short {bytes : List UInt8}
     (hshort : bytes.length < 64) :
     decodeScalarWords? [(.elem .address), (.elem .address)] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, .elem .address] bytes 0 = none
   simp only [decodeScalarWords?, Nat.zero_add]
   by_cases h32 : bytes.length < 32
   · have htake0n : ¬ (bytes.take 32).length = 32 := by
@@ -2358,7 +2347,7 @@ theorem decodeABIArrayStaticElems_uint256_exists_of_length {n : Nat}
       refine ⟨v :: values, ?_, by simp [hlen]⟩
       rw [decodeABIArrayStaticElems?, hv]
       have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hvalues, hmul, Nat.add_assoc]
+      simp [hvalues, hmul, Nat.add_assoc]
 
 theorem decodeABIArrayStaticElems_bytes32_exists_of_length {n : Nat}
     {bytes : List UInt8} {start : Nat} (h : start + 32 * n ≤ bytes.length) :
@@ -2374,7 +2363,7 @@ theorem decodeABIArrayStaticElems_bytes32_exists_of_length {n : Nat}
       refine ⟨v :: values, ?_, by simp [hlen]⟩
       rw [decodeABIArrayStaticElems?, hv]
       have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hvalues, hmul, Nat.add_assoc]
+      simp [hvalues, hmul, Nat.add_assoc]
 
 theorem decodeABIRawBoolArrayElems_facts {n : Nat} {bytes : List UInt8}
     {start : Nat} {values : List Value} {endOffset : Nat}
@@ -2422,7 +2411,7 @@ theorem decodeABIRawBoolArrayElems_exists_of_length {n : Nat} {bytes : List UInt
       refine ⟨rawBoolWordValue word :: values, ?_, by simp [hlen]⟩
       rw [decodeABIRawBoolArrayElems?, hread, hvalues]
       have hmul : 32 + 32 * n = 32 * (n + 1) := by omega
-      simpa [hmul, Nat.add_assoc]
+      simp [hmul, Nat.add_assoc]
 
 theorem decodeABIValue_dynamicArray_uint256_exists {bytes : List UInt8}
     {start len : Nat}
@@ -2646,7 +2635,7 @@ theorem decodeABIValue_bytes32_readNat {bytes : List UInt8} {start endOffset : N
     rw [if_pos htake]
     simp only [bind, Option.bind]
     rw [hbytes]
-    simp [word_toBytesBE_toByteArray_size, bytesToWord_toBytesBE, UInt256.toNat]
+    simp [bytesToWord_toBytesBE, UInt256.toNat]
   · exact hend'.symm
 
 theorem decodeABIArrayStaticElems_bytes32_lookup_readNat {n : Nat}
@@ -2711,7 +2700,7 @@ theorem decodeABIValue_dynamicArray_uint256_lookup_readNat {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hstatic : decodeABIArrayStaticElems? abiUInt256 len 32 bytes (start + 32) with
         | none =>
             change ((decodeABIArrayStaticElems? abiUInt256 len 32 bytes (start + 32)).bind
@@ -2742,7 +2731,7 @@ theorem decodeABIValue_dynamicArray_bool_lookup_readNat {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hraw : decodeABIRawBoolArrayElems? len bytes (start + 32) with
         | none => simp [hraw] at hdec
         | some p =>
@@ -2766,7 +2755,7 @@ theorem decodeABIValue_dynamicArray_bytes32_lookup_readNat {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hstatic : decodeABIArrayStaticElems? abiBytes32 len 32 bytes (start + 32) with
         | none =>
             change ((decodeABIArrayStaticElems? abiBytes32 len 32 bytes (start + 32)).bind
@@ -2964,7 +2953,7 @@ theorem decodeABIValue_dynamicArray_uint256_lookup_shape {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hstatic : decodeABIArrayStaticElems? abiUInt256 len 32 bytes (start + 32) with
         | none =>
             change ((decodeABIArrayStaticElems? abiUInt256 len 32 bytes (start + 32)).bind
@@ -2995,7 +2984,7 @@ theorem decodeABIValue_dynamicArray_bool_lookup_shape {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hraw : decodeABIRawBoolArrayElems? len bytes (start + 32) with
         | none => simp [hraw] at hdec
         | some p =>
@@ -3019,7 +3008,7 @@ theorem decodeABIValue_dynamicArray_bytes32_lookup_shape {bytes : List UInt8}
   | some len =>
       by_cases hmax : solcMaxU64 < len
       · simp [hread, hmax] at hdec
-      · simp [hread, hmax, staticABIEncodedSize?, isDynamicABIType] at hdec
+      · simp [hread, hmax] at hdec
         cases hstatic : decodeABIArrayStaticElems? abiBytes32 len 32 bytes (start + 32) with
         | none =>
             change ((decodeABIArrayStaticElems? abiBytes32 len 32 bytes (start + 32)).bind

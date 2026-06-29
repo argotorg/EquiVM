@@ -108,7 +108,8 @@ def erc20StorageLayout : StorageLayout where
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "initialSupply", ty := uint256 }]
     body :=
-      [ .assign .storage (balanceOfRef sender) (.var "initialSupply"),
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .assign .storage (balanceOfRef sender) (.var "initialSupply"),
         .assign .storage totalSupplyRef (.var "initialSupply") ] }
 
 def totalSupplyTransition : TransitionDecl :=

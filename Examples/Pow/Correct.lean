@@ -9,6 +9,7 @@ import Reasoning.Stepping
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Reach
+import Reasoning.Constructor
 
 /-!
 # Pow — runtime-equivalence proof for `pow2(uint256 n)`
@@ -477,8 +478,7 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : Sat256}
         (UInt256.toByteArray
           (UInt256.ofNat (2 ^ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat))) := by
   have hsize : I.calldata.size < UInt256.size := by
-    have h0 : (2:ℕ)^255 + 4 < 2^256 := by norm_num
-    have hp : (2:ℕ)^255 + 4 < UInt256.size := by simpa [UInt256.size] using h0
+    have hp : (2:ℕ)^255 + 4 < UInt256.size := by norm_num [UInt256.size]
     omega
   -- the selector word and the decoded argument
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
@@ -504,7 +504,7 @@ theorem powX_success {cA gh bl σ σ₀ A I} {g : Sat256}
       (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
       (by decide)
       (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-      (rdDec |>.routinerequire hltval (by simp only [List.length_cons, List.length_nil]; omega))
+      (rdDec |>.routinerequire hltval (by simp only [List.length_nil]; omega))
     with ⟨k4, C4, rd4⟩
   -- loop-exit → encoder, threaded straight to the success terminal `RDret`
   exact rd4.routineexit (by jump_dest)
@@ -592,8 +592,7 @@ theorem powX_nlarge {cA gh bl σ σ₀ A I} {g : Sat256}
     (hn : 256 ≤ (uInt256OfByteArray (I.calldata.readBytes 4 32)).toNat) :
     RDrev powBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hsize : I.calldata.size < UInt256.size := by
-    have h0 : (2:ℕ)^255 + 4 < 2^256 := by norm_num
-    have hp : (2:ℕ)^255 + 4 < UInt256.size := by simpa [UInt256.size] using h0
+    have hp : (2:ℕ)^255 + 4 < UInt256.size := by norm_num [UInt256.size]
     omega
   set sel := UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ with hsel
   set arg := uInt256OfByteArray (I.calldata.readBytes 4 32) with harg
@@ -929,5 +928,88 @@ theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
     exact (powX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
+
+/-! ## Constructor and full-contract equivalence -/
+
+noncomputable def powInitReturnMem : ByteArray :=
+  powInitcode.write 12 ByteArray.empty 0 290
+
+theorem powBytecode_size : powBytecode.size = 290 := by
+  native_decide
+
+theorem powInitcode_runtime_window :
+    powInitcode.extract 12 (12 + 290) = powBytecode := by
+  native_decide
+
+theorem powInitcodeDecode0 :
+    decode powInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨290⟩, 2)) := by
+  native_decide
+
+theorem powInitcodeDecode3 :
+    decode powInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
+  native_decide
+
+theorem powInitcodeDecode5 :
+    decode powInitcode ⟨5⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem powInitcodeDecode6 :
+    decode powInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
+  native_decide
+
+theorem powInitcodeDecode7 :
+    decode powInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨290⟩, 2)) := by
+  native_decide
+
+theorem powInitcodeDecode10 :
+    decode powInitcode ⟨10⟩ = some (.PUSH0, .none) := by
+  native_decide
+
+theorem powInitcodeDecode11 :
+    decode powInitcode ⟨11⟩ = some (.RETURN, .none) := by
+  native_decide
+
+theorem powFinal_read :
+    powInitReturnMem.readWithPadding 0 290 = powBytecode := by
+  unfold powInitReturnMem
+  rw [write0_read_back_from_gen powInitcode ByteArray.empty 12 290
+    (by decide) (by native_decide) (by decide)]
+  exact powInitcode_runtime_window
+
+set_option maxHeartbeats 400000 in
+theorem powInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = powInitcode) :
+    RDret powInitcode g
+      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      powBytecode := by
+  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  have rd0 :
+      RD powInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
+        (createdAccounts, σ) 0 0 := by
+    rw [hs0]; exact RD.initState hcode
+  exact evm_run rd0 with [
+    raw push2 ⟨290⟩ powInitcodeDecode0 (by evm_ov),
+    raw push1 ⟨12⟩ powInitcodeDecode3 (by evm_ov),
+    raw push0 powInitcodeDecode5 (by evm_ov),
+    raw codecopy 30 powInitReturnMem (UInt256.ofNat 10) powInitcodeDecode6
+      mem_cost
+      rfl
+      (by decide) (by evm_ov),
+    raw push2 ⟨290⟩ powInitcodeDecode7 (by evm_ov),
+    raw push0 powInitcodeDecode10 (by evm_ov),
+    raw ret 0 powBytecode powInitcodeDecode11
+      mem_cost
+      powFinal_read
+      (by evm_ov)]
+
+/-- The creation/initcode bytecode refines the Solm constructor specification. -/
+theorem powConstructorCorrect :
+    constructorEquivalence powConfig powInitcode Pow.powContract powBytecode :=
+  emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode)
+
+/-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
+theorem powContractCorrect :
+    contractEquivalence powConfig powInitcode powBytecode Pow.powContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode) powCorrect
 
 end Pow

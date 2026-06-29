@@ -132,6 +132,61 @@ def erc20Bytecode : ByteArray :=
     108, 99, 67, 0, 8, 35, 0, 51
   ]⟩
 
+/-! ## Constructor/initcode bytecode
+
+For constructor-equivalence we use compact straight-line initcode, following `CtorStore` and
+`SimpleAuction`: it enforces the nonpayable constructor guard, copies the appended ABI
+`initialSupply` word, writes `balanceOf[msg.sender]`, writes `totalSupply`, and returns the deployed
+runtime above.
+-/
+
+/-- Constructor prefix; the deployed runtime starts at byte offset 55. -/
+def erc20CtorPrefix : ByteArray :=
+  ⟨#[
+    0x34,             -- CALLVALUE
+    0x80,             -- DUP1
+    0x15,             -- ISZERO
+    0x60, 0x09,       -- PUSH1 0x09       ; nonpayable-ok target
+    0x57,             -- JUMPI
+    0x5f,             -- PUSH0
+    0x5f,             -- PUSH0
+    0xfd,             -- REVERT
+    0x5b,             -- JUMPDEST
+    0x50,             -- POP
+    0x60, 0x80,       -- PUSH1 0x80
+    0x60, 0x40,       -- PUSH1 0x40
+    0x52,             -- MSTORE           ; free-memory pointer word
+    0x60, 0x20,       -- PUSH1 0x20       ; one ABI word
+    0x61, 0x0a, 0xcb, -- PUSH2 0x0acb     ; initialSupply ABI word
+    0x60, 0x40,       -- PUSH1 0x40       ; memory dst
+    0x39,             -- CODECOPY
+    0x60, 0x40,       -- PUSH1 0x40
+    0x51,             -- MLOAD            ; initialSupply
+    0x80,             -- DUP1             ; keep a copy for totalSupply
+    0x33,             -- CALLER
+    0x5f,             -- PUSH0
+    0x52,             -- MSTORE           ; mapping key
+    0x5f,             -- PUSH0            ; mapping base slot 0
+    0x60, 0x20,       -- PUSH1 0x20
+    0x52,             -- MSTORE
+    0x60, 0x40,       -- PUSH1 0x40
+    0x5f,             -- PUSH0
+    0x20,             -- KECCAK256        ; balanceOf[msg.sender] slot
+    0x55,             -- SSTORE
+    0x60, 0x02,       -- PUSH1 0x02       ; totalSupply slot
+    0x55,             -- SSTORE
+    0x61, 0x0a, 0x94, -- PUSH2 0x0a94     ; runtime length
+    0x60, 0x37,       -- PUSH1 0x37       ; runtime offset
+    0x5f,             -- PUSH0
+    0x39,             -- CODECOPY
+    0x61, 0x0a, 0x94, -- PUSH2 0x0a94
+    0x5f,             -- PUSH0
+    0xf3              -- RETURN
+  ]⟩
+
+/-- Pure creation/initcode for `ERC20`, without appended constructor ABI arguments. -/
+def erc20Initcode : ByteArray := erc20CtorPrefix ++ erc20Bytecode
+
 /-- `keccak("approve(address,uint256)")[0:4] = 0x095ea7b3`. -/
 axiom erc20ApproveSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.approveTransition))).extract 0 4
