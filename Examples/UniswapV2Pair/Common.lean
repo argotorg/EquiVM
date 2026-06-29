@@ -88,6 +88,41 @@ theorem initState_codeOwner_storageLoad_ne_of_accountMapEquiv
   have hword := accountMapEquiv_storage_findD_ne hAccounts I.codeOwner slot ⟨0⟩ val h
   simpa [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using hword
 
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — `FunctionDecl` analogue of
+-- `internalCallTransitionReturn`, for internal/private Solidity helper calls.
+theorem internalCallFunctionReturn {cfg : Config} {caller : Frame} {evm calleeEvm : EVM.State}
+    {name retVar : Ident} {args : List Expr} {argVals : List Value}
+    {callee : FunctionDecl} {locals : Store} {calleeSolm : Frame} {value : Option Value}
+    (hargs : evalExprs? cfg caller evm args = .ok argVals)
+    (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
+    (hbind : bindParams? callee.params argVals = some locals)
+    (hbody : ExecFuncBody cfg { caller with locals := locals } evm callee.body
+      (.returned calleeSolm calleeEvm value)) :
+    ExecStmt cfg caller evm (.internalCall name args retVar)
+      (.ok (resumeAfterInternalCall caller retVar value) calleeEvm) := by
+  exact ExecStmt.internalCallReturn (cfg := cfg) (solm := caller) (evm := evm)
+    (name := name) (args := args) (retVar := retVar) (argVals := argVals)
+    (callee := callee.toCallable) (locals := locals) (calleeSolm := calleeSolm)
+    (calleeEvm := calleeEvm) (value := value)
+    hargs hlookup (by simpa [FunctionDecl.toCallable] using hbind)
+    (by simpa [FunctionDecl.toCallable] using hbody)
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — `FunctionDecl` analogue of
+-- `internalCallTransitionRevert`, for internal/private Solidity helper calls.
+theorem internalCallFunctionRevert {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {name retVar : Ident} {args : List Expr} {argVals : List Value}
+    {callee : FunctionDecl} {locals : Store}
+    (hargs : evalExprs? cfg caller evm args = .ok argVals)
+    (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
+    (hbind : bindParams? callee.params argVals = some locals)
+    (hbody : ExecFuncBody cfg { caller with locals := locals } evm callee.body .reverted) :
+    ExecStmt cfg caller evm (.internalCall name args retVar) .reverted := by
+  exact ExecStmt.internalCallRevert (cfg := cfg) (solm := caller) (evm := evm)
+    (name := name) (args := args) (retVar := retVar) (argVals := argVals)
+    (callee := callee.toCallable) (locals := locals)
+    hargs hlookup (by simpa [FunctionDecl.toCallable] using hbind)
+    (by simpa [FunctionDecl.toCallable] using hbody)
+
 end Reasoning.Theory
 
 namespace UniswapV2Pair

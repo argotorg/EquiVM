@@ -208,6 +208,16 @@ def updateReservesStmts (balance0 balance1 : Expr) : List Stmt :=
 def safeTransferStmts (token recipient value : Expr) (okVar _dataVar : Ident) : List Stmt :=
   [ .internalCall "_safeTransfer" [token, recipient, value] okVar ]
 
+def transferCalldataExpr (recipient value : Expr) : Expr :=
+  .abiEncodeCall "transfer" [recipient, value]
+
+def safeTransferReturnOkExpr : Expr :=
+  .ite (.var "_success")
+    (.ite (.binary .eq (.arrayLength .localVar { base := "_data" }) (.intLit 0))
+      (.boolLit true)
+      (.abiDecode boolTy (.var "_data")))
+    (.boolLit false)
+
 def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
     (args : List Expr) (retVar : Ident) : List Stmt :=
   [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
@@ -302,7 +312,10 @@ def safeTransferFunction : FunctionDecl :=
       [ { name := "token", ty := addr }, { name := "to", ty := addr },
         { name := "value", ty := uint256 } ]
     returnType := none
-    body := [ .externalCall (.var "token") "transfer" (.intLit 0) [.var "to", .var "value"] "_ok" ] }
+    body :=
+      [ .lowLevelCall (.var "token") (.intLit 0)
+          (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
+        .require safeTransferReturnOkExpr ] }
 
 def updateFunction : FunctionDecl :=
   { name := "_update"

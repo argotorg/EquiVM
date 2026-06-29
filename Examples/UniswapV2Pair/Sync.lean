@@ -29,6 +29,21 @@ abbrev syncAfterUpdateStore (balance0 balance1 : UInt256) : Store :=
 abbrev syncAfterUpdateFrame (balance0 balance1 : UInt256) : Frame :=
   { contract := contract, locals := syncAfterUpdateStore balance0 balance1 }
 
+abbrev syncUpdateCallArgVals (evm : EVM.State) (balance0 balance1 : UInt256) : List Value :=
+  [ uniswapUint256Value balance0,
+    uniswapUint256Value balance1,
+    .int (Int.ofNat (uniswapReserve0Word evm).toNat),
+    .int (Int.ofNat (uniswapReserve1Word evm).toNat) ]
+
+abbrev syncUpdateCallStore (evm : EVM.State) (balance0 balance1 : UInt256) : Store :=
+  ((((∅ : Store).insert "_reserve1" (.int (Int.ofNat (uniswapReserve1Word evm).toNat))).insert
+      "_reserve0" (.int (Int.ofNat (uniswapReserve0Word evm).toNat))).insert
+      "balance1" (uniswapUint256Value balance1)).insert
+      "balance0" (uniswapUint256Value balance0)
+
+abbrev syncUpdateCallFrame (evm : EVM.State) (balance0 balance1 : UInt256) : Frame :=
+  { contract := contract, locals := syncUpdateCallStore evm balance0 balance1 }
+
 theorem syncBalanceStore_balance0 (balance0 balance1 : UInt256) :
     (syncBalanceStore balance0 balance1).get? "balance0" =
       some (uniswapUint256Value balance0) := by
@@ -40,6 +55,153 @@ theorem syncBalanceStore_balance1 (balance0 balance1 : UInt256) :
       some (uniswapUint256Value balance1) := by
   exact uniswapBalanceOfStore_balance1 (∅ : Store) (uniswapUint256Value balance0)
     (uniswapUint256Value balance1)
+
+theorem syncUpdateCallStore_balance0 (evm : EVM.State) (balance0 balance1 : UInt256) :
+    (syncUpdateCallStore evm balance0 balance1).get? "balance0" =
+      some (uniswapUint256Value balance0) := by
+  rw [syncUpdateCallStore, store_get_self]
+
+theorem syncUpdateCallStore_balance1 (evm : EVM.State) (balance0 balance1 : UInt256) :
+    (syncUpdateCallStore evm balance0 balance1).get? "balance1" =
+      some (uniswapUint256Value balance1) := by
+  rw [syncUpdateCallStore, store_get_ne _ _ (by decide), store_get_self]
+
+theorem evalExpr_sync_update_balance0_le_max_true (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : Int.ofNat balance0.toNat ≤ maxUint112) :
+    evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
+      (.binary .le (.var "balance0") (.intLit maxUint112)) = .ok (.bool true) := by
+  simp only [syncUpdateCallFrame, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateCallStore_balance0]
+  simpa [uniswapUint256Value, evalBinaryOp?] using hbound
+
+theorem evalExpr_sync_update_balance0_le_max_false (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
+      (.binary .le (.var "balance0") (.intLit maxUint112)) = .ok (.bool false) := by
+  simp only [syncUpdateCallFrame, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateCallStore_balance0]
+  simpa [uniswapUint256Value, evalBinaryOp?] using hbound
+
+theorem evalExpr_sync_update_balance1_le_max_false (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance1.toNat) :
+    evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
+      (.binary .le (.var "balance1") (.intLit maxUint112)) = .ok (.bool false) := by
+  simp only [syncUpdateCallFrame, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateCallStore_balance1]
+  simpa [uniswapUint256Value, evalBinaryOp?] using hbound
+
+theorem evalExpr_sync_update_bounds_false_first (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
+      (.binary .and
+        (.binary .le (.var "balance0") (.intLit maxUint112))
+        (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
+  have hnot : ¬ Int.ofNat balance0.toNat ≤ maxUint112 := by omega
+  simp only [evalExpr?, EvalResult.bind, bind]
+  rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
+  simp [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?]
+  intro hle
+  exact False.elim (hnot hle)
+
+theorem evalExpr_sync_update_bounds_false_second (evm : EVM.State) (balance0 balance1 : UInt256)
+    (_hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
+    evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
+      (.binary .and
+        (.binary .le (.var "balance0") (.intLit maxUint112))
+        (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
+  simp only [evalExpr?, EvalResult.bind, bind]
+  rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
+  simp [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?]
+  intro _hle0
+  exact hbound1
+
+theorem evalExprs_sync_update_call_args (evm : EVM.State) (balance0 balance1 : UInt256) :
+    evalExprs? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ] =
+        .ok (syncUpdateCallArgVals evm balance0 balance1) := by
+  have h0 :
+      evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+        (.var "balance0") = .ok (uniswapUint256Value balance0) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [syncBalanceStore_balance0]
+  have h1 :
+      evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+        (.var "balance1") = .ok (uniswapUint256Value balance1) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [syncBalanceStore_balance1]
+  have hr0 :
+      evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+        (.storage reserve0Ref) = .ok (.int (Int.ofNat (uniswapReserve0Word evm).toNat)) :=
+    evalExpr_uniswap_reserve0 evm (syncBalanceStore balance0 balance1)
+      (by simp [syncBalanceStore, uniswapBalanceOfStore])
+  have hr1 :
+      evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+        (.storage reserve1Ref) = .ok (.int (Int.ofNat (uniswapReserve1Word evm).toNat)) :=
+    evalExpr_uniswap_reserve1 evm (syncBalanceStore balance0 balance1)
+      (by simp [syncBalanceStore, uniswapBalanceOfStore])
+  simp only [evalExprs?, EvalResult.bind, bind, syncUpdateCallArgVals]
+  rw [h0, h1, hr0, hr1]
+  rfl
+
+theorem uniswapLookupUpdateFunction :
+    lookupCallable? contract "_update" = some updateFunction.toCallable := by
+  rfl
+
+theorem bindParams_sync_update_call (evm : EVM.State) (balance0 balance1 : UInt256) :
+    bindParams? updateFunction.params (syncUpdateCallArgVals evm balance0 balance1) =
+      some (syncUpdateCallStore evm balance0 balance1) := by
+  simp [bindParams?, updateFunction, syncUpdateCallArgVals, syncUpdateCallStore]
+
+theorem uniswapUpdateFunctionReverts_firstBound
+    (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+      updateFunction.body .reverted := by
+  exact ExecFuncBody.execBlockRevert
+    (ExecBlock.consRevert
+      (ExecStmt.requireFalse
+        (evalExpr_sync_update_bounds_false_first evm balance0 balance1 hbound)))
+
+theorem uniswapUpdateFunctionReverts_secondBound
+    (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
+    ExecFuncBody config (syncUpdateCallFrame evm balance0 balance1) evm
+      updateFunction.body .reverted := by
+  exact ExecFuncBody.execBlockRevert
+    (ExecBlock.consRevert
+      (ExecStmt.requireFalse
+        (evalExpr_sync_update_bounds_false_second evm balance0 balance1 hbound0 hbound1)))
+
+theorem uniswapSyncUpdateCallReverts_firstBound
+    (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      (.internalCall "_update"
+        [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
+        "_updateResult") .reverted := by
+  exact Reasoning.Theory.internalCallFunctionRevert
+    (callee := updateFunction) (locals := syncUpdateCallStore evm balance0 balance1)
+    (evalExprs_sync_update_call_args evm balance0 balance1)
+    uniswapLookupUpdateFunction
+    (bindParams_sync_update_call evm balance0 balance1)
+    (uniswapUpdateFunctionReverts_firstBound evm balance0 balance1 hbound)
+
+theorem uniswapSyncUpdateCallReverts_secondBound
+    (evm : EVM.State) (balance0 balance1 : UInt256)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
+    ExecStmt config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
+      (.internalCall "_update"
+        [ .var "balance0", .var "balance1", .storage reserve0Ref, .storage reserve1Ref ]
+        "_updateResult") .reverted := by
+  exact Reasoning.Theory.internalCallFunctionRevert
+    (callee := updateFunction) (locals := syncUpdateCallStore evm balance0 balance1)
+    (evalExprs_sync_update_call_args evm balance0 balance1)
+    uniswapLookupUpdateFunction
+    (bindParams_sync_update_call evm balance0 balance1)
+    (uniswapUpdateFunctionReverts_secondBound evm balance0 balance1 hbound0 hbound1)
 
 abbrev syncBlockTimestampInt (evm : EVM.State) : Int :=
   Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat % twoPow32
@@ -443,7 +605,17 @@ theorem uniswapSyncFirstBoundFailureSource (evm evm0 evm1 : EVM.State)
       some (uniswapUint256Value balance1))
     (hbound0 : maxUint112 < Int.ofNat balance0.toNat) :
     ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  sorry
+  have hbalances := uniswapSyncBalanceOfCallsPrefix
+    (evm := evm) (evm0 := evm0) (evm1 := evm1)
+    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
+    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
+  have hupdate :
+      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+        (updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit) .reverted := by
+    exact ExecBlock.consRevert
+      (uniswapSyncUpdateCallReverts_firstBound evm1 balance0 balance1 hbound0)
+  simpa [syncTransition, syncBalanceCallsBody, updateReservesStmts, List.append_assoc] using
+    execBlock_append hbalances hupdate
 
 theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}
@@ -465,7 +637,17 @@ theorem uniswapSyncSecondBoundFailureSource (evm evm0 evm1 : EVM.State)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
     ExecBlock config { contract := contract, locals := ∅ } evm syncTransition.body .reverted := by
-  sorry
+  have hbalances := uniswapSyncBalanceOfCallsPrefix
+    (evm := evm) (evm0 := evm0) (evm1 := evm1)
+    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
+    hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
+  have hupdate :
+      ExecBlock config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm1
+        (updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit) .reverted := by
+    exact ExecBlock.consRevert
+      (uniswapSyncUpdateCallReverts_secondBound evm1 balance0 balance1 hbound0 hbound1)
+  simpa [syncTransition, syncBalanceCallsBody, updateReservesStmts, List.append_assoc] using
+    execBlock_append hbalances hupdate
 
 theorem uniswapSyncUpdateTimestampPrefix (evm evm0 evm1 : EVM.State)
     {out0 out1 : ByteArray} {balance0 balance1 : UInt256}

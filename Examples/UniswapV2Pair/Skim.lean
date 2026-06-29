@@ -61,6 +61,11 @@ abbrev skimSafeTransfer1Store (evm : EVM.State) (I : ExecutionEnv)
   uniswapLowLevelCallRequireStore
     (skimSafeTransfer0Store evm I balance0 balance1 true out0) "ok1" "_ret1" success out1
 
+abbrev skimTokenStore (evm : EVM.State) (I : ExecutionEnv) : Store :=
+  ((skimStore I).insert "_token0"
+    (.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))).insert "_token1"
+    (.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩))
+
 theorem skimBalanceStore_balance0 (I : ExecutionEnv) (balance0 balance1 : UInt256) :
     (skimBalanceStore I balance0 balance1).get? "balance0" =
       some (skimBalanceValue balance0) := by
@@ -92,6 +97,16 @@ theorem evalExpr_skim_safeTransfer0_ok (storeEvm evalEvm : EVM.State) (I : Execu
       evalEvm (.var "ok0") = .ok (.bool success) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [skimSafeTransfer0Store_ok0]
+
+theorem skimTokenStore_token0 (evm : EVM.State) (I : ExecutionEnv) :
+    (skimTokenStore evm I).get? "_token0" =
+      some (.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩)) := by
+  rw [skimTokenStore, store_get_ne _ _ (by decide), store_get_self]
+
+theorem skimTokenStore_token1 (evm : EVM.State) (I : ExecutionEnv) :
+    (skimTokenStore evm I).get? "_token1" =
+      some (.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) := by
+  rw [skimTokenStore, store_get_self]
 
 theorem uniswapDecode_skim_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -807,6 +822,226 @@ abbrev skimToken1GuardTrue (evm0 : EVM.State) (I : ExecutionEnv) (balance0 : Val
   evalExpr? config { contract := contract, locals := (skimStore I).insert "balance0" balance0 }
     evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool true)
 
+theorem uniswapSkimTokenPrefix (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩) :
+    ExecBlock config { contract := contract, locals := skimStore I } evm
+      (lockEnter ++
+        [ .letDecl "_token0" (some addr) (.storage token0Ref),
+          .letDecl "_token1" (some addr) (.storage token1Ref) ])
+      (.ok { contract := contract, locals := skimTokenStore evm I }
+        (uniswapLockEnteredState evm)) := by
+  let evmL := uniswapLockEnteredState evm
+  have hlock := uniswapSkimLockEnterPrefix evm I hwv hunlocked
+  have htoken0 :
+      evalExpr? config { contract := contract, locals := skimStore I } evmL
+        (.storage token0Ref) = .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    exact evalExpr_uniswap_storage_address evmL (skimStore I)
+      (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
+      (by simp [skimStore, token0Ref])
+      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
+      (by decide) (by rfl)
+  have htoken1 :
+      evalExpr? config
+        { contract := contract,
+          locals := (skimStore I).insert "_token0" (.address (uniswapAddressAtSlot evmL ⟨6⟩)) }
+        evmL (.storage token1Ref) = .ok (.address (uniswapAddressAtSlot evmL ⟨7⟩)) := by
+    exact evalExpr_uniswap_storage_address evmL
+      ((skimStore I).insert "_token0" (.address (uniswapAddressAtSlot evmL ⟨6⟩)))
+      (er := { base := "token1", steps := [] }) (slot := ⟨7⟩)
+      (by simp [skimStore, token1Ref])
+      (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
+      (by decide) (by rfl)
+  have hlets :
+      ExecBlock config { contract := contract, locals := skimStore I } evmL
+        [ .letDecl "_token0" (some addr) (.storage token0Ref),
+          .letDecl "_token1" (some addr) (.storage token1Ref) ]
+        (.ok { contract := contract, locals := skimTokenStore evm I } evmL) := by
+    refine ExecBlock.consNormal (ExecStmt.letDecl htoken0) ?_
+    exact ExecBlock.consNormal (ExecStmt.letDecl htoken1) (by
+      simpa [skimTokenStore, evmL] using (ExecBlock.nil :
+        ExecBlock config { contract := contract, locals := skimTokenStore evm I } evmL []
+          (.ok { contract := contract, locals := skimTokenStore evm I } evmL)))
+  simpa [List.append_assoc, evmL] using execBlock_append hlock hlets
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — variable-address receiver version of
+-- `uniswapExternalBalanceOfThisFailure`, parameterized by receiver variable and target address.
+theorem uniswapExternalBalanceOfThisVarFailure (evm evm' : EVM.State) (locals : Store)
+    {receiver retVar : Ident} {target : AccountAddress} {out : ByteArray}
+    (hreceiver : locals.get? receiver = some (.address target))
+    (hcall : typedCallViaEVM config evm (EVM.address target)
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out)) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      [ .externalCall (.var receiver) "balanceOf" (.intLit 0) [this] retVar ] .reverted := by
+  exact ExecBlock.consRevert
+    (ExecStmt.externalCallFailure
+      (by
+        rw [evalExpr?, hreceiver]
+        rfl)
+      (by simp [evalExpr?, pure])
+      (evalExprs_uniswap_this_single evm locals)
+      hcall)
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — variable-address receiver version of
+-- `uniswapExternalBalanceOfThisDecodeRevert`.
+theorem uniswapExternalBalanceOfThisVarDecodeRevert
+    (evm evm' : EVM.State) (locals : Store)
+    {receiver retVar : Ident} {target : AccountAddress} {out : ByteArray}
+    (hreceiver : locals.get? receiver = some (.address target))
+    (hcall : typedCallViaEVM config evm (EVM.address target)
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+    (hdec : config.externalABI.decode? "balanceOf" out = none) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      [ .externalCall (.var receiver) "balanceOf" (.intLit 0) [this] retVar ] .reverted := by
+  exact ExecBlock.consRevert
+    (ExecStmt.externalCallReturnDecodeRevert
+      (by
+        rw [evalExpr?, hreceiver]
+        rfl)
+      (by simp [evalExpr?, pure])
+      (evalExprs_uniswap_this_single evm locals)
+      hcall hdec)
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side failed high-level external call after
+-- an `EXTCODESIZE` guard, with the receiver read from a local variable.
+theorem uniswapCheckedExternalBalanceOfThisVarFailure
+    (evm evm' : EVM.State) (locals : Store)
+    {receiver retVar : Ident} {target : AccountAddress} {out : ByteArray}
+    (hguard :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)) = .ok (.bool true))
+    (hreceiver : locals.get? receiver = some (.address target))
+    (hcall : typedCallViaEVM config evm (EVM.address target)
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out)) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      (balanceOfThisStmts (.var receiver) retVar) .reverted := by
+  change ExecBlock config { contract := contract, locals := locals } evm
+    [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
+      .externalCall (.var receiver) "balanceOf" (.intLit 0) [this] retVar ]
+    .reverted
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact uniswapExternalBalanceOfThisVarFailure evm evm' locals hreceiver hcall
+
+-- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side ABI-decode revert after a successful
+-- guarded high-level external call whose receiver is a local variable.
+theorem uniswapCheckedExternalBalanceOfThisVarDecodeRevert
+    (evm evm' : EVM.State) (locals : Store)
+    {receiver retVar : Ident} {target : AccountAddress} {out : ByteArray}
+    (hguard :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)) = .ok (.bool true))
+    (hreceiver : locals.get? receiver = some (.address target))
+    (hcall : typedCallViaEVM config evm (EVM.address target)
+      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out))
+    (hdec : config.externalABI.decode? "balanceOf" out = none) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      (balanceOfThisStmts (.var receiver) retVar) .reverted := by
+  change ExecBlock config { contract := contract, locals := locals } evm
+    [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
+      .externalCall (.var receiver) "balanceOf" (.intLit 0) [this] retVar ]
+    .reverted
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact uniswapExternalBalanceOfThisVarDecodeRevert evm evm' locals hreceiver hcall hdec
+
+theorem skimToken0GuardTrue_cached (evm : EVM.State) (I : ExecutionEnv)
+    (hguard0 : skimToken0GuardTrue evm I) :
+    evalExpr? config { contract := contract, locals := skimTokenStore evm I }
+      (uniswapLockEnteredState evm)
+      (.binary .gt (.extCodeSize (.var "_token0")) (.intLit 0)) = .ok (.bool true) := by
+  let evmL := uniswapLockEnteredState evm
+  have hvar :
+      evalExpr? config { contract := contract, locals := skimTokenStore evm I } evmL
+        (.var "_token0") = .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    simpa [evmL, evalExpr?, EvalResult.ofOption, Std.HashMap.get?_eq_getElem?]
+      using skimTokenStore_token0 evm I
+  have hstorage :
+      evalExpr? config { contract := contract, locals := skimStore I } evmL
+        (.storage token0Ref) = .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    exact evalExpr_uniswap_storage_address evmL (skimStore I)
+      (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
+      (by simp [skimStore, token0Ref])
+      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
+      (by decide) (by rfl)
+  unfold skimToken0GuardTrue at hguard0
+  have hvarBase :
+      EvalResult.ofOption EvalError.unboundVariable
+          (Std.HashMap.get? (skimTokenStore evm I) "_token0") =
+        .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    rw [skimTokenStore_token0]
+    simp [evmL, EvalResult.ofOption]
+  have hstorageBase :
+      ((resolveStorageRef? config { contract := contract, locals := skimStore I } evmL
+              token0Ref).bind
+          fun __discr => readStorage? config evmL __discr.1 __discr.2) =
+        .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    simpa [evalExpr?, EvalResult.bind, bind] using hstorage
+  have hsame :
+      evalExpr? config { contract := contract, locals := skimTokenStore evm I } evmL
+          (.binary .gt (.extCodeSize (.var "_token0")) (.intLit 0)) =
+        evalExpr? config { contract := contract, locals := skimStore I } evmL
+          (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) := by
+    simp [evalExpr?, EvalResult.bind, bind, pure, hvar, hstorage]
+  exact hsame.trans (by simpa [evmL] using hguard0)
+
+theorem uniswapSkimCachedFirstCallFailure (evm evm0 : EVM.State) (I : ExecutionEnv)
+    {out0 : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hguard0 : skimToken0GuardTrue evm I)
+    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
+      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
+      (false, evm0, out0)) :
+    ExecBlock config { contract := contract, locals := skimStore I } evm
+      (lockEnter ++
+        [ .letDecl "_token0" (some addr) (.storage token0Ref),
+          .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
+        balanceOfThisStmts (.var "_token0") "balance0")
+      .reverted := by
+  let evmL := uniswapLockEnteredState evm
+  have hprefix := uniswapSkimTokenPrefix evm I hwv hunlocked
+  have hfail :
+      ExecBlock config { contract := contract, locals := skimTokenStore evm I } evmL
+        (balanceOfThisStmts (.var "_token0") "balance0") .reverted := by
+    exact uniswapCheckedExternalBalanceOfThisVarFailure
+      (evm := evmL) (evm' := evm0) (locals := skimTokenStore evm I)
+      (receiver := "_token0") (retVar := "balance0")
+      (target := uniswapAddressAtSlot evmL ⟨6⟩)
+      (skimToken0GuardTrue_cached evm I hguard0)
+      (by simpa [evmL] using skimTokenStore_token0 evm I)
+      hcall0
+  simpa [List.append_assoc, evmL] using execBlock_append hprefix hfail
+
+theorem uniswapSkimCachedFirstCallDecodeRevert (evm evm0 : EVM.State) (I : ExecutionEnv)
+    {out0 : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hguard0 : skimToken0GuardTrue evm I)
+    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
+      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
+      (true, evm0, out0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = none) :
+    ExecBlock config { contract := contract, locals := skimStore I } evm
+      (lockEnter ++
+        [ .letDecl "_token0" (some addr) (.storage token0Ref),
+          .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
+        balanceOfThisStmts (.var "_token0") "balance0")
+      .reverted := by
+  let evmL := uniswapLockEnteredState evm
+  have hprefix := uniswapSkimTokenPrefix evm I hwv hunlocked
+  have hfail :
+      ExecBlock config { contract := contract, locals := skimTokenStore evm I } evmL
+        (balanceOfThisStmts (.var "_token0") "balance0") .reverted := by
+    exact uniswapCheckedExternalBalanceOfThisVarDecodeRevert
+      (evm := evmL) (evm' := evm0) (locals := skimTokenStore evm I)
+      (receiver := "_token0") (retVar := "balance0")
+      (target := uniswapAddressAtSlot evmL ⟨6⟩)
+      (skimToken0GuardTrue_cached evm I hguard0)
+      (by simpa [evmL] using skimTokenStore_token0 evm I)
+      hcall0 hdec0
+  simpa [List.append_assoc, evmL] using execBlock_append hprefix hfail
+
 theorem uniswapSkimBalanceOfCallsPrefix (evm evm0 evm1 : EVM.State) (I : ExecutionEnv)
     {out0 out1 : ByteArray} {balance0 balance1 : Value}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -973,20 +1208,41 @@ abbrev skimAfterBalanceBody : List Stmt :=
     lockExit
 
 abbrev skimAfterLockBody : List Stmt :=
-  skimBalanceCallsBody ++ skimAfterBalanceBody
+  [ .letDecl "_token0" (some addr) (.storage token0Ref),
+    .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
+  balanceOfThisStmts (.var "_token0") "balance0" ++
+    [ .letDecl "excess0" (some uint256)
+        (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+  safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
+  balanceOfThisStmts (.var "_token1") "balance1" ++
+    [ .letDecl "excess1" (some uint256)
+        (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+  safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
+  lockExit
 
 /-! ## `skim(address)` source-body wrappers -/
 
 theorem uniswapSkimBodyReverts_nonpayable (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue ≠ ⟨0⟩) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
-  sorry
+  exact ExecFuncBody.execBlockRevert (by
+    have hlock := uniswapLockEnterNonpayableRevert evm (skimStore I) hwv
+    simpa [skimTransition, skimAfterLockBody, List.append_assoc] using
+      (execBlock_append_term
+        (s2 := skimAfterLockBody)
+        hlock (by intro f e h; cases h)))
 
 theorem uniswapSkimBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
-  sorry
+  exact ExecFuncBody.execBlockRevert (by
+    have hlock := uniswapLockEnterLockedRevert evm (skimStore I) hwv
+      (by simp [skimStore]) hlocked
+    simpa [skimTransition, skimAfterLockBody, List.append_assoc] using
+      (execBlock_append_term
+        (s2 := skimAfterLockBody)
+        hlock (by intro f e h; cases h)))
 
 theorem uniswapSkimBodyReverts_firstCallFailure (evm evm0 : EVM.State) (I : ExecutionEnv)
     {out0 : ByteArray}
@@ -998,7 +1254,21 @@ theorem uniswapSkimBodyReverts_firstCallFailure (evm evm0 : EVM.State) (I : Exec
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (false, evm0, out0)) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
-  sorry
+  exact ExecFuncBody.execBlockRevert (by
+    have hprefix :=
+      uniswapSkimCachedFirstCallFailure evm evm0 I hwv hunlocked hguard0 hcall0
+    simpa [skimTransition, skimAfterLockBody, List.append_assoc] using
+      (execBlock_append_term
+        (s2 :=
+          [ .letDecl "excess0" (some uint256)
+              (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+          safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
+          balanceOfThisStmts (.var "_token1") "balance1" ++
+          [ .letDecl "excess1" (some uint256)
+              (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+          safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
+          lockExit)
+        hprefix (by intro f e h; cases h)))
 
 theorem uniswapSkimBodyReverts_firstCallDecode (evm evm0 : EVM.State) (I : ExecutionEnv)
     {out0 : ByteArray}
@@ -1011,7 +1281,21 @@ theorem uniswapSkimBodyReverts_firstCallDecode (evm evm0 : EVM.State) (I : Execu
       (true, evm0, out0))
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = none) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
-  sorry
+  exact ExecFuncBody.execBlockRevert (by
+    have hprefix :=
+      uniswapSkimCachedFirstCallDecodeRevert evm evm0 I hwv hunlocked hguard0 hcall0 hdec0
+    simpa [skimTransition, skimAfterLockBody, List.append_assoc] using
+      (execBlock_append_term
+        (s2 :=
+          [ .letDecl "excess0" (some uint256)
+              (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+          safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
+          balanceOfThisStmts (.var "_token1") "balance1" ++
+          [ .letDecl "excess1" (some uint256)
+              (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+          safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
+          lockExit)
+        hprefix (by intro f e h; cases h)))
 
 theorem uniswapSkimBodyReverts_secondCallFailure (evm evm0 evm1 : EVM.State)
     (I : ExecutionEnv) {out0 out1 : ByteArray} {balance0 : Value}
