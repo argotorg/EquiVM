@@ -1158,7 +1158,9 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       match value with
       -- EXTCODESIZE: the deployed code size at `a`; 0 for a non-existent account or an EOA.
       -- Mirrors `Ethereum.State.extCodeSize` (which the EVM's EXTCODESIZE opcode dispatches to).
-      | .address a => pure (.int (Int.ofNat ((evm.lookupAccount a).option 0 (fun acc => acc.code.size))))
+      | .address a =>
+          pure (.int (Int.ofNat
+            (EVM.Word.ofNat ((evm.lookupAccount a).option 0 (fun acc => acc.code.size))).toNat))
       | _ => .error .typeError
   | .fixedBytesLit n bs => pure (.fixedBytes n bs)
   termination_by expr => (exprEvalSize expr, 0)

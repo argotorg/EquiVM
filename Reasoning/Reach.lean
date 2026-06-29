@@ -1148,6 +1148,34 @@ theorem RD.timestamp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
       · exact hee
       · exact hworld
 
+theorem RD.chainid {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.CHAINID, .none))
+    (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat Ethereum.chainId :: stk) mem aw rdata acc
+      (k + 1) (C + 2) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := chainid_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 2
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stChainid s,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega,
+        ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stChainid]; exact hcode
+      · simp only [stChainid]; rw [hpc]
+      · simp only [stChainid]; rw [hstk]
+      · simp only [stChainid]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stChainid]; exact hmem
+      · simp only [stChainid]; exact haw
+      · simp only [stChainid]; exact hrdata
+      · simp only [stChainid]; exact hacc
+      · exact hee
+      · exact hworld
+
 theorem RD.calldatasize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}

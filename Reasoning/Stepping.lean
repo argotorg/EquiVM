@@ -200,6 +200,28 @@ theorem timestamp_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : L
   rw [← hcode, step_timestamp s hd, if_neg hov']
   simp only [GasConstants.Gbase, stTimestamp]
 
+/-! ### CHAINID (cost 2, pc += 1, pushes the configured chain id) -/
+
+def stChainid (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat Ethereum.chainId :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem chainid_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CHAINID, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stChainid s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CHAINID, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_chainid s hd, if_neg hov']
+  simp only [GasConstants.Gbase, stChainid]
+
 /-! ### DUP1 (cost 3, pc += 1, duplicates top) -/
 
 def stDup1 (s : State) (a : UInt256) (t : List UInt256) : State :=
