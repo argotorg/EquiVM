@@ -560,6 +560,8 @@ def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
   | .mapping _ v, .mindex _ => some v
   | .array t' _, .aindex _ => some t'
   | .dynamicArray t', .aindex _ => some t'
+  | .bytes, .aindex _ => some (.elem (.int (.uint ⟨8, by decide⟩)))
+  | .string, .aindex _ => some (.elem (.int (.uint ⟨8, by decide⟩)))
   | _, _ => none
 
 /-- The declared `StorageType` of whatever the evaled ref `er` points at, walked from the contract's
@@ -567,6 +569,17 @@ def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
 def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option StorageType := do
   let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
   er.steps.foldlM storageTypeStep? baseTy
+
+def storageNatResultToEval : StorageReadResult Nat -> EvalResult Nat
+  | .ok n => .ok n
+  | .revert => .revert
+  | .error => .error .storageError
+
+def readStorageBytesLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
+    EvalResult Nat :=
+  match cfg.storage.readBytesLength er evm with
+  | some result => storageNatResultToEval result
+  | none => .error .storageError
 
 /-- Bounds-check a single array index `i` against the array reached by the evaled prefix `pre`.
     Fixed arrays are checked against their declared static bound. Dynamic arrays are checked by
@@ -591,8 +604,25 @@ def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option S
           | _ => .error .storageError
       | none => .error .storageError
   | some (.dynamicArray _), _ => .error .typeError
+  | some (.bytes), .int iv
+  | some (.string), .int iv =>
+      match readStorageBytesLength? cfg evm { base := base, steps := pre } with
+      | .ok len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
+      | .revert => .revert
+      | .error e => .error e
+  | some (.bytes), _ | some (.string), _ => .error .typeError
   | some _, _ => .error .typeError
   | none, _ => .error .storageError
+
+def storagePrepareResultToEval : StorageReadResult EVM.State -> EvalResult EVM.State
+  | .ok evm => .ok evm
+  | .revert => .revert
+  | .error => .error .storageError
+
+def storageValueResultToEval : StorageReadResult Value -> EvalResult Value
+  | .ok v => .ok v
+  | .revert => .revert
+  | .error => .error .storageError
 
 /- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
    `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
@@ -621,8 +651,14 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               | r => r
           | _ => .error .storageError
       | none => .error .storageError
-  -- bytes/string use solc's conditional compaction; not modeled at the type-recursion level yet
-  | .bytes | .string => .error .typeError
+  | .bytes =>
+      match cfg.storage.clearValue? er .bytes evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
+  | .string =>
+      match cfg.storage.clearValue? er .string evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
   termination_by t => (sizeOf t, 0)
 
 def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -680,6 +716,14 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let lenLoc <- EvalResult.ofOption .storageError
         (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
       EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
+  | .bytes, .bytes bs =>
+      match cfg.storage.writeValue? er .bytes (.bytes bs) evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
+  | .string, .bytes bs =>
+      match cfg.storage.writeValue? er .string (.bytes bs) evm with
+      | some result => storagePrepareResultToEval result
+      | none => .error .storageError
   | _, _ => .error .typeError
   termination_by t => (sizeOf t, 0)
 
@@ -747,8 +791,14 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
               pure (.array vs)
           | _ => .error .storageError
       | none => .error .storageError
-  -- bytes/string use solc's conditional compaction; not modeled at the type-recursion level yet
-  | .bytes | .string => .error .typeError
+  | .bytes =>
+      match cfg.storage.readValue? er .bytes evm with
+      | some result => storageValueResultToEval result
+      | none => .error .storageError
+  | .string =>
+      match cfg.storage.readValue? er .string evm with
+      | some result => storageValueResultToEval result
+      | none => .error .storageError
   termination_by t => (sizeOf t, 0)
 
 def readFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -790,6 +840,9 @@ def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
           | .int n => pure (.int n)
           | _ => .error .storageError
       | none => .error .storageError
+  | .bytes | .string => do
+      let len <- readStorageBytesLength? cfg evm er
+      pure (.int len)
   | _ => .error .typeError
 
 mutual
@@ -850,6 +903,7 @@ def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
   | .elem (.bytes n), .fixedBytes m bytes =>
       if m = n ∧ bytes.length = fixedBytesSize n then some bytes else none
   | .bytes, .bytes ba => some ba.toList
+  | .string, .bytes ba => some ba.toList
   | _, _ => none
 
 mutual
@@ -1022,7 +1076,7 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
   | .storage => do
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
     match value with
-    | .struct _ _ | .array _ => do
+    | .struct _ _ | .array _ | .bytes _ => do
       -- whole-array / whole-struct assignment: write every slot by the declared type
       let evm' <- writeStorage? cfg evm evaledStorageRef ty value
       pure (solm, evm')

@@ -46,6 +46,17 @@ theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt2
   show (a.val + b.val).val = (a.val.val + b.val.val) % UInt256.size
   rw [Fin.add_def]
 
+theorem uadd_lit32_toNat (a : UInt256) (h : a.toNat + 32 < UInt256.size) :
+    (((⟨32⟩ : UInt256) + a).toNat = a.toNat + 32) := by
+  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
+  have hcomm : 32 + a.toNat = a.toNat + 32 := by omega
+  rw [hcomm, Nat.mod_eq_of_lt h]
+
+theorem uadd_word_lit32_toNat (a : UInt256) (h : a.toNat + 32 < UInt256.size) :
+    ((a + (⟨32⟩ : UInt256)).toNat = a.toNat + 32) := by
+  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+    Nat.mod_eq_of_lt h]
+
 /-- General `SUB` `toNat` (no wrap, given `b ≤ a`). -/
 theorem usub_toNat {a b : UInt256} (h : b.toNat ≤ a.toNat) :
     (UInt256.sub a b).toNat = a.toNat - b.toNat := by
@@ -284,6 +295,23 @@ theorem u256_lor_toNat (a b : UInt256) :
 theorem u256_land_toNat (a b : UInt256) :
     (UInt256.land a b).toNat = Nat.land a.toNat b.toNat % UInt256.size := rfl
 
+theorem uInt256_land_one_toNat (a : UInt256) :
+    (UInt256.land a ⟨1⟩).toNat = a.toNat % 2 := by
+  rw [u256_land_toNat]
+  change Nat.land a.toNat 1 % UInt256.size = a.toNat % 2
+  rw [show Nat.land a.toNat 1 = a.toNat % 2 by
+    rw [nat_land_comm]
+    exact Nat.one_and_eq_mod_two a.toNat]
+  exact Nat.mod_eq_of_lt (by
+    have hlt : a.toNat % 2 < 2 := Nat.mod_lt _ (by decide)
+    norm_num [UInt256.size]
+    omega)
+
+theorem udiv_toNat (a b : UInt256) :
+    (UInt256.div a b).toNat = a.toNat / b.toNat := by
+  show (a.val / b.val).val = a.toNat / b.toNat
+  rfl
+
 theorem u256_mul_toNat (a b : UInt256) :
     (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size := by
   show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
@@ -296,6 +324,10 @@ theorem u256_mul_op_toNat (a b : UInt256) :
   show (a.val * b.val).val = a.toNat * b.toNat % UInt256.size
   rw [Fin.val_mul]
   rfl
+
+theorem umul_toNat (a b : UInt256) (h : a.toNat * b.toNat < UInt256.size) :
+    (a * b).toNat = a.toNat * b.toNat := by
+  rw [u256_mul_op_toNat, Nat.mod_eq_of_lt h]
 
 /-- Multiplication by two agrees with rebuilding the wrapped natural product. -/
 theorem u256_mul_two_ofNat (a : UInt256) :
@@ -325,6 +357,10 @@ theorem testBit_shiftLeft (m k i : Nat) :
           · have hnk : ¬ i < k := by omega
             simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
 
+theorem nat_testBit_shiftLeft (m k i : Nat) :
+    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) :=
+  testBit_shiftLeft m k i
+
 /-- Bit access after dropping the low `k` bits by division. -/
 theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     (n / 2 ^ k).testBit (i - k) = n.testBit i := by
@@ -334,6 +370,10 @@ theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     rw [← Nat.pow_add]
     congr
     omega]
+
+theorem nat_div_pow_testBit (n k i : Nat) (hk : k ≤ i) :
+    (n / 2 ^ k).testBit (i - k) = n.testBit i :=
+  divPow_testBit n k i hk
 
 theorem nat_land_mask_eq_mod (n k : Nat) :
     Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
@@ -387,6 +427,25 @@ theorem natLandClearLow (n k : Nat) (hk : k ≤ 256) (hn : n < 2 ^ 256) :
       have hpow : n / 2 ^ k < 2 ^ (i - k) := by
         exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
       exact Nat.testBit_lt_two_pow hpow
+
+theorem u256_land_high_mask_eq_self (w : UInt256) {k : Nat} (hk : k ≤ 256)
+    (hlow : w.toNat % 2 ^ k = 0) :
+    UInt256.land w (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ k)) = w := by
+  apply u256_inj
+  rw [u256_land_toNat]
+  have hmaskLt : (2 : Nat) ^ 256 - 2 ^ k < UInt256.size := by
+    have hpowPos : 0 < (2 : Nat) ^ k := by positivity
+    change (2 : Nat) ^ 256 - 2 ^ k < 2 ^ 256
+    omega
+  rw [ulit_toNat' _ hmaskLt]
+  rw [natLandClearLow w.toNat k hk w.val.isLt]
+  have hdiv : w.toNat / 2 ^ k * 2 ^ k = w.toNat := by
+    have h := Nat.div_add_mod w.toNat (2 ^ k)
+    rw [hlow, add_zero] at h
+    rw [Nat.mul_comm] at h
+    exact h
+  rw [hdiv]
+  exact Nat.mod_eq_of_lt w.val.isLt
 
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
@@ -457,6 +516,19 @@ theorem uadd3_ofNat_toNat {a b c : Nat}
     uadd_ofNat_toNat ha hb hab
   rw [habWord, ulit_toNat' c hc]
   exact Nat.mod_eq_of_lt habc
+
+theorem u256_one_add_ofNat (i : Nat) :
+    (⟨1⟩ : UInt256) + UInt256.ofNat i = UInt256.ofNat (i + 1) := by
+  apply u256_inj
+  rw [uadd_toNat]
+  show ((⟨1⟩ : UInt256).toNat + (UInt256.ofNat i).toNat) % UInt256.size =
+    (UInt256.ofNat (i + 1)).toNat
+  simp only [UInt256.toNat]
+  change (1 + (Fin.ofNat UInt256.size i).val) % UInt256.size =
+    (Fin.ofNat UInt256.size (i + 1)).val
+  rw [Fin.val_ofNat, Fin.val_ofNat]
+  rw [Nat.add_mod]
+  simp [Nat.add_comm]
 
 /-- `SHL 5` of a non-wrapping natural word is multiplication by 32. -/
 theorem shiftLeft5_ofNat_eq {n : Nat} (h : 32 * n < UInt256.size) :

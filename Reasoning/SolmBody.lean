@@ -327,7 +327,7 @@ theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hscalar : match value with | .struct _ _ | .array _ => False | _ => True)
+    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
     (hstore : storageLocStore evm loc value = some evm') :
     assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
   rw [assignStorageRef?]
