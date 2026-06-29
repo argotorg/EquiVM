@@ -482,6 +482,8 @@ mutual
         exprEvalSize cond + exprEvalSize thenExpr + exprEvalSize elseExpr + 1
     | .keccak256 e => exprEvalSize e + 1
     | .abiEncodePacked args => typedArgsEvalSize args + 1
+    | .abiEncodeCall _ args => exprListEvalSize args + 1
+    | .abiDecode _ e => exprEvalSize e + 1
     | .extCodeSize e => exprEvalSize e + 1
     | .fixedBytesLit _ _ => 1
   termination_by expr => (sizeOf expr, 0)
@@ -1139,6 +1141,18 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .abiEncodePacked args => do
       let bytes <- evalPackedArgs? cfg solm evm args
       pure (.bytes (ByteArray.mk bytes.toArray))
+  | .abiEncodeCall name args => do
+      let values <- evalExprList? cfg solm evm args
+      let bytes <- EvalResult.ofOption .typeError (cfg.externalABI.encode? name values)
+      pure (.bytes bytes)
+  | .abiDecode ty e => do
+      let value <- evalExpr? cfg solm evm e
+      match value with
+      | .bytes bytes =>
+          match ABI.decodeReturnValue? ty bytes with
+          | some decoded => pure decoded
+          | none => .revert
+      | _ => .error .typeError
   | .extCodeSize e => do
       let value <- evalExpr? cfg solm evm e
       match value with

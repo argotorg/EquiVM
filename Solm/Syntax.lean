@@ -275,6 +275,13 @@ inductive Expr where
      dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed
      width (`uintN`→N/8 bytes, `bool`→1, `address`→20, `bytesN`→N, with no length prefixes). -/
   | abiEncodePacked : List (ABIType × Expr) -> Expr
+  /- ABI calldata for a configured external call, including the 4-byte selector.  The contract's
+     `Config.externalABI.encode?` determines the selector/types for `name`; this models
+     `abi.encodeWithSelector(...)` without baking contract-specific selectors into Solm. -/
+  | abiEncodeCall : Ident -> List Expr -> Expr
+  /- `abi.decode(bytes, (T))`: decode a single ABI return value from dynamic bytes.  Decode failure is
+     a model-level revert, matching Solidity's runtime `abi.decode` behavior. -/
+  | abiDecode : ABIType -> Expr -> Expr
   /- `addr.code.length` (EXTCODESIZE): the size in bytes of the code deployed at address `addr`.
      Matches `Ethereum.State.extCodeSize` — a non-existent account or an EOA (no code) has size 0.
      Used by ERC721 `safeTransferFrom`'s `to.code.length == 0` contract-detection guard. -/
@@ -311,7 +318,7 @@ deriving instance Inhabited for StorageRef
 -- The hand-written structural `DecidableEq` is an O(n²) match over `Expr`'s constructors; with the
 -- `keccak256`/`abiEncodePacked` additions it exceeds the default heartbeat budget during the equation
 -- compiler's `simp` pass, so the limit is raised for this block.
-set_option maxHeartbeats 1000000 in
+set_option maxHeartbeats 5000000 in
 mutual
   private def Expr.decEq : (a b : Expr) -> Decidable (a = b)
     | .intLit x, .intLit y =>
@@ -884,6 +891,118 @@ mutual
         match Expr.decEqTypedList xs ys with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .abiEncodeCall nx xs, .abiEncodeCall ny ys =>
+        match (inferInstance : Decidable (nx = ny)), Expr.decEqList xs ys with
+        | isTrue hn, isTrue hs => isTrue (by cases hn; cases hs; rfl)
+        | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
+    | .abiDecode tx x, .abiDecode ty y =>
+        match (inferInstance : Decidable (tx = ty)), Expr.decEq x y with
+        | isTrue ht, isTrue hx => isTrue (by cases ht; cases hx; rfl)
+        | isFalse ht, _ => isFalse (by intro h; cases h; exact ht rfl)
+        | _, isFalse hx => isFalse (by intro h; cases h; exact hx rfl)
+    | .abiEncodeCall _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
     | .abiEncodePacked _, .intLit _ => isFalse (by intro h; cases h)
     | .intLit _, .abiEncodePacked _ => isFalse (by intro h; cases h)
     | .abiEncodePacked _, .boolLit _ => isFalse (by intro h; cases h)
