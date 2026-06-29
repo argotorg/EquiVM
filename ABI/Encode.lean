@@ -34,8 +34,6 @@ def encodeABIWord? (ty : ABIType) (value : Solm.Value) : Option EVM.Word :=
       some b.toUInt256
   | .elem .address, .address a =>
       some (EVM.word a)
-  | .elem .legacyAddress, .address a =>
-      some (EVM.word a)
   | .elem (.int (.uint bits)), .int i =>
       if bits.val = 0 then
         none
