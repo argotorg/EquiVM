@@ -1139,13 +1139,13 @@ theorem cCorrect : runtimeEquivalence!?! cConfig cBytecode Reuse.cContract := by
 /-! ## Constructor and full-contract equivalence -/
 
 noncomputable def cInitReturnMem : ByteArray :=
-  cInitcode.write 12 ByteArray.empty 0 271
+  (cInitcode).write 12 ByteArray.empty 0 271
 
 theorem cBytecode_size : cBytecode.size = 271 := by
   native_decide
 
 theorem cInitcode_runtime_window :
-    cInitcode.extract 12 (12 + 271) = cBytecode := by
+    (cInitcode).extract 12 (12 + 271) = cBytecode := by
   native_decide
 
 theorem cInitcodeDecode0 :
