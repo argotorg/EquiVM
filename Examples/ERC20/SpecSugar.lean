@@ -29,6 +29,7 @@ def erc20ContractGen : ContractDecl := {
   }
 
   ctor := solm_constructor (initialSupply : uint256) {
+    require msg.value == 0
     @balanceOf[msg.sender] := initialSupply
     @totalSupply := initialSupply
   }

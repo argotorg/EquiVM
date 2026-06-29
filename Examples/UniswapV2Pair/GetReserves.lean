@@ -106,9 +106,9 @@ theorem getReservesReturnEncoding (r0 r1 ts : UInt256)
   simp
 
 theorem uniswapDecode_getReserves {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata (getReservesTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (getReservesTransition.params.map Param.name)
       (transitionSignature getReservesTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldata [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 /-- The Solm `getReserves()` body returns the three packed values from slot 8. -/
@@ -478,7 +478,7 @@ theorem uniswapGetReservesBodyCore
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition)
     (hdecode :
-      decodeCalldata (getReservesTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (getReservesTransition.params.map Param.name)
         (transitionSignature getReservesTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨697⟩ [sel]

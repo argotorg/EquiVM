@@ -249,7 +249,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     · exact reEquiv_noDispatch hdisp hrev
     · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
       cases Reasoning.Theory.dispatch_unique hfallback htr ht
-      by_cases hdec : decodeCalldata (transition.params.map Param.name)
+      by_cases hdec : decodeCalldataWithMode cfg.abiDecodeMode (transition.params.map Param.name)
           (transitionSignature transition).paramTypes I.calldata = none
       · exact reEquiv_decodingFailed ht hdec hrev
       · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
@@ -267,8 +267,8 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
     (hcode : I.code = code)
     (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) acc o)
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal))
@@ -315,8 +315,8 @@ theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : Contra
     (hcode : I.code = code)
     (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) acc o)
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs evm'_solm retVal))
@@ -340,8 +340,8 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     (hcode : I.code = code)
     (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) (cA, σ_evm) o)
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs (initState cA gh bl σ_solm σ₀ g A I) retVal))
@@ -363,8 +363,8 @@ theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl}
     (hcode : I.code = code)
     (h : RDret code g (initState cA gh bl σ_evm σ₀ g A I) (cA, σ_evm) o)
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs (initState cA gh bl σ_solm σ₀ g A I) rvSolm))
@@ -383,8 +383,8 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     (hcode : I.code = code)
     (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body .reverted) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀

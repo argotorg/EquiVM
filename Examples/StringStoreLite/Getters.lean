@@ -314,7 +314,6 @@ theorem decodeCalldata_set_none_headShort {I : ExecutionEnv}
   rw [if_neg hnotDyn]
   have hnotHuge :
       ¬ ([ABIType.string].isEmpty = false ∧
-          ABI.usesLegacyAddressTypes [ABIType.string] = false ∧
           2 ^ 255 ≤ (I.calldata.toList.drop 4).length) := by
     intro h
     rw [List.length_drop, htlen] at h

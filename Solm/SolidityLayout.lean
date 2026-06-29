@@ -37,7 +37,6 @@ def elemTypeSoliditySize (t : ElemType) : Fin 33 :=
   match t with
   | .bool => 1
   | .address => 20
-  | .legacyAddress => 20
   | .int it => intTypeSize it
   | .fixed ft => fixedTypeSize ft
   | .bytes n => ⟨n+1, by omega⟩

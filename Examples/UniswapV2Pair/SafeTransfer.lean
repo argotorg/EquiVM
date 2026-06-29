@@ -122,7 +122,7 @@ theorem evalExpr_safeTransferReturnOk_empty (evm : EVM.State)
 theorem evalExpr_safeTransferReturnOk_decodeRevert (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) {out : ByteArray}
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = none) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = none) :
     evalExpr? config
       { contract := contract, locals := safeTransferCallStore token recipient value true out } evm
       safeTransferReturnOkExpr = .revert := by
@@ -141,7 +141,7 @@ theorem evalExpr_safeTransferReturnOk_decodeRevert (evm : EVM.State)
 theorem evalExpr_safeTransferReturnOk_decodeFalse (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) {out : ByteArray}
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = some (.bool false)) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool false)) :
     evalExpr? config
       { contract := contract, locals := safeTransferCallStore token recipient value true out } evm
       safeTransferReturnOkExpr = .ok (.bool false) := by
@@ -160,7 +160,7 @@ theorem evalExpr_safeTransferReturnOk_decodeFalse (evm : EVM.State)
 theorem evalExpr_safeTransferReturnOk_decodeTrue (evm : EVM.State)
     (token recipient : AccountAddress) (value : UInt256) {out : ByteArray}
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = some (.bool true)) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool true)) :
     evalExpr? config
       { contract := contract, locals := safeTransferCallStore token recipient value true out } evm
       safeTransferReturnOkExpr = .ok (.bool true) := by
@@ -210,7 +210,7 @@ theorem safeTransferFunctionBodyReverts_decode
     (hdata : transferCalldata? recipient value = some calldata)
     (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = none) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = none) :
     ExecFuncBody config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body .reverted := by
@@ -238,7 +238,7 @@ theorem safeTransferFunctionBodyReverts_decodeFalse
     (hdata : transferCalldata? recipient value = some calldata)
     (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = some (.bool false)) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool false)) :
     ExecFuncBody config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body .reverted := by
@@ -298,7 +298,7 @@ theorem safeTransferFunctionBodyReturns_decodeTrue
     (hdata : transferCalldata? recipient value = some calldata)
     (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = some (.bool true)) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool true)) :
     ExecFuncBody config
       { contract := contract, locals := safeTransferCalleeStore token recipient value } evm
       safeTransferFunction.body
@@ -390,7 +390,7 @@ theorem safeTransferInternalCallReturns_decodeTrue
     (hdata : transferCalldata? recipient value = some calldata)
     (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
     (hsize : out.size ≠ 0)
-    (hdec : ABI.decodeReturnValue? boolTy out = some (.bool true)) :
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool true)) :
     ExecStmt config caller evm
       (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
       (.ok (resumeAfterInternalCall caller retVar none) evm') := by

@@ -1187,7 +1187,7 @@ theorem uniswapNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         have htmem : t ∈ contract.transitions := by
           rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
-        by_cases hdec : decodeCalldata (t.params.map Param.name)
+        by_cases hdec : decodeCalldataWithMode config.abiDecodeMode (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none
         · exact reEquiv_decodingFailed ht hdec hrev
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec

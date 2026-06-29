@@ -42,9 +42,9 @@ theorem uniswapX_permitTypehash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by jump_dest) (by jump_dest)
 
 theorem uniswapDecode_permitTypehash {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata (permitTypehashTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (permitTypehashTransition.params.map Param.name)
       (transitionSignature permitTypehashTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldata [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 /-- Runtime-only `PERMIT_TYPEHASH()` slice from selector dispatch through return. -/
@@ -66,7 +66,7 @@ theorem uniswapPermitTypehashBodyCore
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition)
     (hdecode :
-      decodeCalldata (permitTypehashTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (permitTypehashTransition.params.map Param.name)
         (transitionSignature permitTypehashTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨933⟩ [sel]

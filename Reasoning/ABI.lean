@@ -62,6 +62,22 @@ def decodeScalarWords? : List ABIType → List UInt8 → Nat → Option (List So
       let values <- decodeScalarWords? tys bytes (cursor + 32)
       some (value :: values)
 
+/-- Decode one scalar ABI word at byte offset `start`, using a compiler-specific mode. -/
+def decodeScalarWordWithMode? (mode : DecodeMode) (ty : ABIType) (bytes : List UInt8)
+    (start : Nat) : Option (Solm.Value × Nat) := do
+  let word <- readWord? bytes start
+  let value <- decodeABIWord? ty word mode
+  some (value, start + 32)
+
+/-- Decode a flat list of scalar ABI words, advancing by 32 bytes per type, in `mode`. -/
+def decodeScalarWordsWithMode? (mode : DecodeMode) :
+    List ABIType → List UInt8 → Nat → Option (List Solm.Value)
+  | [], _, _ => some []
+  | ty :: tys, bytes, cursor => do
+      let (value, _) <- decodeScalarWordWithMode? mode ty bytes cursor
+      let values <- decodeScalarWordsWithMode? mode tys bytes (cursor + 32)
+      some (value :: values)
+
 theorem readWord?_some_length {bytes : List UInt8} {offset : Nat} {word : EVM.Word}
     (h : readWord? bytes offset = some word) : offset + 32 ≤ bytes.length := by
   unfold readWord? at h
@@ -96,6 +112,15 @@ theorem decodeScalarWord?_some_length {ty : ABIType} {bytes : List UInt8} {curso
   | none => simp [hread] at h
   | some word => exact readWord?_some_length hread
 
+theorem decodeScalarWordWithMode?_some_length {mode : DecodeMode} {ty : ABIType}
+    {bytes : List UInt8} {cursor : Nat} {value : Solm.Value × Nat}
+    (h : decodeScalarWordWithMode? mode ty bytes cursor = some value) :
+    cursor + 32 ≤ bytes.length := by
+  unfold decodeScalarWordWithMode? at h
+  cases hread : readWord? bytes cursor with
+  | none => simp [hread] at h
+  | some word => exact readWord?_some_length hread
+
 theorem decodeScalarWords?_some_length {types : List ABIType} {bytes : List UInt8}
     {cursor : Nat} {values : List Solm.Value}
     (hcursor : cursor ≤ bytes.length)
@@ -114,6 +139,29 @@ theorem decodeScalarWords?_some_length {types : List ABIType} {bytes : List UInt
           | none => simp [hword, hrest] at h
           | some restValues =>
               have hhead := decodeScalarWord?_some_length hword
+              have htail := ih hhead hrest
+              simp [hword, hrest] at h
+              simpa [List.length_cons, Nat.mul_add, Nat.add_assoc, Nat.add_comm,
+                Nat.add_left_comm] using htail
+
+theorem decodeScalarWordsWithMode?_some_length {mode : DecodeMode} {types : List ABIType}
+    {bytes : List UInt8} {cursor : Nat} {values : List Solm.Value}
+    (hcursor : cursor ≤ bytes.length)
+    (h : decodeScalarWordsWithMode? mode types bytes cursor = some values) :
+    cursor + 32 * types.length ≤ bytes.length := by
+  induction types generalizing cursor values with
+  | nil =>
+      simp [decodeScalarWordsWithMode?] at h
+      simpa using hcursor
+  | cons ty tys ih =>
+      unfold decodeScalarWordsWithMode? at h
+      cases hword : decodeScalarWordWithMode? mode ty bytes cursor with
+      | none => simp [hword] at h
+      | some value =>
+          cases hrest : decodeScalarWordsWithMode? mode tys bytes (cursor + 32) with
+          | none => simp [hword, hrest] at h
+          | some restValues =>
+              have hhead := decodeScalarWordWithMode?_some_length hword
               have htail := ih hhead hrest
               simp [hword, hrest] at h
               simpa [List.length_cons, Nat.mul_add, Nat.add_assoc, Nat.add_comm,
@@ -155,6 +203,19 @@ theorem decodeABIValue_scalarWord_eq {ty : ABIType} {bytes : List UInt8} {start 
   cases ty with
   | elem e =>
       cases e <;> simp [isABIScalarWordType, decodeABIValue?, decodeScalarWord?] at h ⊢
+  | array ty n => simp [isABIScalarWordType] at h
+  | bytes => simp [isABIScalarWordType] at h
+  | string => simp [isABIScalarWordType] at h
+  | dynamicArray ty => simp [isABIScalarWordType] at h
+  | tuple tys => simp [isABIScalarWordType] at h
+
+theorem decodeABIValue_scalarWordWithMode_eq {mode : DecodeMode} {ty : ABIType}
+    {bytes : List UInt8} {start : Nat}
+    (h : isABIScalarWordType ty = true) :
+    decodeABIValue? ty bytes start mode = decodeScalarWordWithMode? mode ty bytes start := by
+  cases ty with
+  | elem e =>
+      cases e <;> simp [isABIScalarWordType, decodeABIValue?, decodeScalarWordWithMode?] at h ⊢
   | array ty n => simp [isABIScalarWordType] at h
   | bytes => simp [isABIScalarWordType] at h
   | string => simp [isABIScalarWordType] at h
@@ -218,6 +279,47 @@ theorem decodeABIValues_scalarWords_eq {types : List ABIType} {bytes : List UInt
           rw [ih htys hend']
           cases decodeScalarWords? tys bytes (cursor + 32) <;> simp
 
+theorem decodeABIValues_scalarWordsWithMode_eq {mode : DecodeMode} {types : List ABIType}
+    {bytes : List UInt8} {cursor total : Nat}
+    (hscalar : types.all isABIScalarWordType = true)
+    (hend : cursor + 32 * types.length = total) :
+    decodeABIValues? types bytes 0 cursor total total mode =
+      match decodeScalarWordsWithMode? mode types bytes cursor with
+      | some values => some (values, total)
+      | none => none := by
+  induction types generalizing cursor with
+  | nil =>
+      simp [decodeABIValues?, decodeScalarWordsWithMode?] at hend ⊢
+  | cons ty tys ih =>
+      simp only [List.all_cons, Bool.and_eq_true] at hscalar
+      rcases hscalar with ⟨hty, htys⟩
+      have hdyn := isABIScalarWordType_dynamic hty
+      have hsize := isABIScalarWordType_size hty
+      rw [decodeABIValues?]
+      rw [hdyn]
+      simp only [Bool.false_eq_true, if_false]
+      rw [hsize]
+      rw [decodeABIValue_scalarWordWithMode_eq (mode := mode) (bytes := bytes)
+        (start := 0 + cursor) hty]
+      simp only [Nat.zero_add, decodeScalarWordsWithMode?, decodeScalarWordWithMode?]
+      cases readWord? bytes cursor with
+      | none => simp
+      | some word =>
+        simp
+        cases decodeABIWord? ty word mode with
+        | none => simp
+        | some value =>
+          simp
+          have hle : cursor + 32 ≤ total := by
+            rw [← hend]
+            simp [List.length_cons]
+          rw [max_eq_left hle]
+          have hend' : cursor + 32 + 32 * tys.length = total := by
+            simpa [List.length_cons, Nat.mul_add, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
+              using hend
+          rw [ih htys hend']
+          cases decodeScalarWordsWithMode? mode tys bytes (cursor + 32) <;> simp
+
 /--
 Evaluate `decodeCalldata` for any flat list of scalar-word ABI types.
 
@@ -230,8 +332,7 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
     decodeCalldata names types cd =
       if cd.toList.length < 4 then
         none
-      else if types.isEmpty = false ∧ usesLegacyAddressTypes types = false ∧
-          2 ^ 255 ≤ (cd.toList.drop 4).length then
+      else if types.isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length then
         none
       else
         match decodeScalarWords? types (cd.toList.drop 4) 0 with
@@ -251,9 +352,7 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
         simp [decodeCalldata.decodeArgs, decodeScalarWords?]
         cases names <;> rfl
     | cons ty tys =>
-        by_cases hbig : (ty :: tys).isEmpty = false ∧
-            usesLegacyAddressTypes (ty :: tys) = false ∧
-            2 ^ 255 ≤ (cd.toList.drop 4).length
+        by_cases hbig : (ty :: tys).isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
         · conv_lhs => rw [if_pos hbig]
           conv_rhs => rw [if_pos hbig]
         · conv_lhs => rw [if_neg hbig]
@@ -281,6 +380,53 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
               rw [if_neg hnotShort]
               simp only
               cases decodeCalldata.insertValues names values ∅ <;> rfl
+
+theorem decodeCalldataWithMode_legacyScalarWords_eq {names : List Solm.Ident}
+    {types : List ABIType} {cd : ByteArray}
+    (hscalar : types.all isABIScalarWordType = true) :
+    decodeCalldataWithMode DecodeMode.legacySolc05 names types cd =
+      if cd.toList.length < 4 then
+        none
+      else
+        match decodeScalarWordsWithMode? DecodeMode.legacySolc05 types (cd.toList.drop 4) 0 with
+        | some values => decodeCalldata.insertValues names values ∅
+        | none => none := by
+  unfold decodeCalldataWithMode decodeCalldata
+  by_cases hlt : cd.toList.length < 4
+  · conv_lhs => rw [if_pos hlt]
+    conv_rhs => rw [if_pos hlt]
+  · conv_lhs => rw [if_neg hlt]
+    conv_rhs => rw [if_neg hlt]
+    have hdynFalse : types.any isDynamicABIType = false :=
+      isABIScalarWordTypes_any_dynamic_false hscalar
+    conv_lhs => rw [if_neg (by simp [hdynFalse])]
+    cases types with
+    | nil =>
+        simp [decodeCalldata.decodeArgs, decodeScalarWordsWithMode?]
+        cases names <;> rfl
+    | cons ty tys =>
+        have hhead := abiTupleHeadSize_scalarWords_eq hscalar
+        simp only [decodeCalldata.decodeArgs]
+        rw [hhead]
+        simp only [bind, Option.bind]
+        have hvals := decodeABIValues_scalarWordsWithMode_eq
+          (mode := DecodeMode.legacySolc05) (types := ty :: tys)
+          (bytes := cd.toList.drop 4) (cursor := 0) (total := 32 * (ty :: tys).length)
+          hscalar (by simp)
+        rw [hvals]
+        cases hscal : decodeScalarWordsWithMode? DecodeMode.legacySolc05 (ty :: tys)
+            (cd.toList.drop 4) 0 with
+        | none =>
+            by_cases hshort : (cd.toList.drop 4).length < 32 * (ty :: tys).length
+            · rw [if_pos hshort]
+            · rw [if_neg hshort]
+        | some values =>
+            have hnotShort : ¬(cd.toList.drop 4).length < 32 * (ty :: tys).length := by
+              have hlen := decodeScalarWordsWithMode?_some_length (Nat.zero_le _) hscal
+              omega
+            rw [if_neg hnotShort]
+            simp only
+            cases decodeCalldata.insertValues names values ∅ <;> rfl
 
 theorem decodeReturnValues_scalarWords_eq {types : List ABIType} {returndata : ByteArray}
     (hscalar : types.all isABIScalarWordType = true) :
@@ -403,6 +549,33 @@ theorem decodeScalarWord_uint256_none_short {bytes : List UInt8} {start : Nat}
     (start := start) (by decide)]
   exact decodeABIValue_uint256_none_short hshort
 
+theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UInt8}
+    {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWordWithMode? mode abiUInt256 bytes start
+      = some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
+          start + 32) := by
+  rw [← decodeABIValue_scalarWordWithMode_eq (mode := mode) (ty := abiUInt256)
+    (bytes := bytes) (start := start) (by decide)]
+  simp only [abiUInt256, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  simp only
+  rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
+  rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+    < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
+  rfl
+
+theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
+    {start : Nat}
+    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWordWithMode? mode abiUInt256 bytes start = none := by
+  rw [← decodeABIValue_scalarWordWithMode_eq (mode := mode) (ty := abiUInt256)
+    (bytes := bytes) (start := start) (by decide)]
+  simp only [abiUInt256, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_neg hshort]
+
 theorem decodeCalldata_empty_ok {cd : ByteArray} (hsz4 : 4 ≤ cd.size) :
     decodeCalldata [] [] cd = some (∅ : Solm.Store) := by
   have htlen : cd.toList.length = cd.size := by
@@ -410,6 +583,18 @@ theorem decodeCalldata_empty_ok {cd : ByteArray} (hsz4 : 4 ≤ cd.size) :
   rw [decodeCalldata_scalarWords_eq (names := []) (types := []) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp [decodeScalarWords?, decodeCalldata.insertValues]
+
+theorem decodeCalldataWithMode_empty_ok {mode : DecodeMode} {cd : ByteArray}
+    (hsz4 : 4 ≤ cd.size) :
+    decodeCalldataWithMode mode [] [] cd = some (∅ : Solm.Store) := by
+  cases mode
+  · simpa [decodeCalldataWithMode] using decodeCalldata_empty_ok (cd := cd) hsz4
+  · have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    rw [decodeCalldataWithMode_legacyScalarWords_eq (names := []) (types := []) (cd := cd)
+      (by decide)]
+    rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+    simp [decodeScalarWordsWithMode?, decodeCalldata.insertValues]
 
 theorem decodeScalarWords_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32) :
@@ -441,7 +626,7 @@ theorem decodeCalldata_uint256_ok {cd : ByteArray} {x : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_uint256_ok (bytes := cd.toList.drop 4) htake4]
   change decodeCalldata.insertValues [x]
       [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
@@ -459,7 +644,7 @@ theorem decodeCalldata_uint256_none_short {cd : ByteArray} {x : Solm.Ident}
   by_cases hsz4 : cd.size < 4
   · rw [if_pos (by rw [htlen]; omega : cd.toList.length < 4)]
   · rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-    rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+    rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
     rw [decodeScalarWords_uint256_none_short (bytes := cd.toList.drop 4) (by
       rw [List.length_drop, htlen]; omega)]
 
@@ -472,7 +657,7 @@ theorem decodeCalldata_uint256_none_huge {cd : ByteArray} {x : Solm.Ident}
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Dynamic string calldata convenience lemmas -/
 
@@ -562,8 +747,7 @@ theorem decodeCalldata_string_none_offset_huge {cd : ByteArray} {x : Solm.Ident}
   · rw [if_pos hdyn]
   · rw [if_neg hdyn]
     by_cases hargsHuge :
-        [ABIType.string].isEmpty = false ∧ usesLegacyAddressTypes [ABIType.string] = false ∧
-          2 ^ 255 ≤ (cd.toList.drop 4).length
+        [ABIType.string].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
     · rw [if_pos hargsHuge]
     · rw [if_neg hargsHuge]
       by_cases htotal : solcTotalSizeDynamicGuard [ABIType.string] = true ∧ 2 ^ 255 ≤ cd.toList.length
@@ -585,8 +769,7 @@ theorem decodeCalldata_string_none_length_short {cd : ByteArray} {x : Solm.Ident
   · rw [if_pos hdyn]
   · rw [if_neg hdyn]
     by_cases hargsHuge :
-        [ABIType.string].isEmpty = false ∧ usesLegacyAddressTypes [ABIType.string] = false ∧
-          2 ^ 255 ≤ (cd.toList.drop 4).length
+        [ABIType.string].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
     · rw [if_pos hargsHuge]
     · rw [if_neg hargsHuge]
       by_cases htotal : solcTotalSizeDynamicGuard [ABIType.string] = true ∧ 2 ^ 255 ≤ cd.toList.length
@@ -624,8 +807,7 @@ theorem decodeCalldata_string_none_length_huge {cd : ByteArray} {x : Solm.Ident}
   · rw [if_pos hdyn]
   · rw [if_neg hdyn]
     by_cases hargsHuge :
-        [ABIType.string].isEmpty = false ∧ usesLegacyAddressTypes [ABIType.string] = false ∧
-          2 ^ 255 ≤ (cd.toList.drop 4).length
+        [ABIType.string].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
     · rw [if_pos hargsHuge]
     · rw [if_neg hargsHuge]
       by_cases htotal : solcTotalSizeDynamicGuard [ABIType.string] = true ∧ 2 ^ 255 ≤ cd.toList.length
@@ -655,8 +837,7 @@ theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Iden
   · rw [if_pos hdyn]
   · rw [if_neg hdyn]
     by_cases hargsHuge :
-        [ABIType.string].isEmpty = false ∧ usesLegacyAddressTypes [ABIType.string] = false ∧
-          2 ^ 255 ≤ (cd.toList.drop 4).length
+        [ABIType.string].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
     · rw [if_pos hargsHuge]
     · rw [if_neg hargsHuge]
       by_cases htotal : solcTotalSizeDynamicGuard [ABIType.string] = true ∧ 2 ^ 255 ≤ cd.toList.length
@@ -708,9 +889,8 @@ theorem decodeCalldata_bytes4_ok {cd : ByteArray} {x : Solm.Ident}
   have hnotDyn : ¬ ([abiBytes4].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
     simp [abiBytes4, isDynamicABIType]
   rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes4] = false ∧
-      2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-    rintro ⟨_, _, hlen⟩
+  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    rintro ⟨_, hlen⟩
     rw [List.length_drop, htlen] at hlen
     omega
   rw [if_neg hnotHuge]
@@ -746,9 +926,8 @@ theorem decodeCalldata_bytes4_none_short {cd : ByteArray} {x : Solm.Ident}
   have hnotDyn : ¬ ([abiBytes4].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
     simp [abiBytes4, isDynamicABIType]
   rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes4] = false ∧
-      2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-    rintro ⟨_, _, hlen⟩
+  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    rintro ⟨_, hlen⟩
     rw [List.length_drop, htlen] at hlen
     omega
   rw [if_neg hnotHuge]
@@ -776,9 +955,8 @@ theorem decodeCalldata_bytes4_none_huge {cd : ByteArray} {x : Solm.Ident}
         2 ^ 255 ≤ cd.toList.length) := by
       simp [abiBytes4, isDynamicABIType]
     rw [if_neg hnotDyn]
-    have hHuge : [abiBytes4].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes4] = false ∧
-        2 ^ 255 ≤ (cd.toList.drop 4).length := by
-      refine ⟨by simp, by native_decide, ?_⟩
+    have hHuge : [abiBytes4].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length := by
+      refine ⟨by simp, ?_⟩
       have htlen : cd.toList.length = cd.size := by
         rw [byteArray_toList_eq, Array.length_toList]
         rfl
@@ -801,9 +979,8 @@ theorem decodeCalldata_bytes4_none_pad {cd : ByteArray} {x : Solm.Ident}
   have hnotDyn : ¬ ([abiBytes4].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
     simp [abiBytes4, isDynamicABIType]
   rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes4] = false ∧
-      2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-    rintro ⟨_, _, hlen⟩
+  have hnotHuge : ¬ ([abiBytes4].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    rintro ⟨_, hlen⟩
     rw [List.length_drop, htlen] at hlen
     omega
   rw [if_neg hnotHuge]
@@ -836,9 +1013,8 @@ theorem decodeCalldata_bytes32_ok {cd : ByteArray} {x : Solm.Ident}
   have hnotDyn : ¬ ([abiBytes32].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
     simp [abiBytes32, isDynamicABIType]
   rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([abiBytes32].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes32] = false ∧
-      2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-    rintro ⟨_, _, hlen⟩
+  have hnotHuge : ¬ ([abiBytes32].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    rintro ⟨_, hlen⟩
     rw [List.length_drop, htlen] at hlen
     omega
   rw [if_neg hnotHuge]
@@ -882,9 +1058,8 @@ theorem decodeCalldata_bytes32_none_short {cd : ByteArray} {x : Solm.Ident}
   have hnotDyn : ¬ ([abiBytes32].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
     simp [abiBytes32, isDynamicABIType]
   rw [if_neg hnotDyn]
-  have hnotHuge : ¬ ([abiBytes32].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes32] = false ∧
-      2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-    rintro ⟨_, _, hlen⟩
+  have hnotHuge : ¬ ([abiBytes32].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    rintro ⟨_, hlen⟩
     rw [List.length_drop, htlen] at hlen
     omega
   rw [if_neg hnotHuge]
@@ -912,9 +1087,8 @@ theorem decodeCalldata_bytes32_none_huge {cd : ByteArray} {x : Solm.Ident}
         2 ^ 255 ≤ cd.toList.length) := by
       simp [abiBytes32, isDynamicABIType]
     rw [if_neg hnotDyn]
-    have hHuge : [abiBytes32].isEmpty = false ∧ usesLegacyAddressTypes [abiBytes32] = false ∧
-        2 ^ 255 ≤ (cd.toList.drop 4).length := by
-      refine ⟨by simp, by native_decide, ?_⟩
+    have hHuge : [abiBytes32].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length := by
+      refine ⟨by simp, ?_⟩
       have htlen : cd.toList.length = cd.size := by
         rw [byteArray_toList_eq, Array.length_toList]
         rfl
@@ -1013,7 +1187,7 @@ theorem decodeCalldata_bytes32_address_ok {cd : ByteArray} {x y : Solm.Ident}
   unfold decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
@@ -1039,7 +1213,7 @@ theorem decodeCalldata_bytes32_address_none_short {cd : ByteArray} {x y : Solm.I
   unfold decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
@@ -1059,7 +1233,7 @@ theorem decodeCalldata_bytes32_address_none_huge {cd : ByteArray} {x y : Solm.Id
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, isDynamicABIType])]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 theorem decodeCalldata_bytes32_address_none_noncanon {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
@@ -1079,7 +1253,7 @@ theorem decodeCalldata_bytes32_address_none_noncanon {cd : ByteArray} {x y : Sol
   unfold decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, isDynamicABIType])]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
@@ -1187,7 +1361,7 @@ theorem decodeCalldata_addr_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_uint256_ok (bytes := cd.toList.drop 4) htake4 htake36'
     (by rw [hword4]; exact hcanon)]
   change decodeCalldata.insertValues [x, y]
@@ -1214,7 +1388,7 @@ theorem decodeCalldata_addr_uint256_none_noncanon {cd : ByteArray} {x y : Solm.I
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_uint256_none_noncanon (bytes := cd.toList.drop 4) htake4
     (by rw [hword4]; exact hnc)]
 
@@ -1226,7 +1400,7 @@ theorem decodeCalldata_addr_uint256_none_short {cd : ByteArray} {x y : Solm.Iden
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_uint256_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]; omega)]
 
@@ -1239,7 +1413,7 @@ theorem decodeCalldata_addr_uint256_none_huge {cd : ByteArray} {x y : Solm.Ident
     (types := [.elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 
 /-! ## Address-and-bool calldata decoding -/
@@ -1386,7 +1560,7 @@ theorem decodeCalldata_addr_bool_ok {cd : ByteArray} {x y : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, .elem .bool]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_bool_ok (bytes := cd.toList.drop 4) htake4 htake36'
     (by rw [hword4]; exact hcanon) (by
       rcases hbool with hzero | hone
@@ -1426,7 +1600,7 @@ theorem decodeCalldata_addr_bool_none_noncanon_addr {cd : ByteArray} {x y : Solm
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, .elem .bool]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_bool_none_noncanon_addr (bytes := cd.toList.drop 4) htake4
     (by rw [hword4]; exact hnc)]
 
@@ -1453,7 +1627,7 @@ theorem decodeCalldata_addr_bool_none_noncanon_bool {cd : ByteArray} {x y : Solm
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, .elem .bool]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_bool_none_noncanon_bool (bytes := cd.toList.drop 4)
     htake4 htake36' (by rw [hword4]; exact hcanon)]
   · rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
@@ -1474,7 +1648,7 @@ theorem decodeCalldata_addr_bool_none_short {cd : ByteArray} {x y : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x, y])
     (types := [.elem .address, .elem .bool]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_addr_bool_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]
     omega)]
@@ -1489,7 +1663,7 @@ theorem decodeCalldata_addr_bool_none_huge {cd : ByteArray} {x y : Solm.Ident}
     (types := [.elem .address, .elem .bool]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 
 /-! ## Address-argument calldata decoding (single + two address) -/
@@ -1541,7 +1715,7 @@ theorem decodeCalldata_address_ok {cd : ByteArray} {x : Solm.Ident}
     decode_word_at_eq cd 4 (by omega) (by norm_num)
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [(.elem .address)]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_ok (bytes := cd.toList.drop 4) htake4
     (by rw [hword4]; exact hcanon)]
   change decodeCalldata.insertValues [x]
@@ -1566,7 +1740,7 @@ theorem decodeCalldata_address_none_noncanon {cd : ByteArray} {x : Solm.Ident}
     decode_word_at_eq cd 4 (by omega) (by norm_num)
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [(.elem .address)]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_none_noncanon (bytes := cd.toList.drop 4) htake4
     (by rw [hword4]; exact hnc)]
 
@@ -1578,7 +1752,7 @@ theorem decodeCalldata_address_none_short {cd : ByteArray} {x : Solm.Ident}
     rfl
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [(.elem .address)]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]
     omega)]
@@ -1592,7 +1766,7 @@ theorem decodeCalldata_address_none_huge {cd : ByteArray} {x : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [(.elem .address)]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Two-address calldata decoding -/
 
@@ -1678,7 +1852,7 @@ theorem decodeCalldata_address_address_ok {cd : ByteArray} {x y : Solm.Ident}
   rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [(.elem .address), (.elem .address)]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_ok (bytes := cd.toList.drop 4) htake4 htake36'
     (by rw [hword4]; exact hcanon0)
     (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
@@ -1709,7 +1883,7 @@ theorem decodeCalldata_address_address_none_noncanon0 {cd : ByteArray} {x y : So
   rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [(.elem .address), (.elem .address)]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_none_noncanon0 (bytes := cd.toList.drop 4) htake4
     (by rw [hword4]; exact hnc0)]
 
@@ -1733,7 +1907,7 @@ theorem decodeCalldata_address_address_none_noncanon1 {cd : ByteArray} {x y : So
   rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [(.elem .address), (.elem .address)]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_none_noncanon1 (bytes := cd.toList.drop 4) htake4 htake36'
     (by rw [hword4]; exact hcanon0)
     (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
@@ -1748,7 +1922,7 @@ theorem decodeCalldata_address_address_none_short {cd : ByteArray} {x y : Solm.I
   rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [(.elem .address), (.elem .address)]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]; omega)]
 
@@ -1761,7 +1935,7 @@ theorem decodeCalldata_address_address_none_huge {cd : ByteArray} {x y : Solm.Id
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## One-address plus two-uint256 calldata decoding -/
 
@@ -1855,7 +2029,7 @@ theorem decodeCalldata_address_uint256_uint256_ok {cd : ByteArray} {x y z : Solm
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_uint256_uint256_ok (bytes := cd.toList.drop 4) htake4
     htake36' htake68' (by rw [hword4]; exact hcanon0)]
   change decodeCalldata.insertValues [x, y, z]
@@ -1886,7 +2060,7 @@ theorem decodeCalldata_address_uint256_uint256_none_noncanon0 {cd : ByteArray}
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_uint256_uint256_none_noncanon0 (bytes := cd.toList.drop 4)
     htake4 (by rw [hword4]; exact hnc0)]
 
@@ -1898,7 +2072,7 @@ theorem decodeCalldata_address_uint256_uint256_none_short {cd : ByteArray}
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_uint256_uint256_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]; omega)]
 
@@ -1911,7 +2085,7 @@ theorem decodeCalldata_address_uint256_uint256_none_huge {cd : ByteArray}
     (types := [.elem .address, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Two-address plus uint256 calldata decoding -/
 
@@ -2027,7 +2201,7 @@ theorem decodeCalldata_address_address_uint256_ok {cd : ByteArray} {x y z : Solm
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, .elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_ok (bytes := cd.toList.drop 4) htake4
     htake36' htake68'
     (by rw [hword4]; exact hcanon0)
@@ -2063,7 +2237,7 @@ theorem decodeCalldata_address_address_uint256_none_noncanon0 {cd : ByteArray}
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, .elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_none_noncanon0 (bytes := cd.toList.drop 4)
     htake4 (by rw [hword4]; exact hnc0)]
 
@@ -2088,7 +2262,7 @@ theorem decodeCalldata_address_address_uint256_none_noncanon1 {cd : ByteArray}
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, .elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_none_noncanon1 (bytes := cd.toList.drop 4)
     htake4 htake36'
     (by rw [hword4]; exact hcanon0)
@@ -2104,7 +2278,7 @@ theorem decodeCalldata_address_address_uint256_none_short {cd : ByteArray}
   rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
     (types := [.elem .address, .elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]; omega)]
 
@@ -2117,7 +2291,7 @@ theorem decodeCalldata_address_address_uint256_none_huge {cd : ByteArray}
     (types := [.elem .address, .elem .address, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Two-address plus two-uint256 calldata decoding -/
 
@@ -2285,7 +2459,7 @@ theorem decodeCalldata_address_address_uint256_uint256_ok {cd : ByteArray}
     (types := [.elem .address, .elem .address, abiUInt256, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_uint256_ok (bytes := cd.toList.drop 4)
     htake4 htake36' htake68' htake100'
     (by rw [hword4]; exact hcanon0)
@@ -2329,7 +2503,7 @@ theorem decodeCalldata_address_address_uint256_uint256_none_noncanon0 {cd : Byte
     (types := [.elem .address, .elem .address, abiUInt256, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_uint256_none_noncanon0
     (bytes := cd.toList.drop 4) htake4 (by rw [hword4]; exact hnc0)]
 
@@ -2359,7 +2533,7 @@ theorem decodeCalldata_address_address_uint256_uint256_none_noncanon1 {cd : Byte
     (types := [.elem .address, .elem .address, abiUInt256, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_uint256_none_noncanon1
     (bytes := cd.toList.drop 4) htake4 htake36'
     (by rw [hword4]; exact hcanon0)
@@ -2380,7 +2554,7 @@ theorem decodeCalldata_address_address_uint256_uint256_none_short {cd : ByteArra
     (types := [.elem .address, .elem .address, abiUInt256, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by rintro ⟨_, _, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [decodeScalarWords_address_address_uint256_uint256_none_short
     (bytes := cd.toList.drop 4) (by rw [List.length_drop, htlen]; omega)]
 
@@ -2396,7 +2570,7 @@ theorem decodeCalldata_address_address_uint256_uint256_none_huge {cd : ByteArray
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
-  · exact ⟨rfl, by native_decide, by rw [List.length_drop, htlen]; omega⟩
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
 /-! ## Dynamic array calldata decoding -/
 
@@ -2513,12 +2687,6 @@ theorem decodeABIValue_elem_end_le {elem : ElemType} {bytes : List UInt8}
         | some value =>
             simp [hread, hdec] at h
             exact ⟨h.2.symm, readWord?_some_length hread⟩
-  case legacyAddress =>
-    cases hread : readWord? bytes start with
-    | none => simp [hread] at h
-    | some word =>
-        simp [hread, decodeABIWord?] at h
-        exact ⟨h.2.symm, readWord?_some_length hread⟩
   case int it =>
     cases hread : readWord? bytes start with
     | none => simp [hread] at h

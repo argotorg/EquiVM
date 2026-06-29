@@ -40,9 +40,9 @@ theorem uniswapX_kLast {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by jump_dest) (by jump_dest)
 
 theorem uniswapDecode_kLast {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata (kLastTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (kLastTransition.params.map Param.name)
       (transitionSignature kLastTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldata [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 /-- `kLast()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
@@ -51,7 +51,7 @@ theorem uniswapKLastBodyCore
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some kLastTransition)
     (hdecode :
-      decodeCalldata (kLastTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (kLastTransition.params.map Param.name)
         (transitionSignature kLastTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1117⟩ [sel]

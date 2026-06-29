@@ -218,8 +218,8 @@ theorem reEquiv_noDispatch {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I} {g
 theorem reEquiv_decodingFailed
     {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I} {t g' o}
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes
-              I.calldata = none)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = none)
     (h : Ξ cA gh bl σ_evm σ₀ g A I = .ok (.revert g' o)) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
   .decodingFailed hd rfl hdec h
@@ -231,8 +231,8 @@ theorem reEquiv_execution
     {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t callargs actRes}
     {g : UInt256}
     (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldata (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata
-              = some callargs)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
     (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes t.returnType) :

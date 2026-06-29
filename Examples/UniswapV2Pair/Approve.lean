@@ -106,9 +106,9 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :
-    decodeCalldata (approveTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
-  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["spender", "value"] [legacyAddr, uint256] I.calldata = _
   simpa [addr, uint256, abiUInt256, approveStore, approveSpenderValue, approveValueValue,
     approveSpenderWord, approveValueWord, calldataWord]
     using decodeCalldata_legacyAddress_uint256_ok
@@ -116,9 +116,9 @@ theorem uniswapDecode_approve_ok {I : ExecutionEnv}
 
 theorem uniswapDecode_approve_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
-    decodeCalldata (approveTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = none := by
-  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = none
+  show decodeCalldataWithMode config.abiDecodeMode ["spender", "value"] [legacyAddr, uint256] I.calldata = none
   simpa [uint256, abiUInt256]
     using decodeCalldata_legacyAddress_uint256_none_short
       (cd := I.calldata) (x := "spender") (y := "value") hsz4 hshort
@@ -126,9 +126,9 @@ theorem uniswapDecode_approve_none_short {I : ExecutionEnv}
 theorem uniswapDecode_approve_ok_noncanon {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size)
     (_hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus) :
-    decodeCalldata (approveTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
       (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
-  show decodeCalldata ["spender", "value"] [legacyAddr, uint256] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["spender", "value"] [legacyAddr, uint256] I.calldata = _
   simpa [addr, uint256, abiUInt256, approveStore, approveSpenderValue, approveValueValue,
     approveSpenderWord, approveValueWord, calldataWord]
     using decodeCalldata_legacyAddress_uint256_ok
@@ -376,7 +376,7 @@ theorem uniswapApproveBodyCoreOk
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hdecode :
-      decodeCalldata (approveTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
         (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]

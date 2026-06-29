@@ -18,12 +18,10 @@ keeps the external selector string `address` while decoding the low 160 bits.
 -- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc masked-address scalar decode.
 theorem decodeScalarWord_legacyAddress_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWord? legacyAddr bytes start =
+  decodeScalarWordWithMode? DecodeMode.legacySolc05 legacyAddr bytes start =
       some (.address (AccountAddress.ofNat
           (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [← decodeABIValue_scalarWord_eq (ty := legacyAddr) (bytes := bytes)
-    (start := start) (by decide)]
-  simp only [legacyAddr, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+  simp only [legacyAddr, addr, decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, bind,
     Option.bind]
   rw [if_pos hlen]
   rfl
@@ -31,29 +29,36 @@ theorem decodeScalarWord_legacyAddress_ok {bytes : List UInt8} {start : Nat}
 -- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc masked-address short decode.
 theorem decodeScalarWord_legacyAddress_none_short {bytes : List UInt8} {start : Nat}
     (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWord? legacyAddr bytes start = none := by
-  rw [← decodeABIValue_scalarWord_eq (ty := legacyAddr) (bytes := bytes)
-    (start := start) (by decide)]
-  simp only [legacyAddr, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+  decodeScalarWordWithMode? DecodeMode.legacySolc05 legacyAddr bytes start = none := by
+  simp only [legacyAddr, addr, decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, bind,
     Option.bind]
   rw [if_neg hshort]
 
--- LIBRARY CANDIDATE: Reasoning.ABI - static calldata tuples containing a legacy/optimizer
--- address argument skip the signed huge-calldata guard.
-theorem legacyAddress_staticSignedGuard_false {cd : ByteArray} (tys : List ABIType) :
-    ¬ ((legacyAddr :: tys).isEmpty = false ∧
-        usesLegacyAddressTypes (legacyAddr :: tys) = false ∧
-        2 ^ 255 ≤ (cd.toList.drop 4).length) := by
-  rintro ⟨_, hlegacy, _⟩
-  have huses : usesLegacyAddressTypes (legacyAddr :: tys) = true := by
-    simp [legacyAddr, usesLegacyAddressTypes, usesLegacyAddressType]
-  rw [huses] at hlegacy
-  contradiction
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc uint256 return short decode.
+theorem decodeReturnValueWithMode_legacy_uint256_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiUInt256 returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0n : ¬ ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [abiUInt256]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [abiUInt256].length)
+    (by decide) (by simp)]
+  simp only [decodeScalarWordsWithMode?]
+  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
+    (bytes := returndata.toList) (start := 0) htake0n]
+  rfl
 
 -- LIBRARY CANDIDATE: Reasoning.ABI - one legacy address calldata tuple.
 theorem decodeCalldata_legacyAddress_ok {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) :
-    decodeCalldata [x] [legacyAddr] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [legacyAddr] cd =
       some ((∅ : Solm.Store).insert x
         (.address (AccountAddress.ofNat (calldataWord cd 4).toNat))) := by
   have htlen : cd.toList.length = cd.size := by
@@ -62,11 +67,10 @@ theorem decodeCalldata_legacyAddress_ok {cd : ByteArray} {x : Solm.Ident}
     rw [List.length_take, List.length_drop, htlen]; omega
   have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
     decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [legacyAddr]) (cd := cd)
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [legacyAddr]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [])]
-  simp only [decodeScalarWords?]
+  simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake4]
   change decodeCalldata.insertValues [x]
       [.address (AccountAddress.ofNat
@@ -78,14 +82,13 @@ theorem decodeCalldata_legacyAddress_ok {cd : ByteArray} {x : Solm.Ident}
 -- LIBRARY CANDIDATE: Reasoning.ABI - one legacy address short calldata tuple.
 theorem decodeCalldata_legacyAddress_none_short {cd : ByteArray} {x : Solm.Ident}
     (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldata [x] [legacyAddr] cd = none := by
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [legacyAddr] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [legacyAddr]) (cd := cd)
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [legacyAddr]) (cd := cd)
     (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [])]
-  simp only [decodeScalarWords?]
+  simp only [decodeScalarWordsWithMode?]
   have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
     rw [List.length_take, List.length_drop, htlen]
     omega
@@ -95,7 +98,7 @@ theorem decodeCalldata_legacyAddress_none_short {cd : ByteArray} {x : Solm.Ident
 -- LIBRARY CANDIDATE: Reasoning.ABI - legacy address plus uint256 calldata tuple.
 theorem decodeCalldata_legacyAddress_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) :
-    decodeCalldata [x, y] [legacyAddr, abiUInt256] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [legacyAddr, abiUInt256] cd =
       some (((∅ : Solm.Store).insert x
         (.address (AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
         (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
@@ -111,13 +114,12 @@ theorem decodeCalldata_legacyAddress_uint256_ok {cd : ByteArray} {x y : Solm.Ide
       calldataWord cd 36 := by
     simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
       using decode_word_at_eq cd 36 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [legacyAddr, abiUInt256])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y]) (types := [legacyAddr, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [abiUInt256])]
-  simp only [decodeScalarWords?]
+  simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake4]
-  rw [decodeScalarWord_uint256_ok (bytes := cd.toList.drop 4) (start := 32) htake36]
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := cd.toList.drop 4) (start := 32) htake36]
   change decodeCalldata.insertValues [x, y]
       [.address (AccountAddress.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
         .int (Int.ofNat (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat)] ∅ =
@@ -130,35 +132,34 @@ theorem decodeCalldata_legacyAddress_uint256_ok {cd : ByteArray} {x y : Solm.Ide
 -- LIBRARY CANDIDATE: Reasoning.ABI - legacy address plus uint256 short calldata tuple.
 theorem decodeCalldata_legacyAddress_uint256_none_short {cd : ByteArray} {x y : Solm.Ident}
     (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldata [x, y] [legacyAddr, abiUInt256] cd = none := by
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [legacyAddr, abiUInt256] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [legacyAddr, abiUInt256])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y]) (types := [legacyAddr, abiUInt256])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [abiUInt256])]
   by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
   · have htake0 : ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake0]
     have htake32n : ¬ (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
       rw [List.length_take, List.length_drop, List.length_drop, htlen]
       omega
-    rw [decodeScalarWord_uint256_none_short (start := 32) (by simpa using htake32n)]
+    rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05) (start := 32) (by simpa using htake32n)]
     simp only [Option.bind, bind]
   · have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_none_short (start := 0) (by simpa using htake0n)]
     simp only [Option.bind, bind]
 
 -- LIBRARY CANDIDATE: Reasoning.ABI - two legacy-address calldata tuple.
 theorem decodeCalldata_legacyAddress_legacyAddress_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) :
-    decodeCalldata [x, y] [legacyAddr, legacyAddr] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [legacyAddr, legacyAddr] cd =
       some (((∅ : Solm.Store).insert x
         (.address (AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
         (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
@@ -174,11 +175,10 @@ theorem decodeCalldata_legacyAddress_legacyAddress_ok {cd : ByteArray} {x y : So
       calldataWord cd 36 := by
     simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
       using decode_word_at_eq cd 36 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [legacyAddr, legacyAddr])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y]) (types := [legacyAddr, legacyAddr])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [legacyAddr])]
-  simp only [decodeScalarWords?]
+  simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake4]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 32) htake36]
   change decodeCalldata.insertValues [x, y]
@@ -194,18 +194,17 @@ theorem decodeCalldata_legacyAddress_legacyAddress_ok {cd : ByteArray} {x y : So
 -- LIBRARY CANDIDATE: Reasoning.ABI - two legacy-address short calldata tuple.
 theorem decodeCalldata_legacyAddress_legacyAddress_none_short {cd : ByteArray}
     {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldata [x, y] [legacyAddr, legacyAddr] cd = none := by
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [legacyAddr, legacyAddr] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y]) (types := [legacyAddr, legacyAddr])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y]) (types := [legacyAddr, legacyAddr])
     (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [legacyAddr])]
   by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
   · have htake0 : ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake0]
     have htake32n : ¬ (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
       rw [List.length_take, List.length_drop, List.length_drop, htlen]
@@ -215,7 +214,7 @@ theorem decodeCalldata_legacyAddress_legacyAddress_none_short {cd : ByteArray}
   · have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_none_short (start := 0) (by simpa using htake0n)]
     simp only [Option.bind, bind]
 
@@ -223,7 +222,7 @@ theorem decodeCalldata_legacyAddress_legacyAddress_none_short {cd : ByteArray}
 theorem decodeCalldata_legacyAddress_legacyAddress_uint256_ok {cd : ByteArray}
     {x y z : Solm.Ident}
     (hsz100 : 100 ≤ cd.size) :
-    decodeCalldata [x, y, z] [legacyAddr, legacyAddr, abiUInt256] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z] [legacyAddr, legacyAddr, abiUInt256] cd =
       some ((((∅ : Solm.Store).insert x
         (.address (AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
         (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
@@ -246,14 +245,13 @@ theorem decodeCalldata_legacyAddress_legacyAddress_uint256_ok {cd : ByteArray}
       calldataWord cd 68 := by
     simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
       using decode_word_at_eq cd 68 (by omega) (by norm_num)
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y, z])
     (types := [legacyAddr, legacyAddr, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [legacyAddr, abiUInt256])]
-  simp only [decodeScalarWords?]
+  simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake4]
   rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 32) htake36]
-  rw [decodeScalarWord_uint256_ok (bytes := cd.toList.drop 4) (start := 64)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := cd.toList.drop 4) (start := 64)
     htake68]
   simp only [Option.bind, bind]
   change decodeCalldata.insertValues [x, y, z]
@@ -272,18 +270,17 @@ theorem decodeCalldata_legacyAddress_legacyAddress_uint256_ok {cd : ByteArray}
 -- LIBRARY CANDIDATE: Reasoning.ABI - two legacy addresses plus uint256 short calldata tuple.
 theorem decodeCalldata_legacyAddress_legacyAddress_uint256_none_short {cd : ByteArray}
     {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldata [x, y, z] [legacyAddr, legacyAddr, abiUInt256] cd = none := by
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z] [legacyAddr, legacyAddr, abiUInt256] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y, z])
     (types := [legacyAddr, legacyAddr, abiUInt256]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (legacyAddress_staticSignedGuard_false (cd := cd) [legacyAddr, abiUInt256])]
   by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
   · have htake0 : ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) htake0]
     by_cases hlen32 : 64 ≤ (cd.toList.drop 4).length
     · have htake32 : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
@@ -294,7 +291,7 @@ theorem decodeCalldata_legacyAddress_legacyAddress_uint256_none_short {cd : Byte
       have htake64n : ¬ (((cd.toList.drop 4).drop 64).take 32).length = 32 := by
         rw [List.length_take, List.length_drop, List.length_drop, htlen]
         omega
-      rw [decodeScalarWord_uint256_none_short (start := 64) (by simpa using htake64n)]
+      rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05) (start := 64) (by simpa using htake64n)]
       simp only [Option.bind, bind]
     · have htake32n : ¬ (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
         rw [List.length_take, List.length_drop]
@@ -304,7 +301,7 @@ theorem decodeCalldata_legacyAddress_legacyAddress_uint256_none_short {cd : Byte
   · have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
       rw [List.length_take]
       omega
-    simp only [decodeScalarWords?]
+    simp only [decodeScalarWordsWithMode?]
     rw [decodeScalarWord_legacyAddress_none_short (start := 0) (by simpa using htake0n)]
     simp only [Option.bind, bind]
 

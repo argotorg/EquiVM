@@ -14,6 +14,7 @@ structure ExternalCallABI where
 structure Config where
   storage : StorageLayout
   externalABI : ExternalCallABI
+  abiDecodeMode : ABI.DecodeMode := ABI.DecodeMode.modern
   /- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a
      `new` of the named contract. -/
   creationCode : Ident -> List Value -> Option EVM.Bytes := fun _ _ => none
@@ -74,7 +75,6 @@ def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
   | .elem .bool, .bool b => some (b.toUInt256)
   | .elem .address, .address a => some (EVM.word a)
-  | .elem .legacyAddress, .address a => some (EVM.word a)
   | .elem (.int (.uint _)), .int i =>
       if i < 0 then none else some (EVM.wordOfInt i)
   | .elem (.int (.sint _)), .int i => some (EVM.wordOfInt i)
@@ -202,7 +202,6 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   match ty, v with
   | .elem (.bool), .bool _ => some v
   | .elem (.address), .address _ => some v
-  | .elem (.legacyAddress), .address _ => some v
   | .elem (.bytes expected), .fixedBytes actual _ =>
       if expected = actual then some v else none
   | .elem (.bytes expected), .int n =>
@@ -849,7 +848,6 @@ mutual
 def defaultValue? : StorageType -> EvalResult Value
   | .elem (.bool) => pure (.bool false)
   | .elem (.address) => pure (.address (.ofNat 0))
-  | .elem (.legacyAddress) => pure (.address (.ofNat 0))
   | .elem (.bytes n) => pure (.fixedBytes n (List.replicate (n.val + 1) 0))
   | .elem _ => pure (.int 0)
   | .contract _ => pure (.address (.ofNat 0))
@@ -893,7 +891,6 @@ def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
   match ty, v with
   | .elem .bool, .bool b => some [if b then (1 : UInt8) else 0]
   | .elem .address, .address a => some ((EVM.word a).toBytesBE.drop 12)
-  | .elem .legacyAddress, .address a => some ((EVM.word a).toBytesBE.drop 12)
   | .elem (.int (.uint bits)), .int _ => do
       let w <- encodeABIWord? ty v
       some (w.toBytesBE.drop (32 - bits.val / 8))
@@ -1203,7 +1200,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       let value <- evalExpr? cfg solm evm e
       match value with
       | .bytes bytes =>
-          match ABI.decodeReturnValue? ty bytes with
+          match ABI.decodeReturnValueWithMode? cfg.abiDecodeMode ty bytes with
           | some decoded => pure decoded
           | none => .revert
       | _ => .error .typeError
