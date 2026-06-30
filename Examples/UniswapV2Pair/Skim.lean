@@ -2664,31 +2664,24 @@ theorem uniswapSkimBody
                                 accountMapEquiv σ1 evm1S.accountMap := by
                               simpa [evm1S] using hPostTransferAccounts0
                             have hout1Small : out1.size < 2 ^ 138 := by
-                              have htheta :=
-                                Theta_returnData_size_lt_2pow138 I.blobVersionedHashes cA'
-                                  ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader)
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks
-                                  σ'
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).σ₀
-                                  A_in1
-                                  (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val))
-                                  I.sender
+                              exact Theta_returnData_size_lt_2pow138_of_eq
+                                (blob := I.blobVersionedHashes) (cA := cA')
+                                (gh := evm0E.genesisBlockHeader) (blocks := evm0E.blocks)
+                                (σ := σ') (σ₀ := evm0E.σ₀) (A := A_in1)
+                                (s := AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val))
+                                (o := I.sender)
+                                (r := AccountAddress.ofUInt256
+                                  (UInt256.land token0CleanE solcAddrMask))
+                                (c := toExecute σ'
                                   (AccountAddress.ofUInt256
-                                    (UInt256.land token0CleanE solcAddrMask))
-                                  (toExecute σ'
-                                    (AccountAddress.ofUInt256
-                                      (UInt256.land token0CleanE solcAddrMask)))
-                                  callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-                                  ((skimSafeTransferCallMem2 (UInt256.ofNat I.codeOwner.val) o
-                                    (skimToWord I) (balance0.sub reserve0E)).readWithPadding
-                                    292 68)
-                                  (I.depth + 1) I.header I.perm
-                                  (by
-                                    exact
-                                      Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
-                                        _ _ _)
-                              rw [← hΘsafeEq] at htheta
-                              simpa using htheta
+                                    (UInt256.land token0CleanE solcAddrMask)))
+                                (g := callGas1) (p := UInt256.ofNat I.gasPrice)
+                                (v := ⟨0⟩) (v' := ⟨0⟩) (d := safeData0)
+                                (e := I.depth + 1) (H := I.header) (w := I.perm)
+                                (by simpa [evm0E, safeData0, safeValue0, hperm] using hΘsafeEq)
+                                (by
+                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                    _ _ _)
                             by_cases htoken1NoCode :
                                 uniswapExtCodeSizeWord σ1
                                   (UInt256.land token1CleanE solcAddrMask) = ⟨0⟩
@@ -2958,33 +2951,28 @@ theorem uniswapSkimBody
                                         executionEnv := I }
                                     obtain ⟨g3Ret, A3E, hΘsafeEq1⟩ := hΘsafe1
                                     have hout3Small : out3.size < 2 ^ 138 := by
-                                      have htheta :=
-                                        Theta_returnData_size_lt_2pow138 I.blobVersionedHashes cA2
-                                          ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader)
-                                          ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks)
-                                          σ2
-                                          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).σ₀
-                                          A_in3
+                                      exact Theta_returnData_size_lt_2pow138_of_eq
+                                        (blob := I.blobVersionedHashes) (cA := cA2)
+                                        (gh := evm2E.genesisBlockHeader) (blocks := evm2E.blocks)
+                                        (σ := σ2) (σ₀ := evm2E.σ₀) (A := A_in3)
+                                        (s := AccountAddress.ofUInt256
+                                          (UInt256.ofNat I.codeOwner.val))
+                                        (o := I.sender)
+                                        (r := AccountAddress.ofUInt256
+                                          (UInt256.land token1CleanE solcAddrMask))
+                                        (c := toExecute σ2
                                           (AccountAddress.ofUInt256
-                                            (UInt256.ofNat I.codeOwner.val))
-                                          I.sender
-                                          (AccountAddress.ofUInt256
-                                            (UInt256.land token1CleanE solcAddrMask))
-                                          (toExecute σ2
-                                            (AccountAddress.ofUInt256
-                                              (UInt256.land token1CleanE solcAddrMask)))
-                                          callGas3 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-                                          ((skimSecondSafeTransferDynamicCallMem2
-                                            (UInt256.ofNat I.codeOwner.val) o (skimToWord I)
-                                            safeValue0 out1 out2 safeValue1).readWithPadding
-                                            (skimSecondSafeTransferDynamicCallPtr out1).toNat 68)
-                                          (I.depth + 1) I.header I.perm
-                                          (by
-                                            exact
-                                              Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
-                                                _ _ _)
-                                      rw [← hΘsafeEq1] at htheta
-                                      simpa [safeValue1] using htheta
+                                            (UInt256.land token1CleanE solcAddrMask)))
+                                        (g := callGas3) (p := UInt256.ofNat I.gasPrice)
+                                        (v := ⟨0⟩) (v' := ⟨0⟩) (d := safeData1)
+                                        (e := I.depth + 1) (H := I.header) (w := I.perm)
+                                        (by
+                                          simpa [evm2E, safeData1, safeValue1, hperm] using
+                                            hΘsafeEq1)
+                                        (by
+                                          exact
+                                            Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                              _ _ _)
                                     have hcallE1 : callViaEVM evm2E
                                         (AccountAddress.ofUInt256
                                           (UInt256.land token1CleanE solcAddrMask))
@@ -4524,31 +4512,24 @@ theorem uniswapSkimBody
                                 accountMapEquiv σ1 evm1S.accountMap := by
                               simpa [evm1S] using hPostTransferAccounts0
                             have hout1Small : out1.size < 2 ^ 138 := by
-                              have htheta :=
-                                Theta_returnData_size_lt_2pow138 I.blobVersionedHashes cA'
-                                  ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader)
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks
-                                  σ'
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).σ₀
-                                  A_in1
-                                  (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val))
-                                  I.sender
+                              exact Theta_returnData_size_lt_2pow138_of_eq
+                                (blob := I.blobVersionedHashes) (cA := cA')
+                                (gh := evm0E.genesisBlockHeader) (blocks := evm0E.blocks)
+                                (σ := σ') (σ₀ := evm0E.σ₀) (A := A_in1)
+                                (s := AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val))
+                                (o := I.sender)
+                                (r := AccountAddress.ofUInt256
+                                  (UInt256.land token0CleanE solcAddrMask))
+                                (c := toExecute σ'
                                   (AccountAddress.ofUInt256
-                                    (UInt256.land token0CleanE solcAddrMask))
-                                  (toExecute σ'
-                                    (AccountAddress.ofUInt256
-                                      (UInt256.land token0CleanE solcAddrMask)))
-                                  callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-                                  ((skimSafeTransferCallMem2 (UInt256.ofNat I.codeOwner.val) o
-                                    (skimToMaskedWord I) (balance0.sub reserve0E)).readWithPadding
-                                    292 68)
-                                  (I.depth + 1) I.header I.perm
-                                  (by
-                                    exact
-                                      Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
-                                        _ _ _)
-                              rw [← hΘsafeEq] at htheta
-                              simpa using htheta
+                                    (UInt256.land token0CleanE solcAddrMask)))
+                                (g := callGas1) (p := UInt256.ofNat I.gasPrice)
+                                (v := ⟨0⟩) (v' := ⟨0⟩) (d := safeData0)
+                                (e := I.depth + 1) (H := I.header) (w := I.perm)
+                                (by simpa [evm0E, safeData0, safeValue0, hperm] using hΘsafeEq)
+                                (by
+                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                    _ _ _)
                             by_cases htoken1NoCode :
                                 uniswapExtCodeSizeWord σ1
                                   (UInt256.land token1CleanE solcAddrMask) = ⟨0⟩
@@ -4818,33 +4799,28 @@ theorem uniswapSkimBody
                                         executionEnv := I }
                                     obtain ⟨g3Ret, A3E, hΘsafeEq1⟩ := hΘsafe1
                                     have hout3Small : out3.size < 2 ^ 138 := by
-                                      have htheta :=
-                                        Theta_returnData_size_lt_2pow138 I.blobVersionedHashes cA2
-                                          ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).genesisBlockHeader)
-                                          ((initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).blocks)
-                                          σ2
-                                          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).σ₀
-                                          A_in3
+                                      exact Theta_returnData_size_lt_2pow138_of_eq
+                                        (blob := I.blobVersionedHashes) (cA := cA2)
+                                        (gh := evm2E.genesisBlockHeader) (blocks := evm2E.blocks)
+                                        (σ := σ2) (σ₀ := evm2E.σ₀) (A := A_in3)
+                                        (s := AccountAddress.ofUInt256
+                                          (UInt256.ofNat I.codeOwner.val))
+                                        (o := I.sender)
+                                        (r := AccountAddress.ofUInt256
+                                          (UInt256.land token1CleanE solcAddrMask))
+                                        (c := toExecute σ2
                                           (AccountAddress.ofUInt256
-                                            (UInt256.ofNat I.codeOwner.val))
-                                          I.sender
-                                          (AccountAddress.ofUInt256
-                                            (UInt256.land token1CleanE solcAddrMask))
-                                          (toExecute σ2
-                                            (AccountAddress.ofUInt256
-                                              (UInt256.land token1CleanE solcAddrMask)))
-                                          callGas3 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-                                          ((skimSecondSafeTransferDynamicCallMem2
-                                            (UInt256.ofNat I.codeOwner.val) o (skimToMaskedWord I)
-                                            safeValue0 out1 out2 safeValue1).readWithPadding
-                                            (skimSecondSafeTransferDynamicCallPtr out1).toNat 68)
-                                          (I.depth + 1) I.header I.perm
-                                          (by
-                                            exact
-                                              Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
-                                                _ _ _)
-                                      rw [← hΘsafeEq1] at htheta
-                                      simpa [safeValue1] using htheta
+                                            (UInt256.land token1CleanE solcAddrMask)))
+                                        (g := callGas3) (p := UInt256.ofNat I.gasPrice)
+                                        (v := ⟨0⟩) (v' := ⟨0⟩) (d := safeData1)
+                                        (e := I.depth + 1) (H := I.header) (w := I.perm)
+                                        (by
+                                          simpa [evm2E, safeData1, safeValue1, hperm] using
+                                            hΘsafeEq1)
+                                        (by
+                                          exact
+                                            Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                              _ _ _)
                                     have hcallE1 : callViaEVM evm2E
                                         (AccountAddress.ofUInt256
                                           (UInt256.land token1CleanE solcAddrMask))

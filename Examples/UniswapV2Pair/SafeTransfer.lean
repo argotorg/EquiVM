@@ -176,8 +176,6 @@ theorem evalExpr_safeTransferReturnOk_decodeTrue (evm : EVM.State)
   rw [safeTransferCallStore_success, safeTransferCallStore_data]
   simp only [readLocalPath?, evalBinaryOp?, EvalResult.bind, bind, pure, hneq, hdec]
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side low-level call followed by a
--- Solidity `require` whose condition may inspect `(success, returndata)`.
 theorem safeTransferFunctionBodyReverts_callFailure
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
     {calldata out : ByteArray}
@@ -192,17 +190,18 @@ theorem safeTransferFunctionBodyReverts_callFailure
     [ .lowLevelCall (.var "token") (.intLit 0)
         (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
       .require safeTransferReturnOkExpr ] .reverted
-  refine ExecBlock.consNormal
-    (solm' := { contract := contract, locals := safeTransferCallStore token recipient value false out })
-    (evm' := evm') ?_ ?_
-  · exact ExecStmt.lowLevelCallFailure
-      (evalExpr_safeTransfer_receiver evm token recipient value)
-      (evalExpr_safeTransfer_value evm token recipient value)
-      (evalExpr_safeTransfer_calldata evm token recipient value hdata)
-      hcall
-  · exact ExecBlock.consRevert
-      (ExecStmt.requireFalse
-        (evalExpr_safeTransferReturnOk_false evm' token recipient value out))
+  exact lowLevelCallFailureThenRequireFalse
+    (C := contract) (locals := safeTransferCalleeStore token recipient value)
+    (receiver := .var "token") (eth := .intLit 0)
+    (cdata := transferCalldataExpr (.var "to") (.var "value"))
+    (requireCond := safeTransferReturnOkExpr)
+    (okVar := "_success") (dataVar := "_data")
+    (target := token) (sendVal := 0) (calldata := calldata) (out := out)
+    (evalExpr_safeTransfer_receiver evm token recipient value)
+    (evalExpr_safeTransfer_value evm token recipient value)
+    (evalExpr_safeTransfer_calldata evm token recipient value hdata)
+    hcall
+    (evalExpr_safeTransferReturnOk_false evm' token recipient value out)
 
 theorem safeTransferFunctionBodyReverts_decode
     (evm evm' : EVM.State) (token recipient : AccountAddress) (value : UInt256)
@@ -325,8 +324,6 @@ theorem safeTransferFunctionBodyReturns_decodeTrue
         (evalExpr_safeTransferReturnOk_decodeTrue evm' token recipient value hsize hdec))
       ExecBlock.nil
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — packaged `FunctionDecl` internal-call revert helper
--- specialized to a callee whose body is proved as `ExecFuncBody`.
 theorem safeTransferInternalCallReverts_callFailure
     (caller : Frame) (evm evm' : EVM.State)
     {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}

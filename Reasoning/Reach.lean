@@ -1488,6 +1488,22 @@ axiom Theta_returnData_size_lt_2pow138
     (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size <
       2 ^ 138
 
+theorem Theta_returnData_size_lt_2pow138_of_eq
+    (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
+    (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
+    (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
+    (e : Fin 1025) (H : BlockHeader) (w : Bool)
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {g' : UInt256} {A' : Substate} {z : Bool} {out : ByteArray}
+    (hΘ : (cA', σ', g', A', z, out) =
+      Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w)
+    (hd : d.size < UInt256.size) :
+    out.size < 2 ^ 138 := by
+  have htheta :=
+    Theta_returnData_size_lt_2pow138 blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w hd
+  rw [← hΘ] at htheta
+  simpa using htheta
+
 /-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters, like `RD.loop`): from a
     cursor at the `SSTORE` pc with `[slot, val, …t]` and carried accounts `(cA, σ)`, write `val` to
     `slot` of the caller account (`ee.codeOwner`), advancing the carried `accountMap` to
