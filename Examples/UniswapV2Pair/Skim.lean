@@ -229,53 +229,6 @@ theorem uniswapSkimFirstBalanceTypedCall_source
       uniswapStorageStore_blocks]
   · simp [evm0S, evmSL, evmS]
 
-theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
-    {target : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
-    {z : Bool} {out : ByteArray} {perm : Bool}
-    (hcall : typedCallViaEVM cfg evm target name value args (z, evm', out) perm) :
-    evm'.executionEnv = evm.executionEnv := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
-  cases hraw with
-  | callMade _hvalue _hTheta hevm' _hvalue' _hdepth =>
-      subst hevm'
-      rfl
-  | callNotMade _hsubstate hevm' _hvalue =>
-      subst hevm'
-      rfl
-
-theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
-    (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
-    ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
-      ((τ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) := by
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [Batteries.RBMap.findD, hσ, hτ, Option.option] at hστ ⊢
-  all_goals
-    have hstorage := congrArg (fun storage => storage.findD slot defaultValue) hστ.1
-    simpa using hstorage
-
-theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
-    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
-    {z : Bool} {out : ByteArray}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
-    accountStorageStateEq evm.accountMap evm'.accountMap := by
-  cases hcall with
-  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
-      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
-      subst hevm'
-      exact Theta_static_accountStorageStateEq hΘ.symm
-  | callNotMade _hsubstate hevm' _hvalue =>
-      subst hevm'
-      exact accountStorageStateEq_refl evm.accountMap
-
-theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : EVM.State}
-    {target : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
-    accountStorageStateEq evm.accountMap evm'.accountMap := by
-  obtain ⟨calldata, _hencode, hraw⟩ := hcall
-  exact callViaEVM_static_accountStorageStateEq hraw
-
 theorem uniswapSkimFirstBalanceReturn_source
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}

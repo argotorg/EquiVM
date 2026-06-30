@@ -1,6 +1,7 @@
 import Reasoning.SolmBody
 import Reasoning.Storage
 
+import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
 
 /-!
@@ -86,6 +87,42 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
   exact ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd,
     callViaEVM.callMade (perm := callPerm) wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
       (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth⟩
+
+theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
+    {z : Bool} {out : ByteArray} {perm : Bool}
+    (hcall : typedCallViaEVM cfg evm target name value args (z, evm', out) perm) :
+    evm'.executionEnv = evm.executionEnv := by
+  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  cases hraw with
+  | callMade _hvalue _hTheta hevm' _hvalue' _hdepth =>
+      subst hevm'
+      rfl
+  | callNotMade _hsubstate hevm' _hvalue =>
+      subst hevm'
+      rfl
+
+theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
+    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    accountStorageStateEq evm.accountMap evm'.accountMap := by
+  cases hcall with
+  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
+      subst hevm'
+      exact Theta_static_accountStorageStateEq hΘ.symm
+  | callNotMade _hsubstate hevm' _hvalue =>
+      subst hevm'
+      exact accountStorageStateEq_refl evm.accountMap
+
+theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    accountStorageStateEq evm.accountMap evm'.accountMap := by
+  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  exact callViaEVM_static_accountStorageStateEq hraw
 
 /-- `Θ` respects observationally equivalent account maps.
 

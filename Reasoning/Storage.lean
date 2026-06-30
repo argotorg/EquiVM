@@ -3,6 +3,7 @@ import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Stepping
 import Solm.SolidityLayout
+import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
 
 /-!
@@ -1156,6 +1157,17 @@ theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
   specialize hστ addr
   cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
   exact accountEquiv_storage_findD slot default hστ
+
+theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
+    (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
+    ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
+      ((τ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) := by
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
+    simp [Batteries.RBMap.findD, hσ, hτ, Option.option] at hστ ⊢
+  all_goals
+    have hstorage := congrArg (fun storage => storage.findD slot defaultValue) hστ.1
+    simpa using hstorage
 
 /-- Erasing the same persistent storage slot from equivalent accounts preserves equivalence. -/
 theorem accountEquiv_erase_storage_of_equiv {acc₁ acc₂ : Account}
