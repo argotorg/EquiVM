@@ -350,6 +350,59 @@ theorem safeTransferInternalCallReverts_callFailure
       simpa [hcaller] using
         (safeTransferFunctionBodyReverts_callFailure evm evm' token recipient value hdata hcall))
 
+theorem safeTransferInternalCallReverts_decode
+    (caller : Frame) (evm evm' : EVM.State)
+    {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
+    (token recipient : AccountAddress) (value : UInt256) {calldata out : ByteArray}
+    (hcaller : caller.contract = contract)
+    (hargs :
+      evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
+        .ok (safeTransferArgs token recipient value))
+    (hdata : transferCalldata? recipient value = some calldata)
+    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hsize : out.size ≠ 0)
+    (hdec : ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = none) :
+    ExecStmt config caller evm
+      (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
+  exact internalCallFunctionRevert
+    (cfg := config) (caller := caller) (evm := evm) (name := "_safeTransfer")
+    (retVar := retVar) (args := [tokenExpr, toExpr, valueExpr])
+    (argVals := safeTransferArgs token recipient value) (callee := safeTransferFunction)
+    (locals := safeTransferCalleeStore token recipient value)
+    hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
+    (bindParams_safeTransfer token recipient value)
+    (by
+      simpa [hcaller] using
+        (safeTransferFunctionBodyReverts_decode evm evm' token recipient value hdata hcall hsize
+          hdec))
+
+theorem safeTransferInternalCallReverts_decodeFalse
+    (caller : Frame) (evm evm' : EVM.State)
+    {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}
+    (token recipient : AccountAddress) (value : UInt256) {calldata out : ByteArray}
+    (hcaller : caller.contract = contract)
+    (hargs :
+      evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
+        .ok (safeTransferArgs token recipient value))
+    (hdata : transferCalldata? recipient value = some calldata)
+    (hcall : callViaEVM evm (EVM.address token) 0 calldata (true, evm', out))
+    (hsize : out.size ≠ 0)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode boolTy out = some (.bool false)) :
+    ExecStmt config caller evm
+      (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
+  exact internalCallFunctionRevert
+    (cfg := config) (caller := caller) (evm := evm) (name := "_safeTransfer")
+    (retVar := retVar) (args := [tokenExpr, toExpr, valueExpr])
+    (argVals := safeTransferArgs token recipient value) (callee := safeTransferFunction)
+    (locals := safeTransferCalleeStore token recipient value)
+    hargs (by simpa [hcaller] using lookupCallable_safeTransfer)
+    (bindParams_safeTransfer token recipient value)
+    (by
+      simpa [hcaller] using
+        (safeTransferFunctionBodyReverts_decodeFalse evm evm' token recipient value hdata hcall
+          hsize hdec))
+
 theorem safeTransferInternalCallReturns_empty
     (caller : Frame) (evm evm' : EVM.State)
     {tokenExpr toExpr valueExpr : Expr} {retVar : Ident}

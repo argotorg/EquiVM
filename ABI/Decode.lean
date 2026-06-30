@@ -45,12 +45,19 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
   let n : Nat := word.val
   match ty with
   | .elem .bool =>
-      if n = 0 then
-        some (.bool false)
-      else if n = 1 then
-        some (.bool true)
-      else
-        none
+      match mode with
+      | DecodeMode.modern =>
+          if n = 0 then
+            some (.bool false)
+          else if n = 1 then
+            some (.bool true)
+          else
+            none
+      | DecodeMode.legacySolc05 =>
+          if n = 0 then
+            some (.bool false)
+          else
+            some (.bool true)
   | .elem .address =>
       match mode with
       | DecodeMode.modern =>
@@ -315,6 +322,15 @@ def decodeReturnValueWithMode? (mode : DecodeMode) (ty : ABIType) (returndata : 
   match mode with
   | DecodeMode.modern => decodeReturnValue? ty returndata
   | DecodeMode.legacySolc05 => do
-      match decodeReturnValuesWithMode? DecodeMode.legacySolc05 [ty] returndata with
-      | some [value] => some value
-      | _ => none
+      match ty with
+      | .elem .bool =>
+          if 2 ^ 255 ≤ returndata.size then
+            none
+          else
+            match decodeReturnValuesWithMode? DecodeMode.legacySolc05 [ty] returndata with
+            | some [value] => some value
+            | _ => none
+      | _ =>
+          match decodeReturnValuesWithMode? DecodeMode.legacySolc05 [ty] returndata with
+          | some [value] => some value
+          | _ => none

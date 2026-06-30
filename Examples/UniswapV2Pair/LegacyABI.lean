@@ -34,6 +34,46 @@ theorem decodeScalarWord_legacyAddress_none_short {bytes : List UInt8} {start : 
     Option.bind]
   rw [if_neg hshort]
 
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool scalar decode.
+theorem decodeScalarWordWithMode_legacy_bool_false {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hzero : ABI.bytesToWord ((bytes.drop start).take 32) = ⟨0⟩) :
+    decodeScalarWordWithMode? DecodeMode.legacySolc05 boolTy bytes start =
+      some (.bool false, start + 32) := by
+  rw [← decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
+    (ty := boolTy) (bytes := bytes) (start := start) (by decide)]
+  simp only [boolTy, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  simp [hzero]
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool scalar nonzero decode.
+theorem decodeScalarWordWithMode_legacy_bool_true {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hnz : ABI.bytesToWord ((bytes.drop start).take 32) ≠ ⟨0⟩) :
+    decodeScalarWordWithMode? DecodeMode.legacySolc05 boolTy bytes start =
+      some (.bool true, start + 32) := by
+  rw [← decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
+    (ty := boolTy) (bytes := bytes) (start := start) (by decide)]
+  simp only [boolTy, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  have hnzNat : ¬ (ABI.bytesToWord ((bytes.drop start).take 32)).toNat = 0 := by
+    intro h
+    exact hnz (uint256_toNat_eq_zero h)
+  dsimp only [Option.bind]
+  rw [if_neg (by simpa [UInt256.toNat] using hnzNat)]
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool short scalar decode.
+theorem decodeScalarWordWithMode_legacy_bool_none_short {bytes : List UInt8} {start : Nat}
+    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWordWithMode? DecodeMode.legacySolc05 boolTy bytes start = none := by
+  rw [← decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
+    (ty := boolTy) (bytes := bytes) (start := start) (by decide)]
+  simp only [boolTy, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_neg hshort]
+
 -- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc uint256 return short decode.
 theorem decodeReturnValueWithMode_legacy_uint256_none_short {returndata : ByteArray}
     (hshort : returndata.size < 32) :
@@ -54,6 +94,141 @@ theorem decodeReturnValueWithMode_legacy_uint256_none_short {returndata : ByteAr
   rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
     (bytes := returndata.toList) (start := 0) htake0n]
   rfl
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc uint256 return decode.
+theorem decodeReturnValueWithMode_legacy_uint256_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiUInt256 returndata =
+      some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [abiUInt256]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [abiUInt256].length)
+    (by decide) (by simp)]
+  simp only [decodeScalarWordsWithMode?]
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
+    (bytes := returndata.toList) (start := 0) htake0]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool return short decode.
+theorem decodeReturnValueWithMode_legacy_bool_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy returndata = none := by
+  have hsmall : ¬ 2 ^ 255 ≤ returndata.size := by omega
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0n : ¬ ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  unfold ABI.decodeReturnValueWithMode?
+  simp only [boolTy]
+  rw [if_neg hsmall]
+  unfold ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [ABIType.elem ElemType.bool]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [ABIType.elem ElemType.bool]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [ABIType.elem ElemType.bool].length)
+    (by decide) (by simp)]
+  simp only [decodeScalarWordsWithMode?]
+  have hscalar :
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 (ABIType.elem ElemType.bool)
+        returndata.toList 0 = none := by
+    simpa [boolTy] using
+      (decodeScalarWordWithMode_legacy_bool_none_short (bytes := returndata.toList)
+        (start := 0) htake0n)
+  rw [hscalar]
+  rfl
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool false return decode.
+theorem decodeReturnValueWithMode_legacy_bool_false {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size)
+    (hsize : returndata.size < 2 ^ 255)
+    (hword : UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)) = ⟨0⟩) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy returndata =
+      some (.bool false) := by
+  have hsmall : ¬ 2 ^ 255 ≤ returndata.size := by omega
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  have hwordList := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  have hzero : ABI.bytesToWord ((returndata.toList.drop 0).take 32) = ⟨0⟩ := by
+    simpa [List.drop_zero, hwordList] using hword
+  unfold ABI.decodeReturnValueWithMode?
+  simp only [boolTy]
+  rw [if_neg hsmall]
+  unfold ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [ABIType.elem ElemType.bool]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [ABIType.elem ElemType.bool]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [ABIType.elem ElemType.bool].length)
+    (by decide) (by simp)]
+  simp only [decodeScalarWordsWithMode?]
+  have hscalar :
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 (ABIType.elem ElemType.bool)
+        returndata.toList 0 = some (.bool false, 0 + 32) := by
+    simpa [boolTy] using
+      (decodeScalarWordWithMode_legacy_bool_false (bytes := returndata.toList)
+        (start := 0) htake0 hzero)
+  rw [hscalar]
+  rfl
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool true return decode.
+theorem decodeReturnValueWithMode_legacy_bool_true {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size)
+    (hsize : returndata.size < 2 ^ 255)
+    (hword :
+      UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)) ≠ ⟨0⟩) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy returndata =
+      some (.bool true) := by
+  have hsmall : ¬ 2 ^ 255 ≤ returndata.size := by omega
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  have hwordList := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  have hnz : ABI.bytesToWord ((returndata.toList.drop 0).take 32) ≠ ⟨0⟩ := by
+    intro hzero
+    exact hword (by simpa [List.drop_zero, hwordList] using hzero)
+  unfold ABI.decodeReturnValueWithMode?
+  simp only [boolTy]
+  rw [if_neg hsmall]
+  unfold ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [ABIType.elem ElemType.bool]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [ABIType.elem ElemType.bool]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [ABIType.elem ElemType.bool].length)
+    (by decide) (by simp)]
+  simp only [decodeScalarWordsWithMode?]
+  have hscalar :
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 (ABIType.elem ElemType.bool)
+        returndata.toList 0 = some (.bool true, 0 + 32) := by
+    simpa [boolTy] using
+      (decodeScalarWordWithMode_legacy_bool_true (bytes := returndata.toList)
+        (start := 0) htake0 hnz)
+  rw [hscalar]
+  rfl
+
+-- LIBRARY CANDIDATE: Reasoning.ABI - legacy/optimizer solc bool huge return decode.
+theorem decodeReturnValueWithMode_legacy_bool_none_huge {returndata : ByteArray}
+    (hhi : 2 ^ 255 ≤ returndata.size) :
+    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy returndata = none := by
+  unfold ABI.decodeReturnValueWithMode?
+  simp only [boolTy]
+  rw [if_pos hhi]
 
 -- LIBRARY CANDIDATE: Reasoning.ABI - one legacy address calldata tuple.
 theorem decodeCalldata_legacyAddress_ok {cd : ByteArray} {x : Solm.Ident}

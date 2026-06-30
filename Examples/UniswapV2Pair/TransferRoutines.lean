@@ -110,6 +110,82 @@ theorem uniswapErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
   mloadFreePtrValue (by rw [uniswapErrorStringMem3_size len word hmem]; decide)
     (by decide) (uniswapErrorStringMem3_read64 len word hmem hread64)
 
+theorem uniswapErrorStringMem0_size_of_size164 {mem : ByteArray} (hmem : mem.size = 164) :
+    (uniswapErrorStringMem0 mem).size = 164 := by
+  unfold uniswapErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem1_size_of_size164 {mem : ByteArray} (hmem : mem.size = 164) :
+    (uniswapErrorStringMem1 mem).size = 164 := by
+  unfold uniswapErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem0_size_of_size164 hmem,
+    toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem2_size_of_size164 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 164) :
+    (uniswapErrorStringMem2 len mem).size = 196 := by
+  unfold uniswapErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [uniswapErrorStringMem1_size_of_size164 hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem1_size_of_size164 hmem,
+    toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem3_size_of_size164 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 164) :
+    (uniswapErrorStringMem3 len word mem).size = 228 := by
+  unfold uniswapErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem2_size_of_size164 len hmem,
+    toByteArray_size]
+  omega
+
+theorem uniswapErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (uniswapErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold uniswapErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [uniswapErrorStringMem1_size_of_size164 hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem1_size_of_size164 hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; omega) (by omega)
+      (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; exact lt_usize _ (by norm_num))]
+  unfold uniswapErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap uniswapErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem uniswapErrorStringMem3_mload64_of_size164 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((uniswapErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [uniswapErrorStringMem3_size_of_size164 len word hmem]; decide)
+    (by decide) (uniswapErrorStringMem3_read64_of_size164 len word hmem hread64)
+
 def uniswapSafeMathSubUnderflowStringWord : UInt256 :=
   UInt256.shiftLeft
     (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256) ⟨88⟩
@@ -188,6 +264,78 @@ theorem RD.uniswapSafeMathSubUnderflow {g : Sat256} {s0 : State} {ee : Execution
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
       mem_cost
       (UniswapV2Pair.uniswapErrorStringMem3_mload64 (⟨21⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathSubUnderflowStringWord hmem hread64)
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov)]
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {a b ret : UInt256} {R : List UInt256}
+    {mem : ByteArray} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
+      mem (UInt256.ofNat 6) rdata acc k C)
+    (hlt : a.toNat < b.toNat)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have rd6886 := evm_run h with [jumpdest, dup1, dup3, sub, dup3, dup2]
+  have rd6887₀ := evm_run rd6886 with [gt]
+  have rd6887 := rd6887₀
+  rw [hgt] at rd6887
+  have rd6888₀ := evm_run rd6887 with [iszero]
+  have rd6888 := rd6888₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6888
+  have rd6891 := evm_run rd6888 with [
+    push2 ⟨2911⟩, jumpiNT (by decide)]
+  have rd6895 := evm_run rd6891 with [
+    push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) (by decide) (by evm_ov)
+  have rd6918 := evm_run rd6899 with [
+    push1 ⟨229⟩, shl, dup2,
+    raw mstore 0 (UniswapV2Pair.uniswapErrorStringMem0 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
+    raw mstore 0 (UniswapV2Pair.uniswapErrorStringMem1 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨21⟩, push1 ⟨36⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem2 (⟨21⟩ : UInt256) mem)
+      (UInt256.ofNat 7) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov)]
+  have rd6940 := rd6918.pushConst
+    (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
+    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+  exact evm_run rd6940 with [
+    push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
+    raw mstore 3
+      (UniswapV2Pair.uniswapErrorStringMem3 (⟨21⟩ : UInt256)
+        UniswapV2Pair.uniswapSafeMathSubUnderflowStringWord mem)
+      (UInt256.ofNat 8) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+      mem_cost
+      (UniswapV2Pair.uniswapErrorStringMem3_mload64_of_size164 (⟨21⟩ : UInt256)
         UniswapV2Pair.uniswapSafeMathSubUnderflowStringWord hmem hread64)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,

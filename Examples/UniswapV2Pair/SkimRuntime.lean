@@ -1,4 +1,6 @@
 import Examples.UniswapV2Pair.SkimCommon
+import Examples.UniswapV2Pair.ExternalCalls
+import Examples.UniswapV2Pair.TransferRoutines
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -7,6 +9,239 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 /-! ## EVM trace prefix -/
+
+abbrev skimSafeTransferSignatureWord : UInt256 :=
+  ⟨52670383448186445861553817759887498218675746408080920759387454194053457903616⟩
+
+noncomputable def skimSafeTransferMem0 (self : UInt256) (o : ByteArray) : ByteArray :=
+  (UInt256.toByteArray (⟨192⟩ : UInt256)).write 0 (balanceOfThisStaticcallMem self o) 64 32
+
+noncomputable def skimSafeTransferMem1 (self : UInt256) (o : ByteArray) : ByteArray :=
+  (UInt256.toByteArray (⟨25⟩ : UInt256)).write 0 (skimSafeTransferMem0 self o) 128 32
+
+noncomputable def skimSafeTransferMem2 (self : UInt256) (o : ByteArray) : ByteArray :=
+  (UInt256.toByteArray skimSafeTransferSignatureWord).write 0
+    (skimSafeTransferMem1 self o) 160 32
+
+noncomputable def skimSafeTransferMem3
+    (self : UInt256) (o : ByteArray) (toWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).write 0
+    (skimSafeTransferMem2 self o) 228 32
+
+noncomputable def skimSafeTransferMem4
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
+  (UInt256.toByteArray value).write 0 (skimSafeTransferMem3 self o toWord) 260 32
+
+noncomputable def skimSafeTransferMem5
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
+  (UInt256.toByteArray (⟨68⟩ : UInt256)).write 0
+    (skimSafeTransferMem4 self o toWord value) 192 32
+
+noncomputable def skimSafeTransferMem6
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
+  (UInt256.toByteArray (⟨292⟩ : UInt256)).write 0
+    (skimSafeTransferMem5 self o toWord value) 64 32
+
+abbrev skimSafeTransferSelectorPatchMask : UInt256 :=
+  UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩
+
+noncomputable def skimSafeTransferWord224
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : UInt256 :=
+  UInt256.ofNat
+    (fromByteArrayBigEndian ((skimSafeTransferMem6 self o toWord value).readWithPadding 224 32))
+
+noncomputable def skimSafeTransferPatchedSelectorWord
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.shiftLeft transferSelectorWord ⟨224⟩)
+    (UInt256.land skimSafeTransferSelectorPatchMask
+      (skimSafeTransferWord224 self o toWord value))
+
+noncomputable def skimSafeTransferMem7
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
+  (UInt256.toByteArray (skimSafeTransferPatchedSelectorWord self o toWord value)).write 0
+    (skimSafeTransferMem6 self o toWord value) 224 32
+
+theorem skimSafeTransferMem0_size (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem0 self o).size = 164 := by
+  unfold skimSafeTransferMem0
+  rw [write32_eq _ _ 64 (by rw [toByteArray_size])
+      (by rw [balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract,
+    balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize, toByteArray_size]
+  omega
+
+theorem skimSafeTransferMem1_size (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem1 self o).size = 164 := by
+  unfold skimSafeTransferMem1
+  rw [write32_eq _ _ 128 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem0_size self ho32 hoSize]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract,
+    skimSafeTransferMem0_size self ho32 hoSize, toByteArray_size]
+  omega
+
+theorem skimSafeTransferMem2_size (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem2 self o).size = 192 := by
+  unfold skimSafeTransferMem2
+  rw [write32_eq _ _ 160 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem1_size self ho32 hoSize]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract,
+    skimSafeTransferMem1_size self ho32 hoSize, toByteArray_size]
+  omega
+
+theorem skimSafeTransferMem0_read64 (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem0 self o).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) := by
+  unfold skimSafeTransferMem0
+  rw [write32_read_back _ _ 64 (by rw [toByteArray_size])
+      (by rw [balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize]; omega)]
+  rw [show (UInt256.toByteArray (⟨192⟩ : UInt256)).extract 0 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) by
+    rw [show 32 = (UInt256.toByteArray (⟨192⟩ : UInt256)).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
+
+theorem skimSafeTransferMem1_read64 (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem1 self o).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) := by
+  unfold skimSafeTransferMem1
+  rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem0_size self ho32 hoSize]; omega) (by omega)]
+  exact skimSafeTransferMem0_read64 self ho32 hoSize
+
+theorem skimSafeTransferMem2_read64 (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem2 self o).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) := by
+  unfold skimSafeTransferMem2
+  rw [write32_read_below _ _ 160 64 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem1_size self ho32 hoSize]; omega) (by omega)]
+  exact skimSafeTransferMem1_read64 self ho32 hoSize
+
+theorem skimSafeTransferMem2_mload64 (self : UInt256) {o : ByteArray}
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem2 self o).size
+        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((skimSafeTransferMem2 self o).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨192⟩ :=
+  mloadWordValue_of_readWithPadding
+    (by rw [skimSafeTransferMem2_size self ho32 hoSize]; decide)
+    (by native_decide) (skimSafeTransferMem2_read64 self ho32 hoSize)
+
+theorem skimSafeTransferMem3_size (self : UInt256) {o : ByteArray} (toWord : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem3 self o toWord).size = 260 := by
+  unfold skimSafeTransferMem3
+  rw [toByteArray_write_eq _ _ 228
+      (by rw [skimSafeTransferMem2_size self ho32 hoSize]; omega)
+      (by rw [skimSafeTransferMem2_size self ho32 hoSize]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append,
+    skimSafeTransferMem2_size self ho32 hoSize, ByteArray_zeroes_size,
+    show (USize.ofNat (228 - 192)).toNat = 36 from
+      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    toByteArray_size]
+
+theorem skimSafeTransferMem3_read64 (self : UInt256) {o : ByteArray} (toWord : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem3 self o toWord).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) := by
+  unfold skimSafeTransferMem3
+  rw [toByteArray_write_read_below_of_gap (UInt256.land solcAddrMask toWord) _ 228 64
+      (by rw [skimSafeTransferMem2_size self ho32 hoSize]; omega) (by omega)
+      (by rw [skimSafeTransferMem2_size self ho32 hoSize]; exact lt_usize _ (by norm_num))]
+  exact skimSafeTransferMem2_read64 self ho32 hoSize
+
+theorem skimSafeTransferMem4_size
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem4 self o toWord value).size = 292 := by
+  unfold skimSafeTransferMem4
+  rw [toByteArray_write_eq _ _ 260
+      (by rw [skimSafeTransferMem3_size self toWord ho32 hoSize])
+      (by rw [skimSafeTransferMem3_size self toWord ho32 hoSize]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append,
+    skimSafeTransferMem3_size self toWord ho32 hoSize, ByteArray_zeroes_size,
+    show (USize.ofNat (260 - 260)).toNat = 0 from
+      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    toByteArray_size]
+
+theorem skimSafeTransferMem4_read64
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem4 self o toWord value).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨192⟩ : UInt256) := by
+  unfold skimSafeTransferMem4
+  rw [toByteArray_write_read_below_of_gap value _ 260 64
+      (by rw [skimSafeTransferMem3_size self toWord ho32 hoSize]; omega) (by omega)
+      (by
+        rw [skimSafeTransferMem3_size self toWord ho32 hoSize]
+        exact lt_usize _ (by norm_num))]
+  exact skimSafeTransferMem3_read64 self toWord ho32 hoSize
+
+theorem skimSafeTransferMem4_mload64
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem4 self o toWord value).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((skimSafeTransferMem4 self o toWord value).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨192⟩ :=
+  mloadWordValue_of_readWithPadding
+    (by rw [skimSafeTransferMem4_size self toWord value ho32 hoSize]; decide)
+    (by native_decide) (skimSafeTransferMem4_read64 self toWord value ho32 hoSize)
+
+theorem skimSafeTransferMem5_size
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem5 self o toWord value).size = 292 := by
+  unfold skimSafeTransferMem5
+  rw [write32_eq _ _ 192 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem4_size self toWord value ho32 hoSize]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract,
+    skimSafeTransferMem4_size self toWord value ho32 hoSize, toByteArray_size]
+  omega
+
+theorem skimSafeTransferMem6_size
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (skimSafeTransferMem6 self o toWord value).size = 292 := by
+  unfold skimSafeTransferMem6
+  rw [write32_eq _ _ 64 (by rw [toByteArray_size])
+      (by rw [skimSafeTransferMem5_size self toWord value ho32 hoSize]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract,
+    skimSafeTransferMem5_size self toWord value ho32 hoSize, toByteArray_size]
+  omega
+
+theorem skimSafeTransferMem6_mload224
+    (self : UInt256) {o : ByteArray} (toWord value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (if (⟨224⟩ : UInt256).toNat ≥ (skimSafeTransferMem6 self o toWord value).size
+        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((skimSafeTransferMem6 self o toWord value).readWithPadding
+          (⟨224⟩ : UInt256).toNat 32)))
+      = skimSafeTransferWord224 self o toWord value := by
+  have hguard :
+      ¬((⟨224⟩ : UInt256).toNat ≥ (skimSafeTransferMem6 self o toWord value).size
+        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩) := by
+    exact not_or.mpr ⟨by
+      rw [skimSafeTransferMem6_size self toWord value ho32 hoSize]
+      native_decide, by native_decide⟩
+  rw [if_neg hguard]
+  rfl
 
 /-- The optimized external wrapper for `skim(address)` accepts canonical calldata and jumps to the
     external skim routine at pc 5080. -/
@@ -724,6 +959,25 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard
       ∧ (z = true → o.size < 32 →
         RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+      ∧ (z = true → 32 ≤ o.size →
+        ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5314⟩
+          [UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+            UInt256.land
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩)
+              (uniswapSlotWord ⟨8⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨5325⟩, skimToWord I,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨5330⟩,
+            UInt256.land
+              (uniswapSlotWord ⟨7⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
+              solcAddrMask,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            skimToWord I, ⟨570⟩, uniswapSelWord I]
+          (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
+          balanceOfThisStaticcallActiveWords o (cA', σ') k' C')
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let token0Word := uniswapSlotWord ⟨6⟩ σLock I
@@ -737,7 +991,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard
   obtain ⟨cA', σ', z, o, A_in, callGas, _k, _C, hΘ, rd5273, hoSize⟩ :=
     uniswapSkimRuntimeFirstBalanceOfStaticcallMade
       (g := g) hcode hsize hwv hsel hsz36 hcanonTo hperm hdepth hunlocked htoken0Code
-  refine ⟨cA', σ', z, o, A_in, callGas, ?_, ?_, ?_, hoSize⟩
+  refine ⟨cA', σ', z, o, A_in, callGas, ?_, ?_, ?_, ?_, hoSize⟩
   · simpa [σLock, token0Word, token0Clean] using hΘ
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
@@ -771,6 +1025,27 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard
         (by simp only [List.length_cons, List.length_nil]; omega)
     simpa [σLock, token0Word, token1Word, packedWord, token0Clean, token1Clean,
       reserve0Word] using rdRev
+  · intro hz ho32
+    have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
+      rw [hz]
+      decide
+    obtain ⟨_, _, rd5291⟩ :=
+      RD.uniswapCallSuccessGuardOk (okPc := ⟨5289⟩) rd5273 hstatus
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)
+    obtain ⟨k', C', rd5314⟩ :=
+      RD.uniswapBalanceOfReturnWordDecodeOk
+        (pc := ⟨5291⟩) (okPc := ⟨5311⟩) (self := UInt256.ofNat I.codeOwner.val)
+        rd5291 ho32 hoSize
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)
+    exact ⟨k', C', by
+      simpa [σLock, token0Word, token1Word, packedWord, token0Clean, token1Clean,
+        reserve0Word] using rd5314⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Masked-wrapper variant of the first opaque `token0.balanceOf(address(this))` `STATICCALL`,
@@ -890,6 +1165,25 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard_masked
       ∧ (z = true → o.size < 32 →
         RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+      ∧ (z = true → 32 ≤ o.size →
+        ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5314⟩
+          [UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
+            UInt256.land
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩)
+              (uniswapSlotWord ⟨8⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨5325⟩, skimToMaskedWord I,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            ⟨5330⟩,
+            UInt256.land
+              (uniswapSlotWord ⟨7⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
+              solcAddrMask,
+            UInt256.land solcAddrMask
+              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+            skimToMaskedWord I, ⟨570⟩, uniswapSelWord I]
+          (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
+          balanceOfThisStaticcallActiveWords o (cA', σ') k' C')
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let token0Word := uniswapSlotWord ⟨6⟩ σLock I
@@ -903,7 +1197,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard_masked
   obtain ⟨cA', σ', z, o, A_in, callGas, _k, _C, hΘ, rd5273, hoSize⟩ :=
     uniswapSkimRuntimeFirstBalanceOfStaticcallMade_masked
       (g := g) hcode hsize hwv hsel hsz36 hperm hdepth hunlocked htoken0Code
-  refine ⟨cA', σ', z, o, A_in, callGas, ?_, ?_, ?_, hoSize⟩
+  refine ⟨cA', σ', z, o, A_in, callGas, ?_, ?_, ?_, ?_, hoSize⟩
   · simpa [σLock, token0Word, token0Clean] using hΘ
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
@@ -937,6 +1231,238 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard_masked
         (by simp only [List.length_cons, List.length_nil]; omega)
     simpa [σLock, token0Word, token1Word, packedWord, token0Clean, token1Clean,
       reserve0Word] using rdRev
+  · intro hz ho32
+    have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
+      rw [hz]
+      decide
+    obtain ⟨_, _, rd5291⟩ :=
+      RD.uniswapCallSuccessGuardOk (okPc := ⟨5289⟩) rd5273 hstatus
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)
+    obtain ⟨k', C', rd5314⟩ :=
+      RD.uniswapBalanceOfReturnWordDecodeOk
+        (pc := ⟨5291⟩) (okPc := ⟨5311⟩) (self := UInt256.ofNat I.codeOwner.val)
+        rd5291 ho32 hoSize
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)
+    exact ⟨k', C', by
+      simpa [σLock, token0Word, token1Word, packedWord, token0Clean, token1Clean,
+        reserve0Word] using rd5314⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only bridge from the decoded first `balanceOf` word into checked-sub. -/
+theorem RD.uniswapSkimFirstExcessToSub {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {balance0 reserve0 ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {aw : UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5314⟩
+      (balance0 :: reserve0 :: ret :: R) mem aw rdata acc k C)
+    (hov : R.length + 9 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+      (reserve0 :: balance0 :: ret :: R) mem aw rdata acc k' C' := by
+  have rd6879ret := evm_run h with [
+    swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
+  have rd6879 := rd6879ret.jump (by decide) (by jump_dest) (by evm_ov)
+  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
+    at rd6879
+  exact ⟨_, _, by simpa using rd6879⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only bridge from the first successful checked subtraction into the `_safeTransfer`
+helper entry. -/
+theorem RD.uniswapSkimFirstExcessSuccessToSafeTransferEntry {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {balance0 reserve0 toWord token0 token1 ret sel : UInt256}
+    {mem rdata : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
+      (reserve0 :: balance0 :: ⟨5325⟩ :: toWord :: token0 :: ⟨5330⟩ ::
+        token1 :: token0 :: toWord :: ret :: sel :: [])
+      mem aw rdata acc k C)
+    (hle : reserve0.toNat ≤ balance0.toNat) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
+      (UInt256.sub balance0 reserve0 :: toWord :: token0 :: ⟨5330⟩ ::
+        token1 :: token0 :: toWord :: ret :: sel :: [])
+      mem aw rdata acc k' C' := by
+  obtain ⟨_, _, rd5325⟩ :=
+    RD.uniswapSafeMathSubSuccess h hle (by jump_dest)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd6370ret := evm_run rd5325 with [jumpdest, push2 ⟨6370⟩]
+  have rd6370 := rd6370ret.jump (by decide) (by jump_dest) (by evm_ov)
+  exact ⟨_, _, by simpa using rd6370⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Runtime-only `_safeTransfer` prefix from helper entry through `MLOAD(0x40)`. -/
+theorem RD.uniswapSkimSafeTransferEntryToFreePtr {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
+      (value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (balanceOfThisStaticcallMem self o) balanceOfThisStaticcallActiveWords o acc k C)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6375⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (balanceOfThisStaticcallMem self o) balanceOfThisStaticcallActiveWords o acc k' C' := by
+  have rd6375 := evm_run h with [
+    jumpdest, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by native_decide)
+      mem_cost (balanceOfThisStaticcallMem_mload64_of_size_ge self o ho32 hoSize)
+      (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6375⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferFreePtrToMem0 {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6375⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (balanceOfThisStaticcallMem self o) balanceOfThisStaticcallActiveWords o acc k C) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6380⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem0 self o) balanceOfThisStaticcallActiveWords o acc k' C' := by
+  have rd6380 := evm_run h with [
+    dup1, dup3, add, dup3,
+    raw mstore 0 (skimSafeTransferMem0 self o) balanceOfThisStaticcallActiveWords
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem0; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6380⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferMem0ToMem1 {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6380⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem0 self o) balanceOfThisStaticcallActiveWords o acc k C) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6384⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem1 self o) balanceOfThisStaticcallActiveWords o acc k' C' := by
+  have rd6384 := evm_run h with [
+    push1 ⟨25⟩, dup2,
+    raw mstore 0 (skimSafeTransferMem1 self o) balanceOfThisStaticcallActiveWords
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem1; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6384⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferMem1ToSignatureWord {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6384⟩
+      (⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem1 self o) balanceOfThisStaticcallActiveWords o acc k C) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6417⟩
+      (skimSafeTransferSignatureWord :: ⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem1 self o) balanceOfThisStaticcallActiveWords o acc k' C' := by
+  have rd6417 := h.pushConst skimSafeTransferSignatureWord (width := 32) (op := .PUSH32)
+    (by native_decide) (by native_decide) (by evm_ov)
+  exact ⟨_, _, by simpa using rd6417⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferSignatureWordToMem2 {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6417⟩
+      (skimSafeTransferSignatureWord :: ⟨128⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem1 self o) balanceOfThisStaticcallActiveWords o acc k C) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6423⟩
+      (⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem2 self o) balanceOfThisStaticcallActiveWords o acc k' C' := by
+  have rd6423 := evm_run h with [
+    push1 ⟨32⟩, swap2, dup3, add,
+    raw mstore 0 (skimSafeTransferMem2 self o) balanceOfThisStaticcallActiveWords
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem2; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6423⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferMem2ToRecipientStore {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6423⟩
+      (⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret ::
+        token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem2 self o) balanceOfThisStaticcallActiveWords o acc k C)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6441⟩
+      (solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
+        token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem3 self o toWord) (UInt256.ofNat 9) o acc k' C' := by
+  have rd6425 := evm_run h with [
+    dup2,
+    raw mload 0 ⟨192⟩ balanceOfThisStaticcallActiveWords
+      (by native_decide) mem_cost
+      (skimSafeTransferMem2_mload64 self ho32 hoSize)
+      (by native_decide) (by evm_ov)]
+  have rd6441 := evm_run rd6425 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, dup2, and,
+    push1 ⟨36⟩, dup4, add,
+    raw mstore 9 (skimSafeTransferMem3 self o toWord) (UInt256.ofNat 9)
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem3; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6441⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferRecipientStoreToValueStore {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6441⟩
+      (solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
+        token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem3 self o toWord) (UInt256.ofNat 9) o acc k C) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6449⟩
+      (⟨68⟩ :: solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
+        token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem4 self o toWord value) (UInt256.ofNat 10) o acc k' C' := by
+  have rd6449 := evm_run h with [
+    push1 ⟨68⟩, dup1, dup4, add, dup7, swap1,
+    raw mstore 3 (skimSafeTransferMem4 self o toWord value) (UInt256.ofNat 10)
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem4; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6449⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSkimSafeTransferValueStoreToCopySetup {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
+    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6449⟩
+      (⟨68⟩ :: solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
+        token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem4 self o toWord value) (UInt256.ofNat 10) o acc k C)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6466⟩
+      (solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
+        token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
+      (skimSafeTransferMem6 self o toWord value) (UInt256.ofNat 10) o acc k' C' := by
+  have rd6451 := evm_run h with [
+    dup5,
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 10)
+      (by native_decide) mem_cost
+      (skimSafeTransferMem4_mload64 self toWord value ho32 hoSize)
+      (by native_decide) (by evm_ov)]
+  have rd6459 := evm_run rd6451 with [
+    dup1, dup5, sub, swap1, swap2, add, dup2,
+    raw mstore 0 (skimSafeTransferMem5 self o toWord value) (UInt256.ofNat 10)
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem5; rfl) (by native_decide) (by evm_ov)]
+  have rd6466 := evm_run rd6459 with [
+    push1 ⟨100⟩, swap1, swap3, add, dup5,
+    raw mstore 0 (skimSafeTransferMem6 self o toWord value) (UInt256.ofNat 10)
+      (by native_decide) mem_cost
+      (by unfold skimSafeTransferMem6; rfl) (by native_decide) (by evm_ov)]
+  exact ⟨_, _, by simpa using rd6466⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Runtime-only `skim(address)` first `balanceOf` slice for the call-depth limit.

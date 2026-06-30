@@ -728,11 +728,25 @@ abbrev balanceOfSelectorWord : UInt256 := ⟨1889567281⟩
 abbrev balanceOfSelectorShifted : UInt256 :=
   UInt256.shiftLeft balanceOfSelectorWord ⟨224⟩
 
+abbrev transferSelectorWord : UInt256 := ⟨2835717307⟩
+
+abbrev transferSelectorShifted : UInt256 :=
+  UInt256.shiftLeft transferSelectorWord ⟨224⟩
+
 noncomputable def balanceOfThisSelectorMem : ByteArray :=
   (UInt256.toByteArray balanceOfSelectorShifted).write 0 solcFreePtrMem 128 32
 
+noncomputable def transferSelectorMem : ByteArray :=
+  (UInt256.toByteArray transferSelectorShifted).write 0 solcFreePtrMem 128 32
+
 noncomputable def balanceOfThisCalldataMem (self : UInt256) : ByteArray :=
   (UInt256.toByteArray self).write 0 balanceOfThisSelectorMem 132 32
+
+noncomputable def transferArgsMem (recipient : UInt256) : ByteArray :=
+  (UInt256.toByteArray recipient).write 0 transferSelectorMem 132 32
+
+noncomputable def transferCalldataMem (recipient value : UInt256) : ByteArray :=
+  (UInt256.toByteArray value).write 0 (transferArgsMem recipient) 164 32
 
 noncomputable def balanceOfThisStaticcallMem (self : UInt256) (o : ByteArray) : ByteArray :=
   o.write 0 (balanceOfThisCalldataMem self) 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
@@ -758,6 +772,80 @@ theorem balanceOfThisSelectorMem_size : balanceOfThisSelectorMem.size = 160 :=
 theorem balanceOfThisSelectorMem_read64 :
     balanceOfThisSelectorMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
   solcReturnMem_read64 balanceOfSelectorShifted
+
+theorem transferSelectorMem_size : transferSelectorMem.size = 160 :=
+  solcReturnMem_size transferSelectorShifted
+
+theorem transferArgsMem_size (recipient : UInt256) :
+    (transferArgsMem recipient).size = 164 := by
+  unfold transferArgsMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [transferSelectorMem_size]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, transferSelectorMem_size,
+    toByteArray_size]
+  omega
+
+theorem transferCalldataMem_size (recipient value : UInt256) :
+    (transferCalldataMem recipient value).size = 196 := by
+  unfold transferCalldataMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [transferArgsMem_size])]
+  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, transferArgsMem_size, toByteArray_size]
+  omega
+
+theorem transferCalldataMem_read128_4 (recipient value : UInt256) :
+    (transferCalldataMem recipient value).readWithPadding 128 4 =
+      transferSelector := by
+  unfold transferCalldataMem
+  rw [write32_read_below_len _ _ 164 128 4 (by rw [toByteArray_size])
+      (by rw [transferArgsMem_size])
+      (by omega)
+      (by rw [transferArgsMem_size]; omega)
+      (by norm_num) (by norm_num)]
+  unfold transferArgsMem
+  rw [write32_read_below_len _ _ 132 128 4 (by rw [toByteArray_size])
+      (by rw [transferSelectorMem_size]; omega) (by omega)
+      (by rw [transferSelectorMem_size]; omega)
+      (by norm_num) (by norm_num)]
+  have hzero32 : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
+    rw [ByteArray_zeroes_size]
+    exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))
+  rw [show transferSelectorMem = solcReturnMem transferSelectorShifted from rfl]
+  rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
+      (by rw [solcReturnMem_size]; omega)]
+  rw [solcReturnMem_eq]
+  rw [extract_append_right_window
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      (UInt256.toByteArray transferSelectorShifted) 128 132 (by
+        simp [ByteArray.size_append, solcFreePtrMem_size, hzero32])]
+  rw [ByteArray.size_append, solcFreePtrMem_size, hzero32]
+  native_decide
+
+theorem transferCalldataMem_read132_32 (recipient value : UInt256) :
+    (transferCalldataMem recipient value).readWithPadding 132 32 =
+      UInt256.toByteArray recipient := by
+  unfold transferCalldataMem
+  rw [write32_read_below _ _ 164 132 (by rw [toByteArray_size])
+      (by rw [transferArgsMem_size])
+      (by omega)]
+  unfold transferArgsMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [transferSelectorMem_size]; omega)]
+  rw [show (UInt256.toByteArray recipient).extract 0 32 = UInt256.toByteArray recipient by
+    rw [show 32 = (UInt256.toByteArray recipient).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
+
+theorem transferCalldataMem_read164_32 (recipient value : UInt256) :
+    (transferCalldataMem recipient value).readWithPadding 164 32 =
+      UInt256.toByteArray value := by
+  unfold transferCalldataMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [transferArgsMem_size])]
+  rw [show (UInt256.toByteArray value).extract 0 32 = UInt256.toByteArray value by
+    rw [show 32 = (UInt256.toByteArray value).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
 
 theorem balanceOfThisCalldataMem_size (self : UInt256) :
     (balanceOfThisCalldataMem self).size = 164 := by
@@ -801,6 +889,49 @@ theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂
   symm
   rw [ByteArray.extract_append_extract]
   congr <;> omega
+
+theorem list_toByteArray_append (xs ys : List UInt8) :
+    (xs ++ ys).toByteArray = xs.toByteArray ++ ys.toByteArray := by
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [ByteArray.data_append, Array.toList_append]
+  simp
+
+theorem transferCalldataMem_read128_68 (recipient value : UInt256) :
+    (transferCalldataMem recipient value).readWithPadding 128 68 =
+      transferSelector ++ UInt256.toByteArray recipient ++ UInt256.toByteArray value := by
+  rw [byteArray_readWithPadding_split _ 128 4 64 (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num)
+      (by simp [transferCalldataMem_size])]
+  rw [byteArray_readWithPadding_split _ 132 32 32 (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num)
+      (by simp [transferCalldataMem_size])]
+  rw [transferCalldataMem_read128_4, transferCalldataMem_read132_32,
+    transferCalldataMem_read164_32, ByteArray.append_assoc]
+
+theorem transferCalldataMem_encode (recipient : AccountAddress) (value : UInt256) :
+    config.externalABI.encode? "transfer"
+        [.address recipient, .int (Int.ofNat value.toNat)] =
+      some ((transferCalldataMem (UInt256.ofNat recipient.val) value).readWithPadding 128 68) := by
+  rw [transferCalldataMem_read128_68]
+  change uniswapExternalABI.encode? "transfer"
+      [.address recipient, .int (Int.ofNat value.toNat)] =
+    some (transferSelector ++
+      (UInt256.ofNat recipient.val).toByteArray ++ UInt256.toByteArray value)
+  have hvalueWord : EVM.word value.toNat = value := by
+    exact u256_ofNat_toNat value
+  have hrecipientWord : EVM.word recipient.val = UInt256.ofNat recipient.val := by
+    apply u256_inj
+    rfl
+  have hvalueLt : value.toNat < EVM.twoPow 256 := by
+    change value.val.val < UInt256.size
+    exact value.val.isLt
+  unfold uniswapExternalABI ABI.encodeCallWithSelector? ABI.encodeABIValues?
+  simp [addr, uint256, uint256Int, ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
+    ABI.isDynamicABIType, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.encodeABIValuesFrom?,
+    hvalueLt, hrecipientWord, hvalueWord, list_toByteArray_append,
+    word_toBytesBE_toByteArray_eq_toByteArray]
+  rw [ByteArray.append_assoc]
 
 theorem balanceOfThisSelectorMem_read128_4 :
     balanceOfThisSelectorMem.readWithPadding 128 4 = balanceOfSelector := by
