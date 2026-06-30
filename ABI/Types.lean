@@ -128,6 +128,8 @@ mutual
     | ty :: tys => isDynamicABIType ty || isDynamicABITypeList tys
 end
 
+def usesLegacyAddressTypes (_types : List ABIType) : Bool := false
+
 mutual
   def staticABIEncodedSize? : ABIType → Option Nat
     | .elem _ => some 32

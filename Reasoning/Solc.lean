@@ -410,6 +410,489 @@ theorem solcReturnMem_read128 (val : UInt256) :
       extract_append_right' _ _ _ _ (by have := solcFreePtrMem_pad_size; omega)
         (by have := solcFreePtrMem_pad_size; have := toByteArray_size val; omega)]
 
+/-! ## Dynamic bytes/string return memory -/
+
+def solcBytesReturnAllocSize (len : UInt256) : UInt256 :=
+  ⟨32⟩ + (((⟨31⟩ + len) / ⟨32⟩) * ⟨32⟩)
+
+def solcBytesReturnFreePtr (len : UInt256) : UInt256 :=
+  ⟨128⟩ + solcBytesReturnAllocSize len
+
+noncomputable def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
+  (solcBytesReturnFreePtr len).toByteArray.write 0 solcFreePtrMem 64 32
+
+noncomputable def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
+  len.toByteArray.write 0 (solcBytesReturnAllocMem len) 128 32
+
+def solcBytesReturnPayloadWord (header : UInt256) : UInt256 :=
+  (header / ⟨256⟩) * ⟨256⟩
+
+noncomputable def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
+  payloadWord.toByteArray.write 0 (solcBytesReturnLengthMem len) 160 32
+
+noncomputable def solcBytesReturnPayloadReturnMem (len payloadWord : UInt256) : ByteArray :=
+  len.toByteArray.write 0 (solcBytesReturnPayloadMem len payloadWord) 192 32
+
+theorem solcBytesReturnAllocMem_size (len : UInt256) :
+    (solcBytesReturnAllocMem len).size = 96 := by
+  have hEq :
+      solcBytesReturnAllocMem len =
+        solcFreePtrMem.extract 0 64 ++ UInt256.toByteArray (solcBytesReturnFreePtr len) ++
+          solcFreePtrMem.extract 96 solcFreePtrMem.size := by
+    rw [solcBytesReturnAllocMem,
+      write32_eq (UInt256.toByteArray (solcBytesReturnFreePtr len)) solcFreePtrMem 64
+        (by rw [toByteArray_size])
+        (by rw [solcFreePtrMem_size]; decide)]
+    rw [toByteArray_extract_all]
+  rw [hEq, ByteArray.size_append, ByteArray.size_append,
+    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, solcFreePtrMem_size]
+  omega
+
+theorem solcBytesReturnLengthMem_size (len : UInt256) :
+    (solcBytesReturnLengthMem len).size = 160 := by
+  rw [solcBytesReturnLengthMem,
+    toByteArray_write_eq _ _ _ (by rw [solcBytesReturnAllocMem_size]; decide)
+      (by rw [solcBytesReturnAllocMem_size]; exact lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, ByteArray.size_append, solcBytesReturnAllocMem_size,
+    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+
+theorem solcBytesReturnLengthMem_read128 (len : UInt256) :
+    (solcBytesReturnLengthMem len).readWithPadding 128 32 = UInt256.toByteArray len := by
+  rw [readWithPadding_eq_extract _ _ (by have := solcBytesReturnLengthMem_size len; omega),
+    solcBytesReturnLengthMem,
+    toByteArray_write_eq _ _ _
+      (by rw [solcBytesReturnAllocMem_size]; decide)
+      (by rw [solcBytesReturnAllocMem_size]; exact lt_usize _ (by norm_num)),
+    extract_append_right' _ _ _ _
+      (by
+        rw [ByteArray.size_append, solcBytesReturnAllocMem_size,
+          zeroes_ofNat_size _ (by norm_num)])
+      (by
+        rw [ByteArray.size_append, solcBytesReturnAllocMem_size,
+          zeroes_ofNat_size _ (by norm_num), toByteArray_size])]
+
+theorem solcBytesReturnAllocMem_read64 (len : UInt256) :
+    (solcBytesReturnAllocMem len).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  rw [solcBytesReturnAllocMem]
+  rw [write32_read_back (UInt256.toByteArray (solcBytesReturnFreePtr len)) solcFreePtrMem 64
+    (by rw [toByteArray_size])
+    (by rw [solcFreePtrMem_size]; decide)]
+  rw [toByteArray_extract_all]
+
+theorem solcBytesReturnLengthMem_read64 (len : UInt256) :
+    (solcBytesReturnLengthMem len).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  rw [readWithPadding_eq_extract _ _ (by have := solcBytesReturnLengthMem_size len; omega),
+    solcBytesReturnLengthMem,
+    toByteArray_write_eq _ _ _
+      (by rw [solcBytesReturnAllocMem_size]; decide)
+      (by rw [solcBytesReturnAllocMem_size]; exact lt_usize _ (by norm_num)),
+    extract_append_left _ _ _ _
+      (by
+        rw [ByteArray.size_append, solcBytesReturnAllocMem_size,
+          zeroes_ofNat_size _ (by norm_num)]
+        omega),
+    extract_append_left _ _ _ _
+      (by rw [solcBytesReturnAllocMem_size]),
+    ← readWithPadding_eq_extract _ _ (by have := solcBytesReturnAllocMem_size len; omega),
+    solcBytesReturnAllocMem_read64]
+
+theorem solcBytesReturnPayloadMem_read128 (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadMem len payloadWord).readWithPadding 128 32 =
+      UInt256.toByteArray len := by
+  rw [solcBytesReturnPayloadMem]
+  rw [write32_read_below (UInt256.toByteArray payloadWord)
+    (solcBytesReturnLengthMem len) 160 128
+    (by rw [toByteArray_size])
+    (by rw [solcBytesReturnLengthMem_size])
+    (by decide)]
+  exact solcBytesReturnLengthMem_read128 len
+
+theorem solcBytesReturnPayloadMem_size (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadMem len payloadWord).size = 192 := by
+  rw [solcBytesReturnPayloadMem,
+    toByteArray_write_eq _ _ _ (by rw [solcBytesReturnLengthMem_size])
+      (by rw [solcBytesReturnLengthMem_size]; exact lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, ByteArray.size_append, solcBytesReturnLengthMem_size,
+    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+
+theorem solcBytesReturnPayloadMem_read64 (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadMem len payloadWord).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  rw [solcBytesReturnPayloadMem]
+  rw [write32_read_below (UInt256.toByteArray payloadWord)
+    (solcBytesReturnLengthMem len) 160 64
+    (by rw [toByteArray_size])
+    (by rw [solcBytesReturnLengthMem_size])
+    (by decide)]
+  exact solcBytesReturnLengthMem_read64 len
+
+theorem solcBytesReturnPayloadMem_mload64 (len payloadWord freePtr aw : UInt256)
+    (hfree : solcBytesReturnFreePtr len = freePtr)
+    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadMem len payloadWord).size
+        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat
+        (fromByteArrayBigEndian
+          ((solcBytesReturnPayloadMem len payloadWord).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := freePtr)
+    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+      solcBytesReturnPayloadMem_size]; decide)
+    haw
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
+      solcBytesReturnPayloadMem_read64 len payloadWord)
+
+theorem solcBytesReturnPayloadMem_mload128 (len payloadWord aw : UInt256)
+    (haw : ¬ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩) :
+    (if (⟨128⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadMem len payloadWord).size
+        ∨ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat
+        (fromByteArrayBigEndian
+          ((solcBytesReturnPayloadMem len payloadWord).readWithPadding
+            (⟨128⟩ : UInt256).toNat 32))) = len := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨128⟩ : UInt256)) (aw := aw) (v := len)
+    (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+      solcBytesReturnPayloadMem_size]; decide)
+    haw
+    (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
+      solcBytesReturnPayloadMem_read128 len payloadWord)
+
+theorem solcBytesReturnPayloadReturnMem_size (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadReturnMem len payloadWord).size = 224 := by
+  rw [solcBytesReturnPayloadReturnMem,
+    toByteArray_write_eq _ _ _ (by rw [solcBytesReturnPayloadMem_size])
+      (by rw [solcBytesReturnPayloadMem_size]; exact lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, ByteArray.size_append, solcBytesReturnPayloadMem_size,
+    zeroes_ofNat_size _ (by norm_num), toByteArray_size]
+
+theorem solcBytesReturnPayloadReturnMem_read64 (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadReturnMem len payloadWord).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  rw [solcBytesReturnPayloadReturnMem]
+  rw [write32_read_below (UInt256.toByteArray len)
+    (solcBytesReturnPayloadMem len payloadWord) 192 64
+    (by rw [toByteArray_size])
+    (by rw [solcBytesReturnPayloadMem_size])
+    (by decide)]
+  exact solcBytesReturnPayloadMem_read64 len payloadWord
+
+theorem solcBytesReturnPayloadReturnMem_mload64 (len payloadWord freePtr aw : UInt256)
+    (hfree : solcBytesReturnFreePtr len = freePtr)
+    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadReturnMem len payloadWord).size
+        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat
+        (fromByteArrayBigEndian
+          ((solcBytesReturnPayloadReturnMem len payloadWord).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := freePtr)
+    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+      solcBytesReturnPayloadReturnMem_size]; decide)
+    haw
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
+      solcBytesReturnPayloadReturnMem_read64 len payloadWord)
+
+theorem solcBytesReturnPayloadReturnMem_read192 (len payloadWord : UInt256) :
+    (solcBytesReturnPayloadReturnMem len payloadWord).readWithPadding 192 32 =
+      UInt256.toByteArray len := by
+  rw [readWithPadding_eq_extract _ _ (by
+      have := solcBytesReturnPayloadReturnMem_size len payloadWord
+      omega),
+    solcBytesReturnPayloadReturnMem,
+    toByteArray_write_eq _ _ _
+      (by rw [solcBytesReturnPayloadMem_size])
+      (by rw [solcBytesReturnPayloadMem_size]; exact lt_usize _ (by norm_num)),
+    extract_append_right' _ _ _ _
+      (by
+        rw [ByteArray.size_append, solcBytesReturnPayloadMem_size,
+          zeroes_ofNat_size _ (by norm_num)])
+      (by
+        rw [ByteArray.size_append, solcBytesReturnPayloadMem_size,
+          zeroes_ofNat_size _ (by norm_num), toByteArray_size])]
+
+theorem solcBytesReturnFreePtr_eq_192_of_short_nonzero {len : UInt256}
+    (hnonzero : len ≠ ⟨0⟩) (hlt32 : len.toNat < 32) :
+    solcBytesReturnFreePtr len = ⟨192⟩ := by
+  have hpos : 0 < len.toNat := by
+    cases hzero : len.toNat
+    · exact False.elim (hnonzero (uint256_toNat_eq_zero hzero))
+    · omega
+  have h31len :
+      ((⟨31⟩ : UInt256) + len).toNat = 31 + len.toNat := by
+    rw [uadd_toNat, show (⟨31⟩ : UInt256).toNat = 31 from by decide]
+    exact Nat.mod_eq_of_lt (by norm_num [UInt256.size]; omega)
+  have hdivNat :
+      (((⟨31⟩ : UInt256) + len) / ⟨32⟩).toNat = 1 := by
+    change (((⟨31⟩ : UInt256) + len).toNat / 32) = 1
+    rw [h31len]
+    have hge : 32 ≤ 31 + len.toNat := by omega
+    have hlt : 31 + len.toNat < 64 := by omega
+    have hposDiv : 0 < (31 + len.toNat) / 32 := Nat.div_pos hge (by decide)
+    have hltDiv : (31 + len.toNat) / 32 < 2 := by
+      exact Nat.div_lt_of_lt_mul (by omega)
+    omega
+  have hdiv :
+      (((⟨31⟩ : UInt256) + len) / ⟨32⟩) = ⟨1⟩ := by
+    apply u256_inj
+    simpa [show (⟨1⟩ : UInt256).toNat = 1 from rfl] using hdivNat
+  rw [solcBytesReturnFreePtr, solcBytesReturnAllocSize, hdiv]
+  native_decide
+
+/-! ## Dynamic bytes/string calldata copy memory -/
+
+noncomputable def solcBytesSetCalldataMem
+    (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
+  cd.write payloadStart.toNat (solcBytesReturnLengthMem len) 160 len.toNat
+
+noncomputable def solcBytesSetPaddedMem
+    (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
+  (⟨0⟩ : UInt256).toByteArray.write 0
+    (solcBytesSetCalldataMem cd len payloadStart) (((⟨160⟩ : UInt256) + len).toNat) 32
+
+theorem solcBytesSetCalldataMem_read128
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
+    (solcBytesSetCalldataMem cd len payloadStart).readWithPadding 128 32 =
+      UInt256.toByteArray len := by
+  have hpres := write_read_below_end_from cd (solcBytesReturnLengthMem len)
+    payloadStart.toNat len.toNat 128 hlen hsrc (by
+      rw [solcBytesReturnLengthMem_size])
+  rw [solcBytesSetCalldataMem, ← solcBytesReturnLengthMem_size len]
+  exact hpres.trans (solcBytesReturnLengthMem_read128 len)
+
+theorem solcBytesSetCalldataMem_read64
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
+    (solcBytesSetCalldataMem cd len payloadStart).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  have hpres := write_read_below_end_from cd (solcBytesReturnLengthMem len)
+    payloadStart.toNat len.toNat 64 hlen hsrc (by
+      rw [solcBytesReturnLengthMem_size]
+      decide)
+  rw [solcBytesSetCalldataMem, ← solcBytesReturnLengthMem_size len]
+  exact hpres.trans (solcBytesReturnLengthMem_read64 len)
+
+theorem solcBytesSetCalldataMem_size
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
+    (solcBytesSetCalldataMem cd len payloadStart).size = 160 + len.toNat := by
+  rw [solcBytesSetCalldataMem]
+  have hsize := write_end_size_from cd (solcBytesReturnLengthMem len)
+    payloadStart.toNat len.toNat hlen hsrc
+  rw [solcBytesReturnLengthMem_size] at hsize
+  simpa using hsize
+
+set_option maxHeartbeats 800000 in
+theorem solcBytesSetCalldataMem_extract_payload
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
+    (solcBytesSetCalldataMem cd len payloadStart).extract 160 (160 + len.toNat) =
+      cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat) := by
+  rw [solcBytesSetCalldataMem, ← solcBytesReturnLengthMem_size len]
+  exact write_end_extract_tail_from cd (solcBytesReturnLengthMem len)
+    payloadStart.toNat len.toNat hlen hsrc
+
+theorem solcBytesSetCalldataMem_read_payload_word
+    (cd : ByteArray) (len payloadStart : UInt256) (i : Nat)
+    (hnz : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hi : i < len.toNat / 32) :
+    (solcBytesSetCalldataMem cd len payloadStart).readWithPadding (160 + 32 * i) 32 =
+      (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).extract
+        (32 * i) (32 * i + 32) := by
+  have hfull : 32 * i + 32 ≤ len.toNat := by
+    have hlt : i + 1 ≤ len.toNat / 32 := Nat.succ_le_of_lt hi
+    have hmul : 32 * (i + 1) ≤ 32 * (len.toNat / 32) :=
+      Nat.mul_le_mul_left 32 hlt
+    have hle : 32 * (len.toNat / 32) ≤ len.toNat := by
+      simpa [Nat.mul_comm] using Nat.div_mul_le_self len.toNat 32
+    nlinarith
+  have hreadIn :
+      160 + 32 * i + 32 ≤ (solcBytesSetCalldataMem cd len payloadStart).size := by
+    rw [solcBytesSetCalldataMem_size cd len payloadStart hnz hsrc]
+    omega
+  rw [readWithPadding_eq_extract _ (160 + 32 * i) hreadIn]
+  have hleft :
+      (solcBytesSetCalldataMem cd len payloadStart).extract (160 + 32 * i)
+          (160 + 32 * i + 32) =
+        ((solcBytesSetCalldataMem cd len payloadStart).extract 160
+          (160 + len.toNat)).extract (32 * i) (32 * i + 32) := by
+    rw [extract_extract_BA]
+    rw [show 160 + 32 * i = 160 + (32 * i) by omega]
+    rw [show min (160 + (32 * i + 32)) (160 + len.toNat) =
+        160 + 32 * i + 32 by omega]
+  rw [hleft]
+  rw [solcBytesSetCalldataMem_extract_payload cd len payloadStart hnz hsrc]
+
+theorem solcBytesSetDataEnd_toNat_of_short {len : UInt256}
+    (hshort : len.toNat < 32) :
+    (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
+  rw [uadd_toNat]
+  rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
+  exact Nat.mod_eq_of_lt (by
+    have hle : 160 + len.toNat < 192 := by omega
+    exact lt_of_lt_of_le hle (by norm_num [UInt256.size]))
+
+theorem solcBytesSetDataEnd_toNat_of_u64 {len : UInt256}
+    (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
+    (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
+  rw [uadd_toNat]
+  rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
+  exact Nat.mod_eq_of_lt (by
+    have hmax : ABI.solcMaxU64 + 160 < UInt256.size := by
+      norm_num [ABI.solcMaxU64, UInt256.size]
+    omega)
+
+theorem solcBytesSetPaddedMem_read128
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
+    (solcBytesSetPaddedMem cd len payloadStart).readWithPadding 128 32 =
+      UInt256.toByteArray len := by
+  rw [solcBytesSetPaddedMem]
+  rw [write32_read_below (UInt256.toByteArray (⟨0⟩ : UInt256))
+    (solcBytesSetCalldataMem cd len payloadStart)
+    (((⟨160⟩ : UInt256) + len).toNat) 128
+    (by rw [toByteArray_size])
+    (by
+      rw [hadd, solcBytesSetCalldataMem_size cd len payloadStart hlen hsrc])
+    (by rw [hadd]; omega)]
+  exact solcBytesSetCalldataMem_read128 cd len payloadStart hlen hsrc
+
+theorem solcBytesSetPaddedMem_read64
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
+    (solcBytesSetPaddedMem cd len payloadStart).readWithPadding 64 32 =
+      UInt256.toByteArray (solcBytesReturnFreePtr len) := by
+  rw [solcBytesSetPaddedMem]
+  rw [write32_read_below (UInt256.toByteArray (⟨0⟩ : UInt256))
+    (solcBytesSetCalldataMem cd len payloadStart)
+    (((⟨160⟩ : UInt256) + len).toNat) 64
+    (by rw [toByteArray_size])
+    (by
+      rw [hadd, solcBytesSetCalldataMem_size cd len payloadStart hlen hsrc])
+    (by rw [hadd]; omega)]
+  exact solcBytesSetCalldataMem_read64 cd len payloadStart hlen hsrc
+
+theorem solcBytesSetPaddedMem_size_ge160
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
+    160 ≤ (solcBytesSetPaddedMem cd len payloadStart).size := by
+  rw [solcBytesSetPaddedMem]
+  have hbase := solcBytesSetCalldataMem_size cd len payloadStart hlen hsrc
+  rw [toByteArray_write_eq (⟨0⟩ : UInt256)
+    (solcBytesSetCalldataMem cd len payloadStart)
+    (((⟨160⟩ : UInt256) + len).toNat)
+    (by rw [hadd, hbase])
+    (by
+      rw [hadd, hbase]
+      rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
+      exact lt_usize 0 (by norm_num))]
+  rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
+  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
+      ByteArray.empty by
+        rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
+        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
+    ByteArray.size_empty]
+  omega
+
+theorem solcBytesSetPaddedMem_size
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hlen : len.toNat ≠ 0)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hadd : (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat) :
+    (solcBytesSetPaddedMem cd len payloadStart).size = 192 + len.toNat := by
+  rw [solcBytesSetPaddedMem]
+  have hbase := solcBytesSetCalldataMem_size cd len payloadStart hlen hsrc
+  rw [toByteArray_write_eq (⟨0⟩ : UInt256)
+    (solcBytesSetCalldataMem cd len payloadStart)
+    (((⟨160⟩ : UInt256) + len).toNat)
+    (by rw [hadd, hbase])
+    (by
+      rw [hadd, hbase]
+      rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
+      exact lt_usize 0 (by norm_num))]
+  rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
+  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
+      ByteArray.empty by
+        rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
+        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
+    ByteArray.size_empty]
+  omega
+
+theorem solcBytesSetPaddedMem_read_payload_word
+    (cd : ByteArray) (len payloadStart : UInt256) (i : Nat)
+    (hnz : len.toNat ≠ 0)
+    (hlenMax : len.toNat ≤ ABI.solcMaxU64)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
+    (hi : i < len.toNat / 32) :
+    (solcBytesSetPaddedMem cd len payloadStart).readWithPadding (160 + 32 * i) 32 =
+      (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).extract
+        (32 * i) (32 * i + 32) := by
+  have hfull : 32 * i + 32 ≤ len.toNat := by
+    have hlt : i + 1 ≤ len.toNat / 32 := Nat.succ_le_of_lt hi
+    have hmul : 32 * (i + 1) ≤ 32 * (len.toNat / 32) :=
+      Nat.mul_le_mul_left 32 hlt
+    have hle : 32 * (len.toNat / 32) ≤ len.toNat := by
+      simpa [Nat.mul_comm] using Nat.div_mul_le_self len.toNat 32
+    nlinarith
+  rw [solcBytesSetPaddedMem]
+  rw [write32_read_below (UInt256.toByteArray (⟨0⟩ : UInt256))
+    (solcBytesSetCalldataMem cd len payloadStart) (((⟨160⟩ : UInt256) + len).toNat)
+    (160 + 32 * i)
+    (by rw [toByteArray_size])
+    (by rw [solcBytesSetDataEnd_toNat_of_u64 hlenMax,
+      solcBytesSetCalldataMem_size cd len payloadStart hnz hsrc])
+    (by rw [solcBytesSetDataEnd_toNat_of_u64 hlenMax]; omega)]
+  exact solcBytesSetCalldataMem_read_payload_word cd len payloadStart i hnz hsrc hi
+
+set_option maxHeartbeats 800000 in
+theorem solcBytesSetPaddedMem_read160_short_toList
+    (cd : ByteArray) (len payloadStart : UInt256)
+    (hnz : len.toNat ≠ 0)
+    (hshort : len.toNat < 32)
+    (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
+    ((solcBytesSetPaddedMem cd len payloadStart).readWithPadding 160 32).toList =
+      (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).toList ++
+        List.replicate (32 - len.toNat) 0 := by
+  have hadd := solcBytesSetDataEnd_toNat_of_short (len := len) hshort
+  have hbaseSize := solcBytesSetCalldataMem_size cd len payloadStart hnz hsrc
+  have hread :
+      (solcBytesSetPaddedMem cd len payloadStart).readWithPadding 160 32 =
+        ((solcBytesSetCalldataMem cd len payloadStart).extract 160 (160 + len.toNat) ++
+          (UInt256.toByteArray (⟨0⟩ : UInt256)).extract 0 (32 - len.toNat)) := by
+    rw [solcBytesSetPaddedMem]
+    simpa [hadd, hbaseSize, show 160 + 32 - (160 + len.toNat) = 32 - len.toNat by omega]
+      using
+        write32_read_span_end (UInt256.toByteArray (⟨0⟩ : UInt256))
+          (solcBytesSetCalldataMem cd len payloadStart) 160
+          (by rw [toByteArray_size])
+          (by rw [hbaseSize]; omega)
+          (by rw [hbaseSize]; omega)
+  rw [hread]
+  rw [solcBytesSetCalldataMem_extract_payload cd len payloadStart hnz hsrc]
+  rw [byteArray_toList_eq (_ ++ _), ByteArray.data_append, Array.toList_append]
+  rw [byteArray_toList_eq (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat))]
+  rw [zero_toByteArray_eq_zeroes32]
+  rw [zeroes32_extract_zeroes (32 - len.toNat) (by omega)]
+  rw [byteArray_zeroes_toList]
+  congr 1
+  rw [USize.toNat_ofNat_of_lt' (lt_usize (32 - len.toNat) (by omega))]
+
 /-! ## Shared bytecode-sequence lemmas
 
 Trace segments that recur byte-for-byte across solc output, factored once so every contract reuses

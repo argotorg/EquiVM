@@ -3860,6 +3860,7 @@ theorem scratch_blindAuctionDecode_reveal_some_of_guards {I : ExecutionEnv}
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   rw [if_neg hnotHugeFull]
   rw [if_neg hnotHugeArgs]
+  rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?,
     isDynamicABIType, Option.bind, bind, args, hvaluesHead,
     scratch_not_solcMax_lt_of_ugt_zero hvaluesGt, hvaluesDecode, hfakesHead,

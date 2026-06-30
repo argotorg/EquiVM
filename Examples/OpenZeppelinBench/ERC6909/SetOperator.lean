@@ -31,6 +31,7 @@ theorem erc6909WordToElem_bool_scalar (word : UInt256) :
     match wordToElem .bool word with
     | .struct _ _ => False
     | .array _ => False
+    | .bytes _ => False
     | _ => True := by
   change
     match
@@ -40,6 +41,7 @@ theorem erc6909WordToElem_bool_scalar (word : UInt256) :
           Value.bool true) with
     | .struct _ _ => False
     | .array _ => False
+    | .bytes _ => False
     | _ => True
   by_cases h : (word.val == 0) = true <;> simp [h]
 

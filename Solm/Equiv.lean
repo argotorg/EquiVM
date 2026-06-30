@@ -65,6 +65,20 @@ theorem accountMapEquiv.refl (σ : Ethereum.AccountMap) : accountMapEquiv σ σ 
   intro addr
   cases σ.find? addr <;> simp [accountEquiv.refl]
 
+theorem accountEquiv.symm {a b : Ethereum.Account}
+    (hab : accountEquiv a b) : accountEquiv b a := by
+  rcases hab with ⟨hn, hb, hc, hs, ht⟩
+  exact ⟨hn.symm, hb.symm, hc.symm, fun slot => (hs slot).symm,
+    fun slot => (ht slot).symm⟩
+
+theorem accountMapEquiv.symm {σ τ : Ethereum.AccountMap}
+    (hστ : accountMapEquiv σ τ) : accountMapEquiv τ σ := by
+  intro addr
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
+    simp [hσ, hτ] at hστ ⊢
+  exact accountEquiv.symm hστ
+
 theorem accountMapEquiv.of_eq {σ τ : Ethereum.AccountMap} (h : σ = τ) :
     accountMapEquiv σ τ := by
   subst h

@@ -129,7 +129,6 @@ mutual
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
-        zeroPadding? bytes (payloadStart + size) (paddedSize size - size)
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .string => do
         let size <- readNat? bytes start
@@ -228,6 +227,11 @@ mutual
 
 end
 
+def solcTotalSizeDynamicGuard : List ABIType → Bool
+  | [.string] => true
+  | [.bytes] => true
+  | _ => false
+
 def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray)
     (mode : DecodeMode := DecodeMode.modern) : Option Solm.Store :=
   if calldata.toList.length < 4 then
@@ -247,6 +251,8 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     match mode with
     | DecodeMode.modern =>
         if types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
+          none
+        else if solcTotalSizeDynamicGuard types = true ∧ 2 ^ 255 ≤ calldata.toList.length then
           none
         else
           let decoded := decodeArgs names types argsArray ∅

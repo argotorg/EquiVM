@@ -771,7 +771,11 @@ theorem blindAuctionDecode_reveal_none_short {I : ExecutionEnv}
   simp only [List.isEmpty_cons]
   rw [if_neg]
   · rw [if_neg]
-    · simp only [decodeCalldata.decodeArgs]
+    · rw [if_neg (by
+        rintro ⟨_, hhuge⟩
+        rw [htlen] at hhuge
+        omega)]
+      simp only [decodeCalldata.decodeArgs]
       have hargsShort : (List.drop 4 I.calldata.toList).length < 96 := by
         rw [List.length_drop, htlen]
         omega
@@ -1193,7 +1197,7 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                                           · simp [hargsShort] at hdec
                                           · simp [hargsShort] at hdec
                                             rcases hdec with ⟨_, hstore⟩
-                                            cases hstore.symm
+                                            cases hstore.2.symm
                                             refine ⟨values, fakes, secrets, ?_, ?_, ?_⟩
                                             · rw [store_get_ne2, store_get_self]
                                               · decide
@@ -1267,8 +1271,7 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
                                           · simp [hargsShort] at hdec
                                           · simp [hargsShort] at hdec
                                             rcases hdec with ⟨_, hstore⟩
-                                            cases hstore.symm
-                                            exact ⟨values, fakes, secrets, rfl⟩
+                                            exact ⟨values, fakes, secrets, hstore.2.symm⟩
 
 def RevealArrayGuardFacts (I : ExecutionEnv) (headOff : Nat) (xs : List Value) : Prop :=
   ∃ lenWord : UInt256,
@@ -1370,8 +1373,7 @@ theorem blindAuctionDecode_reveal_guard_facts {I : ExecutionEnv} {callargs : Sto
                                           · simp [hargsShort] at hdec
                                           · simp [hargsShort] at hdec
                                             rcases hdec with ⟨_, hstore⟩
-                                            cases hstore.symm
-                                            refine ⟨values, fakes, secrets, rfl, ?_⟩
+                                            refine ⟨values, fakes, secrets, hstore.2.symm, ?_⟩
                                             exact
                                               ⟨revealArrayGuardFacts_of_decode_elem32
                                                   hcalldataSign h0 hmax0 hval0,
@@ -1423,7 +1425,7 @@ theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs :
                           · simp [hargsShort] at hdec
                           · simp [hargsShort] at hdec
                             rcases hdec with ⟨_, hstore⟩
-                            cases hstore.symm
+                            cases hstore.2.symm
                             rw [store_get_ne3]
                             · simp
                             · exact hvalues
@@ -1714,7 +1716,7 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
                                                 (.array secrets) := by
-                                        rw [hstore0, hstore]
+                                        rw [hstore0.2, hstore]
                                       have hv : values0 = values := by
                                         have := congrArg (fun m => m.get? "values") hcall
                                         change

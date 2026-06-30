@@ -54,6 +54,12 @@ structure StorageLoc where
   type    : ElemType      -- A value to be loaded from storage must be a primitive
   deriving Repr
 
+inductive StorageReadResult (α : Type) where
+  | ok : α -> StorageReadResult α
+  | revert : StorageReadResult α
+  | error : StorageReadResult α
+  deriving Repr
+
 
 -- TODO: maybe create lemmas to prove that the following 2 are equivalent to the bitmasking done by solidity?
 -- Or will it prove more convenient to actually define the loads through such bitmasking?
@@ -140,6 +146,24 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
 
 structure StorageLayout where
   layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
+  -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
+  -- layouts that need representation-specific behavior can opt in at selected leaves.
+  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult Value) :=
+    fun _ _ _ => none
+  -- Optional high-level storage write hook. Used for representation-sensitive leaves such as
+  -- Solidity `bytes`/`string`, where slot-level byte locations are not the ABI boundary.
+  writeValue? : EvaledStorageRef -> StorageType -> Value -> EVM.State ->
+      Option (StorageReadResult EVM.State) :=
+    fun _ _ _ _ => none
+  -- Optional high-level storage clear hook, for the same representation-sensitive leaves.
+  clearValue? : EvaledStorageRef -> StorageType -> EVM.State ->
+      Option (StorageReadResult EVM.State) :=
+    fun _ _ _ => none
+  -- Optional layout-owned read for whole `bytes`/`string` lengths. This is needed for layouts
+  -- such as Solidity's packed short/long representation, where reading the length can validate
+  -- and revert on malformed encodings rather than merely loading a configured location.
+  readBytesLength : EvaledStorageRef -> EVM.State -> Option (StorageReadResult Nat) :=
+    fun _ _ => none
   -- Note: The above definition may need to also carry some assumptions if
   -- we want have a type system on top of these semantics,
   -- e.g. access within array bounds returns `.some v`
