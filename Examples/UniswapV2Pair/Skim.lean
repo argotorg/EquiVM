@@ -6,6 +6,7 @@ import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetReturnRuntime
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicCalldataRuntime
 import Examples.UniswapV2Pair.SkimSource
 import Reasoning.ExternalCall
+import Ethereum.Theory.StaticStorage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -242,29 +243,38 @@ theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
       subst hevm'
       rfl
 
--- TEMPORARY AXIOM: semantic bridge for raw EVM static calls.
--- `perm = false` is `STATICCALL`; it may change call metadata/substate, but not persistent
--- account storage. This should be replaced by a proof from `Ethereum.EVM.Θ`/`Ξ`.
-axiom callViaEVM_static_accountMap_eq {evm evm' : EVM.State}
+theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
+    (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
+    ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
+      ((τ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) := by
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
+    simp [Batteries.RBMap.findD, hσ, hτ, Option.option] at hστ ⊢
+  all_goals
+    have hstorage := congrArg (fun storage => storage.findD slot defaultValue) hστ.1
+    simpa using hstorage
+
+theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
     {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray}
     (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
-    evm'.accountMap = evm.accountMap
+    accountStorageStateEq evm.accountMap evm'.accountMap := by
+  cases hcall with
+  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
+      subst hevm'
+      exact Theta_static_accountStorageStateEq hΘ.symm
+  | callNotMade _hsubstate hevm' _hvalue =>
+      subst hevm'
+      exact accountStorageStateEq_refl evm.accountMap
 
-theorem callViaEVM_static_accountMapEquiv {evm evm' : EVM.State}
-    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
-    {z : Bool} {out : ByteArray}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
-    accountMapEquiv evm'.accountMap evm.accountMap :=
-  accountMapEquiv.of_eq (callViaEVM_static_accountMap_eq hcall)
-
-theorem typedCallViaEVM_static_accountMapEquiv {cfg : Config} {evm evm' : EVM.State}
+theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray}
     (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
-    accountMapEquiv evm'.accountMap evm.accountMap := by
+    accountStorageStateEq evm.accountMap evm'.accountMap := by
   obtain ⟨calldata, _hencode, hraw⟩ := hcall
-  exact callViaEVM_static_accountMapEquiv hraw
+  exact callViaEVM_static_accountStorageStateEq hraw
 
 theorem uniswapSkimFirstBalanceReturn_source
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -360,15 +370,17 @@ theorem uniswapSkimFirstBalanceStaticReserve0
   let evmL := uniswapLockEnteredState evmS
   let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
   let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  have hStaticAccounts : accountMapEquiv evm0S.accountMap evmL.accountMap :=
-    typedCallViaEVM_static_accountMapEquiv hcall0
+  have hStaticAccounts : accountStorageStateEq evmL.accountMap evm0S.accountMap :=
+    typedCallViaEVM_static_accountStorageStateEq hcall0
   have hLockAccounts : accountMapEquiv σLockE σLockS :=
     accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
   have howner : evm0S.executionEnv.codeOwner = I.codeOwner := by
     have henv := typedCallViaEVM_executionEnv_eq hcall0
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_executionEnv] using congrArg ExecutionEnv.codeOwner henv
-  have hstaticSlot := accountMapEquiv_storage_findD hStaticAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+  have hstaticSlot :=
+    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
+      I.codeOwner ⟨8⟩ ⟨0⟩
   have hlockSlot := accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
   have hslot :
       ((evm0S.accountMap.find? I.codeOwner).option ⟨0⟩
@@ -619,12 +631,14 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
       UInt256.land
         (UInt256.div (uniswapSlotWord ⟨8⟩ σ1 I) reserve112Shift)
         reserve112Mask := by
-  have hStaticAccounts : accountMapEquiv evm2S.accountMap evm1S.accountMap :=
-    typedCallViaEVM_static_accountMapEquiv hcall1
+  have hStaticAccounts : accountStorageStateEq evm1S.accountMap evm2S.accountMap :=
+    typedCallViaEVM_static_accountStorageStateEq hcall1
   have howner : evm2S.executionEnv.codeOwner = I.codeOwner := by
     have henvCall := typedCallViaEVM_executionEnv_eq hcall1
     simpa [henv] using congrArg ExecutionEnv.codeOwner henvCall
-  have hstaticSlot := accountMapEquiv_storage_findD hStaticAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+  have hstaticSlot :=
+    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
+      I.codeOwner ⟨8⟩ ⟨0⟩
   have hpostSlot := accountMapEquiv_storage_findD hPost I.codeOwner ⟨8⟩ ⟨0⟩
   have hslot :
       ((evm2S.accountMap.find? I.codeOwner).option ⟨0⟩
