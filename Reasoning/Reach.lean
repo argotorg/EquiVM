@@ -1479,6 +1479,15 @@ theorem Theta_returnData_size_lt
   Ethereum.EVM.theta_projection_output_size_lt_uint256 blob cA gh blocks σ σ₀ A s o r c d
     g p v v' e H w hd
 
+/-- Tight `Θ` return-data bound, pending the generic gas-derived EVM proof. -/
+axiom Theta_returnData_size_lt_2pow138
+    (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
+    (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
+    (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
+    (e : Fin 1025) (H : BlockHeader) (w : Bool) (hd : d.size < UInt256.size) :
+    (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size <
+      2 ^ 138
+
 /-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters, like `RD.loop`): from a
     cursor at the `SSTORE` pc with `[slot, val, …t]` and carried accounts `(cA, σ)`, write `val` to
     `slot` of the caller account (`ee.codeOwner`), advancing the carried `accountMap` to

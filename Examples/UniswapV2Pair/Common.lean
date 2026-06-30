@@ -588,7 +588,8 @@ theorem uniswapAssignBlockTimestampLastOfStore (evm evm' : EVM.State) (locals : 
   · exact evalStorageRef_uniswap_blockTimestampLast evm locals
   · rfl
   · rfl
-  · exact hscalar
+  · cases value <;> simp at hscalar ⊢
+    simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 def uniswapSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
