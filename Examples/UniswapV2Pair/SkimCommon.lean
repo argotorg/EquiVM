@@ -72,6 +72,14 @@ abbrev skimBalanceStore (I : ExecutionEnv) (balance0 balance1 : UInt256) : Store
 def skimExcessWord (reserve balance : UInt256) : UInt256 :=
   UInt256.ofNat (balance.toNat - reserve.toNat)
 
+theorem skimExcessWord_eq_sub {reserve balance : UInt256}
+    (hle : reserve.toNat ≤ balance.toNat) :
+    skimExcessWord reserve balance = UInt256.sub balance reserve := by
+  apply u256_inj
+  rw [skimExcessWord, UInt256.toNat_ofNat_of_lt]
+  · exact (usub_toNat (a := balance) (b := reserve) hle).symm
+  · exact lt_of_le_of_lt (Nat.sub_le _ _) balance.val.isLt
+
 def skimExcessWordAt (i : Fin 2) (evm : EVM.State) (balance0 balance1 : UInt256) : UInt256 :=
   skimExcessWord (skimReserveWord i evm) (skimBalanceWord i balance0 balance1)
 
@@ -198,11 +206,9 @@ theorem skimExcessStore_excess (evm : EVM.State) (I : ExecutionEnv)
   · simp only [skimExcessVar, skimExcessValueAt, skimExcessWordAt, skimReserveWord,
       skimBalanceWord]
     rw [skimExcessStore, store_get_ne _ _ (by decide), skimExcess0Store, store_get_self]
-    rfl
   · simp only [skimExcessVar, skimExcessValueAt, skimExcessWordAt, skimReserveWord,
       skimBalanceWord]
     rw [skimExcessStore, store_get_self]
-    rfl
 
 theorem skimSafeTransfer0Store_ok0 (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256) (success : Bool) (out : ByteArray) :
