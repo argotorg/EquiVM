@@ -581,42 +581,16 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts {g : Sat256} {s0 : 
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  obtain ⟨k6676, C6676, rd6676⟩ :=
+  obtain ⟨_, _, rd6676⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded
       h houtNe houtSize ho32 hoSize hout2_32 hout2Size
-  have rd6684₀ := evm_run rd6676 with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
-  have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
-    apply Reasoning.Theory.ult_zero
-    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-      UInt256.toNat_ofNat_of_lt (lt_size_of_lt_sign houtSize)]
-    exact hout32
-  have rd6684 := rd6684₀
-  rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6684
-  have rd6691 := evm_run rd6684 with [jumpiT (by native_decide) (by jump_dest), jumpdest, pop]
-  have haw488 := skimSecondSafeTransferReturnDataActiveWords_mload488_same out houtSize
-  have rd6692₀ := RD.mload
-    0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
-    (skimSecondSafeTransferReturnDataActiveWords out) rd6691 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw488])
-    (skimSecondSafeTransferReturnDataMem_mload488 self toWord prevValue value out ho32 hoSize hout2_32 hout2Size hout32
-      houtSize)
-    haw488
+  exact RD.uniswapSafeTransferReturnNonemptyFalseReverts
+    (R := token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
+    rd6676 hout32 houtSize hword
+    (skimSecondSafeTransferReturnDataMem_mload488 self toWord prevValue value out
+      ho32 hoSize hout2_32 hout2Size hout32 houtSize)
+    (skimSecondSafeTransferReturnDataActiveWords_mload488_same out houtSize)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6692 := rd6692₀
-  rw [hword] at rd6692
-  have rd6697 := evm_run rd6692 with [
-    jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
-  obtain ⟨k6697, C6697, rd6697'⟩ : ∃ k' C',
-      RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
-        (⟨456⟩ :: ⟨1⟩ :: value :: toWord :: token :: ret :: token :: token0 ::
-          toWord :: ⟨570⟩ :: sel :: [])
-        (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out)
-        (skimSecondSafeTransferReturnDataActiveWords out) out acc k' C' := by
-    exact ⟨_, _, by simpa using rd6697⟩
-  exact RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts
-    rd6697' houtNe houtSize ho32 hoSize hout2_32 hout2Size
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet {g : Sat256} {s0 : State}
@@ -637,34 +611,17 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet {g : Sat256} {s0 : Sta
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out)
       (skimSecondSafeTransferReturnDataActiveWords out) out acc k' C' := by
-  obtain ⟨k6676, C6676, rd6676⟩ :=
+  obtain ⟨_, _, rd6676⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded
       h houtNe houtSize ho32 hoSize hout2_32 hout2Size
-  have rd6684₀ := evm_run rd6676 with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
-  have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
-    apply Reasoning.Theory.ult_zero
-    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-      UInt256.toNat_ofNat_of_lt (lt_size_of_lt_sign houtSize)]
-    exact hout32
-  have rd6684 := rd6684₀
-  rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6684
-  have rd6691 := evm_run rd6684 with [jumpiT (by native_decide) (by jump_dest), jumpdest, pop]
-  have haw488 := skimSecondSafeTransferReturnDataActiveWords_mload488_same out houtSize
-  have rd6692₀ := RD.mload
-    0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
-    (skimSecondSafeTransferReturnDataActiveWords out) rd6691 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw488])
-    (skimSecondSafeTransferReturnDataMem_mload488 self toWord prevValue value out ho32 hoSize hout2_32 hout2Size hout32
-      houtSize)
-    haw488
+  exact RD.uniswapSafeTransferReturnNonemptyTrueToRet
+    (R := token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
+    rd6676 hout32 houtSize hword
+    (skimSecondSafeTransferReturnDataMem_mload488 self toWord prevValue value out
+      ho32 hoSize hout2_32 hout2Size hout32 houtSize)
+    (skimSecondSafeTransferReturnDataActiveWords_mload488_same out houtSize)
+    hret
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6692 := rd6692₀
-  have rd6773 := evm_run rd6692 with [
-    jumpdest, push2 ⟨6773⟩, jumpiT hword (by jump_dest)]
-  exact ⟨_, _, evm_run rd6773 with [jumpdest, pop, pop, pop, pop, pop,
-    jump hret]⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
