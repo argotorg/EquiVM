@@ -1971,14 +1971,9 @@ theorem skimSecondBalanceDynamicStaticcallMem_size_le_base_add36_of_size_ge
   unfold skimSecondBalanceDynamicStaticcallMem
   have hlen :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat out2.size)).toNat = 32 := by
-    have hle : (⟨32⟩ : UInt256) ≤ UInt256.ofNat out2.size := by
-      change 32 ≤ (UInt256.ofNat out2.size).toNat
-      rw [ulit_toNat' out2.size hout2Size]
-      exact hout2_32
-    change (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat out2.size then
-        (⟨32⟩ : UInt256) else UInt256.ofNat out2.size).toNat = 32
-    rw [if_pos hle]
-    rfl
+    simpa using
+      umin_ofNat_right_toNat_of_ge (c := 32) (n := out2.size) (by decide)
+        hout2_32 hout2Size
   have hwrite := byteArray_write_size_le
     (source := out2)
     (destination := skimSecondBalanceDynamicCalldataMem self o toWord value out1)

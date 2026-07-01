@@ -60,12 +60,109 @@ theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ ret
     exact UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)
   change uniswapExternalABI.decode? "balanceOf" returndata = _
   rw [show
-    some (skimBalanceValue
+      some (skimBalanceValue
         (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) =
       some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) by
-      simp only [skimBalanceValue, uniswapUint256Value, hword]]
+      simp only [skimBalanceValue, uniswapUint256Value, uint256Value, hword]]
   simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_ok (returndata := returndata) hlo)
+
+theorem uniswapSkimBalanceTypedCallFromState_source
+    {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
+    {cA2 : Batteries.RBSet AccountAddress compare} {σ2 : AccountMap}
+    {z2 : Bool} {out2 calldataMem : ByteArray} {A_in2 : Substate}
+    {callGas2 targetWord inOff : UInt256}
+    (hPost : accountMapEquiv σ1 evm1S.accountMap)
+    (hcreated : evm1S.createdAccounts = cA1)
+    (hσ0 : evm1S.σ₀ = σ₀)
+    (hgenesis : evm1S.genesisBlockHeader = gh)
+    (hblocks : evm1S.blocks = bl)
+    (henv : evm1S.executionEnv = I)
+    (hdepth : I.depth.val < 1024)
+    (hcd :
+      config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
+        some (calldataMem.readWithPadding inOff.toNat 36))
+    (hΘ :
+      ∃ (g'' : UInt256) (A'_evm : Substate),
+        (cA2, σ2, g'', A'_evm, z2, out2) =
+          Ethereum.EVM.Θ I.blobVersionedHashes cA1 gh bl σ1 σ₀ A_in2
+            (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+            (AccountAddress.ofUInt256 targetWord)
+            (toExecute σ1 (AccountAddress.ofUInt256 targetWord))
+            callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+            (calldataMem.readWithPadding inOff.toNat 36)
+            (I.depth + 1) I.header false) :
+    ∃ evm2S : EVM.State,
+      typedCallViaEVM config evm1S
+        (AccountAddress.ofUInt256 targetWord)
+        "balanceOf" 0 [.address evm1S.executionEnv.codeOwner]
+        (z2, evm2S, out2) false ∧
+      accountMapEquiv σ2 evm2S.accountMap ∧
+      evm2S.createdAccounts = cA2 ∧
+      evm2S.σ₀ = σ₀ ∧
+      evm2S.genesisBlockHeader = gh ∧
+      evm2S.blocks = bl ∧
+      evm2S.executionEnv = evm1S.executionEnv := by
+  obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
+  let evmE : EVM.State :=
+    { evm1S with
+      accountMap := σ1
+      createdAccounts := cA1
+      σ₀ := σ₀
+      genesisBlockHeader := gh
+      blocks := bl
+      executionEnv := I }
+  let target : EVM.Address := AccountAddress.ofUInt256 targetWord
+  have hdepthE : evmE.executionEnv.depth.val < 1024 := by
+    simpa [evmE] using hdepth
+  have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
+    intro hEq
+    rw [hEq] at hdepthE
+    exact absurd hdepthE (by decide)
+  have hcdE :
+      config.externalABI.encode? "balanceOf" [.address evmE.executionEnv.codeOwner] =
+        some (calldataMem.readWithPadding inOff.toNat 36) := by
+    simpa [evmE] using hcd
+  have hΘE :
+      (cA2, σ2, g'', A'_evm, z2, out2) =
+        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes
+          evmE.createdAccounts evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ A_in2
+          (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
+          evmE.executionEnv.sender target
+          (toExecute evmE.accountMap target)
+          callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+          (calldataMem.readWithPadding inOff.toNat 36)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
+    simpa [evmE, target] using hΘeq
+  obtain ⟨σ2S, A2S, hcallSolm, hPost2⟩ :=
+    typedCallViaEVM_callMade_accountMapEquiv
+      (cfg := config) (evm_evm := evmE) (evm_solm := evm1S)
+      (tgt := target) (targetWord := targetWord)
+      (name := "balanceOf") (args := [.address evmE.executionEnv.codeOwner])
+      (cA' := cA2) (σ' := σ2) (A' := A'_evm) (A_in := A_in2)
+      (z := z2) (out := out2) (g'' := g'') (callGas := callGas2)
+      (mem := calldataMem) (inOff := inOff) (inSize := ⟨36⟩) (callPerm := false)
+      hdepthNe rfl hcdE hΘE
+      (by simpa [evmE] using hPost)
+      (by simp [evmE, hσ0])
+      (by simp [evmE, hcreated])
+      (by simp [evmE, hgenesis])
+      (by simp [evmE, hblocks])
+      (by simp [evmE])
+      (by simp [evmE, henv])
+  let evm2S : EVM.State :=
+    { evm1S with
+      accountMap := σ2S
+      substate := A2S
+      createdAccounts := cA2 }
+  refine ⟨evm2S, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa [evm2S, evmE, target, henv] using hcallSolm
+  · simpa [evm2S] using hPost2
+  · simp [evm2S]
+  · simp [evm2S, hσ0]
+  · simp [evm2S, hgenesis]
+  · simp [evm2S, hblocks]
+  · simp [evm2S]
 
 theorem uniswapSkimFirstBalanceTypedCall_source
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -110,10 +207,7 @@ theorem uniswapSkimFirstBalanceTypedCall_source
       evm0S.executionEnv =
         (uniswapLockEnteredState
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv := by
-  obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
-  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  let evmEL := uniswapLockEnteredState evmE
   let evmSL := uniswapLockEnteredState evmS
   let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
   let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
@@ -140,94 +234,47 @@ theorem uniswapSkimFirstBalanceTypedCall_source
       EVM.address (uniswapAddressAtSlot evmSL ⟨6⟩)
     rw [haddr]
     exact (uniswapAddress_self (uniswapAddressAtSlot evmSL ⟨6⟩)).symm
-  have hdepthEL : evmEL.executionEnv.depth.val < 1024 := by
-    simpa [evmEL, evmE, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      storageStore_executionEnv] using hdepth
-  have hdepthNe : evmEL.executionEnv.depth ≠ 1024 := by
-    intro hEq
-    rw [hEq] at hdepthEL
-    exact absurd hdepthEL (by decide)
   have hcd :
-      config.externalABI.encode? "balanceOf"
-        [.address evmEL.executionEnv.codeOwner] =
+      config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
         some ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
           |>.readWithPadding 128 36) := by
-    simpa [evmEL, evmE, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      storageStore_executionEnv] using
-      (balanceOfThisCalldataMem_encode I.codeOwner)
-  have hΘE :
-      (cA', σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ evmEL.executionEnv.blobVersionedHashes
-          evmEL.createdAccounts evmEL.genesisBlockHeader evmEL.blocks
-          evmEL.accountMap evmEL.σ₀ A_in
-          (AccountAddress.ofUInt256 (UInt256.ofNat evmEL.executionEnv.codeOwner))
-          evmEL.executionEnv.sender
-          (AccountAddress.ofUInt256 token0CleanE)
-          (toExecute evmEL.accountMap (AccountAddress.ofUInt256 token0CleanE))
-          callGas (UInt256.ofNat evmEL.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
-            |>.readWithPadding 128 36)
-          (evmEL.executionEnv.depth + 1) evmEL.executionEnv.header false := by
-    simpa [evmEL, evmE, σLockE, token0WordE, token0CleanE,
-      uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_createdAccounts,
-      storageStore_accountMap, storageStore_executionEnv, uniswapStorageStore_sigma0,
-      uniswapStorageStore_genesisBlockHeader, uniswapStorageStore_blocks] using hΘeq
-  have htarget : target = AccountAddress.ofUInt256 token0CleanE := by
-    rfl
-  have hcallE : typedCallViaEVM config evmEL target "balanceOf" 0
-      [.address evmEL.executionEnv.codeOwner]
-      (z,
-        { evmEL with
-            accountMap := σ'
-            substate := A'_evm
-            createdAccounts := cA' },
-        o) false := by
-    exact callCoincides
-      (cfg := config) (evm := evmEL) (name := "balanceOf")
-      (args := [.address evmEL.executionEnv.codeOwner]) (tgt := target)
-      (targetWord := token0CleanE) (cA' := cA') (σ' := σ')
-      (A' := A'_evm) (A_in := A_in) (z := z) (o := o)
-      (g'' := g'') (callGas := callGas)
-      (mem := balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
-      (inOff := ⟨128⟩) (inSize := ⟨36⟩) (callPerm := false)
-      hdepthNe htarget hcd hΘE
-  have hLockStateAccounts : accountMapEquiv evmEL.accountMap evmSL.accountMap := by
-    simpa [evmEL, evmSL, evmE, evmS, σLockE, σLockS,
+    exact balanceOfThisCalldataMem_encode I.codeOwner
+  have hLockStateAccounts : accountMapEquiv σLockE evmSL.accountMap := by
+    simpa [evmSL, evmS, σLockS,
       uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap] using hLockAccounts
-  obtain ⟨σ'_solm, A'_solm, hcallSolm, hPostAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv
-      (evm_solm := evmSL) hcallE hLockStateAccounts
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, uniswapStorageStore_sigma0])
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, storageStore_createdAccounts])
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, uniswapStorageStore_genesisBlockHeader])
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, uniswapStorageStore_blocks])
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, uniswapStorageStore_substate])
-      (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
-        uniswapUnlockedState, initState, storageStore_executionEnv])
-  let evm0S :=
-    { evmSL with
-        accountMap := σ'_solm
-        substate := A'_solm
-        createdAccounts := cA' }
+  obtain ⟨evm0S, hcallSolm, hPostAccounts, hcreated0, hσ0, hgenesis0, hblocks0, henv0⟩ :=
+    uniswapSkimBalanceTypedCallFromState_source
+      (cA1 := cA) (gh := gh) (bl := bl) (σ1 := σLockE) (σ₀ := σ₀)
+      (I := I) (evm1S := evmSL) (cA2 := cA') (σ2 := σ')
+      (z2 := z) (out2 := o) (A_in2 := A_in) (callGas2 := callGas)
+      (targetWord := token0CleanE)
+      (calldataMem := balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
+      (inOff := ⟨128⟩)
+      hLockStateAccounts
+      (by simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+        storageStore_createdAccounts])
+      (by simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+        uniswapStorageStore_sigma0])
+      (by simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+        uniswapStorageStore_genesisBlockHeader])
+      (by simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+        uniswapStorageStore_blocks])
+      (by simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+        storageStore_executionEnv])
+      hdepth hcd hΘ
+  have htargetSource' :
+      AccountAddress.ofUInt256 token0CleanE =
+        EVM.address (uniswapAddressAtSlot evmSL ⟨6⟩) := by
+    simpa [target] using htargetSource
   refine ⟨evm0S, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simpa [evm0S, htargetSource, evmEL, evmSL, evmE, evmS,
-      uniswapLockEnteredState, uniswapUnlockedState, initState,
-      storageStore_executionEnv] using hcallSolm
-  · simpa [evm0S] using hPostAccounts
-  · simp [evm0S]
-  · simp [evm0S, evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      uniswapStorageStore_sigma0]
-  · simp [evm0S, evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      uniswapStorageStore_genesisBlockHeader]
-  · simp [evm0S, evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      uniswapStorageStore_blocks]
-  · simp [evm0S, evmSL, evmS]
+  · simpa [evmSL, evmS, htargetSource'] using hcallSolm
+  · exact hPostAccounts
+  · exact hcreated0
+  · exact hσ0
+  · exact hgenesis0
+  · exact hblocks0
+  · simpa [evmSL, evmS] using henv0
 
 theorem uniswapSkimFirstBalanceReturn_source
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -323,28 +370,18 @@ theorem uniswapSkimFirstBalanceStaticReserve0
   let evmL := uniswapLockEnteredState evmS
   let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
   let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  have hStaticAccounts : accountStorageStateEq evmL.accountMap evm0S.accountMap :=
-    typedCallViaEVM_static_accountStorageStateEq hcall0
   have hLockAccounts : accountMapEquiv σLockE σLockS :=
     accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have howner : evm0S.executionEnv.codeOwner = I.codeOwner := by
-    have henv := typedCallViaEVM_executionEnv_eq hcall0
-    simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      storageStore_executionEnv] using congrArg ExecutionEnv.codeOwner henv
-  have hstaticSlot :=
-    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
-      I.codeOwner ⟨8⟩ ⟨0⟩
-  have hlockSlot := accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hslot :
-      ((evm0S.accountMap.find? I.codeOwner).option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) =
-        ((σLockE.find? I.codeOwner).option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) := by
-    rw [hstaticSlot]
-    simpa [evmL, evmS, σLockE, σLockS, uniswapLockEnteredState,
-      uniswapUnlockedState, initState, storageStore_accountMap] using hlockSlot.symm
+  have hLockStateAccounts : accountMapEquiv σLockE evmL.accountMap := by
+    simpa [evmL, evmS, σLockS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+      storageStore_accountMap] using hLockAccounts
+  have hslot :=
+    typedCallViaEVM_static_storage_findD_of_accountMapEquiv
+      (cfg := config) (σ := σLockE) (evm := evmL) (evm' := evm0S)
+      (slot := ⟨8⟩) (default := ⟨0⟩) hLockStateAccounts hcall0
   simpa [uniswapReserve0Word, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, uniswapSlotWord, σLockE, howner] using
+    Account.lookupStorage, uniswapSlotWord, σLockE, evmL, evmS,
+    uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_executionEnv] using
     congrArg (fun w => UInt256.land w reserve112Mask) hslot
 
 theorem uniswapSkimSecondBalanceTypedCall_source
@@ -382,80 +419,16 @@ theorem uniswapSkimSecondBalanceTypedCall_source
       evm2S.genesisBlockHeader = gh ∧
       evm2S.blocks = bl ∧
       evm2S.executionEnv = evm1S.executionEnv := by
-  obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
-  let evmE : EVM.State :=
-    { evm1S with
-      accountMap := σ1
-      createdAccounts := cA1
-      σ₀ := σ₀
-      genesisBlockHeader := gh
-      blocks := bl
-      executionEnv := I }
-  let target : EVM.Address := AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)
-  have hdepthE : evmE.executionEnv.depth.val < 1024 := by
-    simpa [evmE] using hdepth
-  have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
-    intro hEq
-    rw [hEq] at hdepthE
-    exact absurd hdepthE (by decide)
   have hcd :
-      config.externalABI.encode? "balanceOf" [.address evmE.executionEnv.codeOwner] =
+      config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
         some ((skimSecondBalanceCalldataMem (UInt256.ofNat I.codeOwner.val) o toWord value)
           |>.readWithPadding 292 36) := by
-    simpa [evmE] using
-      (skimSecondBalanceCalldataMem_encode I.codeOwner toWord value ho32 hoSize)
-  have hΘE :
-      (cA2, σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes
-          evmE.createdAccounts evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ A_in2
-          (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
-          evmE.executionEnv.sender target
-          (toExecute evmE.accountMap target)
-          callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          ((skimSecondBalanceCalldataMem (UInt256.ofNat I.codeOwner.val) o toWord value)
-            |>.readWithPadding 292 36)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
-    simpa [evmE, target] using hΘeq
-  have hcallE : typedCallViaEVM config evmE target "balanceOf" 0
-      [.address evmE.executionEnv.codeOwner]
-      (z2,
-        { evmE with
-            accountMap := σ2
-            substate := A'_evm
-            createdAccounts := cA2 },
-        out2) false := by
-    exact callCoincides
-      (cfg := config) (evm := evmE) (name := "balanceOf")
-      (args := [.address evmE.executionEnv.codeOwner]) (tgt := target)
-      (targetWord := UInt256.land token1 solcAddrMask) (cA' := cA2) (σ' := σ2)
-      (A' := A'_evm) (A_in := A_in2) (z := z2) (o := out2)
-      (g'' := g'') (callGas := callGas2)
-      (mem := skimSecondBalanceCalldataMem (UInt256.ofNat I.codeOwner.val) o toWord value)
-      (inOff := ⟨292⟩) (inSize := ⟨36⟩) (callPerm := false)
-      hdepthNe rfl hcd hΘE
-  obtain ⟨σ2S, A2S, hcallSolm, hPost2⟩ :=
-    typedCallViaEVM_accountMapEquiv
-      (evm_solm := evm1S) hcallE
-      (by simpa [evmE] using hPost)
-      (by simp [evmE, hσ0])
-      (by simp [evmE, hcreated])
-      (by simp [evmE, hgenesis])
-      (by simp [evmE, hblocks])
-      (by simp [evmE])
-      (by simp [evmE, henv])
-  let evm2S : EVM.State :=
-    { evm1S with
-      accountMap := σ2S
-      substate := A2S
-      createdAccounts := cA2 }
-  refine ⟨evm2S, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simpa [evm2S, evmE, target, henv] using hcallSolm
-  · simpa [evm2S] using hPost2
-  · simp [evm2S]
-  · simp [evm2S, hσ0]
-  · simp [evm2S, hgenesis]
-  · simp [evm2S, hblocks]
-  · simp [evm2S]
+    exact skimSecondBalanceCalldataMem_encode I.codeOwner toWord value ho32 hoSize
+  exact uniswapSkimBalanceTypedCallFromState_source
+    (targetWord := UInt256.land token1 solcAddrMask)
+    (calldataMem := skimSecondBalanceCalldataMem (UInt256.ofNat I.codeOwner.val) o toWord value)
+    (inOff := ⟨292⟩)
+    hPost hcreated hσ0 hgenesis hblocks henv hdepth hcd hΘ
 
 theorem uniswapSkimSecondBalanceTypedCall_source_dynamic
     {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
@@ -494,84 +467,19 @@ theorem uniswapSkimSecondBalanceTypedCall_source_dynamic
       evm2S.genesisBlockHeader = gh ∧
       evm2S.blocks = bl ∧
       evm2S.executionEnv = evm1S.executionEnv := by
-  obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
-  let evmE : EVM.State :=
-    { evm1S with
-      accountMap := σ1
-      createdAccounts := cA1
-      σ₀ := σ₀
-      genesisBlockHeader := gh
-      blocks := bl
-      executionEnv := I }
-  let target : EVM.Address := AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)
-  have hdepthE : evmE.executionEnv.depth.val < 1024 := by
-    simpa [evmE] using hdepth
-  have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
-    intro hEq
-    rw [hEq] at hdepthE
-    exact absurd hdepthE (by decide)
   have hcd :
-      config.externalABI.encode? "balanceOf" [.address evmE.executionEnv.codeOwner] =
+      config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
         some ((skimSecondBalanceDynamicCalldataMem (UInt256.ofNat I.codeOwner.val) o
             toWord value out1)
           |>.readWithPadding (skimSafeTransferReturnDataPtr out1).toNat 36) := by
-    simpa [evmE] using
-      (skimSecondBalanceDynamicCalldataMem_encode I.codeOwner toWord value
-        ho32 hoSize hout1Ne hout1Size)
-  have hΘE :
-      (cA2, σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes
-          evmE.createdAccounts evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ A_in2
-          (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
-          evmE.executionEnv.sender target
-          (toExecute evmE.accountMap target)
-          callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          ((skimSecondBalanceDynamicCalldataMem (UInt256.ofNat I.codeOwner.val) o
-              toWord value out1)
-            |>.readWithPadding (skimSafeTransferReturnDataPtr out1).toNat 36)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
-    simpa [evmE, target] using hΘeq
-  have hcallE : typedCallViaEVM config evmE target "balanceOf" 0
-      [.address evmE.executionEnv.codeOwner]
-      (z2,
-        { evmE with
-            accountMap := σ2
-            substate := A'_evm
-            createdAccounts := cA2 },
-        out2) false := by
-    exact callCoincides
-      (cfg := config) (evm := evmE) (name := "balanceOf")
-      (args := [.address evmE.executionEnv.codeOwner]) (tgt := target)
-      (targetWord := UInt256.land token1 solcAddrMask) (cA' := cA2) (σ' := σ2)
-      (A' := A'_evm) (A_in := A_in2) (z := z2) (o := out2)
-      (g'' := g'') (callGas := callGas2)
-      (mem := skimSecondBalanceDynamicCalldataMem (UInt256.ofNat I.codeOwner.val) o
-        toWord value out1)
-      (inOff := skimSafeTransferReturnDataPtr out1) (inSize := ⟨36⟩) (callPerm := false)
-      hdepthNe rfl hcd hΘE
-  obtain ⟨σ2S, A2S, hcallSolm, hPost2⟩ :=
-    typedCallViaEVM_accountMapEquiv
-      (evm_solm := evm1S) hcallE
-      (by simpa [evmE] using hPost)
-      (by simp [evmE, hσ0])
-      (by simp [evmE, hcreated])
-      (by simp [evmE, hgenesis])
-      (by simp [evmE, hblocks])
-      (by simp [evmE])
-      (by simp [evmE, henv])
-  let evm2S : EVM.State :=
-    { evm1S with
-      accountMap := σ2S
-      substate := A2S
-      createdAccounts := cA2 }
-  refine ⟨evm2S, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simpa [evm2S, evmE, target, henv] using hcallSolm
-  · simpa [evm2S] using hPost2
-  · simp [evm2S]
-  · simp [evm2S, hσ0]
-  · simp [evm2S, hgenesis]
-  · simp [evm2S, hblocks]
-  · simp [evm2S]
+    exact skimSecondBalanceDynamicCalldataMem_encode I.codeOwner toWord value
+      ho32 hoSize hout1Ne hout1Size
+  exact uniswapSkimBalanceTypedCallFromState_source
+    (targetWord := UInt256.land token1 solcAddrMask)
+    (calldataMem := skimSecondBalanceDynamicCalldataMem (UInt256.ofNat I.codeOwner.val) o
+      toWord value out1)
+    (inOff := skimSafeTransferReturnDataPtr out1)
+    hPost hcreated hσ0 hgenesis hblocks henv hdepth hcd hΘ
 
 theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
     {evm1S evm2S : EVM.State} {I : ExecutionEnv}
@@ -584,24 +492,12 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
       UInt256.land
         (UInt256.div (uniswapSlotWord ⟨8⟩ σ1 I) reserve112Shift)
         reserve112Mask := by
-  have hStaticAccounts : accountStorageStateEq evm1S.accountMap evm2S.accountMap :=
-    typedCallViaEVM_static_accountStorageStateEq hcall1
-  have howner : evm2S.executionEnv.codeOwner = I.codeOwner := by
-    have henvCall := typedCallViaEVM_executionEnv_eq hcall1
-    simpa [henv] using congrArg ExecutionEnv.codeOwner henvCall
-  have hstaticSlot :=
-    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
-      I.codeOwner ⟨8⟩ ⟨0⟩
-  have hpostSlot := accountMapEquiv_storage_findD hPost I.codeOwner ⟨8⟩ ⟨0⟩
-  have hslot :
-      ((evm2S.accountMap.find? I.codeOwner).option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) =
-        ((σ1.find? I.codeOwner).option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) := by
-    rw [hstaticSlot]
-    exact hpostSlot.symm
+  have hslot :=
+    typedCallViaEVM_static_storage_findD_of_accountMapEquiv
+      (cfg := config) (σ := σ1) (evm := evm1S) (evm' := evm2S)
+      (slot := ⟨8⟩) (default := ⟨0⟩) hPost hcall1
   simpa [uniswapReserve1Word, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, uniswapSlotWord, howner] using
+    Account.lookupStorage, uniswapSlotWord, henv] using
     congrArg (fun w => UInt256.land (UInt256.div w reserve112Shift) reserve112Mask) hslot
 
 theorem accountAddressOfNat_word_eq_mask (w : UInt256) :
@@ -1328,30 +1224,20 @@ theorem uniswapSkimBody
                   uniswapStorageStore_genesisBlockHeader, uniswapStorageStore_blocks] using hΘeq
               have htarget : target = AccountAddress.ofUInt256 token0CleanE := by
                 rfl
-              have hcallE : typedCallViaEVM config evmEL target "balanceOf" 0
-                  [.address evmEL.executionEnv.codeOwner]
-                  (z,
-                    { evmEL with
-                        accountMap := σ'
-                        substate := A'_evm
-                        createdAccounts := cA' },
-                    o) false := by
-                exact callCoincides
-                  (cfg := config) (evm := evmEL) (name := "balanceOf")
-                  (args := [.address evmEL.executionEnv.codeOwner]) (tgt := target)
-                  (targetWord := token0CleanE) (cA' := cA') (σ' := σ')
-                  (A' := A'_evm) (A_in := A_in) (z := z) (o := o)
-                  (g'' := g'') (callGas := callGas)
-                  (mem := balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
-                  (inOff := ⟨128⟩) (inSize := ⟨36⟩) (callPerm := false)
-                  hdepthNe htarget hcd hΘE
               have hLockStateAccounts : accountMapEquiv evmEL.accountMap evmSL.accountMap := by
                 simpa [evmEL, evmSL, evmE, evmS, σLockE, σLockS,
                   uniswapLockEnteredState, uniswapUnlockedState, initState,
                   storageStore_accountMap] using hLockAccounts
               obtain ⟨σ'_solm, A'_solm, hcallSolm, _hPostAccounts⟩ :=
-                typedCallViaEVM_accountMapEquiv
-                  (evm_solm := evmSL) hcallE hLockStateAccounts
+                typedCallViaEVM_callMade_accountMapEquiv
+                  (cfg := config) (evm_evm := evmEL) (evm_solm := evmSL)
+                  (tgt := target) (targetWord := token0CleanE)
+                  (name := "balanceOf") (args := [.address evmEL.executionEnv.codeOwner])
+                  (cA' := cA') (σ' := σ') (A' := A'_evm) (A_in := A_in)
+                  (z := z) (out := o) (g'' := g'') (callGas := callGas)
+                  (mem := balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val))
+                  (inOff := ⟨128⟩) (inSize := ⟨36⟩) (callPerm := false)
+                  hdepthNe htarget hcd hΘE hLockStateAccounts
                   (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,
                     uniswapUnlockedState, initState, uniswapStorageStore_sigma0])
                   (by simp [evmEL, evmSL, evmE, evmS, uniswapLockEnteredState,

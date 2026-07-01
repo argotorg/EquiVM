@@ -1041,6 +1041,35 @@ theorem RD.div {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · exact hee
       · exact hworld
 
+theorem RD.exp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.EXP, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.exp a b :: t) mem aw rdata acc
+      (k + 1) (C + expGasCost b) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := exp_xstep hcode hpc hdec hstk hov
+    have hcostpos : 0 < expGasCost b := expGasCost_pos b
+    by_cases gg : g.toNat < C + expGasCost b
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stExp s a b t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+        by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stExp]; exact hcode
+      · simp only [stExp]; rw [hpc]
+      · rfl
+      · simp only [stExp]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stExp]; exact hmem
+      · simp only [stExp]; exact haw
+      · simp only [stExp]; exact hrdata
+      · simp only [stExp]; exact hacc
+      · exact hee
+      · exact hworld
+
 theorem RD.iszero {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1573,6 +1602,75 @@ theorem RD.caller {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       · simp only [stCaller]; exact hrdata
       · simp only [stCaller]; exact hacc
       · exact hee
+      · exact hworld
+
+/-- **ADDRESS**: push the current contract address (`ee.codeOwner`) onto the stack
+    (cost `Gbase = 2`, pc += 1). -/
+theorem RD.uniswapAddress {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.ADDRESS, .none)) (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.codeOwner.val :: stk) mem aw rdata acc
+      (k + 1) (C + 2) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := uniswapAddress_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 2
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨uniswapStAddress s,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+          by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [uniswapStAddress]; exact hcode
+      · simp only [uniswapStAddress]; rw [hpc]
+      · simp only [uniswapStAddress]; rw [hstk, hee]
+      · simp only [uniswapStAddress]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [uniswapStAddress]; exact hmem
+      · simp only [uniswapStAddress]; exact haw
+      · simp only [uniswapStAddress]; exact hrdata
+      · simp only [uniswapStAddress]; exact hacc
+      · exact hee
+      · exact hworld
+
+/-- **EXTCODESIZE**: push the target account code size onto the stack, existentializing the
+    warm/cold `Caccess` gas cost like `RD.sload` does for `Csload`. -/
+theorem RD.uniswapExtcodesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {target : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (target :: t) mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.EXTCODESIZE, .none)) (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
+      (uniswapExtCodeSizeWord σ target :: t) mem aw rdata (cA, σ) k' C' := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
+    hworld⟩
+  · exact ⟨k, C, Or.inl hoog⟩
+  · have st := uniswapExtcodesize_xstep hcode hpc hdec hstk hov
+    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+    have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+    by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
+    · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
+    · refine ⟨k + 1, C + Caccess (AccountAddress.ofUInt256 target) s.substate,
+        Or.inr ⟨uniswapStExtcodesize s target t,
+          hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+          by
+            have hpos : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
+              unfold Caccess; split <;> decide
+            omega,
+          by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+      · simp only [uniswapStExtcodesize]; exact hcode
+      · simp only [uniswapStExtcodesize]; rw [hpc]
+      · simp only [uniswapStExtcodesize, uniswapExtCodeSizeWord, hσ]
+      · simp only [uniswapStExtcodesize]
+        rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [uniswapStExtcodesize]; exact hmem
+      · simp only [uniswapStExtcodesize]; exact haw
+      · simp only [uniswapStExtcodesize]; exact hrdata
+      · simp only [uniswapStExtcodesize]; rw [hcA, hσ]
+      · simp only [uniswapStExtcodesize]; exact hee
       · exact hworld
 
 /-- **SWAP4**: exchange the stack top with the 5th element (cost `Gverylow = 3`, pc += 1). -/

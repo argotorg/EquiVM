@@ -28,15 +28,9 @@ theorem balanceOfThisStaticcallMem_read96_zero_of_size_ge
     (balanceOfThisStaticcallMem self o).readWithPadding 96 32 =
       UInt256.toByteArray (⟨0⟩ : UInt256) := by
   unfold balanceOfThisStaticcallMem
-  have hle : (⟨32⟩ : UInt256) ≤ UInt256.ofNat o.size := by
-    change 32 ≤ (UInt256.ofNat o.size).toNat
-    rw [ulit_toNat' o.size hoSize]
-    exact ho32
   have hlen : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
-    change (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat o.size then
-        (⟨32⟩ : UInt256) else UInt256.ofNat o.size).toNat = 32
-    rw [if_pos hle]
-    rfl
+    simpa using
+      umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hoSize
   rw [hlen]
   rw [write_read_below_gen o (balanceOfThisCalldataMem self) 128 32 96
       (by decide) ho32 (by rw [balanceOfThisCalldataMem_size]; omega) (by omega)]
@@ -132,10 +126,17 @@ theorem skimSafeTransferMem5_read64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (skimSafeTransferMem5 self o toWord value).readWithPadding 64 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256) := by
-  unfold skimSafeTransferMem5
-  rw [write32_read_below _ _ 192 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferMem4_size self toWord value ho32 hoSize]; omega) (by omega)]
-  exact skimSafeTransferMem4_read64 self toWord value ho32 hoSize
+  rw [skimSafeTransferMem5_eq_writeCascade]
+  simpa [skimSafeTransferMem5Writes] using
+    writeCascade_read_word_of_head
+      (balanceOfThisStaticcallMem self o) 64 (⟨192⟩ : UInt256)
+      (skimSafeTransferMem5WritesAfter64 toWord value)
+      (by
+        rw [balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize]
+        native_decide)
+      (by
+        rw [balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize]
+        exact skimSafeTransferMem5WritesAfter64_disjoint64 toWord value)
 
 theorem skimSafeTransferMem6_read64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -659,43 +660,6 @@ theorem skimSafeTransferPatchedSelector_toByteArray (w : UInt256) :
       _ < 2 ^ 32 * 2 ^ 224 := by
         exact Nat.mul_lt_mul_of_pos_right (by norm_num) (by positivity)
       _ = UInt256.size := by norm_num [UInt256.size, Nat.pow_add]
-
-theorem toByteArray_write_read_window_of_gap
-    (b : UInt256) (mem : ByteArray) (off start len : Nat)
-    (hwithin : start + len ≤ 32) (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
-    (hgap : off - mem.size < USize.size) :
-    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding (off + start) len =
-      (UInt256.toByteArray b).extract start (start + len) := by
-  by_cases hle : off ≤ mem.size
-  · have hprefix : (mem.extract 0 off).size = off := by
-      rw [ByteArray.size_extract]
-      omega
-    have hword : ((UInt256.toByteArray b).extract 0 32).size = 32 := by
-      rw [ByteArray.size_extract, toByteArray_size]
-      omega
-    rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
-    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
-      rw [ByteArray.size_append, ByteArray.size_append, hprefix, hword]
-      omega)]
-    rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hprefix, hword]; omega)]
-    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
-    rw [show off + start - off = start by omega,
-      show off + start + len - off = start + len by omega]
-    rw [extract_extract_BA]
-    rw [show 0 + start = start by omega,
-      show min (0 + (start + len)) 32 = start + len by omega]
-  · have hge : mem.size ≤ off := by omega
-    rw [toByteArray_write_eq _ _ off hge hgap]
-    have hprefix :
-        (mem ++ ffi.ByteArray.zeroes (USize.ofNat (off - mem.size))).size = off := by
-      rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
-      omega
-    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
-      rw [ByteArray.size_append, hprefix, toByteArray_size]
-      omega)]
-    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
-    rw [show off + start - off = start by omega,
-      show off + start + len - off = start + len by omega]
 
 theorem skimSafeTransferMem6_read228_28
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -1648,30 +1612,6 @@ theorem skimSafeTransferReturnDataSizeMem_read292
     rw [show 32 = (UInt256.toByteArray (UInt256.ofNat out.size)).size by
       rw [toByteArray_size]]
     exact byteArray_extract_self _]
-
-theorem write_eq_gen_extend (src base : ByteArray) (destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hdest : destAddr ≤ base.size)
-    (hext : base.size < destAddr + len) :
-    src.write 0 base destAddr len =
-      base.extract 0 destAddr ++ src.extract 0 len := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
-  have hsize : src.data.size = src.size := rfl
-  have hpL : min len (src.size - 0) = len := by omega
-  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    rw [Nat.min_eq_left (by omega)]
-    omega
-  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hdest
-  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty :=
-    zeroes_zero (by rfl)
-  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract, show (ByteArray.empty).data = (#[] : Array UInt8) from rfl,
-    Array.append_empty, hsize, hpL, hsp, Nat.add_zero, Nat.zero_add,
-    show base.data.size = base.size from rfl]
-  have htail : base.data.extract (destAddr + len) base.size = #[] :=
-    Array.extract_eq_empty_of_le (by omega)
-  rw [htail, Array.append_empty]
 
 theorem skimSafeTransferReturnDataMem_read292
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) (out : ByteArray)

@@ -19,6 +19,12 @@ namespace Reasoning.Theory
 
 /-! ## Word reconstruction and no-wrap arithmetic -/
 
+/-- `AccountAddress.ofUInt256` is the same address as taking the word's natural value. -/
+theorem accountAddress_ofUInt256_eq_ofNat_toNat (w : UInt256) :
+    AccountAddress.ofUInt256 w = AccountAddress.ofNat w.toNat := by
+  apply Fin.ext
+  simp [AccountAddress.ofUInt256, AccountAddress.ofNat, UInt256.toNat]
+
 /-- `UInt256` is determined by its `toNat`. -/
 theorem u256_inj {a b : UInt256} (h : a.toNat = b.toNat) : a = b := by
   cases a; cases b; simp only [UInt256.toNat] at h; exact congrArg UInt256.mk (Fin.ext h)
@@ -40,6 +46,26 @@ theorem ulit_toNat' (c : ℕ) (h : c < UInt256.size) : (UInt256.ofNat c).toNat =
   show (Fin.ofNat _ c).val = c
   simp only [Fin.ofNat]
   exact Nat.mod_eq_of_lt h
+
+theorem umin_ofNat_right_toNat_of_ge {c n : ℕ}
+    (hc : c < UInt256.size) (hlo : c ≤ n) (hhi : n < UInt256.size) :
+    (min (UInt256.ofNat c) (UInt256.ofNat n)).toNat = c := by
+  show (if UInt256.ofNat c ≤ UInt256.ofNat n then UInt256.ofNat c else UInt256.ofNat n).toNat = c
+  rw [if_pos]
+  · exact ulit_toNat' c hc
+  · show (UInt256.ofNat c).toNat ≤ (UInt256.ofNat n).toNat
+    rw [ulit_toNat' c hc, ulit_toNat' n hhi]
+    exact hlo
+
+theorem umin_ofNat_right_toNat_of_lt {c n : ℕ}
+    (hc : c < UInt256.size) (hn : n < c) (hhi : n < UInt256.size) :
+    (min (UInt256.ofNat c) (UInt256.ofNat n)).toNat = n := by
+  show (if UInt256.ofNat c ≤ UInt256.ofNat n then UInt256.ofNat c else UInt256.ofNat n).toNat = n
+  rw [if_neg]
+  · exact ulit_toNat' n hhi
+  · show ¬ (UInt256.ofNat c).toNat ≤ (UInt256.ofNat n).toNat
+    rw [ulit_toNat' c hc, ulit_toNat' n hhi]
+    omega
 
 /-- General `ADD` `toNat` (mod `size`). -/
 theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt256.size := by

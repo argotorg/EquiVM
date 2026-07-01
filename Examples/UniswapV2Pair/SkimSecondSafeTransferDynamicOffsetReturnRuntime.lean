@@ -8,28 +8,6 @@ namespace UniswapV2Pair
 
 /-! ## Dynamic-offset second `_safeTransfer` return-data tails -/
 
-theorem write_read_below_gen_extend (src base : ByteArray) (destAddr len readAddr : ℕ)
-    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hdest : destAddr ≤ base.size)
-    (hbelow : readAddr + 32 ≤ destAddr) :
-    (src.write 0 base destAddr len).readWithPadding readAddr 32 =
-      base.readWithPadding readAddr 32 := by
-  by_cases hin : destAddr + len ≤ base.size
-  · exact write_read_below_gen src base destAddr len readAddr hlen hsrc hin hbelow
-  · have hext : base.size < destAddr + len := Nat.lt_of_not_ge hin
-    rw [write_eq_gen_extend src base destAddr len hlen hsrc hdest hext]
-    have hbasePrefix : (base.extract 0 destAddr).size = destAddr := by
-      rw [ByteArray.size_extract]
-      omega
-    have hsrcPrefix : (src.extract 0 len).size = len := by
-      rw [ByteArray.size_extract]
-      omega
-    rw [readWithPadding_eq_extract _ readAddr (by
-      rw [ByteArray.size_append, hbasePrefix, hsrcPrefix]
-      omega)]
-    rw [extract_append_left _ _ _ _ (by rw [hbasePrefix]; omega)]
-    rw [extract_prefix _ destAddr readAddr (readAddr + 32) hbelow]
-    rw [← readWithPadding_eq_extract base readAddr (by omega)]
-
 theorem skimSafeTransferReturnDataMem_read96_zero
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) {out : ByteArray}
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)

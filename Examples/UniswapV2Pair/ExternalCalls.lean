@@ -1,162 +1,11 @@
 import Examples.UniswapV2Pair.Dispatch
+import Reasoning.Memory
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
-namespace Reasoning.Theory
-
-theorem uniswapNatLandComm (a b : ℕ) : Nat.land a b = Nat.land b a := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  show (a &&& b).testBit i = (b &&& a).testBit i
-  rw [Nat.testBit_and, Nat.testBit_and, Bool.and_comm]
-
--- GENERALIZES Examples.Caller.Correct.uland_comm — same generic `UInt256.land`
--- commutativity proof; belongs in `Reasoning.EVMWord`.
--- LIBRARY CANDIDATE: Reasoning.EVMWord — generic `UInt256.land` commutativity.
-theorem uniswapULandComm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj
-  show (Fin.land a.val b.val).val = (Fin.land b.val a.val).val
-  simp only [Fin.land]
-  rw [uniswapNatLandComm]
-
--- LIBRARY CANDIDATE: Reasoning.Stepping — generic successor state for the EVM `ADDRESS`
--- opcode, parallel to `stCaller`.
-def uniswapStAddress (s : State) : State :=
-  { s with machineState := { s.machineState with
-      pc := s.machineState.pc + ⟨1⟩,
-      stack := UInt256.ofNat s.executionEnv.codeOwner.val :: s.machineState.stack,
-      execLength := s.machineState.execLength + 1,
-      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
-
--- LIBRARY CANDIDATE: Reasoning.Stepping — generic `ADDRESS` `Xstep` wrapper, parallel to
--- `caller_xstep`.
-theorem uniswapAddress_xstep {s : State} {code : ByteArray} {pcv : UInt256}
-    {rest : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.ADDRESS, .none))
-    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
-         else .ok (uniswapStAddress s, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.ADDRESS, .none) := by
-    rw [hcode, hpc]; exact hdec
-  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
-  rw [← hcode, step_address s hd, if_neg hov']
-  simp only [GasConstants.Gbase, uniswapStAddress]
-
-end Reasoning.Theory
-
 namespace Reasoning.Reach
-
--- LIBRARY CANDIDATE: Reasoning.Reach — generic `RD` combinator for the EVM `ADDRESS`
--- opcode, parallel to `RD.caller`.
-theorem RD.uniswapAddress {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.ADDRESS, .none)) (hov : stk.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.ofNat ee.codeOwner.val :: stk) mem aw rdata acc
-      (k + 1) (C + 2) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := uniswapAddress_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 2
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨uniswapStAddress s,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [uniswapStAddress]; exact hcode
-      · simp only [uniswapStAddress]; rw [hpc]
-      · simp only [uniswapStAddress]; rw [hstk, hee]
-      · simp only [uniswapStAddress]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [uniswapStAddress]; exact hmem
-      · simp only [uniswapStAddress]; exact haw
-      · simp only [uniswapStAddress]; exact hrdata
-      · simp only [uniswapStAddress]; exact hacc
-      · exact hee
-      · exact hworld
-
-end Reasoning.Reach
-
-namespace Reasoning.Theory
-
--- LIBRARY CANDIDATE: Reasoning.Stepping — generic successor state for the EVM
--- `EXTCODESIZE` opcode, mirroring `Ethereum.State.extCodeSize`.
-def uniswapStExtcodesize (s : State) (target : UInt256) (t : List UInt256) : State :=
-  let addr := AccountAddress.ofUInt256 target
-  { s with
-      substate :=
-        { s.substate with accessedAccounts := s.substate.accessedAccounts.insert addr },
-      machineState :=
-        { s.machineState with
-          pc := s.machineState.pc + ⟨1⟩,
-          stack := uniswapExtCodeSizeWord s.accountMap target :: t,
-          execLength := s.machineState.execLength + 1,
-          gasAvailable := s.machineState.gasAvailable.subNat (Caccess addr s.substate) } }
-
--- LIBRARY CANDIDATE: Reasoning.Stepping — generic `EXTCODESIZE` `Xstep` wrapper.
-theorem uniswapExtcodesize_xstep {s : State} {code : ByteArray} {pcv target : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.EXTCODESIZE, .none))
-    (hstk : s.machineState.stack = target :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < Caccess (AccountAddress.ofUInt256 target) s.substate
-       then .error .OutOfGass else .ok (uniswapStExtcodesize s target t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.EXTCODESIZE, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_extcodesize s hd, hstk]
-  have hov' : ¬ ((target :: t).length - 1 + 1 > 1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov', uniswapStExtcodesize, uniswapExtCodeSizeWord]
-
-end Reasoning.Theory
-
-namespace Reasoning.Reach
-
--- LIBRARY CANDIDATE: Reasoning.Reach — generic `RD` combinator for `EXTCODESIZE`,
--- existentializing the warm/cold `Caccess` gas cost like `RD.sload` does for `Csload`.
-theorem RD.uniswapExtcodesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
-    {target : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (target :: t) mem aw rdata (cA, σ) k C)
-    (hdec : decode code pc = some (.EXTCODESIZE, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
-      (Reasoning.Theory.uniswapExtCodeSizeWord σ target :: t) mem aw rdata (cA, σ) k' C' := by
-  unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
-    hworld⟩
-  · exact ⟨k, C, Or.inl hoog⟩
-  · have st := Reasoning.Theory.uniswapExtcodesize_xstep hcode hpc hdec hstk hov
-    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
-    have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
-    by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
-    · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
-    · refine ⟨k + 1, C + Caccess (AccountAddress.ofUInt256 target) s.substate,
-        Or.inr ⟨Reasoning.Theory.uniswapStExtcodesize s target t,
-          hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          by
-            have hpos : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
-              unfold Caccess; split <;> decide
-            omega,
-          by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; exact hcode
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; rw [hpc]
-      · simp only [Reasoning.Theory.uniswapStExtcodesize,
-          Reasoning.Theory.uniswapExtCodeSizeWord, hσ]
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; exact hmem
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; exact haw
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; exact hrdata
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; rw [hcA, hσ]
-      · simp only [Reasoning.Theory.uniswapStExtcodesize]; exact hee
-      · exact hworld
 
 -- LIBRARY CANDIDATE: Reasoning.Reach — generic solc high-level-call
 -- `EXTCODESIZE` guard for the branch where the target account has deployed code.
@@ -875,28 +724,6 @@ theorem balanceOfThisCalldataMem_mload64 (self : UInt256) :
   mloadFreePtrValue (by rw [balanceOfThisCalldataMem_size]; decide) (by decide)
     (balanceOfThisCalldataMem_read64 self)
 
--- LIBRARY CANDIDATE: Reasoning.Memory — split an in-bounds padded read into adjacent pieces.
-theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂ : Nat)
-    (hpos₁ : 0 < len₁) (hpos₂ : 0 < len₂)
-    (hlen₁ : len₁ < 2 ^ 64) (hlen₂ : len₂ < 2 ^ 64)
-    (hsum : len₁ + len₂ < 2 ^ 64)
-    (hin : addr + len₁ + len₂ ≤ source.size) :
-    source.readWithPadding addr (len₁ + len₂) =
-      source.readWithPadding addr len₁ ++ source.readWithPadding (addr + len₁) len₂ := by
-  rw [readWithPadding_eq_extract' source addr (len₁ + len₂) (by omega) hsum (by omega)]
-  rw [readWithPadding_eq_extract' source addr len₁ hpos₁ hlen₁ (by omega)]
-  rw [readWithPadding_eq_extract' source (addr + len₁) len₂ hpos₂ hlen₂ (by omega)]
-  symm
-  rw [ByteArray.extract_append_extract]
-  congr <;> omega
-
-theorem list_toByteArray_append (xs ys : List UInt8) :
-    (xs ++ ys).toByteArray = xs.toByteArray ++ ys.toByteArray := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [ByteArray.data_append, Array.toList_append]
-  simp
-
 theorem transferCalldataMem_read128_68 (recipient value : UInt256) :
     (transferCalldataMem recipient value).readWithPadding 128 68 =
       transferSelector ++ UInt256.toByteArray recipient ++ UInt256.toByteArray value := by
@@ -929,8 +756,7 @@ theorem transferCalldataMem_encode (recipient : AccountAddress) (value : UInt256
   unfold uniswapExternalABI ABI.encodeCallWithSelector? ABI.encodeABIValues?
   simp [addr, uint256, uint256Int, ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
     ABI.isDynamicABIType, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.encodeABIValuesFrom?,
-    hvalueLt, hrecipientWord, hvalueWord, list_toByteArray_append,
-    word_toBytesBE_toByteArray_eq_toByteArray]
+    hvalueLt, hrecipientWord, hvalueWord, word_toBytesBE_toByteArray_eq_toByteArray]
   rw [ByteArray.append_assoc]
 
 theorem balanceOfThisSelectorMem_read128_4 :
@@ -991,14 +817,8 @@ theorem balanceOfThisCalldataMem_encode (self : AccountAddress) :
 theorem balanceOfThisStaticcallWriteLen_of_size_ge (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat o.size then (⟨32⟩ : UInt256)
-    else UInt256.ofNat o.size).toNat = 32
-  rw [if_pos]
-  · rfl
-  · show (32 : Nat) ≤ (UInt256.ofNat o.size).val.val
-    rw [show (UInt256.ofNat o.size).val.val = (UInt256.ofNat o.size).toNat from rfl,
-      ulit_toNat' o.size hhi]
-    exact hlo
+  simpa using
+    umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) hlo hhi
 
 theorem balanceOfThisStaticcallMem_size_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
@@ -1038,14 +858,8 @@ theorem balanceOfThisStaticcallMem_mload64_of_size_ge (self : UInt256) (o : Byte
 theorem balanceOfThisStaticcallWriteLen_of_size_lt (o : ByteArray)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat o.size then (⟨32⟩ : UInt256)
-    else UInt256.ofNat o.size).toNat = o.size
-  rw [if_neg]
-  · exact ulit_toNat' o.size hhi
-  · show ¬ (32 : Nat) ≤ (UInt256.ofNat o.size).val.val
-    rw [show (UInt256.ofNat o.size).val.val = (UInt256.ofNat o.size).toNat from rfl,
-      ulit_toNat' o.size hhi]
-    omega
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := o.size) (by decide) hshort hhi
 
 theorem balanceOfThisStaticcallMem_size_of_size_lt (self : UInt256) (o : ByteArray)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size) :

@@ -582,6 +582,40 @@ theorem div_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Glow, stMul]
 
+/-! ### EXP (dynamic cost, `a :: b :: t ↦ exp a b :: t`, pc += 1) -/
+
+def expGasCost (b : UInt256) : ℕ :=
+  if b = ⟨0⟩ then
+    GasConstants.Gexp
+  else
+    GasConstants.Gexp + GasConstants.Gexpbyte * (1 + Nat.log 256 b.toNat)
+
+theorem expGasCost_pos (b : UInt256) : 0 < expGasCost b := by
+  unfold expGasCost
+  split <;> simp [GasConstants.Gexp]
+
+def stExp (s : State) (a b : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.exp a b :: t,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat (expGasCost b) } }
+
+theorem exp_xstep {s : State} {code : ByteArray} {pcv a b : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.EXP, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < expGasCost b
+         then .error .OutOfGass else .ok (stExp s a b t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.EXP, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_exp s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', expGasCost, stExp]
+
 /-! ### POP (cost 2, pc += 1, drops top) -/
 
 def stPop (s : State) (t : List UInt256) : State :=
@@ -1382,6 +1416,62 @@ theorem caller_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List
   have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
   rw [← hcode, step_caller s hd, if_neg hov']
   simp only [GasConstants.Gbase, stCaller]
+
+/-! ### ADDRESS (cost `Gbase = 2`, pc += 1, pushes current contract address) -/
+
+def uniswapStAddress (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat s.executionEnv.codeOwner.val :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem uniswapAddress_xstep {s : State} {code : ByteArray} {pcv : UInt256}
+    {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.ADDRESS, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (uniswapStAddress s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.ADDRESS, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_address s hd, if_neg hov']
+  simp only [GasConstants.Gbase, uniswapStAddress]
+
+/-! ### EXTCODESIZE (dynamic `Caccess`, pc += 1) -/
+
+def uniswapExtCodeSizeWord (σ : AccountMap) (target : UInt256) : UInt256 :=
+  σ.find? (AccountAddress.ofUInt256 target) |>.option ⟨0⟩
+    (UInt256.ofNat ∘ ByteArray.size ∘ (·.code))
+
+def uniswapStExtcodesize (s : State) (target : UInt256) (t : List UInt256) : State :=
+  let addr := AccountAddress.ofUInt256 target
+  { s with
+      substate :=
+        { s.substate with accessedAccounts := s.substate.accessedAccounts.insert addr },
+      machineState :=
+        { s.machineState with
+          pc := s.machineState.pc + ⟨1⟩,
+          stack := uniswapExtCodeSizeWord s.accountMap target :: t,
+          execLength := s.machineState.execLength + 1,
+          gasAvailable := s.machineState.gasAvailable.subNat (Caccess addr s.substate) } }
+
+theorem uniswapExtcodesize_xstep {s : State} {code : ByteArray} {pcv target : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.EXTCODESIZE, .none))
+    (hstk : s.machineState.stack = target :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < Caccess (AccountAddress.ofUInt256 target) s.substate
+       then .error .OutOfGass else .ok (uniswapStExtcodesize s target t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.EXTCODESIZE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_extcodesize s hd, hstk]
+  have hov' : ¬ ((target :: t).length - 1 + 1 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', uniswapStExtcodesize, uniswapExtCodeSizeWord]
 
 /-! ### SWAP4–SWAP6 (cost `Gverylow = 3`, pc += 1) -/
 

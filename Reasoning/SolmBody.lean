@@ -41,6 +41,22 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
+theorem nonpayableBytesLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
+    (evm : EVM.State) (locals : Store) (bytes : ByteArray)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    ExecTransitionBody cfg contract evm locals
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .return (.bytesLit bytes) ]
+      (.returned { contract := contract, locals := locals } evm (some (.bytes bytes))) := by
+  exact ExecFuncBody.execBlockRet <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
+      ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+
+/-! ## Source values -/
+
+abbrev uint256Value (w : UInt256) : Value :=
+  .int (Int.ofNat w.toNat)
+
 /-! ## Internal calls -/
 
 /-- Run an internal call to a transition and bind its returned value in the caller's frame.
@@ -115,6 +131,140 @@ theorem internalCallFunctionRevert {cfg : Config} {caller : Frame} {evm : EVM.St
 
 /-! ## External calls -/
 
+/-- A one-statement typed external call reverts when the raw call returns `success = false`. -/
+theorem externalCallFailure {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (false, evm', out) perm) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      .reverted := by
+  exact ExecBlock.consRevert
+    (ExecStmt.externalCallFailure hreceiver (by simp [evalExpr?, pure]) hargs hcall)
+
+/-- A one-statement typed external call succeeds and stores the decoded return value. -/
+theorem externalCallSuccess {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (true, evm', out) perm)
+    (hdec : cfg.externalABI.decode? name out = some value) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+  exact ExecBlock.consNormal
+    (ExecStmt.externalCallSuccess hreceiver (by simp [evalExpr?, pure]) hargs hcall hdec)
+    ExecBlock.nil
+
+/-- If a typed external call succeeds but its return bytes fail ABI decoding, the source statement
+reverts. -/
+theorem externalCallDecodeRevert {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (true, evm', out) perm)
+    (hdec : cfg.externalABI.decode? name out = none) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      .reverted := by
+  exact ExecBlock.consRevert
+    (ExecStmt.externalCallReturnDecodeRevert hreceiver (by simp [evalExpr?, pure]) hargs hcall hdec)
+
+/-- A guarded typed external call reverts when the raw call returns `success = false`. -/
+theorem checkedExternalCallFailure {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
+    (hguard :
+      evalExpr? cfg { contract := C, locals := locals } evm
+        (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true))
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (false, evm', out) perm) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+        .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      .reverted := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact externalCallFailure hreceiver hargs hcall
+
+/-- A guarded typed external call succeeds and stores the decoded return value. -/
+theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    (hguard :
+      evalExpr? cfg { contract := C, locals := locals } evm
+        (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true))
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (true, evm', out) perm)
+    (hdec : cfg.externalABI.decode? name out = some value) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+        .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact externalCallSuccess hreceiver hargs hcall hdec
+
+/-- A guarded typed external call reverts when the successful subcall's return bytes do not
+decode. -/
+theorem checkedExternalCallDecodeRevert {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
+    (hguard :
+      evalExpr? cfg { contract := C, locals := locals } evm
+        (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true))
+    (hreceiver :
+      evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
+    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
+    (hcall :
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (true, evm', out) perm)
+    (hdec : cfg.externalABI.decode? name out = none) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+        .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      .reverted := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact externalCallDecodeRevert hreceiver hargs hcall hdec
+
+/-- A guarded typed external call reverts before the call when the extcodesize guard is false. -/
+theorem checkedExternalCallNoCode {cfg : Config} {C : ContractDecl} {evm : EVM.State}
+    {locals : Store} {receiver : Expr} {retVar name : Ident} {sendVal : Int}
+    {args : List Expr} {perm : Bool}
+    (hguard :
+      evalExpr? cfg { contract := C, locals := locals } evm
+        (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool false)) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+        .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
+      .reverted := by
+  exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
+
 /-- A one-statement typed external call through an address-valued local reverts when the raw call
 returns `success = false`. -/
 theorem externalCallVarFailure {cfg : Config} {C : ContractDecl}
@@ -129,14 +279,10 @@ theorem externalCallVarFailure {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
-  exact ExecBlock.consRevert
-    (ExecStmt.externalCallFailure
-      (by
-        rw [evalExpr?, hreceiver]
-        rfl)
-      (by simp [evalExpr?, pure])
-      hargs
-      hcall)
+  exact externalCallFailure
+    (receiver := .var receiver)
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall
 
 /-- A one-statement typed external call through an address-valued local succeeds and stores the
 decoded return value. -/
@@ -153,16 +299,10 @@ theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar value } evm') := by
-  exact ExecBlock.consNormal
-    (ExecStmt.externalCallSuccess
-      (by
-        rw [evalExpr?, hreceiver]
-        rfl)
-      (by simp [evalExpr?, pure])
-      hargs
-      hcall
-      hdec)
-    ExecBlock.nil
+  exact externalCallSuccess
+    (receiver := .var receiver)
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall hdec
 
 /-- If a typed external call succeeds but its return bytes fail ABI decoding, the source statement
 reverts. -/
@@ -179,15 +319,10 @@ theorem externalCallVarDecodeRevert {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
-  exact ExecBlock.consRevert
-    (ExecStmt.externalCallReturnDecodeRevert
-      (by
-        rw [evalExpr?, hreceiver]
-        rfl)
-      (by simp [evalExpr?, pure])
-      hargs
-      hcall
-      hdec)
+  exact externalCallDecodeRevert
+    (receiver := .var receiver)
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall hdec
 
 /-- A guarded typed external call through an address-valued local reverts when the raw call
 returns `success = false`. -/
@@ -207,8 +342,11 @@ theorem checkedExternalCallVarFailure {cfg : Config} {C : ContractDecl}
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact externalCallVarFailure hreceiver hargs hcall
+  exact checkedExternalCallFailure
+    (receiver := .var receiver)
+    hguard
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall
 
 /-- A guarded typed external call through an address-valued local succeeds and stores the decoded
 return value. -/
@@ -229,8 +367,11 @@ theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl}
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar value } evm') := by
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact externalCallVarSuccess hreceiver hargs hcall hdec
+  exact checkedExternalCallSuccess
+    (receiver := .var receiver)
+    hguard
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall hdec
 
 /-- A guarded typed external call through an address-valued local reverts when the successful
 subcall's return bytes do not decode. -/
@@ -251,8 +392,11 @@ theorem checkedExternalCallVarDecodeRevert {cfg : Config} {C : ContractDecl}
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact externalCallVarDecodeRevert hreceiver hargs hcall hdec
+  exact checkedExternalCallDecodeRevert
+    (receiver := .var receiver)
+    hguard
+    (by rw [evalExpr?, hreceiver]; rfl)
+    hargs hcall hdec
 
 /-- A guarded typed external call reverts before the call when the extcodesize guard is false. -/
 theorem checkedExternalCallVarNoCode {cfg : Config} {C : ContractDecl} {evm : EVM.State}
@@ -265,7 +409,7 @@ theorem checkedExternalCallVarNoCode {cfg : Config} {C : ContractDecl} {evm : EV
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       .reverted := by
-  exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
+  exact checkedExternalCallNoCode (receiver := .var receiver) hguard
 
 /-! ## Low-level calls -/
 

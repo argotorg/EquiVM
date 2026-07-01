@@ -1,6 +1,7 @@
 import Examples.UniswapV2Pair.SkimCommon
 import Examples.UniswapV2Pair.ExternalCalls
 import Examples.UniswapV2Pair.TransferRoutines
+import Reasoning.MemCascade
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -36,6 +37,39 @@ noncomputable def skimSafeTransferMem5
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨68⟩ : UInt256)).write 0
     (skimSafeTransferMem4 self o toWord value) 192 32
+
+noncomputable def skimSafeTransferMem5WritesAfter64
+    (toWord value : UInt256) : List (Nat × UInt256) :=
+  [(128, (⟨25⟩ : UInt256)),
+   (160, skimSafeTransferSignatureWord),
+   (228, UInt256.land solcAddrMask toWord),
+   (260, value),
+   (192, (⟨68⟩ : UInt256))]
+
+noncomputable def skimSafeTransferMem5Writes
+    (toWord value : UInt256) : List (Nat × UInt256) :=
+  (64, (⟨192⟩ : UInt256)) :: skimSafeTransferMem5WritesAfter64 toWord value
+
+theorem skimSafeTransferMem5_eq_writeCascade
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) :
+    skimSafeTransferMem5 self o toWord value =
+      writeCascade (balanceOfThisStaticcallMem self o)
+        (skimSafeTransferMem5Writes toWord value) := by
+  rfl
+
+theorem skimSafeTransferMem5Writes_size (toWord value : UInt256) :
+    writeCascadeSize 164 (skimSafeTransferMem5Writes toWord value) = 292 := by
+  rfl
+
+theorem skimSafeTransferMem5Writes_gaps (toWord value : UInt256) :
+    WriteGapsOk 164 (skimSafeTransferMem5Writes toWord value) := by
+  simp [WriteGapsOk, skimSafeTransferMem5Writes, skimSafeTransferMem5WritesAfter64]
+  exact lt_usize 36 (by norm_num)
+
+theorem skimSafeTransferMem5WritesAfter64_disjoint64 (toWord value : UInt256) :
+    WindowDisjointFromWrites 164 64 32 (skimSafeTransferMem5WritesAfter64 toWord value) := by
+  simp [WindowDisjointFromWrites, skimSafeTransferMem5WritesAfter64]
+  exact lt_usize 36 (by norm_num)
 
 noncomputable def skimSafeTransferMem6
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
@@ -204,13 +238,18 @@ theorem skimSafeTransferMem5_size
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (skimSafeTransferMem5 self o toWord value).size = 292 := by
-  unfold skimSafeTransferMem5
-  rw [write32_eq _ _ 192 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferMem4_size self toWord value ho32 hoSize]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract,
-    skimSafeTransferMem4_size self toWord value ho32 hoSize, toByteArray_size]
-  omega
+  have hbase : (balanceOfThisStaticcallMem self o).size = 164 :=
+    balanceOfThisStaticcallMem_size_of_size_ge self o ho32 hoSize
+  have hgaps :
+      WriteGapsOk (balanceOfThisStaticcallMem self o).size
+        (skimSafeTransferMem5Writes toWord value) := by
+    rw [hbase]
+    exact skimSafeTransferMem5Writes_gaps toWord value
+  have hcascade :=
+    writeCascade_size (balanceOfThisStaticcallMem self o)
+      (skimSafeTransferMem5Writes toWord value) hgaps
+  rw [skimSafeTransferMem5_eq_writeCascade, hcascade, hbase]
+  exact skimSafeTransferMem5Writes_size toWord value
 
 theorem skimSafeTransferMem6_size
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)

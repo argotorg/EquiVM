@@ -116,22 +116,6 @@ theorem skimSafeTransferReturnDataPtr_gap
   · exact lt_usize _ (by omega)
   · exact lt_usize _ (by omega)
 
-theorem toByteArray_write_size_ge_off_add32 (b : UInt256) (mem : ByteArray) (off : ℕ)
-    (hgap : off - mem.size < USize.size) :
-    off + 32 ≤ ((UInt256.toByteArray b).write 0 mem off 32).size := by
-  by_cases hle : off ≤ mem.size
-  · rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract]
-    rw [toByteArray_size]
-    rw [Nat.min_eq_left hle]
-    norm_num
-  · have hge : mem.size ≤ off := by omega
-    rw [toByteArray_write_eq _ _ off hge hgap]
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
-    omega
-
 theorem skimSafeTransferReturnDataPtr_add4_toNat (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
     ((skimSafeTransferReturnDataPtr out) + ⟨4⟩).toNat =

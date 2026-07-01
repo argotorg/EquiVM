@@ -1158,6 +1158,29 @@ theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
   cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
   exact accountEquiv_storage_findD slot default hστ
 
+theorem accountMapEquiv_storage_findD_ne {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) (slot default val : UInt256)
+    (h :
+      ((σ.find? addr).option default (fun acc => acc.storage.findD slot default)) ≠ val) :
+    ((τ.find? addr).option default (fun acc => acc.storage.findD slot default)) ≠ val := by
+  intro hbad
+  exact h ((accountMapEquiv_storage_findD hστ addr slot default).trans hbad)
+
+theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) :
+    ((σ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) =
+      ((τ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) := by
+  specialize hστ addr
+  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
+    simp [hσ, hτ, Option.option] at hστ ⊢
+  exact congrArg (fun code => EVM.Word.ofNat code.size) hστ.2.2.1
+
+theorem uniswapExtCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (target : UInt256) :
+    uniswapExtCodeSizeWord σ target = uniswapExtCodeSizeWord τ target := by
+  simpa [uniswapExtCodeSizeWord] using
+    accountMapEquiv_code_size_word hστ (AccountAddress.ofUInt256 target)
+
 theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
     (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
     ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
@@ -1189,6 +1212,17 @@ theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
     Solm.EVM.storageLoad evm1 addr slot = Solm.EVM.storageLoad evm2 addr slot := by
   simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   exact accountMapEquiv_storage_findD hAccounts addr slot (default : UInt256)
+
+theorem initState_codeOwner_storageLoad_ne_of_accountMapEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    (slot val : UInt256) (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (h :
+      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.findD slot ⟨0⟩)) ≠ val) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner slot ≠ val := by
+  have hword := accountMapEquiv_storage_findD_ne hAccounts I.codeOwner slot ⟨0⟩ val h
+  simpa [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using hword
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Inserting the same nonzero storage word into equivalent accounts preserves account

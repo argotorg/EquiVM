@@ -145,14 +145,8 @@ theorem skimSecondBalanceCalldataMem_encode
 theorem skimSecondBalanceStaticcallWriteLen_of_size_ge (out : ByteArray)
     (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size) :
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat out.size then (⟨32⟩ : UInt256)
-    else UInt256.ofNat out.size).toNat = 32
-  rw [if_pos]
-  · native_decide
-  · show (32 : Nat) ≤ (UInt256.ofNat out.size).val.val
-    rw [show (UInt256.ofNat out.size).val.val = (UInt256.ofNat out.size).toNat from rfl,
-      ulit_toNat' out.size hhi]
-    exact hlo
+  simpa using
+    umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hlo hhi
 
 theorem skimSecondBalanceStaticcallMem_size_of_size_ge
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) (out : ByteArray)
@@ -205,14 +199,8 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
 theorem skimSecondBalanceStaticcallWriteLen_of_size_lt (out : ByteArray)
     (hshort : out.size < 32) (hhi : out.size < UInt256.size) :
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat out.size then (⟨32⟩ : UInt256)
-    else UInt256.ofNat out.size).toNat = out.size
-  rw [if_neg]
-  · exact ulit_toNat' out.size hhi
-  · show ¬ (32 : Nat) ≤ (UInt256.ofNat out.size).val.val
-    rw [show (UInt256.ofNat out.size).val.val = (UInt256.ofNat out.size).toNat from rfl,
-      ulit_toNat' out.size hhi]
-    omega
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hshort hhi
 
 theorem skimSecondBalanceStaticcallMem_size_of_size_lt
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) (out : ByteArray)

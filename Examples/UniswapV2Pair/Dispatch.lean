@@ -210,15 +210,6 @@ theorem uniswapSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size
   rw [selector_toNat I.calldata hsz]
   rw [(extract4_eq_iff I.calldata c0 c1 c2 c3 hsz).mp hmatch, hsel]
 
--- LIBRARY CANDIDATE: Reasoning.Dispatch — a matched fixed-width selector prefix implies
--- calldata is at least that selector width.
-theorem calldata_size_ge_of_selIs (I : ExecutionEnv) (sel : ByteArray) (hselSize : sel.size = 4)
-    (hsel : (sel == I.calldata.extract 0 4) = true) :
-    4 ≤ I.calldata.size := by
-  have hs := byteArray_size_eq_of_beq hsel
-  rw [hselSize, ByteArray.size_extract] at hs
-  omega
-
 /-- Uniswap V2 Pair selectors in `contract.transitions` order. -/
 def uniswapSelBytes : ℕ → ByteArray
   | 0 => ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩

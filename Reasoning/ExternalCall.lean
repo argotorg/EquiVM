@@ -124,6 +124,27 @@ theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : 
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountStorageStateEq hraw
 
+theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
+    {σ : AccountMap} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray} (slot default : UInt256)
+    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    ((evm'.accountMap.find? evm'.executionEnv.codeOwner).option default
+        (fun acc => acc.storage.findD slot default)) =
+      ((σ.find? evm.executionEnv.codeOwner).option default
+        (fun acc => acc.storage.findD slot default)) := by
+  have hStaticAccounts : accountStorageStateEq evm.accountMap evm'.accountMap :=
+    typedCallViaEVM_static_accountStorageStateEq hcall
+  have henv : evm'.executionEnv = evm.executionEnv :=
+    typedCallViaEVM_executionEnv_eq hcall
+  have hstaticSlot :=
+    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
+      evm.executionEnv.codeOwner slot default
+  have hpreSlot := accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot default
+  rw [henv, hstaticSlot]
+  exact hpreSlot.symm
+
 /-- `Θ` respects observationally equivalent account maps.
 
 If a typed external call is possible from an EVM state, and a Solm-side state differs only by
@@ -254,6 +275,63 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
         rw [← accountMapExtensionalEq_balanceOf h_ext_eq evm_evm.executionEnv.codeOwner]
         exact hvalue
     · simpa [hevm'] using hAccounts
+
+/-- A `Θ` witness for a call, followed by account-map transport.
+
+This is the common external-call bridge used by runtime-equivalence proofs: first use
+`callCoincides` to turn the bytecode `Θ` witness plus calldata coupling into a typed call on the
+EVM-side state, then transport that typed call to the Solm-side state through
+`accountMapEquiv`.  The result is intentionally generic in `name`, `args`, calldata memory, and
+target word; per-function lemmas only need to prove the concrete ABI calldata equation. -/
+theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
+    {evm_evm evm_solm : EVM.State}
+    {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {A' A_in : Substate}
+    {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
+    {mem : ByteArray} {inOff inSize : UInt256} {callPerm : Bool}
+    (hdepth : evm_evm.executionEnv.depth ≠ 1024)
+    (htgt : tgt = AccountAddress.ofUInt256 targetWord)
+    (hcd : cfg.externalABI.encode? name args =
+      some (mem.readWithPadding inOff.toNat inSize.toNat))
+    (hΘ : (cA', σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes evm_evm.createdAccounts
+          evm_evm.genesisBlockHeader evm_evm.blocks evm_evm.accountMap evm_evm.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
+          evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
+          (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+          (mem.readWithPadding inOff.toNat inSize.toNat)
+          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm)
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (hSubstate : evm_solm.substate = evm_evm.substate)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      typedCallViaEVM cfg evm_solm tgt name 0 args
+        (z,
+          { evm_solm with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := cA' },
+          out) callPerm ∧
+      accountMapEquiv σ' σ'_solm := by
+  have hcallE : typedCallViaEVM cfg evm_evm tgt name 0 args
+      (z, { evm_evm with accountMap := σ', substate := A', createdAccounts := cA' }, out)
+      callPerm := by
+    exact callCoincides
+      (cfg := cfg) (evm := evm_evm) (name := name) (args := args)
+      (tgt := tgt) (targetWord := targetWord) (cA' := cA') (σ' := σ')
+      (A' := A') (A_in := A_in) (z := z) (o := out)
+      (g'' := g'') (callGas := callGas) (mem := mem)
+      (inOff := inOff) (inSize := inSize) (callPerm := callPerm)
+      hdepth htgt hcd hΘ
+  simpa using
+    typedCallViaEVM_accountMapEquiv
+      (evm_solm := evm_solm) hcallE hAccounts hOriginalAccounts hCreated hGenesis hBlocks
+      hSubstate hEnv
 
 
 /-- `initState`-specialized form of `typedCallViaEVM_accountMapEquiv`.

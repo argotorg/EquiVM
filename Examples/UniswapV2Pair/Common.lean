@@ -10,115 +10,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
-namespace Reasoning.Theory
-
--- GENERALIZES Reasoning.Solc.fromBytes'_drop1_take20_wordLE_solcAddrMask — same little-endian
--- byte-slice arithmetic, parameterized by byte offset and slice width.
--- LIBRARY CANDIDATE: Reasoning.Solc — packed storage byte-slice-to-mask/division bridge.
-set_option maxHeartbeats 1000000 in
-theorem fromBytes'_drop_take_wordLE_land_div_mask (w : UInt256) (off size : Nat)
-    (hoff : 8 * off < 256) (hsize : 8 * size ≤ 256) :
-    fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size) =
-      (UInt256.land (UInt256.div w (UInt256.ofNat (256 ^ off)))
-        (UInt256.ofNat (256 ^ size - 1))).toNat := by
-  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
-  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
-    rw [← fromBytes'_eq_ofDigits bs]
-    exact fromBytes'_toBytesLEWithSizeProof w
-  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
-    intro l hl
-    simp only [List.mem_map] at hl
-    rcases hl with ⟨b, _hb, rfl⟩
-    exact b.toFin.isLt
-  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) off (by decide)
-    (bs.map (fun b : UInt8 => b.toNat)) hlt
-  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) size (by decide)
-    ((bs.map (fun b : UInt8 => b.toNat)).drop off)
-    (fun l hl => hlt l (List.mem_of_mem_drop hl))
-  rw [fromBytes'_eq_ofDigits (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size)]
-  change Nat.ofDigits 256 ((((bs.drop off).take size).map fun b : UInt8 => b.toNat)) = _
-  rw [List.map_take, List.map_drop, ← htake, ← hdrop, hfull]
-  have hshiftNat : (UInt256.ofNat (256 ^ off)).toNat = 256 ^ off := by
-    rw [show 256 ^ off = (2 : Nat) ^ (8 * off) by
-      rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
-    exact ofNat_pow_toNat hoff
-  have hdivNat : (UInt256.div w (UInt256.ofNat (256 ^ off))).toNat =
-      w.toNat / 256 ^ off := by
-    unfold UInt256.div UInt256.toNat
-    simp only
-    change w.toNat / (UInt256.ofNat (256 ^ off)).toNat = w.toNat / 256 ^ off
-    rw [hshiftNat]
-  rw [uland_toNat, hdivNat]
-  have hmaskNat : (UInt256.ofNat (256 ^ size - 1)).toNat = 256 ^ size - 1 := by
-    have hmaskLt : 256 ^ size - 1 < UInt256.size := by
-      have hpow : 256 ^ size ≤ UInt256.size := by
-        rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
-          rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
-        simpa [UInt256.size] using
-          Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat)) hsize
-      have hpos : 0 < 256 ^ size := by positivity
-      omega
-    exact ulit_toNat' _ hmaskLt
-  rw [hmaskNat]
-  rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
-    rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
-  symm
-  exact nat_land_mask_eq_mod (w.toNat / 256 ^ off) (8 * size)
-
--- LIBRARY CANDIDATE: Reasoning.Storage — transport a storage `findD` disequality across
--- `accountMapEquiv`, dual to `accountMapEquiv_storage_findD`.
-theorem accountMapEquiv_storage_findD_ne {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) (slot default val : UInt256)
-    (h :
-      ((σ.find? addr).option default (fun acc => acc.storage.findD slot default)) ≠ val) :
-    ((τ.find? addr).option default (fun acc => acc.storage.findD slot default)) ≠ val := by
-  intro hbad
-  exact h ((accountMapEquiv_storage_findD hστ addr slot default).trans hbad)
-
--- LIBRARY CANDIDATE: Reasoning.Storage — normalize a code-owner `initState` storage load and
--- transport a disequality across `accountMapEquiv`.
-theorem initState_codeOwner_storageLoad_ne_of_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (slot val : UInt256) (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (h :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD slot ⟨0⟩)) ≠ val) :
-    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
-        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner slot ≠ val := by
-  have hword := accountMapEquiv_storage_findD_ne hAccounts I.codeOwner slot ⟨0⟩ val h
-  simpa [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using hword
-
--- LIBRARY CANDIDATE: Reasoning.EVMWord — normalize EVM-word address coercions.
-theorem accountAddress_ofUInt256_eq_ofNat_toNat (w : UInt256) :
-    AccountAddress.ofUInt256 w = AccountAddress.ofNat w.toNat := by
-  apply Fin.ext
-  simp [AccountAddress.ofUInt256, AccountAddress.ofNat, UInt256.toNat]
-
--- LIBRARY CANDIDATE: Reasoning.Stepping — generic account-code-size word used by
--- `EXTCODESIZE`, parameterized by account map and target word.
-def uniswapExtCodeSizeWord (σ : AccountMap) (target : UInt256) : UInt256 :=
-  σ.find? (AccountAddress.ofUInt256 target) |>.option ⟨0⟩
-    (UInt256.ofNat ∘ ByteArray.size ∘ (·.code))
-
--- LIBRARY CANDIDATE: Reasoning.Storage — `accountMapEquiv` preserves account code size words.
-theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) :
-    ((σ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) =
-      ((τ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) := by
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ, Option.option] at hστ ⊢
-  exact congrArg (fun code => EVM.Word.ofNat code.size) hστ.2.2.1
-
--- LIBRARY CANDIDATE: Reasoning.Storage — `accountMapEquiv` preserves `EXTCODESIZE` words.
-theorem uniswapExtCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) (target : UInt256) :
-    uniswapExtCodeSizeWord σ target = uniswapExtCodeSizeWord τ target := by
-  simpa [uniswapExtCodeSizeWord] using
-    accountMapEquiv_code_size_word hστ (AccountAddress.ofUInt256 target)
-
-end Reasoning.Theory
-
 namespace UniswapV2Pair
 
 /-! # Shared Uniswap V2 Pair proof helpers -/
@@ -187,9 +78,8 @@ theorem uniswapStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — canonical Solm integer value for a `UInt256` word.
 abbrev uniswapUint256Value (w : UInt256) : Value :=
-  .int (Int.ofNat w.toNat)
+  uint256Value w
 
 -- LIBRARY CANDIDATE: Reasoning.Storage — full-slot uint256 storage writes through
 -- a `storageLocStore` view.
@@ -662,8 +552,6 @@ theorem uniswapLowLevelCallRequireFailure {cfg : Config} {C : ContractDecl}
       (ExecStmt.requireFalse
         (evalExpr_uniswapLowLevelCallRequire_ok evm' locals okVar dataVar false out hne))
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side successful typed external call from a
--- storage address receiver with zero value and `address(this)` as its single argument.
 theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
     {out : ByteArray} {value : Value}
@@ -677,16 +565,13 @@ theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Sto
     ExecBlock config { contract := contract, locals := locals } evm
       [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
-  exact ExecBlock.consNormal
-    (ExecStmt.externalCallSuccess
-      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
-      (by simp [evalExpr?, pure])
-      (evalExprs_uniswap_this_single evm locals)
-      hcall hdec)
-    ExecBlock.nil
+  exact externalCallSuccess
+    (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+    (target := uniswapAddressAtSlot evm slot)
+    (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+    (evalExprs_uniswap_this_single evm locals)
+    hcall hdec
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side failed typed external call from a storage
--- address receiver with zero value and `address(this)` as its single argument.
 theorem uniswapExternalBalanceOfThisFailure (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
     {out : ByteArray}
@@ -698,15 +583,13 @@ theorem uniswapExternalBalanceOfThisFailure (evm evm' : EVM.State) (locals : Sto
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
       [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ] .reverted := by
-  exact ExecBlock.consRevert
-    (ExecStmt.externalCallFailure
-      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
-      (by simp [evalExpr?, pure])
-      (evalExprs_uniswap_this_single evm locals)
-      hcall)
+  exact externalCallFailure
+    (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+    (target := uniswapAddressAtSlot evm slot)
+    (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+    (evalExprs_uniswap_this_single evm locals)
+    hcall
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side ABI-decode revert after a successful typed
--- external call from a storage address receiver with `address(this)` as its single argument.
 theorem uniswapExternalBalanceOfThisDecodeRevert (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
     {out : ByteArray}
@@ -719,12 +602,12 @@ theorem uniswapExternalBalanceOfThisDecodeRevert (evm evm' : EVM.State) (locals 
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
     ExecBlock config { contract := contract, locals := locals } evm
       [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ] .reverted := by
-  exact ExecBlock.consRevert
-    (ExecStmt.externalCallReturnDecodeRevert
-      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
-      (by simp [evalExpr?, pure])
-      (evalExprs_uniswap_this_single evm locals)
-      hcall hdec)
+  exact externalCallDecodeRevert
+    (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+    (target := uniswapAddressAtSlot evm slot)
+    (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+    (evalExprs_uniswap_this_single evm locals)
+    hcall hdec
 
 abbrev uniswapBalanceOfStore (locals : Store) (balance0 balance1 : Value) : Store :=
   (locals.insert "balance0" balance0).insert "balance1" balance1
@@ -740,173 +623,6 @@ theorem uniswapBalanceOfStore_balance1 (locals : Store) (balance0 balance1 : Val
     (uniswapBalanceOfStore locals balance0 balance1).get? "balance1" = some balance1 := by
   rw [uniswapBalanceOfStore, store_get_self]
 
-theorem uniswapTokenBalanceOfThisCallsPrefix (evm evm0 evm1 : EVM.State) (locals : Store)
-    {out0 out1 : ByteArray} {balance0 balance1 : Value}
-    (hbase0 : locals.get? "token0" = none)
-    (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
-    (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some balance1) :
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-      (.ok (uniswapBalanceOfFrame locals balance0 balance1) evm1) := by
-  have htoken0 :
-      ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
-        (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
-    exact uniswapExternalBalanceOfThisSuccess
-      (evm := evm) (evm' := evm0) (locals := locals)
-      (ref := token0Ref) (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
-      (retVar := "balance0")
-      (by simpa [token0Ref] using hbase0)
-      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall0 hdec0
-  have htoken1 :
-      ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-        (.ok (uniswapBalanceOfFrame locals balance0 balance1) evm1) := by
-    exact uniswapExternalBalanceOfThisSuccess
-      (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
-      (ref := token1Ref) (er := { base := "token1", steps := [] }) (slot := ⟨7⟩)
-      (retVar := "balance1")
-      (by simpa [token1Ref] using hbase1)
-      (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall1 hdec1
-  exact Reasoning.Refinement.execBlock_append htoken0 htoken1
-
-theorem uniswapTokenBalanceOfThisFirstCallFailure (evm evm0 : EVM.State) (locals : Store)
-    {out0 : ByteArray}
-    (hbase0 : locals.get? "token0" = none)
-    (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm0, out0) false) :
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-      .reverted := by
-  have hfirst :
-      ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
-        .reverted := by
-    exact uniswapExternalBalanceOfThisFailure
-      (evm := evm) (evm' := evm0) (locals := locals)
-      (ref := token0Ref) (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
-      (retVar := "balance0")
-      (by simpa [token0Ref] using hbase0)
-      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall0
-  exact Reasoning.Refinement.execBlock_append_term (s2 :=
-      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ])
-    hfirst (by intro f e h; cases h)
-
-theorem uniswapTokenBalanceOfThisFirstCallDecodeRevert (evm evm0 : EVM.State) (locals : Store)
-    {out0 : ByteArray}
-    (hbase0 : locals.get? "token0" = none)
-    (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = none) :
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-      .reverted := by
-  have hfirst :
-      ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
-        .reverted := by
-    exact uniswapExternalBalanceOfThisDecodeRevert
-      (evm := evm) (evm' := evm0) (locals := locals)
-      (ref := token0Ref) (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
-      (retVar := "balance0")
-      (by simpa [token0Ref] using hbase0)
-      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall0 hdec0
-  exact Reasoning.Refinement.execBlock_append_term (s2 :=
-      [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ])
-    hfirst (by intro f e h; cases h)
-
-theorem uniswapTokenBalanceOfThisSecondCallFailure (evm evm0 evm1 : EVM.State)
-    (locals : Store) {out0 out1 : ByteArray} {balance0 : Value}
-    (hbase0 : locals.get? "token0" = none)
-    (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
-    (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false) :
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-      .reverted := by
-  have htoken0 :
-      ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
-        (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
-    exact uniswapExternalBalanceOfThisSuccess
-      (evm := evm) (evm' := evm0) (locals := locals)
-      (ref := token0Ref) (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
-      (retVar := "balance0")
-      (by simpa [token0Ref] using hbase0)
-      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall0 hdec0
-  have htoken1 :
-      ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-        .reverted := by
-    exact uniswapExternalBalanceOfThisFailure
-      (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
-      (ref := token1Ref) (er := { base := "token1", steps := [] }) (slot := ⟨7⟩)
-      (retVar := "balance1")
-      (by simpa [token1Ref] using hbase1)
-      (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall1
-  exact Reasoning.Refinement.execBlock_append htoken0 htoken1
-
-theorem uniswapTokenBalanceOfThisSecondCallDecodeRevert (evm evm0 evm1 : EVM.State)
-    (locals : Store) {out0 out1 : ByteArray} {balance0 : Value}
-    (hbase0 : locals.get? "token0" = none)
-    (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
-    (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
-      "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
-    (hcall1 : typedCallViaEVM config evm0
-      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
-      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = none) :
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false),
-        .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-      .reverted := by
-  have htoken0 :
-      ExecBlock config { contract := contract, locals := locals } evm
-        [ .externalCall (.storage token0Ref) "balanceOf" (.intLit 0) [this] "balance0" (perm := false) ]
-        (.ok { contract := contract, locals := locals.insert "balance0" balance0 } evm0) := by
-    exact uniswapExternalBalanceOfThisSuccess
-      (evm := evm) (evm' := evm0) (locals := locals)
-      (ref := token0Ref) (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
-      (retVar := "balance0")
-      (by simpa [token0Ref] using hbase0)
-      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall0 hdec0
-  have htoken1 :
-      ExecBlock config { contract := contract, locals := locals.insert "balance0" balance0 } evm0
-        [ .externalCall (.storage token1Ref) "balanceOf" (.intLit 0) [this] "balance1" (perm := false) ]
-        .reverted := by
-    exact uniswapExternalBalanceOfThisDecodeRevert
-      (evm := evm0) (evm' := evm1) (locals := locals.insert "balance0" balance0)
-      (ref := token1Ref) (er := { base := "token1", steps := [] }) (slot := ⟨7⟩)
-      (retVar := "balance1")
-      (by simpa [token1Ref] using hbase1)
-      (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
-      (by decide) (by rfl) hcall1 hdec1
-  exact Reasoning.Refinement.execBlock_append htoken0 htoken1
-
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side successful high-level external call after
--- Solidity's `EXTCODESIZE(receiver) > 0` guard, parameterized by receiver and call metadata.
 theorem uniswapCheckedExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
     {out : ByteArray} {value : Value}
@@ -923,17 +639,15 @@ theorem uniswapCheckedExternalBalanceOfThisSuccess (evm evm' : EVM.State) (local
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar)
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
-    (.ok { contract := contract, locals := locals.insert retVar value } evm')
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact uniswapExternalBalanceOfThisSuccess evm evm' locals
-    (ref := ref) (er := er) (slot := slot) (retVar := retVar)
-    hbase her hty hloc hcall hdec
+  simpa [balanceOfThisStmts] using
+    checkedExternalCallSuccess
+      (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+      (target := uniswapAddressAtSlot evm slot)
+      hguard
+      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+      (evalExprs_uniswap_this_single evm locals)
+      hcall hdec
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side failed high-level external call after
--- Solidity's `EXTCODESIZE(receiver) > 0` guard, parameterized by receiver and call metadata.
 theorem uniswapCheckedExternalBalanceOfThisFailure (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
     {out : ByteArray}
@@ -948,17 +662,15 @@ theorem uniswapCheckedExternalBalanceOfThisFailure (evm evm' : EVM.State) (local
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
-    .reverted
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact uniswapExternalBalanceOfThisFailure evm evm' locals
-    (ref := ref) (er := er) (slot := slot) (retVar := retVar)
-    hbase her hty hloc hcall
+  simpa [balanceOfThisStmts] using
+    checkedExternalCallFailure
+      (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+      (target := uniswapAddressAtSlot evm slot)
+      hguard
+      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+      (evalExprs_uniswap_this_single evm locals)
+      hcall
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side ABI-decode revert after a successful
--- high-level external call protected by Solidity's `EXTCODESIZE(receiver) > 0` guard.
 theorem uniswapCheckedExternalBalanceOfThisDecodeRevert
     (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
@@ -975,17 +687,15 @@ theorem uniswapCheckedExternalBalanceOfThisDecodeRevert
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
-    .reverted
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-  exact uniswapExternalBalanceOfThisDecodeRevert evm evm' locals
-    (ref := ref) (er := er) (slot := slot) (retVar := retVar)
-    hbase her hty hloc hcall hdec
+  simpa [balanceOfThisStmts] using
+    checkedExternalCallDecodeRevert
+      (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+      (target := uniswapAddressAtSlot evm slot)
+      hguard
+      (evalExpr_uniswap_storage_address evm locals hbase her hty hloc)
+      (evalExprs_uniswap_this_single evm locals)
+      hcall hdec
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side high-level external call reverts before
--- the call when Solidity's `EXTCODESIZE(receiver) > 0` guard is false.
 theorem uniswapCheckedExternalBalanceOfThisNoCode (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {retVar : Ident}
     (hguard :
@@ -993,11 +703,11 @@ theorem uniswapCheckedExternalBalanceOfThisNoCode (evm : EVM.State) (locals : St
         (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)) = .ok (.bool false)) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar) .reverted := by
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .require (.binary .gt (.extCodeSize (.storage ref)) (.intLit 0)),
-      .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
-    .reverted
-  exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
+  simpa [balanceOfThisStmts] using
+    checkedExternalCallNoCode
+      (receiver := .storage ref) (name := "balanceOf") (sendVal := 0) (args := [this])
+      (retVar := retVar)
+      hguard
 
 theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
     (evm evm0 evm1 : EVM.State) (locals : Store)

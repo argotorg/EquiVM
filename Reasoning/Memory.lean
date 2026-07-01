@@ -182,6 +182,14 @@ theorem list_toByteArray_loop_size (xs : List UInt8) (acc : ByteArray) :
 theorem list_toByteArray_size (xs : List UInt8) : xs.toByteArray.size = xs.length := by
   simpa [List.toByteArray] using list_toByteArray_loop_size xs ByteArray.empty
 
+/-- `List.toByteArray` preserves append structure. -/
+theorem list_toByteArray_append (xs ys : List UInt8) :
+    (xs ++ ys).toByteArray = xs.toByteArray ++ ys.toByteArray := by
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [ByteArray.data_append, Array.toList_append]
+  simp
+
 /-- **MLOAD round-trip.**  Big-endian-decoding the 32-byte encoding of `v` recovers `v.toNat`.
     The only opacity (the `ffi.zeroes` leading padding) cancels because it is zero. -/
 theorem fromByteArrayBigEndian_toByteArray (v : UInt256) :
@@ -317,6 +325,24 @@ theorem write32_eq (src base : ByteArray) (destAddr : ℕ)
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.zero_add, show base.data.size = base.size from rfl]
 
+/-- A 32-byte word write grows memory far enough to cover its written word, whether it overwrites
+    existing memory or extends by a zero gap. -/
+theorem toByteArray_write_size_ge_off_add32 (b : UInt256) (mem : ByteArray) (off : ℕ)
+    (hgap : off - mem.size < USize.size) :
+    off + 32 ≤ ((UInt256.toByteArray b).write 0 mem off 32).size := by
+  by_cases hle : off ≤ mem.size
+  · rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract]
+    rw [toByteArray_size]
+    rw [Nat.min_eq_left hle]
+    norm_num
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+      USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+    omega
+
 /-- Extracting a window `[i,j)` from a prefix `b[0..n]` (with `j ≤ n`) is the same as extracting it
     from `b` directly. -/
 theorem extract_prefix (b : ByteArray) (n i j : ℕ) (hjn : j ≤ n) :
@@ -418,6 +444,21 @@ theorem readWithPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
         (by show (↑len - ↑len : BitVec System.Platform.numBits).toNat = 0; rw [sub_self]; rfl)]
   apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
 
+/-- Split an in-bounds padded read into adjacent pieces. -/
+theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂ : Nat)
+    (hpos₁ : 0 < len₁) (hpos₂ : 0 < len₂)
+    (hlen₁ : len₁ < 2 ^ 64) (hlen₂ : len₂ < 2 ^ 64)
+    (hsum : len₁ + len₂ < 2 ^ 64)
+    (hin : addr + len₁ + len₂ ≤ source.size) :
+    source.readWithPadding addr (len₁ + len₂) =
+      source.readWithPadding addr len₁ ++ source.readWithPadding (addr + len₁) len₂ := by
+  rw [readWithPadding_eq_extract' source addr (len₁ + len₂) (by omega) hsum (by omega)]
+  rw [readWithPadding_eq_extract' source addr len₁ hpos₁ hlen₁ (by omega)]
+  rw [readWithPadding_eq_extract' source (addr + len₁) len₂ hpos₂ hlen₂ (by omega)]
+  symm
+  rw [ByteArray.extract_append_extract]
+  congr <;> omega
+
 /-- **Non-overlap read below a write.**  A 32-byte read at `readAddr` strictly below the write
     region `[destAddr, destAddr+32)` is unaffected by the write. -/
 theorem write32_read_below (src base : ByteArray) (destAddr readAddr : ℕ)
@@ -452,6 +493,32 @@ theorem write_eq_gen (src base : ByteArray) (destAddr len : ℕ)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
+
+/-- **`write` of an arbitrary length, extending memory.**  When the destination starts inside
+    `base` but reaches past its end, `write` keeps the prefix and appends the source prefix. -/
+theorem write_eq_gen_extend (src base : ByteArray) (destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hdest : destAddr ≤ base.size)
+    (hext : base.size < destAddr + len) :
+    src.write 0 base destAddr len =
+      base.extract 0 destAddr ++ src.extract 0 len := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - 0) = len := by omega
+  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 := by
+    rw [Nat.min_eq_left (by omega)]
+    omega
+  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hdest
+  have hz0 : ffi.ByteArray.zeroes (⟨↑(0:ℕ)⟩ : USize) = ByteArray.empty :=
+    zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append,
+    ByteArray.data_extract, show (ByteArray.empty).data = (#[] : Array UInt8) from rfl,
+    Array.append_empty, hsize, hpL, hsp, Nat.add_zero, Nat.zero_add,
+    show base.data.size = base.size from rfl]
+  have htail : base.data.extract (destAddr + len) base.size = #[] :=
+    Array.extract_eq_empty_of_le (by omega)
+  rw [htail, Array.append_empty]
 
 /-- **`write` of an arbitrary source window, in bounds.**  This is `write_eq_gen` with a nonzero
     source offset. -/
@@ -608,6 +675,30 @@ theorem write_read_below_gen (src base : ByteArray) (destAddr len readAddr : ℕ
       extract_append_left _ _ _ _ (by rw [hbsz]; omega),
       extract_prefix _ _ _ _ (by omega),
       ← readWithPadding_eq_extract _ readAddr (by omega)]
+
+/-- **Read below an arbitrary-length write, allowing extension.**  A 32-byte read strictly below
+    `[destAddr, destAddr+len)` is unaffected even when the write extends past `base.size`. -/
+theorem write_read_below_gen_extend (src base : ByteArray) (destAddr len readAddr : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hdest : destAddr ≤ base.size)
+    (hbelow : readAddr + 32 ≤ destAddr) :
+    (src.write 0 base destAddr len).readWithPadding readAddr 32 =
+      base.readWithPadding readAddr 32 := by
+  by_cases hin : destAddr + len ≤ base.size
+  · exact write_read_below_gen src base destAddr len readAddr hlen hsrc hin hbelow
+  · have hext : base.size < destAddr + len := Nat.lt_of_not_ge hin
+    rw [write_eq_gen_extend src base destAddr len hlen hsrc hdest hext]
+    have hbasePrefix : (base.extract 0 destAddr).size = destAddr := by
+      rw [ByteArray.size_extract]
+      omega
+    have hsrcPrefix : (src.extract 0 len).size = len := by
+      rw [ByteArray.size_extract]
+      omega
+    rw [readWithPadding_eq_extract _ readAddr (by
+      rw [ByteArray.size_append, hbasePrefix, hsrcPrefix]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by rw [hbasePrefix]; omega)]
+    rw [extract_prefix _ destAddr readAddr (readAddr + 32) hbelow]
+    rw [← readWithPadding_eq_extract base readAddr (by omega)]
 
 /-- **Readback of a write.**  Reading the 32-byte window just written returns the source's first
     word. -/
@@ -864,6 +955,69 @@ theorem toByteArray_write_read_below_of_gap
       omega)]
     rw [extract_append_left _ _ _ _ hread]
     exact (readWithPadding_eq_extract _ read hread).symm
+
+/-- Reading an arbitrary in-bounds window below a 32-byte word write is unaffected, even when
+    the write extends memory by a zero gap. -/
+theorem toByteArray_write_read_below_len_of_gap
+    (b : UInt256) (mem : ByteArray) (off read len : ℕ)
+    (hread : read + len ≤ mem.size) (hbelow : read + len ≤ off)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read len =
+      mem.readWithPadding read len := by
+  by_cases hle : off ≤ mem.size
+  · exact write32_read_below_len _ _ off read len (by rw [toByteArray_size]) hle
+      hbelow hread hpos hlen64
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+      omega)]
+    rw [extract_append_left _ _ _ _ hread]
+    exact (readWithPadding_eq_extract' _ read len hpos hlen64 hread).symm
+
+/-- Reading a window inside a 32-byte word write, allowing the write to extend memory by a zero
+    gap. -/
+theorem toByteArray_write_read_window_of_gap
+    (b : UInt256) (mem : ByteArray) (off start len : Nat)
+    (hwithin : start + len ≤ 32) (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding (off + start) len =
+      (UInt256.toByteArray b).extract start (start + len) := by
+  by_cases hle : off ≤ mem.size
+  · have hprefix : (mem.extract 0 off).size = off := by
+      rw [ByteArray.size_extract]
+      omega
+    have hword : ((UInt256.toByteArray b).extract 0 32).size = 32 := by
+      rw [ByteArray.size_extract, toByteArray_size]
+      omega
+    rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
+    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hprefix, hword]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hprefix, hword]; omega)]
+    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
+    rw [show off + start - off = start by omega,
+      show off + start + len - off = start + len by omega]
+    rw [extract_extract_BA]
+    rw [show 0 + start = start by omega,
+      show min (0 + (start + len)) 32 = start + len by omega]
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    have hprefix :
+        (mem ++ ffi.ByteArray.zeroes (USize.ofNat (off - mem.size))).size = off := by
+      rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+      omega
+    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
+      rw [ByteArray.size_append, hprefix, toByteArray_size]
+      omega)]
+    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
+    rw [show off + start - off = start by omega,
+      show off + start + len - off = start + len by omega]
 
 /-! ## 4a. Two-word scratch memory for mapping-slot hashes -/
 

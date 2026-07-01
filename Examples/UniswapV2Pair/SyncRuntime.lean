@@ -679,7 +679,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
   have rd6254 := rd6254₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rd6254
-  rw [uniswapULandComm (uniswapSlotWord ⟨7⟩ σ' I) solcAddrMask] at rd6254
+  rw [u256_land_comm (uniswapSlotWord ⟨7⟩ σ' I) solcAddrMask] at rd6254
   rw [show (⟨6240⟩ : UInt256) + (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) +
       UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + (⟨1⟩ : UInt256) +
       (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) +

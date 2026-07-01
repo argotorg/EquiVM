@@ -81,6 +81,15 @@ theorem dispatchList_none_short (ts : List TransitionDecl)
     rw [if_neg (by rw [hfalse]; simp)]
     exact ih (fun t' ht' => hsz t' (List.mem_cons_of_mem _ ht'))
 
+/-- A successful equality check against a 4-byte selector prefix implies calldata has at least
+    four bytes. -/
+theorem calldata_size_ge_of_selIs (I : ExecutionEnv) (sel : ByteArray) (hselSize : sel.size = 4)
+    (hsel : (sel == I.calldata.extract 0 4) = true) :
+    4 ≤ I.calldata.size := by
+  have hs := byteArray_size_eq_of_beq hsel
+  rw [hselSize, ByteArray.size_extract] at hs
+  omega
+
 /-- A transition returned by `dispatchList` is a member of the scanned list. -/
 theorem dispatchList_some_mem {ts : List TransitionDecl} {cd : ByteArray} {t : TransitionDecl}
     (h : dispatchList ts cd = some t) : t ∈ ts := by

@@ -980,6 +980,58 @@ theorem fromBytes'_take20_wordLE_solcAddrMask (w : UInt256) :
   simpa [solcAddrMask] using
     fromBytes'_take_wordLE_land_mask w 20 (by decide)
 
+-- Reading an arbitrary little-endian byte window of an EVM word is the corresponding
+-- divide-and-mask operation.
+set_option maxHeartbeats 1000000 in
+theorem fromBytes'_drop_take_wordLE_land_div_mask (w : UInt256) (off size : Nat)
+    (hoff : 8 * off < 256) (hsize : 8 * size ≤ 256) :
+    fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size) =
+      (UInt256.land (UInt256.div w (UInt256.ofNat (256 ^ off)))
+        (UInt256.ofNat (256 ^ size - 1))).toNat := by
+  let bs := (EVM.Word.toBytesLEWithSizeProof w).1
+  have hfull : Nat.ofDigits 256 (bs.map (fun b : UInt8 => b.toNat)) = w.toNat := by
+    rw [← fromBytes'_eq_ofDigits bs]
+    exact fromBytes'_toBytesLEWithSizeProof w
+  have hlt : ∀ l ∈ bs.map (fun b : UInt8 => b.toNat), l < 256 := by
+    intro l hl
+    simp only [List.mem_map] at hl
+    rcases hl with ⟨b, _hb, rfl⟩
+    exact b.toFin.isLt
+  have hdrop := Nat.ofDigits_div_pow_eq_ofDigits_drop (p := 256) off (by decide)
+    (bs.map (fun b : UInt8 => b.toNat)) hlt
+  have htake := Nat.ofDigits_mod_pow_eq_ofDigits_take (p := 256) size (by decide)
+    ((bs.map (fun b : UInt8 => b.toNat)).drop off)
+    (fun l hl => hlt l (List.mem_of_mem_drop hl))
+  rw [fromBytes'_eq_ofDigits (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size)]
+  change Nat.ofDigits 256 ((((bs.drop off).take size).map fun b : UInt8 => b.toNat)) = _
+  rw [List.map_take, List.map_drop, ← htake, ← hdrop, hfull]
+  have hshiftNat : (UInt256.ofNat (256 ^ off)).toNat = 256 ^ off := by
+    rw [show 256 ^ off = (2 : Nat) ^ (8 * off) by
+      rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+    exact ofNat_pow_toNat hoff
+  have hdivNat : (UInt256.div w (UInt256.ofNat (256 ^ off))).toNat =
+      w.toNat / 256 ^ off := by
+    unfold UInt256.div UInt256.toNat
+    simp only
+    change w.toNat / (UInt256.ofNat (256 ^ off)).toNat = w.toNat / 256 ^ off
+    rw [hshiftNat]
+  rw [uland_toNat, hdivNat]
+  have hmaskNat : (UInt256.ofNat (256 ^ size - 1)).toNat = 256 ^ size - 1 := by
+    have hmaskLt : 256 ^ size - 1 < UInt256.size := by
+      have hpow : 256 ^ size ≤ UInt256.size := by
+        rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
+          rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+        simpa [UInt256.size] using
+          Nat.pow_le_pow_right (by norm_num : 0 < (2 : Nat)) hsize
+      have hpos : 0 < 256 ^ size := by positivity
+      omega
+    exact ulit_toNat' _ hmaskLt
+  rw [hmaskNat]
+  rw [show 256 ^ size = (2 : Nat) ^ (8 * size) by
+    rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+  symm
+  exact nat_land_mask_eq_mod (w.toNat / 256 ^ off) (8 * size)
+
 /-- Reading bytes `[1, 21)` of a little-endian EVM word is the address mask after dropping
     the low byte. -/
 theorem fromBytes'_drop1_take20_wordLE_solcAddrMask (w : UInt256) :
