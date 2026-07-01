@@ -58,6 +58,11 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
             some (.address (Ethereum.AccountAddress.ofNat n))
           else
             none
+      | DecodeMode.vyper =>
+          if n < EVM.addressModulus then
+            some (.address (Ethereum.AccountAddress.ofNat n))
+          else
+            none
       | DecodeMode.legacySolc05 =>
           some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
@@ -252,6 +257,11 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
           match decoded with
           | some (store, _) => some store
           | none => none
+    | DecodeMode.vyper =>
+        let decoded := decodeArgs names types argsArray ∅
+        match decoded with
+        | some (store, _) => some store
+        | none => none
     | DecodeMode.legacySolc05 =>
         let decoded := decodeArgs names types argsArray ∅
         match decoded with
@@ -304,6 +314,12 @@ def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (retu
     Option (List Solm.Value) :=
   match mode with
   | DecodeMode.modern => decodeReturnValues? types returndata
+  | DecodeMode.vyper => do
+      let bytes := returndata.toList
+      let headSize <- abiTupleHeadSize? types
+      let (values, _endOffset) <-
+        decodeABIValues? types bytes 0 0 headSize headSize DecodeMode.vyper
+      some values
   | DecodeMode.legacySolc05 => do
       let bytes := returndata.toList
       let headSize <- abiTupleHeadSize? types
@@ -320,6 +336,10 @@ def decodeReturnValueWithMode? (mode : DecodeMode) (ty : ABIType) (returndata : 
     Option Solm.Value :=
   match mode with
   | DecodeMode.modern => decodeReturnValue? ty returndata
+  | DecodeMode.vyper => do
+      match decodeReturnValuesWithMode? DecodeMode.vyper [ty] returndata with
+      | some [value] => some value
+      | _ => none
   | DecodeMode.legacySolc05 => do
       match decodeReturnValuesWithMode? DecodeMode.legacySolc05 [ty] returndata with
       | some [value] => some value

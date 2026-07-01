@@ -32,10 +32,13 @@ inductive ElemType where
 
 /- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
    non-canonical address words and use signed size guards. Legacy solc 0.5.x optimized wrappers
-   mask address words and use unsigned static-size checks. -/
+   mask address words and use unsigned static-size checks. Vyper fixed-argument wrappers keep
+   canonical address checks but use minimum static-size checks rather than solc's signed
+   huge-calldata guard. -/
 inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
+  | vyper : DecodeMode
   deriving DecidableEq, Repr, Inhabited
 
 /- ABI types for parameters, locals, and return values. -/
