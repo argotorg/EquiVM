@@ -209,6 +209,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
         (fromByteArrayBigEndian (mem0.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       dataPtr)
     (haw64 : UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32) = aw0)
+    (hawDataPtr : UInt256.ofNat (MachineState.M aw0.toNat dataPtr.toNat 32) = aw0)
     (hmemFinal :
       out.write 0
         ((UInt256.toByteArray (UInt256.ofNat out.size)).write 0
@@ -243,22 +244,36 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
   change UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ at heq0
   rw [show UInt256.ofNat out.size = rdsz from rfl, heq0] at rd6608
   have rd6610 := evm_run rd6608 with [jumpiNT (by native_decide), push1 ⟨64⟩]
-  have rd6611 := evm_run rd6610 with [
-    raw mload 0 dataPtr aw0 (by native_decide)
-      mem_cost hloadPtr haw64 (by evm_ov)]
+  have rd6611 := RD.mload 0 dataPtr aw0 rd6610 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    hloadPtr haw64
+    (by simp only [List.length_cons]; omega)
   let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
   let mem2 : ByteArray := (UInt256.toByteArray (UInt256.add dataPtr rounded)).write 0
     mem0 64 32
-  have rd6626 := evm_run rd6611 with [
+  have rd6625 := evm_run rd6611 with [
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and,
-    dup3, add, push1 ⟨64⟩,
-    raw mstore 0 mem2 aw0 (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    dup3, add, push1 ⟨64⟩]
+  have rd6626 := RD.mstore 0 mem2 aw0 rd6625 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    (by
+      rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
+      simp [mem2, rounded, rdsz])
+    haw64
+    (by simp only [List.length_cons]; omega)
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 dataPtr.toNat 32
-  have rd6629 := evm_run rd6626 with [
-    returndatasize, dup3,
-    raw mstore 0 mem3 aw0 (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+  have rd6628 := evm_run rd6626 with [returndatasize, dup3]
+  have rd6629 := RD.mstore 0 mem3 aw0 rd6628 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawDataPtr])
+    (by dsimp [mem3])
+    hawDataPtr
+    (by simp only [List.length_cons]; omega)
   have rd6636 := evm_run rd6629 with [returndatasize, push1 ⟨0⟩, push1 ⟨32⟩, dup5, add]
   let copyDest : UInt256 := dataPtr + ⟨32⟩
   let copyLen : UInt256 := UInt256.ofNat out.size
@@ -272,12 +287,17 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
       UInt256.ofNat (MachineState.M aw0.toNat copyDest.toNat copyLen.toNat) =
         finalAw := by
     simpa [copyDest, copyLen, hcopyLen_toNat] using hawFinal
+  have haw4' :
+      UInt256.ofNat (MachineState.M aw0.toNat (dataPtr + ⟨32⟩).toNat out.size) =
+        finalAw := by
+    simpa [copyDest, copyLen, hcopyLen_toNat] using haw4
   have rd6637 := RD.returndatacopy (Cₘ finalAw - Cₘ aw0) mem4 finalAw
     rd6636 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
       intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw4])
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      rw [UInt256.toNat_ofNat_of_lt (lt_size_of_lt_sign houtSize), haw4'])
     (by rfl)
     haw4
     (by evm_ov)
