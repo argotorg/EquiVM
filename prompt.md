@@ -12,7 +12,7 @@ You are given a working directory, which is named after the contract
   compiler and options used to produce it. The bytecode can be of
   arbitrary provenance — do not assume a specific compiler or
   version. Always check.
-  
+
 - The Solm specification of the contract, including its storage
   layout. (file `Spec.lean`)
 
@@ -20,7 +20,7 @@ You are given a working directory, which is named after the contract
   placeholder. (file `Correct.lean`)
 
 The top-level theorem bundles the correctness of the constructor:
-  
+
 ```lean
 constructorEquivalence <config> <initcode> <contract> <runtimeBytecode>
 ```
@@ -37,8 +37,8 @@ accepted trusted base below.
 
 Be forthcoming with blocking issues. Never bypass a problem to move on
 to the next proof, and never circumvent it. If you suspect something
-is unprovable, investigate thoroughly, report immediately, and do not
-continue until it is resolved.
+is unprovable, investigate thoroughly, report it immediately to the
+user, and do not continue until it is resolved.
 
 You should only work in the `<Name>/` directory. Do not make changes
 outside of it.
@@ -58,9 +58,17 @@ Things to watch for:
 
 - The Solm spec, in general, must model storage reads/writes in the
   order the bytecode performs them. This is not a hard rule, for all
-  data types. But for mapping types this is important as otherwise you
-  will have to introduce a mapping-slot noncollision axiom to prove
-  the refinement, which is not allowed.
+  data types. But for mapping, array, string and byte types this is
+  important as otherwise you will have to introduce a slot noncollision
+  axiom to prove the refinement, which is not allowed.
+
+  If you find that you need such an axiom, evaluate whether the Solm can 
+  be written 
+  differently to exactly model the bytecode's storage reads/writes. 
+  If it can, rewrite the Solm spec to do so.
+  
+  Only add such axiom if the compiler has done an optimization that cannot 
+  be reflected in the Solm spec and the proof cannot be completed without it.
 
 - The Solm spec must use helper functions where possible and not
   inline the same logic in multiple places. This is important for
@@ -186,7 +194,7 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 
 - Shared machinery used by several functions goes in
   `Common.lean`/`Storage.lean`/`Routines.lean`, not in any one
-  function's file.  Internal/private functions are not ABI
+  function's file. Internal/private functions are not ABI
   entries. Their proofs can go into common files or their own
   standalone files.
 
@@ -241,18 +249,18 @@ proving EVM bytecode correct against its Solm spec. Useful reads:
   1. Make lemmas useful and general. The new lemmas that you add
      should be as generic as possible, avoiding hard-coded PCs,
      widths, types, and stack tails when possible.
-  
+
   2. Do not prove anticipated lemmas, unless you are 100% sure they
      will be used in the final proof.
-  
+
   3. Before introducing a lemma, search `Reasoning/` and the existing
      examples for one that already exists — do not re-prove it.
-  
+
   4. Never duplicate a lemma. If you find yourself writing the same
      lemma in two places, refactor it into a single lemma in a common
      file. If you find yourself proving similar lemmas in two places,
      consider generalizing the lemma to make it reusable.
-  
+
   5. Add lemmas in the working directory (shared ones in common
      files), then flag the contract-independent ones for promotion to
      `Reasoning/` (below). Do not add lemmas directly to `Reasoning/`.
@@ -263,14 +271,14 @@ proving EVM bytecode correct against its Solm spec. Useful reads:
   library.  When you do:
 
   1. Make sure the theorem is not already proved in `Reasoning/`. Search first.
- 
+
   2. If your lemma is a near-miss of an existing one (same shape,
     different PC/width/type/stack tail), that is a generalization
     opportunity: write your version in the common file and mark it `--
     GENERALIZES Reasoning.<Module>.<lemma> — lift by parameterizing
     over <what differs>`, so the library lemma can later be widened to
     subsume both instead of accreting near-duplicates.
- 
+
   3. If it's genuinely new but contract-independent, mark it a fresh
      `LIBRARY CANDIDATE`.  The goal: every reusable fact ends up in
      one place, tagged with where it belongs in `Reasoning/`, so

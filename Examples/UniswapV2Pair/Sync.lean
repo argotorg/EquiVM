@@ -417,7 +417,8 @@ theorem uniswapAssignPrice0CumulativeLastOfStore
       pure, bind]
   · rfl
   · rfl
-  · exact hscalar
+  · cases value <;> simp at hscalar ⊢
+    simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 theorem uniswapAssignPrice1CumulativeLastOfStore
@@ -436,7 +437,8 @@ theorem uniswapAssignPrice1CumulativeLastOfStore
       pure, bind]
   · rfl
   · rfl
-  · exact hscalar
+  · cases value <;> simp at hscalar ⊢
+    simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 theorem evalExpr_sync_balance0_le_max_true (evm : EVM.State) (balance0 balance1 : UInt256)
