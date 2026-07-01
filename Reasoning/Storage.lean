@@ -20,6 +20,16 @@ open Ethereum Ethereum.EVM Solm
 
 namespace Reasoning.Theory
 
+abbrev codeOwnerStorageWord (ee : ExecutionEnv) (σ : AccountMap) (slot : UInt256) : UInt256 :=
+  σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+
+theorem codeOwnerStorageWord_initState {cA gh bl σ σ₀ A I} {g : Sat256}
+    (slot : UInt256) :
+    Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner slot =
+      codeOwnerStorageWord I σ slot := by
+  simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
+    codeOwnerStorageWord]
+
 theorem storage_findD_insert_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
     (hne : readSlot ≠ writeSlot) :
     (storage.insert writeSlot val).findD readSlot default =
@@ -43,6 +53,22 @@ theorem keyValueToWord_address (a : AccountAddress) :
   simp [keyValueToWord, UInt256.ofNat]
   exact (Nat.mod_eq_of_lt
     (lt_of_lt_of_le a.isLt (show AccountAddress.size ≤ UInt256.size from by decide))).symm
+
+theorem keyValueToWord_address_ofNat_mask (w : UInt256) :
+    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) =
+      UInt256.land solcAddrMask w := by
+  rw [keyValueToWord_address]
+  apply u256_inj
+  rw [uland_toNat]
+  unfold AccountAddress.ofNat UInt256.ofNat UInt256.toNat
+  change (w.val.val % AccountAddress.size) % UInt256.size =
+    Nat.land solcAddrMask.toNat w.val.val
+  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
+  rw [nat_land_comm]
+  rw [nat_land_mask_eq_mod]
+  rw [show AccountAddress.size = 2 ^ 160 by rfl]
+  exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160))
+    (by norm_num [UInt256.size]))
 
 theorem keyValueToWord_uint256 (w : UInt256) :
     keyValueToWord (.int (Int.ofNat w.toNat)) = w := by

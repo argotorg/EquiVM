@@ -419,6 +419,406 @@ theorem solcReturnMem_read128 (val : UInt256) :
       extract_append_right' _ _ _ _ (by have := solcFreePtrMem_pad_size; omega)
         (by have := solcFreePtrMem_pad_size; have := toByteArray_size val; omega)]
 
+/-! ## `Error(string)` revert memory -/
+
+def solcErrorStringSelector : UInt256 :=
+  UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩
+
+noncomputable def solcErrorStringMem0 (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray solcErrorStringSelector).write 0 mem 128 32
+
+noncomputable def solcErrorStringMem1 (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (solcErrorStringMem0 mem) 132 32
+
+noncomputable def solcErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray len).write 0 (solcErrorStringMem1 mem) 164 32
+
+noncomputable def solcErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+  (UInt256.toByteArray word).write 0 (solcErrorStringMem2 len mem) 196 32
+
+theorem solcErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
+    (solcErrorStringMem0 mem).size = 160 := by
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_eq _ _ _ (by rw [hmem]; omega)
+      (by rw [hmem]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append, hmem, ByteArray_zeroes_size,
+    show (USize.ofNat (128 - 96)).toNat = 32 from
+      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    toByteArray_size]
+
+theorem solcErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 96) :
+    (solcErrorStringMem1 mem).size = 164 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem0_size hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem0_size hmem,
+    toByteArray_size]
+  omega
+
+theorem solcErrorStringMem2_size (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by simp [solcErrorStringMem1_size hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem1_size hmem,
+    toByteArray_size]
+  omega
+
+theorem solcErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by simp [solcErrorStringMem2_size len hmem]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem2_size len hmem,
+    toByteArray_size]
+  omega
+
+theorem solcErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [solcErrorStringMem2_size len hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem solcErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size len word hmem]; decide)
+    (by decide) (solcErrorStringMem3_read64 len word hmem hread64)
+
+/-! ## Mapping scratch memory -/
+
+noncomputable def solcMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
+  wordAt32Mem baseSlot solcFreePtrMem
+
+noncomputable def solcMappingHashMem (baseSlot key : UInt256) : ByteArray :=
+  wordAt0Mem key (solcMappingBaseSlotMem baseSlot)
+
+theorem solcMappingBaseSlotMem_size (baseSlot : UInt256) :
+    (solcMappingBaseSlotMem baseSlot).size = 96 := by
+  simpa [solcMappingBaseSlotMem] using
+    (wordAt32Mem_size_96 (mem := solcFreePtrMem) baseSlot solcFreePtrMem_size)
+
+theorem solcMappingBaseSlotMem_read32 (baseSlot : UInt256) :
+    (solcMappingBaseSlotMem baseSlot).readWithPadding 32 32 =
+      UInt256.toByteArray baseSlot := by
+  unfold solcMappingBaseSlotMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [solcFreePtrMem_size]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray baseSlot).size ≤ 32
+    rw [toByteArray_size])
+
+theorem solcMappingBaseSlotMem_read64 (baseSlot : UInt256) :
+    (solcMappingBaseSlotMem baseSlot).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcMappingBaseSlotMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [solcFreePtrMem_size]; omega) (by omega)
+      (by rw [solcFreePtrMem_size]), solcFreePtrMem_read64]
+
+theorem solcMappingHashMem_size (baseSlot key : UInt256) :
+    (solcMappingHashMem baseSlot key).size = 96 := by
+  simpa [solcMappingHashMem] using
+    (wordAt0Mem_size_96 (mem := solcMappingBaseSlotMem baseSlot) key
+      (solcMappingBaseSlotMem_size baseSlot))
+
+theorem solcMappingHashMem_read0 (baseSlot key : UInt256) :
+    (solcMappingHashMem baseSlot key).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold solcMappingHashMem wordAt0Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [solcMappingBaseSlotMem_size baseSlot]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray key).size ≤ 32
+    rw [toByteArray_size])
+
+theorem solcMappingHashMem_read32 (baseSlot key : UInt256) :
+    (solcMappingHashMem baseSlot key).readWithPadding 32 32 =
+      UInt256.toByteArray baseSlot := by
+  unfold solcMappingHashMem wordAt0Mem
+  rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size])
+      (by rw [solcMappingBaseSlotMem_size baseSlot]; omega) (by omega)
+      (by rw [solcMappingBaseSlotMem_size baseSlot]; omega),
+    solcMappingBaseSlotMem_read32]
+
+theorem solcMappingHashMem_read64 (baseSlot key : UInt256) :
+    (solcMappingHashMem baseSlot key).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcMappingHashMem wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
+      (by rw [solcMappingBaseSlotMem_size baseSlot]; omega) (by omega)
+      (by rw [solcMappingBaseSlotMem_size baseSlot]),
+    solcMappingBaseSlotMem_read64]
+
+theorem solcMappingHashMem_mload64 (baseSlot key : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcMappingHashMem baseSlot key).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcMappingHashMem baseSlot key).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcMappingHashMem_size]; decide) (by decide)
+    (solcMappingHashMem_read64 baseSlot key)
+
+set_option maxHeartbeats 800000 in
+theorem solcMappingHashMem_read0_64 (baseSlot key : UInt256) :
+    (solcMappingHashMem baseSlot key).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray baseSlot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [solcMappingHashMem_size baseSlot key]; omega)]
+  have hleft :
+      (solcMappingHashMem baseSlot key).extract 0 32 =
+        UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [solcMappingHashMem_size baseSlot key]; omega),
+      solcMappingHashMem_read0]
+  have hright :
+      (solcMappingHashMem baseSlot key).extract 32 64 =
+        UInt256.toByteArray baseSlot := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [solcMappingHashMem_size baseSlot key]; omega),
+      solcMappingHashMem_read32]
+  rw [show (solcMappingHashMem baseSlot key).extract 0 64 =
+      (solcMappingHashMem baseSlot key).extract 0 32 ++
+        (solcMappingHashMem baseSlot key).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num]
+  rw [hleft, hright]
+
+def solcMappingSlot (baseSlot key : UInt256) : UInt256 :=
+  uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+
+theorem solcMappingKeccakSlot (baseSlot key : UInt256) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((solcMappingHashMem baseSlot key).readWithPadding 0 64)))
+      = solcMappingSlot baseSlot key := by
+  rw [solcMappingHashMem_read0_64]
+  unfold solcMappingSlot
+  exact mappingSlot_single key baseSlot
+
+noncomputable def solcNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
+  wordAt32Mem (solcMappingSlot baseSlot owner) (solcMappingHashMem baseSlot owner)
+
+noncomputable def solcNestedMappingHashMem
+    (baseSlot owner spender : UInt256) : ByteArray :=
+  wordAt0Mem spender (solcNestedMappingOuterBaseMem baseSlot owner)
+
+theorem solcNestedMappingOuterBaseMem_size (baseSlot owner : UInt256) :
+    (solcNestedMappingOuterBaseMem baseSlot owner).size = 96 := by
+  simpa [solcNestedMappingOuterBaseMem] using
+    (wordAt32Mem_size_96 (mem := solcMappingHashMem baseSlot owner)
+      (solcMappingSlot baseSlot owner) (solcMappingHashMem_size baseSlot owner))
+
+theorem solcNestedMappingHashMem_size (baseSlot owner spender : UInt256) :
+    (solcNestedMappingHashMem baseSlot owner spender).size = 96 := by
+  simpa [solcNestedMappingHashMem] using
+    (wordAt0Mem_size_96 (mem := solcNestedMappingOuterBaseMem baseSlot owner)
+      spender (solcNestedMappingOuterBaseMem_size baseSlot owner))
+
+theorem solcNestedMappingOuterBaseMem_read32 (baseSlot owner : UInt256) :
+    (solcNestedMappingOuterBaseMem baseSlot owner).readWithPadding 32 32 =
+      UInt256.toByteArray (solcMappingSlot baseSlot owner) := by
+  unfold solcNestedMappingOuterBaseMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [solcMappingHashMem_size]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray (solcMappingSlot baseSlot owner)).size ≤ 32
+    rw [toByteArray_size])
+
+theorem solcNestedMappingOuterBaseMem_read64 (baseSlot owner : UInt256) :
+    (solcNestedMappingOuterBaseMem baseSlot owner).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcNestedMappingOuterBaseMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [solcMappingHashMem_size]; omega) (by omega)
+      (by rw [solcMappingHashMem_size]),
+    solcMappingHashMem_read64]
+
+theorem solcNestedMappingHashMem_read0 (baseSlot owner spender : UInt256) :
+    (solcNestedMappingHashMem baseSlot owner spender).readWithPadding 0 32 =
+      UInt256.toByteArray spender := by
+  unfold solcNestedMappingHashMem wordAt0Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [solcNestedMappingOuterBaseMem_size]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray spender).size ≤ 32
+    rw [toByteArray_size])
+
+theorem solcNestedMappingHashMem_read32 (baseSlot owner spender : UInt256) :
+    (solcNestedMappingHashMem baseSlot owner spender).readWithPadding 32 32 =
+      UInt256.toByteArray (solcMappingSlot baseSlot owner) := by
+  unfold solcNestedMappingHashMem wordAt0Mem
+  rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size])
+      (by rw [solcNestedMappingOuterBaseMem_size]; omega) (by omega)
+      (by rw [solcNestedMappingOuterBaseMem_size]; omega),
+    solcNestedMappingOuterBaseMem_read32]
+
+theorem solcNestedMappingHashMem_read64 (baseSlot owner spender : UInt256) :
+    (solcNestedMappingHashMem baseSlot owner spender).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcNestedMappingHashMem wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
+      (by rw [solcNestedMappingOuterBaseMem_size]; omega) (by omega)
+      (by rw [solcNestedMappingOuterBaseMem_size]),
+    solcNestedMappingOuterBaseMem_read64]
+
+theorem solcNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcNestedMappingHashMem baseSlot owner spender).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcNestedMappingHashMem baseSlot owner spender).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcNestedMappingHashMem_size]; decide) (by decide)
+    (solcNestedMappingHashMem_read64 baseSlot owner spender)
+
+set_option maxHeartbeats 800000 in
+theorem solcNestedMappingHashMem_read0_64 (baseSlot owner spender : UInt256) :
+    (solcNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64 =
+      UInt256.toByteArray spender ++ UInt256.toByteArray (solcMappingSlot baseSlot owner) := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [solcNestedMappingHashMem_size baseSlot owner spender]; omega)]
+  have hleft :
+      (solcNestedMappingHashMem baseSlot owner spender).extract 0 32 =
+        UInt256.toByteArray spender := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [solcNestedMappingHashMem_size baseSlot owner spender]; omega),
+      solcNestedMappingHashMem_read0]
+  have hright :
+      (solcNestedMappingHashMem baseSlot owner spender).extract 32 64 =
+        UInt256.toByteArray (solcMappingSlot baseSlot owner) := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [solcNestedMappingHashMem_size baseSlot owner spender]; omega),
+      solcNestedMappingHashMem_read32]
+  rw [show (solcNestedMappingHashMem baseSlot owner spender).extract 0 64 =
+      (solcNestedMappingHashMem baseSlot owner spender).extract 0 32 ++
+        (solcNestedMappingHashMem baseSlot owner spender).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num]
+  rw [hleft, hright]
+
+theorem solcNestedMappingKeccakSlot (baseSlot owner spender : UInt256) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((solcNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
+      = solcMappingSlot (solcMappingSlot baseSlot owner) spender := by
+  rw [solcNestedMappingHashMem_read0_64]
+  unfold solcMappingSlot
+  exact mappingSlot_single spender (solcMappingSlot baseSlot owner)
+
+noncomputable def solcScratchReturnMem (scratch : ByteArray) (val : UInt256) : ByteArray :=
+  (UInt256.toByteArray val).write 0 scratch 128 32
+
+theorem solcScratchReturnMem_size {scratch : ByteArray} (val : UInt256)
+    (hscratch : scratch.size = 96) :
+    (solcScratchReturnMem scratch val).size = 160 := by
+  unfold solcScratchReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [hscratch]; omega)
+      (by rw [hscratch]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+    show (USize.ofNat (128 - 96)).toNat = 32 from by
+      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    toByteArray_size]
+
+theorem solcScratchReturnMem_read64 {scratch : ByteArray} (val : UInt256)
+    (hscratch : scratch.size = 96)
+    (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcScratchReturnMem scratch val).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcScratchReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [hscratch]; omega)
+      (by rw [hscratch]; exact lt_usize _ (by norm_num))]
+  rw [readWithPadding_eq_extract _ 64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+        show (USize.ofNat (128 - 96)).toNat = 32 from by
+          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        toByteArray_size]
+      norm_num)]
+  rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+        show (USize.ofNat (128 - 96)).toNat = 32 from by
+          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      omega)]
+  rw [extract_append_left _ _ _ _ (by rw [hscratch]),
+    ← readWithPadding_eq_extract _ 64 (by rw [hscratch]), hread64]
+
+theorem solcScratchReturnMem_mload64 {scratch : ByteArray} (val : UInt256)
+    (hscratch : scratch.size = 96)
+    (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturnMem scratch val).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcScratchReturnMem scratch val).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcScratchReturnMem_size val hscratch]; decide) (by decide)
+    (solcScratchReturnMem_read64 val hscratch hread64)
+
+theorem solcScratchReturnMem_read128 {scratch : ByteArray} (val : UInt256)
+    (hscratch : scratch.size = 96) :
+    (solcScratchReturnMem scratch val).readWithPadding 128 32 =
+      UInt256.toByteArray val := by
+  unfold solcScratchReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [hscratch]; omega)
+      (by rw [hscratch]; exact lt_usize _ (by norm_num))]
+  rw [readWithPadding_eq_extract _ 128 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+        show (USize.ofNat (128 - 96)).toNat = 32 from by
+          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        toByteArray_size])]
+  rw [extract_append_right_window
+      (scratch ++ ffi.ByteArray.zeroes (USize.ofNat (128 - scratch.size)))
+      (UInt256.toByteArray val) 128 160 (by
+        rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+          show (USize.ofNat (128 - 96)).toNat = 32 from by
+            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+  rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
+    show (USize.ofNat (128 - 96)).toNat = 32 from by
+      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+  norm_num
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray val).size ≤ 32
+    rw [toByteArray_size])
+
 /-! ## Dynamic bytes/string return memory -/
 
 def solcBytesReturnAllocSize (len : UInt256) : UInt256 :=
@@ -1189,6 +1589,24 @@ theorem solcAddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressMod
   show Nat.land w.toNat solcAddrMask.toNat % EVM.twoPow 256 = w.toNat
   exact congrArg UInt256.toNat (solcAddrMask_clean hcanon)
 
+/-- Decoding an EVM word as an address only depends on the low 160 bits, so applying solc's
+    address-cleanup mask before `AccountAddress.ofNat` is value-preserving. -/
+theorem solcAddressValue_masked (w : UInt256) :
+    (Solm.Value.address (AccountAddress.ofNat w.toNat)) =
+      Solm.Value.address (AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat) := by
+  apply congrArg Solm.Value.address
+  apply Fin.ext
+  unfold AccountAddress.ofNat
+  simp only [Fin.val_ofNat]
+  rw [uland_toNat]
+  change w.val.val % AccountAddress.size =
+    Nat.land solcAddrMask.toNat w.val.val % AccountAddress.size
+  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
+  rw [nat_land_comm]
+  rw [nat_land_mask_eq_mod]
+  rw [show AccountAddress.size = 2 ^ 160 by rfl]
+  rw [Nat.mod_mod]
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
@@ -1209,6 +1627,579 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
   h.push0 hd0 (by omega)
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
     |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+
+/-- Legacy solc `revert(0,0)` terminal emitted as `PUSH1 0; DUP1; REVERT`. -/
+theorem RD.uniswapPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd1 : decode code (pc + UInt256.ofNat 2) = some (.DUP1, .none))
+    (hd2 : decode code (pc + UInt256.ofNat 2 + ⟨1⟩) = some (.REVERT, .none))
+    (hov : stk.length + 2 ≤ 1024) :
+    RDrev code g s0 :=
+  h.push1 ⟨0⟩ hd0 (by omega)
+    |>.dup1 hd1 (by omega)
+    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+
+/-! ## Legacy solc high-level-call combinators -/
+
+-- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has
+-- deployed code.
+theorem RD.uniswapExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc okPc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {k C : ℕ} {target : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hExt : decode code pc = some (.EXTCODESIZE, .none))
+    (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi :
+      decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMPI, .none))
+    (hjd : (D_J code 0).contains okPc = true)
+    (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
+    (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) (target :: R) mem aw rdata
+      (cA, σ) k' C' := by
+  obtain ⟨_, _, rdExt⟩ :=
+    RD.uniswapExtcodesize h hExt
+      (by simp only [List.length_cons]; omega)
+  have rdIszero0 := RD.iszero rdExt hIszero0
+    (by simp only [List.length_cons]; omega)
+  have rdDup1 := RD.dup1 rdIszero0 hDup1
+    (by simp only [List.length_cons]; omega)
+  have rdIszero1 := RD.iszero rdDup1 hIszero1
+    (by simp only [List.length_cons]; omega)
+  have rdPush := RD.push2 rdIszero1 okPc hPush
+    (by simp only [List.length_cons]; omega)
+  have hcond :
+      UInt256.isZero (UInt256.isZero
+          (Reasoning.Theory.uniswapExtCodeSizeWord σ target)) ≠ ⟨0⟩ := by
+    rw [Reasoning.Theory.isZero_eq_zero_of_ne hcodeSize]
+    decide
+  have rdJumpi := RD.jumpiT rdPush hJumpi hcond hjd
+    (by simp only [List.length_cons]; omega)
+  have rdJumpdest := RD.jumpdest rdJumpi hJumpdest
+    (by simp only [List.length_cons]; omega)
+  have rdPop := RD.pop rdJumpdest hPop
+    (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rdPop⟩
+
+-- Generic solc high-level-call `EXTCODESIZE` guard plus `GAS`, stopping at the call opcode with
+-- existential gas.
+theorem RD.uniswapExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {target : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hExt : decode code pc = some (.EXTCODESIZE, .none))
+    (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi :
+      decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMPI, .none))
+    (hjd : (D_J code 0).contains okPc = true)
+    (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
+    (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
+    (hGas : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.GAS, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ gasWord k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+      (gasWord :: target :: R) mem aw rdata (cA, σ) k' C' := by
+  obtain ⟨_, _, rdReady⟩ :=
+    RD.uniswapExtcodesizeGuardOk h hcodeSize hExt hIszero0 hDup1 hIszero1 hPush hJumpi
+      hjd hJumpdest hPop hov
+  obtain ⟨gasWord, rdGas⟩ :=
+    RD.gas rdReady hGas (by simp only [List.length_cons]; omega)
+  exact ⟨gasWord, _, _, rdGas⟩
+
+-- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has no
+-- deployed code.
+theorem RD.uniswapExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {target : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hExt : decode code pc = some (.EXTCODESIZE, .none))
+    (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi :
+      decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMPI, .none))
+    (hPush0 :
+      decode code (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hDupZero :
+      decode code
+          ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) +
+            UInt256.ofNat 2) =
+        some (.DUP1, .none))
+    (hRevert :
+      decode code
+          (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) +
+              UInt256.ofNat 2) + ⟨1⟩) =
+        some (.REVERT, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    RDrev code g s0 := by
+  obtain ⟨_, _, rdExt⟩ :=
+    RD.uniswapExtcodesize h hExt
+      (by simp only [List.length_cons]; omega)
+  have rdIszero0 := RD.iszero rdExt hIszero0
+    (by simp only [List.length_cons]; omega)
+  have rdDup1 := RD.dup1 rdIszero0 hDup1
+    (by simp only [List.length_cons]; omega)
+  have rdIszero1 := RD.iszero rdDup1 hIszero1
+    (by simp only [List.length_cons]; omega)
+  have rdPush := RD.push2 rdIszero1 okPc hPush
+    (by simp only [List.length_cons]; omega)
+  have hcond :
+      UInt256.isZero (UInt256.isZero
+          (Reasoning.Theory.uniswapExtCodeSizeWord σ target)) = ⟨0⟩ := by
+    rw [hcodeSize]
+    decide
+  have rdFallthrough := RD.jumpiNT rdPush hJumpi hcond
+    (by simp only [List.length_cons]; omega)
+  exact RD.uniswapPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
+    (by simp only [List.length_cons]; omega)
+
+-- Generic solc high-level-call success guard for the branch where a CALL-like status word is
+-- nonzero.
+theorem RD.uniswapCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {status : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (status :: R) mem aw rdata acc k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hIszero0 : decode code pc = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi : decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+      some (.JUMPI, .none))
+    (hjd : (D_J code 0).contains okPc = true)
+    (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
+    (hPop : decode code (okPc + ⟨1⟩) = some (.POP, .none))
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) R mem aw rdata acc k' C' := by
+  have rdIszero0 := RD.iszero h hIszero0
+    (by omega)
+  have rdDup1 := RD.dup1 rdIszero0 hDup1
+    (by omega)
+  have rdIszero1 := RD.iszero rdDup1 hIszero1
+    (by simp only [List.length_cons]; omega)
+  have rdPush := RD.push2 rdIszero1 okPc hPush
+    (by simp only [List.length_cons]; omega)
+  have hcond : UInt256.isZero (UInt256.isZero status) ≠ ⟨0⟩ := by
+    rw [Reasoning.Theory.isZero_eq_zero_of_ne hstatus]
+    decide
+  have rdJumpi := RD.jumpiT rdPush hJumpi hcond hjd
+    (by simp only [List.length_cons]; omega)
+  have rdJumpdest := RD.jumpdest rdJumpi hJumpdest
+    (by simp only [List.length_cons]; omega)
+  have rdPop := RD.pop rdJumpdest hPop
+    (by omega)
+  exact ⟨_, _, rdPop⟩
+
+-- Generic solc high-level-call success guard for the branch where a CALL-like status word is zero
+-- and the revert-data bubbling tail is executed.
+theorem RD.uniswapCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {status : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (status :: R) mem aw rdata acc k C)
+    (hstatus : status = ⟨0⟩)
+    (hIszero0 : decode code pc = some (.ISZERO, .none))
+    (hDup1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
+    (hIszero1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
+    (hPush : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+      some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi : decode code ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+      some (.JUMPI, .none))
+    (hReturndatasize :
+      decode code (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) =
+        some (.RETURNDATASIZE, .none))
+    (hPush0 :
+      decode code
+          ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) =
+      some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hDupZero :
+      decode code
+          (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+            UInt256.ofNat 2) =
+        some (.DUP1, .none))
+    (hReturndatacopy :
+      decode code
+          ((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+              UInt256.ofNat 2) + ⟨1⟩) =
+        some (.RETURNDATACOPY, .none))
+    (hReturndatasizeRevert :
+      decode code
+          (((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) =
+        some (.RETURNDATASIZE, .none))
+    (hPushRevert0 :
+      decode code
+          ((((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                  UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hRevert :
+      decode code
+          (((((((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) + ⟨1⟩) + ⟨1⟩) +
+                    UInt256.ofNat 2) + ⟨1⟩) + ⟨1⟩) + ⟨1⟩) + UInt256.ofNat 2) =
+        some (.REVERT, .none))
+    (hrdataSize : rdata.size < UInt256.size)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  have rdIszero0 := RD.iszero h hIszero0
+    (by omega)
+  have rdDup1 := RD.dup1 rdIszero0 hDup1
+    (by omega)
+  have rdIszero1 := RD.iszero rdDup1 hIszero1
+    (by simp only [List.length_cons]; omega)
+  have rdPush := RD.push2 rdIszero1 okPc hPush
+    (by simp only [List.length_cons]; omega)
+  have hcond : UInt256.isZero (UInt256.isZero status) = ⟨0⟩ := by
+    rw [hstatus]
+    decide
+  have rdFallthrough := RD.jumpiNT rdPush hJumpi hcond
+    (by simp only [List.length_cons]; omega)
+  have rdReturndatasize := RD.returndatasize rdFallthrough hReturndatasize
+    (by simp only [List.length_cons]; omega)
+  have rdPush0 := RD.push1 rdReturndatasize ⟨0⟩ hPush0
+    (by simp only [List.length_cons]; omega)
+  have rdDupZero := RD.dup1 rdPush0 hDupZero
+    (by simp only [List.length_cons]; omega)
+  let len := UInt256.ofNat rdata.size
+  let memout := rdata.write 0 mem 0 len.toNat
+  let awout := UInt256.ofNat (MachineState.M aw.toNat 0 len.toNat)
+  have rdCopy := RD.returndatacopy
+    (Cₘ awout - Cₘ aw) memout awout rdDupZero hReturndatacopy
+    (by
+      change 0 + len.toNat ≤ rdata.size
+      dsimp [len]
+      rw [ulit_toNat' rdata.size hrdataSize]
+      omega)
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, len, awout])
+    (by rfl) (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rdReturndatasizeRevert := RD.returndatasize rdCopy hReturndatasizeRevert
+    (by simp only [List.length_cons]; omega)
+  have rdPushRevert0 := RD.push1 rdReturndatasizeRevert ⟨0⟩ hPushRevert0
+    (by simp only [List.length_cons]; omega)
+  exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
+    rdPushRevert0 hRevert
+    (fun s haw hstk => by
+      simpa [awout, len, haw] using memExpRevertZeroOff s hstk)
+    (by simp only [List.length_cons]; omega)
+
+-- Same opaque `Θ` reach proof shape as `RD.call`, specialized to `STATICCALL`.
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
+    {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
+          mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.STATICCALL, .none))
+    (hdepth : ee.depth.val < 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
+          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
+          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
+          (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header false)
+      ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
+          (o.write 0 mem outOffset.toNat (min outSize (UInt256.ofNat o.size)).toNat)
+          (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
+            outOffset.toNat outSize.toNat))
+          o (cA', σ') k' C'
+      ∧ o.size < UInt256.size := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+      (by unfold RD; exact Or.inl hoog),
+      (by
+        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+  · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
+      rw [hcode, hpc]; exact hdec
+    have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
+    have st := step_staticcall s hd
+    rw [hstk] at st
+    have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 - 6 + 1 > 1024) = False :=
+      eq_false (by omega)
+    have hdepthLt : s.executionEnv.depth < 1024 := by rw [Fin.lt_def]; exact hdepth'
+    have hbal : ∀ y : UInt256, ((⟨0⟩ : UInt256) ≤ y) = True :=
+      fun _ => eq_true (Fin.zero_le _)
+    have hgtF : ∀ y : UInt256, ((⟨0⟩ : UInt256) > y) = False :=
+      fun _ => eq_false (Fin.not_lt_zero _)
+    have hdeqF : (s.executionEnv.depth == 1024) = false := by
+      rw [beq_eq_false_iff_ne]; intro hh; rw [hh] at hdepth'; exact absurd hdepth' (by decide)
+    simp only [List.length_cons, hovF, hdepthLt, hbal, hgtF, hdeqF, and_true, if_true,
+      Bool.or_false] at st
+    rw [collapse_two_stage, hcode] at st
+    have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
+    have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
+    split at hXP
+    · exact ⟨_, _, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
+        (by unfold RD; exact Or.inl hXP),
+        (by
+          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+    · rename_i hP
+      set mc := memoryExpansionCost s Operation.STATICCALL with hmc
+      set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+        (⟨0⟩ : UInt256) gasArg s.accountMap
+        { pc := s.machineState.pc, stack := s.machineState.stack,
+          execLength := s.machineState.execLength,
+          gasAvailable := s.machineState.gasAvailable.subNat mc,
+          activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+          returnData := s.machineState.returnData, H_return := s.machineState.H_return }
+        s.substate with hgc
+      set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+        (⟨0⟩ : UInt256) gasArg s.accountMap
+        { pc := s.machineState.pc, stack := s.machineState.stack,
+          execLength := s.machineState.execLength + 1,
+          gasAvailable := s.machineState.gasAvailable.subNat mc,
+          activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+          returnData := s.machineState.returnData, H_return := s.machineState.H_return }
+        s.substate with hG
+      set cg := UInt256.ofNat G with hcg
+      set ce := Cextra (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+        (⟨0⟩ : UInt256) s.accountMap s.substate with hce
+      set θs := Θ s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader
+        s.blocks s.accountMap s.σ₀
+        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+        (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
+        s.executionEnv.sender (AccountAddress.ofUInt256 target)
+        (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+        (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+        (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
+        (s.executionEnv.depth + 1) s.executionEnv.header false with hθs
+      set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - θs.2.2.1.toNat)
+        with hgv
+      have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+      have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+      have hw1 : s.σ₀ = s0.σ₀ := hworld.1
+      have hw2 : s.genesisBlockHeader = s0.genesisBlockHeader := hworld.2.1
+      have hw3 : s.blocks = s0.blocks := hworld.2.2
+      have hPle : mc + gc ≤ s.machineState.gasAvailable.toNat := Nat.le_of_not_lt hP
+      have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
+      have hretle : θs.2.2.1.toNat ≤ cg.toNat := by
+        rw [hθs]
+        exact Theta_returnedGas_le s.executionEnv.blobVersionedHashes s.createdAccounts
+          s.genesisBlockHeader s.blocks s.accountMap s.σ₀
+          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
+          s.executionEnv.sender (AccountAddress.ofUInt256 target)
+          (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+          (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+          (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
+          (s.executionEnv.depth + 1) s.executionEnv.header false
+      have hcgle : cg.toNat ≤ G := by
+        have h : cg.toNat = G % UInt256.size := by rw [hcg]; rfl
+        rw [h]; exact Nat.mod_le _ _
+      have hgcG : gc = G + ce := by rw [hgc, hG, hce]; rfl
+      have hce1 : 1 ≤ ce := by
+        rw [hce]
+        have hcacc : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
+          unfold Caccess; split <;> decide
+        unfold Cextra; omega
+      have hg''le : θs.2.2.1.toNat + 1 ≤ gc := by omega
+      have hgcle' : gc ≤ (s.machineState.gasAvailable.subNat mc).toNat := by
+        rw [toNat_sub_ofNat hmcle]; omega
+      have hgasN : s.machineState.gasAvailable.toNat = g.toNat - C := by
+        rw [hgas, Sat256.subNat_toNat]
+      have hrefundCostPos : 1 ≤ gc - θs.2.2.1.toNat := by omega
+      set callCharge := mc + (gc - θs.2.2.1.toNat) with hcallCharge
+      have hcallChargeLeGas : callCharge ≤ s.machineState.gasAvailable.toNat := by
+        rw [hcallCharge]
+        have hdeltaLe : gc - θs.2.2.1.toNat ≤ gc := Nat.sub_le _ _
+        omega
+      have hCcallCharge : C + callCharge ≤ g.toNat := by
+        rw [hgasN] at hcallChargeLeGas
+        omega
+      have hgvGas : gv = g.subNat (C + callCharge) := by
+        rw [hgv, hgas, hcallCharge]
+        rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
+      refine ⟨θs.1, θs.2.1, θs.2.2.2.2.1, θs.2.2.2.2.2,
+        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
+        C + callCharge, ⟨θs.2.2.1, θs.2.2.2.1, ?_⟩, ?_, ?_⟩
+      · rw [← hee, ← hcA, ← hσ, ← hmem, ← hw1, ← hw2, ← hw3, ← hθs]
+      · unfold RD
+        refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · exact hcode
+        · rw [hpc]
+        · cases θs.2.2.2.2.1 <;> rfl
+        · show gv = g.subNat (C + callCharge)
+          exact hgvGas
+        · show k + 1 ≤ C + callCharge
+          rw [hcallCharge]
+          omega
+        · exact hCcallCharge
+        · rw [hmem]
+        · rw [haw]
+        · rfl
+        · rfl
+        · exact hee
+        · exact hworld
+      · rw [hθs]
+        exact Ethereum.EVM.theta_projection_output_size_lt_uint256
+          s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
+          s.accountMap s.σ₀
+          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
+          s.executionEnv.sender (AccountAddress.ofUInt256 target)
+          (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
+          cg (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+          (s.executionEnv.depth + 1) s.executionEnv.header false
+          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+
+-- Generic `STATICCALL` depth-limit `RD` combinator.
+theorem RD.uniswapStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
+    {t : List UInt256}
+    (h : RD code ee g s0 pc
+          (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
+          mem aw rdata (cA, σ) k C)
+    (hdec : decode code pc = some (.STATICCALL, .none))
+    (hdepth : ee.depth = 1024)
+    (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
+        (ByteArray.empty.write 0 mem outOffset.toNat
+          (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
+        (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
+          outOffset.toNat outSize.toNat))
+        ByteArray.empty (cA, σ) k' C' := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
+    hworld⟩
+  · exact ⟨k, C, by unfold RD; exact Or.inl hoog⟩
+  · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
+      rw [hcode, hpc]; exact hdec
+    have hdepth1024 : s.executionEnv.depth = 1024 := by rw [hee]; exact hdepth
+    have st := step_staticcall s hd
+    rw [hstk] at st
+    have hovF : (t.length + 1 + 1 + 1 + 1 + 1 + 1 - 6 + 1 > 1024) = False :=
+      eq_false (by omega)
+    have hdepthF : (s.executionEnv.depth < 1024) = False :=
+      eq_false (by rw [hdepth1024]; exact lt_irrefl _)
+    have hbal : ∀ y : UInt256, ((⟨0⟩ : UInt256) ≤ y) = True :=
+      fun _ => eq_true (Fin.zero_le _)
+    have hgtF : ∀ y : UInt256, ((⟨0⟩ : UInt256) > y) = False :=
+      fun _ => eq_false (Fin.not_lt_zero _)
+    have hdeqT : (s.executionEnv.depth == 1024) = true := by
+      rw [beq_iff_eq]; exact hdepth1024
+    simp only [List.length_cons, hovF, hdepthF, hbal, hgtF, hdeqT, and_false,
+      Bool.or_true, if_true] at st
+    rw [collapse_two_stage, hcode] at st
+    have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
+    have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
+    set mc := memoryExpansionCost s Operation.STATICCALL with hmc
+    set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      (⟨0⟩ : UInt256) gasArg s.accountMap
+      { pc := s.machineState.pc, stack := s.machineState.stack,
+        execLength := s.machineState.execLength,
+        gasAvailable := s.machineState.gasAvailable.subNat mc,
+        activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+        returnData := s.machineState.returnData, H_return := s.machineState.H_return }
+      s.substate with hgc
+    set G := Ccallgas (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      (⟨0⟩ : UInt256) gasArg s.accountMap
+      { pc := s.machineState.pc, stack := s.machineState.stack,
+        execLength := s.machineState.execLength + 1,
+        gasAvailable := s.machineState.gasAvailable.subNat mc,
+        activeWords := s.machineState.activeWords, memory := s.machineState.memory,
+        returnData := s.machineState.returnData, H_return := s.machineState.H_return }
+      s.substate with hG
+    set ce := Cextra (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
+      (⟨0⟩ : UInt256) s.accountMap s.substate with hce
+    set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - (UInt256.ofNat G).toNat)
+      with hgv
+    have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
+    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+    split at hXP
+    · exact ⟨k, C, by unfold RD; exact Or.inl hXP⟩
+    · rename_i hP
+      have hPle : mc + gc ≤ s.machineState.gasAvailable.toNat := Nat.le_of_not_lt hP
+      have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
+      have hcgle : (UInt256.ofNat G).toNat ≤ G := by
+        show G % UInt256.size ≤ G
+        exact Nat.mod_le _ _
+      have hgcG : gc = G + ce := by
+        rw [hgc, hG, hce]
+        rfl
+      have hce1 : 1 ≤ ce := by
+        rw [hce]
+        have hcacc : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
+          unfold Caccess; split <;> decide
+        unfold Cextra
+        omega
+      have hgcle' : gc ≤ (s.machineState.gasAvailable.subNat mc).toNat := by
+        rw [toNat_sub_ofNat hmcle]
+        omega
+      have hgasN : s.machineState.gasAvailable.toNat = g.toNat - C := by
+        rw [hgas, Sat256.subNat_toNat]
+      set callCharge := mc + (gc - (UInt256.ofNat G).toNat) with hcallCharge
+      have hcallChargeLeGas : callCharge ≤ s.machineState.gasAvailable.toNat := by
+        rw [hcallCharge]
+        have hdeltaLe : gc - (UInt256.ofNat G).toNat ≤ gc := Nat.sub_le _ _
+        omega
+      have hCcallCharge : C + callCharge ≤ g.toNat := by
+        rw [hgasN] at hcallChargeLeGas
+        omega
+      have hgvGas : gv = g.subNat (C + callCharge) := by
+        rw [hgv, hgas, hcallCharge]
+        rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
+      rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
+      refine ⟨k + 1, C + callCharge, ?_⟩
+      unfold RD
+      refine Or.inr ⟨_, hXP, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · exact hcode
+      · rw [hpc]
+      · rfl
+      · show gv = g.subNat (C + callCharge)
+        exact hgvGas
+      · show k + 1 ≤ C + callCharge
+        rw [hcallCharge]
+        omega
+      · exact hCcallCharge
+      · simp [hmem]
+      · rw [haw]
+      · rfl
+      · simp [hcA, hσ]
+      · exact hee
+      · exact hworld
 
 /-! ## Inlined solc address decoder
 
