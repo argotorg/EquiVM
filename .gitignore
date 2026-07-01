@@ -4,3 +4,8 @@
 
 # lean-lsp MCP scratch snippets
 _mcp_snippet_*.lean
+
+CLAUDE.md
+.claude
+.codex
+.vscode
