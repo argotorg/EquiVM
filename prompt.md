@@ -218,6 +218,16 @@ proving EVM bytecode correct against its Solm spec. Useful reads:
 - Each `Reasoning/*.lean` file's `/-! # … -/` header — per-module
   detail.
 
+How to use the library:
+
+- Respect and extend the library's abstractions. Almost every line should apply a library lemma.
+  A reusable, contract-independent fact the library lacks is a missing library lemma. Add it
+  (proved) to the current working directory's `Common.lean` (or another local common file), 
+  tagged `-- LIBRARY CANDIDATE: <generalizes…>`
+  (or `-- GENERALIZES Reasoning.<Module>.<lemma> …` for a near-variant). 
+
+- Never edit `Reasoning/` yourself
+
 - Do not reinvent. The library already discharges the solc prologue,
   non-payable guard, calldata-size guard, selector load,
   `RD.dispatchTo` selector routing, ABI decode/encode, memory/storage
@@ -305,9 +315,12 @@ Note that not all examples are derived with the same compiler,
 version, and optimization settings. Always check the source and
 bytecode for your contract.
 
+- For an example of binary search dispatch, see `Examples/Ballot`. 
+- For an example of linear dispatch, see `Examples/ERC20`.
+
 ---
 
-## 6. Function Calls
+## 6. Function Calls and loops
 
 Function calls should be proven modularly. In particular:
 
@@ -344,6 +357,11 @@ Function calls should be proven modularly. In particular:
   If a function `f` is called internally by another function `g`,
   prove `f` before tackling the proof of `g`.
 
+
+- Loops: 
+
+  The `Examples/BlindAuction` example has a big complicated loop in the 
+  `Reveal` function. shows how to prove loops by induction. The loop
 ---
 
 ## 7. Build discipline, tactics, proof engineering, efficiency
