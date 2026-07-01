@@ -188,23 +188,10 @@ theorem evalExpr_initialize_factory_eq_sender_false (evm : EVM.State) (I : Execu
     simp [BEq.beq, hne']
   rw [hbeq]
 
--- LIBRARY CANDIDATE: Reasoning.Solc - an AccountAddress decoded from a raw ABI word equals
--- the one decoded from the solc-masked word.
 theorem initializeAddressValue_masked (w : UInt256) :
     (.address (AccountAddress.ofNat w.toNat) : Value) =
       .address (AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat) := by
-  apply congrArg Value.address
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  simp only [Fin.val_ofNat]
-  rw [uland_toNat]
-  change w.val.val % AccountAddress.size =
-    Nat.land solcAddrMask.toNat w.val.val % AccountAddress.size
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [nat_land_comm]
-  rw [nat_land_mask_eq_mod]
-  rw [show AccountAddress.size = 2 ^ 160 by rfl]
-  rw [Nat.mod_mod]
+  exact solcAddressValue_masked w
 
 theorem initializeToken0MaskedWord_canonical (I : ExecutionEnv) :
     (initializeToken0MaskedWord I).toNat < EVM.addressModulus := by

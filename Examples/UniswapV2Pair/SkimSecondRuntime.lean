@@ -513,7 +513,8 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     push1 ⟨229⟩, shl, dup2,
     raw mstore 0 mem0 (UInt256.ofNat 13)
       (by decide) mem_cost
-      (by unfold mem0 uniswapErrorStringSelector; rfl) (by decide) (by evm_ov)]
+      (by unfold mem0 uniswapErrorStringSelector solcErrorStringSelector; rfl) (by decide)
+      (by evm_ov)]
   let mem1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem0 296 32
   have hmem1 : mem1.size = 388 := by
     unfold mem1

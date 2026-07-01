@@ -1405,7 +1405,7 @@ theorem RD.uniswapSafeMathSubUnderflow_dynamic {g : Sat256} {s0 : State}
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
-    (by simp [mem0, uniswapErrorStringSelector])
+    (by simp [mem0, uniswapErrorStringSelector, solcErrorStringSelector])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6918b0 := evm_run rd6918a' with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]

@@ -10,93 +10,45 @@ namespace UniswapV2Pair
 /-! ## Shared `Error(string)` revert memory -/
 
 def uniswapErrorStringSelector : UInt256 :=
-  UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩
+  solcErrorStringSelector
 
--- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` selector write over a
--- 96-byte scratch buffer that preserves the free pointer at `0x40`.
-noncomputable def uniswapErrorStringMem0 (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem 128 32
+noncomputable abbrev uniswapErrorStringMem0 (mem : ByteArray) : ByteArray :=
+  solcErrorStringMem0 mem
 
--- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` offset-word write over a
--- previously built selector buffer.
-noncomputable def uniswapErrorStringMem1 (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (uniswapErrorStringMem0 mem) 132 32
+noncomputable abbrev uniswapErrorStringMem1 (mem : ByteArray) : ByteArray :=
+  solcErrorStringMem1 mem
 
--- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` length-word write.
-noncomputable def uniswapErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray len).write 0 (uniswapErrorStringMem1 mem) 164 32
+noncomputable abbrev uniswapErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+  solcErrorStringMem2 len mem
 
--- LIBRARY CANDIDATE: Reasoning.Memory - generic solc `Error(string)` payload-word write.
-noncomputable def uniswapErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 (uniswapErrorStringMem2 len mem) 196 32
+noncomputable abbrev uniswapErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+  solcErrorStringMem3 len word mem
 
 theorem uniswapErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
     (uniswapErrorStringMem0 mem).size = 160 := by
-  unfold uniswapErrorStringMem0
-  rw [toByteArray_write_eq _ _ _ (by rw [hmem]; omega)
-      (by rw [hmem]; exact lt_usize _ (by norm_num)),
-    ByteArray.size_append, ByteArray.size_append, hmem, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+  exact solcErrorStringMem0_size hmem
 
 theorem uniswapErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 96) :
     (uniswapErrorStringMem1 mem).size = 164 := by
-  unfold uniswapErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [uniswapErrorStringMem0_size hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem0_size hmem,
-    toByteArray_size]
-  omega
+  exact solcErrorStringMem1_size hmem
 
 theorem uniswapErrorStringMem2_size (len : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
     (uniswapErrorStringMem2 len mem).size = 196 := by
-  unfold uniswapErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by simp [uniswapErrorStringMem1_size hmem]),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem1_size hmem,
-    toByteArray_size]
-  omega
+  exact solcErrorStringMem2_size len hmem
 
 theorem uniswapErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
     (uniswapErrorStringMem3 len word mem).size = 228 := by
-  unfold uniswapErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by simp [uniswapErrorStringMem2_size len hmem]),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, uniswapErrorStringMem2_size len hmem,
-    toByteArray_size]
-  omega
+  exact solcErrorStringMem3_size len word hmem
 
--- LIBRARY CANDIDATE: Reasoning.Memory - `Error(string)` memory construction preserves the solc
--- free pointer word at `0x40`.
 theorem uniswapErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (uniswapErrorStringMem3 len word mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [uniswapErrorStringMem2_size len hmem]; omega) (by omega)
-      (by rw [uniswapErrorStringMem2_size len hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [uniswapErrorStringMem1_size hmem]; omega) (by omega)
-      (by rw [uniswapErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [uniswapErrorStringMem0_size hmem]; omega) (by omega)
-      (by rw [uniswapErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap uniswapErrorStringSelector _ 128 64
-      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
+  exact solcErrorStringMem3_read64 len word hmem hread64
 
--- LIBRARY CANDIDATE: Reasoning.Memory - `MLOAD 0x40` over generic solc `Error(string)` memory.
 theorem uniswapErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -106,13 +58,12 @@ theorem uniswapErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
        (fromByteArrayBigEndian
         ((uniswapErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapErrorStringMem3_size len word hmem]; decide)
-    (by decide) (uniswapErrorStringMem3_read64 len word hmem hread64)
+      = ⟨128⟩ := by
+  exact solcErrorStringMem3_mload64 len word hmem hread64
 
 theorem uniswapErrorStringMem0_size_of_size164 {mem : ByteArray} (hmem : mem.size = 164) :
     (uniswapErrorStringMem0 mem).size = 164 := by
-  unfold uniswapErrorStringMem0
+  unfold uniswapErrorStringMem0 solcErrorStringMem0
   rw [write32_eq _ _ _ (by rw [toByteArray_size])
       (by rw [hmem]; omega),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -121,7 +72,7 @@ theorem uniswapErrorStringMem0_size_of_size164 {mem : ByteArray} (hmem : mem.siz
 
 theorem uniswapErrorStringMem1_size_of_size164 {mem : ByteArray} (hmem : mem.size = 164) :
     (uniswapErrorStringMem1 mem).size = 164 := by
-  unfold uniswapErrorStringMem1
+  unfold uniswapErrorStringMem1 solcErrorStringMem1
   rw [write32_eq _ _ _ (by rw [toByteArray_size])
       (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; omega),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -132,7 +83,7 @@ theorem uniswapErrorStringMem1_size_of_size164 {mem : ByteArray} (hmem : mem.siz
 theorem uniswapErrorStringMem2_size_of_size164 (len : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164) :
     (uniswapErrorStringMem2 len mem).size = 196 := by
-  unfold uniswapErrorStringMem2
+  unfold uniswapErrorStringMem2 solcErrorStringMem2
   rw [write32_eq _ _ _ (by rw [toByteArray_size])
       (by rw [uniswapErrorStringMem1_size_of_size164 hmem]),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -143,7 +94,7 @@ theorem uniswapErrorStringMem2_size_of_size164 (len : UInt256) {mem : ByteArray}
 theorem uniswapErrorStringMem3_size_of_size164 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164) :
     (uniswapErrorStringMem3 len word mem).size = 228 := by
-  unfold uniswapErrorStringMem3
+  unfold uniswapErrorStringMem3 solcErrorStringMem3
   rw [write32_eq _ _ _ (by rw [toByteArray_size])
       (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -156,20 +107,20 @@ theorem uniswapErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : Byt
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (uniswapErrorStringMem3 len word mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapErrorStringMem3
+  unfold uniswapErrorStringMem3 solcErrorStringMem3
   rw [toByteArray_write_read_below_of_gap word _ 196 64
       (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]; omega) (by omega)
       (by rw [uniswapErrorStringMem2_size_of_size164 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem2
+  unfold solcErrorStringMem2
   rw [toByteArray_write_read_below_of_gap len _ 164 64
       (by rw [uniswapErrorStringMem1_size_of_size164 hmem]; omega) (by omega)
       (by rw [uniswapErrorStringMem1_size_of_size164 hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem1
+  unfold solcErrorStringMem1
   rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
       (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; omega) (by omega)
       (by rw [uniswapErrorStringMem0_size_of_size164 hmem]; exact lt_usize _ (by norm_num))]
-  unfold uniswapErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap uniswapErrorStringSelector _ 128 64
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
       (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
   exact hread64
 

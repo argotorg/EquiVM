@@ -8,96 +8,46 @@ namespace UniswapV2Pair
 
 /-! # Shared Uniswap V2 Pair storage helpers -/
 
--- LIBRARY CANDIDATE: Reasoning.Storage — storage-key word for an address decoded by solc's
--- masked external-wrapper path; removes the canonical-address precondition.
-theorem keyValueToWord_address_ofNat_mask (w : UInt256) :
-    keyValueToWord (.address (AccountAddress.ofNat w.toNat)) =
-      UInt256.land solcAddrMask w := by
-  rw [keyValueToWord_address]
-  apply u256_inj
-  rw [uland_toNat]
-  unfold AccountAddress.ofNat UInt256.ofNat UInt256.toNat
-  change (w.val.val % AccountAddress.size) % UInt256.size =
-    Nat.land solcAddrMask.toNat w.val.val
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-  rw [nat_land_comm]
-  rw [nat_land_mask_eq_mod]
-  rw [show AccountAddress.size = 2 ^ 160 by rfl]
-  exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160))
-    (by norm_num [UInt256.size]))
-
 /-! ## Single-mapping scratch memory -/
 
--- LIBRARY CANDIDATE: Reasoning.Memory — generic single-mapping scratch layout where solc stores
--- the base slot at `0x20` before storing the key at `0x00`.
-noncomputable def uniswapMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
-  wordAt32Mem baseSlot solcFreePtrMem
+noncomputable abbrev uniswapMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
+  solcMappingBaseSlotMem baseSlot
 
--- LIBRARY CANDIDATE: Reasoning.Memory — generic single-mapping scratch layout where solc stores
--- the base slot first and then the key.
-noncomputable def uniswapMappingHashMem (baseSlot key : UInt256) : ByteArray :=
-  wordAt0Mem key (uniswapMappingBaseSlotMem baseSlot)
+noncomputable abbrev uniswapMappingHashMem (baseSlot key : UInt256) : ByteArray :=
+  solcMappingHashMem baseSlot key
 
 theorem uniswapMappingBaseSlotMem_size (baseSlot : UInt256) :
     (uniswapMappingBaseSlotMem baseSlot).size = 96 := by
-  simpa [uniswapMappingBaseSlotMem] using
-    (wordAt32Mem_size_96 (mem := solcFreePtrMem) baseSlot solcFreePtrMem_size)
+  exact solcMappingBaseSlotMem_size baseSlot
 
 theorem uniswapMappingHashMem_size (baseSlot key : UInt256) :
     (uniswapMappingHashMem baseSlot key).size = 96 := by
-  simpa [uniswapMappingHashMem] using
-    (wordAt0Mem_size_96 (mem := uniswapMappingBaseSlotMem baseSlot) key
-      (uniswapMappingBaseSlotMem_size baseSlot))
+  exact solcMappingHashMem_size baseSlot key
 
 theorem uniswapMappingBaseSlotMem_read32 (baseSlot : UInt256) :
     (uniswapMappingBaseSlotMem baseSlot).readWithPadding 32 32 =
       UInt256.toByteArray baseSlot := by
-  unfold uniswapMappingBaseSlotMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [solcFreePtrMem_size]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray baseSlot).size ≤ 32
-    rw [toByteArray_size])
+  exact solcMappingBaseSlotMem_read32 baseSlot
 
 theorem uniswapMappingBaseSlotMem_read64 (baseSlot : UInt256) :
     (uniswapMappingBaseSlotMem baseSlot).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapMappingBaseSlotMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [solcFreePtrMem_size]; omega) (by omega)
-      (by rw [solcFreePtrMem_size]), solcFreePtrMem_read64]
+  exact solcMappingBaseSlotMem_read64 baseSlot
 
 theorem uniswapMappingHashMem_read0 (baseSlot key : UInt256) :
     (uniswapMappingHashMem baseSlot key).readWithPadding 0 32 =
       UInt256.toByteArray key := by
-  unfold uniswapMappingHashMem wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [uniswapMappingBaseSlotMem_size baseSlot]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
+  exact solcMappingHashMem_read0 baseSlot key
 
 theorem uniswapMappingHashMem_read32 (baseSlot key : UInt256) :
     (uniswapMappingHashMem baseSlot key).readWithPadding 32 32 =
       UInt256.toByteArray baseSlot := by
-  unfold uniswapMappingHashMem wordAt0Mem
-  rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size])
-      (by rw [uniswapMappingBaseSlotMem_size baseSlot]; omega) (by omega)
-      (by rw [uniswapMappingBaseSlotMem_size baseSlot]; omega),
-    uniswapMappingBaseSlotMem_read32]
+  exact solcMappingHashMem_read32 baseSlot key
 
 theorem uniswapMappingHashMem_read64 (baseSlot key : UInt256) :
     (uniswapMappingHashMem baseSlot key).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapMappingHashMem wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-      (by rw [uniswapMappingBaseSlotMem_size baseSlot]; omega) (by omega)
-      (by rw [uniswapMappingBaseSlotMem_size baseSlot]),
-    uniswapMappingBaseSlotMem_read64]
+  exact solcMappingHashMem_read64 baseSlot key
 
 theorem uniswapMappingHashMem_mload64 (baseSlot key : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingHashMem baseSlot key).size
@@ -105,82 +55,35 @@ theorem uniswapMappingHashMem_mload64 (baseSlot key : UInt256) :
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapMappingHashMem baseSlot key).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapMappingHashMem_size]; decide) (by decide)
-    (uniswapMappingHashMem_read64 baseSlot key)
+      = ⟨128⟩ := by
+  exact solcMappingHashMem_mload64 baseSlot key
 
 set_option maxHeartbeats 800000 in
 theorem uniswapMappingHashMem_read0_64 (baseSlot key : UInt256) :
     (uniswapMappingHashMem baseSlot key).readWithPadding 0 64 =
       UInt256.toByteArray key ++ UInt256.toByteArray baseSlot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [uniswapMappingHashMem_size baseSlot key]; omega)]
-  have hleft :
-      (uniswapMappingHashMem baseSlot key).extract 0 32 =
-        UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [uniswapMappingHashMem_size baseSlot key]; omega),
-      uniswapMappingHashMem_read0]
-  have hright :
-      (uniswapMappingHashMem baseSlot key).extract 32 64 =
-        UInt256.toByteArray baseSlot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [uniswapMappingHashMem_size baseSlot key]; omega),
-      uniswapMappingHashMem_read32]
-  rw [show (uniswapMappingHashMem baseSlot key).extract 0 64 =
-      (uniswapMappingHashMem baseSlot key).extract 0 32 ++
-        (uniswapMappingHashMem baseSlot key).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
+  exact solcMappingHashMem_read0_64 baseSlot key
 
 theorem uniswapMappingKeccakSlot (baseSlot key : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((uniswapMappingHashMem baseSlot key).readWithPadding 0 64)))
       = mapSlot key baseSlot := by
-  rw [uniswapMappingHashMem_read0_64]
-  unfold mapSlot
-  exact mappingSlot_single key baseSlot
+  simpa [mapSlot] using solcMappingKeccakSlot baseSlot key
 
 /-! ## Return memory after a mapping getter -/
 
--- LIBRARY CANDIDATE: Reasoning.Memory — generic one-word return memory over a 96-byte scratch
--- memory that preserves the solc free pointer at `0x40`.
-noncomputable def uniswapMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
-  (UInt256.toByteArray val).write 0 (uniswapMappingHashMem baseSlot key) 128 32
+noncomputable abbrev uniswapMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
+  solcScratchReturnMem (uniswapMappingHashMem baseSlot key) val
 
 theorem uniswapMappingReturnMem_size (baseSlot key val : UInt256) :
     (uniswapMappingReturnMem baseSlot key val).size = 160 := by
-  unfold uniswapMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapMappingHashMem_size]; omega)
-      (by rw [uniswapMappingHashMem_size]; exact lt_usize _ (by norm_num)),
-    ByteArray.size_append, ByteArray.size_append, uniswapMappingHashMem_size,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+  exact solcScratchReturnMem_size val (uniswapMappingHashMem_size baseSlot key)
 
 theorem uniswapMappingReturnMem_read64 (baseSlot key val : UInt256) :
     (uniswapMappingReturnMem baseSlot key val).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapMappingHashMem_size]; omega)
-      (by rw [uniswapMappingHashMem_size]; exact lt_usize _ (by norm_num))]
-  rw [readWithPadding_eq_extract _ 64 (by
-      rw [ByteArray.size_append, ByteArray.size_append, uniswapMappingHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
-      norm_num)]
-  rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, uniswapMappingHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-      omega)]
-  rw [extract_append_left _ _ _ _ (by rw [uniswapMappingHashMem_size]),
-    ← readWithPadding_eq_extract _ 64 (by rw [uniswapMappingHashMem_size]),
-    uniswapMappingHashMem_read64]
+  exact solcScratchReturnMem_read64 val (uniswapMappingHashMem_size baseSlot key)
+    (uniswapMappingHashMem_read64 baseSlot key)
 
 theorem uniswapMappingReturnMem_mload64 (baseSlot key val : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingReturnMem baseSlot key val).size
@@ -189,115 +92,58 @@ theorem uniswapMappingReturnMem_mload64 (baseSlot key val : UInt256) :
        (fromByteArrayBigEndian
         ((uniswapMappingReturnMem baseSlot key val).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapMappingReturnMem_size]; decide) (by decide)
-    (uniswapMappingReturnMem_read64 baseSlot key val)
+      = ⟨128⟩ := by
+  exact solcScratchReturnMem_mload64 val (uniswapMappingHashMem_size baseSlot key)
+    (uniswapMappingHashMem_read64 baseSlot key)
 
 theorem uniswapMappingReturnMem_read128 (baseSlot key val : UInt256) :
     (uniswapMappingReturnMem baseSlot key val).readWithPadding 128 32 =
       UInt256.toByteArray val := by
-  unfold uniswapMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapMappingHashMem_size]; omega)
-      (by rw [uniswapMappingHashMem_size]; exact lt_usize _ (by norm_num))]
-  rw [readWithPadding_eq_extract _ 128 (by
-      rw [ByteArray.size_append, ByteArray.size_append, uniswapMappingHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
-      )]
-  rw [extract_append_right_window
-      (uniswapMappingHashMem baseSlot key ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (uniswapMappingHashMem baseSlot key).size)))
-      (UInt256.toByteArray val) 128 160 (by
-        rw [ByteArray.size_append, uniswapMappingHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-        )]
-  rw [ByteArray.size_append, uniswapMappingHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-  norm_num
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray val).size ≤ 32
-    rw [toByteArray_size])
+  exact solcScratchReturnMem_read128 val (uniswapMappingHashMem_size baseSlot key)
 
 /-! ## Nested-mapping scratch memory -/
 
--- LIBRARY CANDIDATE: Reasoning.Memory — generic nested-mapping scratch layout where solc stores
--- `baseSlot` and the first key, hashes them, then stores the inner slot and second key.
-noncomputable def uniswapNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
-  wordAt32Mem (mapSlot owner baseSlot) (uniswapMappingHashMem baseSlot owner)
+noncomputable abbrev uniswapNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
+  solcNestedMappingOuterBaseMem baseSlot owner
 
--- LIBRARY CANDIDATE: Reasoning.Memory — final nested-mapping scratch layout before the outer hash.
-noncomputable def uniswapNestedMappingHashMem
+noncomputable abbrev uniswapNestedMappingHashMem
     (baseSlot owner spender : UInt256) : ByteArray :=
-  wordAt0Mem spender (uniswapNestedMappingOuterBaseMem baseSlot owner)
+  solcNestedMappingHashMem baseSlot owner spender
 
 theorem uniswapNestedMappingOuterBaseMem_size (baseSlot owner : UInt256) :
     (uniswapNestedMappingOuterBaseMem baseSlot owner).size = 96 := by
-  simpa [uniswapNestedMappingOuterBaseMem] using
-    (wordAt32Mem_size_96 (mem := uniswapMappingHashMem baseSlot owner)
-      (mapSlot owner baseSlot) (uniswapMappingHashMem_size baseSlot owner))
+  exact solcNestedMappingOuterBaseMem_size baseSlot owner
 
 theorem uniswapNestedMappingHashMem_size (baseSlot owner spender : UInt256) :
     (uniswapNestedMappingHashMem baseSlot owner spender).size = 96 := by
-  simpa [uniswapNestedMappingHashMem] using
-    (wordAt0Mem_size_96 (mem := uniswapNestedMappingOuterBaseMem baseSlot owner)
-      spender (uniswapNestedMappingOuterBaseMem_size baseSlot owner))
+  exact solcNestedMappingHashMem_size baseSlot owner spender
 
 theorem uniswapNestedMappingOuterBaseMem_read32 (baseSlot owner : UInt256) :
     (uniswapNestedMappingOuterBaseMem baseSlot owner).readWithPadding 32 32 =
       UInt256.toByteArray (mapSlot owner baseSlot) := by
-  unfold uniswapNestedMappingOuterBaseMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [uniswapMappingHashMem_size]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray (mapSlot owner baseSlot)).size ≤ 32
-    rw [toByteArray_size])
+  simpa [mapSlot, solcMappingSlot] using
+    solcNestedMappingOuterBaseMem_read32 baseSlot owner
 
 theorem uniswapNestedMappingOuterBaseMem_read64 (baseSlot owner : UInt256) :
     (uniswapNestedMappingOuterBaseMem baseSlot owner).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapNestedMappingOuterBaseMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [uniswapMappingHashMem_size]; omega) (by omega)
-      (by rw [uniswapMappingHashMem_size]),
-    uniswapMappingHashMem_read64]
+  exact solcNestedMappingOuterBaseMem_read64 baseSlot owner
 
 theorem uniswapNestedMappingHashMem_read0 (baseSlot owner spender : UInt256) :
     (uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 0 32 =
       UInt256.toByteArray spender := by
-  unfold uniswapNestedMappingHashMem wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [uniswapNestedMappingOuterBaseMem_size]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray spender).size ≤ 32
-    rw [toByteArray_size])
+  exact solcNestedMappingHashMem_read0 baseSlot owner spender
 
 theorem uniswapNestedMappingHashMem_read32 (baseSlot owner spender : UInt256) :
     (uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 32 32 =
       UInt256.toByteArray (mapSlot owner baseSlot) := by
-  unfold uniswapNestedMappingHashMem wordAt0Mem
-  rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size])
-      (by rw [uniswapNestedMappingOuterBaseMem_size]; omega) (by omega)
-      (by rw [uniswapNestedMappingOuterBaseMem_size]; omega),
-    uniswapNestedMappingOuterBaseMem_read32]
+  simpa [mapSlot, solcMappingSlot] using
+    solcNestedMappingHashMem_read32 baseSlot owner spender
 
 theorem uniswapNestedMappingHashMem_read64 (baseSlot owner spender : UInt256) :
     (uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapNestedMappingHashMem wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-      (by rw [uniswapNestedMappingOuterBaseMem_size]; omega) (by omega)
-      (by rw [uniswapNestedMappingOuterBaseMem_size]),
-    uniswapNestedMappingOuterBaseMem_read64]
+  exact solcNestedMappingHashMem_read64 baseSlot owner spender
 
 theorem uniswapNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingHashMem baseSlot owner spender).size
@@ -306,84 +152,40 @@ theorem uniswapNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
        (fromByteArrayBigEndian
         ((uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapNestedMappingHashMem_size]; decide) (by decide)
-    (uniswapNestedMappingHashMem_read64 baseSlot owner spender)
+      = ⟨128⟩ := by
+  exact solcNestedMappingHashMem_mload64 baseSlot owner spender
 
 set_option maxHeartbeats 800000 in
 theorem uniswapNestedMappingHashMem_read0_64 (baseSlot owner spender : UInt256) :
     (uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64 =
       UInt256.toByteArray spender ++ UInt256.toByteArray (mapSlot owner baseSlot) := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [uniswapNestedMappingHashMem_size baseSlot owner spender]; omega)]
-  have hleft :
-      (uniswapNestedMappingHashMem baseSlot owner spender).extract 0 32 =
-        UInt256.toByteArray spender := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [uniswapNestedMappingHashMem_size baseSlot owner spender]; omega),
-      uniswapNestedMappingHashMem_read0]
-  have hright :
-      (uniswapNestedMappingHashMem baseSlot owner spender).extract 32 64 =
-        UInt256.toByteArray (mapSlot owner baseSlot) := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [uniswapNestedMappingHashMem_size baseSlot owner spender]; omega),
-      uniswapNestedMappingHashMem_read32]
-  rw [show (uniswapNestedMappingHashMem baseSlot owner spender).extract 0 64 =
-      (uniswapNestedMappingHashMem baseSlot owner spender).extract 0 32 ++
-        (uniswapNestedMappingHashMem baseSlot owner spender).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
+  simpa [mapSlot, solcMappingSlot] using
+    solcNestedMappingHashMem_read0_64 baseSlot owner spender
 
 theorem uniswapNestedMappingKeccakSlot (baseSlot owner spender : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
       = mapSlot spender (mapSlot owner baseSlot) := by
-  rw [uniswapNestedMappingHashMem_read0_64]
-  unfold mapSlot
-  exact mappingSlot_single spender (mapSlot owner baseSlot)
+  simpa [mapSlot, solcMappingSlot] using
+    solcNestedMappingKeccakSlot baseSlot owner spender
 
 /-! ## Return memory after a nested-mapping getter -/
 
--- LIBRARY CANDIDATE: Reasoning.Memory — generic one-word return memory over nested-mapping
--- scratch memory that preserves the solc free pointer at `0x40`.
-noncomputable def uniswapNestedMappingReturnMem
+noncomputable abbrev uniswapNestedMappingReturnMem
     (baseSlot owner spender val : UInt256) : ByteArray :=
-  (UInt256.toByteArray val).write 0
-    (uniswapNestedMappingHashMem baseSlot owner spender) 128 32
+  solcScratchReturnMem (uniswapNestedMappingHashMem baseSlot owner spender) val
 
 theorem uniswapNestedMappingReturnMem_size (baseSlot owner spender val : UInt256) :
     (uniswapNestedMappingReturnMem baseSlot owner spender val).size = 160 := by
-  unfold uniswapNestedMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapNestedMappingHashMem_size]; omega)
-      (by rw [uniswapNestedMappingHashMem_size]; exact lt_usize _ (by norm_num)),
-    ByteArray.size_append, ByteArray.size_append, uniswapNestedMappingHashMem_size,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+  exact solcScratchReturnMem_size val
+    (uniswapNestedMappingHashMem_size baseSlot owner spender)
 
 theorem uniswapNestedMappingReturnMem_read64 (baseSlot owner spender val : UInt256) :
     (uniswapNestedMappingReturnMem baseSlot owner spender val).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold uniswapNestedMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapNestedMappingHashMem_size]; omega)
-      (by rw [uniswapNestedMappingHashMem_size]; exact lt_usize _ (by norm_num))]
-  rw [readWithPadding_eq_extract _ 64 (by
-      rw [ByteArray.size_append, ByteArray.size_append, uniswapNestedMappingHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
-      norm_num)]
-  rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, uniswapNestedMappingHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-      omega)]
-  rw [extract_append_left _ _ _ _ (by rw [uniswapNestedMappingHashMem_size]),
-    ← readWithPadding_eq_extract _ 64 (by rw [uniswapNestedMappingHashMem_size]),
-    uniswapNestedMappingHashMem_read64]
+  exact solcScratchReturnMem_read64 val
+    (uniswapNestedMappingHashMem_size baseSlot owner spender)
+    (uniswapNestedMappingHashMem_read64 baseSlot owner spender)
 
 theorem uniswapNestedMappingReturnMem_mload64 (baseSlot owner spender val : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingReturnMem baseSlot owner spender val).size
@@ -392,39 +194,16 @@ theorem uniswapNestedMappingReturnMem_mload64 (baseSlot owner spender val : UInt
        (fromByteArrayBigEndian
         ((uniswapNestedMappingReturnMem baseSlot owner spender val).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapNestedMappingReturnMem_size]; decide) (by decide)
-    (uniswapNestedMappingReturnMem_read64 baseSlot owner spender val)
+      = ⟨128⟩ := by
+  exact solcScratchReturnMem_mload64 val
+    (uniswapNestedMappingHashMem_size baseSlot owner spender)
+    (uniswapNestedMappingHashMem_read64 baseSlot owner spender)
 
 theorem uniswapNestedMappingReturnMem_read128 (baseSlot owner spender val : UInt256) :
     (uniswapNestedMappingReturnMem baseSlot owner spender val).readWithPadding 128 32 =
       UInt256.toByteArray val := by
-  unfold uniswapNestedMappingReturnMem
-  rw [toByteArray_write_eq _ _ _ (by rw [uniswapNestedMappingHashMem_size]; omega)
-      (by rw [uniswapNestedMappingHashMem_size]; exact lt_usize _ (by norm_num))]
-  rw [readWithPadding_eq_extract _ 128 (by
-      rw [ByteArray.size_append, ByteArray.size_append, uniswapNestedMappingHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size])]
-  rw [extract_append_right_window
-      (uniswapNestedMappingHashMem baseSlot owner spender ++
-        ffi.ByteArray.zeroes
-          (USize.ofNat (128 - (uniswapNestedMappingHashMem baseSlot owner spender).size)))
-      (UInt256.toByteArray val) 128 160 (by
-        rw [ByteArray.size_append, uniswapNestedMappingHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
-  rw [ByteArray.size_append, uniswapNestedMappingHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-  norm_num
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray val).size ≤ 32
-    rw [toByteArray_size])
+  exact solcScratchReturnMem_read128 val
+    (uniswapNestedMappingHashMem_size baseSlot owner spender)
 
 end UniswapV2Pair
 

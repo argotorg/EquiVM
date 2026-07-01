@@ -746,21 +746,15 @@ theorem RD.uniswapSafeMathAddSuccess {g : Sat256} {s0 : State} {ee : ExecutionEn
 
 /-! ## Shared internal `_transfer` routine prefix -/
 
--- LIBRARY CANDIDATE: Reasoning.Storage — code-owner storage lookup expression matching the word
--- pushed by `SLOAD`, parameterized by execution environment, account map, and slot.
 abbrev uniswapCodeOwnerStorageWord (ee : ExecutionEnv) (σ : AccountMap)
     (slot : UInt256) : UInt256 :=
-  σ.find? ee.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD slot ⟨0⟩)
+  codeOwnerStorageWord ee σ slot
 
--- LIBRARY CANDIDATE: Reasoning.Storage — `initState` code-owner `storageLoad` normalized to the
--- storage word expression pushed by `SLOAD`.
 theorem uniswapCodeOwnerStorageWord_initState {cA gh bl σ σ₀ A I} {g : Sat256}
     (slot : UInt256) :
     Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner slot =
       uniswapCodeOwnerStorageWord I σ slot := by
-  simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-    uniswapCodeOwnerStorageWord]
+  exact codeOwnerStorageWord_initState slot
 
 -- GENERALIZES Examples.UniswapV2Pair.Routines.RD.uniswapTransferInternalFromBalanceLoad —
 -- parameterizes the initial 96-byte scratch memory instead of requiring `solcFreePtrMem`.

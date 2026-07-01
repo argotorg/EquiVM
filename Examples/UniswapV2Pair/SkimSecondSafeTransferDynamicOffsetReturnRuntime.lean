@@ -1403,7 +1403,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
-    (by simp [err0, uniswapErrorStringSelector])
+    (by simp [err0, uniswapErrorStringSelector, solcErrorStringSelector])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6716 := evm_run rd6710 with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]

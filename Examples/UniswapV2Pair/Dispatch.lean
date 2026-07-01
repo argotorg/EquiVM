@@ -12,28 +12,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.R
 
 set_option maxRecDepth 2000000
 
-namespace Reasoning.Reach
-
--- GENERALIZES Reasoning.Reach.RD.revertStub — same terminal `revert(0,0)` shape,
--- with `PUSH1 0; DUP1` replacing `PUSH0; PUSH0`.
--- LIBRARY CANDIDATE: Reasoning.Reach — generic `PUSH1 0; DUP1; REVERT` terminal
--- stub for older solc output.
-theorem RD.uniswapPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hd0 : decode code pc = some (.Push .PUSH1, some (⟨0⟩, 1)))
-    (hd1 : decode code (pc + UInt256.ofNat 2) = some (.DUP1, .none))
-    (hd2 : decode code (pc + UInt256.ofNat 2 + ⟨1⟩) = some (.REVERT, .none))
-    (hov : stk.length + 2 ≤ 1024) :
-    RDrev code g s0 :=
-  h.push1 ⟨0⟩ hd0 (by omega)
-    |>.dup1 hd1 (by omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
-
-end Reasoning.Reach
-
 namespace UniswapV2Pair
 
 /-! ## Dispatcher layout -/
