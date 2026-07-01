@@ -1,4 +1,5 @@
 import Examples.UniswapV2Pair.SkimSecondSafeTransferRuntime
+import Examples.UniswapV2Pair.SkimSafeTransferReturn
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -461,59 +462,19 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyHugeReverts {g : Sat256} {s0 : S
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  let rdsz : UInt256 := UInt256.ofNat out.size
-  have hrdsz_toNat : rdsz.toNat = out.size := by
-    dsimp [rdsz]
-    exact UInt256.toNat_ofNat_of_lt houtSize
-  have hrdsz_ne : rdsz ≠ ⟨0⟩ := by
-    intro hzero
-    have hnat : rdsz.toNat = 0 := by rw [hzero]; rfl
-    rw [hrdsz_toNat] at hnat
-    exact houtNe hnat
-  have heq0 : UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ := u256_eq_of_ne hrdsz_ne
-  have rd6607 := evm_run h with [
-    swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
-  have rd6608 := rd6607
-  change UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ at heq0
-  rw [show UInt256.ofNat out.size = rdsz from rfl, heq0] at rd6608
-  have rd6610 := evm_run rd6608 with [jumpiNT (by native_decide), push1 ⟨64⟩]
-  have rd6611 := evm_run rd6610 with [
-    raw mload 0 ⟨456⟩ (UInt256.ofNat 18) (by native_decide)
-      mem_cost (skimSecondSafeTransferCallMem2_mload64 self toWord prevValue value ho32 hoSize hout2_32 hout2Size)
-      (by native_decide) (by evm_ov)]
-  let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
-  let mem2 : ByteArray :=
-    (UInt256.toByteArray (UInt256.add ⟨456⟩ rounded)).write 0
-      (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value) 64 32
-  have rd6626 := evm_run rd6611 with [
-    swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and,
-    dup3, add, push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 18) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
-  let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 456 32
-  have rd6629 := evm_run rd6626 with [
-    returndatasize, dup3,
-    raw mstore 0 mem3 (UInt256.ofNat 18) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
-  have rd6636 := evm_run rd6629 with [returndatasize, push1 ⟨0⟩, push1 ⟨32⟩, dup5, add]
-  let copyDest : UInt256 := (⟨456⟩ : UInt256) + ⟨32⟩
-  let copyLen : UInt256 := UInt256.ofNat out.size
-  have hcopyDest_toNat : copyDest.toNat = 488 := by
-    decide
-  have hcopyLen_toNat : copyLen.toNat = out.size := by
-    simpa [copyLen] using UInt256.toNat_ofNat_of_lt houtSize
-  exact RD.returndatacopyOOG
-    (Cₘ (skimSecondSafeTransferReturnDataActiveWords out) - Cₘ (UInt256.ofNat 18))
-    rd6636 (by native_decide)
-    (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
+  exact RD.uniswapSafeTransferReturnNonemptyHugeReverts
+    (base := (⟨456⟩ : UInt256)) (gasMarker := UInt256.ofNat 18)
+    (R := token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
+    h houtNe houtSize
+    (skimSecondSafeTransferCallMem2_mload64 self toWord prevValue value ho32 hoSize
+      hout2_32 hout2Size)
+    (by decide)
+    (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
-        skimSecondSafeTransferReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
-    (by
+      rw [show (((⟨456⟩ : UInt256) + ⟨32⟩).toNat) = 488 from by decide]
       simpa [skimSecondSafeTransferReturnDataActiveWords] using
         skimSecondSafeTransferReturnDataHugeCopyMemCost_gt_g g out hhi houtSize)
-    (by evm_ov)
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyFailureReverts {g : Sat256} {s0 : State}
@@ -528,107 +489,13 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFailureReverts {g : Sat256} {s0 
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  obtain ⟨k6652, C6652, rd6652⟩ :=
+  obtain ⟨_, _, rd6652⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck
       (self := self) (value := value) (toWord := toWord) (token := token)
       (token0 := token0) (ret := ret) (sel := sel) (status := (⟨0⟩ : UInt256))
       h houtNe houtSize ho32 hoSize hout2_32 hout2Size
-  have rd6692 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
-  have rd6697 := evm_run rd6692 with [
-    jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
-  let mem0 := skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out
-  let aw0 := skimSecondSafeTransferReturnDataActiveWords out
-  let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
-      ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
-  let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd6701 := evm_run rd6697 with [push1 ⟨64⟩, dup1]
-  have rd6701' := RD.mload
-    (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw0, aw1])
-    (by rfl)
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6705 := rd6701'.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
-  have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
-  let err0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem0 fp0.toNat 32
-  let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
-  have rd6710 := RD.mstore
-    (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
-    (by simp [err0, mem0, uniswapErrorStringSelector])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6716 := evm_run rd6710 with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]
-  let off1 : UInt256 := fp0 + ⟨4⟩
-  let err1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 off1.toNat 32
-  let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat off1.toNat 32)
-  have rd6717 := RD.mstore
-    (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
-    (by simp [err1, off1])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6723 := evm_run rd6717 with [push1 ⟨26⟩, push1 ⟨36⟩, dup3, add]
-  let off2 : UInt256 := fp0 + ⟨36⟩
-  let err2 : ByteArray := (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0 err1 off2.toNat 32
-  let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat off2.toNat 32)
-  have rd6724 := RD.mstore
-    (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
-    (by simp [err2, off2])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6757 := rd6724.pushConst uniswapSafeTransferFailedStringWord
-    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
-  have rd6760 := evm_run rd6757 with [push1 ⟨68⟩, dup3, add]
-  let off3 : UInt256 := fp0 + ⟨68⟩
-  let err3 : ByteArray := (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
-    err2 off3.toNat 32
-  let aw5 : UInt256 := UInt256.ofNat (MachineState.M aw4.toNat off3.toNat 32)
-  have rd6762 := RD.mstore
-    (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
-    (by simp [err3, off3])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6763 := evm_run rd6762 with [swap1]
-  let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
-      ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
-  let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd6764 := RD.mload
-    (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
-    (by rfl)
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6772 := evm_run rd6764 with [
-    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1]
-  exact RD.rev
-    (Cₘ (UInt256.ofNat
-      (MachineState.M aw6.toNat fp1.toNat ((⟨100⟩ : UInt256) + fp0.sub fp1).toNat)) -
-      Cₘ aw6)
-    rd6772 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
+  exact RD.uniswapSafeTransferReturnNonemptyFailureReverts
+    (R := token :: token0 :: toWord :: ⟨570⟩ :: sel :: []) rd6652
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -644,99 +511,8 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts {g : Sat25
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  let mem0 := skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out
-  let aw0 := skimSecondSafeTransferReturnDataActiveWords out
-  let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
-      ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
-  let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd6701 := evm_run h with [push1 ⟨64⟩, dup1]
-  have rd6701' := RD.mload
-    (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw0, aw1])
-    (by rfl)
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6705 := rd6701'.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
-  have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
-  let err0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem0 fp0.toNat 32
-  let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
-  have rd6710 := RD.mstore
-    (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
-    (by simp [err0, mem0, uniswapErrorStringSelector])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6716 := evm_run rd6710 with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]
-  let off1 : UInt256 := fp0 + ⟨4⟩
-  let err1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 off1.toNat 32
-  let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat off1.toNat 32)
-  have rd6717 := RD.mstore
-    (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
-    (by simp [err1, off1])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6723 := evm_run rd6717 with [push1 ⟨26⟩, push1 ⟨36⟩, dup3, add]
-  let off2 : UInt256 := fp0 + ⟨36⟩
-  let err2 : ByteArray := (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0 err1 off2.toNat 32
-  let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat off2.toNat 32)
-  have rd6724 := RD.mstore
-    (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
-    (by simp [err2, off2])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6757 := rd6724.pushConst uniswapSafeTransferFailedStringWord
-    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
-  have rd6760 := evm_run rd6757 with [push1 ⟨68⟩, dup3, add]
-  let off3 : UInt256 := fp0 + ⟨68⟩
-  let err3 : ByteArray := (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
-    err2 off3.toNat 32
-  let aw5 : UInt256 := UInt256.ofNat (MachineState.M aw4.toNat off3.toNat 32)
-  have rd6762 := RD.mstore
-    (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
-    (by simp [err3, off3])
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6763 := evm_run rd6762 with [swap1]
-  let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
-      ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
-  let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd6764 := RD.mload
-    (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
-    (by rfl)
-    (by rfl)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd6772 := evm_run rd6764 with [
-    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1]
-  exact RD.rev
-    (Cₘ (UInt256.ofNat
-      (MachineState.M aw6.toNat fp1.toNat ((⟨100⟩ : UInt256) + fp0.sub fp1).toNat)) -
-      Cₘ aw6)
-    rd6772 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
-    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts
+    (R := token :: token0 :: toWord :: ⟨570⟩ :: sel :: []) h (by simp)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded {g : Sat256}

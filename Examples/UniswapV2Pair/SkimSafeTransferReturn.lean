@@ -1,0 +1,210 @@
+import Examples.UniswapV2Pair.SkimSafeTransferRuntime
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+
+set_option maxRecDepth 2000000
+
+namespace UniswapV2Pair
+
+/-!
+  Generic dynamic `_safeTransfer` return-data tails.
+
+  LIBRARY CANDIDATE: Reasoning/ (ERC20 safeTransfer return-handling is
+  contract-independent).
+-/
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ}
+    {status returnPc base gasMarker value toWord token ret : UInt256}
+    {R : List UInt256} {callMem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+      (status :: returnPc :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
+        value :: toWord :: token :: ret :: R)
+      callMem gasMarker out acc k C)
+    (houtNe : out.size ≠ 0) (houtSize : out.size < UInt256.size)
+    (hcallMem64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ callMem.size ∨
+          (⟨64⟩ : UInt256) ≥ gasMarker * ⟨32⟩
+       then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (callMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+      base)
+    (haw64 :
+      UInt256.ofNat (MachineState.M gasMarker.toNat (⟨64⟩ : UInt256).toNat 32) =
+        gasMarker)
+    (hawBase :
+      UInt256.ofNat (MachineState.M gasMarker.toNat base.toNat 32) = gasMarker)
+    (hHugeCost : g.toNat <
+      Cₘ (UInt256.ofNat (MachineState.M gasMarker.toNat ((base + ⟨32⟩).toNat) out.size)) -
+        Cₘ gasMarker)
+    (hR : R.length + 16 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  let rdsz : UInt256 := UInt256.ofNat out.size
+  have hrdsz_ne : rdsz ≠ ⟨0⟩ := by
+    intro hzero
+    have hnat : rdsz.toNat = 0 := by rw [hzero]; rfl
+    rw [show rdsz.toNat = out.size by
+      dsimp [rdsz]
+      exact UInt256.toNat_ofNat_of_lt houtSize] at hnat
+    exact houtNe hnat
+  have heq0 : UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ := u256_eq_of_ne hrdsz_ne
+  have rd6607 := evm_run h with [
+    swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
+  change UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ at heq0
+  rw [show UInt256.ofNat out.size = rdsz from rfl, heq0] at rd6607
+  have rd6610 := evm_run rd6607 with [jumpiNT (by native_decide), push1 ⟨64⟩]
+  have rd6611 := RD.mload 0 base gasMarker rd6610 (by native_decide)
+    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    hcallMem64 haw64
+    (by simp only [List.length_cons]; omega)
+  let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
+  let mem2 : ByteArray := ((base + rounded).toByteArray).write 0 callMem 64 32
+  have rd6626pre := evm_run rd6611 with [
+    swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and,
+    dup3, add, push1 ⟨64⟩]
+  have rd6626 := RD.mstore 0 mem2 gasMarker rd6626pre (by native_decide)
+    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    (by dsimp [mem2]; rfl)
+    haw64
+    (by simp only [List.length_cons]; omega)
+  let mem3 : ByteArray := rdsz.toByteArray.write 0 mem2 base.toNat 32
+  have rd6629pre := evm_run rd6626 with [returndatasize, dup3]
+  have rd6629 := RD.mstore 0 mem3 gasMarker rd6629pre (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawBase])
+    (by dsimp [mem3])
+    hawBase
+    (by simp only [List.length_cons]; omega)
+  have rd6636 := evm_run rd6629 with [returndatasize, push1 ⟨0⟩, push1 ⟨32⟩, dup5, add]
+  exact RD.returndatacopyOOG
+    (Cₘ (UInt256.ofNat (MachineState.M gasMarker.toNat ((base + ⟨32⟩).toNat) out.size)) -
+      Cₘ gasMarker)
+    rd6636 (by native_decide)
+    (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, UInt256.toNat_ofNat_of_lt houtSize]; omega)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        UInt256.toNat_ofNat_of_lt houtSize])
+    hHugeCost
+    (by simp only [List.length_cons]; omega)
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {base status value toWord token ret : UInt256}
+    {R : List UInt256} {mem0 out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
+      (base :: status :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+    (hR : R.length + 16 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  let fp0 : UInt256 :=
+    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
+      ⟨0⟩
+    else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
+  let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
+  have rd6701 := evm_run h with [push1 ⟨64⟩, dup1]
+  have rd6701' := RD.mload
+    (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1])
+    (by rfl)
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6705 := rd6701'.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
+  have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
+  let err0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem0 fp0.toNat 32
+  let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
+  have rd6710 := RD.mstore
+    (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
+    (by simp [err0, uniswapErrorStringSelector])
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6716 := evm_run rd6710 with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]
+  let off1 : UInt256 := fp0 + ⟨4⟩
+  let err1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 off1.toNat 32
+  let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat off1.toNat 32)
+  have rd6717 := RD.mstore
+    (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
+    (by simp [err1, off1])
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6723 := evm_run rd6717 with [push1 ⟨26⟩, push1 ⟨36⟩, dup3, add]
+  let off2 : UInt256 := fp0 + ⟨36⟩
+  let err2 : ByteArray := (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0 err1 off2.toNat 32
+  let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat off2.toNat 32)
+  have rd6724 := RD.mstore
+    (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
+    (by simp [err2, off2])
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6757 := rd6724.pushConst uniswapSafeTransferFailedStringWord
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
+  have rd6760 := evm_run rd6757 with [push1 ⟨68⟩, dup3, add]
+  let off3 : UInt256 := fp0 + ⟨68⟩
+  let err3 : ByteArray := (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
+    err2 off3.toNat 32
+  let aw5 : UInt256 := UInt256.ofNat (MachineState.M aw4.toNat off3.toNat 32)
+  have rd6762 := RD.mstore
+    (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
+    (by simp [err3, off3])
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6763 := evm_run rd6762 with [swap1]
+  let fp1 : UInt256 :=
+    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+      ⟨0⟩
+    else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
+  let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
+  have rd6764 := RD.mload
+    (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
+    (by rfl)
+    (by rfl)
+    (by simp only [List.length_cons]; omega)
+  have rd6772 := evm_run rd6764 with [
+    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1]
+  exact RD.rev
+    (Cₘ (UInt256.ofNat
+      (MachineState.M aw6.toNat fp1.toNat ((⟨100⟩ : UInt256) + fp0.sub fp1).toNat)) -
+      Cₘ aw6)
+    rd6772 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
+    (by simp only [List.length_cons]; omega)
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeTransferReturnNonemptyFailureReverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {base value toWord token ret : UInt256}
+    {R : List UInt256} {mem0 out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
+      (base :: ⟨0⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+    (hR : R.length + 16 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have rd6692 := evm_run h with [
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+  have rd6697 := evm_run rd6692 with [
+    jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
+  exact RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts (R := R) rd6697 hR
+
+end UniswapV2Pair
