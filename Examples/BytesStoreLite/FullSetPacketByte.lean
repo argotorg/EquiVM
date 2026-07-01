@@ -1,4 +1,5 @@
 import Examples.BytesStoreLite.FullSetByte
+import Examples.BytesStoreLite.FullSetPacketStorage
 
 /-!
 # BytesStoreLite — `setPacketByte(uint256,uint8)` runtime slice
@@ -18,6 +19,31 @@ def bytesStoreLiteSetPacketByteLocals (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "byteIndex"
     (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat))).insert "value"
     (.int (Int.ofNat (bytesStoreLiteSetByteValueWord I).toNat))
+
+theorem bytesStoreLiteSetPacketByteLocals_get_byteIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetPacketByteLocals I).get? "byteIndex" =
+      some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
+  rw [bytesStoreLiteSetPacketByteLocals]
+  rw [store_get_ne (h := by decide)]
+  rw [store_get_self]
+
+theorem bytesStoreLiteSetPacketByteLocals_getElem_byteIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetPacketByteLocals I)["byteIndex"]? =
+      some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetPacketByteLocals_get_byteIndex I
+
+theorem bytesStoreLiteSetPacketByteLocals_get_packet_none (I : ExecutionEnv) :
+    (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none := by
+  rw [bytesStoreLiteSetPacketByteLocals]
+  rw [store_get_ne (h := by decide)]
+  rw [store_get_ne (h := by decide)]
+  simp
+
+theorem bytesStoreLiteSetPacketByteLocals_getElem_packet_none (I : ExecutionEnv) :
+    (bytesStoreLiteSetPacketByteLocals I)["packet"]? = none := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetPacketByteLocals_get_packet_none I
 
 def bytesStoreLiteSetPacketByteRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "packet"
@@ -56,6 +82,27 @@ def bytesStoreLiteSetPacketByteLongOldWord (σ : AccountMap) (I : ExecutionEnv) 
   (σ.find? I.codeOwner |>.option ⟨0⟩
     (fun acc => acc.storage.findD (bytesStoreLiteSetPacketByteLongDataSlot I) ⟨0⟩))
 
+theorem bytesStoreLiteSetPacketByteLongOldWord_eq_of_accountMapEquiv
+    {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    bytesStoreLiteSetPacketByteLongOldWord σ_evm I =
+      bytesStoreLiteSetPacketByteLongOldWord σ_solm I :=
+  accountMapEquiv_storage_findD hAccounts I.codeOwner
+    (bytesStoreLiteSetPacketByteLongDataSlot I) ⟨0⟩
+
+theorem bytesStoreLiteStorageLoadSetPacketByteLongData_initState_of_accountMapEquiv
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner
+        (bytesStoreLiteSetPacketByteLongDataSlot I) =
+      bytesStoreLiteSetPacketByteLongOldWord σ_evm I := by
+  simpa [bytesStoreLiteSetPacketByteLongOldWord] using
+    bytesStoreLiteStorageLoad_initState_of_accountMapEquiv
+      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g) (bytesStoreLiteSetPacketByteLongDataSlot I) hAccounts
+
 def bytesStoreLiteSetPacketByteLongStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
     (UInt256.mul
@@ -65,10 +112,6 @@ def bytesStoreLiteSetPacketByteLongStoredWord (σ : AccountMap) (I : ExecutionEn
     (UInt256.land
       (UInt256.lnot (UInt256.mul ⟨255⟩ (bytesStoreLiteSetPacketByteLongScale I)))
       (bytesStoreLiteSetPacketByteLongOldWord σ I))
-
-/-- Trusted keccak disjointness: `packet.data` long-bytes data slots do not alias its header. -/
-axiom bytesStoreLitePacketDataSlot_ne_header (idx : UInt256) :
-    bytesLikeDataBase ⟨2⟩ + UInt256.div idx ⟨32⟩ ≠ (⟨2⟩ : UInt256)
 
 theorem bytesStoreLiteSetPacketByteLongBaseHash :
     UInt256.ofNat (fromByteArrayBigEndian
@@ -822,25 +865,13 @@ theorem bytesStoreLiteSetPacketByteResolveOfLength {evm : EVM.State} {I : Execut
       (bytesStoreLiteSetPacketByteFrame I)
       evm (packetDataByteRef (.var "byteIndex")) =
         .ok (bytesStoreLiteSetPacketByteRef I, uint8St) := by
-  have hgetIndex :
-      (bytesStoreLiteSetPacketByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_self]
   have hgetIndexElem :
       (bytesStoreLiteSetPacketByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetPacketByteLocals_getElem_byteIndex I
   have hgetPacket :
-      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
-  have hgetPacketElem :
-      (bytesStoreLiteSetPacketByteLocals I)["packet"]? = none := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetPacket
+      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none :=
+    bytesStoreLiteSetPacketByteLocals_get_packet_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -1142,15 +1173,13 @@ theorem bytesStoreLiteSetPacketByteLongBodyReturns
           .ok (bytesStoreLiteSetPacketByteFrame I, evm') :=
     bytesStoreLiteSetPacketByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
       hlenRead hbound hstore
-  have hne : (⟨2⟩ : UInt256) ≠ bytesStoreLiteSetPacketByteLongDataSlot I := by
-    exact (bytesStoreLitePacketDataSlot_ne_header (bytesStoreLiteSetByteIndexWord I)).symm
   have hloadHeaderPost :
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨2⟩ =
         bytesStoreLitePacketLengthHeaderWord σ I := by
-    simpa [evm', storageStore_executionEnv] using
-      (by
-        rw [storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hne]
-        exact hloadHeader)
+    simpa [evm', storageStore_executionEnv, bytesStoreLiteSetPacketByteLongDataSlot] using
+      bytesStoreLiteStorageLoadBytesHeaderAfterDataStore_eq_of_before
+        (evm := evm) (baseSlot := ⟨2⟩) (idx := bytesStoreLiteSetByteIndexWord I)
+        (val := bytesStoreLiteSetPacketByteLongStoredWord σ I) hloadHeader
   have hlenPost :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           { base := "packet", steps := [.field "data"] } =
@@ -1212,25 +1241,13 @@ theorem bytesStoreLiteSetPacketByteResolveRevertsOfLength {evm : EVM.State} {I :
     resolveStorageRef? bytesStoreLiteConfig
       { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetPacketByteLocals I }
       evm (packetDataByteRef (.var "byteIndex")) = .revert := by
-  have hgetIndex :
-      (bytesStoreLiteSetPacketByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_self]
   have hgetIndexElem :
       (bytesStoreLiteSetPacketByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetPacketByteLocals_getElem_byteIndex I
   have hgetPacket :
-      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
-  have hgetPacketElem :
-      (bytesStoreLiteSetPacketByteLocals I)["packet"]? = none := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetPacket
+      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none :=
+    bytesStoreLiteSetPacketByteLocals_get_packet_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -1290,25 +1307,13 @@ theorem bytesStoreLiteSetPacketByteResolveRevertsOfLengthRead
     resolveStorageRef? bytesStoreLiteConfig
       { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetPacketByteLocals I }
       evm (packetDataByteRef (.var "byteIndex")) = .revert := by
-  have hgetIndex :
-      (bytesStoreLiteSetPacketByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_self]
   have hgetIndexElem :
       (bytesStoreLiteSetPacketByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetPacketByteLocals_getElem_byteIndex I
   have hgetPacket :
-      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none := by
-    rw [bytesStoreLiteSetPacketByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
-  have hgetPacketElem :
-      (bytesStoreLiteSetPacketByteLocals I)["packet"]? = none := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetPacket
+      (bytesStoreLiteSetPacketByteLocals I).get? "packet" = none :=
+    bytesStoreLiteSetPacketByteLocals_get_packet_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -2001,13 +2006,13 @@ theorem bytesStoreLiteX_setPacketByteLongWriteReturnDecodedLength
   have hdec := bytesStoreLiteX_setPacketByteLongWriteReturnReachLengthDecoder
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (len := len) hreach hbound hflag hperm
-  have hne : (⟨2⟩ : UInt256) ≠ bytesStoreLiteSetPacketByteLongDataSlot I := by
-    exact (bytesStoreLitePacketDataSlot_ne_header (bytesStoreLiteSetByteIndexWord I)).symm
   have hheader : header' = bytesStoreLitePacketLengthHeaderWord σ I := by
-    simpa [header', σ', bytesStoreLitePacketLengthHeaderWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨2⟩
-        (bytesStoreLiteSetPacketByteLongDataSlot I)
-        (bytesStoreLiteSetPacketByteLongStoredWord σ I) hne
+    simpa [header', σ', bytesStoreLitePacketLengthHeaderWord,
+      bytesStoreLiteSetPacketByteLongDataSlot] using
+        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
+          (σ := σ) (I := I) (baseSlot := ⟨2⟩)
+          (idx := bytesStoreLiteSetByteIndexWord I)
+          (val := bytesStoreLiteSetPacketByteLongStoredWord σ I) (by rfl)
   have hdecoded := bytesStoreLiteX_bytesLengthDecoderLongValidMemCarried
     (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
     (A := A) (I := I) (g := g) (header := header') (ret := ⟨709⟩)
@@ -2400,13 +2405,13 @@ theorem bytesStoreLiteX_setPacketByteLongSuccessReturn
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (len := len) (by simpa [hlen] using h622)
     hlen hbound hflag hvalid hperm
-  have hne : (⟨2⟩ : UInt256) ≠ bytesStoreLiteSetPacketByteLongDataSlot I := by
-    exact (bytesStoreLitePacketDataSlot_ne_header (bytesStoreLiteSetByteIndexWord I)).symm
   have hheader : header' = bytesStoreLitePacketLengthHeaderWord σ I := by
-    simpa [header', σ', bytesStoreLitePacketLengthHeaderWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨2⟩
-        (bytesStoreLiteSetPacketByteLongDataSlot I)
-        (bytesStoreLiteSetPacketByteLongStoredWord σ I) hne
+    simpa [header', σ', bytesStoreLitePacketLengthHeaderWord,
+      bytesStoreLiteSetPacketByteLongDataSlot] using
+        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
+          (σ := σ) (I := I) (baseSlot := ⟨2⟩)
+          (idx := bytesStoreLiteSetByteIndexWord I)
+          (val := bytesStoreLiteSetPacketByteLongStoredWord σ I) (by rfl)
   have hdata : dataWord' = bytesStoreLiteSetPacketByteLongStoredWord σ I := by
     simpa [dataWord', σ'] using
       sstoreAccountMap_storage_findD_self_of_find_some_any σ I.codeOwner acc
@@ -2481,24 +2486,16 @@ theorem bytesStoreLiteSetPacketByteShortSuccessRuntime {cA gh bl σ_evm σ_solm 
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) (len := len) (acc := accEvm)
     hreachBody hcanon hlen hshort hbound hflag hvalid hperm haccEvm
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner ⟨2⟩
     (bytesStoreLiteSetPacketByteShortStoredWord σ_evm I)
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨2⟩ =
         bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   obtain ⟨accSolm, haccSolm⟩ :=
     accountMapEquiv_find?_some_exists hAccounts haccEvm
   have hbody :
@@ -2561,27 +2558,6 @@ theorem bytesStoreLiteSetPacketByteLongSuccessRuntime {cA gh bl σ_evm σ_solm �
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) (len := len) (acc := accEvm)
     hreachBody hcanon hlen hbound hflag hvalid hperm haccEvm
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
-  have hdataWord :
-      bytesStoreLiteSetPacketByteLongOldWord σ_evm I =
-        bytesStoreLiteSetPacketByteLongOldWord σ_solm I := by
-    exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (bytesStoreLiteSetPacketByteLongDataSlot I) ⟨0⟩
-  have hdataSlot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetPacketByteLongDataSlot I) ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetPacketByteLongDataSlot I) ⟨0⟩)) := by
-    simpa [bytesStoreLiteSetPacketByteLongOldWord] using hdataWord.symm
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetPacketByteLongDataSlot I)
@@ -2589,14 +2565,18 @@ theorem bytesStoreLiteSetPacketByteLongSuccessRuntime {cA gh bl σ_evm σ_solm �
   have hloadHeader :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨2⟩ =
         bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadData :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
           (bytesStoreLiteSetPacketByteLongDataSlot I) =
         bytesStoreLiteSetPacketByteLongOldWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteSetPacketByteLongOldWord, hdataSlot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetPacketByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   obtain ⟨accSolm, haccSolm⟩ :=
     accountMapEquiv_find?_some_exists hAccounts haccEvm
   have hbody :
@@ -2730,22 +2710,14 @@ theorem bytesStoreLiteSetPacketByteOobLongRuntime {cA gh bl σ_evm σ_solm σ₀
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   have hd := bytesStoreLiteDispatch_setPacketByte (cd := I.calldata) (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setPacketByte_locals (I := I) hsz68 hhi hcanon
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨2⟩ = bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [initState] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -2809,22 +2781,14 @@ theorem bytesStoreLiteSetPacketByteOobShortRuntime {cA gh bl σ_evm σ_solm σ�
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   have hd := bytesStoreLiteDispatch_setPacketByte (cd := I.calldata) (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setPacketByte_locals (I := I) hsz68 hhi hcanon
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨2⟩ = bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [initState] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -2890,22 +2854,14 @@ theorem bytesStoreLiteSetPacketByteLongMalformedRuntime {cA gh bl σ_evm σ_solm
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   have hd := bytesStoreLiteDispatch_setPacketByte (cd := I.calldata) (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setPacketByte_locals (I := I) hsz68 hhi hcanon
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨2⟩ = bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [initState] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -2965,22 +2921,14 @@ theorem bytesStoreLiteSetPacketByteShortMalformedRuntime {cA gh bl σ_evm σ_sol
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   have hd := bytesStoreLiteDispatch_setPacketByte (cd := I.calldata) (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setPacketByte_locals (I := I) hsz68 hhi hcanon
-  have hword :
-      bytesStoreLitePacketLengthHeaderWord σ_evm I =
-        bytesStoreLitePacketLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLitePacketLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨2⟩ = bytesStoreLitePacketLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      bytesStoreLitePacketLengthHeaderWord, hslot]
+    simpa [initState] using
+      bytesStoreLiteStorageLoadPacketLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with

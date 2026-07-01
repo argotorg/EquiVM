@@ -1116,6 +1116,33 @@ theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
 
+/-- Zero-aware `SSTORE` readback for the writing account, with the slot collision case exposed in
+the result instead of assumed away.  If the account is absent, `sstoreAccountMap` is a no-op, so the
+colliding read still returns the default word. -/
+theorem sstoreAccountMap_storage_findD_eq_if (σ : AccountMap) (a : AccountAddress)
+    (readSlot writeSlot val : UInt256) :
+    (((sstoreAccountMap a σ writeSlot val).find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) =
+      if readSlot = writeSlot then
+        ((σ.find? a).option (default : UInt256) (fun _ => val))
+      else
+        ((σ.find? a).option (default : UInt256)
+          (fun acc => acc.storage.findD readSlot (default : UInt256))) := by
+  by_cases hslot : readSlot = writeSlot
+  · subst readSlot
+    unfold sstoreAccountMap
+    cases hσ : σ.find? a with
+    | none =>
+        simp [hσ, Option.option]
+    | some acc =>
+        simp [Option.option, accountMap_find_insert_self]
+        by_cases hzero : val = (default : UInt256)
+        · subst val
+          simpa using storage_findD_erase_self acc.storage writeSlot (default : UInt256)
+        · simpa [hzero] using
+            storage_findD_insert_self acc.storage writeSlot val (default : UInt256)
+  · simp [hslot, sstoreAccountMap_storage_findD_ne σ a readSlot writeSlot val hslot]
+
 theorem sstoreAccountMap_storage_findD_self_of_find_some
     (σ : AccountMap) (a : AccountAddress) (acc : Account) (slot val : UInt256)
     (hacc : σ.find? a = some acc) (hval : (val == (default : UInt256)) = false) :
@@ -1314,6 +1341,16 @@ theorem accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
   · have hfalse : (val == (default : UInt256)) = false := by
       cases h : (val == (default : UInt256)) <;> simp [h] at hval ⊢
     exact accountMapEquiv_sstoreAccountMap_insert a slot val hστ hfalse
+
+theorem accountMapEquiv_sstoreAccountMap_storage_findD {σ τ : AccountMap}
+    (hστ : accountMapEquiv σ τ) (a : AccountAddress)
+    (readSlot writeSlot val default : UInt256) :
+    (((sstoreAccountMap a σ writeSlot val).find? a).option default
+        (fun acc => acc.storage.findD readSlot default)) =
+      (((sstoreAccountMap a τ writeSlot val).find? a).option default
+        (fun acc => acc.storage.findD readSlot default)) := by
+  exact accountMapEquiv_storage_findD
+    (accountMapEquiv_sstoreAccountMap a writeSlot val hστ) a readSlot default
 
 theorem sstoreAccountMap_absent_same {owner : AccountAddress} {τ : AccountMap}
     {slot val : UInt256} (hmissing : τ.find? owner = none) :
@@ -2490,6 +2527,35 @@ theorem storageLoad_storageStore_ne (evm : EVM.State) (addr : AccountAddress)
         subst val
         simp [storage_findD_erase_ne acc.storage readSlot writeSlot ⟨0⟩ hne]
       · simp [hzero, storage_findD_insert_ne acc.storage readSlot writeSlot val ⟨0⟩ hne]
+
+/-- `storageLoad` after `storageStore`, with the slot collision case exposed in the result.  If the
+account is absent, `storageStore` is a no-op, so a colliding read returns zero rather than `val`. -/
+theorem storageLoad_storageStore_eq_if (evm : EVM.State) (addr : AccountAddress)
+    (readSlot writeSlot val : UInt256) :
+    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
+      if readSlot = writeSlot then
+        (evm.accountMap.find? addr).option (default : UInt256) (fun _ => val)
+      else
+        Solm.EVM.storageLoad evm addr readSlot := by
+  simp only [Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount]
+  by_cases hslot : readSlot = writeSlot
+  · subst readSlot
+    cases hacc : evm.accountMap.find? addr with
+    | none =>
+        simp [hacc, Option.option]
+        rfl
+    | some acc =>
+        simp only [Option.option]
+        unfold State.setAccount
+        rw [accountMap_find_insert_self]
+        unfold Account.updateStorage Account.lookupStorage
+        by_cases hzero : (val == (default : UInt256)) = true
+        · have hval : val = (default : UInt256) := eq_of_beq hzero
+          subst val
+          simpa using storage_findD_erase_self acc.storage writeSlot (default : UInt256)
+        · simp [hzero, storage_findD_insert_self]
+  · simp [hslot]
+    exact storageLoad_storageStore_ne evm addr hslot
 
 structure EVMStateEquiv (evm₁ evm₂ : EVM.State) : Prop where
   executionEnv : evm₁.executionEnv = evm₂.executionEnv

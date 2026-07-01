@@ -371,21 +371,13 @@ theorem bytesStoreLiteSetNewLongOldLongNoClearValidRuntime
       [len, payloadStart, ⟨263⟩, bytesStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
     simpa [len, payloadStart, hlenEvm] using hdecodedReach
-  have hword :
-      bytesStoreLiteCurrentLengthHeaderWord σ_evm I =
-        bytesStoreLiteCurrentLengthHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [bytesStoreLiteCurrentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         bytesStoreLiteCurrentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteCurrentLengthHeaderWord, hslot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadCurrentLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hwrite :
       writeStorage? bytesStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .bytes (.bytes value) = .ok evmSolm1 := by

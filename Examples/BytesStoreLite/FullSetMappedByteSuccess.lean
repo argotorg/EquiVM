@@ -950,14 +950,12 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
   have hheaderPost :
       bytesStoreLiteSetMappedByteHeaderWord σ' I =
         bytesStoreLiteSetMappedByteHeaderWord σ I := by
-    dsimp [σ', bytesStoreLiteSetMappedByteHeaderWord]
-    exact sstoreAccountMap_storage_findD_ne σ I.codeOwner
-      (bytesStoreLiteSetMappedByteSlot I) (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ I)
-      (by
-        exact (bytesStoreLiteMappedLongDataSlot_ne_header
-          (bytesStoreLiteSetMappedByteKeyWord I)
-          (bytesStoreLiteSetMappedByteIndexWord I)).symm)
+    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord,
+      bytesStoreLiteSetMappedByteLongDataSlot] using
+        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
+          (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+          (idx := bytesStoreLiteSetMappedByteIndexWord I)
+          (val := bytesStoreLiteSetMappedByteLongStoredWord σ I) (by rfl)
   have hflagPost :
       UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ' I) ⟨1⟩ ≠ ⟨0⟩ := by
     simpa [hheaderPost] using hflag
@@ -987,14 +985,12 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
       ((σ'.find? I.codeOwner).option ⟨0⟩
         (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) =
           bytesStoreLiteSetMappedByteHeaderWord σ I := by
-    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) (bytesStoreLiteSetMappedByteLongDataSlot I)
-        (bytesStoreLiteSetMappedByteLongStoredWord σ I)
-        (by
-          exact (bytesStoreLiteMappedLongDataSlot_ne_header
-            (bytesStoreLiteSetMappedByteKeyWord I)
-            (bytesStoreLiteSetMappedByteIndexWord I)).symm)
+    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord,
+      bytesStoreLiteSetMappedByteLongDataSlot] using
+        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
+          (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+          (idx := bytesStoreLiteSetMappedByteIndexWord I)
+          (val := bytesStoreLiteSetMappedByteLongStoredWord σ I) (by rfl)
   have hdata :
       ((σ'.find? I.codeOwner).option ⟨0⟩
         (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩)) =
@@ -1084,17 +1080,6 @@ theorem bytesStoreLiteSetMappedByteShortSuccessRuntime
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) (len := len) (acc := accEvm)
     hreachBody hcanon hlen hshort hbound hflag hvalid hperm haccEvm
-  have hheaderWord :
-      bytesStoreLiteSetMappedByteHeaderWord σ_evm I =
-        bytesStoreLiteSetMappedByteHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-  have hheaderSlot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) := by
-    simpa [bytesStoreLiteSetMappedByteHeaderWord] using hheaderWord.symm
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetMappedByteSlot I)
@@ -1103,8 +1088,10 @@ theorem bytesStoreLiteSetMappedByteShortSuccessRuntime
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteSlot I) =
         bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteSetMappedByteHeaderWord, hheaderSlot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   obtain ⟨accSolm, haccSolm⟩ :=
     accountMapEquiv_find?_some_exists hAccounts haccEvm
   have hbody :
@@ -1170,28 +1157,6 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) (len := len) (acc := accEvm)
     hreachBody hcanon hlen hbound hflag hvalid hperm haccEvm
-  have hheaderWord :
-      bytesStoreLiteSetMappedByteHeaderWord σ_evm I =
-        bytesStoreLiteSetMappedByteHeaderWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-  have hheaderSlot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) := by
-    simpa [bytesStoreLiteSetMappedByteHeaderWord] using hheaderWord.symm
-  have hdataWord :
-      bytesStoreLiteSetMappedByteLongOldWord σ_evm I =
-        bytesStoreLiteSetMappedByteLongOldWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩
-  have hdataSlot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩)) := by
-    simpa [bytesStoreLiteSetMappedByteLongOldWord] using hdataWord.symm
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetMappedByteLongDataSlot I)
@@ -1200,14 +1165,18 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteSlot I) =
         bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteSetMappedByteHeaderWord, hheaderSlot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadData :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteLongDataSlot I) =
         bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteSetMappedByteLongOldWord, hdataSlot]
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   obtain ⟨accSolm, haccSolm⟩ :=
     accountMapEquiv_find?_some_exists hAccounts haccEvm
   have hbody :

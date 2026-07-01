@@ -117,18 +117,13 @@ theorem bytesStoreLiteCoreSetNewShortOldShortValidRuntime
     (by simpa [oldLen] using hvalid)
   have hret := bytesStoreLiteCoreX_setShortNonemptyReturnFromWrite
     (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpacked : checkBytesPacked ⟨0⟩ evmSolm0 = true :=
     checkBytesPacked_of_storageLoad_land_one_zero hload hflag
   have hvalueSizeShort : (setDecodedValueBytes I).size < 32 := by

@@ -80,6 +80,12 @@ theorem bytesStoreLiteInitcode_runtime_window :
     bytesStoreLiteInitcode.extract 28 2867 = bytesStoreLiteBytecode := by
   native_decide
 
+/-- Optimized runtime literal for `keccak256(uint256(1))`, used as the base of the `chunks`
+dynamic-array data area. -/
+axiom bytesStoreLiteChunksDataBaseLiteral :
+    (⟨80084422859880547211683076133703299733277748156566366325829078699459944778998⟩ :
+      UInt256) = chunksDataBase
+
 /-- `keccak("chunkLength(uint256)")[0:4]`. -/
 axiom chunkLengthSelectorBytes :
     (ffi.KEC (String.toByteArray (Solm.transitionSigStr BytesStoreLite.chunkLengthGetter))).extract 0 4

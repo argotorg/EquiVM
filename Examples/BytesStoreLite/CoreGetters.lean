@@ -1450,6 +1450,23 @@ theorem currentLengthHeaderWord_eq_of_accountMapEquiv {σ_evm σ_solm : AccountM
     currentLengthHeaderWord σ_evm I = currentLengthHeaderWord σ_solm I :=
   accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
 
+theorem currentLengthStorageLoad_initState_of_accountMapEquiv
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner ⟨0⟩ =
+      currentLengthHeaderWord σ_evm I := by
+  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
+  have hslot :
+      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
+      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
+    simpa [currentLengthHeaderWord] using hword.symm
+  simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
+    currentLengthHeaderWord, hslot]
+
 def solcPanicSelectorWord : UInt256 :=
   ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩
 
@@ -5813,19 +5830,14 @@ theorem bytesStoreLiteCoreCurrentLengthLongMalformedBodyCore {cA gh bl σ_evm σ
   have hsz := currentLengthSelector_size hsel
   have hd := bytesStoreLiteCoreDispatch_currentLength (cd := I.calldata) hsel'
   have hdec := bytesStoreLiteCoreDecode_currentLength (I := I) hsz
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -5878,19 +5890,14 @@ theorem bytesStoreLiteCoreCurrentLengthShortMalformedBodyCore {cA gh bl σ_evm �
   have hsz := currentLengthSelector_size hsel
   have hd := bytesStoreLiteCoreDispatch_currentLength (cd := I.calldata) hsel'
   have hdec := bytesStoreLiteCoreDecode_currentLength (I := I) hsz
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -5947,19 +5954,14 @@ theorem bytesStoreLiteCoreCurrentLengthLongValidBodyCore {cA gh bl σ_evm σ_sol
   have hsz := currentLengthSelector_size hsel
   have hd := bytesStoreLiteCoreDispatch_currentLength (cd := I.calldata) hsel'
   have hdec := bytesStoreLiteCoreDecode_currentLength (I := I) hsz
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -6017,19 +6019,14 @@ theorem bytesStoreLiteCoreCurrentLengthShortValidBodyCore {cA gh bl σ_evm σ_so
   have hsz := currentLengthSelector_size hsel
   have hd := bytesStoreLiteCoreDispatch_currentLength (cd := I.calldata) hsel'
   have hdec := bytesStoreLiteCoreDecode_currentLength (I := I) hsz
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -6141,19 +6138,14 @@ theorem bytesStoreLiteCoreClearCurrentLongMalformedRuntime {cA gh bl σ_evm σ_s
     (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hrev := bytesStoreLiteCoreX_clearCurrentLongMalformed hreach hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -6204,19 +6196,14 @@ theorem bytesStoreLiteCoreClearCurrentShortMalformedRuntime {cA gh bl σ_evm σ_
     (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hrev := bytesStoreLiteCoreX_clearCurrentShortMalformed hreach hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ_evm I := by
-    simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
-      currentLengthHeaderWord, hslot]
+    simpa [initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hload' :
       Solm.EVM.storageLoad
         { (default : EVM.State) with
@@ -6284,20 +6271,15 @@ theorem bytesStoreLiteCoreClearCurrentShortZeroRuntime {cA gh bl σ_evm σ_solm 
     decide
   have hret := bytesStoreLiteCoreX_clearCurrentShortZeroValid
     (g := Sat256.ofUInt256 g) hperm hreach hflag hvalid hzero
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ = ⟨0⟩ := by
     have hload' :
         Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
           currentLengthHeaderWord σ_evm I := by
-      simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-        Account.lookupStorage, currentLengthHeaderWord, hslot]
+      simpa [evmSolm0, initState] using
+        currentLengthStorageLoad_initState_of_accountMapEquiv
+          (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+          (I := I) (g := Sat256.ofUInt256 g) hAccounts
     simpa [hheader] using hload'
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
@@ -6366,18 +6348,13 @@ theorem bytesStoreLiteCoreClearCurrentShortDecodedZeroRuntime {cA gh bl σ_evm �
     hcode hwv hsz hsize hsel
   have hret := bytesStoreLiteCoreX_clearCurrentShortZeroValid
     (g := Sat256.ofUInt256 g) hperm hreach hflag hvalid hzero
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
@@ -6445,18 +6422,13 @@ theorem bytesStoreLiteCoreClearCurrentShortNonzeroRuntime {cA gh bl σ_evm σ_so
     hcode hwv hsz hsize hsel
   have hret := bytesStoreLiteCoreX_clearCurrentShortValid
     (g := Sat256.ofUInt256 g) hperm hreach hflag hlen hvalid hnonzero
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
@@ -6525,20 +6497,15 @@ theorem bytesStoreLiteCoreSetShortEmptyRuntime {cA gh bl σ_evm σ_solm σ₀ A 
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord
     hsizeSign hlenZero hheader
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ = ⟨0⟩ := by
     have hload' :
         Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
           currentLengthHeaderWord σ_evm I := by
-      simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-        Account.lookupStorage, currentLengthHeaderWord, hslot]
+      simpa [evmSolm0, initState] using
+        currentLengthStorageLoad_initState_of_accountMapEquiv
+          (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+          (I := I) (g := Sat256.ofUInt256 g) hAccounts
     simpa [hheader] using hload'
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
@@ -6627,18 +6594,13 @@ theorem bytesStoreLiteCoreSetEmptyShortValidRuntime {cA gh bl σ_evm σ_solm σ�
     (bytesStoreLiteCoreX_setEmptyWriteShortValid
       (payloadStart := payloadStart) (len := len) hperm rd1350 hflag rfl
       (by simpa [len] using hvalid))
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadBytes :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
@@ -6726,18 +6688,13 @@ theorem bytesStoreLiteCoreSetEmptyLongMalformedRuntime {cA gh bl σ_evm σ_solm 
     (payloadStart := payloadStart) rd175
   have hrev := bytesStoreLiteCoreX_setEmptyWriteLongMalformed
     (payloadStart := payloadStart) rd1350 hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hwrite :
       writeStorage? bytesStoreLiteCoreConfig evmSolm0 { base := "current", steps := [] }
         .bytes (.bytes ByteArray.empty) = .revert :=
@@ -6816,18 +6773,13 @@ theorem bytesStoreLiteCoreSetEmptyShortMalformedRuntime {cA gh bl σ_evm σ_solm
     (payloadStart := payloadStart) rd175
   have hrev := bytesStoreLiteCoreX_setEmptyWriteShortMalformed
     (payloadStart := payloadStart) rd1350 hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hwrite :
       writeStorage? bytesStoreLiteCoreConfig evmSolm0 { base := "current", steps := [] }
         .bytes (.bytes ByteArray.empty) = .revert :=
@@ -6933,18 +6885,13 @@ theorem bytesStoreLiteCoreSetShortNonemptyLongMalformedRuntime
     bytesStoreLiteCoreX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
   have hrev := bytesStoreLiteCoreX_setShortNonemptyWriteLongMalformed
     (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hwrite :
       writeStorage? bytesStoreLiteCoreConfig evmSolm0 { base := "current", steps := [] }
         .bytes (.bytes (setDecodedValueBytes I)) = .revert :=
@@ -7053,18 +7000,13 @@ theorem bytesStoreLiteCoreSetShortNonemptyShortMalformedRuntime
     bytesStoreLiteCoreX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
   have hrev := bytesStoreLiteCoreX_setShortNonemptyWriteShortMalformed
     (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbad
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ_evm I := by
-    simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+    simpa [evmSolm0, initState] using
+      currentLengthStorageLoad_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hwrite :
       writeStorage? bytesStoreLiteCoreConfig evmSolm0 { base := "current", steps := [] }
         .bytes (.bytes (setDecodedValueBytes I)) = .revert :=

@@ -1,4 +1,5 @@
 import Examples.BytesStoreLite.FullPushChunkCalldataWords
+import Examples.BytesStoreLite.StorageLayoutFacts
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -45,21 +46,6 @@ theorem bytesStoreLiteLongDataWordsLoopStride_zero_ofNat :
         bytesStoreLiteLongDataWordsLoopStride_zero_ofNat i,
         BytesStoreLiteCore.u256_32_add_ofNat]
       congr 1
-
-theorem bytesStoreLiteLongDataWordsLoopSlot_bytesLikeDataBase (baseSlot : UInt256) :
-    ∀ i, BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) i =
-      solidityBytesDataSlot baseSlot i
-  | 0 => by
-      simp [BytesStoreLiteCore.longDataWordsLoopSlot, solidityBytesDataSlot,
-        bytesLikeDataBase, solidityBytesDataBaseSlot]
-      rw [show UInt256.ofNat 0 = (⟨0⟩ : UInt256) by rfl]
-      exact (BytesStoreLiteCore.uint256_add_zero_right
-        (uInt256OfByteArray (ffi.KEC baseSlot.toByteArray))).symm
-  | i + 1 => by
-      rw [BytesStoreLiteCore.longDataWordsLoopSlot,
-        bytesStoreLiteLongDataWordsLoopSlot_bytesLikeDataBase baseSlot i]
-      simp [solidityBytesDataSlot, solidityBytesDataBaseSlot,
-        BytesStoreLiteCore.u256_base_one_add_ofNat]
 
 theorem bytesStoreLitePushChunkLongPushArray {evm : EVM.State}
     (oldLen header oldBytesLen : UInt256) (value : ByteArray)

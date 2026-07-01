@@ -32,6 +32,49 @@ def bytesStoreLiteSetChunkByteLocals (I : ExecutionEnv) : Store :=
     (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat))).insert "value"
     (.int (Int.ofNat (bytesStoreLiteSetChunkByteValueWord I).toNat))
 
+theorem bytesStoreLiteSetChunkByteLocals_get_chunkIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I).get? "chunkIndex" =
+      some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
+  rw [bytesStoreLiteSetChunkByteLocals]
+  rw [store_get_ne (h := by decide)]
+  rw [store_get_ne (h := by decide)]
+  exact store_get_self (∅ : Store) "chunkIndex"
+    (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))
+
+theorem bytesStoreLiteSetChunkByteLocals_getElem_chunkIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I)["chunkIndex"]? =
+      some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetChunkByteLocals_get_chunkIndex I
+
+theorem bytesStoreLiteSetChunkByteLocals_get_byteIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I).get? "byteIndex" =
+      some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
+  rw [bytesStoreLiteSetChunkByteLocals]
+  rw [store_get_ne (h := by decide)]
+  exact store_get_self ((∅ : Store).insert "chunkIndex"
+    (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))) "byteIndex"
+    (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat))
+
+theorem bytesStoreLiteSetChunkByteLocals_getElem_byteIndex (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I)["byteIndex"]? =
+      some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetChunkByteLocals_get_byteIndex I
+
+theorem bytesStoreLiteSetChunkByteLocals_get_chunks_none (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none := by
+  rw [bytesStoreLiteSetChunkByteLocals]
+  rw [store_get_ne (h := by decide)]
+  rw [store_get_ne (h := by decide)]
+  rw [store_get_ne (h := by decide)]
+  simp
+
+theorem bytesStoreLiteSetChunkByteLocals_getElem_chunks_none (I : ExecutionEnv) :
+    (bytesStoreLiteSetChunkByteLocals I)["chunks"]? = none := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetChunkByteLocals_get_chunks_none I
+
 def bytesStoreLiteSetChunkByteRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "chunks"
     steps := [
@@ -54,6 +97,27 @@ def bytesStoreLiteSetChunkByteSlot (I : ExecutionEnv) : UInt256 :=
 def bytesStoreLiteSetChunkByteHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   (σ.find? I.codeOwner |>.option ⟨0⟩
     (fun acc => acc.storage.findD (bytesStoreLiteSetChunkByteSlot I) ⟨0⟩))
+
+theorem bytesStoreLiteSetChunkByteHeaderWord_eq_of_accountMapEquiv
+    {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    bytesStoreLiteSetChunkByteHeaderWord σ_evm I =
+      bytesStoreLiteSetChunkByteHeaderWord σ_solm I :=
+  accountMapEquiv_storage_findD hAccounts I.codeOwner
+    (bytesStoreLiteSetChunkByteSlot I) ⟨0⟩
+
+theorem bytesStoreLiteStorageLoadSetChunkByteHeader_initState_of_accountMapEquiv
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) =
+      bytesStoreLiteSetChunkByteHeaderWord σ_evm I := by
+  simpa [bytesStoreLiteSetChunkByteHeaderWord] using
+    bytesStoreLiteStorageLoad_initState_of_accountMapEquiv
+      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g) (bytesStoreLiteSetChunkByteSlot I) hAccounts
 
 def bytesStoreLiteSetChunkByteShortScale (I : ExecutionEnv) : UInt256 :=
   UInt256.exp ⟨256⟩ (UInt256.sub ⟨31⟩ (bytesStoreLiteSetChunkByteIndexWord I))
@@ -82,6 +146,27 @@ def bytesStoreLiteSetChunkByteLongOldWord (σ : AccountMap) (I : ExecutionEnv) :
   (σ.find? I.codeOwner |>.option ⟨0⟩
     (fun acc => acc.storage.findD (bytesStoreLiteSetChunkByteLongDataSlot I) ⟨0⟩))
 
+theorem bytesStoreLiteSetChunkByteLongOldWord_eq_of_accountMapEquiv
+    {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    bytesStoreLiteSetChunkByteLongOldWord σ_evm I =
+      bytesStoreLiteSetChunkByteLongOldWord σ_solm I :=
+  accountMapEquiv_storage_findD hAccounts I.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I) ⟨0⟩
+
+theorem bytesStoreLiteStorageLoadSetChunkByteLongData_initState_of_accountMapEquiv
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ_evm I := by
+  simpa [bytesStoreLiteSetChunkByteLongOldWord] using
+    bytesStoreLiteStorageLoad_initState_of_accountMapEquiv
+      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g) (bytesStoreLiteSetChunkByteLongDataSlot I) hAccounts
+
 def bytesStoreLiteSetChunkByteLongStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
     (UInt256.mul
@@ -91,16 +176,6 @@ def bytesStoreLiteSetChunkByteLongStoredWord (σ : AccountMap) (I : ExecutionEnv
     (UInt256.land
       (UInt256.lnot (UInt256.mul ⟨255⟩ (bytesStoreLiteSetChunkByteLongScale I)))
       (bytesStoreLiteSetChunkByteLongOldWord σ I))
-
-/-- Trusted keccak disjointness: a chunk's long-bytes data slots do not alias its header. -/
-axiom bytesStoreLiteChunkLongDataSlot_ne_header (chunkIndex idx : UInt256) :
-    bytesLikeDataBase (chunksDataBase + chunkIndex) + UInt256.div idx ⟨32⟩ ≠
-      chunksDataBase + chunkIndex
-
-/-- Trusted keccak disjointness: a chunk's long-bytes data slots do not alias `chunks.length`. -/
-axiom bytesStoreLiteChunkLongDataSlot_ne_length (chunkIndex idx : UInt256) :
-    bytesLikeDataBase (chunksDataBase + chunkIndex) + UInt256.div idx ⟨32⟩ ≠
-      (⟨1⟩ : UInt256)
 
 theorem bytesStoreLiteSetChunkByteChunkIndexWord_eq_setChunkIndexWord (I : ExecutionEnv) :
     bytesStoreLiteSetChunkByteChunkIndexWord I = bytesStoreLiteSetChunkIndexWord I := by
@@ -924,37 +999,17 @@ theorem bytesStoreLiteSetChunkByteResolveOfLength {evm : EVM.State} {I : Executi
       (bytesStoreLiteSetChunkByteFrame I)
       evm (chunkByteRef (.var "chunkIndex") (.var "byteIndex")) =
         .ok (bytesStoreLiteSetChunkByteRef I, uint8St) := by
-  have hgetChunkIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunkIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self (∅ : Store) "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))
   have hgetChunkIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["chunkIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetChunkIndex
-  have hgetByteIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self ((∅ : Store).insert "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))) "byteIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat))
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_chunkIndex I
   have hgetByteIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetByteIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_byteIndex I
   have hgetChunks :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
+      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none :=
+    bytesStoreLiteSetChunkByteLocals_get_chunks_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -1138,13 +1193,10 @@ theorem bytesStoreLiteSetChunkByteShortBodyReturns
     simpa [evm', storageStore_executionEnv] using hloadPostOwner
   have hloadChunksPost :
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLen := by
-    have hne : (⟨1⟩ : UInt256) ≠ bytesStoreLiteSetChunkByteSlot I := by
-      exact (bytesStoreLiteChunksElemSlot_ne_length
-        (bytesStoreLiteSetChunkByteChunkIndexWord I)).symm
     simpa [evm', storageStore_executionEnv] using
-      (by
-        rw [storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hne]
-        exact hloadChunks)
+      bytesStoreLiteStorageLoadChunksLengthAfterChunkHeaderStore_eq_of_before
+        (evm := evm) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
+        (val := bytesStoreLiteSetChunkByteShortStoredWord σ I) hloadChunks
   have hflagPost :
       UInt256.land (bytesStoreLiteSetChunkByteShortStoredWord σ I) ⟨1⟩ = ⟨0⟩ := by
     rw [bytesStoreLiteSetChunkByteShortStoredWord_flag_eq
@@ -1288,30 +1340,22 @@ theorem bytesStoreLiteSetChunkByteLongBodyReturns
           .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
     bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
       hloadChunks hchunkBound hlenRead hbound hstore
-  have hneHeader :
-      bytesStoreLiteSetChunkByteSlot I ≠ bytesStoreLiteSetChunkByteLongDataSlot I := by
-    exact (bytesStoreLiteChunkLongDataSlot_ne_header
-      (bytesStoreLiteSetChunkByteChunkIndexWord I)
-      (bytesStoreLiteSetChunkByteIndexWord I)).symm
   have hloadHeaderPost :
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (bytesStoreLiteSetChunkByteSlot I) =
         bytesStoreLiteSetChunkByteHeaderWord σ I := by
-    simpa [evm', storageStore_executionEnv] using
-      (by
-        rw [storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hneHeader]
-        exact hloadHeader)
-  have hneChunks :
-      (⟨1⟩ : UInt256) ≠ bytesStoreLiteSetChunkByteLongDataSlot I := by
-    exact (bytesStoreLiteChunkLongDataSlot_ne_length
-      (bytesStoreLiteSetChunkByteChunkIndexWord I)
-      (bytesStoreLiteSetChunkByteIndexWord I)).symm
+    simpa [evm', storageStore_executionEnv, bytesStoreLiteSetChunkByteLongDataSlot] using
+      bytesStoreLiteStorageLoadBytesHeaderAfterDataStore_eq_of_before
+        (evm := evm) (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+        (idx := bytesStoreLiteSetChunkByteIndexWord I)
+        (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hloadHeader
   have hloadChunksPost :
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLen := by
-    simpa [evm', storageStore_executionEnv] using
-      (by
-        rw [storageLoad_storageStore_ne evm evm.executionEnv.codeOwner hneChunks]
-        exact hloadChunks)
+    simpa [evm', storageStore_executionEnv, bytesStoreLiteSetChunkByteLongDataSlot] using
+      bytesStoreLiteStorageLoadChunksLengthAfterChunkDataStore_eq_of_before
+        (evm := evm) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
+        (idx := bytesStoreLiteSetChunkByteIndexWord I)
+        (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hloadChunks
   have hlenPost :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetChunkByteHeaderRef I) =
@@ -1387,37 +1431,17 @@ theorem bytesStoreLiteSetChunkByteResolveRevertsOfLength {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetChunkByteFrame I) evm
       (chunkByteRef (.var "chunkIndex") (.var "byteIndex")) = .revert := by
-  have hgetChunkIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunkIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self (∅ : Store) "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))
   have hgetChunkIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["chunkIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetChunkIndex
-  have hgetByteIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self ((∅ : Store).insert "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))) "byteIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat))
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_chunkIndex I
   have hgetByteIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetByteIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_byteIndex I
   have hgetChunks :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
+      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none :=
+    bytesStoreLiteSetChunkByteLocals_get_chunks_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -1506,37 +1530,17 @@ theorem bytesStoreLiteSetChunkByteResolveRevertsOfLengthRead {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetChunkByteFrame I) evm
       (chunkByteRef (.var "chunkIndex") (.var "byteIndex")) = .revert := by
-  have hgetChunkIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunkIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self (∅ : Store) "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))
   have hgetChunkIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["chunkIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetChunkIndex
-  have hgetByteIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "byteIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self ((∅ : Store).insert "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))) "byteIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat))
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_chunkIndex I
   have hgetByteIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetByteIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_byteIndex I
   have hgetChunks :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
+      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none :=
+    bytesStoreLiteSetChunkByteLocals_get_chunks_none I
   have hlen' :
       readStorageBytesLength?
         { storage := bytesStoreLiteStorageLayout, externalABI := defaultExternalCallABI,
@@ -1621,18 +1625,10 @@ theorem bytesStoreLiteSetChunkByteResolveRevertsOfChunksLength {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetChunkByteFrame I) evm
       (chunkByteRef (.var "chunkIndex") (.var "byteIndex")) = .revert := by
-  have hgetIndex :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunkIndex" =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    exact store_get_self (∅ : Store) "chunkIndex"
-      (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat))
   have hgetIndexElem :
       (bytesStoreLiteSetChunkByteLocals I)["chunkIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
+        some (.int (Int.ofNat (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat)) :=
+    bytesStoreLiteSetChunkByteLocals_getElem_chunkIndex I
   have her :
       evalStorageRef bytesStoreLiteConfig
         (bytesStoreLiteSetChunkByteFrame I)
@@ -1644,12 +1640,8 @@ theorem bytesStoreLiteSetChunkByteResolveRevertsOfChunksLength {evm : EVM.State}
       solidityStorageLayout, bytesStoreLiteLayout, bytesStoreLiteStorageLocLoad_uint256,
       hload, hbound]
   have hgetChunksGet :
-      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none := by
-    rw [bytesStoreLiteSetChunkByteLocals]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    rw [store_get_ne (h := by decide)]
-    simp
+      (bytesStoreLiteSetChunkByteLocals I).get? "chunks" = none :=
+    bytesStoreLiteSetChunkByteLocals_get_chunks_none I
   have herInline :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetChunkByteLocals I }

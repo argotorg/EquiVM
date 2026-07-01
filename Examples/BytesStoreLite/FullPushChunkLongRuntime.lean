@@ -197,25 +197,21 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
         hperm hdecodedReachLen hlenMaxWordLen hflagAfter hvalidAfter hlong hmod
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -272,10 +268,13 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, writeSolidityBytesDataWordsFrom_createdAccounts,
       storageStore_createdAccounts])
@@ -482,25 +481,21 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
         hgtOldNewAfter hlong hmod
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -565,11 +560,14 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       writeSolidityBytesDataWordsFrom_createdAccounts,
@@ -785,25 +783,21 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
         hgtOldNewAfter hlong hmod
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -943,11 +937,14 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       writeSolidityBytesDataWordsFrom_createdAccounts,
@@ -1146,25 +1143,21 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
         hperm hdecodedReachLen hlenMaxWordLen hflagAfter hvalidAfter hlong htailModLen
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -1233,10 +1226,13 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, writeSolidityBytesDataWordsFrom_createdAccounts,
       storageStore_createdAccounts])
@@ -1458,25 +1454,21 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
         hgtOldNewAfter hlong htailModLen
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -1625,11 +1617,14 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       writeSolidityBytesDataWordsFrom_createdAccounts,
@@ -1844,25 +1839,21 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
         hgtOldNewAfter hlong htailModLen
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -1939,11 +1930,14 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      writeSolidityBytesDataWordsFrom_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            writeSolidityBytesDataWordsFrom_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       writeSolidityBytesDataWordsFrom_createdAccounts,
@@ -2296,25 +2290,21 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
         hnzLen hshortLen
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -2384,10 +2374,13 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       clearSolidityBytesDataWordsFrom_createdAccounts, storageStore_createdAccounts])
@@ -2560,25 +2553,21 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
         hlenZeroLen
   have hlenEq :
       bytesStoreLiteChunksLengthWord σ_solm I = oldLen := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [oldLen, bytesStoreLiteChunksLengthWord] using hslot.symm
+    simpa [oldLen] using
+      (bytesStoreLiteChunksLengthWord_eq_of_accountMapEquiv (I := I) hAccounts).symm
   have hloadLen :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, bytesStoreLiteChunksLengthWord] using hlenEq
-  have hheaderSolm :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) = oldHeader := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (chunksDataBase + oldLen) ⟨0⟩
-    exact hslot.symm.trans
-      (by simp [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-        bytesStoreLitePushChunkSlot])
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hloadElem :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
         (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage] using hheaderSolm
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hshortEmpty : solidityShortBytesWord ByteArray.empty = ⟨0⟩ := by
     rw [solidityShortBytesWord, empty_readWithPadding_word_zero]
     rfl
@@ -2650,10 +2639,13 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hpostAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
-      clearSolidityBytesDataWordsFrom_executionEnv] using hslot
+    simpa [bytesStoreLiteChunksLengthWord] using
+      bytesStoreLiteChunksLengthWord_eq_storageLoad_of_accountMapEquiv
+        (evm := evmSolm1) (σ := finalEvmMap) (I := I)
+        (by
+          simp [evmSolm1, evmSolmLen, evmSolm0, initState, storageStore_executionEnv,
+            clearSolidityBytesDataWordsFrom_executionEnv])
+        hpostAccounts
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolmLen, evmSolm0, initState,
       clearSolidityBytesDataWordsFrom_createdAccounts, storageStore_createdAccounts])
