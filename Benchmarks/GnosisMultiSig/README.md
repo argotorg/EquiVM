@@ -61,9 +61,9 @@ from the byte arrays.
 ## Scaffold Notes
 
 - Events are omitted, following the existing examples.
-- The payable fallback `function() payable { ... }` is present in Solidity and bytecode, but
-  `ContractDecl` currently has no fallback-dispatch entry.
-- `Transaction.data` is a dynamic `bytes` field in storage.  The schema and ABI getter keep it
-  visible, but exact dynamic-bytes storage semantics need more framework support.
+- The payable fallback `function() payable { ... }` is modeled as a storage no-op; its `Deposit`
+  event is ignored by the current equivalence.
+- `Transaction.data` is a dynamic `bytes` field in storage, represented with Solidity compact
+  bytes layout at `transactions[transactionId].data`.
 - The assembly `external_call` is represented by `lowLevelCall`; the exact solc gas subtraction
   `sub(gas, 34710)` is not modeled in the Solm surface yet.

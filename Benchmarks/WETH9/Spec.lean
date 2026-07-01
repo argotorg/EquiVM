@@ -7,13 +7,10 @@ import Solm.SolidityLayout
 Solm benchmark scaffold for the canonical DappHub/Gnosis `WETH9` contract.
 
 The benchmark targets the deployed optimized runtime.  Events are omitted, as in the other examples.
-The named ABI surface is explicit.  The Solidity fallback `function() external payable { deposit(); }`
-is not represented by `ContractDecl`'s selector-based transition list yet; it should be handled by a
-future fallback-dispatch extension or a contract-specific proof harness.
+The named ABI surface is explicit, and the payable Solidity fallback is modeled as the deposit body.
 
-`name` and `symbol` are string getters.  The current storage layout interface cannot describe
-Solidity's compact dynamic-string storage location as a `StorageLoc`, so these getters are modelled
-as their source literals in this scaffold.  The real source and bytecode remain present.
+`name` and `symbol` are Solidity compact dynamic-string storage values initialized by the creation
+bytecode and read by the deployed runtime getters.
 -/
 
 open Solm ABI
@@ -29,6 +26,7 @@ def uint8 : ABIType := .elem (.int uint8Int)
 def uint256 : ABIType := .elem (.int uint256Int)
 def addr : ABIType := .elem .address
 def boolTy : ABIType := .elem .bool
+def stringTy : ABIType := .string
 
 def uint8St : StorageType := .elem (.int uint8Int)
 def uint256St : StorageType := .elem (.int uint256Int)
@@ -76,14 +74,18 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def uint8Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .int uint8Int }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "decimals", [] => some (uint8Loc ⟨2⟩)
-    | "balanceOf", [.mindex owner] => some (wordLoc (balanceOfSlot owner))
-    | "allowance", [.mindex owner, .mindex spender] =>
-        some (wordLoc (allowanceSlot owner spender))
-    | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
+  | { base := "name", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨0⟩ evm)
+  | { base := "symbol", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨1⟩ evm)
+  | { base := "decimals", steps := [] }, _ => some (uint8Loc ⟨2⟩)
+  | { base := "balanceOf", steps := [.mindex owner] }, _ =>
+      some (wordLoc (balanceOfSlot owner))
+  | { base := "allowance", steps := [.mindex owner, .mindex spender] }, _ =>
+      some (wordLoc (allowanceSlot owner spender))
+  | _, _ => none
+
+def storageLayout : StorageLayout :=
+  solidityStorageLayout storageLayoutRaw
 
 /-! ## Shared expressions and source bodies -/
 
@@ -96,21 +98,23 @@ def emptyBytes : Expr :=
 def constructorDecl : ConstructorDecl :=
   { params := []
     body :=
-      [ .assign .storage decimalsRef (.intLit 18) ] }
+      [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
+        .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
+        .assign .storage decimalsRef (.intLit 18) ] }
 
 /-! ## Public ABI surface -/
 
 def nameTransition : TransitionDecl :=
   { name := "name"
     params := []
-    returnType := some .string
-    body := nonpayable ++ [ .return (.bytesLit (String.toByteArray "Wrapped Ether")) ] }
+    returnType := some stringTy
+    body := nonpayable ++ [ .return (.storage nameRef) ] }
 
 def symbolTransition : TransitionDecl :=
   { name := "symbol"
     params := []
-    returnType := some .string
-    body := nonpayable ++ [ .return (.bytesLit (String.toByteArray "WETH")) ] }
+    returnType := some stringTy
+    body := nonpayable ++ [ .return (.storage symbolRef) ] }
 
 def decimalsTransition : TransitionDecl :=
   { name := "decimals"
@@ -137,6 +141,12 @@ def depositTransition : TransitionDecl :=
     body :=
       [ .assign .storage (balanceOfRef sender)
           (.binary .add (.storage (balanceOfRef sender)) (.env .callvalue)) ] }
+
+def fallbackTransition : TransitionDecl :=
+  { name := "fallback"
+    params := []
+    returnType := none
+    body := depositTransition.body }
 
 def withdrawTransition : TransitionDecl :=
   { name := "withdraw"
@@ -213,11 +223,13 @@ def contract : ContractDecl :=
         symbolTransition,
         transferTransition,
         depositTransition,
-        allowanceTransition ] }
+        allowanceTransition ]
+    fallback := some fallbackTransition }
 
 def config : Config :=
   { storage := storageLayout
     externalABI := defaultExternalCallABI
+    abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Benchmarks.WETH9

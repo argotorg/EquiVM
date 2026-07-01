@@ -26,25 +26,27 @@ def storageDeclsSyntax : List StorageDecl :=
   }
 
 def constructorDeclSyntax : ConstructorDecl :=
-  solm_constructor {
-    @decimals := 18
-  }
+  { params := []
+    body :=
+      [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
+        .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
+        .assign .storage decimalsRef (.intLit 18) ] }
 
 def nameTransitionSyntax : TransitionDecl :=
   { name := "name"
     params := []
-    returnType := some .string
+    returnType := some stringTy
     body := sBlock% {
       require msg.value == 0
-    } ++ [ .return (.bytesLit (String.toByteArray "Wrapped Ether")) ] }
+    } ++ [ .return (.storage nameRef) ] }
 
 def symbolTransitionSyntax : TransitionDecl :=
   { name := "symbol"
     params := []
-    returnType := some .string
+    returnType := some stringTy
     body := sBlock% {
       require msg.value == 0
-    } ++ [ .return (.bytesLit (String.toByteArray "WETH")) ] }
+    } ++ [ .return (.storage symbolRef) ] }
 
 def decimalsTransitionSyntax : TransitionDecl :=
   solm_transition decimals -> uint8 {
@@ -68,6 +70,12 @@ def depositTransitionSyntax : TransitionDecl :=
   solm_transition deposit {
     @balanceOf[msg.sender] := @balanceOf[msg.sender] + msg.value
   }
+
+def fallbackTransitionSyntax : TransitionDecl :=
+  { name := "fallback"
+    params := []
+    returnType := none
+    body := depositTransitionSyntax.body }
 
 def withdrawTransitionSyntax : TransitionDecl :=
   { name := "withdraw"
@@ -153,7 +161,8 @@ def contractSyntax : ContractDecl :=
         symbolTransitionSyntax,
         transferTransitionSyntax,
         depositTransitionSyntax,
-        allowanceTransitionSyntax ] }
+        allowanceTransitionSyntax ]
+    fallback := some fallbackTransitionSyntax }
 
 theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.WETH9.storageDecls := by
   rfl

@@ -6,10 +6,9 @@ import Solm.SolidityLayout
 
 Solm benchmark scaffold for the upstream `gnosis/MultiSigWallet` contract.
 
-Events are omitted.  The payable fallback is present in the Solidity and bytecode, but `ContractDecl`
-currently models selector-dispatched entries only.  The `Transaction.data` field is a dynamic
-`bytes` value in storage; the spec keeps it in the storage schema and ABI surface so this benchmark
-marks the exact feature the framework still needs to support robustly.
+Events are omitted.  The payable fallback is modeled as the source-level no-op on storage; its
+`Deposit` event is ignored by the current equivalence.  The `Transaction.data` field is a dynamic
+`bytes` value stored with Solidity's compact bytes layout.
 -/
 
 open Solm ABI
@@ -108,6 +107,9 @@ def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
 def transactionsBase (transactionId : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord transactionId) ⟨0⟩
 
+def transactionDataSlot (transactionId : KeyValue) : Ethereum.UInt256 :=
+  transactionsBase transactionId + ⟨2⟩
+
 def confirmationsBase (transactionId : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord transactionId) ⟨1⟩
 
@@ -132,30 +134,31 @@ def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "transactions", [.mindex transactionId, .field "destination"] =>
-        some (addrLoc (transactionsBase transactionId))
-    | "transactions", [.mindex transactionId, .field "value"] =>
-        some (wordLoc (transactionsBase transactionId + ⟨1⟩))
-    | "transactions", [.mindex _transactionId, .field "data"] =>
-        none
-    | "transactions", [.mindex transactionId, .field "executed"] =>
-        some (boolLoc (transactionsBase transactionId + ⟨3⟩))
-    | "confirmations", [.mindex transactionId, .mindex owner] =>
-        some (boolLoc (confirmationsSlot transactionId owner))
-    | "isOwner", [.mindex owner] =>
-        some (boolLoc (isOwnerSlot owner))
-    | "owners", [.length] =>
-        some (wordLoc ⟨3⟩)
-    | "owners", [.aindex index] =>
-        some (addrLoc (ownerElemSlot index))
-    | "required", [] =>
-        some (wordLoc ⟨4⟩)
-    | "transactionCount", [] =>
-        some (wordLoc ⟨5⟩)
-    | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
+  | { base := "transactions", steps := [.mindex transactionId, .field "destination"] }, _ =>
+      some (addrLoc (transactionsBase transactionId))
+  | { base := "transactions", steps := [.mindex transactionId, .field "value"] }, _ =>
+      some (wordLoc (transactionsBase transactionId + ⟨1⟩))
+  | { base := "transactions", steps := [.mindex transactionId, .field "data", .length] }, evm =>
+      some (bytesLikeLengthLoc (transactionDataSlot transactionId) evm)
+  | { base := "transactions", steps := [.mindex transactionId, .field "executed"] }, _ =>
+      some (boolLoc (transactionsBase transactionId + ⟨3⟩))
+  | { base := "confirmations", steps := [.mindex transactionId, .mindex owner] }, _ =>
+      some (boolLoc (confirmationsSlot transactionId owner))
+  | { base := "isOwner", steps := [.mindex owner] }, _ =>
+      some (boolLoc (isOwnerSlot owner))
+  | { base := "owners", steps := [.length] }, _ =>
+      some (wordLoc ⟨3⟩)
+  | { base := "owners", steps := [.aindex index] }, _ =>
+      some (addrLoc (ownerElemSlot index))
+  | { base := "required", steps := [] }, _ =>
+      some (wordLoc ⟨4⟩)
+  | { base := "transactionCount", steps := [] }, _ =>
+      some (wordLoc ⟨5⟩)
+  | _, _ => none
+
+def storageLayout : StorageLayout :=
+  solidityStorageLayout storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -188,6 +191,12 @@ def notNull (address : Expr) : List Stmt :=
 
 def requireValidRequirement (ownerCount required : Expr) : List Stmt :=
   [ .require (validRequirementExpr ownerCount required) ]
+
+def fallbackTransition : TransitionDecl :=
+  { name := "fallback"
+    params := []
+    returnType := none
+    body := [] }
 
 /-! ## Constructor -/
 
@@ -567,11 +576,13 @@ def contract : ContractDecl :=
     ctor := constructorDecl
     structs := [transactionStructDecl]
     functions := functions
-    transitions := transitions }
+    transitions := transitions
+    fallback := some fallbackTransition }
 
 def config : Config :=
   { storage := storageLayout
     externalABI := defaultExternalCallABI
+    abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Benchmarks.GnosisMultiSig

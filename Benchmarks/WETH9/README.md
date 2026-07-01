@@ -45,10 +45,9 @@ runtime.hex    sha256 f9305212a27f96e0334879d068df59d0fed30ab0afeabd9e5c5b7278ad
 Current scaffold notes:
 
 - The named ABI surface is explicit.
-- The payable fallback `function() external payable { deposit(); }` is present in the Solidity and
-  bytecode, but `ContractDecl` currently has only selector-based transitions.  A later proof pass
-  should add fallback-dispatch support or a contract-specific harness.
-- `name` and `symbol` are modelled as source literals because Solidity compact dynamic-string storage
-  is not yet representable by the current `StorageLoc` interface.
+- The payable fallback `function() external payable { deposit(); }` is modeled as the same storage
+  update as `deposit()`.
+- `name` and `symbol` use Solidity compact dynamic-string storage: creation initializes slots 0 and
+  1, and the runtime getters read those storage values.
 - `withdraw` uses `lowLevelCall` plus `require(success)` to model `msg.sender.transfer(wad)`;
   the exact 2300-gas stipend is a later proof/detail refinement.
