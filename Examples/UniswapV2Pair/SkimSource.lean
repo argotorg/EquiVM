@@ -336,15 +336,15 @@ theorem evalExpr_skim_excess0 (evm : EVM.State) (I : ExecutionEnv)
         Int.ofNat (balance0.toNat - (uniswapReserve0Word evm).toNat) := by
     exact (Int.ofNat_sub henough).symm
   have htoNat :
-      (skimExcess0Word evm balance0).toNat =
+      (skimExcessWord (uniswapReserve0Word evm) balance0).toNat =
         balance0.toNat - (uniswapReserve0Word evm).toNat := by
-    unfold skimExcess0Word
+    unfold skimExcessWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt)
   have hreserve := evalExpr_uniswap_reserve0 evm (skimBalanceStore I balance0 balance1)
     (by simp [skimBalanceStore, uniswapBalanceOfStore, skimStore])
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, hreserve]
   rw [skimBalanceStore_balance0]
-  simpa [skimBalanceValue, evalBinaryOp?, skimExcess0Value, htoNat] using hsub
+  simpa [skimBalanceValue, evalBinaryOp?, skimExcess0Value, skimExcessValueOf, htoNat] using hsub
 
 theorem evalExpr_skim_first_excess0 (startEvm callEvm : EVM.State) (I : ExecutionEnv)
     (balance0 : UInt256)
@@ -357,9 +357,9 @@ theorem evalExpr_skim_first_excess0 (startEvm callEvm : EVM.State) (I : Executio
         Int.ofNat (balance0.toNat - (uniswapReserve0Word callEvm).toNat) := by
     exact (Int.ofNat_sub henough).symm
   have htoNat :
-      (skimExcess0Word callEvm balance0).toNat =
+      (skimExcessWord (uniswapReserve0Word callEvm) balance0).toNat =
         balance0.toNat - (uniswapReserve0Word callEvm).toNat := by
-    unfold skimExcess0Word
+    unfold skimExcessWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt)
   have hfit :
       balance0.toNat - (uniswapReserve0Word callEvm).toNat < UInt256.size :=
@@ -373,9 +373,9 @@ theorem evalExpr_skim_first_excess0 (startEvm callEvm : EVM.State) (I : Executio
     (by simp [skimFirstBalanceStore, skimTokenStore, skimStore])
   simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
   rw [skimFirstBalanceStore_balance0]
-  simp [evalBinaryOp?, skimExcess0Value, htoNat, uint256Int]
+  simp [evalBinaryOp?, skimExcess0Value, skimExcessValueOf, uint256Int]
   rw [if_neg]
-  · simpa [hsub]
+  · simpa [hsub, htoNat]
   · intro hbad
     rcases hbad with hlow | hhigh
     · omega
@@ -433,6 +433,8 @@ theorem evalExprs_skim_safeTransfer0_args (startEvm callEvm : EVM.State)
           (skimExcess0Word callEvm balance0)) := by
   simp only [evalExprs?, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
   rw [skimFirstExcessStore_token0, skimFirstExcessStore_to, skimFirstExcessStore_excess0]
+  simp [safeTransferArgs, safeTransferUintValue, skimExcess0Value, skimExcessValueOf,
+    skimExcess0Word]
 
 theorem evalExpr_skim_excess1 (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256)
@@ -445,15 +447,15 @@ theorem evalExpr_skim_excess1 (evm : EVM.State) (I : ExecutionEnv)
         Int.ofNat (balance1.toNat - (uniswapReserve1Word evm).toNat) := by
     exact (Int.ofNat_sub henough).symm
   have htoNat :
-      (skimExcess1Word evm balance1).toNat =
+      (skimExcessWord (uniswapReserve1Word evm) balance1).toNat =
         balance1.toNat - (uniswapReserve1Word evm).toNat := by
-    unfold skimExcess1Word
+    unfold skimExcessWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt)
   have hreserve := evalExpr_uniswap_reserve1 evm (skimExcess0Store evm I balance0 balance1)
     (by simp [skimExcess0Store, skimBalanceStore, uniswapBalanceOfStore, skimStore])
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, hreserve]
   rw [skimExcess0Store_balance1]
-  simpa [skimBalanceValue, evalBinaryOp?, skimExcess1Value, htoNat] using hsub
+  simpa [skimBalanceValue, evalBinaryOp?, skimExcess1Value, skimExcessValueOf, htoNat] using hsub
 
 theorem evalExpr_skim_second_excess1
     (startEvm firstCallEvm secondCallEvm : EVM.State) (I : ExecutionEnv)
@@ -469,9 +471,9 @@ theorem evalExpr_skim_second_excess1
         Int.ofNat (balance1.toNat - (uniswapReserve1Word secondCallEvm).toNat) := by
     exact (Int.ofNat_sub henough).symm
   have htoNat :
-      (skimExcess1Word secondCallEvm balance1).toNat =
+      (skimExcessWord (uniswapReserve1Word secondCallEvm) balance1).toNat =
         balance1.toNat - (uniswapReserve1Word secondCallEvm).toNat := by
-    unfold skimExcess1Word
+    unfold skimExcessWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt)
   have hfit :
       balance1.toNat - (uniswapReserve1Word secondCallEvm).toNat < UInt256.size :=
@@ -487,9 +489,9 @@ theorem evalExpr_skim_second_excess1
         skimFirstBalanceStore, skimTokenStore, skimStore])
   simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
   rw [skimSecondBalanceStore_balance1]
-  simp [evalBinaryOp?, skimExcess1Value, htoNat, uint256Int]
+  simp [evalBinaryOp?, skimExcess1Value, skimExcessValueOf, uint256Int]
   rw [if_neg]
-  · simpa [hsub]
+  · simpa [hsub, htoNat]
   · intro hbad
     rcases hbad with hlow | hhigh
     · omega
@@ -556,6 +558,8 @@ theorem evalExprs_skim_safeTransfer1_args
           (skimExcess1Word secondCallEvm balance1)) := by
   simp only [evalExprs?, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
   rw [skimSecondExcessStore_token1, skimSecondExcessStore_to, skimSecondExcessStore_excess1]
+  simp [safeTransferArgs, safeTransferUintValue, skimExcess1Value, skimExcessValueOf,
+    skimExcess1Word]
 
 abbrev skimExcessPrefixBody : List Stmt :=
   [ .letDecl "excess0" (some uint256)

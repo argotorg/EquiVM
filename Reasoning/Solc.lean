@@ -128,6 +128,15 @@ theorem solcDecodeLenCheckOk {sz : ℕ} {head need : UInt256}
   · rw [usub_ofNat_word_toNat (by omega : head.toNat ≤ sz) hsz]
     exact Nat.sub_lt_right_of_lt_add (by omega : head.toNat ≤ sz) hhi
 
+/-- Unsigned variant of `solcDecodeLenCheckOk`, for compiler guards emitted as `LT`. -/
+theorem solcDecodeLenCheckOkUnsigned {sz : ℕ} {head need : UInt256}
+    (hlen : head.toNat + need.toNat ≤ sz)
+    (hsz : sz < UInt256.size) :
+    UInt256.lt (UInt256.sub (UInt256.ofNat sz) head) need = ⟨0⟩ := by
+  apply ult_zero
+  rw [usub_ofNat_word_toNat (by omega : head.toNat ≤ sz) hsz]
+  exact Nat.le_sub_of_add_le (by simpa [Nat.add_comm] using hlen)
+
 /-- The solc decoder length check fails in the ordinary short-buffer case:
     `head ≤ size < head + need`. -/
 theorem solcDecodeLenCheckShort {sz : ℕ} {head need : UInt256}

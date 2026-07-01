@@ -237,46 +237,35 @@ abbrev reserve112Mask : UInt256 := UInt256.sub reserve112Shift ⟨1⟩
 abbrev reserve224Shift : UInt256 := UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩
 abbrev reserve32Mask : UInt256 := ⟨4294967295⟩
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
 theorem uniswapStorageLocLoad_uint112_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint112Loc0 slot) =
       .int (Int.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) reserve112Mask).toNat) := by
-  unfold storageLocLoad uint112Loc0 wordToElem
-  simp only [Fin.val_zero, Nat.zero_add]
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 14))) = _
-  rw [List.extract_eq_take_drop, List.drop_zero]
-  rw [fromBytes'_take_wordLE_land_mask _ 14 (by decide)]
-  rw [show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by native_decide]
+  rw [← show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by native_decide]
+  simpa [uint112Loc0, uint112Int] using
+    storageLocLoad_uint_offset0 evm slot (14 : Fin 33) ⟨112, by decide⟩ (by decide)
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
 theorem uniswapStorageLocLoad_uint112_offset14 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint112Loc14 slot) =
       .int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve112Shift) reserve112Mask).toNat) := by
-  unfold storageLocLoad uint112Loc14 wordToElem
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 14 28))) = _
-  rw [List.extract_eq_take_drop]
-  rw [fromBytes'_drop_take_wordLE_land_div_mask _ 14 14 (by decide) (by decide)]
-  rw [show UInt256.ofNat (256 ^ 14) = reserve112Shift by native_decide]
-  rw [show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 14) = reserve112Shift by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by native_decide]
+  simpa [uint112Loc14, uint112Int] using
+    storageLocLoad_uint_offset evm slot (14 : Fin 32) (14 : Fin 33) ⟨112, by decide⟩
+      (by decide) (by decide)
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage loads at byte offsets.
 theorem uniswapStorageLocLoad_uint32_offset28 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint32Loc28 slot) =
       .int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve224Shift) reserve32Mask).toNat) := by
-  unfold storageLocLoad uint32Loc28 wordToElem
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 28 32))) = _
-  rw [List.extract_eq_take_drop]
-  rw [fromBytes'_drop_take_wordLE_land_div_mask _ 28 4 (by decide) (by decide)]
-  rw [show UInt256.ofNat (256 ^ 28) = reserve224Shift by native_decide]
-  rw [show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 28) = reserve224Shift by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by native_decide]
+  simpa [uint32Loc28, uint32Int] using
+    storageLocLoad_uint_offset evm slot (28 : Fin 32) (4 : Fin 33) ⟨32, by decide⟩
+      (by decide) (by decide)
 
 abbrev uniswapReserve0Word (evm : EVM.State) : UInt256 :=
   UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩) reserve112Mask
@@ -286,8 +275,6 @@ abbrev uniswapReserve1Word (evm : EVM.State) : UInt256 :=
     (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩) reserve112Shift)
     reserve112Mask
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — packed unsigned-integer storage expression evaluator
--- for a scalar storage reference whose layout uses a byte-offset storage location.
 theorem evalExpr_uniswap_storage_uint112_offset0 (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (hbase : locals.get? ref.base = none)
@@ -298,11 +285,9 @@ theorem evalExpr_uniswap_storage_uint112_offset0 (evm : EVM.State) (locals : Sto
       .ok (.int (Int.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve112Mask).toNat)) := by
-  rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint112_offset0 evm slot)
+  exact evalExpr_storage_scalar_value hbase her hty hloc
+    (uniswapStorageLocLoad_uint112_offset0 evm slot)
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — packed unsigned-integer storage expression evaluator
--- for a scalar storage reference whose layout uses a nonzero byte-offset storage location.
 theorem evalExpr_uniswap_storage_uint112_offset14 (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (hbase : locals.get? ref.base = none)
@@ -314,8 +299,8 @@ theorem evalExpr_uniswap_storage_uint112_offset14 (evm : EVM.State) (locals : St
         (UInt256.land (UInt256.div
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) reserve112Shift)
           reserve112Mask).toNat)) := by
-  rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint112_offset14 evm slot)
+  exact evalExpr_storage_scalar_value hbase her hty hloc
+    (uniswapStorageLocLoad_uint112_offset14 evm slot)
 
 theorem evalExpr_uniswap_reserve0 (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "reserve0" = none) :
@@ -354,32 +339,20 @@ theorem evalStorageRef_uniswap_blockTimestampLast (evm : EVM.State) (locals : St
       .ok ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef) := by
   simp [evalStorageRef, evalStorageRefSteps, blockTimestampLastRef, EvalResult.bind, pure, bind]
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage writes are defined for
--- scalar integer values at byte offsets.
 theorem uniswapStorageLocStore_uint112_offset0_int_some
     (evm : EVM.State) (slot : UInt256) (n : Int) :
     ∃ evm', storageLocStore evm (uint112Loc0 slot) (.int n) = some evm' := by
-  unfold storageLocStore storageLocWriteWord uint112Loc0
-  simp only [valueToWord, bind, Option.bind, pure]
-  exact ⟨_, rfl⟩
+  exact storageLocStore_int_some evm (uint112Loc0 slot) n
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage writes are defined for
--- scalar integer values at nonzero byte offsets.
 theorem uniswapStorageLocStore_uint112_offset14_int_some
     (evm : EVM.State) (slot : UInt256) (n : Int) :
     ∃ evm', storageLocStore evm (uint112Loc14 slot) (.int n) = some evm' := by
-  unfold storageLocStore storageLocWriteWord uint112Loc14
-  simp only [valueToWord, bind, Option.bind, pure]
-  exact ⟨_, rfl⟩
+  exact storageLocStore_int_some evm (uint112Loc14 slot) n
 
--- LIBRARY CANDIDATE: Reasoning.Storage — packed unsigned-integer storage writes are defined for
--- scalar integer values at nonzero byte offsets.
 theorem uniswapStorageLocStore_uint32_offset28_int_some
     (evm : EVM.State) (slot : UInt256) (n : Int) :
     ∃ evm', storageLocStore evm (uint32Loc28 slot) (.int n) = some evm' := by
-  unfold storageLocStore storageLocWriteWord uint32Loc28
-  simp only [valueToWord, bind, Option.bind, pure]
-  exact ⟨_, rfl⟩
+  exact storageLocStore_int_some evm (uint32Loc28 slot) n
 
 theorem uniswapAssignReserve0OfStore (evm evm' : EVM.State) (locals : Store)
     (balance0 : UInt256)
@@ -445,8 +418,6 @@ abbrev uniswapAddressAtSlot (evm : EVM.State) (slot : UInt256) : AccountAddress 
   AccountAddress.ofNat
     (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) solcAddrMask).toNat
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic scalar address-storage expression evaluator,
--- parameterized by config, contract, storage ref, and concrete address storage location.
 theorem evalExpr_uniswap_storage_address (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (hbase : locals.get? ref.base = none)
@@ -455,8 +426,8 @@ theorem evalExpr_uniswap_storage_address (evm : EVM.State) (locals : Store)
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.address (uniswapAddressAtSlot evm slot)) := by
-  rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm slot)
+  exact evalExpr_storage_scalar_value hbase her hty hloc
+    (uniswapStorageLocLoad_address_offset0 evm slot)
 
 theorem evalExpr_uniswap_this (evm : EVM.State) (locals : Store) :
     evalExpr? config { contract := contract, locals := locals } evm this =
@@ -1025,38 +996,23 @@ theorem uniswapSubRet32_toNat :
     (UInt256.sub uniswapRetEnd ⟨128⟩).toNat = 32 := by
   decide
 
--- LIBRARY CANDIDATE: Reasoning.Solc — unsigned `LT` variant of the common solc
--- static-argument length check (`calldatasize - 4 < 32`).
 theorem uniswapDecodeLenCheckOk_4_32_lt {sz : ℕ}
     (hsz36 : 36 ≤ sz) (hsize : sz < UInt256.size) :
     UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
-  apply ult_zero
-  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide
-  rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-    usub_ofNat_word_toNat (by rw [h4]; omega) hsize]
-  omega
+  exact solcDecodeLenCheckOkUnsigned
+    (head := (⟨4⟩ : UInt256)) (need := (⟨32⟩ : UInt256)) (by simpa using hsz36) hsize
 
--- LIBRARY CANDIDATE: Reasoning.Solc — unsigned `LT` variant of the common solc
--- static-argument length check (`calldatasize - 4 < 64`).
 theorem uniswapDecodeLenCheckOk_4_64_lt {sz : ℕ}
     (hsz68 : 68 ≤ sz) (hsize : sz < UInt256.size) :
     UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨0⟩ := by
-  apply ult_zero
-  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide
-  rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-    usub_ofNat_word_toNat (by rw [h4]; omega) hsize]
-  omega
+  exact solcDecodeLenCheckOkUnsigned
+    (head := (⟨4⟩ : UInt256)) (need := (⟨64⟩ : UInt256)) (by simpa using hsz68) hsize
 
--- LIBRARY CANDIDATE: Reasoning.Solc — unsigned `LT` variant of the common solc
--- static-argument length check (`calldatasize - 4 < 96`).
 theorem uniswapDecodeLenCheckOk_4_96_lt {sz : ℕ}
     (hsz100 : 100 ≤ sz) (hsize : sz < UInt256.size) :
     UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨96⟩ = ⟨0⟩ := by
-  apply ult_zero
-  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide
-  rw [show (⟨96⟩ : UInt256).toNat = 96 from by decide,
-    usub_ofNat_word_toNat (by rw [h4]; omega) hsize]
-  omega
+  exact solcDecodeLenCheckOkUnsigned
+    (head := (⟨4⟩ : UInt256)) (need := (⟨96⟩ : UInt256)) (by simpa using hsz100) hsize
 
 end UniswapV2Pair
 

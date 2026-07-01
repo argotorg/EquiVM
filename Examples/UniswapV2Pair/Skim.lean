@@ -538,7 +538,7 @@ theorem skimExcess0Word_eq_sub_of_reserve {evm : EVM.State} {balance0 reserve0 :
     (hle : reserve0.toNat ≤ balance0.toNat) :
     skimExcess0Word evm balance0 = UInt256.sub balance0 reserve0 := by
   apply u256_inj
-  rw [skimExcess0Word, hreserve]
+  rw [skimExcess0Word, hreserve, skimExcessWord]
   rw [UInt256.toNat_ofNat_of_lt]
   · exact (usub_toNat (a := balance0) (b := reserve0) hle).symm
   · exact lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt
@@ -548,7 +548,7 @@ theorem skimExcess1Word_eq_sub_of_reserve {evm : EVM.State} {balance1 reserve1 :
     (hle : reserve1.toNat ≤ balance1.toNat) :
     skimExcess1Word evm balance1 = UInt256.sub balance1 reserve1 := by
   apply u256_inj
-  rw [skimExcess1Word, hreserve]
+  rw [skimExcess1Word, hreserve, skimExcessWord]
   rw [UInt256.toNat_ofNat_of_lt]
   · exact (usub_toNat (a := balance1) (b := reserve1) hle).symm
   · exact lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt

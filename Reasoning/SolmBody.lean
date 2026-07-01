@@ -739,6 +739,19 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind,
     readStorage?_elem hloc]
 
+/-- A scalar storage read with an already-normalized `storageLocLoad` value. -/
+theorem evalExpr_storage_scalar_value {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {t : ABI.ElemType} {loc : StorageLoc}
+    {value : Value}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : cfg.storage.layout er = fun _ => some loc)
+    (hload : storageLocLoad evm loc = value) :
+    evalExpr? cfg solm evm (.storage slot) = .ok value := by
+  rw [evalExpr_storage_scalar hbase her hty hloc]
+  exact congrArg EvalResult.ok hload
+
 /-- A scalar storage write collapses to a single `storageLocStore`. -/
 theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
     {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {value : Value}

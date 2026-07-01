@@ -44,6 +44,42 @@ noncomputable def skimSecondSafeTransferMem5
   (UInt256.toByteArray (⟨68⟩ : UInt256)).write 0
     (skimSecondSafeTransferMem4 self o toWord prevValue out2 value) 356 32
 
+noncomputable def skimSecondSafeTransferMem5WritesAfter64
+    (toWord value : UInt256) : List (Nat × UInt256) :=
+  [(292, (⟨25⟩ : UInt256)),
+   (324, skimSafeTransferSignatureWord),
+   (392, UInt256.land solcAddrMask toWord),
+   (424, value),
+   (356, (⟨68⟩ : UInt256))]
+
+noncomputable def skimSecondSafeTransferMem5Writes
+    (toWord value : UInt256) : List (Nat × UInt256) :=
+  (64, (⟨356⟩ : UInt256)) :: skimSecondSafeTransferMem5WritesAfter64 toWord value
+
+theorem skimSecondSafeTransferMem5_eq_writeCascade
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) :
+    skimSecondSafeTransferMem5 self o toWord prevValue out2 value =
+      writeCascade (skimSecondBalanceStaticcallMem self o toWord prevValue out2)
+        (skimSecondSafeTransferMem5Writes toWord value) := by
+  rfl
+
+theorem skimSecondSafeTransferMem5Writes_size (toWord value : UInt256) :
+    writeCascadeSize 388 (skimSecondSafeTransferMem5Writes toWord value) = 456 := by
+  rfl
+
+theorem skimSecondSafeTransferMem5Writes_gaps (toWord value : UInt256) :
+    WriteGapsOk 388 (skimSecondSafeTransferMem5Writes toWord value) := by
+  simp [WriteGapsOk, skimSecondSafeTransferMem5Writes,
+    skimSecondSafeTransferMem5WritesAfter64]
+  exact lt_usize 4 (by norm_num)
+
+theorem skimSecondSafeTransferMem5WritesAfter64_disjoint64 (toWord value : UInt256) :
+    WindowDisjointFromWrites 388 64 32
+      (skimSecondSafeTransferMem5WritesAfter64 toWord value) := by
+  simp [WindowDisjointFromWrites, skimSecondSafeTransferMem5WritesAfter64]
+  exact lt_usize 4 (by norm_num)
+
 noncomputable def skimSecondSafeTransferMem6
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
     (value : UInt256) : ByteArray :=
@@ -173,17 +209,20 @@ theorem skimSecondSafeTransferMem5_size
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (skimSecondSafeTransferMem5 self o toWord prevValue out2 value).size = 456 := by
-  unfold skimSecondSafeTransferMem5
-  rw [write32_eq _ _ 356 (by rw [toByteArray_size])
-      (by
-        rw [skimSecondSafeTransferMem4_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize]
-        omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract,
-    skimSecondSafeTransferMem4_size self toWord prevValue value ho32 hoSize hout32 houtSize,
-    toByteArray_size]
-  omega
+  have hbase :
+      (skimSecondBalanceStaticcallMem self o toWord prevValue out2).size = 388 :=
+    skimSecondBalanceStaticcallMem_size_of_size_ge self toWord prevValue out2
+      ho32 hoSize hout32 houtSize
+  have hgaps :
+      WriteGapsOk (skimSecondBalanceStaticcallMem self o toWord prevValue out2).size
+        (skimSecondSafeTransferMem5Writes toWord value) := by
+    rw [hbase]
+    exact skimSecondSafeTransferMem5Writes_gaps toWord value
+  have hcascade :=
+    writeCascade_size (skimSecondBalanceStaticcallMem self o toWord prevValue out2)
+      (skimSecondSafeTransferMem5Writes toWord value) hgaps
+  rw [skimSecondSafeTransferMem5_eq_writeCascade, hcascade, hbase]
+  exact skimSecondSafeTransferMem5Writes_size toWord value
 
 theorem skimSecondSafeTransferMem6_size
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
@@ -324,6 +363,45 @@ theorem skimSecondSafeTransferMem4_mload64
     (skimSecondSafeTransferMem4_read64 self toWord prevValue value ho32 hoSize
       hout32 houtSize)
 
+theorem skimSecondSafeTransferMem5_read64
+    (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
+    (value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
+    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
+    (skimSecondSafeTransferMem5 self o toWord prevValue out2 value).readWithPadding 64 32 =
+      UInt256.toByteArray (⟨356⟩ : UInt256) := by
+  rw [skimSecondSafeTransferMem5_eq_writeCascade]
+  simpa [skimSecondSafeTransferMem5Writes] using
+    writeCascade_read_word_of_head
+      (skimSecondBalanceStaticcallMem self o toWord prevValue out2) 64 (⟨356⟩ : UInt256)
+      (skimSecondSafeTransferMem5WritesAfter64 toWord value)
+      (by
+        rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord prevValue out2
+          ho32 hoSize hout32 houtSize]
+        native_decide)
+      (by
+        rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord prevValue out2
+          ho32 hoSize hout32 houtSize]
+        exact skimSecondSafeTransferMem5WritesAfter64_disjoint64 toWord value)
+
+theorem skimSecondSafeTransferMem5_read356
+    (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
+    (value : UInt256)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
+    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
+    (skimSecondSafeTransferMem5 self o toWord prevValue out2 value).readWithPadding 356 32 =
+      UInt256.toByteArray (⟨68⟩ : UInt256) := by
+  unfold skimSecondSafeTransferMem5
+  rw [write32_read_back _ _ 356 (by rw [toByteArray_size])
+      (by
+        rw [skimSecondSafeTransferMem4_size self toWord prevValue value ho32 hoSize
+          hout32 houtSize]
+        omega)]
+  rw [show (UInt256.toByteArray (⟨68⟩ : UInt256)).extract 0 32 =
+      UInt256.toByteArray (⟨68⟩ : UInt256) by
+    rw [show 32 = (UInt256.toByteArray (⟨68⟩ : UInt256)).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
+
 theorem skimSecondSafeTransferMem6_read64
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
     (value : UInt256)
@@ -406,16 +484,8 @@ theorem skimSecondSafeTransferMem7_read356
         rw [skimSecondSafeTransferMem5_size self toWord prevValue value ho32 hoSize
           hout32 houtSize]
         omega)]
-  unfold skimSecondSafeTransferMem5
-  rw [write32_read_back _ _ 356 (by rw [toByteArray_size])
-      (by
-        rw [skimSecondSafeTransferMem4_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize]
-        omega)]
-  rw [show (UInt256.toByteArray (⟨68⟩ : UInt256)).extract 0 32 =
-      UInt256.toByteArray (⟨68⟩ : UInt256) by
-    rw [show 32 = (UInt256.toByteArray (⟨68⟩ : UInt256)).size by rw [toByteArray_size]]
-    exact byteArray_extract_self _]
+  exact skimSecondSafeTransferMem5_read356 self toWord prevValue value ho32 hoSize
+    hout32 houtSize
 
 theorem skimSecondSafeTransferMem7_mload356
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
@@ -555,6 +625,42 @@ noncomputable def skimSecondSafeTransferCallMem2
     (skimSecondSafeTransferTailWord self o toWord prevValue out2 value)).write 0
     (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value) 520 32
 
+noncomputable def skimSecondSafeTransferCallMem2Writes
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) : List (Nat × UInt256) :=
+  [(456, skimSecondSafeTransferPatchedSelectorWord self o toWord prevValue out2 value),
+   (488, skimSecondSafeTransferCopyWord1 self o toWord prevValue out2 value),
+   (520, skimSecondSafeTransferTailWord self o toWord prevValue out2 value)]
+
+theorem skimSecondSafeTransferCallMem2_eq_writeCascade
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) :
+    skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value =
+      writeCascade (skimSecondSafeTransferMem7 self o toWord prevValue out2 value)
+        (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) := by
+  rfl
+
+theorem skimSecondSafeTransferCallMem2Writes_size
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) :
+    writeCascadeSize 456
+      (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) = 552 := by
+  rfl
+
+theorem skimSecondSafeTransferCallMem2Writes_gaps
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) :
+    WriteGapsOk 456
+      (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) := by
+  simp [WriteGapsOk, skimSecondSafeTransferCallMem2Writes]
+
+theorem skimSecondSafeTransferCallMem2Writes_disjoint64
+    (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out2 : ByteArray)
+    (value : UInt256) :
+    WindowDisjointFromWrites 456 64 32
+      (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) := by
+  simp [WindowDisjointFromWrites, skimSecondSafeTransferCallMem2Writes]
+
 theorem skimSecondSafeTransferCallMem0_size
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
     (value : UInt256)
@@ -608,23 +714,19 @@ theorem skimSecondSafeTransferCallMem2_size
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value).size = 552 := by
-  unfold skimSecondSafeTransferCallMem2
-  rw [toByteArray_write_eq _ _ 520
-      (by
-        rw [skimSecondSafeTransferCallMem1_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize])
-      (by
-        rw [skimSecondSafeTransferCallMem1_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize]
-        change 0 < USize.size
-        exact lt_usize 0 (by norm_num)),
-    ByteArray.size_append, ByteArray.size_append,
-    skimSecondSafeTransferCallMem1_size self toWord prevValue value ho32 hoSize
-      hout32 houtSize,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (520 - 520)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+  have hbase :
+      (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size = 456 :=
+    skimSecondSafeTransferMem7_size self toWord prevValue value ho32 hoSize hout32 houtSize
+  have hgaps :
+      WriteGapsOk (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size
+        (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) := by
+    rw [hbase]
+    exact skimSecondSafeTransferCallMem2Writes_gaps self o toWord prevValue out2 value
+  have hcascade :=
+    writeCascade_size (skimSecondSafeTransferMem7 self o toWord prevValue out2 value)
+      (skimSecondSafeTransferCallMem2Writes self o toWord prevValue out2 value) hgaps
+  rw [skimSecondSafeTransferCallMem2_eq_writeCascade, hcascade, hbase]
+  exact skimSecondSafeTransferCallMem2Writes_size self o toWord prevValue out2 value
 
 theorem skimSecondSafeTransferCallMem0_mload420
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
@@ -704,26 +806,13 @@ theorem skimSecondSafeTransferCallMem2_read64
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value).readWithPadding 64 32 =
       UInt256.toByteArray (⟨456⟩ : UInt256) := by
-  unfold skimSecondSafeTransferCallMem2
-  rw [write32_read_below _ _ 520 64 (by rw [toByteArray_size])
-      (by
-        rw [skimSecondSafeTransferCallMem1_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize])
-      (by omega)]
-  unfold skimSecondSafeTransferCallMem1
-  rw [write32_read_below _ _ 488 64 (by rw [toByteArray_size])
-      (by
-        rw [skimSecondSafeTransferCallMem0_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize])
-      (by omega)]
-  unfold skimSecondSafeTransferCallMem0
-  rw [write32_read_below _ _ 456 64 (by rw [toByteArray_size])
-      (by
-        rw [skimSecondSafeTransferMem7_size self toWord prevValue value ho32 hoSize
-          hout32 houtSize])
-      (by omega)]
-  exact skimSecondSafeTransferMem7_read64 self toWord prevValue value ho32 hoSize
-    hout32 houtSize
+  rw [skimSecondSafeTransferCallMem2_eq_writeCascade]
+  rw [writeCascade_read_preserved]
+  · exact skimSecondSafeTransferMem7_read64 self toWord prevValue value ho32 hoSize
+      hout32 houtSize
+  · rw [skimSecondSafeTransferMem7_size self toWord prevValue value ho32 hoSize
+      hout32 houtSize]
+    exact skimSecondSafeTransferCallMem2Writes_disjoint64 self o toWord prevValue out2 value
 
 theorem skimSecondSafeTransferCallMem2_read96_zero
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}

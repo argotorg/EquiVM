@@ -18,6 +18,28 @@ noncomputable def skimSecondBalanceCalldataMem
   (UInt256.toByteArray self).write 0
     (skimSecondBalanceSelectorMem self o toWord value) 296 32
 
+noncomputable def skimSecondBalanceCalldataMemWrites (self : UInt256) : List (Nat × UInt256) :=
+  [(292, balanceOfSelectorShifted), (296, self)]
+
+theorem skimSecondBalanceCalldataMem_eq_writeCascade
+    (self : UInt256) (o : ByteArray) (toWord value : UInt256) :
+    skimSecondBalanceCalldataMem self o toWord value =
+      writeCascade (skimSafeTransferCallMem2 self o toWord value)
+        (skimSecondBalanceCalldataMemWrites self) := by
+  rfl
+
+theorem skimSecondBalanceCalldataMemWrites_size (self : UInt256) :
+    writeCascadeSize 388 (skimSecondBalanceCalldataMemWrites self) = 388 := by
+  rfl
+
+theorem skimSecondBalanceCalldataMemWrites_gaps (self : UInt256) :
+    WriteGapsOk 388 (skimSecondBalanceCalldataMemWrites self) := by
+  simp [WriteGapsOk, skimSecondBalanceCalldataMemWrites]
+
+theorem skimSecondBalanceCalldataMemWrites_disjoint64 (self : UInt256) :
+    WindowDisjointFromWrites 388 64 32 (skimSecondBalanceCalldataMemWrites self) := by
+  simp [WindowDisjointFromWrites, skimSecondBalanceCalldataMemWrites]
+
 noncomputable def skimSecondBalanceStaticcallMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out : ByteArray) :
     ByteArray :=
@@ -40,13 +62,18 @@ theorem skimSecondBalanceCalldataMem_size
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (skimSecondBalanceCalldataMem self o toWord value).size = 388 := by
-  unfold skimSecondBalanceCalldataMem
-  rw [write32_eq _ _ 296 (by rw [toByteArray_size])
-      (by rw [skimSecondBalanceSelectorMem_size self toWord value ho32 hoSize]; omega)]
-  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract]
-  rw [skimSecondBalanceSelectorMem_size self toWord value ho32 hoSize, toByteArray_size]
-  norm_num
+  have hbase : (skimSafeTransferCallMem2 self o toWord value).size = 388 :=
+    skimSafeTransferCallMem2_size self toWord value ho32 hoSize
+  have hgaps :
+      WriteGapsOk (skimSafeTransferCallMem2 self o toWord value).size
+        (skimSecondBalanceCalldataMemWrites self) := by
+    rw [hbase]
+    exact skimSecondBalanceCalldataMemWrites_gaps self
+  have hcascade :=
+    writeCascade_size (skimSafeTransferCallMem2 self o toWord value)
+      (skimSecondBalanceCalldataMemWrites self) hgaps
+  rw [skimSecondBalanceCalldataMem_eq_writeCascade, hcascade, hbase]
+  exact skimSecondBalanceCalldataMemWrites_size self
 
 theorem skimSecondBalanceSelectorMem_read64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -64,11 +91,11 @@ theorem skimSecondBalanceCalldataMem_read64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (skimSecondBalanceCalldataMem self o toWord value).readWithPadding 64 32 =
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
-  unfold skimSecondBalanceCalldataMem
-  rw [write32_read_below _ _ 296 64 (by rw [toByteArray_size])
-      (by rw [skimSecondBalanceSelectorMem_size self toWord value ho32 hoSize]; native_decide)
-      (by omega)]
-  exact skimSecondBalanceSelectorMem_read64 self toWord value ho32 hoSize
+  rw [skimSecondBalanceCalldataMem_eq_writeCascade]
+  rw [writeCascade_read_preserved]
+  · exact skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize
+  · rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]
+    exact skimSecondBalanceCalldataMemWrites_disjoint64 self
 
 theorem skimSecondBalanceCalldataMem_mload64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)

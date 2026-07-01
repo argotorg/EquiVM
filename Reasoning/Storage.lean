@@ -153,6 +153,53 @@ theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Val
     List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
     List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
 
+/-! ## Packed unsigned integer storage -/
+
+theorem storageLocLoad_uint_offset0 (evm : EVM.State) (slot : UInt256)
+    (size : Fin 33) (width : ABI.BitWidth)
+    {hbound : (0 : Fin 32).val + size.val - 1 < 32}
+    (hbits : 8 * size.val ≤ 256) :
+    storageLocLoad evm
+        { slot := slot, offset := 0, size := size, hbound := hbound,
+          type := .int (.uint width) } =
+      .int (Int.ofNat (UInt256.land
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+        (UInt256.ofNat (2 ^ (8 * size.val) - 1))).toNat) := by
+  unfold storageLocLoad wordToElem
+  simp only [Fin.val_zero, Nat.zero_add]
+  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 size.val))) = _
+  rw [List.extract_eq_take_drop, List.drop_zero]
+  simpa [Nat.sub_zero] using
+    fromBytes'_take_wordLE_land_mask
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) size.val hbits
+
+theorem storageLocLoad_uint_offset (evm : EVM.State) (slot : UInt256)
+    (offset : Fin 32) (size : Fin 33) (width : ABI.BitWidth)
+    {hbound : offset.val + size.val - 1 < 32}
+    (hoff : 8 * offset.val < 256) (hsize : 8 * size.val ≤ 256) :
+    storageLocLoad evm
+        { slot := slot, offset := offset, size := size, hbound := hbound,
+          type := .int (.uint width) } =
+      .int (Int.ofNat (UInt256.land
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+          (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
+  unfold storageLocLoad wordToElem
+  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract
+      offset.val (offset.val + size.val)))) = _
+  rw [List.extract_eq_take_drop]
+  simpa [Nat.add_sub_cancel_left] using
+    fromBytes'_drop_take_wordLE_land_div_mask
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) offset.val size.val hoff hsize
+
+theorem storageLocStore_int_some (evm : EVM.State) (loc : StorageLoc) (n : Int) :
+    ∃ evm', storageLocStore evm loc (.int n) = some evm' := by
+  unfold storageLocStore
+  simp only [valueToWord, bind, Option.bind, pure]
+  exact ⟨_, rfl⟩
+
 /-! ## Solidity bytes/string storage layout -/
 
 theorem uInt256_shiftRight_zero_left (s : UInt256) :
