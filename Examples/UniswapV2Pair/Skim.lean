@@ -657,67 +657,41 @@ theorem skimExcess1Word_eq_sub_of_reserve {evm : EVM.State} {balance1 reserve1 :
   · exact (usub_toNat (a := balance1) (b := reserve1) hle).symm
   · exact lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt
 
-theorem skimFirstSafeTransferCalldata_canonical {evm0S : EVM.State}
-    {I : ExecutionEnv} {balance0 reserve0 : UInt256}
+theorem skimFirstSafeTransferCalldata {evm0S : EVM.State}
+    {I : ExecutionEnv} {balance0 reserve0 toWord : UInt256}
+    (hto : UInt256.ofNat (skimToAddress I).val = UInt256.land solcAddrMask toWord)
     (hreserve : uniswapReserve0Word evm0S = reserve0)
     (hle : reserve0.toNat ≤ balance0.toNat) :
     transferCalldata? (skimToAddress I) (skimExcess0Word evm0S balance0) =
-      some ((transferCalldataMem (UInt256.land solcAddrMask (skimToWord I))
+      some ((transferCalldataMem (UInt256.land solcAddrMask toWord)
         (UInt256.sub balance0 reserve0)).readWithPadding 128 68) := by
   have hexcess : skimExcess0Word evm0S balance0 = UInt256.sub balance0 reserve0 :=
     skimExcess0Word_eq_sub_of_reserve hreserve hle
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_mask I] using
+  simpa [transferCalldata?, transferCallArgs, hexcess, hto] using
     transferCalldataMem_encode (skimToAddress I) (skimExcess0Word evm0S balance0)
 
-theorem skimFirstSafeTransferCalldata_masked {evm0S : EVM.State}
-    {I : ExecutionEnv} {balance0 reserve0 : UInt256}
-    (hreserve : uniswapReserve0Word evm0S = reserve0)
-    (hle : reserve0.toNat ≤ balance0.toNat) :
-    transferCalldata? (skimToAddress I) (skimExcess0Word evm0S balance0) =
-      some ((transferCalldataMem (UInt256.land solcAddrMask (skimToMaskedWord I))
-        (UInt256.sub balance0 reserve0)).readWithPadding 128 68) := by
-  have hexcess : skimExcess0Word evm0S balance0 = UInt256.sub balance0 reserve0 :=
-    skimExcess0Word_eq_sub_of_reserve hreserve hle
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_masked I] using
-    transferCalldataMem_encode (skimToAddress I) (skimExcess0Word evm0S balance0)
-
-theorem skimSecondSafeTransferCalldata_canonical {evm2S : EVM.State}
-    {I : ExecutionEnv} {o out2 : ByteArray} {balance1 reserve1 prevValue : UInt256}
+theorem skimSecondSafeTransferCalldata {evm2S : EVM.State}
+    {I : ExecutionEnv} {o out2 : ByteArray} {balance1 reserve1 prevValue toWord : UInt256}
+    (hto : UInt256.ofNat (skimToAddress I).val = UInt256.land solcAddrMask toWord)
     (hreserve : uniswapReserve1Word evm2S = reserve1)
     (hle : reserve1.toNat ≤ balance1.toNat)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     transferCalldata? (skimToAddress I) (skimExcess1Word evm2S balance1) =
-      some ((skimSecondSafeTransferCallMem2 (UInt256.ofNat I.codeOwner.val) o (skimToWord I)
+      some ((skimSecondSafeTransferCallMem2 (UInt256.ofNat I.codeOwner.val) o toWord
         prevValue out2 (UInt256.sub balance1 reserve1)).readWithPadding 456 68) := by
   have hexcess : skimExcess1Word evm2S balance1 = UInt256.sub balance1 reserve1 :=
     skimExcess1Word_eq_sub_of_reserve hreserve hle
   rw [skimSecondSafeTransferCallMem2_read456_68
-    (UInt256.ofNat I.codeOwner.val) (skimToWord I) prevValue (UInt256.sub balance1 reserve1)
+    (UInt256.ofNat I.codeOwner.val) toWord prevValue (UInt256.sub balance1 reserve1)
     ho32 hoSize hout32 houtSize]
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_mask I] using
+  simpa [transferCalldata?, transferCallArgs, hexcess, hto] using
     transferCalldataMem_encode (skimToAddress I) (skimExcess1Word evm2S balance1)
 
-theorem skimSecondSafeTransferCalldata_masked {evm2S : EVM.State}
-    {I : ExecutionEnv} {o out2 : ByteArray} {balance1 reserve1 prevValue : UInt256}
-    (hreserve : uniswapReserve1Word evm2S = reserve1)
-    (hle : reserve1.toNat ≤ balance1.toNat)
-    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
-    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
-    transferCalldata? (skimToAddress I) (skimExcess1Word evm2S balance1) =
-      some ((skimSecondSafeTransferCallMem2 (UInt256.ofNat I.codeOwner.val) o
-        (skimToMaskedWord I) prevValue out2 (UInt256.sub balance1 reserve1)).readWithPadding
-        456 68) := by
-  have hexcess : skimExcess1Word evm2S balance1 = UInt256.sub balance1 reserve1 :=
-    skimExcess1Word_eq_sub_of_reserve hreserve hle
-  rw [skimSecondSafeTransferCallMem2_read456_68
-    (UInt256.ofNat I.codeOwner.val) (skimToMaskedWord I) prevValue
-    (UInt256.sub balance1 reserve1) ho32 hoSize hout32 houtSize]
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_masked I] using
-    transferCalldataMem_encode (skimToAddress I) (skimExcess1Word evm2S balance1)
-
-theorem skimSecondSafeTransferCalldata_canonical_dynamic {evm2S : EVM.State}
-    {I : ExecutionEnv} {o out1 out2 : ByteArray} {balance1 reserve1 prevValue : UInt256}
+theorem skimSecondSafeTransferCalldata_dynamic {evm2S : EVM.State}
+    {I : ExecutionEnv} {o out1 out2 : ByteArray}
+    {balance1 reserve1 prevValue toWord : UInt256}
+    (hto : UInt256.ofNat (skimToAddress I).val = UInt256.land solcAddrMask toWord)
     (hreserve : uniswapReserve1Word evm2S = reserve1)
     (hle : reserve1.toNat ≤ balance1.toNat)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
@@ -725,33 +699,14 @@ theorem skimSecondSafeTransferCalldata_canonical_dynamic {evm2S : EVM.State}
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     transferCalldata? (skimToAddress I) (skimExcess1Word evm2S balance1) =
       some ((skimSecondSafeTransferDynamicCallMem2 (UInt256.ofNat I.codeOwner.val) o
-        (skimToWord I) prevValue out1 out2 (UInt256.sub balance1 reserve1)).readWithPadding
+        toWord prevValue out1 out2 (UInt256.sub balance1 reserve1)).readWithPadding
         (skimSecondSafeTransferDynamicCallPtr out1).toNat 68) := by
   have hexcess : skimExcess1Word evm2S balance1 = UInt256.sub balance1 reserve1 :=
     skimExcess1Word_eq_sub_of_reserve hreserve hle
   rw [skimSecondSafeTransferDynamicCallMem2_read_callPtr_68
-    (UInt256.ofNat I.codeOwner.val) (skimToWord I) prevValue
+    (UInt256.ofNat I.codeOwner.val) toWord prevValue
     (UInt256.sub balance1 reserve1) ho32 hoSize hout1Ne hout1Size hout32 houtSize]
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_mask I] using
-    transferCalldataMem_encode (skimToAddress I) (skimExcess1Word evm2S balance1)
-
-theorem skimSecondSafeTransferCalldata_masked_dynamic {evm2S : EVM.State}
-    {I : ExecutionEnv} {o out1 out2 : ByteArray} {balance1 reserve1 prevValue : UInt256}
-    (hreserve : uniswapReserve1Word evm2S = reserve1)
-    (hle : reserve1.toNat ≤ balance1.toNat)
-    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
-    (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
-    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
-    transferCalldata? (skimToAddress I) (skimExcess1Word evm2S balance1) =
-      some ((skimSecondSafeTransferDynamicCallMem2 (UInt256.ofNat I.codeOwner.val) o
-        (skimToMaskedWord I) prevValue out1 out2 (UInt256.sub balance1 reserve1)).readWithPadding
-        (skimSecondSafeTransferDynamicCallPtr out1).toNat 68) := by
-  have hexcess : skimExcess1Word evm2S balance1 = UInt256.sub balance1 reserve1 :=
-    skimExcess1Word_eq_sub_of_reserve hreserve hle
-  rw [skimSecondSafeTransferDynamicCallMem2_read_callPtr_68
-    (UInt256.ofNat I.codeOwner.val) (skimToMaskedWord I) prevValue
-    (UInt256.sub balance1 reserve1) ho32 hoSize hout1Ne hout1Size hout32 houtSize]
-  simpa [transferCalldata?, transferCallArgs, hexcess, skimToAddress_word_eq_masked I] using
+  simpa [transferCalldata?, transferCallArgs, hexcess, hto] using
     transferCalldataMem_encode (skimToAddress I) (skimExcess1Word evm2S balance1)
 
 theorem skimToken1GuardAfterFirstTransfer_false {σ : AccountMap}
@@ -1001,11 +956,9 @@ theorem skimToken0GuardTrue_initState_of_code
   exact hpositive
 
 theorem uniswapSkimBodyCoreRevert_locked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (maskFn : UInt256 → UInt256)
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
@@ -1013,12 +966,13 @@ theorem uniswapSkimBodyCoreRevert_locked
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1286⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+    (hRuntime :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let _toWord := maskFn (skimToWord I)
   have hlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
     simpa [evmS] using
@@ -1031,43 +985,7 @@ theorem uniswapSkimBodyCoreRevert_locked
     exact uniswapSkimBodyReverts_locked evmS I
       (by simp only [evmS, initState]; exact hwv)
       hlockedSolm
-  exact (uniswapSkimX_locked (g := Sat256.ofUInt256 g)
-      hsz36 hsize hcanonTo hlocked hreach)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-
-theorem uniswapSkimBodyCoreRevert_locked_masked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
-        ⟨1⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hdecode :
-      decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
-        (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1286⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hlockedSolm :
-      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
-    simpa [evmS] using
-      (initState_codeOwner_storageLoad_ne_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-        (slot := ⟨12⟩) (val := ⟨1⟩) hAccounts hlocked)
-  have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
-    exact uniswapSkimBodyReverts_locked evmS I
-      (by simp only [evmS, initState]; exact hwv)
-      hlockedSolm
-  exact (uniswapSkimX_locked_masked (g := Sat256.ofUInt256 g)
-      hsz36 hsize hlocked hreach)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 /-- Short-calldata decode-failure refinement slice for `skim(address)`.
 
@@ -1091,11 +1009,8 @@ theorem uniswapSkimBodyCoreDecodeFailed_short
 
 theorem uniswapSkimBodyCoreRevert_firstNoCode
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
+    (maskFn : UInt256 → UInt256)
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hunlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
@@ -1108,9 +1023,13 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
+    (hRuntime :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let _toWord := maskFn (skimToWord I)
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
     have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
@@ -1123,55 +1042,12 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
     exact uniswapSkimBodyReverts_firstNoCode evmS I
       (by simp only [evmS, initState]; exact hwv)
       hunlockedSolm hguard0
-  exact (uniswapSkimRuntimeFirstBalanceOfMissingCodeReverts
-      (g := g) hcode hsize hwv hsel hsz36 hcanonTo hperm
-      hunlocked htoken0NoCode)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-
-theorem uniswapSkimBodyCoreRevert_firstNoCode_masked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
-    (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
-        (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
-        ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hdecode :
-      decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
-        (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hunlockedSolm :
-      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
-    simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
-  have hguard0 : skimToken0GuardFalse evmS I :=
-    skimToken0GuardFalse_initState_of_noCode hAccounts htoken0NoCode
-  have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
-    exact uniswapSkimBodyReverts_firstNoCode evmS I
-      (by simp only [evmS, initState]; exact hwv)
-      hunlockedSolm hguard0
-  exact (uniswapSkimRuntimeFirstBalanceOfMissingCodeReverts_masked
-      (g := g) hcode hsize hwv hsel hsz36 hperm hunlocked htoken0NoCode)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem uniswapSkimBodyCoreRevert_firstCallDepth
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
+    (maskFn : UInt256 → UInt256)
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩
@@ -1185,11 +1061,15 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
         (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
+    (hRuntime :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
+  let _toWord := maskFn (skimToWord I)
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
     have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
@@ -1216,104 +1096,28 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
       { evmL with substate := (evmL.addAccessedAccount target).substate } I
       (by simp only [evmS, initState]; exact hwv)
       hunlockedSolm hguard0 hcall0
-  exact (uniswapSkimRuntimeFirstBalanceOfStaticcallDepthReverts
-      (g := g) hcode hsize hwv hsel hsz36 hcanonTo hperm hdepth
-      hunlocked htoken0Code)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-
-theorem uniswapSkimBodyCoreRevert_firstCallDepth_masked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hdepth : I.depth = 1024)
-    (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
-    (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
-        (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
-        ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hdecode :
-      decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
-        (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  let evmL := uniswapLockEnteredState evmS
-  let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
-  have hunlockedSolm :
-      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
-    simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
-  have hguard0 : skimToken0GuardTrue evmS I :=
-    skimToken0GuardTrue_initState_of_code hAccounts htoken0Code
-  have hdepthSolm : evmL.executionEnv.depth = 1024 := by
-    simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      storageStore_executionEnv] using hdepth
-  have hcall0 : typedCallViaEVM config evmL target "balanceOf" 0
-      [.address evmL.executionEnv.codeOwner]
-      (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
-        ByteArray.empty) false := by
-    exact callNotMade_depthLimit
-      (cfg := config) (evm := evmL) (tgt := target)
-      (name := "balanceOf") (args := [.address evmL.executionEnv.codeOwner])
-      (callPerm := false)
-      (balanceOfThisCalldataMem_encode evmL.executionEnv.codeOwner)
-      hdepthSolm
-  have hbody :
-      ExecTransitionBody config contract evmS (skimStore I) skimTransition.body .reverted := by
-    exact uniswapSkimBodyReverts_firstCallFailure evmS
-      { evmL with substate := (evmL.addAccessedAccount target).substate } I
-      (by simp only [evmS, initState]; exact hwv)
-      hunlockedSolm hguard0 hcall0
-  exact (uniswapSkimRuntimeFirstBalanceOfStaticcallDepthReverts_masked
-      (g := g) hcode hsize hwv hsel hsz36 hperm hdepth hunlocked htoken0Code)
-    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 /-- Locked-revert `skim(address)` refinement slice, packaged from selector dispatch through the
 body core. -/
 theorem uniswapSkimBodyRevert_locked
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
+    (maskFn : UInt256 → UInt256)
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
+        (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
+    (hRuntime :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
-  exact uniswapSkimBodyCoreRevert_locked hcode hsize hwv hsz36 hcanonTo hlocked hdispatch
-    (uniswapDecode_skim_ok hsz36 hcanonTo)
-    (uniswapReachSkimBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    hAccounts
-
-theorem uniswapSkimBodyRevert_locked_masked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hnoncanon : ¬ (skimToWord I).toNat < EVM.addressModulus)
-    (hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
-        ⟨1⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
-  exact uniswapSkimBodyCoreRevert_locked_masked hcode hsize hwv hsz36 hlocked hdispatch
-    (uniswapDecode_skim_ok_noncanon hsz36 hnoncanon)
-    (uniswapReachSkimBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    hAccounts
+  exact uniswapSkimBodyCoreRevert_locked maskFn hcode hwv hlocked hdispatch hdecode
+    hRuntime hAccounts
 
 /-- Short-calldata decode-failure `skim(address)` refinement slice, packaged from selector
 dispatch through the body core. -/
@@ -1331,11 +1135,8 @@ theorem uniswapSkimBodyDecodeFailed_short
 
 theorem uniswapSkimBodyRevert_firstNoCode
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hcanonTo : (skimToWord I).toNat < EVM.addressModulus)
+    (maskFn : UInt256 → UInt256)
+    (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hunlocked :
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
@@ -1345,32 +1146,16 @@ theorem uniswapSkimBodyRevert_firstNoCode
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
+        (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I))
+    (hRuntime :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  exact uniswapSkimBodyCoreRevert_firstNoCode hcode hsize hperm hwv hsel hsz36 hcanonTo
-    hunlocked htoken0NoCode hdispatch (uniswapDecode_skim_ok hsz36 hcanonTo) hAccounts
-
-theorem uniswapSkimBodyRevert_firstNoCode_masked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hnoncanon : ¬ (skimToWord I).toNat < EVM.addressModulus)
-    (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
-    (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
-        (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
-        ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  exact uniswapSkimBodyCoreRevert_firstNoCode_masked hcode hsize hperm hwv hsel hsz36
-    hunlocked htoken0NoCode hdispatch (uniswapDecode_skim_ok_noncanon hsz36 hnoncanon)
-    hAccounts
+  exact uniswapSkimBodyCoreRevert_firstNoCode maskFn hcode hwv hunlocked htoken0NoCode
+    hdispatch hdecode hRuntime hAccounts
 
 theorem uniswapSkimBody
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -1385,8 +1170,22 @@ theorem uniswapSkimBody
     · by_cases hlocked :
         (σ_evm.find? I.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
-      · exact uniswapSkimBodyRevert_locked hcode hsize hwv hsel hsz36 hcanonTo
-          hlocked hdispatch hAccounts
+      · have hsz4 : 4 ≤ I.calldata.size :=
+          calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+        have hRuntime :
+            RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+          have hdecoded :=
+            uniswapSkimX_decoded
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+              (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize hcanonTo
+              (uniswapReachSkimBody
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+          exact uniswapSkimX_locked (g := Sat256.ofUInt256 g)
+            (toWord := skimToWord I) hlocked hdecoded
+        exact uniswapSkimBodyRevert_locked (fun w : UInt256 => w) hcode hwv hlocked
+          hdispatch (uniswapDecode_skim_ok hsz36 hcanonTo) hRuntime hAccounts
       · have hunlocked :
           (σ_evm.find? I.codeOwner |>.option ⟨0⟩
             (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩ := by
@@ -1397,16 +1196,64 @@ theorem uniswapSkimBody
               (uniswapSlotWord ⟨6⟩
                 (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
             ⟨0⟩
-        · exact uniswapSkimBodyRevert_firstNoCode hcode hsize hperm hwv hsel hsz36
-            hcanonTo hunlocked htoken0NoCode hdispatch hAccounts
+        · have hRuntime :
+              RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+            have hsz4 : 4 ≤ I.calldata.size :=
+              calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+            have hdecoded :=
+              uniswapSkimX_decoded
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize hcanonTo
+                (uniswapReachSkimBody
+                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                  (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+            have hLock :=
+              uniswapSkimRuntimeLockEntered
+                (g := g) (toWord := skimToWord I) hperm hunlocked hdecoded
+            obtain ⟨_, _, rd5257⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                (g := g) (toWord := skimToWord I) hLock
+            exact uniswapSkimRuntimeFirstBalanceOfMissingCodeReverts
+              rd5257 htoken0NoCode
+              (by simp only [List.length_cons, List.length_nil]; omega)
+          exact uniswapSkimBodyRevert_firstNoCode (fun w : UInt256 => w) hcode hwv
+            hunlocked htoken0NoCode hdispatch (uniswapDecode_skim_ok hsz36 hcanonTo)
+            hRuntime hAccounts
         · by_cases hdepth : I.depth.val < 1024
-          · obtain ⟨cA', σ', z, o, A_in, callGas, hΘ, hrev, hrevShort, hrevLong,
+          · have hsz4 : 4 ≤ I.calldata.size :=
+              calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+            have hdecoded :=
+              uniswapSkimX_decoded
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                hsz36 hsize hcanonTo
+                (uniswapReachSkimBody
+                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                  (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                  hcode hwv hsz4 hsize hsel)
+            have hLock :=
+              uniswapSkimRuntimeLockEntered
+                (g := g) (toWord := skimToWord I) hperm hunlocked hdecoded
+            obtain ⟨_, _, rd5257⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                (g := g) (toWord := skimToWord I) hLock
+            obtain ⟨_, _, _, rd5272⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfStaticcallEntry
+                (g := g) (toWord := skimToWord I) rd5257 htoken0NoCode
+            obtain ⟨cA_made, σ_made, z_made, o_made, A_in_made, callGas_made,
+                _kMade, _CMade, hΘMade, rd5273, hoSizeMade⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfStaticcallMade
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                (A := A) (I := I) (g := g) (toWord := skimToWord I)
+                rd5272 hdepth
+            obtain ⟨cA', σ', z, o, A_in, callGas, hΘ, hrev, hrevShort, hrevLong,
                 hoSize⟩ :=
                 uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
-                  (A := A) (I := I) (g := g)
-                hcode hsize hwv hsel hsz36 hcanonTo hperm hdepth
-                hunlocked htoken0NoCode
+                  (cA' := cA_made) (σ' := σ_made) (z := z_made) (o := o_made)
+                  (A_in := A_in_made) (callGas := callGas_made)
+                  hΘMade rd5273 hoSizeMade
+                  (by simp only [List.length_cons, List.length_nil]; omega)
             by_cases hz : z = false
             · obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
               let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
@@ -1716,8 +1563,10 @@ theorem uniswapSkimBody
                       transferCalldata? (skimToAddress I) (skimExcess0Word evm0S balance0) =
                         some safeData0 := by
                     have hencoded :=
-                      skimFirstSafeTransferCalldata_canonical (evm0S := evm0S) (I := I)
-                        (balance0 := balance0) (reserve0 := reserve0E) hsourceReserve hle0
+                      skimFirstSafeTransferCalldata (evm0S := evm0S) (I := I)
+                        (balance0 := balance0) (reserve0 := reserve0E)
+                        (toWord := skimToWord I) (skimToAddress_word_eq_mask I)
+                        hsourceReserve hle0
                     have hread :=
                       skimSafeTransferCallMem2_read292_68
                         (UInt256.ofNat I.codeOwner.val) (o := o) (skimToWord I) safeValue0
@@ -2179,10 +2028,11 @@ theorem uniswapSkimBody
                                       (skimExcess1Word evm2S balance1) =
                                     some safeData1 := by
                                 have hencoded :=
-                                  skimSecondSafeTransferCalldata_canonical
+                                  skimSecondSafeTransferCalldata
                                     (evm2S := evm2S) (I := I) (o := o) (out2 := out2)
                                     (balance1 := balance1) (reserve1 := reserve1E)
-                                    (prevValue := safeValue0) hsourceReserve1 hle1
+                                    (prevValue := safeValue0) (toWord := skimToWord I)
+                                    (skimToAddress_word_eq_mask I) hsourceReserve1 hle1
                                     ho32 hoSize ho32_2 hout2Size
                                 simpa [safeData1, safeValue1] using hencoded
                               have rd6370' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
@@ -2917,10 +2767,11 @@ theorem uniswapSkimBody
                                             (skimExcess1Word evm2S balance1) =
                                           some safeData1 := by
                                       have hencoded :=
-                                        skimSecondSafeTransferCalldata_canonical_dynamic
+                                        skimSecondSafeTransferCalldata_dynamic
                                           (evm2S := evm2S) (I := I) (o := o) (out1 := out1)
                                           (out2 := out2) (balance1 := balance1)
                                           (reserve1 := reserve1E) (prevValue := safeValue0)
+                                          (toWord := skimToWord I) (skimToAddress_word_eq_mask I)
                                           hsourceReserve1 hle1 ho32 hoSize hout1Empty
                                           hout1Sign ho32_2 hout2Size
                                       simpa [safeData1, safeValue1] using hencoded
@@ -3346,14 +3197,55 @@ theorem uniswapSkimBody
                           (uniswapDecode_skim_ok hsz36 hcanonTo) hbody
           · rw [not_lt] at hdepth
             have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
-            exact uniswapSkimBodyCoreRevert_firstCallDepth hcode hsize hperm hwv hsel hsz36
-              hcanonTo hdepth1024 hunlocked htoken0NoCode hdispatch
-              (uniswapDecode_skim_ok hsz36 hcanonTo) hAccounts
+            have hRuntime :
+                RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+              have hsz4 : 4 ≤ I.calldata.size :=
+                calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+              have hdecoded :=
+                uniswapSkimX_decoded
+                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                  (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize hcanonTo
+                  (uniswapReachSkimBody
+                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                    (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                    hcode hwv hsz4 hsize hsel)
+              have hLock :=
+                uniswapSkimRuntimeLockEntered
+                  (g := g) (toWord := skimToWord I) hperm hunlocked hdecoded
+              obtain ⟨_, _, rd5257⟩ :=
+                uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                  (g := g) (toWord := skimToWord I) hLock
+              obtain ⟨_, _, _, rd5272⟩ :=
+                uniswapSkimRuntimeFirstBalanceOfStaticcallEntry
+                  (g := g) (toWord := skimToWord I) rd5257 htoken0NoCode
+              exact uniswapSkimRuntimeFirstBalanceOfStaticcallDepthReverts
+                rd5272 hdepth1024
+                (by simp only [List.length_cons, List.length_nil]; omega)
+                (by simp only [List.length_cons, List.length_nil]; omega)
+            exact uniswapSkimBodyCoreRevert_firstCallDepth (fun w : UInt256 => w) hcode hwv
+              hdepth1024 hunlocked htoken0NoCode hdispatch
+              (uniswapDecode_skim_ok hsz36 hcanonTo) hRuntime hAccounts
     · by_cases hlocked :
         (σ_evm.find? I.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
-      · exact uniswapSkimBodyRevert_locked_masked hcode hsize hwv hsel hsz36 hcanonTo
-          hlocked hdispatch hAccounts
+      · have hsz4 : 4 ≤ I.calldata.size :=
+          calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+        have hRuntime :
+            RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+          have hdecoded :=
+            uniswapSkimX_decoded_masked
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+              (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
+              (uniswapReachSkimBody
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+          exact uniswapSkimX_locked (g := Sat256.ofUInt256 g)
+            (toWord := skimToMaskedWord I) hlocked hdecoded
+        exact uniswapSkimBodyRevert_locked
+          (fun w : UInt256 => UInt256.land solcAddrMask w) hcode hwv hlocked hdispatch
+          (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hRuntime hAccounts
       · have hunlocked :
           (σ_evm.find? I.codeOwner |>.option ⟨0⟩
             (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩ := by
@@ -3364,15 +3256,65 @@ theorem uniswapSkimBody
               (uniswapSlotWord ⟨6⟩
                 (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
             ⟨0⟩
-        · exact uniswapSkimBodyRevert_firstNoCode_masked hcode hsize hperm hwv hsel hsz36
-            hcanonTo hunlocked htoken0NoCode hdispatch hAccounts
+        · have hRuntime :
+              RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+            have hsz4 : 4 ≤ I.calldata.size :=
+              calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+            have hdecoded :=
+              uniswapSkimX_decoded_masked
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
+                (uniswapReachSkimBody
+                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                  (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+            have hLock :=
+              uniswapSkimRuntimeLockEntered
+                (g := g) (toWord := skimToMaskedWord I) hperm hunlocked hdecoded
+            obtain ⟨_, _, rd5257⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                (g := g) (toWord := skimToMaskedWord I) hLock
+            exact uniswapSkimRuntimeFirstBalanceOfMissingCodeReverts
+              rd5257 htoken0NoCode
+              (by simp only [List.length_cons, List.length_nil]; omega)
+          exact uniswapSkimBodyRevert_firstNoCode
+            (fun w : UInt256 => UInt256.land solcAddrMask w) hcode hwv
+            hunlocked htoken0NoCode hdispatch
+            (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hRuntime hAccounts
         · by_cases hdepth : I.depth.val < 1024
-          · obtain ⟨cA', σ', z, o, A_in, callGas, hΘ, hrev, hrevShort, hrevLong,
-                hoSize⟩ :=
-                uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard_masked
+          · have hsz4 : 4 ≤ I.calldata.size :=
+              calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+            have hdecoded :=
+              uniswapSkimX_decoded_masked
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                hsz36 hsize
+                (uniswapReachSkimBody
                   (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
-                  (A := A) (I := I) (g := g)
-                hcode hsize hwv hsel hsz36 hperm hdepth hunlocked htoken0NoCode
+                  (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                  hcode hwv hsz4 hsize hsel)
+            have hLock :=
+              uniswapSkimRuntimeLockEntered
+                (g := g) (toWord := skimToMaskedWord I) hperm hunlocked hdecoded
+            obtain ⟨_, _, rd5257⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                (g := g) (toWord := skimToMaskedWord I) hLock
+            obtain ⟨_, _, _, rd5272⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfStaticcallEntry
+                (g := g) (toWord := skimToMaskedWord I) rd5257 htoken0NoCode
+            obtain ⟨cA_made, σ_made, z_made, o_made, A_in_made, callGas_made,
+                _kMade, _CMade, hΘMade, rd5273, hoSizeMade⟩ :=
+              uniswapSkimRuntimeFirstBalanceOfStaticcallMade
+                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                (A := A) (I := I) (g := g) (toWord := skimToMaskedWord I)
+                rd5272 hdepth
+            obtain ⟨cA', σ', z, o, A_in, callGas, hΘ, hrev, hrevShort, hrevLong,
+                hoSize⟩ :=
+                uniswapSkimRuntimeFirstBalanceOfStaticcallFailureGuard
+                  (cA' := cA_made) (σ' := σ_made) (z := z_made) (o := o_made)
+                  (A_in := A_in_made) (callGas := callGas_made)
+                  hΘMade rd5273 hoSizeMade
+                  (by simp only [List.length_cons, List.length_nil]; omega)
             obtain ⟨evm0S, hcallAll, hPostAccounts0, hcreated0, hσ0, hgenesis0,
                 hblocks0, henv0⟩ :=
               uniswapSkimFirstBalanceTypedCall_source
@@ -3564,8 +3506,10 @@ theorem uniswapSkimBody
                       transferCalldata? (skimToAddress I) (skimExcess0Word evm0S balance0) =
                         some safeData0 := by
                     have hencoded :=
-                      skimFirstSafeTransferCalldata_masked (evm0S := evm0S) (I := I)
-                        (balance0 := balance0) (reserve0 := reserve0E) hsourceReserve hle0
+                      skimFirstSafeTransferCalldata (evm0S := evm0S) (I := I)
+                        (balance0 := balance0) (reserve0 := reserve0E)
+                        (toWord := skimToMaskedWord I) (skimToAddress_word_eq_masked I)
+                        hsourceReserve hle0
                     have hread :=
                       skimSafeTransferCallMem2_read292_68
                         (UInt256.ofNat I.codeOwner.val) (o := o) (skimToMaskedWord I) safeValue0
@@ -4027,10 +3971,11 @@ theorem uniswapSkimBody
                                       (skimExcess1Word evm2S balance1) =
                                     some safeData1 := by
                                 have hencoded :=
-                                  skimSecondSafeTransferCalldata_masked
+                                  skimSecondSafeTransferCalldata
                                     (evm2S := evm2S) (I := I) (o := o) (out2 := out2)
                                     (balance1 := balance1) (reserve1 := reserve1E)
-                                    (prevValue := safeValue0) hsourceReserve1 hle1
+                                    (prevValue := safeValue0) (toWord := skimToMaskedWord I)
+                                    (skimToAddress_word_eq_masked I) hsourceReserve1 hle1
                                     ho32 hoSize ho32_2 hout2Size
                                 simpa [safeData1, safeValue1] using hencoded
                               have rd6370' : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
@@ -4765,10 +4710,12 @@ theorem uniswapSkimBody
                                             (skimExcess1Word evm2S balance1) =
                                           some safeData1 := by
                                       have hencoded :=
-                                        skimSecondSafeTransferCalldata_masked_dynamic
+                                        skimSecondSafeTransferCalldata_dynamic
                                           (evm2S := evm2S) (I := I) (o := o) (out1 := out1)
                                           (out2 := out2) (balance1 := balance1)
                                           (reserve1 := reserve1E) (prevValue := safeValue0)
+                                          (toWord := skimToMaskedWord I)
+                                          (skimToAddress_word_eq_masked I)
                                           hsourceReserve1 hle1 ho32 hoSize hout1Empty
                                           hout1Sign ho32_2 hout2Size
                                       simpa [safeData1, safeValue1] using hencoded
@@ -5195,8 +5142,35 @@ theorem uniswapSkimBody
 
           · rw [not_lt] at hdepth
             have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
-            exact uniswapSkimBodyCoreRevert_firstCallDepth_masked hcode hsize hperm hwv hsel
-              hsz36 hdepth1024 hunlocked htoken0NoCode hdispatch
-              (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hAccounts
+            have hRuntime :
+                RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+              have hsz4 : 4 ≤ I.calldata.size :=
+                calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
+              have hdecoded :=
+                uniswapSkimX_decoded_masked
+                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                  (I := I) (g := Sat256.ofUInt256 g) hsz36 hsize
+                  (uniswapReachSkimBody
+                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                    (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                    hcode hwv hsz4 hsize hsel)
+              have hLock :=
+                uniswapSkimRuntimeLockEntered
+                  (g := g) (toWord := skimToMaskedWord I) hperm hunlocked hdecoded
+              obtain ⟨_, _, rd5257⟩ :=
+                uniswapSkimRuntimeFirstBalanceOfExtcodesize
+                  (g := g) (toWord := skimToMaskedWord I) hLock
+              obtain ⟨_, _, _, rd5272⟩ :=
+                uniswapSkimRuntimeFirstBalanceOfStaticcallEntry
+                  (g := g) (toWord := skimToMaskedWord I) rd5257 htoken0NoCode
+              exact uniswapSkimRuntimeFirstBalanceOfStaticcallDepthReverts
+                rd5272 hdepth1024
+                (by simp only [List.length_cons, List.length_nil]; omega)
+                (by simp only [List.length_cons, List.length_nil]; omega)
+            exact uniswapSkimBodyCoreRevert_firstCallDepth
+              (fun w : UInt256 => UInt256.land solcAddrMask w) hcode hwv hdepth1024
+              hunlocked htoken0NoCode hdispatch
+              (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hRuntime hAccounts
   · exact uniswapSkimBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 end UniswapV2Pair
