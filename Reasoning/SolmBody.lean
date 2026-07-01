@@ -52,6 +52,36 @@ theorem nonpayableBytesLiteralBodyReturns {cfg : Config} {contract : ContractDec
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
       ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
 
+theorem nonpayableReturnExprBodyReturns {cfg : Config} {contract : ContractDecl}
+    {evm : EVM.State} {locals : Store} {expr : Expr} {value : Value}
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (heval : evalExpr? cfg { contract := contract, locals := locals } evm expr = .ok value) :
+    ExecTransitionBody cfg contract evm locals
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .return expr ]
+      (.returned { contract := contract, locals := locals } evm (some value)) := by
+  exact ExecFuncBody.execBlockRet <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
+      ExecBlock.consReturn (ExecStmt.return heval)
+
+theorem nonpayableIntLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
+    (evm : EVM.State) (locals : Store) (n : Int)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    ExecTransitionBody cfg contract evm locals
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .return (.intLit n) ]
+      (.returned { contract := contract, locals := locals } evm (some (.int n))) := by
+  exact nonpayableReturnExprBodyReturns h (by simp [evalExpr?, pure])
+
+theorem nonpayableFixedBytesLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
+    (evm : EVM.State) (locals : Store) (n : Fin 32) (bytes : List UInt8)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    ExecTransitionBody cfg contract evm locals
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .return (.fixedBytesLit n bytes) ]
+      (.returned { contract := contract, locals := locals } evm (some (.fixedBytes n bytes))) := by
+  exact nonpayableReturnExprBodyReturns h (by simp [evalExpr?, pure])
+
 /-! ## Source values -/
 
 abbrev uint256Value (w : UInt256) : Value :=
@@ -412,6 +442,34 @@ theorem checkedExternalCallVarNoCode {cfg : Config} {C : ContractDecl} {evm : EV
   exact checkedExternalCallNoCode (receiver := .var receiver) hguard
 
 /-! ## Low-level calls -/
+
+/-- A low-level call followed by `require cond` succeeds when the call returns `success = true` and
+the post-call condition evaluates to `true` in the frame containing `(okVar, dataVar)`. -/
+theorem lowLevelCallSuccessThenRequireTrue {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver eth cdata requireCond : Expr} {okVar dataVar : Ident}
+    {target : AccountAddress} {sendVal : Int} {calldata out : ByteArray}
+    (hreceiver : evalExpr? cfg { contract := C, locals := locals } evm receiver =
+      .ok (.address target))
+    (heth : evalExpr? cfg { contract := C, locals := locals } evm eth = .ok (.int sendVal))
+    (hdata : evalExpr? cfg { contract := C, locals := locals } evm cdata =
+      .ok (.bytes calldata))
+    (hcall : callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out))
+    (hrequire :
+      evalExpr? cfg
+        { contract := C, locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) }
+        evm' requireCond = .ok (.bool true)) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .lowLevelCall receiver eth cdata okVar dataVar,
+        .require requireCond ]
+      (.ok
+        { contract := C,
+          locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) } evm') := by
+  refine ExecBlock.consNormal
+    (solm' := { contract := C, locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) })
+    (evm' := evm') ?_ ?_
+  · exact ExecStmt.lowLevelCallSuccess hreceiver heth hdata hcall
+  · exact ExecBlock.consNormal (ExecStmt.requireTrue hrequire) ExecBlock.nil
 
 /-- A low-level call followed by `require cond` reverts when the call returns `success = false` and
 the post-call condition evaluates to `false` in the frame containing `(okVar, dataVar)`. -/

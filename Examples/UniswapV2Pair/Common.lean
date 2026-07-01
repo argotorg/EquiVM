@@ -24,33 +24,25 @@ abbrev selIs (I : ExecutionEnv) (sel : ByteArray) : Prop :=
 
 /-! ## Shared caller/address helpers -/
 
--- LIBRARY CANDIDATE: Reasoning.Solc — canonical EVM `CALLER` word and address round-trip helpers.
 abbrev uniswapSourceWord (I : ExecutionEnv) : UInt256 :=
-  UInt256.ofNat I.source.val
+  solcSourceWord I
 
 theorem uniswapSourceWord_toNat (I : ExecutionEnv) :
     (uniswapSourceWord I).toNat = I.source.val := by
-  unfold uniswapSourceWord
-  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+  exact solcSourceWord_toNat I
 
 theorem uniswapSourceWord_canonical (I : ExecutionEnv) :
     (uniswapSourceWord I).toNat < EVM.addressModulus := by
-  rw [uniswapSourceWord_toNat]
-  change I.source.val < AccountAddress.size
-  exact I.source.isLt
+  exact solcSourceWord_canonical I
 
 theorem uniswapSource_ofNat (I : ExecutionEnv) :
     AccountAddress.ofNat (uniswapSourceWord I).toNat = I.source := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  rw [uniswapSourceWord_toNat, Fin.val_ofNat]
-  exact Nat.mod_eq_of_lt I.source.isLt
+  exact solcSource_ofNat I
 
 theorem uniswapMaskedAddress_eq_source_of_word_eq {w : UInt256} {I : ExecutionEnv}
     (h : UInt256.land w solcAddrMask = uniswapSourceWord I) :
     AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source := by
-  rw [h, uniswapSource_ofNat]
+  exact solcMaskedAddress_eq_source_of_word_eq h
 
 /-! ## Shared scalar storage and return helpers -/
 
@@ -61,8 +53,6 @@ theorem uniswapStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256)
           solcAddrMask).toNat) := by
   simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
 
--- LIBRARY CANDIDATE: Reasoning.Storage — full-slot address storage writes through
--- a `storageLocStore` view.
 theorem uniswapStorageLocStore_address_offset0 (evm : EVM.State)
     (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
     storageLocStore evm (addrLoc slot)
@@ -81,8 +71,6 @@ theorem uniswapStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
 abbrev uniswapUint256Value (w : UInt256) : Value :=
   uint256Value w
 
--- LIBRARY CANDIDATE: Reasoning.Storage — full-slot uint256 storage writes through
--- a `storageLocStore` view.
 theorem uniswapStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
@@ -480,8 +468,6 @@ theorem evalExprs_uniswap_this_single (evm : EVM.State) (locals : Store) :
       .ok [.address evm.executionEnv.codeOwner] := by
   simp [evalExprs?, evalExpr_uniswap_this, EvalResult.bind, bind, pure]
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source-side low-level call followed by
--- `require(okVar)`, parameterized by receiver, ETH value, calldata expression, and locals.
 abbrev uniswapLowLevelCallRequireStore (locals : Store) (okVar dataVar : Ident)
     (success : Bool) (out : ByteArray) : Store :=
   (locals.insert okVar (.bool success)).insert dataVar (.bytes out)
@@ -517,16 +503,13 @@ theorem uniswapLowLevelCallRequireSuccess {cfg : Config} {C : ContractDecl}
       (.ok
         { contract := C, locals := uniswapLowLevelCallRequireStore locals okVar dataVar true out }
         evm') := by
-  refine ExecBlock.consNormal
-    (solm' :=
-      { contract := C, locals := uniswapLowLevelCallRequireStore locals okVar dataVar true out })
-    (evm' := evm') ?_ ?_
-  · simpa [uniswapLowLevelCallRequireStore] using
-      ExecStmt.lowLevelCallSuccess hreceiver heth hdata hcall
-  · exact ExecBlock.consNormal
-      (ExecStmt.requireTrue
-        (evalExpr_uniswapLowLevelCallRequire_ok evm' locals okVar dataVar true out hne))
-      ExecBlock.nil
+  simpa [uniswapLowLevelCallRequireStore] using
+    lowLevelCallSuccessThenRequireTrue
+      (cfg := cfg) (C := C) (evm := evm) (evm' := evm') (locals := locals)
+      (receiver := receiver) (eth := eth) (cdata := cdata) (requireCond := .var okVar)
+      (okVar := okVar) (dataVar := dataVar)
+      hreceiver heth hdata hcall
+      (evalExpr_uniswapLowLevelCallRequire_ok evm' locals okVar dataVar true out hne)
 
 theorem uniswapLowLevelCallRequireFailure {cfg : Config} {C : ContractDecl}
     (evm evm' : EVM.State) (locals : Store)
@@ -542,15 +525,13 @@ theorem uniswapLowLevelCallRequireFailure {cfg : Config} {C : ContractDecl}
       [ .lowLevelCall receiver eth cdata okVar dataVar,
         .require (.var okVar) ]
       .reverted := by
-  refine ExecBlock.consNormal
-    (solm' :=
-      { contract := C, locals := uniswapLowLevelCallRequireStore locals okVar dataVar false out })
-    (evm' := evm') ?_ ?_
-  · simpa [uniswapLowLevelCallRequireStore] using
-      ExecStmt.lowLevelCallFailure hreceiver heth hdata hcall
-  · exact ExecBlock.consRevert
-      (ExecStmt.requireFalse
-        (evalExpr_uniswapLowLevelCallRequire_ok evm' locals okVar dataVar false out hne))
+  simpa [uniswapLowLevelCallRequireStore] using
+    lowLevelCallFailureThenRequireFalse
+      (cfg := cfg) (C := C) (evm := evm) (evm' := evm') (locals := locals)
+      (receiver := receiver) (eth := eth) (cdata := cdata) (requireCond := .var okVar)
+      (okVar := okVar) (dataVar := dataVar)
+      hreceiver heth hdata hcall
+      (evalExpr_uniswapLowLevelCallRequire_ok evm' locals okVar dataVar false out hne)
 
 theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {retVar : Ident}
@@ -941,8 +922,6 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
     using Reasoning.Refinement.execBlock_append htoken0 htoken1
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar address-storage getter body,
--- parameterized by config, contract, storage ref, and concrete storage location.
 theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -955,13 +934,11 @@ theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
         (some (.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
             solcAddrMask).toNat)))) := by
-  exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+  simpa [nonpayable] using
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm slot))
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar uint256 storage getter body,
--- parameterized by config, contract, storage ref, and concrete storage location.
 theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -973,13 +950,11 @@ theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       (.returned { contract := contract, locals := locals } evm
         (some (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat)))) := by
-  exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+  simpa [nonpayable] using
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm slot))
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable scalar bytes32 storage getter body,
--- parameterized by config, contract, storage ref, and concrete storage location.
 theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -992,40 +967,26 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
         (some (.fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) := by
-  exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+  simpa [nonpayable] using
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_bytes32 evm slot))
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable integer-literal return body.
 theorem uniswapIntLiteralBodyReturns (evm : EVM.State) (locals : Store) (n : Int)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.intLit n) ])
       (.returned { contract := contract, locals := locals } evm (some (.int n))) := by
-  exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp [evalExpr?, pure])
+  simpa [nonpayable] using
+    nonpayableIntLiteralBodyReturns (cfg := config) (contract := contract) evm locals n h
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — generic nonpayable fixed-bytes-literal return body.
 theorem uniswapFixedBytesLiteralBodyReturns (evm : EVM.State) (locals : Store)
     (n : Fin 32) (bytes : List UInt8) (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals
       (nonpayable ++ [ .return (.fixedBytesLit n bytes) ])
       (.returned { contract := contract, locals := locals } evm (some (.fixedBytes n bytes))) := by
-  exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp [evalExpr?, pure])
-
--- LIBRARY CANDIDATE: Reasoning.ABI — generic uint8 scalar return encoding.
-theorem uniswapUint8ReturnEncoding (v : UInt256) (h8 : v.toNat < EVM.twoPow 8) :
-    encodeReturnValue? (.elem (.int (.uint ⟨8, by decide⟩)))
-        (.int (Int.ofNat v.toNat)) =
-      some (UInt256.toByteArray v) := by
-  have hword : EVM.word v.toNat = v := by
-    show UInt256.ofNat v.toNat = v
-    exact u256_ofNat_toNat v
-  refine scalarReturnEncoding (t := (.int (.uint ⟨8, by decide⟩))) (w := v) rfl ?_ ?_
-  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
-    decide
-  · simp [encodeABIValue?, encodeABIWord?, hword, h8]
+  simpa [nonpayable] using
+    nonpayableFixedBytesLiteralBodyReturns (cfg := config) (contract := contract)
+      evm locals n bytes h
 
 /-! ## Shared lock-revert memory -/
 

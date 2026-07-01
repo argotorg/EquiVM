@@ -3584,6 +3584,19 @@ theorem uint256ReturnEncoding (v : UInt256) :
     decide
   · simp [encodeABIValue?, encodeABIWord?, hword, hltNat]
 
+/-- ABI-encoding a `uint8` return value is exactly the EVM's returned word bytes. -/
+theorem uint8ReturnEncoding (v : UInt256) (h8 : v.toNat < EVM.twoPow 8) :
+    encodeReturnValue? (.elem (.int (.uint ⟨8, by decide⟩)))
+        (.int (Int.ofNat v.toNat)) =
+      some (UInt256.toByteArray v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  refine scalarReturnEncoding (t := (.int (.uint ⟨8, by decide⟩))) (w := v) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    decide
+  · simp [encodeABIValue?, encodeABIWord?, hword, h8]
+
 /-- ABI-encoding a `bytes32` return value is exactly the returned word's 32 bytes. -/
 theorem bytes32ReturnEncoding (w : UInt256) :
     encodeReturnValue? (.elem (.bytes ⟨31, by decide⟩))

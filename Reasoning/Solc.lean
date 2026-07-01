@@ -973,6 +973,34 @@ high 96 bits.  These facts couple that mask to address canonicality (`< 2^160`).
 /-- The address-cleanup mask literal `0xff…ff` (`PUSH20`), shared by every solc contract. -/
 def solcAddrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975⟩
 
+/-- The canonical EVM word for `CALLER`/`msg.sender`. -/
+abbrev solcSourceWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.ofNat I.source.val
+
+theorem solcSourceWord_toNat (I : ExecutionEnv) :
+    (solcSourceWord I).toNat = I.source.val := by
+  unfold solcSourceWord
+  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
+    (show AccountAddress.size ≤ UInt256.size from by decide))
+
+theorem solcSourceWord_canonical (I : ExecutionEnv) :
+    (solcSourceWord I).toNat < EVM.addressModulus := by
+  rw [solcSourceWord_toNat]
+  change I.source.val < AccountAddress.size
+  exact I.source.isLt
+
+theorem solcSource_ofNat (I : ExecutionEnv) :
+    AccountAddress.ofNat (solcSourceWord I).toNat = I.source := by
+  apply Fin.ext
+  unfold AccountAddress.ofNat
+  rw [solcSourceWord_toNat, Fin.val_ofNat]
+  exact Nat.mod_eq_of_lt I.source.isLt
+
+theorem solcMaskedAddress_eq_source_of_word_eq {w : UInt256} {I : ExecutionEnv}
+    (h : UInt256.land w solcAddrMask = solcSourceWord I) :
+    AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat = I.source := by
+  rw [h, solcSource_ofNat]
+
 /-- Reading the low 20 bytes of a little-endian EVM word is the solc address mask. -/
 theorem fromBytes'_take20_wordLE_solcAddrMask (w : UInt256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take 20) =

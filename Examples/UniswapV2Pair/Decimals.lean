@@ -74,7 +74,7 @@ theorem uniswapDecimalsBodyCore
     rw [decimalsTransition]
     exact returnEquiv_of_encode
       (by
-        simpa [uint8] using uniswapUint8ReturnEncoding decimalsReturnWord (by native_decide))
+        simpa [uint8] using uint8ReturnEncoding decimalsReturnWord (by native_decide))
   exact (RD.uniswapUint8ConstGetterExternal (g := Sat256.ofUInt256 g)
       (entry := ⟨941⟩) (routine := ⟨3128⟩) (val := decimalsWord)
       (width := 1) (op := .PUSH1) hreach uniswap_getter_entry_wf

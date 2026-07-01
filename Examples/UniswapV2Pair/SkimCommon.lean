@@ -36,17 +36,23 @@ abbrev skimBalanceValue (balance : UInt256) : Value :=
 abbrev skimBalanceStore (I : ExecutionEnv) (balance0 balance1 : UInt256) : Store :=
   uniswapBalanceOfStore (skimStore I) (skimBalanceValue balance0) (skimBalanceValue balance1)
 
+def skimExcessWord (reserve balance : UInt256) : UInt256 :=
+  UInt256.ofNat (balance.toNat - reserve.toNat)
+
+abbrev skimExcessValueOf (reserve balance : UInt256) : Value :=
+  uint256Value (skimExcessWord reserve balance)
+
 def skimExcess0Word (evm : EVM.State) (balance0 : UInt256) : UInt256 :=
-  UInt256.ofNat (balance0.toNat - (uniswapReserve0Word evm).toNat)
+  skimExcessWord (uniswapReserve0Word evm) balance0
 
 def skimExcess1Word (evm : EVM.State) (balance1 : UInt256) : UInt256 :=
-  UInt256.ofNat (balance1.toNat - (uniswapReserve1Word evm).toNat)
+  skimExcessWord (uniswapReserve1Word evm) balance1
 
 abbrev skimExcess0Value (evm : EVM.State) (balance0 : UInt256) : Value :=
-  .int (Int.ofNat (skimExcess0Word evm balance0).toNat)
+  skimExcessValueOf (uniswapReserve0Word evm) balance0
 
 abbrev skimExcess1Value (evm : EVM.State) (balance1 : UInt256) : Value :=
-  .int (Int.ofNat (skimExcess1Word evm balance1).toNat)
+  skimExcessValueOf (uniswapReserve1Word evm) balance1
 
 abbrev skimExcess0Store (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256) : Store :=
