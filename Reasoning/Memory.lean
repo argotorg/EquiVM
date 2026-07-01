@@ -668,7 +668,7 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
         omega]
 
 /-- **Append-shaped write at memory end.**  A nonempty write from source offset `0` to
-    destination offset `base.size` appends the requested source prefix. -/
+    destination offset `base.size` appends the requested source pref. -/
 theorem write_at_end_eq (src base : ByteArray) (len : ℕ)
     (hlen : len ≠ 0) (hsrc : len ≤ src.size) :
     src.write 0 base base.size len = base ++ src.extract 0 len := by
@@ -1044,6 +1044,61 @@ theorem readBytes32_toList (cd : ByteArray) :
   congr 2
   exact pad_toNat (min 32 cd.size) (min_le_left _ _)
 
+theorem copySlice32_at_toList (cd : ByteArray) (off : ℕ) :
+    (cd.copySlice off ByteArray.empty 0 32).data.toList =
+      (cd.data.toList.drop off).take 32 := by
+  have hcopy :
+      (cd.copySlice off ByteArray.empty 0 32).data =
+        cd.data.extract off (off + 32) := by
+    rw [ByteArray.data_copySlice]
+    simp
+  rw [hcopy, Array.toList_extract, List.extract_eq_take_drop]
+  congr 1
+  omega
+
+theorem copySlice32_at_size (cd : ByteArray) (off : ℕ) :
+    (cd.copySlice off ByteArray.empty 0 32).size =
+      ((cd.data.toList.drop off).take 32).length := by
+  show (cd.copySlice off ByteArray.empty 0 32).data.size =
+    ((cd.data.toList.drop off).take 32).length
+  rw [← Array.length_toList, copySlice32_at_toList]
+
+theorem readBytes_at_toList_padded (cd : ByteArray) (off : ℕ) :
+    (ByteArray.readBytes cd off 32).data.toList =
+      (cd.data.toList.drop off).take 32 ++
+        List.replicate (32 - ((cd.data.toList.drop off).take 32).length) 0 := by
+  by_cases hoff : off < 2 ^ 64
+  · unfold ByteArray.readBytes
+    rw [if_pos (by simp only [Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hoff, by decide⟩)]
+    change (cd.copySlice off ByteArray.empty 0 32 ++
+        ffi.ByteArray.zeroes { toBitVec := ↑32 -
+          ↑(cd.copySlice off ByteArray.empty 0 32).size }).data.toList =
+      (cd.data.toList.drop off).take 32 ++
+        List.replicate (32 - ((cd.data.toList.drop off).take 32).length) 0
+    rw [ByteArray.data_append, Array.toList_append, copySlice32_at_toList,
+      byteArray_zeroes_toList, copySlice32_at_size]
+    rw [pad_toNat _ (List.length_take_le 32 (cd.data.toList.drop off))]
+  · unfold ByteArray.readBytes
+    rw [if_neg (by
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      intro h
+      exact hoff h.1)]
+    let bytes := (cd.toList.drop off).take 32
+    have hreadSize : (ByteArray.mk bytes.toArray).size = bytes.length := by
+      change bytes.toArray.size = bytes.length
+      simp
+    change ((ByteArray.mk bytes.toArray) ++
+        ffi.ByteArray.zeroes { toBitVec := ↑32 -
+          ↑(ByteArray.mk bytes.toArray).size }).data.toList =
+      (cd.data.toList.drop off).take 32 ++
+        List.replicate (32 - ((cd.data.toList.drop off).take 32).length) 0
+    rw [ByteArray.data_append, Array.toList_append, byteArray_zeroes_toList, hreadSize]
+    have hbytes :
+        bytes = (cd.data.toList.drop off).take 32 := by
+      simp [bytes, byteArray_toList_eq]
+    rw [hbytes]
+    rw [pad_toNat _ (List.length_take_le 32 (cd.data.toList.drop off))]
+
 set_option maxHeartbeats 800000 in
 theorem readWithPadding_zero_toList_of_size_lt32 (b : ByteArray)
     (hpos : b.size ≠ 0) (hshort : b.size < 32) :
@@ -1149,6 +1204,96 @@ theorem uInt256OfByteArray_readWithPadding_zero_low_zero (b : ByteArray)
     fromBytes'_replicate_zero]
   simp only [List.length_replicate, zero_add]
   exact Nat.mul_mod_right _ _
+
+theorem uInt256OfByteArray_readBytes_at_high_mask_eq_padded
+    (cd : ByteArray) (off n : ℕ)
+    (hn : n < 32) (hsrc : off + n ≤ cd.size) :
+    UInt256.land (uInt256OfByteArray (cd.readBytes off 32))
+        (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ (256 - 8 * n))) =
+      UInt256.ofNat
+        (fromBytesBigEndian
+          ((cd.data.toList.drop off).take n ++ List.replicate (32 - n) 0)) := by
+  let loadBytes :=
+    (cd.data.toList.drop off).take 32 ++
+      List.replicate (32 - ((cd.data.toList.drop off).take 32).length) (0 : UInt8)
+  let pref := (cd.data.toList.drop off).take n
+  have hloadList :
+      (cd.readBytes off 32).data.toList = loadBytes := by
+    simpa [loadBytes] using readBytes_at_toList_padded cd off
+  have htakeLen :
+      n ≤ ((cd.data.toList.drop off).take 32).length := by
+    rw [List.length_take, List.length_drop, Array.length_toList]
+    have hsize : cd.data.size = cd.size := rfl
+    omega
+  have hloadLen : loadBytes.length = 32 := by
+    dsimp [loadBytes]
+    rw [List.length_append, List.length_replicate]
+    have hle : ((cd.data.toList.drop off).take 32).length ≤ 32 :=
+      List.length_take_le 32 (cd.data.toList.drop off)
+    omega
+  have htake : loadBytes.take n = pref := by
+    dsimp [loadBytes, pref]
+    rw [List.take_append_of_le_length htakeLen, List.take_take]
+    rw [min_eq_left (by omega : n ≤ 32)]
+  have hsplit : loadBytes = pref ++ loadBytes.drop n := by
+    rw [← htake]
+    exact (List.take_append_drop n loadBytes).symm
+  have hdropLen : (loadBytes.drop n).length = 32 - n := by
+    rw [List.length_drop, hloadLen]
+  have hloadBE :
+      fromByteArrayBigEndian (cd.readBytes off 32) = fromBytesBigEndian loadBytes := by
+    unfold fromByteArrayBigEndian
+    rw [byteArray_toList_eq, hloadList]
+  have hloadLt : fromByteArrayBigEndian (cd.readBytes off 32) < UInt256.size := by
+    rw [hloadBE]
+    unfold fromBytesBigEndian Function.comp
+    have hbound := fromBytes'_le (bs := loadBytes.reverse)
+    rw [List.length_reverse, hloadLen] at hbound
+    simpa [UInt256.size] using hbound
+  have hloadNat :
+      (uInt256OfByteArray (cd.readBytes off 32)).toNat =
+        fromBytesBigEndian loadBytes := by
+    rw [uInt256OfByteArray_eq, ulit_toNat' _ hloadLt, hloadBE]
+  have hmaskLt : (2 : Nat) ^ 256 - 2 ^ (256 - 8 * n) < UInt256.size := by
+    have hpowPos : 0 < (2 : Nat) ^ (256 - 8 * n) := by positivity
+    change (2 : Nat) ^ 256 - 2 ^ (256 - 8 * n) < 2 ^ 256
+    omega
+  have hmaskNat :
+      (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ (256 - 8 * n))).toNat =
+        (2 : Nat) ^ 256 - 2 ^ (256 - 8 * n) :=
+    ulit_toNat' _ hmaskLt
+  have hpaddedLen :
+      (pref ++ List.replicate (32 - n) (0 : UInt8)).length = 32 := by
+    dsimp [pref]
+    rw [List.length_append, List.length_take, List.length_drop, Array.length_toList,
+      List.length_replicate]
+    have hsize : cd.data.size = cd.size := rfl
+    omega
+  have hpaddedLt :
+      fromBytesBigEndian (pref ++ List.replicate (32 - n) (0 : UInt8)) <
+        UInt256.size := by
+    unfold fromBytesBigEndian Function.comp
+    have hbound := fromBytes'_le
+      (bs := (pref ++ List.replicate (32 - n) (0 : UInt8)).reverse)
+    rw [List.length_reverse, hpaddedLen] at hbound
+    simpa [UInt256.size] using hbound
+  apply u256_inj
+  rw [u256_land_toNat, hloadNat, hmaskNat]
+  rw [ulit_toNat' _ hpaddedLt]
+  rw [natLandClearLow (fromBytesBigEndian loadBytes) (256 - 8 * n) (by omega)
+    (by simpa [hloadBE] using hloadLt)]
+  have hdiv :
+      fromBytesBigEndian loadBytes / 2 ^ (256 - 8 * n) =
+        fromBytesBigEndian pref := by
+    rw [hsplit]
+    rw [show 256 - 8 * n = 8 * (loadBytes.drop n).length by
+      rw [hdropLen]
+      omega]
+    exact fromBytesBigEndian_append_div pref (loadBytes.drop n)
+  rw [hdiv]
+  rw [show 256 - 8 * n = 8 * (32 - n) by omega]
+  rw [← fromBytesBigEndian_append_zeros pref (32 - n)]
+  exact Nat.mod_eq_of_lt hpaddedLt
 
 theorem fromBytes'_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)

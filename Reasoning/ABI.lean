@@ -15,6 +15,9 @@ open Solm ABI Ethereum Ethereum.EVM
 /-- The ABI type `uint256`, named here so contracts do not need to import another example's spec. -/
 abbrev abiUInt256 : ABIType := .elem (.int (.uint ⟨256, by decide⟩))
 
+/-- The ABI type `uint8`, named here so contracts do not need to import another example's spec. -/
+abbrev abiUInt8 : ABIType := .elem (.int (.uint ⟨8, by decide⟩))
+
 /-- The four-byte fixed ABI width, named here so contracts do not share example-local specs. -/
 def abiBytes4Width : Fin 32 := ⟨3, by decide⟩
 
@@ -359,6 +362,40 @@ theorem decodeABIValue_uint256_none_short {bytes : List UInt8} {start : Nat}
     Option.bind]
   rw [if_neg hshort]
 
+theorem decodeABIValue_uint8_ok {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hcanon : (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow 8) :
+    decodeABIValue? abiUInt8 bytes start
+      = some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
+          start + 32) := by
+  simp only [abiUInt8, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  simp only
+  rw [if_neg (show ¬ ((8 : ℕ) = 0) from by decide)]
+  rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+    < EVM.twoPow 8 from hcanon)]
+  rfl
+
+theorem decodeABIValue_uint8_none_noncanon {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hnc : ¬ (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow 8) :
+    decodeABIValue? abiUInt8 bytes start = none := by
+  simp only [abiUInt8, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  simp only
+  rw [if_neg (show ¬ ((8 : ℕ) = 0) from by decide)]
+  rw [if_neg (show ¬ (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+    < EVM.twoPow 8 from hnc)]
+
+theorem decodeABIValue_uint8_none_short {bytes : List UInt8} {start : Nat}
+    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
+    decodeABIValue? abiUInt8 bytes start = none := by
+  simp only [abiUInt8, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_neg hshort]
+
 theorem decodeScalarWord_address_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32)
     (hcanon : (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.addressModulus) :
@@ -399,6 +436,31 @@ theorem decodeScalarWord_uint256_none_short {bytes : List UInt8} {start : Nat}
   rw [← decodeABIValue_scalarWord_eq (ty := abiUInt256) (bytes := bytes)
     (start := start) (by decide)]
   exact decodeABIValue_uint256_none_short hshort
+
+theorem decodeScalarWord_uint8_ok {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hcanon : (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWord? abiUInt8 bytes start
+      = some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
+          start + 32) := by
+  rw [← decodeABIValue_scalarWord_eq (ty := abiUInt8) (bytes := bytes)
+    (start := start) (by decide)]
+  exact decodeABIValue_uint8_ok hlen hcanon
+
+theorem decodeScalarWord_uint8_none_noncanon {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32)
+    (hnc : ¬ (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWord? abiUInt8 bytes start = none := by
+  rw [← decodeABIValue_scalarWord_eq (ty := abiUInt8) (bytes := bytes)
+    (start := start) (by decide)]
+  exact decodeABIValue_uint8_none_noncanon hlen hnc
+
+theorem decodeScalarWord_uint8_none_short {bytes : List UInt8} {start : Nat}
+    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWord? abiUInt8 bytes start = none := by
+  rw [← decodeABIValue_scalarWord_eq (ty := abiUInt8) (bytes := bytes)
+    (start := start) (by decide)]
+  exact decodeABIValue_uint8_none_short hshort
 
 theorem decodeCalldata_empty_ok {cd : ByteArray} (hsz4 : 4 ≤ cd.size) :
     decodeCalldata [] [] cd = some (∅ : Solm.Store) := by
@@ -467,6 +529,295 @@ theorem decodeCalldata_uint256_none_huge {cd : ByteArray} {x : Solm.Ident}
     rw [byteArray_toList_eq, Array.length_toList]; rfl
   rw [decodeCalldata_scalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
     (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_pos]
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+
+theorem decodeScalarWords_uint256_uint8_ok {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hcanon : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWords? [abiUInt256, abiUInt8] bytes 0 =
+      some [.int (Int.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
+        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)] := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using hlen0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_uint8_ok (start := 32) hlen32 hcanon]
+  rfl
+
+theorem decodeScalarWords_uint256_uint8_none_noncanon1 {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hnc : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWords? [abiUInt256, abiUInt8] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using hlen0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_uint8_none_noncanon (start := 32) hlen32 hnc]
+
+theorem decodeScalarWords_uint256_uint8_none_short {bytes : List UInt8}
+    (hshort : bytes.length < 64) :
+    decodeScalarWords? [abiUInt256, abiUInt8] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  by_cases h32 : bytes.length < 32
+  · have htake0n : ¬ (bytes.take 32).length = 32 := by
+      rw [List.length_take]; omega
+    rw [decodeScalarWord_uint256_none_short (start := 0) (by simpa using htake0n)]
+    simp only [Option.bind, bind]
+  · have htake0 : (bytes.take 32).length = 32 := by
+      rw [List.length_take]; omega
+    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
+      rw [List.length_take, List.length_drop]; omega
+    rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using htake0)]
+    simp only [Option.bind, bind]
+    rw [decodeScalarWord_uint8_none_short (start := 32) htake32n]
+
+theorem decodeCalldata_uint256_uint8_ok {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hcanon : (calldataWord cd 36).toNat < EVM.twoPow 8) :
+    decodeCalldata [x, y] [abiUInt256, abiUInt8] cd =
+      some (((∅ : Solm.Store).insert x
+        (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
+        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have hword36' : ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+      calldataWord cd 36 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36
+  rw [decodeCalldata_scalarWords_eq (names := [x, y])
+    (types := [abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_uint256_uint8_ok (bytes := cd.toList.drop 4) htake4 htake36'
+    (by rw [hword36']; exact hcanon)]
+  change decodeCalldata.insertValues [x, y]
+      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
+        .int (Int.ofNat
+          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat)] ∅ =
+    some (((∅ : Solm.Store).insert x
+      (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
+      (.int (Int.ofNat (calldataWord cd 36).toNat)))
+  simp [decodeCalldata.insertValues]
+  rw [hword4, hword36]
+
+theorem decodeCalldata_uint256_uint8_none_noncanon1 {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hnc : ¬ (calldataWord cd 36).toNat < EVM.twoPow 8) :
+    decodeCalldata [x, y] [abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have hword36' : ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+      calldataWord cd 36 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36
+  rw [decodeCalldata_scalarWords_eq (names := [x, y])
+    (types := [abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_uint256_uint8_none_noncanon1 (bytes := cd.toList.drop 4)
+    htake4 htake36'
+    (by rw [hword36']; exact hnc)]
+
+theorem decodeCalldata_uint256_uint8_none_short {cd : ByteArray} {x y : Solm.Ident}
+    (hshort : cd.size < 68) :
+    decodeCalldata [x, y] [abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y])
+    (types := [abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  by_cases hsz4 : cd.size < 4
+  · rw [if_pos (by rw [htlen]; omega : cd.toList.length < 4)]
+  · rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+    rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+    rw [decodeScalarWords_uint256_uint8_none_short (bytes := cd.toList.drop 4) (by
+      rw [List.length_drop, htlen]; omega)]
+
+theorem decodeCalldata_uint256_uint8_none_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata [x, y] [abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y])
+    (types := [abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_pos]
+  · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+
+theorem decodeScalarWords_uint256_uint256_uint8_ok {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hlen64 : ((bytes.drop 64).take 32).length = 32)
+    (hcanon : (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWords? [abiUInt256, abiUInt256, abiUInt8] bytes 0 =
+      some [.int (Int.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
+        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
+        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)] := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using hlen0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_uint256_ok (start := 32) hlen32]
+  rw [decodeScalarWord_uint8_ok (start := 64) hlen64 hcanon]
+  rfl
+
+theorem decodeScalarWords_uint256_uint256_uint8_none_noncanon2 {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hlen64 : ((bytes.drop 64).take 32).length = 32)
+    (hnc : ¬ (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat < EVM.twoPow 8) :
+    decodeScalarWords? [abiUInt256, abiUInt256, abiUInt8] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using hlen0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_uint256_ok (start := 32) hlen32]
+  rw [decodeScalarWord_uint8_none_noncanon (start := 64) hlen64 hnc]
+
+theorem decodeScalarWords_uint256_uint256_uint8_none_short {bytes : List UInt8}
+    (hshort : bytes.length < 96) :
+    decodeScalarWords? [abiUInt256, abiUInt256, abiUInt8] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  by_cases h32 : bytes.length < 32
+  · have htake0n : ¬ (bytes.take 32).length = 32 := by
+      rw [List.length_take]; omega
+    rw [decodeScalarWord_uint256_none_short (start := 0) (by simpa using htake0n)]
+    simp only [Option.bind, bind]
+  · have htake0 : (bytes.take 32).length = 32 := by
+      rw [List.length_take]; omega
+    rw [decodeScalarWord_uint256_ok (start := 0) (by simpa using htake0)]
+    simp only [Option.bind, bind]
+    by_cases h64 : bytes.length < 64
+    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]; omega
+      rw [decodeScalarWord_uint256_none_short (start := 32) htake32n]
+    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]; omega
+      have htake64n : ¬ ((bytes.drop 64).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]; omega
+      rw [decodeScalarWord_uint256_ok (start := 32) htake32]
+      rw [decodeScalarWord_uint8_none_short (start := 64) htake64n]
+
+theorem decodeCalldata_uint256_uint256_uint8_ok {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hcanon : (calldataWord cd 68).toNat < EVM.twoPow 8) :
+    decodeCalldata [x, y, z] [abiUInt256, abiUInt256, abiUInt8] cd =
+      some ((((∅ : Solm.Store).insert x
+        (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
+        (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
+        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
+    decode_word_at_eq cd 68 (by omega) (by norm_num)
+  have htake36' : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have hword36' : ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+      calldataWord cd 36 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36
+  have htake68' : (((cd.toList.drop 4).drop 64).take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
+  have hword68' : ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+      calldataWord cd 68 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [abiUInt256, abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_uint256_uint256_uint8_ok (bytes := cd.toList.drop 4)
+    htake4 htake36' htake68' (by rw [hword68']; exact hcanon)]
+  change decodeCalldata.insertValues [x, y, z]
+      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
+        .int (Int.ofNat
+          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat),
+        .int (Int.ofNat
+          (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat)] ∅ =
+    some ((((∅ : Solm.Store).insert x
+      (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
+      (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
+      (.int (Int.ofNat (calldataWord cd 68).toNat)))
+  simp [decodeCalldata.insertValues]
+  rw [hword4, hword36, hword68]
+
+theorem decodeCalldata_uint256_uint256_uint8_none_noncanon2 {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hnc : ¬ (calldataWord cd 68).toNat < EVM.twoPow 8) :
+    decodeCalldata [x, y, z] [abiUInt256, abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
+    decode_word_at_eq cd 68 (by omega) (by norm_num)
+  have htake36' : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have htake68' : (((cd.toList.drop 4).drop 64).take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
+  have hword68' : ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+      calldataWord cd 68 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [abiUInt256, abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_uint256_uint256_uint8_none_noncanon2
+    (bytes := cd.toList.drop 4) htake4 htake36' htake68'
+    (by rw [hword68']; exact hnc)]
+
+theorem decodeCalldata_uint256_uint256_uint8_none_short {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hshort : cd.size < 100) :
+    decodeCalldata [x, y, z] [abiUInt256, abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [abiUInt256, abiUInt256, abiUInt8]) (cd := cd) (by decide)]
+  by_cases hsz4 : cd.size < 4
+  · rw [if_pos (by rw [htlen]; omega : cd.toList.length < 4)]
+  · rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+    rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+    rw [decodeScalarWords_uint256_uint256_uint8_none_short (bytes := cd.toList.drop 4) (by
+      rw [List.length_drop, htlen]; omega)]
+
+theorem decodeCalldata_uint256_uint256_uint8_none_huge {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata [x, y, z] [abiUInt256, abiUInt256, abiUInt8] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [abiUInt256, abiUInt256, abiUInt8]) (cd := cd) (by decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_pos]
   · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
@@ -703,6 +1054,837 @@ theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
   simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, decodeABIValues?, decodeABIValue?,
     isDynamicABIType, abiTupleHeadSize?, hnotHeadShort, hreadOff, hoffMax, hreadLen, hlenMax,
     hpayloadRead]
+
+theorem decodeCalldata_bytes_none_total_huge {cd : ByteArray} {x : Solm.Ident}
+    (hbig : 2 ^ 255 ≤ cd.size) :
+    decodeCalldata [x] [ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  by_cases hlt4 : cd.toList.length < 4
+  · rw [if_pos hlt4]
+  · rw [if_neg hlt4]
+    have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    have hdyn : [ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length := by
+      exact ⟨by simp [isDynamicABIType], by rw [htlen]; exact hbig⟩
+    rw [if_pos hdyn]
+
+theorem decodeCalldata_bytes_none_huge {cd : ByteArray} {x : Solm.Ident}
+    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata [x] [ABIType.bytes] cd = none :=
+  decodeCalldata_bytes_none_total_huge (x := x) (by omega)
+
+theorem decodeCalldata_bytes_none_offset_huge {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size)
+    (hoff : solcMaxU64 < (calldataWord cd 4).toNat) :
+    decodeCalldata [x] [ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  by_cases hdyn : [ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length
+  · rw [if_pos hdyn]
+  · rw [if_neg hdyn]
+    by_cases hargsHuge : [ABIType.bytes].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
+    · rw [if_pos hargsHuge]
+    · rw [if_neg hargsHuge]
+      by_cases htotal : solcTotalSizeDynamicGuard [ABIType.bytes] = true ∧ 2 ^ 255 ≤ cd.toList.length
+      · rw [if_pos htotal]
+      · rw [if_neg htotal]
+        have hread := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+        simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+          abiTupleHeadSize?, hread, hoff]
+
+theorem decodeCalldata_bytes_none_length_short {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
+    (hshort : cd.size < 4 + (calldataWord cd 4).toNat + 32) :
+    decodeCalldata [x] [ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  by_cases hdyn : [ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length
+  · rw [if_pos hdyn]
+  · rw [if_neg hdyn]
+    by_cases hargsHuge : [ABIType.bytes].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
+    · rw [if_pos hargsHuge]
+    · rw [if_neg hargsHuge]
+      by_cases htotal : solcTotalSizeDynamicGuard [ABIType.bytes] = true ∧ 2 ^ 255 ≤ cd.toList.length
+      · rw [if_pos htotal]
+      · rw [if_neg htotal]
+        by_cases hoff : solcMaxU64 < (calldataWord cd 4).toNat
+        · have hread := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+          simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+            abiTupleHeadSize?, hread, hoff]
+        · have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+          have hreadLen :
+              readNat? (cd.toList.drop 4) (calldataWord cd 4).toNat = none := by
+            unfold readNat? readWord? readBytes?
+            have hlen :
+                ¬ (((cd.toList.drop 4).drop (calldataWord cd 4).toNat).take 32).length = 32 := by
+              rw [List.length_take, List.length_drop, List.length_drop, htlen]
+              omega
+            rw [if_neg hlen]
+            rfl
+          simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+            abiTupleHeadSize?, hreadOff, hoff, hreadLen]
+
+theorem decodeCalldata_bytes_none_length_huge {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenHuge : solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x] [ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  by_cases hdyn : [ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length
+  · rw [if_pos hdyn]
+  · rw [if_neg hdyn]
+    by_cases hargsHuge : [ABIType.bytes].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
+    · rw [if_pos hargsHuge]
+    · rw [if_neg hargsHuge]
+      by_cases htotal : solcTotalSizeDynamicGuard [ABIType.bytes] = true ∧ 2 ^ 255 ≤ cd.toList.length
+      · rw [if_pos htotal]
+      · rw [if_neg htotal]
+        have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+          abiTupleHeadSize?, hreadOff, hoffMax, hreadLen, hlenHuge]
+
+theorem decodeCalldata_bytes_none_payload_short {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length ≠
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x] [ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  by_cases hdyn : [ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length
+  · rw [if_pos hdyn]
+  · rw [if_neg hdyn]
+    by_cases hargsHuge : [ABIType.bytes].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length
+    · rw [if_pos hargsHuge]
+    · rw [if_neg hargsHuge]
+      by_cases htotal : solcTotalSizeDynamicGuard [ABIType.bytes] = true ∧ 2 ^ 255 ≤ cd.toList.length
+      · rw [if_pos htotal]
+      · rw [if_neg htotal]
+        have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        have hpayloadRead :
+            readBytes? (cd.toList.drop 4) ((calldataWord cd 4).toNat + 32)
+              (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat = none := by
+          unfold readBytes?
+          rw [if_neg hpayload]
+        simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+          abiTupleHeadSize?, hreadOff, hoffMax, hreadLen, hlenMax, hpayloadRead]
+
+theorem decodeCalldata_bytes_some {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x] [ABIType.bytes] cd =
+      some ((∅ : Solm.Store).insert x (.bytes (ByteArray.mk
+        (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+          (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray))) := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn : ¬ ([ABIType.bytes].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge : ¬ ([ABIType.bytes].isEmpty = false ∧ 2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal : ¬ (solcTotalSizeDynamicGuard [ABIType.bytes] = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotTotal]
+  have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
+    rw [htlen]
+    omega
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
+  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, decodeABIValues?, decodeABIValue?,
+    isDynamicABIType, abiTupleHeadSize?, hnotHeadShort, hreadOff, hoffMax, hreadLen, hlenMax,
+    hpayloadRead]
+
+theorem decodeCalldata_bytes_uint256_none_total_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hbig : 2 ^ 255 ≤ cd.size) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  by_cases hlt4 : cd.toList.length < 4
+  · rw [if_pos hlt4]
+  · rw [if_neg hlt4]
+    have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    have hdyn :
+        [ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length := by
+      exact ⟨by simp [isDynamicABIType], by rw [htlen]; exact hbig⟩
+    rw [if_pos hdyn]
+
+theorem decodeCalldata_bytes_uint256_none_short {cd : ByteArray} {x y : Solm.Ident}
+    (hshort : cd.size < 68) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  by_cases hlt4 : cd.toList.length < 4
+  · rw [if_pos hlt4]
+  · rw [if_neg hlt4]
+    have hnotDyn :
+        ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+            2 ^ 255 ≤ cd.toList.length) := by
+      intro h
+      rw [htlen] at h
+      omega
+    rw [if_neg hnotDyn]
+    have hnotArgsHuge :
+        ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+            2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+      intro h
+      rw [List.length_drop, htlen] at h
+      omega
+    rw [if_neg hnotArgsHuge]
+    have hnotTotal :
+        ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+            2 ^ 255 ≤ cd.toList.length) := by
+      simp [solcTotalSizeDynamicGuard]
+    rw [if_neg hnotTotal]
+    have hhead : (cd.toList.drop 4).length < 64 := by
+      rw [List.length_drop, htlen]
+      omega
+    have hhead' : cd.toList.length - 4 < 64 := by
+      rw [htlen]
+      omega
+    simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, staticABIEncodedSize?,
+      isDynamicABIType, hhead']
+
+theorem decodeCalldata_bytes_uint256_none_offset_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoff : solcMaxU64 < (calldataWord cd 4).toNat) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hreadOff, hoff]
+
+theorem decodeCalldata_bytes_uint256_none_length_short {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hshort : cd.size < 4 + (calldataWord cd 4).toNat + 32) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+  have hreadLen :
+      readNat? (cd.toList.drop 4) (calldataWord cd 4).toNat = none := by
+    unfold readNat? readWord? readBytes?
+    have hlen :
+        ¬ (((cd.toList.drop 4).drop (calldataWord cd 4).toNat).take 32).length = 32 := by
+      rw [List.length_take, List.length_drop, List.length_drop, htlen]
+      omega
+    rw [if_neg hlen]
+    rfl
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hreadOff, hoffMax, hreadLen]
+
+theorem decodeCalldata_bytes_uint256_none_length_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenHuge : solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hreadOff, hoffMax, hreadLen,
+    hlenHuge]
+
+theorem decodeCalldata_bytes_uint256_none_payload_short {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length ≠
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead :
+      readBytes? (cd.toList.drop 4) ((calldataWord cd 4).toNat + 32)
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat = none := by
+    unfold readBytes?
+    rw [if_neg hpayload]
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hreadOff, hoffMax, hreadLen,
+    hlenMax, hpayloadRead]
+
+set_option maxHeartbeats 1000000 in
+theorem decodeCalldata_bytes_uint256_some {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x, y] [ABIType.bytes, abiUInt256] cd =
+      some (((∅ : Solm.Store).insert x (.bytes (ByteArray.mk
+        (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+          (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray))).insert y
+        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([ABIType.bytes, abiUInt256].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([ABIType.bytes, abiUInt256].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [ABIType.bytes, abiUInt256] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hnotHeadShort : ¬ (cd.toList.drop 4).length < 64 := by
+    rw [List.length_drop, htlen]
+    omega
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have htake36' : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have hword36' :
+      ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) = calldataWord cd 36 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36
+  have hreadTag :
+      readWord? (cd.toList.drop 4) 32 =
+        some (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)) := by
+    have hle36 : 32 ≤ cd.toList.length - 36 := by
+      rw [htlen]
+      omega
+    simp [readWord?, readBytes?, hle36]
+  have htagDec :
+      decodeABIValue? abiUInt256 (cd.toList.drop 4) 32 =
+        some (.int (Int.ofNat (calldataWord cd 36).toNat), 64) := by
+    have hraw :=
+      decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 32) htake36'
+    rw [hword36'] at hraw
+    simpa using hraw
+  have hvalues :
+      ∃ endOffset,
+        decodeABIValues? [ABIType.bytes, abiUInt256] (cd.toList.drop 4) 0 0 64 64 =
+          some
+            ([.bytes (ByteArray.mk
+                (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+                  (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray),
+              .int (Int.ofNat (calldataWord cd 36).toNat)], endOffset) := by
+    refine ⟨max 64 ((calldataWord cd 4).toNat + 32 +
+        paddedSize (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat), ?_⟩
+    simp [decodeABIValues?, decodeABIValue?,
+      isDynamicABIType, staticABIEncodedSize?, hreadOff, hoffMax, hreadLen, hlenMax,
+      hpayloadRead, htagDec]
+    rw [Nat.max_comm]
+  rcases hvalues with ⟨endOffset, hvalues⟩
+  have hnotHeadShort' : ¬ cd.toList.length - 4 < 64 := by
+    rw [htlen]
+    omega
+  simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType,
+    hnotHeadShort', hvalues, decodeCalldata.insertValues]
+
+theorem readNat_drop4_offset32_eq_calldataWord {cd : ByteArray}
+    (hsz68 : 68 ≤ cd.size) :
+    readNat? (cd.toList.drop 4) 32 = some (calldataWord cd 36).toNat := by
+  unfold readNat? readWord?
+  have hread : readBytes? (cd.toList.drop 4) 32 32 =
+      some (((cd.toList.drop 4).drop 32).take 32) := by
+    unfold readBytes?
+    have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    have hlen : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
+      rw [List.length_take, List.length_drop, List.length_drop, htlen]
+      omega
+    rw [if_pos hlen]
+  rw [hread]
+  have hword :
+      bytesToWord (((cd.toList.drop 4).drop 32).take 32) = calldataWord cd 36 := by
+    have h := decode_word_at_eq cd 36 (by omega) (by norm_num)
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using h
+  simp only [Option.bind, bind, hword]
+  rfl
+
+theorem readNat_drop4_dynamic36_eq_calldataWord {cd : ByteArray}
+    (_hoffMax : ¬ solcMaxU64 < (calldataWord cd 36).toNat)
+    (hlenWord : 4 + (calldataWord cd 36).toNat + 32 ≤ cd.size) :
+    readNat? (cd.toList.drop 4) (calldataWord cd 36).toNat =
+      some (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat := by
+  unfold readNat? readWord?
+  have hread : readBytes? (cd.toList.drop 4) (calldataWord cd 36).toNat 32 =
+      some (((cd.toList.drop 4).drop (calldataWord cd 36).toNat).take 32) := by
+    unfold readBytes?
+    have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    have hlen :
+        (((cd.toList.drop 4).drop (calldataWord cd 36).toNat).take 32).length = 32 := by
+      rw [List.length_take, List.length_drop, List.length_drop, htlen]
+      omega
+    rw [if_pos hlen]
+  rw [hread]
+  have hword :
+      bytesToWord (((cd.toList.drop 4).drop (calldataWord cd 36).toNat).take 32) =
+        calldataWord cd (4 + (calldataWord cd 36).toNat) := by
+    have h := decode_word_at_eq_any cd (4 + (calldataWord cd 36).toNat) hlenWord
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using h
+  simp only [Option.bind, bind, hword]
+  rfl
+
+theorem readBytes_drop4_payload36 {cd : ByteArray}
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat).length =
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat) :
+    readBytes? (cd.toList.drop 4) ((calldataWord cd 36).toNat + 32)
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat =
+      some (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat) := by
+  unfold readBytes?
+  rw [if_pos hpayload]
+
+theorem decodeCalldata_uint256_bytes_none_total_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hbig : 2 ^ 255 ≤ cd.size) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  by_cases hlt4 : cd.toList.length < 4
+  · rw [if_pos hlt4]
+  · rw [if_neg hlt4]
+    have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    have hdyn :
+        [abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length := by
+      exact ⟨by simp [isDynamicABIType], by rw [htlen]; exact hbig⟩
+    rw [if_pos hdyn]
+
+theorem decodeCalldata_uint256_bytes_none_short {cd : ByteArray} {x y : Solm.Ident}
+    (hshort : cd.size < 68) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  by_cases hlt4 : cd.toList.length < 4
+  · rw [if_pos hlt4]
+  · rw [if_neg hlt4]
+    have hnotDyn :
+        ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+            2 ^ 255 ≤ cd.toList.length) := by
+      intro h
+      rw [htlen] at h
+      omega
+    rw [if_neg hnotDyn]
+    have hnotArgsHuge :
+        ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+            2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+      intro h
+      rw [List.length_drop, htlen] at h
+      omega
+    rw [if_neg hnotArgsHuge]
+    have hnotTotal :
+        ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+            2 ^ 255 ≤ cd.toList.length) := by
+      simp [solcTotalSizeDynamicGuard]
+    rw [if_neg hnotTotal]
+    have hhead' : cd.toList.length - 4 < 64 := by
+      rw [htlen]
+      omega
+    simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, staticABIEncodedSize?,
+      isDynamicABIType, hhead']
+
+theorem decodeCalldata_uint256_bytes_none_offset_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoff : solcMaxU64 < (calldataWord cd 36).toNat) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_offset32_eq_calldataWord (cd := cd) hsz68
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hidxDec := decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 0) htake4
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hidxDec, hreadOff, hoff]
+
+theorem decodeCalldata_uint256_bytes_none_length_short {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 36).toNat)
+    (hshort : cd.size < 4 + (calldataWord cd 36).toNat + 32) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_offset32_eq_calldataWord (cd := cd) hsz68
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hidxDec := decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 0) htake4
+  have hreadLen :
+      readNat? (cd.toList.drop 4) (calldataWord cd 36).toNat = none := by
+    unfold readNat? readWord? readBytes?
+    have hlen :
+        ¬ (((cd.toList.drop 4).drop (calldataWord cd 36).toNat).take 32).length = 32 := by
+      rw [List.length_take, List.length_drop, List.length_drop, htlen]
+      omega
+    rw [if_neg hlen]
+    rfl
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hidxDec, hreadOff, hoffMax, hreadLen]
+
+theorem decodeCalldata_uint256_bytes_none_length_huge {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 36).toNat)
+    (hlenWord : 4 + (calldataWord cd 36).toNat + 32 ≤ cd.size)
+    (hlenHuge : solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_offset32_eq_calldataWord (cd := cd) hsz68
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hidxDec := decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 0) htake4
+  have hreadLen := readNat_drop4_dynamic36_eq_calldataWord (cd := cd) hoffMax hlenWord
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hidxDec, hreadOff, hoffMax, hreadLen,
+    hlenHuge]
+
+theorem decodeCalldata_uint256_bytes_none_payload_short {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 36).toNat)
+    (hlenWord : 4 + (calldataWord cd 36).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat).length ≠
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hreadOff := readNat_drop4_offset32_eq_calldataWord (cd := cd) hsz68
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hidxDec := decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 0) htake4
+  have hreadLen := readNat_drop4_dynamic36_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead :
+      readBytes? (cd.toList.drop 4) ((calldataWord cd 36).toNat + 32)
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat = none := by
+    unfold readBytes?
+    rw [if_neg hpayload]
+  simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
+    staticABIEncodedSize?, abiTupleHeadSize?, hidxDec, hreadOff, hoffMax, hreadLen,
+    hlenMax, hpayloadRead]
+
+set_option maxHeartbeats 1000000 in
+theorem decodeCalldata_uint256_bytes_some {cd : ByteArray} {x y : Solm.Ident}
+    (hsz68 : 68 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 36).toNat)
+    (hlenWord : 4 + (calldataWord cd 36).toNat + 32 ≤ cd.size)
+    (hlenMax : ¬ solcMaxU64 <
+      (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat).length =
+        (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat) :
+    decodeCalldata [x, y] [abiUInt256, ABIType.bytes] cd =
+      some (((∅ : Solm.Store).insert x
+        (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
+        (.bytes (ByteArray.mk
+          (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+            (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat).toArray))) := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  have hnotDyn :
+      ¬ ([abiUInt256, ABIType.bytes].any isDynamicABIType = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    intro h
+    rw [htlen] at h
+    omega
+  rw [if_neg hnotDyn]
+  have hnotArgsHuge :
+      ¬ ([abiUInt256, ABIType.bytes].isEmpty = false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length) := by
+    intro h
+    rw [List.length_drop, htlen] at h
+    omega
+  rw [if_neg hnotArgsHuge]
+  have hnotTotal :
+      ¬ (solcTotalSizeDynamicGuard [abiUInt256, ABIType.bytes] = true ∧
+          2 ^ 255 ≤ cd.toList.length) := by
+    simp [solcTotalSizeDynamicGuard]
+  rw [if_neg hnotTotal]
+  have hnotHeadShort : ¬ (cd.toList.drop 4).length < 64 := by
+    rw [List.length_drop, htlen]
+    omega
+  have hreadOff := readNat_drop4_offset32_eq_calldataWord (cd := cd) hsz68
+  have hreadLen := readNat_drop4_dynamic36_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead := readBytes_drop4_payload36 (cd := cd) hpayload
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hidxDec :
+      decodeABIValue? abiUInt256 (cd.toList.drop 4) 0 =
+        some (.int (Int.ofNat (calldataWord cd 4).toNat), 32) := by
+    have hraw :=
+      decodeABIValue_uint256_ok (bytes := cd.toList.drop 4) (start := 0) htake4
+    have hraw' :
+        decodeABIValue? abiUInt256 (cd.toList.drop 4) 0 =
+          some (.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat), 32) := by
+      simpa [List.drop_zero] using hraw
+    rw [hword4] at hraw'
+    simpa using hraw'
+  have hvalues :
+      ∃ endOffset,
+        decodeABIValues? [abiUInt256, ABIType.bytes] (cd.toList.drop 4) 0 0 64 64 =
+          some
+            ([.int (Int.ofNat (calldataWord cd 4).toNat),
+              .bytes (ByteArray.mk
+                (((cd.toList.drop 4).drop ((calldataWord cd 36).toNat + 32)).take
+                  (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat).toArray)],
+              endOffset) := by
+    refine ⟨max 64 ((calldataWord cd 36).toNat + 32 +
+        paddedSize (calldataWord cd (4 + (calldataWord cd 36).toNat)).toNat), ?_⟩
+    simp [decodeABIValues?, decodeABIValue?,
+      isDynamicABIType, staticABIEncodedSize?, hidxDec, hreadOff, hoffMax, hreadLen,
+      hlenMax, hpayloadRead]
+    rw [← Nat.max_assoc]
+    norm_num
+  rcases hvalues with ⟨endOffset, hvalues⟩
+  have hnotHeadShort' : ¬ cd.toList.length - 4 < 64 := by
+    rw [htlen]
+    omega
+  simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType,
+    hnotHeadShort', hvalues, decodeCalldata.insertValues]
 
 /-! ## Fixed-bytes calldata convenience lemmas -/
 

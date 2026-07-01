@@ -560,6 +560,43 @@ theorem div_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Glow, stMul]
 
+/-! ### EXP (variable cost, `a :: b :: t ↦ exp a b :: t`, pc += 1) -/
+
+def expGasCost (exponent : UInt256) : ℕ :=
+  if exponent = ⟨0⟩ then GasConstants.Gexp
+  else GasConstants.Gexp + GasConstants.Gexpbyte * (1 + Nat.log 256 exponent.toNat)
+
+def stExp (s : State) (res : UInt256) (gasCost : ℕ) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩, stack := res :: t,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat gasCost } }
+
+theorem expGasCost_pos (exponent : UInt256) : 1 ≤ expGasCost exponent := by
+  unfold expGasCost
+  split
+  · norm_num [GasConstants.Gexp]
+  · have hnonneg : 0 ≤ GasConstants.Gexpbyte * (1 + Nat.log 256 exponent.toNat) :=
+      Nat.zero_le _
+    norm_num [GasConstants.Gexp] at hnonneg ⊢
+    omega
+
+theorem exp_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.EXP, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < expGasCost b then .error .OutOfGass
+         else .ok (stExp s (UInt256.exp a b) (expGasCost b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.EXP, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_exp s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', expGasCost, stExp]
+
 /-! ### POP (cost 2, pc += 1, drops top) -/
 
 def stPop (s : State) (t : List UInt256) : State :=
