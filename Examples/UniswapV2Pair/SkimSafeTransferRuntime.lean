@@ -141,7 +141,7 @@ theorem skimSafeTransferMem6_read64
     (skimSafeTransferMem6 self o toWord value).readWithPadding 64 32 =
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSafeTransferMem6
-  exact safeTransferCalldata_write32_read_back _ _ 64
+  exact toByteArray_write32_read_back _ _ 64
     (by rw [skimSafeTransferMem5_size self toWord value ho32 hoSize]; omega)
 
 theorem skimSafeTransferMem7_size
@@ -149,7 +149,7 @@ theorem skimSafeTransferMem7_size
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (skimSafeTransferMem7 self o toWord value).size = 292 := by
   unfold skimSafeTransferMem7
-  exact safeTransferCalldata_write32_size_of_le _ _ 224 292 292
+  exact toByteArray_write32_size_of_le _ _ 224 292 292
     (skimSafeTransferMem6_size self toWord value ho32 hoSize)
     (by rw [skimSafeTransferMem6_size self toWord value ho32 hoSize]; omega)
     (by norm_num)
@@ -184,7 +184,7 @@ theorem skimSafeTransferMem5_read192
     (skimSafeTransferMem5 self o toWord value).readWithPadding 192 32 =
       UInt256.toByteArray (⟨68⟩ : UInt256) := by
   unfold skimSafeTransferMem5
-  exact safeTransferCalldata_write32_read_back _ _ 192
+  exact toByteArray_write32_read_back _ _ 192
     (by rw [skimSafeTransferMem4_size self toWord value ho32 hoSize]; omega)
 
 theorem skimSafeTransferMem6_read192
@@ -236,7 +236,7 @@ theorem skimSafeTransferMem7_read224
     (skimSafeTransferMem7 self o toWord value).readWithPadding 224 32 =
       UInt256.toByteArray (skimSafeTransferPatchedSelectorWord self o toWord value) := by
   unfold skimSafeTransferMem7
-  exact safeTransferCalldata_write32_read_back _ _ 224
+  exact toByteArray_write32_read_back _ _ 224
     (by rw [skimSafeTransferMem6_size self toWord value ho32 hoSize]; omega)
 
 theorem skimSafeTransferMem7_mload224

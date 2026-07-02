@@ -359,6 +359,29 @@ theorem toByteArray_write_size_ge_off_add32 (b : UInt256) (mem : ByteArray) (off
       USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
     omega
 
+/-- Size of an in-bounds or partially-overwriting 32-byte word write. -/
+theorem toByteArray_write32_size_of_le
+    (base : ByteArray) (word : UInt256) (off baseSize finalSize : Nat)
+    (hbase : base.size = baseSize) (hoff : off ≤ base.size)
+    (hfinal : max baseSize (off + 32) = finalSize) :
+    ((UInt256.toByteArray word).write 0 base off 32).size = finalSize := by
+  rw [write32_eq _ _ off (by rw [toByteArray_size]) hoff, ByteArray.size_append,
+    ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+    ByteArray.size_extract, hbase, toByteArray_size]
+  rw [← hfinal]
+  omega
+
+/-- Size of a 32-byte word write at or after the end of memory, with a bounded zero gap. -/
+theorem toByteArray_write32_size_of_ge
+    (base : ByteArray) (word : UInt256) (off baseSize finalSize : Nat)
+    (hbase : base.size = baseSize) (hoff : baseSize ≤ off)
+    (hgap : off - baseSize < USize.size) (hfinal : off + 32 = finalSize) :
+    ((UInt256.toByteArray word).write 0 base off 32).size = finalSize := by
+  rw [toByteArray_write_eq word base off (by rw [hbase]; exact hoff) (by rwa [hbase]),
+    ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+    hbase, USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+  omega
+
 /-- Extracting a window `[i,j)` from a prefix `b[0..n]` (with `j ≤ n`) is the same as extracting it
     from `b` directly. -/
 theorem extract_prefix (b : ByteArray) (n i j : ℕ) (hjn : j ≤ n) :
@@ -728,6 +751,14 @@ theorem write32_read_back (src base : ByteArray) (destAddr : ℕ)
         (by rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]; omega),
       extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]),
       extract_append_right' _ _ _ _ hbsz.symm (by rw [hbsz, hsz32])]
+
+/-- Reading back a just-written `UInt256.toByteArray` word returns the whole word. -/
+theorem toByteArray_write32_read_back
+    (base : ByteArray) (word : UInt256) (off : Nat) (hoff : off ≤ base.size) :
+    ((UInt256.toByteArray word).write 0 base off 32).readWithPadding off 32 =
+      UInt256.toByteArray word := by
+  rw [write32_read_back _ _ off (by rw [toByteArray_size]) hoff]
+  rw [toByteArray_extract_all]
 
 /-- `extract` of the right component of an append, for a window past the left component. -/
 theorem extract_append_right_window (A B : ByteArray) (i j : ℕ) (h : A.size ≤ i) :
@@ -1333,6 +1364,17 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
       List.take_take, show min 4 32 = 4 from rfl]
 
 /-! ## Generic `MLOAD` word-value helper -/
+
+/-- Simplify the value pushed by `MLOAD` when the offset is in bounds and below the active-word
+    limit, leaving the byte read uninterpreted. -/
+theorem mloadValue_eq_readWithPadding_of_lt_size
+    (mem : ByteArray) (aw off : UInt256) (memSize : Nat)
+    (hsize : mem.size = memSize) (hmem : off.toNat < memSize)
+    (haw : ¬ off ≥ aw * ⟨32⟩) :
+    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) =
+      UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32)) := by
+  rw [if_neg (not_or.mpr ⟨by rw [hsize]; omega, haw⟩)]
 
 /-- Simplify the value pushed by `MLOAD` when the 32-byte memory read is known. -/
 theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}

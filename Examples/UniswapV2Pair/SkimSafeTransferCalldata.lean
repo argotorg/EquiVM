@@ -5,29 +5,6 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
--- LIBRARY CANDIDATE: Reasoning/
-theorem safeTransferCalldata_write32_size_of_le
-    (base : ByteArray) (word : UInt256) (off baseSize finalSize : Nat)
-    (hbase : base.size = baseSize) (hoff : off ≤ base.size)
-    (hfinal : max baseSize (off + 32) = finalSize) :
-    ((UInt256.toByteArray word).write 0 base off 32).size = finalSize := by
-  rw [write32_eq _ _ off (by rw [toByteArray_size]) hoff, ByteArray.size_append,
-    ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-    ByteArray.size_extract, hbase, toByteArray_size]
-  rw [← hfinal]; omega
-
--- LIBRARY CANDIDATE: Reasoning/
-theorem safeTransferCalldata_toByteArray_write_size_of_ge
-    (base : ByteArray) (word : UInt256) (off baseSize finalSize : Nat)
-    (hbase : base.size = baseSize) (hoff : baseSize ≤ off)
-    (hgap : off - baseSize < USize.size) (hfinal : off + 32 = finalSize) :
-    ((UInt256.toByteArray word).write 0 base off 32).size = finalSize := by
-  rw [toByteArray_write_eq word base off (by rw [hbase]; exact hoff) (by rwa [hbase]),
-    ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-    hbase, USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
-  omega
-
--- LIBRARY CANDIDATE: Reasoning/
 theorem safeTransferCalldata_writeCascade_size
     (base : ByteArray) (writes : List (Nat × UInt256)) (baseSize finalSize : Nat)
     (hbase : base.size = baseSize) (hgaps : WriteGapsOk base.size writes)
@@ -36,25 +13,6 @@ theorem safeTransferCalldata_writeCascade_size
   rw [writeCascade_size base writes hgaps, hbase]
   exact hwritesSize
 
--- LIBRARY CANDIDATE: Reasoning/
-theorem safeTransferCalldata_write32_read_back
-    (base : ByteArray) (word : UInt256) (off : Nat) (hoff : off ≤ base.size) :
-    ((UInt256.toByteArray word).write 0 base off 32).readWithPadding off 32 =
-      UInt256.toByteArray word := by
-  rw [write32_read_back _ _ off (by rw [toByteArray_size]) hoff]
-  rw [toByteArray_extract_all]
-
--- LIBRARY CANDIDATE: Reasoning/
-theorem safeTransferCalldata_mload_as_read_of_size
-    (mem : ByteArray) (aw off : UInt256) (memSize : Nat)
-    (hsize : mem.size = memSize) (hmem : off.toNat < memSize)
-    (haw : ¬ off ≥ aw * ⟨32⟩) :
-    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
-     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) =
-      UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32)) := by
-  rw [if_neg (not_or.mpr ⟨by rw [hsize]; omega, haw⟩)]
-
--- LIBRARY CANDIDATE: Reasoning/
 theorem safeTransferCalldata_read_boundary_word
     (mem : ByteArray) (leftWord rightWord : UInt256) (writeOff : Nat)
     (hlo : 4 ≤ writeOff) (hmem : mem.size = writeOff)
@@ -68,7 +26,7 @@ theorem safeTransferCalldata_read_boundary_word
   let out := (UInt256.toByteArray rightWord).write 0 mem writeOff 32
   have hsize : out.size = writeOff + 32 := by
     dsimp [out]
-    exact safeTransferCalldata_toByteArray_write_size_of_ge mem rightWord writeOff writeOff
+    exact toByteArray_write32_size_of_ge mem rightWord writeOff writeOff
       (writeOff + 32) hmem (by omega)
       (by rw [Nat.sub_self]; exact lt_usize 0 (by norm_num)) rfl
   have hleftExtract :
