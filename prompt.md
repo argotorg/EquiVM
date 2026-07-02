@@ -315,6 +315,15 @@ Note that not all examples are derived with the same compiler,
 version, and optimization settings. Always check the source and
 bytecode for your contract.
 
+The examples may lag behind recent Solm changes (they are migrated in
+batches). If an example does not compile, use it as a *reading*
+reference for trace/dispatch/proof patterns only — do not build it and
+do not copy its conventions blindly. In particular, examples written
+before the multi-value-return change show the old return conventions
+(`returnType := some T` / `.return e`); the current convention is
+lists (`returnType := [T]` / `.return [e]`, multi-value
+`.return [a, b]`).
+
 - For an example of binary search dispatch, see `Examples/Ballot`. 
 - For an example of linear dispatch, see `Examples/ERC20`.
 
@@ -361,7 +370,10 @@ Function calls should be proven modularly. In particular:
 - Loops: 
 
   The `Examples/BlindAuction` example has a big complicated loop in the 
-  `Reveal` function. shows how to prove loops by induction. The loop
+  `Reveal` function and shows how to prove loops by induction: state
+  the invariant over the loop counter, prove a single reusable
+  body-step lemma, and close the loop by induction on the remaining
+  iterations, on both the Solm side and the bytecode trace.
 ---
 
 ## 7. Build discipline, tactics, proof engineering, efficiency
@@ -386,7 +398,7 @@ Function calls should be proven modularly. In particular:
 - Develop new lemmas in a small scratch file, not by editing the large
   file in place. Heavy files take minutes to rebuild and every edit
   re-elaborates the whole file. Create a throwaway
-  `Examples/<Name>/Scratch.lean` that imports the real file (so its
+  `<Name>/Scratch.lean` in your working directory that imports the real file (so its
   defs/lemmas are in scope, compiled once and cached) and develop the
   new lemma there with fast cycles. Once it compiles clean, move it
   into its proper file and delete the scratch.
@@ -481,10 +493,15 @@ When a step fails, re-check it against the disassembly first.
 Run, and report results verbatim:
 
 ```
-lake build Examples.<Name>.Correct
-rg -n '\b(sorry|admit)\b' Examples/<Name>
-printf '%s\n' 'import Examples.<Name>.Correct' '#print axioms <Name>.<name>Correct' | lake env lean --stdin
+lake build <Module>.Correct
+rg -n '\b(sorry|admit)\b' <WorkDir>
+printf '%s\n' 'import <Module>.Correct' '#print axioms <Namespace>.<name>Correct' | lake env lean --stdin
 ```
+
+where `<WorkDir>` is your working directory, `<Module>` its Lean module
+path, and `<Namespace>` the contract's namespace — e.g. for
+`Examples/ERC20/`: `Examples.ERC20`; for `Benchmarks/Dss/Dai/`:
+`Benchmarks.Dss.Dai`.
 
 The build must succeed with no `sorry`.
 
@@ -493,7 +510,9 @@ The axiom footprint should contain only
 (from `native_decide`), the pre-existing library axiom
 `ByteArray_zeroes_size`, your contract's selector/jump-dest facts, and
 — for any contract with an external call — the tolerated external-call
-axioms `Reasoning.Theory.typedCallViaEVM_accountMapEquiv` /
-`Reasoning.Reach.Theta_returnData_size_lt` (a known trusted base being
-removed separately; do not block on these). Flag only anything beyond
-this set — a new axiom your work introduced.
+axiom `Reasoning.Reach.Theta_returnData_size_lt_2pow138` (a known
+trusted base being removed separately; do not block on it).
+(`typedCallViaEVM_accountMapEquiv` is a proved theorem in
+`Reasoning/ExternalCall.lean`, not an axiom — it does not appear in the
+footprint.) Flag only anything beyond this set — a new axiom your work
+introduced.
