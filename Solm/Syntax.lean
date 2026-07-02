@@ -193,6 +193,7 @@ inductive EnvVar where
   | timestamp
   | chainid
   | selfbalance
+  | gasprice
   deriving DecidableEq, Repr, Inhabited
 
 inductive UnaryOp where
@@ -286,6 +287,9 @@ inductive Expr where
      Matches `Ethereum.State.extCodeSize` — a non-existent account or an EOA (no code) has size 0.
      Used by ERC721 `safeTransferFrom`'s `to.code.length == 0` contract-detection guard. -/
   | extCodeSize : Expr -> Expr
+  /- `addr` code prefix (EXTCODECOPY): the first `len` bytes of the code at `addr`, as `bytes`,
+     zero-padded past the code end (all zero for a non-existent account or an EOA). -/
+  | extCodePrefix : Expr /- addr -/ -> Expr /- len -/ -> Expr
   /- Fixed-size `bytesN` literal: the ABI type index (`n : Fin 32` ⇒ width `n+1`) and the bytes in
      Solidity order.  Models compile-time `bytesN` constants — hex `bytesN` literals, a function's
      `.selector` (`bytes4`), and `type(I).interfaceId` (`bytes4`) — all of which solc bakes as PUSH
@@ -1102,6 +1106,65 @@ mutual
     | .keccak256 _, .extCodeSize _ => isFalse (by intro h; cases h)
     | .extCodeSize _, .abiEncodePacked _ => isFalse (by intro h; cases h)
     | .abiEncodePacked _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodePrefix ax lx, .extCodePrefix ay ly =>
+        match Expr.decEq ax ay, Expr.decEq lx ly with
+        | isTrue ha, isTrue hl => isTrue (by cases ha; cases hl; rfl)
+        | isFalse ha, _ => isFalse (by intro h'; cases h'; exact ha rfl)
+        | _, isFalse hl => isFalse (by intro h'; cases h'; exact hl rfl)
+    | .extCodePrefix _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
     | .fixedBytesLit _ _, .intLit _ => isFalse (by intro h; cases h)
     | .intLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
     | .fixedBytesLit _ _, .boolLit _ => isFalse (by intro h; cases h)
@@ -1246,6 +1309,8 @@ inductive Stmt where
   | letDecl : Ident -> Option ABIType -> Expr -> Stmt
   /- local storage alias: `T storage x = ref`; stores an evaluated storage pointer in locals -/
   | letStorage : Ident -> StorageRef -> Stmt
+  /- `uint256 x = gasleft()`: bind `x` to a nondeterministic gas value (Solm tracks no gas). -/
+  | letGas : Ident -> Stmt
   /- assignment to a local (`.local`) or storage (`.storage`) variable path -/
   | assign : VarOrigin -> StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
@@ -1306,6 +1371,48 @@ mutual
         | isTrue hn, isTrue hr => isTrue (by cases hn; cases hr; rfl)
         | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
         | _, isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .letGas nx, .letGas ny =>
+        match (inferInstance : Decidable (nx = ny)) with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .letGas _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .break => isFalse (by intro h; cases h)
+    | .break, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .continue => isFalse (by intro h; cases h)
+    | .continue, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .letGas _ => isFalse (by intro h; cases h)
     | .assign ox sx ex, .assign oy sy ey =>
         match (inferInstance : Decidable (ox = oy)), StorageRef.decEq sx sy, Expr.decEq ex ey with
         | isTrue ho, isTrue hs, isTrue he => isTrue (by cases ho; cases hs; cases he; rfl)

@@ -122,6 +122,7 @@ def envValue (evm : EVM.State) : EnvVar -> Value
   | .selfbalance =>
       .int (Int.ofNat ((evm.lookupAccount evm.executionEnv.codeOwner).option
         (EVM.Word.ofNat 0) (·.balance)).toNat)
+  | .gasprice => .int (Int.ofNat (EVM.Word.ofNat evm.executionEnv.gasPrice).toNat)
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -536,6 +537,7 @@ mutual
     | .abiEncodeCall _ args => exprListEvalSize args + 1
     | .abiDecode _ e => exprEvalSize e + 1
     | .extCodeSize e => exprEvalSize e + 1
+    | .extCodePrefix addrE lenE => exprEvalSize addrE + exprEvalSize lenE + 1
     | .fixedBytesLit _ _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
@@ -1265,6 +1267,18 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
           pure (.int (Int.ofNat
             (EVM.Word.ofNat ((evm.lookupAccount a).option 0 (fun acc => acc.code.size))).toNat))
       | _ => .error .typeError
+  | .extCodePrefix addrE lenE => do
+      let addrV <- evalExpr? cfg solm evm addrE
+      let lenV <- evalExpr? cfg solm evm lenE
+      match addrV, lenV with
+      | .address a, .int n =>
+          if n < 0 then .error .typeError
+          else
+            let code := (evm.lookupAccount a).option .empty (fun acc => acc.code)
+            let codePrefix := code.extract 0 n.toNat
+            pure (.bytes (codePrefix ++
+              ByteArray.mk (Array.replicate (n.toNat - codePrefix.size) (0 : UInt8))))
+      | _, _ => .error .typeError
   | .fixedBytesLit n bs => pure (.fixedBytes n bs)
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
@@ -1590,6 +1604,11 @@ inductive ExecStmt (cfg : Config) :
   | letStorageRevert :
       resolveStorageRef? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.letStorage name ref) .reverted
+  -- `gasleft()`: Solm tracks no gas, so any word `w` is a legal result.  A proof picks the `w`
+  -- matching the EVM's actual gas at the corresponding `GAS` opcode.
+  | letGas (w : EVM.Word) :
+      ExecStmt cfg solm evm (.letGas name)
+        (.ok { solm with locals := solm.locals.insert name (.int (Int.ofNat w.toNat)) } evm)
   | assign :
       evalExpr? cfg solm evm expr = .ok value ->
       assignStorageRef? cfg solm evm origin slot value = .ok (solm', evm') ->

@@ -131,12 +131,13 @@ inductive execResultsEquiv
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
-  -- There is intentionally no case for `evmRes = .error e`: bytecode that refines a Solm spec
-  -- must never halt exceptionally.  A Solm `.reverted` is matched only by a clean `REVERT`
-  -- (the `revert` case above); a real EVM exception leaves `execResultsEquiv` unmatchable, so the
-  -- equivalence fails rather than silently equating a crash with a revert.  (Out-of-gas is handled
-  -- separately by `runtimeEquivalenceFor.outOfGas`, not here.)
-  -- Note: the static mode error can actually happen for valid contracts, but that is very specific
+  -- `INVALID` (`0xFE`) refines a Solm `.reverted`; legacy solc uses it as the assert/panic failure
+  -- path.  It is the ONLY EVM exception matched here — any other error leaves `execResultsEquiv`
+  -- unmatchable, so a real crash never equates with a revert.
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    execResultsEquiv evmRes solmRes returnConvention
 
 inductive ctorResultEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
@@ -153,6 +154,11 @@ inductive ctorResultEquiv
     ctorResultEquiv evmRes solmRes runtimeCode
   | revert :
     evmRes = .ok (.revert g o) →
+    solmRes = .reverted →
+    ctorResultEquiv evmRes solmRes runtimeCode
+  -- `INVALID` (`0xFE`) refines a Solm `.reverted`, as in `execResultsEquiv.invalidHalt`.
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
     ctorResultEquiv evmRes solmRes runtimeCode
   -- Zoe: commenting out so that it matches execResultsEquiv
