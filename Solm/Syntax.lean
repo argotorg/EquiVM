@@ -1262,9 +1262,16 @@ inductive Stmt where
   | internalCall : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
   | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr ->
       Ident /- return value binder -/ -> (perm : Bool := true) -> Stmt
-  /- low-level `target.call{value: v}(data)`: raw call, binds a success `bool` to `okVar`,
-     returndata dropped, callee revert does NOT propagate -/
-  | lowLevelCall : Expr /- target -/ -> Expr /- ETH to send -/ -> Expr /- calldata bytes -/ -> Ident /- success binder -/ -> Ident /- raw returndata binder -/ -> Stmt
+  /- low-level raw call, binds a success `bool` to `okVar` and raw returndata to `dataVar`.
+     `perm = true` models `.call`; `perm = false` models raw `.staticcall`. -/
+  | lowLevelCall : Expr /- target -/ -> Expr /- ETH to send -/ ->
+      Expr /- calldata bytes -/ -> Ident /- success binder -/ ->
+      Ident /- raw returndata binder -/ -> (perm : Bool := true) -> Stmt
+  /- low-level raw delegatecall, binds a success `bool` to `okVar` and raw returndata to
+     `dataVar`.  There is no ETH argument: EVM `DELEGATECALL` preserves `msg.value` and transfers
+     no value. -/
+  | delegateCall : Expr /- target -/ -> Expr /- calldata bytes -/ ->
+      Ident /- success binder -/ -> Ident /- raw returndata binder -/ -> Stmt
   /- `try recv.name{value}(args) returns (retVar) { onSuccess } catch Error(string) { onCatch }`.
      Only `Error(string)`-reason callee reverts are caught; other reverts propagate.  `retVar` is
      bound only within `onSuccess`. -/
@@ -1345,14 +1352,24 @@ mutual
         | _, _, _, isFalse ha, _, _ => isFalse (by intro h; cases h; exact ha rfl)
         | _, _, _, _, isFalse hr, _ => isFalse (by intro h; cases h; exact hr rfl)
         | _, _, _, _, _, isFalse hp => isFalse (by intro h; cases h; exact hp rfl)
-    | .lowLevelCall tx vx cx ox dx, .lowLevelCall ty vy cy oy dy =>
-        match Expr.decEq tx ty, Expr.decEq vx vy, Expr.decEq cx cy, (inferInstance : Decidable (ox = oy)), (inferInstance : Decidable (dx = dy)) with
-        | isTrue ht, isTrue hv, isTrue hc, isTrue ho, isTrue hd => isTrue (by cases ht; cases hv; cases hc; cases ho; cases hd; rfl)
-        | isFalse ht, _, _, _, _ => isFalse (by intro h; cases h; exact ht rfl)
-        | _, isFalse hv, _, _, _ => isFalse (by intro h; cases h; exact hv rfl)
-        | _, _, isFalse hc, _, _ => isFalse (by intro h; cases h; exact hc rfl)
-        | _, _, _, isFalse ho, _ => isFalse (by intro h; cases h; exact ho rfl)
-        | _, _, _, _, isFalse hd => isFalse (by intro h; cases h; exact hd rfl)
+    | .lowLevelCall tx vx cx ox dx px, .lowLevelCall ty vy cy oy dy py =>
+        match Expr.decEq tx ty, Expr.decEq vx vy, Expr.decEq cx cy, (inferInstance : Decidable (ox = oy)), (inferInstance : Decidable (dx = dy)), (inferInstance : Decidable (px = py)) with
+        | isTrue ht, isTrue hv, isTrue hc, isTrue ho, isTrue hd, isTrue hp => isTrue (by cases ht; cases hv; cases hc; cases ho; cases hd; cases hp; rfl)
+        | isFalse ht, _, _, _, _, _ => isFalse (by intro h; cases h; exact ht rfl)
+        | _, isFalse hv, _, _, _, _ => isFalse (by intro h; cases h; exact hv rfl)
+        | _, _, isFalse hc, _, _, _ => isFalse (by intro h; cases h; exact hc rfl)
+        | _, _, _, isFalse ho, _, _ => isFalse (by intro h; cases h; exact ho rfl)
+        | _, _, _, _, isFalse hd, _ => isFalse (by intro h; cases h; exact hd rfl)
+        | _, _, _, _, _, isFalse hp => isFalse (by intro h; cases h; exact hp rfl)
+    | .delegateCall tx cx ox dx, .delegateCall ty cy oy dy =>
+        match Expr.decEq tx ty, Expr.decEq cx cy, (inferInstance : Decidable (ox = oy)),
+            (inferInstance : Decidable (dx = dy)) with
+        | isTrue ht, isTrue hc, isTrue ho, isTrue hd =>
+            isTrue (by cases ht; cases hc; cases ho; cases hd; rfl)
+        | isFalse ht, _, _, _ => isFalse (by intro h; cases h; exact ht rfl)
+        | _, isFalse hc, _, _ => isFalse (by intro h; cases h; exact hc rfl)
+        | _, _, isFalse ho, _ => isFalse (by intro h; cases h; exact ho rfl)
+        | _, _, _, isFalse hd => isFalse (by intro h; cases h; exact hd rfl)
     | .checkedCall rx nx vx ax retx sx ex cx px,
         .checkedCall ry ny vy ay rety sy ey cy py =>
         match Expr.decEq rx ry, (inferInstance : Decidable (nx = ny)), Expr.decEq vx vy,
@@ -1395,8 +1412,8 @@ mutual
     | .internalCall _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
-    | .letStorage _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .return _ => isFalse (by intro h; cases h)
@@ -1521,28 +1538,28 @@ mutual
     | .ite _ _ _, .return _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .break => isFalse (by intro h; cases h)
     | .ite _ _ _, .continue => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .break => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .continue => isFalse (by intro h; cases h)
-    | .letDecl _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .assign _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .require _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .while _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .ite _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .internalCall _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .externalCall _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .return _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .break, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .continue, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .break => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .continue => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .require _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .return _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .break, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .continue, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
@@ -1551,7 +1568,7 @@ mutual
     | .checkedCall _ _ _ _ _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .checkedCall _ _ _ _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .break => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .continue => isFalse (by intro h; cases h)
@@ -1563,7 +1580,7 @@ mutual
     | .new _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .return _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .break, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1596,8 +1613,8 @@ mutual
     | .internalCall _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
-    | .delete _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .return _ => isFalse (by intro h; cases h)
@@ -1626,8 +1643,8 @@ mutual
     | .internalCall _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
-    | .push _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .return _ => isFalse (by intro h; cases h)
@@ -1654,8 +1671,8 @@ mutual
     | .internalCall _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
-    | .pop _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .return _ => isFalse (by intro h; cases h)
@@ -1689,8 +1706,8 @@ mutual
     | .internalCall _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
-    | .for _ _ _ _, .lowLevelCall _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -1705,6 +1722,44 @@ mutual
     | .pop _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ =>
+        isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _ _, .delegateCall _ _ _ _ =>
+        isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .break => isFalse (by intro h; cases h)
+    | .break, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .continue => isFalse (by intro h; cases h)
+    | .continue, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
 
   private def Stmt.decEqList : (as bs : List Stmt) -> Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -1766,6 +1821,7 @@ structure ContractDecl where
   structs : List StructDecl := [] -- Maybe these should not be per-contract. Zoe: if we are inlining them anyway, do we still need this?
   functions : List FunctionDecl := []
   transitions : List TransitionDecl := []
+  receive : Option TransitionDecl := none
   fallback : Option TransitionDecl := none
   deriving DecidableEq, Repr, Inhabited
 

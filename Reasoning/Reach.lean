@@ -3645,10 +3645,12 @@ theorem RDrev.reEquivDecodingFailed
     (hcode : I.code = code) (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
-              (transitionSignature t).paramTypes I.calldata = none) :
+              (transitionSignature t).paramTypes I.calldata = none)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
-  h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev
+  h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev hfallback hreceive
 
 /-- Eliminate an `RDret` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
     `outOfGas` case automatically; the continuation `k` receives the `Ξ`-level success, with

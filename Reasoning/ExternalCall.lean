@@ -493,6 +493,187 @@ theorem callViaEVM_initState_EVMStateEquiv {storage : StorageLayout}
     callViaEVM_initState_accountMapEquiv (storage := storage) hcall hAccounts
   exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
 
+theorem delegateCallViaEVM_executionEnv_eq {evm evm' : EVM.State}
+    {target : EVM.Address} {calldata : ByteArray} {z : Bool} {out : ByteArray}
+    (hcall : delegateCallViaEVM evm target calldata (z, evm', out)) :
+    evm'.executionEnv = evm.executionEnv := by
+  cases hcall with
+  | callMade _hTheta hevm' _hdepth =>
+      subst hevm'
+      rfl
+  | callNotMade _hsubstate hevm' _hdepth =>
+      subst hevm'
+      rfl
+
+/-- Raw delegatecall transport across observationally equivalent account maps. -/
+theorem delegateCallViaEVM_accountMapEquiv
+    {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {calldata : ByteArray} {z : Bool} {out : ByteArray}
+    (hcall : delegateCallViaEVM evm_evm tgt calldata (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (_hSubstate : evm_solm.substate = evm_evm.substate)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      delegateCallViaEVM evm_solm tgt calldata
+        (z,
+          { evm_solm with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm := by
+  have h_ext_eq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
+    accountMapExtensionalEq_of_accountMapEquiv hAccounts
+  cases hcall with
+  | callMade hTheta hevm' hdepth =>
+    obtain ⟨callGas, A_in, hTheta⟩ := hTheta
+    rename_i cA' σ' g' A'
+    generalize htheta_solm :
+      Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes evm_solm.createdAccounts
+        evm_solm.genesisBlockHeader evm_solm.blocks evm_solm.accountMap evm_solm.σ₀ A_in
+        evm_solm.executionEnv.source evm_solm.executionEnv.sender
+        evm_solm.executionEnv.codeOwner (toExecute evm_solm.accountMap tgt) callGas
+        (UInt256.ofNat evm_solm.executionEnv.gasPrice) (⟨0⟩ : UInt256)
+        evm_solm.executionEnv.weiValue calldata (evm_solm.executionEnv.depth + 1)
+        evm_solm.executionEnv.header evm_solm.executionEnv.perm = thetaRes
+    have hcode_equiv :
+        toExecute evm_evm.accountMap tgt = toExecute evm_solm.accountMap tgt :=
+      accountMapExtensionalEq_toExecute h_ext_eq tgt
+    have htheta_solm' :
+        Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes evm_evm.createdAccounts
+          evm_evm.genesisBlockHeader evm_evm.blocks evm_solm.accountMap evm_evm.σ₀ A_in
+          evm_evm.executionEnv.source evm_evm.executionEnv.sender
+          evm_evm.executionEnv.codeOwner (toExecute evm_evm.accountMap tgt) callGas
+          (UInt256.ofNat evm_evm.executionEnv.gasPrice) (⟨0⟩ : UInt256)
+          evm_evm.executionEnv.weiValue calldata (evm_evm.executionEnv.depth + 1)
+          evm_evm.executionEnv.header evm_evm.executionEnv.perm =
+          (thetaRes.1, thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1,
+            thetaRes.2.2.2.2.1, thetaRes.2.2.2.2.2) := by
+      rw [← htheta_solm]
+      rw [hCreated, ← hOriginalAccounts, hGenesis, hBlocks, hEnv, hcode_equiv]
+    let a1 : AccountAddress := ⟨0, by simp [AccountAddress.size]⟩
+    have hTheta_rel :=
+      (accountMap_extensionality_of_Theta_and_Lambda
+      (blobVersionedHashes := evm_evm.executionEnv.blobVersionedHashes)
+      (createdAccounts := evm_evm.createdAccounts)
+      (genesisBlockHeader := evm_evm.genesisBlockHeader)
+      (blocks := evm_evm.blocks)
+      (σ₁ := evm_evm.accountMap)
+      (σ₂ := evm_solm.accountMap)
+      (σ₀ := evm_evm.σ₀)
+      (A := A_in)
+      (s := evm_evm.executionEnv.source)
+      (o := evm_evm.executionEnv.sender)
+      (r := evm_evm.executionEnv.codeOwner)
+      (g := callGas)
+      (p := UInt256.ofNat evm_evm.executionEnv.gasPrice)
+      (v := (⟨0⟩ : UInt256))
+      (v' := evm_evm.executionEnv.weiValue)
+      (d := calldata)
+      (i := ByteArray.empty)
+      (ζ := none)
+      (H := evm_evm.executionEnv.header)
+      (w := evm_evm.executionEnv.perm)
+      a1 a1
+      (toExecute evm_evm.accountMap tgt)
+      cA' thetaRes.1
+      σ' thetaRes.2.1
+      g' thetaRes.2.2.1
+      A' thetaRes.2.2.2.1
+      z  thetaRes.2.2.2.2.1
+      out thetaRes.2.2.2.2.2
+      (evm_evm.executionEnv.depth + 1)
+      h_ext_eq).1 hTheta.symm htheta_solm'
+    have hCreated' : evm'_evm.createdAccounts = thetaRes.1 := by
+      simp [hevm', hTheta_rel.1]
+    have hTheta_s :
+        (evm'_evm.createdAccounts, thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1, z, out) =
+          Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes evm_solm.createdAccounts
+            evm_solm.genesisBlockHeader evm_solm.blocks evm_solm.accountMap evm_solm.σ₀ A_in
+            evm_solm.executionEnv.source evm_solm.executionEnv.sender
+            evm_solm.executionEnv.codeOwner (toExecute evm_solm.accountMap tgt) callGas
+            (UInt256.ofNat evm_solm.executionEnv.gasPrice) (⟨0⟩ : UInt256)
+            evm_solm.executionEnv.weiValue calldata (evm_solm.executionEnv.depth + 1)
+            evm_solm.executionEnv.header evm_solm.executionEnv.perm := by
+      rw [hTheta_rel.2.2.2.1, hTheta_rel.2.2.2.2.1]
+      rw [hCreated']
+      exact htheta_solm.symm
+    use thetaRes.2.1
+    use thetaRes.2.2.2.1
+    constructor
+    · exact delegateCallViaEVM.callMade
+        ⟨callGas, A_in, hTheta_s⟩ rfl (by rw [hEnv]; exact hdepth)
+    · have hσext : accountMapExtensionalEq σ' thetaRes.2.1 := hTheta_rel.2.2.2.2.2
+      simpa [hevm'] using accountMapEquiv_of_accountMapExtensionalEq hσext
+  | callNotMade hsubstate hevm' hdepth =>
+    let A' := (State.addAccessedAccount evm_solm tgt).substate
+    use evm_solm.accountMap
+    use A'
+    constructor
+    · apply delegateCallViaEVM.callNotMade
+      · rfl
+      · simp [A', hCreated, hevm']
+      · rw [hEnv]
+        exact hdepth
+    · simpa [hevm'] using hAccounts
+
+/-- `initState`-specialized raw delegatecall transport. -/
+theorem delegateCallViaEVM_initState_accountMapEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : delegateCallViaEVM (initState cA gh bl σ_evm σ₀ g A I) tgt calldata
+      (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      delegateCallViaEVM (initState cA gh bl σ_solm σ₀ g A I) tgt calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀ g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm :=
+  delegateCallViaEVM_accountMapEquiv
+    (evm_solm := initState cA gh bl σ_solm σ₀ g A I) hcall
+    (by simpa [initState] using hAccounts)
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+
+/-- `EVMStateEquiv`-returning form of raw delegatecall transport. -/
+theorem delegateCallViaEVM_initState_EVMStateEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : delegateCallViaEVM (initState cA gh bl σ_evm σ₀ g A I) tgt calldata
+      (z, evm'_evm, out))
+    (hEnv : evm'_evm.executionEnv = (initState cA gh bl σ_solm σ₀ g A I).executionEnv)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      delegateCallViaEVM (initState cA gh bl σ_solm σ₀ g A I) tgt calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀ g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) ∧
+      EVMStateEquiv evm'_evm
+        { initState cA gh bl σ_solm σ₀ g A I with
+            accountMap := σ'_solm
+            substate := A'_solm
+            createdAccounts := evm'_evm.createdAccounts } := by
+  obtain ⟨σ'_solm, A'_solm, hcall_solm, hσ'⟩ :=
+    delegateCallViaEVM_initState_accountMapEquiv hcall hAccounts
+  exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
+
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching
     `callNotMade` branch — `(false, evm[substate], ∅)` — independent of value/balance.  Generic over

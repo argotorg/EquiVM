@@ -958,13 +958,16 @@ theorem equivTransition.toRuntime {cfg : Config} {contract : ContractDecl} {t : 
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (h : equivTransition cfg contract t cA gh bl σ_evm σ_solm σ₀ A I g code
-      callargs) :
+      callargs)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   cases h with
   | returns hret hbody hCreated hAccounts henc =>
       exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody hCreated hAccounts henc
-  | reverts hrev hbody => exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+        hfallback hreceive
+  | reverts hrev hbody => exact hrev.reEquivExecutionRevert hcode hd hdec hbody hfallback hreceive
 
 /-- **Bridge** — the body-level `equivStmts` ⟹ `equivTransition`.  The dispatcher reached the body
     entry (`hRD` at `pcEntry`) under the entry coupling (`hR`, `hworld`); `h` runs the body and reads

@@ -1,28 +1,22 @@
-import ABI.Types
-import ABI.Signature
-import ABI.Decode
-import ABI.Encode
 import Solm.Semantics
-
-import Ethereum.Semantics
-import Ethereum.Exception
 
 namespace Solm
 
 open ABI
 
-def transitionSignature (transition : TransitionDecl) : Signature :=
-  ⟨transition.name, transition.params.map Param.ty⟩
-
-def transitionSigStr (transition : TransitionDecl) : String :=
-  printSignature $ transitionSignature transition
-
-def dispatchMsg (contract : ContractDecl) (calldata : ByteArray)
-  : Option TransitionDecl :=
-  let sigs := contract.transitions.map (λ t ↦ (t, transitionSigStr t))
-  let sigHashes := sigs.map (Prod.map id (ffi.KEC ∘ String.toByteArray))
-  let selectors := sigHashes.map (Prod.map id (λ b ↦ b.extract 0 4))
-  let currentSelector := calldata.extract 0 4
-  match selectors.find? (λ (_,s) ↦ s == currentSelector) with
-  | some (t,_) => t
-  | none => contract.fallback
+theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
+    {contract : ContractDecl} {calldata : ByteArray} {transition : TransitionDecl}
+    (hreceive : contract.receive = none)
+    (hfallback : contract.fallback = none)
+    (h : dispatchMsg contract calldata = some transition) :
+    selectorDispatchMsg contract calldata = some transition := by
+  unfold dispatchMsg at h
+  cases hsel : selectorDispatchMsg contract calldata with
+  | none =>
+      have hreceiveDispatch : receiveDispatchMsg contract calldata = none := by
+        simp [receiveDispatchMsg, hreceive]
+      rw [hsel, hreceiveDispatch, hfallback] at h
+      simp at h
+  | some selected =>
+      rw [hsel] at h
+      simpa using h

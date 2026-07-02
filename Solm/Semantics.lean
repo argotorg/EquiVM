@@ -1,11 +1,63 @@
 import Solm.Storage
 import Solm.Value
+import ABI.Signature
 import ABI.Encode
 import ABI.Decode
 
 namespace Solm
 
 open ABI
+
+def transitionSignature (transition : TransitionDecl) : Signature :=
+  ⟨transition.name, transition.params.map Param.ty⟩
+
+def transitionSigStr (transition : TransitionDecl) : String :=
+  printSignature $ transitionSignature transition
+
+def selectorDispatchMsg (contract : ContractDecl) (calldata : ByteArray)
+  : Option TransitionDecl :=
+  let sigs := contract.transitions.map (λ t ↦ (t, transitionSigStr t))
+  let sigHashes := sigs.map (Prod.map id (ffi.KEC ∘ String.toByteArray))
+  let selectors := sigHashes.map (Prod.map id (λ b ↦ b.extract 0 4))
+  let currentSelector := calldata.extract 0 4
+  match selectors.find? (λ (_,s) ↦ s == currentSelector) with
+  | some (t,_) => t
+  | none => none
+
+def receiveDispatchMsg (contract : ContractDecl) (calldata : ByteArray)
+  : Option TransitionDecl :=
+  if calldata.size = 0 then contract.receive else none
+
+def dispatchMsg (contract : ContractDecl) (calldata : ByteArray)
+  : Option TransitionDecl :=
+  match selectorDispatchMsg contract calldata with
+  | some transition => some transition
+  | none =>
+      match receiveDispatchMsg contract calldata with
+      | some transition => some transition
+      | none => contract.fallback
+
+inductive ReturnConvention where
+  | abi : Option ABIType → ReturnConvention
+  | rawBytes : ReturnConvention
+  deriving DecidableEq, Repr, Inhabited
+
+def fallbackCallargs (calldata : ByteArray) : List Param → Option Store
+  | [] => some ∅
+  | [param] =>
+      match param.ty with
+      | .bytes => some ((∅ : Store).insert param.name (.bytes calldata))
+      | _ => none
+  | _ => none
+
+def fallbackReturnConvention (transition : TransitionDecl) : Option ReturnConvention :=
+  match transition.params, transition.returnType with
+  | [], none => some (.abi none)
+  | [param], some .bytes =>
+      match param.ty with
+      | .bytes => some .rawBytes
+      | _ => none
+  | _, _ => none
 
 structure ExternalCallABI where
   encode? : Ident -> List Value -> Option EVM.Bytes
@@ -1357,6 +1409,44 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
          ∧ evm.executionEnv.depth ≠ 1024))
       → callViaEVM evm target value calldata (false, evm', ByteArray.empty) perm
 
+/-- A raw `DELEGATECALL` to `target` with verbatim `calldata`, bridged directly to EVM `Θ`.
+    Delegatecall executes the target's code in the current contract's context: `address(this)` and
+    storage owner stay `codeOwner`, `msg.sender` and `msg.value` are preserved, no ETH is
+    transferred, and the current static permission bit is preserved. -/
+inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
+    (calldata : EVM.Bytes) : (Bool × EVM.State × EVM.Bytes) → Prop where
+  | callMade :
+      (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
+          (cA', σ', g', A', z, o)
+            = Ethereum.EVM.Θ
+            evm.executionEnv.blobVersionedHashes
+            evm.createdAccounts
+            evm.genesisBlockHeader
+            evm.blocks
+            evm.accountMap
+            evm.σ₀
+            A_in
+            evm.executionEnv.source
+            evm.executionEnv.sender
+            evm.executionEnv.codeOwner
+            (Ethereum.toExecute evm.accountMap target)
+            callGas
+            (.ofNat evm.executionEnv.gasPrice)
+            (⟨0⟩ : EVM.Word)
+            evm.executionEnv.weiValue
+            calldata
+            (evm.executionEnv.depth + 1)
+            evm.executionEnv.header
+            evm.executionEnv.perm)
+      → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
+      → evm.executionEnv.depth ≠ 1024
+      → delegateCallViaEVM evm target calldata (z, evm', o)
+  | callNotMade :
+      A' = ((evm.addAccessedAccount target) |>.substate)
+      → evm' = { evm with substate := A' }
+      → evm.executionEnv.depth = 1024
+      → delegateCallViaEVM evm target calldata (false, evm', ByteArray.empty)
+
 /-- A typed external call: ABI-encode `name`/`args` into calldata, then make a raw `callViaEVM`.
     This is the call form `externalCall` uses.  The return *decode* (and its failure) stays in the
     `ExecStmt` rules over the raw output bytes `o`, so decode-failure handling is unchanged. -/
@@ -1659,28 +1749,53 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
-      callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out) ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar)
+      callViaEVM evm (EVM.address target) sendVal calldata (true, evm', out) perm ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm))
         (.ok { solm with locals := (solm.locals.insert okVar (.bool true)).insert dataVar (.bytes out) } evm')
   | lowLevelCallFailure :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
-      callViaEVM evm (EVM.address target) sendVal calldata (false, evm', out) ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar)
+      callViaEVM evm (EVM.address target) sendVal calldata (false, evm', out) perm ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm))
         (.ok { solm with locals := (solm.locals.insert okVar (.bool false)).insert dataVar (.bytes out) } evm')
   | lowLevelCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
   | lowLevelCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
   | lowLevelCallDataRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .revert ->
-      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar) .reverted
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
+  | delegateCallSuccess :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      delegateCallViaEVM evm (EVM.address target) calldata (true, evm', out) ->
+      ExecStmt cfg solm evm (.delegateCall receiver cdata okVar dataVar)
+        (.ok
+          { solm with
+              locals := (solm.locals.insert okVar (.bool true)).insert dataVar (.bytes out) }
+          evm')
+  | delegateCallFailure :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      delegateCallViaEVM evm (EVM.address target) calldata (false, evm', out) ->
+      ExecStmt cfg solm evm (.delegateCall receiver cdata okVar dataVar)
+        (.ok
+          { solm with
+              locals := (solm.locals.insert okVar (.bool false)).insert dataVar (.bytes out) }
+          evm')
+  | delegateCallReceiverRevert :
+      evalExpr? cfg solm evm receiver = .revert ->
+      ExecStmt cfg solm evm (.delegateCall receiver cdata okVar dataVar) .reverted
+  | delegateCallDataRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm cdata = .revert ->
+      ExecStmt cfg solm evm (.delegateCall receiver cdata okVar dataVar) .reverted
   | checkedCallSuccess :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -1840,3 +1955,111 @@ end
 def ExecTransitionBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State)
     (locals : Store) (body : Body) (result : ExecResult) : Prop :=
   ExecFuncBody cfg { contract := contract, locals := locals } evm body result
+
+-- Solm transaction dispatch and execution.
+inductive solmExec
+    (conf : Config)
+    (contract : ContractDecl) /- Spec -/
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ : Ethereum.AccountMap)
+    (σ₀ : Ethereum.AccountMap)
+    (g : Ethereum.UInt256)
+    (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv)
+    (solmRes : ExecResult)
+: ReturnConvention -> Prop where
+  | intro :
+    /- Solm selector transition dispatch. -/
+    selectorDispatchMsg contract I.calldata = .some transition →
+    transitionSig = transitionSignature transition →
+    decodeCalldataWithMode conf.abiDecodeMode (transition.params.map Param.name)
+      transitionSig.paramTypes I.calldata = .some callargs →
+    evmState =
+      { (default : EVM.State) with
+          accountMap := σ
+          σ₀ := σ₀
+          executionEnv := I
+          substate := A
+          createdAccounts := createdAccounts
+          machineState.gasAvailable := .ofUInt256 g
+          blocks := blocks
+          genesisBlockHeader := genesisBlockHeader
+      } →
+    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
+    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
+      (.abi transition.returnType)
+  | fallback :
+    /- Solidity fallback dispatch has no selector or ABI argument decoding. -/
+    selectorDispatchMsg contract I.calldata = .none →
+    receiveDispatchMsg contract I.calldata = .none →
+    contract.fallback = .some transition →
+    fallbackCallargs I.calldata transition.params = some callargs →
+    fallbackReturnConvention transition = some returnConvention →
+    evmState =
+      { (default : EVM.State) with
+          accountMap := σ
+          σ₀ := σ₀
+          executionEnv := I
+          substate := A
+          createdAccounts := createdAccounts
+          machineState.gasAvailable := .ofUInt256 g
+          blocks := blocks
+          genesisBlockHeader := genesisBlockHeader
+      } →
+    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
+    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
+      returnConvention
+  | receive :
+    /- Solidity receive dispatch has no selector or ABI argument decoding. -/
+    receiveDispatchMsg contract I.calldata = .some transition →
+    transition.params = [] →
+    transition.returnType = none →
+    evmState =
+      { (default : EVM.State) with
+          accountMap := σ
+          σ₀ := σ₀
+          executionEnv := I
+          substate := A
+          createdAccounts := createdAccounts
+          machineState.gasAvailable := .ofUInt256 g
+          blocks := blocks
+          genesisBlockHeader := genesisBlockHeader
+      } →
+    ExecTransitionBody conf contract evmState ∅ transition.body solmRes →
+    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes (.abi none)
+
+-- Solm constructor execution.
+inductive solmCtorExec
+    (conf : Config)
+    (contract : ContractDecl) /- Spec -/
+    (args : List Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ : Ethereum.AccountMap)
+    (σ₀ : Ethereum.AccountMap)
+    (g : Ethereum.UInt256)
+    (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv)
+    (solmRes : ExecResult)
+: Prop where
+  | intro :
+    evmState =
+      { (default : EVM.State) with
+          accountMap := σ
+          σ₀ := σ₀
+          executionEnv := I
+          substate := A
+          createdAccounts := createdAccounts
+          machineState.gasAvailable := .ofUInt256 g
+          blocks := blocks
+          genesisBlockHeader := genesisBlockHeader
+      } →
+    -- This may be redundant when `cfg.selfDeployment` already enforces valid constructor ABI
+    -- encoding, but it keeps the parameter store from relying on `List.zip` truncation.
+    args.length = contract.ctor.params.length →
+    argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
+    ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
+    solmCtorExec conf contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
