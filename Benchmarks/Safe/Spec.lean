@@ -133,187 +133,187 @@ def constructorDecl : ConstructorDecl :=
 def versionTransition : TransitionDecl :=
   { name := "VERSION"
     params := []
-    returnType := (some stringTy)
-    body := nonpayable ++ [ .return (.bytesLit (String.toByteArray "1.5.0")) ] }
+    returnType := [stringTy]
+    body := nonpayable ++ [ .return [.bytesLit (String.toByteArray "1.5.0")] ] }
 
 def addownerwiththresholdTransition : TransitionDecl :=
   { name := "addOwnerWithThreshold"
     params := [ { name := "owner", ty := addr }, { name := "_threshold", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def approvehashTransition : TransitionDecl :=
   { name := "approveHash"
     params := [ { name := "hashToApprove", ty := bytes32 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def approvedhashesTransition : TransitionDecl :=
   { name := "approvedHashes"
     params := [ { name := "arg0", ty := addr }, { name := "arg1", ty := bytes32 } ]
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage (approvedHashesRef (.var "arg0") (.var "arg1"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage (approvedHashesRef (.var "arg0") (.var "arg1"))] ] }
 
 def changethresholdTransition : TransitionDecl :=
   { name := "changeThreshold"
     params := [ { name := "_threshold", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def checknsignaturesTransition : TransitionDecl :=
   { name := "checkNSignatures"
     params := [ { name := "dataHash", ty := bytes32 }, { name := "data", ty := bytesTy }, { name := "signatures", ty := bytesTy }, { name := "requiredSignatures", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def checknsignaturesAddressBytes32BytesUint256Transition : TransitionDecl :=
   { name := "checkNSignatures"
     params := [ { name := "executor", ty := addr }, { name := "dataHash", ty := bytes32 }, { name := "signatures", ty := bytesTy }, { name := "requiredSignatures", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def checksignaturesTransition : TransitionDecl :=
   { name := "checkSignatures"
     params := [ { name := "dataHash", ty := bytes32 }, { name := "data", ty := bytesTy }, { name := "signatures", ty := bytesTy } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def checksignaturesAddressBytes32BytesTransition : TransitionDecl :=
   { name := "checkSignatures"
     params := [ { name := "executor", ty := addr }, { name := "dataHash", ty := bytes32 }, { name := "signatures", ty := bytesTy } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def disablemoduleTransition : TransitionDecl :=
   { name := "disableModule"
     params := [ { name := "prevModule", ty := addr }, { name := "module", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def domainseparatorTransition : TransitionDecl :=
   { name := "domainSeparator"
     params := []
-    returnType := (some bytes32)
-    body := nonpayable ++ [ .return (.storage deprecatedDomainSeparatorRef) ] }
+    returnType := [bytes32]
+    body := nonpayable ++ [ .return [.storage deprecatedDomainSeparatorRef] ] }
 
 def enablemoduleTransition : TransitionDecl :=
   { name := "enableModule"
     params := [ { name := "module", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def exectransactionTransition : TransitionDecl :=
   { name := "execTransaction"
     params := [ { name := "to", ty := addr }, { name := "value", ty := uint256 }, { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 }, { name := "safeTxGas", ty := uint256 }, { name := "baseGas", ty := uint256 }, { name := "gasPrice", ty := uint256 }, { name := "gasToken", ty := addr }, { name := "refundReceiver", ty := addr }, { name := "signatures", ty := bytesTy } ]
-    returnType := (some boolTy)
-    body := [] ++ [ .return (.boolLit false) ] }
+    returnType := [boolTy]
+    body := [] ++ [ .return [.boolLit false] ] }
 
 def exectransactionfrommoduleTransition : TransitionDecl :=
   { name := "execTransactionFromModule"
     params := [ { name := "to", ty := addr }, { name := "value", ty := uint256 }, { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
-    returnType := (some boolTy)
-    body := nonpayable ++ [ .return (.boolLit false) ] }
+    returnType := [boolTy]
+    body := nonpayable ++ [ .return [.boolLit false] ] }
 
 def exectransactionfrommodulereturndataTransition : TransitionDecl :=
   { name := "execTransactionFromModuleReturnData"
     params := [ { name := "to", ty := addr }, { name := "value", ty := uint256 }, { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
-    returnType := (some (.tuple [boolTy, bytesTy]))
-    body := nonpayable ++ [ .return (.tupleLit [(.boolLit false), (.bytesLit ByteArray.empty)]) ] }
+    returnType := [boolTy, bytesTy]
+    body := nonpayable ++ [ .return [(.boolLit false), (.bytesLit ByteArray.empty)] ] }
 
 def getmodulespaginatedTransition : TransitionDecl :=
   { name := "getModulesPaginated"
     params := [ { name := "start", ty := addr }, { name := "pageSize", ty := uint256 } ]
-    returnType := (some (.tuple [(.dynamicArray addr), addr]))
-    body := nonpayable ++ [ .return (.tupleLit [(.arrayLit []), zeroAddr]) ] }
+    returnType := [(.dynamicArray addr), addr]
+    body := nonpayable ++ [ .return [(.arrayLit []), zeroAddr] ] }
 
 def getownersTransition : TransitionDecl :=
   { name := "getOwners"
     params := []
-    returnType := (some (.dynamicArray addr))
-    body := nonpayable ++ [ .return (.arrayLit []) ] }
+    returnType := [(.dynamicArray addr)]
+    body := nonpayable ++ [ .return [.arrayLit []] ] }
 
 def getstorageatTransition : TransitionDecl :=
   { name := "getStorageAt"
     params := [ { name := "offset", ty := uint256 }, { name := "length", ty := uint256 } ]
-    returnType := (some bytesTy)
-    body := nonpayable ++ [ .return (.bytesLit ByteArray.empty) ] }
+    returnType := [bytesTy]
+    body := nonpayable ++ [ .return [.bytesLit ByteArray.empty] ] }
 
 def getthresholdTransition : TransitionDecl :=
   { name := "getThreshold"
     params := []
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage thresholdRef) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage thresholdRef] ] }
 
 def gettransactionhashTransition : TransitionDecl :=
   { name := "getTransactionHash"
     params := [ { name := "to", ty := addr }, { name := "value", ty := uint256 }, { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 }, { name := "safeTxGas", ty := uint256 }, { name := "baseGas", ty := uint256 }, { name := "gasPrice", ty := uint256 }, { name := "gasToken", ty := addr }, { name := "refundReceiver", ty := addr }, { name := "_nonce", ty := uint256 } ]
-    returnType := (some bytes32)
-    body := nonpayable ++ [ .return (.fixedBytesLit ⟨31, by decide⟩ (List.replicate 32 (0 : UInt8))) ] }
+    returnType := [bytes32]
+    body := nonpayable ++ [ .return [.fixedBytesLit ⟨31, by decide⟩ (List.replicate 32 (0 : UInt8))] ] }
 
 def ismoduleenabledTransition : TransitionDecl :=
   { name := "isModuleEnabled"
     params := [ { name := "module", ty := addr } ]
-    returnType := (some boolTy)
-    body := nonpayable ++ [ .return (.binary .and (.binary .ne (.storage (modulesRef (.var "module"))) zeroAddr) (.binary .ne (.var "module") sentinelAddr)) ] }
+    returnType := [boolTy]
+    body := nonpayable ++ [ .return [.binary .and (.binary .ne (.storage (modulesRef (.var "module"))) zeroAddr) (.binary .ne (.var "module") sentinelAddr)] ] }
 
 def isownerTransition : TransitionDecl :=
   { name := "isOwner"
     params := [ { name := "owner", ty := addr } ]
-    returnType := (some boolTy)
-    body := nonpayable ++ [ .return (.binary .and (.binary .ne (.storage (ownersRef (.var "owner"))) zeroAddr) (.binary .ne (.var "owner") sentinelAddr)) ] }
+    returnType := [boolTy]
+    body := nonpayable ++ [ .return [.binary .and (.binary .ne (.storage (ownersRef (.var "owner"))) zeroAddr) (.binary .ne (.var "owner") sentinelAddr)] ] }
 
 def nonceTransition : TransitionDecl :=
   { name := "nonce"
     params := []
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage nonceRef) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage nonceRef] ] }
 
 def removeownerTransition : TransitionDecl :=
   { name := "removeOwner"
     params := [ { name := "prevOwner", ty := addr }, { name := "owner", ty := addr }, { name := "_threshold", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def setfallbackhandlerTransition : TransitionDecl :=
   { name := "setFallbackHandler"
     params := [ { name := "handler", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def setguardTransition : TransitionDecl :=
   { name := "setGuard"
     params := [ { name := "guard", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def setmoduleguardTransition : TransitionDecl :=
   { name := "setModuleGuard"
     params := [ { name := "moduleGuard", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def setupTransition : TransitionDecl :=
   { name := "setup"
     params := [ { name := "_owners", ty := (.dynamicArray addr) }, { name := "_threshold", ty := uint256 }, { name := "to", ty := addr }, { name := "data", ty := bytesTy }, { name := "fallbackHandler", ty := addr }, { name := "paymentToken", ty := addr }, { name := "payment", ty := uint256 }, { name := "paymentReceiver", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def signedmessagesTransition : TransitionDecl :=
   { name := "signedMessages"
     params := [ { name := "arg0", ty := bytes32 } ]
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage (signedMessagesRef (.var "arg0"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage (signedMessagesRef (.var "arg0"))] ] }
 
 def simulateandrevertTransition : TransitionDecl :=
   { name := "simulateAndRevert"
     params := [ { name := "targetContract", ty := addr }, { name := "calldataPayload", ty := bytesTy } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def swapownerTransition : TransitionDecl :=
   { name := "swapOwner"
     params := [ { name := "prevOwner", ty := addr }, { name := "oldOwner", ty := addr }, { name := "newOwner", ty := addr } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def transitions : List TransitionDecl :=

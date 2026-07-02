@@ -269,158 +269,158 @@ def constructorDecl : ConstructorDecl :=
 def burnTransition : TransitionDecl :=
   { name := "burn"
     params := [ { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 }, { name := "amount", ty := uint128 } ]
-    returnType := (some (.tuple [uint256, uint256]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0)]) ] }
+    returnType := [uint256, uint256]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
 def collectTransition : TransitionDecl :=
   { name := "collect"
     params := [ { name := "recipient", ty := addr }, { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 }, { name := "amount0Requested", ty := uint128 }, { name := "amount1Requested", ty := uint128 } ]
-    returnType := (some (.tuple [uint128, uint128]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0)]) ] }
+    returnType := [uint128, uint128]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
 def collectprotocolTransition : TransitionDecl :=
   { name := "collectProtocol"
     params := [ { name := "recipient", ty := addr }, { name := "amount0Requested", ty := uint128 }, { name := "amount1Requested", ty := uint128 } ]
-    returnType := (some (.tuple [uint128, uint128]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0)]) ] }
+    returnType := [uint128, uint128]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
 def factoryTransition : TransitionDecl :=
   { name := "factory"
     params := []
-    returnType := (some addr)
-    body := nonpayable ++ [ .return zeroAddr ] }
+    returnType := [addr]
+    body := nonpayable ++ [ .return [zeroAddr] ] }
 
 def feeTransition : TransitionDecl :=
   { name := "fee"
     params := []
-    returnType := (some uint24)
-    body := nonpayable ++ [ .return (.intLit 0) ] }
+    returnType := [uint24]
+    body := nonpayable ++ [ .return [.intLit 0] ] }
 
 def feegrowthglobal0X128Transition : TransitionDecl :=
   { name := "feeGrowthGlobal0X128"
     params := []
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage feeGrowthGlobal0X128Ref) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage feeGrowthGlobal0X128Ref] ] }
 
 def feegrowthglobal1X128Transition : TransitionDecl :=
   { name := "feeGrowthGlobal1X128"
     params := []
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage feeGrowthGlobal1X128Ref) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage feeGrowthGlobal1X128Ref] ] }
 
 def flashTransition : TransitionDecl :=
   { name := "flash"
     params := [ { name := "recipient", ty := addr }, { name := "amount0", ty := uint256 }, { name := "amount1", ty := uint256 }, { name := "data", ty := bytesTy } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def increaseobservationcardinalitynextTransition : TransitionDecl :=
   { name := "increaseObservationCardinalityNext"
     params := [ { name := "observationCardinalityNext", ty := uint16 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def initializeTransition : TransitionDecl :=
   { name := "initialize"
     params := [ { name := "sqrtPriceX96", ty := uint160 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def liquidityTransition : TransitionDecl :=
   { name := "liquidity"
     params := []
-    returnType := (some uint128)
-    body := nonpayable ++ [ .return (.storage liquidityRef) ] }
+    returnType := [uint128]
+    body := nonpayable ++ [ .return [.storage liquidityRef] ] }
 
 def maxliquiditypertickTransition : TransitionDecl :=
   { name := "maxLiquidityPerTick"
     params := []
-    returnType := (some uint128)
-    body := nonpayable ++ [ .return (.intLit 0) ] }
+    returnType := [uint128]
+    body := nonpayable ++ [ .return [.intLit 0] ] }
 
 def mintTransition : TransitionDecl :=
   { name := "mint"
     params := [ { name := "recipient", ty := addr }, { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 }, { name := "amount", ty := uint128 }, { name := "data", ty := bytesTy } ]
-    returnType := (some (.tuple [uint256, uint256]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0)]) ] }
+    returnType := [uint256, uint256]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
 def observationsTransition : TransitionDecl :=
   { name := "observations"
     params := [ { name := "arg0", ty := uint256 } ]
-    returnType := (some (.tuple [uint32, int56, uint160, boolTy]))
-    body := nonpayable ++ [ .return (.tupleLit [(.storage (observationsF (.var "arg0") "blockTimestamp")), (.storage (observationsF (.var "arg0") "tickCumulative")), (.storage (observationsF (.var "arg0") "secondsPerLiquidityCumulativeX128")), (.storage (observationsF (.var "arg0") "initialized"))]) ] }
+    returnType := [uint32, int56, uint160, boolTy]
+    body := nonpayable ++ [ .return [(.storage (observationsF (.var "arg0") "blockTimestamp")), (.storage (observationsF (.var "arg0") "tickCumulative")), (.storage (observationsF (.var "arg0") "secondsPerLiquidityCumulativeX128")), (.storage (observationsF (.var "arg0") "initialized"))] ] }
 
 def observeTransition : TransitionDecl :=
   { name := "observe"
     params := [ { name := "secondsAgos", ty := (.dynamicArray uint32) } ]
-    returnType := (some (.tuple [(.dynamicArray int56), (.dynamicArray uint160)]))
-    body := nonpayable ++ [ .return (.tupleLit [(.arrayLit []), (.arrayLit [])]) ] }
+    returnType := [(.dynamicArray int56), (.dynamicArray uint160)]
+    body := nonpayable ++ [ .return [(.arrayLit []), (.arrayLit [])] ] }
 
 def positionsTransition : TransitionDecl :=
   { name := "positions"
     params := [ { name := "arg0", ty := bytes32 } ]
-    returnType := (some (.tuple [uint128, uint256, uint256, uint128, uint128]))
-    body := nonpayable ++ [ .return (.tupleLit [(.storage (positionsF (.var "arg0") "liquidity")), (.storage (positionsF (.var "arg0") "feeGrowthInside0LastX128")), (.storage (positionsF (.var "arg0") "feeGrowthInside1LastX128")), (.storage (positionsF (.var "arg0") "tokensOwed0")), (.storage (positionsF (.var "arg0") "tokensOwed1"))]) ] }
+    returnType := [uint128, uint256, uint256, uint128, uint128]
+    body := nonpayable ++ [ .return [(.storage (positionsF (.var "arg0") "liquidity")), (.storage (positionsF (.var "arg0") "feeGrowthInside0LastX128")), (.storage (positionsF (.var "arg0") "feeGrowthInside1LastX128")), (.storage (positionsF (.var "arg0") "tokensOwed0")), (.storage (positionsF (.var "arg0") "tokensOwed1"))] ] }
 
 def protocolfeesTransition : TransitionDecl :=
   { name := "protocolFees"
     params := []
-    returnType := (some (.tuple [uint128, uint128]))
-    body := nonpayable ++ [ .return (.tupleLit [(.storage (protocolFeesF "token0")), (.storage (protocolFeesF "token1"))]) ] }
+    returnType := [uint128, uint128]
+    body := nonpayable ++ [ .return [(.storage (protocolFeesF "token0")), (.storage (protocolFeesF "token1"))] ] }
 
 def setfeeprotocolTransition : TransitionDecl :=
   { name := "setFeeProtocol"
     params := [ { name := "feeProtocol0", ty := uint8 }, { name := "feeProtocol1", ty := uint8 } ]
-    returnType := none
+    returnType := []
     body := nonpayable }
 
 def slot0Transition : TransitionDecl :=
   { name := "slot0"
     params := []
-    returnType := (some (.tuple [uint160, int24, uint16, uint16, uint16, uint8, boolTy]))
-    body := nonpayable ++ [ .return (.tupleLit [(.storage (slot0F "sqrtPriceX96")), (.storage (slot0F "tick")), (.storage (slot0F "observationIndex")), (.storage (slot0F "observationCardinality")), (.storage (slot0F "observationCardinalityNext")), (.storage (slot0F "feeProtocol")), (.storage (slot0F "unlocked"))]) ] }
+    returnType := [uint160, int24, uint16, uint16, uint16, uint8, boolTy]
+    body := nonpayable ++ [ .return [(.storage (slot0F "sqrtPriceX96")), (.storage (slot0F "tick")), (.storage (slot0F "observationIndex")), (.storage (slot0F "observationCardinality")), (.storage (slot0F "observationCardinalityNext")), (.storage (slot0F "feeProtocol")), (.storage (slot0F "unlocked"))] ] }
 
 def snapshotcumulativesinsideTransition : TransitionDecl :=
   { name := "snapshotCumulativesInside"
     params := [ { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 } ]
-    returnType := (some (.tuple [int56, uint160, uint32]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0), (.intLit 0)]) ] }
+    returnType := [int56, uint160, uint32]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0), (.intLit 0)] ] }
 
 def swapTransition : TransitionDecl :=
   { name := "swap"
     params := [ { name := "recipient", ty := addr }, { name := "zeroForOne", ty := boolTy }, { name := "amountSpecified", ty := int256 }, { name := "sqrtPriceLimitX96", ty := uint160 }, { name := "data", ty := bytesTy } ]
-    returnType := (some (.tuple [int256, int256]))
-    body := nonpayable ++ [ .return (.tupleLit [(.intLit 0), (.intLit 0)]) ] }
+    returnType := [int256, int256]
+    body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
 def tickbitmapTransition : TransitionDecl :=
   { name := "tickBitmap"
     params := [ { name := "arg0", ty := int16 } ]
-    returnType := (some uint256)
-    body := nonpayable ++ [ .return (.storage (tickBitmapRef (.var "arg0"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage (tickBitmapRef (.var "arg0"))] ] }
 
 def tickspacingTransition : TransitionDecl :=
   { name := "tickSpacing"
     params := []
-    returnType := (some int24)
-    body := nonpayable ++ [ .return (.intLit 0) ] }
+    returnType := [int24]
+    body := nonpayable ++ [ .return [.intLit 0] ] }
 
 def ticksTransition : TransitionDecl :=
   { name := "ticks"
     params := [ { name := "arg0", ty := int24 } ]
-    returnType := (some (.tuple [uint128, int128, uint256, uint256, int56, uint160, uint32, boolTy]))
-    body := nonpayable ++ [ .return (.tupleLit [(.storage (ticksF (.var "arg0") "liquidityGross")), (.storage (ticksF (.var "arg0") "liquidityNet")), (.storage (ticksF (.var "arg0") "feeGrowthOutside0X128")), (.storage (ticksF (.var "arg0") "feeGrowthOutside1X128")), (.storage (ticksF (.var "arg0") "tickCumulativeOutside")), (.storage (ticksF (.var "arg0") "secondsPerLiquidityOutsideX128")), (.storage (ticksF (.var "arg0") "secondsOutside")), (.storage (ticksF (.var "arg0") "initialized"))]) ] }
+    returnType := [uint128, int128, uint256, uint256, int56, uint160, uint32, boolTy]
+    body := nonpayable ++ [ .return [(.storage (ticksF (.var "arg0") "liquidityGross")), (.storage (ticksF (.var "arg0") "liquidityNet")), (.storage (ticksF (.var "arg0") "feeGrowthOutside0X128")), (.storage (ticksF (.var "arg0") "feeGrowthOutside1X128")), (.storage (ticksF (.var "arg0") "tickCumulativeOutside")), (.storage (ticksF (.var "arg0") "secondsPerLiquidityOutsideX128")), (.storage (ticksF (.var "arg0") "secondsOutside")), (.storage (ticksF (.var "arg0") "initialized"))] ] }
 
 def token0Transition : TransitionDecl :=
   { name := "token0"
     params := []
-    returnType := (some addr)
-    body := nonpayable ++ [ .return zeroAddr ] }
+    returnType := [addr]
+    body := nonpayable ++ [ .return [zeroAddr] ] }
 
 def token1Transition : TransitionDecl :=
   { name := "token1"
     params := []
-    returnType := (some addr)
-    body := nonpayable ++ [ .return zeroAddr ] }
+    returnType := [addr]
+    body := nonpayable ++ [ .return [zeroAddr] ] }
 
 def transitions : List TransitionDecl :=
   [

@@ -6,6 +6,21 @@ namespace ABI
 
 def solcMaxU64 : Nat := 18446744073709551615
 
+-- Coder-v1 (solc 0.5.16 / 0.7.6) caps dynamic offsets and lengths at `2^32` *inclusive*.  Verified
+-- by disassembly (`P2.h(bytes)`, `--optimize`): both the offset and length guards are
+-- `PUSH5 0x0100000000; DUP; GT; ISZERO; JUMPI(→ok) else REVERT`, i.e. `GT` computes `value > 2^32`
+-- and reverts iff true — so `2^32` is the largest accepted value.  (Coder v2 / `solcMaxU64` uses
+-- `2^64 - 1`, and we keep applying that only in `modern`.)
+def solcMaxLenV1 : Nat := 4294967296  -- 2^32
+
+def solcMaxLen : DecodeMode → Nat
+  | DecodeMode.modern       => solcMaxU64
+  | DecodeMode.legacySolc05 => solcMaxLenV1
+
+-- In `modern` the dynamic cap is exactly `solcMaxU64`, so `modern`-mode decode proofs that unfold the
+-- guards reduce back to the pre-existing `solcMaxU64 < …` shape (statements unchanged).
+@[simp] theorem solcMaxLen_modern : solcMaxLen DecodeMode.modern = solcMaxU64 := rfl
+
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
 
@@ -156,7 +171,7 @@ mutual
         some (.tuple values, endOffset)
     | .bytes => do
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcMaxLen mode < size then
           none
         else
         let payloadStart := start + 32
@@ -164,18 +179,21 @@ mutual
         let endOffset := payloadStart + paddedSize size
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .string => do
+        -- No padding validation: solc 0.5.16, 0.7.6 and 0.8.35 all decode `bytes` and `string`
+        -- parameters through the same copy routine (CALLDATACOPY then a zero-word cleanup write after
+        -- the data) with no padding comparison and no revert — in 0.8.35 literally one shared helper
+        -- for both types.  So `.string` decodes exactly like `.bytes`.
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcMaxLen mode < size then
           none
         else
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
-        zeroPadding? bytes (payloadStart + size) (paddedSize size - size)
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcMaxLen mode < size then
           none
         else
         let elemsStart := start + 32
@@ -220,7 +238,7 @@ mutual
     | 0 => some ([], maxEnd)
     | n + 1 => do
         let relativeOffset <- readNat? bytes (base + headCursor)
-        if solcMaxU64 < relativeOffset then
+        if solcMaxLen mode < relativeOffset then
           none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -238,7 +256,7 @@ mutual
     | ty :: restTypes => do
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
-          if solcMaxU64 < relativeOffset then
+          if solcMaxLen mode < relativeOffset then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -272,6 +290,25 @@ end
   = some (.fixedBytes ⟨3, by decide⟩ [0xDE, 0xAD, 0xBE, 0xEF], 32)
 #guard decodeABIValue? (.elem (.bytes ⟨3, by decide⟩))
     ([0xDE, 0xAD, 0xBE, 0xEF] ++ List.replicate 28 0xFF) 0 DecodeMode.modern = none
+-- A `string` with dirty (nonzero) padding bytes decodes to its `len`-byte content, exactly like
+-- `bytes` — no padding validation.  Calldata: `len = 3` word, then `"ABC"` + 29 dirty `0xFF` bytes.
+#guard decodeABIValue? .string
+    (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+  = some (.bytes (ByteArray.mk #[0x41, 0x42, 0x43]), 64)
+#guard decodeABIValue? .string
+      (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+  = decodeABIValue? .bytes
+      (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+
+-- Dynamic offset/length cap: coder v1 accepts `≤ 2^32`, coder v2 `≤ 2^64-1`.  The guard used at
+-- every dynamic offset/length site is `solcMaxLen mode < v`; checked here at the boundary `2^32` and
+-- one past it (`2^32 + 1`) — the same predicate governs both the offset and the length checks.
+#guard solcMaxLen DecodeMode.legacySolc05 = 4294967296          -- 2^32
+#guard solcMaxLen DecodeMode.modern       = solcMaxU64          -- 2^64 - 1 (unchanged)
+#guard (solcMaxLen DecodeMode.legacySolc05 < 4294967296) = false  -- v1: 2^32 accepted
+#guard (solcMaxLen DecodeMode.legacySolc05 < 4294967297) = true   -- v1: 2^32 + 1 rejected
+#guard (solcMaxLen DecodeMode.modern       < 4294967296) = false  -- v2: 2^32 accepted
+#guard (solcMaxLen DecodeMode.modern       < 4294967297) = false  -- v2: 2^32 + 1 still accepted
 
 def solcTotalSizeDynamicGuard : List ABIType → Bool
   | [.string] => true

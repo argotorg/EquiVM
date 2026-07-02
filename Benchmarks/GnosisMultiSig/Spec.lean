@@ -195,7 +195,7 @@ def requireValidRequirement (ownerCount required : Expr) : List Stmt :=
 def fallbackTransition : TransitionDecl :=
   { name := "fallback"
     params := []
-    returnType := none
+    returnType := []
     body := [] }
 
 /-! ## Constructor -/
@@ -224,7 +224,7 @@ def addTransactionFn : FunctionDecl :=
     params :=
       [ { name := "destination", ty := addr }, { name := "value", ty := uint256 },
         { name := "data", ty := bytesTy } ]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       notNull (.var "destination") ++
       [ .letDecl "transactionId" (some uint256) (.storage transactionCountRef),
@@ -234,74 +234,73 @@ def addTransactionFn : FunctionDecl :=
         .assign .storage (txnF (.var "transactionId") "executed") (.boolLit false),
         .assign .storage transactionCountRef
           (u256 (.binary .add (.storage transactionCountRef) (.intLit 1))),
-        .return (.var "transactionId") ] }
+        .return [.var "transactionId"] ] }
 
 def externalCallFn : FunctionDecl :=
   { name := "external_call"
     params :=
       [ { name := "destination", ty := addr }, { name := "value", ty := uint256 },
         { name := "dataLength", ty := uint256 }, { name := "data", ty := bytesTy } ]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .lowLevelCall (.var "destination") (.var "value") (.var "data") "result" "_returndata",
-        .return (.var "result") ] }
+        .return [.var "result"] ] }
 
 /-! ## Public transitions -/
 
 def maxOwnerCountTransition : TransitionDecl :=
   { name := "MAX_OWNER_COUNT"
     params := []
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.intLit maxOwnerCount) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.intLit maxOwnerCount] ] }
 
 def ownersTransition : TransitionDecl :=
   { name := "owners"
     params := [{ name := "index", ty := uint256 }]
-    returnType := some addr
-    body := nonpayable ++ [ .return (.storage (ownerAtRef (.var "index"))) ] }
+    returnType := [addr]
+    body := nonpayable ++ [ .return [.storage (ownerAtRef (.var "index"))] ] }
 
 def isOwnerTransition : TransitionDecl :=
   { name := "isOwner"
     params := [{ name := "owner", ty := addr }]
-    returnType := some boolTy
-    body := nonpayable ++ [ .return (.storage (isOwnerRef (.var "owner"))) ] }
+    returnType := [boolTy]
+    body := nonpayable ++ [ .return [.storage (isOwnerRef (.var "owner"))] ] }
 
 def confirmationsTransition : TransitionDecl :=
   { name := "confirmations"
     params := [{ name := "transactionId", ty := uint256 }, { name := "owner", ty := addr }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
-      [ .return (.storage (confirmationsRef (.var "transactionId") (.var "owner"))) ] }
+      [ .return [.storage (confirmationsRef (.var "transactionId") (.var "owner"))] ] }
 
 def transactionsTransition : TransitionDecl :=
   { name := "transactions"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := some (.tuple [addr, uint256, bytesTy, boolTy])
+    returnType := [addr, uint256, bytesTy, boolTy]
     body :=
       nonpayable ++
-      [ .return (.tupleLit
-          [ .storage (txnF (.var "transactionId") "destination"),
+      [ .return [ .storage (txnF (.var "transactionId") "destination"),
             .storage (txnF (.var "transactionId") "value"),
             .storage (txnF (.var "transactionId") "data"),
-            .storage (txnF (.var "transactionId") "executed") ]) ] }
+            .storage (txnF (.var "transactionId") "executed") ] ] }
 
 def requiredTransition : TransitionDecl :=
   { name := "required"
     params := []
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage requiredRef) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage requiredRef] ] }
 
 def transactionCountTransition : TransitionDecl :=
   { name := "transactionCount"
     params := []
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage transactionCountRef) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage transactionCountRef] ] }
 
 def addOwnerTransition : TransitionDecl :=
   { name := "addOwner"
     params := [{ name := "owner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ onlyWallet ++ ownerDoesNotExist (.var "owner") ++ notNull (.var "owner") ++
       requireValidRequirement
@@ -313,7 +312,7 @@ def addOwnerTransition : TransitionDecl :=
 def removeOwnerTransition : TransitionDecl :=
   { name := "removeOwner"
     params := [{ name := "owner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ onlyWallet ++ ownerExists (.var "owner") ++
       [ .assign .storage (isOwnerRef (.var "owner")) (.boolLit false),
@@ -336,7 +335,7 @@ def removeOwnerTransition : TransitionDecl :=
 def replaceOwnerTransition : TransitionDecl :=
   { name := "replaceOwner"
     params := [{ name := "owner", ty := addr }, { name := "newOwner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ onlyWallet ++ ownerExists (.var "owner") ++
       ownerDoesNotExist (.var "newOwner") ++
@@ -353,7 +352,7 @@ def replaceOwnerTransition : TransitionDecl :=
 def changeRequirementTransition : TransitionDecl :=
   { name := "changeRequirement"
     params := [{ name := "_required", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ onlyWallet ++
       requireValidRequirement (.arrayLength .storage ownersRef) (.var "_required") ++
@@ -364,18 +363,18 @@ def submitTransactionTransition : TransitionDecl :=
     params :=
       [ { name := "destination", ty := addr }, { name := "value", ty := uint256 },
         { name := "data", ty := bytesTy } ]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       nonpayable ++
       [ .internalCall "addTransaction" [ .var "destination", .var "value", .var "data" ]
           "transactionId",
         .internalCall "confirmTransaction" [ .var "transactionId" ] "_unit",
-        .return (.var "transactionId") ] }
+        .return [.var "transactionId"] ] }
 
 def confirmTransactionTransition : TransitionDecl :=
   { name := "confirmTransaction"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ ownerExists sender ++ transactionExists (.var "transactionId") ++
       notConfirmed (.var "transactionId") sender ++
@@ -385,7 +384,7 @@ def confirmTransactionTransition : TransitionDecl :=
 def revokeConfirmationTransition : TransitionDecl :=
   { name := "revokeConfirmation"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ ownerExists sender ++ confirmed (.var "transactionId") sender ++
       notExecuted (.var "transactionId") ++
@@ -394,7 +393,7 @@ def revokeConfirmationTransition : TransitionDecl :=
 def executeTransactionTransition : TransitionDecl :=
   { name := "executeTransaction"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++ ownerExists sender ++ confirmed (.var "transactionId") sender ++
       notExecuted (.var "transactionId") ++
@@ -414,7 +413,7 @@ def executeTransactionTransition : TransitionDecl :=
 def isConfirmedTransition : TransitionDecl :=
   { name := "isConfirmed"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
       [ .letDecl "count" (some uint256) (.intLit 0),
@@ -428,14 +427,14 @@ def isConfirmedTransition : TransitionDecl :=
                   (u256 (.binary .add (.var "count") (.intLit 1))) ]
               [],
             .ite (.binary .eq (.var "count") (.storage requiredRef))
-              [ .return (.boolLit true) ]
+              [ .return [.boolLit true] ]
               [] ],
-        .return (.boolLit false) ] }
+        .return [.boolLit false] ] }
 
 def getConfirmationCountTransition : TransitionDecl :=
   { name := "getConfirmationCount"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       nonpayable ++
       [ .letDecl "count" (some uint256) (.intLit 0),
@@ -448,12 +447,12 @@ def getConfirmationCountTransition : TransitionDecl :=
               [ .assign .localVar (localRef "count")
                   (u256 (.binary .add (.var "count") (.intLit 1))) ]
               [] ],
-        .return (.var "count") ] }
+        .return [.var "count"] ] }
 
 def getTransactionCountTransition : TransitionDecl :=
   { name := "getTransactionCount"
     params := [{ name := "pending", ty := boolTy }, { name := "executed", ty := boolTy }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       nonpayable ++
       [ .letDecl "count" (some uint256) (.intLit 0),
@@ -469,18 +468,18 @@ def getTransactionCountTransition : TransitionDecl :=
               [ .assign .localVar (localRef "count")
                   (u256 (.binary .add (.var "count") (.intLit 1))) ]
               [] ],
-        .return (.var "count") ] }
+        .return [.var "count"] ] }
 
 def getOwnersTransition : TransitionDecl :=
   { name := "getOwners"
     params := []
-    returnType := some addrArrayTy
-    body := nonpayable ++ [ .return (.storage ownersRef) ] }
+    returnType := [addrArrayTy]
+    body := nonpayable ++ [ .return [.storage ownersRef] ] }
 
 def getConfirmationsTransition : TransitionDecl :=
   { name := "getConfirmations"
     params := [{ name := "transactionId", ty := uint256 }]
-    returnType := some addrArrayTy
+    returnType := [addrArrayTy]
     body :=
       nonpayable ++
       [ .letDecl "confirmationsTemp" (some addrArrayTy)
@@ -505,14 +504,14 @@ def getConfirmationsTransition : TransitionDecl :=
           [ .assign .localVar (localRef "i") (u256 (.binary .add (.var "i") (.intLit 1))) ]
           [ .assign .localVar { base := "_confirmations", steps := [.aindex (.var "i")] }
               (.index (.var "confirmationsTemp") (.var "i")) ],
-        .return (.var "_confirmations") ] }
+        .return [.var "_confirmations"] ] }
 
 def getTransactionIdsTransition : TransitionDecl :=
   { name := "getTransactionIds"
     params :=
       [ { name := "from", ty := uint256 }, { name := "to", ty := uint256 },
         { name := "pending", ty := boolTy }, { name := "executed", ty := boolTy } ]
-    returnType := some uintArrayTy
+    returnType := [uintArrayTy]
     body :=
       nonpayable ++
       [ .letDecl "transactionIdsTemp" (some uintArrayTy)
@@ -542,7 +541,7 @@ def getTransactionIdsTransition : TransitionDecl :=
               { base := "_transactionIds",
                 steps := [.aindex (u256 (.binary .sub (.var "i") (.var "from")))] }
               (.index (.var "transactionIdsTemp") (.var "i")) ],
-        .return (.var "_transactionIds") ] }
+        .return [.var "_transactionIds"] ] }
 
 def functions : List FunctionDecl :=
   [ addTransactionFn, externalCallFn ]

@@ -1242,7 +1242,7 @@ theorem decodeCalldata_string_none_offset_huge {cd : ByteArray} {x : Solm.Ident}
       · rw [if_neg htotal]
         have hread := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
-          abiTupleHeadSize?, hread, hoff]
+          abiTupleHeadSize?, solcMaxLen, hread, hoff]
 
 theorem decodeCalldata_string_none_length_short {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
@@ -1265,7 +1265,7 @@ theorem decodeCalldata_string_none_length_short {cd : ByteArray} {x : Solm.Ident
         by_cases hoff : solcMaxU64 < (calldataWord cd 4).toNat
         · have hread := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
           simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
-            abiTupleHeadSize?, hread, hoff]
+            abiTupleHeadSize?, solcMaxLen, hread, hoff]
         · have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
           have hreadLen :
               readNat? (cd.toList.drop 4) (calldataWord cd 4).toNat = none := by
@@ -1277,7 +1277,7 @@ theorem decodeCalldata_string_none_length_short {cd : ByteArray} {x : Solm.Ident
             rw [if_neg hlen]
             rfl
           simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
-            abiTupleHeadSize?, hreadOff, hoff, hreadLen]
+            abiTupleHeadSize?, solcMaxLen, hreadOff, hoff, hreadLen]
 
 theorem decodeCalldata_string_none_length_huge {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
@@ -1303,7 +1303,7 @@ theorem decodeCalldata_string_none_length_huge {cd : ByteArray} {x : Solm.Ident}
         have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
         have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
-          abiTupleHeadSize?, hreadOff, hoffMax, hreadLen, hlenHuge]
+          abiTupleHeadSize?, solcMaxLen, hreadOff, hoffMax, hreadLen, hlenHuge]
 
 theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4)
@@ -1338,7 +1338,7 @@ theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Iden
           unfold readBytes?
           rw [if_neg hpayload]
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
-          abiTupleHeadSize?, hreadOff, hoffMax, hreadLen, hlenMax, hpayloadRead]
+          abiTupleHeadSize?, solcMaxLen, hreadOff, hoffMax, hreadLen, hlenMax, hpayloadRead]
 
 axiom decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
