@@ -280,6 +280,18 @@ theorem nat_lor_shift_add (a b k : Nat) (ha : a < 2 ^ k) :
         simpa [Nat.mul_comm] using Nat.bodd_add_div2 a
       omega
 
+/-- Recompose a packed low bool byte, an address field at byte offset 1, and the high tail. -/
+theorem nat_lor_packed_bool_address_high (a q : Nat) (ha : a < 2 ^ 160) :
+    Nat.lor 1 (Nat.lor (a * 2 ^ 8) (q * 2 ^ 168)) =
+      1 + a * 2 ^ 8 + q * 2 ^ 168 := by
+  rw [nat_lor_shift_add (a * 2 ^ 8) q 168]
+  · rw [show a * 2 ^ 8 + q * 2 ^ 168 = (a + q * 2 ^ 160) * 2 ^ 8 by ring]
+    rw [nat_lor_shift_add 1 (a + q * 2 ^ 160) 8 (by norm_num)]
+    ring
+  · calc
+      a * 2 ^ 8 < 2 ^ 160 * 2 ^ 8 := Nat.mul_lt_mul_of_pos_right ha (by norm_num)
+      _ = 2 ^ 168 := by norm_num [Nat.pow_add]
+
 theorem u256_lor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
   apply u256_inj
   show Nat.lor a.toNat b.toNat % UInt256.size =
@@ -453,6 +465,24 @@ theorem natLandClearLow (n k : Nat) (hk : k ≤ 256) (hn : n < 2 ^ 256) :
       have hpow : n / 2 ^ k < 2 ^ (i - k) := by
         exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
       exact Nat.testBit_lt_two_pow hpow
+
+/-- Applying the high-bit mask `2^256 - 2^k` clears the low `k` bits of a word. -/
+theorem u256_land_high_mask_toNat (old : UInt256) (k : Nat) (hk : k ≤ 256) :
+    (UInt256.land (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ k)) old).toNat =
+      (old.toNat / 2 ^ k) * 2 ^ k := by
+  rw [u256_land_toNat]
+  have hmaskLt : (2 : Nat) ^ 256 - 2 ^ k < UInt256.size := by
+    have hpos : 0 < (2 : Nat) ^ k := by positivity
+    change (2 : Nat) ^ 256 - 2 ^ k < 2 ^ 256
+    omega
+  rw [ulit_toNat' _ hmaskLt]
+  rw [nat_land_comm]
+  rw [natLandClearLow old.toNat k hk (by
+    change old.val.val < 2 ^ 256
+    simp [UInt256.size])]
+  have hlt : old.toNat / 2 ^ k * 2 ^ k < UInt256.size :=
+    lt_of_le_of_lt (Nat.div_mul_le_self _ _) old.val.isLt
+  rw [Nat.mod_eq_of_lt hlt]
 
 theorem u256_land_high_mask_eq_self (w : UInt256) {k : Nat} (hk : k ≤ 256)
     (hlow : w.toNat % 2 ^ k = 0) :

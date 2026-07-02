@@ -593,6 +593,136 @@ theorem packedSetTrueWord_toNat (w : UInt256) :
   rw [packedSetTrueWord_eq]
   exact ulit_toNat' _ (packedSetTrueNat_lt_size w.toNat w.val.isLt)
 
+set_option maxRecDepth 2000000 in
+theorem packedAddressAfterBoolTrueNat_lt_size (old val : UInt256)
+    (hcanon : val.toNat < EVM.addressModulus) :
+    1 + val.toNat * 2 ^ 8 + old.toNat / 2 ^ 168 * 2 ^ 168 < UInt256.size := by
+  have hq : old.toNat / 2 ^ 168 < 2 ^ 88 := by
+    apply Nat.div_lt_of_lt_mul
+    rw [show 2 ^ 168 * 2 ^ 88 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+    change old.val.val < 2 ^ 256
+    simp [UInt256.size]
+  have hv : val.toNat < 2 ^ 160 := by
+    simpa [EVM.addressModulus, EVM.twoPow] using hcanon
+  have hvle : val.toNat ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hv
+  have hqle : old.toNat / 2 ^ 168 ≤ 2 ^ 88 - 1 := Nat.le_pred_of_lt hq
+  have hvterm : val.toNat * 2 ^ 8 ≤ (2 ^ 160 - 1) * 2 ^ 8 :=
+    Nat.mul_le_mul_right _ hvle
+  have hqterm :
+      old.toNat / 2 ^ 168 * 2 ^ 168 ≤ (2 ^ 88 - 1) * 2 ^ 168 :=
+    Nat.mul_le_mul_right _ hqle
+  have hmax :
+      1 + (2 ^ 160 - 1) * 2 ^ 8 + (2 ^ 88 - 1) * 2 ^ 168 < UInt256.size := by
+    norm_num [UInt256.size, Nat.pow_add]
+  omega
+
+set_option maxRecDepth 2000000 in
+theorem packedAddressAfterBoolTrueWord_eq (old val : UInt256)
+    (hcanon : val.toNat < EVM.addressModulus) :
+    UInt256.lor ⟨1⟩
+      (UInt256.lor
+        (UInt256.mul (UInt256.land val solcAddrMask) ⟨256⟩)
+        (UInt256.land
+          (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
+          old)) =
+      UInt256.ofNat (1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168) := by
+  have hmask :
+      UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩) =
+        UInt256.ofNat (2 ^ 256 - 2 ^ 168) := by native_decide
+  apply u256_inj
+  rw [u256_lor_toNat, u256_lor_toNat, hmask, u256_mul_toNat, u256_land_toNat,
+    u256_land_high_mask_toNat old 168 (by norm_num)]
+  have hcleanNat :
+      Nat.land val.toNat solcAddrMask.toNat % UInt256.size = val.toNat := by
+    simpa [u256_land_toNat] using congrArg UInt256.toNat (solcAddrMask_clean hcanon)
+  rw [hcleanNat]
+  rw [show (⟨256⟩ : UInt256).toNat = 2 ^ 8 by decide]
+  rw [show (⟨1⟩ : UInt256).toNat = 1 by decide]
+  change Nat.lor 1
+      (Nat.lor (val.toNat * 2 ^ 8 % UInt256.size)
+        (old.toNat / 2 ^ 168 * 2 ^ 168) % UInt256.size) % UInt256.size =
+    (UInt256.ofNat (1 + val.toNat * 2 ^ 8 + old.toNat / 2 ^ 168 * 2 ^ 168)).toNat
+  have hshiftlt : val.toNat * 2 ^ 8 < UInt256.size := by
+    calc
+      val.toNat * 2 ^ 8 < 2 ^ 160 * 2 ^ 8 := Nat.mul_lt_mul_of_pos_right
+        (by simpa [EVM.addressModulus, EVM.twoPow] using hcanon) (by norm_num)
+      _ < UInt256.size := by norm_num [UInt256.size, Nat.pow_add]
+  rw [Nat.mod_eq_of_lt hshiftlt]
+  have hq : old.toNat / 2 ^ 168 < 2 ^ 88 := by
+    apply Nat.div_lt_of_lt_mul
+    rw [show 2 ^ 168 * 2 ^ 88 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+    change old.val.val < 2 ^ 256
+    simp [UInt256.size]
+  have hv : val.toNat < 2 ^ 160 := by
+    simpa [EVM.addressModulus, EVM.twoPow] using hcanon
+  have hinnerlt :
+      Nat.lor (val.toNat * 2 ^ 8) (old.toNat / 2 ^ 168 * 2 ^ 168) <
+        UInt256.size := by
+    rw [nat_lor_shift_add (val.toNat * 2 ^ 8) (old.toNat / 2 ^ 168) 168]
+    · have hvle : val.toNat ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hv
+      have hqle : old.toNat / 2 ^ 168 ≤ 2 ^ 88 - 1 := Nat.le_pred_of_lt hq
+      have hvterm : val.toNat * 2 ^ 8 ≤ (2 ^ 160 - 1) * 2 ^ 8 :=
+        Nat.mul_le_mul_right _ hvle
+      have hqterm :
+          old.toNat / 2 ^ 168 * 2 ^ 168 ≤ (2 ^ 88 - 1) * 2 ^ 168 :=
+        Nat.mul_le_mul_right _ hqle
+      have hmax :
+          (2 ^ 160 - 1) * 2 ^ 8 + (2 ^ 88 - 1) * 2 ^ 168 < UInt256.size := by
+        norm_num [UInt256.size, Nat.pow_add]
+      omega
+    · calc
+        val.toNat * 2 ^ 8 < 2 ^ 160 * 2 ^ 8 :=
+          Nat.mul_lt_mul_of_pos_right hv (by norm_num)
+        _ = 2 ^ 168 := by norm_num [Nat.pow_add]
+  rw [Nat.mod_eq_of_lt hinnerlt]
+  rw [nat_lor_packed_bool_address_high val.toNat (old.toNat / 2 ^ 168) hv]
+  have hlt := packedAddressAfterBoolTrueNat_lt_size old val hcanon
+  rw [ulit_toNat' _ hlt, Nat.mod_eq_of_lt hlt]
+
+theorem packedAddressAfterBoolTrueBytes_toNat (old val : UInt256)
+    (hcanon : val.toNat < EVM.addressModulus) :
+    let w1 := UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
+    fromBytes'
+        ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1 ++
+          (EVM.Word.toBytesLEWithSizeProof val).1.take 20 ++
+          (EVM.Word.toBytesLEWithSizeProof w1).1.drop 21) =
+      1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168 := by
+  intro w1
+  have hw1nat : w1.toNat = 1 + 256 * (old.toNat / 256) := by
+    simpa [w1] using packedSetTrueWord_toNat old
+  have hlow : fromBytes' ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1) = 1 := by
+    rw [fromBytes'_take_wordLE_land_mask _ 1 (by decide)]
+    rw [u256_land_toNat]
+    rw [hw1nat]
+    change Nat.land (1 + 256 * (old.toNat / 256)) (2 ^ 8 - 1) % UInt256.size = 1
+    rw [nat_land_mask_eq_mod]
+    norm_num
+    rw [Nat.mod_eq_of_lt (by norm_num [UInt256.size])]
+  have hval : fromBytes' ((EVM.Word.toBytesLEWithSizeProof val).1.take 20) = val.toNat := by
+    rw [fromBytes'_take20_wordLE_solcAddrMask]
+    simpa [u256_land_toNat] using congrArg UInt256.toNat (solcAddrMask_clean hcanon)
+  have hhigh : fromBytes' ((EVM.Word.toBytesLEWithSizeProof w1).1.drop 21) =
+      old.toNat / 2 ^ 168 := by
+    rw [fromBytes'_drop_wordLE]
+    rw [hw1nat]
+    rw [show 256 ^ 21 = 2 ^ 168 by norm_num [Nat.pow_succ, Nat.pow_add]]
+    rw [show 2 ^ 168 = 256 * 2 ^ 160 by norm_num [Nat.pow_add]]
+    rw [← Nat.div_div_eq_div_mul]
+    rw [← Nat.div_div_eq_div_mul]
+    rw [show (1 + 256 * (old.toNat / 256)) / 256 = old.toNat / 256 by
+      rw [Nat.add_mul_div_left _ _ (by norm_num : 0 < 256)]
+      simp]
+  rw [fromBytes'_append, fromBytes'_append, hlow, hval, hhigh]
+  have hlen1 : ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1).length = 1 := by
+    rw [List.length_take, (EVM.Word.toBytesLEWithSizeProof w1).2]
+    norm_num
+  have hlen20 : ((EVM.Word.toBytesLEWithSizeProof val).1.take 20).length = 20 := by
+    rw [List.length_take, (EVM.Word.toBytesLEWithSizeProof val).2]
+    norm_num
+  rw [hlen1, List.length_append, hlen1, hlen20]
+  norm_num [Nat.pow_add]
+  ring
+
 theorem packedSetFalseWord_eq (w : UInt256) :
     UInt256.land w (UInt256.lnot ⟨255⟩) =
       UInt256.ofNat (256 * (w.toNat / 256)) := by
@@ -1100,7 +1230,6 @@ theorem storage_find?_insert_insert_self (storage : Storage)
       (storage.insert writeSlot val2).find? readSlot :=
   rbmap_find?_insert_insert_self storage writeSlot readSlot val1 val2
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Reading after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
     the same as reading after just the final insert. -/
 theorem storage_findD_update_insert_self (storage : Storage)
@@ -1126,7 +1255,6 @@ theorem storage_findD_update_insert_self (storage : Storage)
     · simp only [hzero, if_false]
       rw [storage_findD_insert_insert_self]
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- `find?` after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
     the same as `find?` after just the final insert. -/
 theorem storage_find?_update_insert_self (storage : Storage)
@@ -1171,7 +1299,6 @@ theorem accountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) (acc 
   rw [Batteries.RBMap.find?_insert_of_eq]
   exact Std.ReflCmp.compare_self
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- A zero-aware `SSTORE` to one storage slot preserves an observable read from a different slot
     of the same account. -/
 theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
@@ -1297,7 +1424,6 @@ theorem initState_codeOwner_storageLoad_ne_of_accountMapEquiv
   have hword := accountMapEquiv_storage_findD_ne hAccounts I.codeOwner slot ⟨0⟩ val h
   simpa [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using hword
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Inserting the same nonzero storage word into equivalent accounts preserves account
     equivalence. -/
 theorem accountEquiv_insert_storage_of_equiv {acc₁ acc₂ : Account} (slot val : UInt256)
@@ -1327,7 +1453,6 @@ theorem accountEquiv_update_insert_self (acc : Account) (slot val1 val2 : UInt25
     exact (storage_find?_update_insert_self acc.storage slot readSlot val1 val2).symm
   · simp
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- `accountMapEquiv` is preserved by the same nonzero `SSTORE` on both maps. -/
 theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256)
@@ -1370,7 +1495,6 @@ theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
       rw [accountMap_find?_insert_ne τ addr a _ haddr]
       exact hστ
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- `accountMapEquiv` is preserved by the same zero `SSTORE` on both maps. -/
 theorem accountMapEquiv_sstoreAccountMap_erase {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256)
@@ -1413,7 +1537,6 @@ theorem accountMapEquiv_sstoreAccountMap_erase {σ τ : AccountMap}
       rw [accountMap_find?_insert_ne τ addr a _ haddr]
       exact hστ
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- `accountMapEquiv` is preserved by the same zero-aware `SSTORE` on both maps. -/
 theorem accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256)
@@ -2105,6 +2228,58 @@ theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountA
   · simp [hzero]
     exact storage_findD_insert_self acc.storage slot val ⟨0⟩
 
+theorem storageLocStore_address_offset1_after_bool_true (evm : EVM.State)
+    (slot val : UInt256) {acc : Account} (hacc : evm.lookupAccount evm.executionEnv.codeOwner =
+      some acc) (hcanon : val.toNat < EVM.addressModulus)
+    {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32} :
+    storageLocStore
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+          (UInt256.lor
+            (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+              (UInt256.lnot ⟨255⟩)) ⟨1⟩))
+        { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address }
+        (.address (AccountAddress.ofNat val.toNat)) =
+      some (Solm.EVM.storageStore
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+          (UInt256.lor
+            (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+              (UInt256.lnot ⟨255⟩)) ⟨1⟩))
+        evm.executionEnv.codeOwner slot
+        (UInt256.lor ⟨1⟩
+          (UInt256.lor
+            (UInt256.mul (UInt256.land val solcAddrMask) ⟨256⟩)
+            (UInt256.land
+              (UInt256.lnot
+                (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
+              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) := by
+  unfold storageLocStore storageLocWriteWord
+  simp only [valueToWord_address_ofNat_canonical val hcanon, bind, Option.bind]
+  rw [storageStore_executionEnv]
+  let old := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot
+  let boolWord := UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
+  have hload :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot boolWord)
+          evm.executionEnv.codeOwner slot = boolWord := by
+    exact storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner
+      (by simpa [State.lookupAccount] using hacc) slot boolWord
+  rw [hload]
+  apply congrArg some
+  apply congrArg
+    (fun w => Solm.EVM.storageStore
+      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot boolWord)
+      evm.executionEnv.codeOwner slot w)
+  apply u256_inj
+  rw [packedAddressAfterBoolTrueWord_eq old val hcanon]
+  change fromBytes'
+      ((EVM.Word.toBytesLEWithSizeProof boolWord).1.take 1 ++
+        (EVM.Word.toBytesLEWithSizeProof val).1.take 20 ++
+        (EVM.Word.toBytesLEWithSizeProof boolWord).1.drop 21) =
+    (UInt256.ofNat (1 + val.toNat * 2 ^ 8 + old.toNat / 2 ^ 168 * 2 ^ 168)).toNat
+  rw [packedAddressAfterBoolTrueBytes_toNat old val hcanon]
+  have hlt := packedAddressAfterBoolTrueNat_lt_size old val hcanon
+  rw [ulit_toNat' _ hlt]
+
 theorem storageLoad_storageStore_ne (evm : EVM.State) (addr : AccountAddress)
     {readSlot writeSlot val : UInt256} (hne : readSlot ≠ writeSlot) :
     Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
@@ -2203,7 +2378,6 @@ theorem accountMapEquiv_sstoreAccountMap_three {σ τ : AccountMap}
   exact accountMapEquiv_sstoreAccountMap a3 slot3 val3
     (accountMapEquiv_sstoreAccountMap_two a1 a2 slot1 val1 slot2 val2 hστ)
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- A single nonzero `SSTORE` is account-map equivalent to a zero-aware write followed by the same
     final same-slot nonzero `SSTORE`. -/
 theorem accountMapEquiv_sstoreAccountMap_self_update_insert
@@ -2348,7 +2522,6 @@ theorem accountMapEquiv_sstoreAccountMap_erase_comm
   accountMapEquiv.symm
     (accountMapEquiv_sstoreAccountMap_comm σ a slot val eraseSlot ⟨0⟩ hne)
 
--- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Same-account/same-slot overwrite at the lookup level for `sstoreAccountMap` when the final write
     is nonzero.  This is the EVM/Solidity storage-update analogue of
     `storage_findD_update_insert_self`. -/

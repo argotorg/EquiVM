@@ -41,6 +41,44 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
+theorem blockReverts_nonPayable {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {rest : List Stmt} (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
+    ExecBlock cfg solm evm
+      (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
+  ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h))
+
+theorem nonpayableRequireAssignStorageBlock {cfg : Config} {solm : Frame}
+    {evm evm' : EVM.State} {guard rhs : Expr} {ref : StorageRef} {value : Value}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hguard : evalExpr? cfg solm evm guard = .ok (.bool true))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok value)
+    (hassign : assignStorageRef? cfg solm evm .storage ref value = .ok (solm, evm')) :
+    ExecBlock cfg solm evm
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require guard,
+        .assign .storage ref rhs ]
+      (.ok solm evm') := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil
+
+theorem nonpayableSecondRequireReverts {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {guard : Expr} {rest : List Stmt}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hguard : evalExpr? cfg solm evm guard = .ok (.bool false)) :
+    ExecBlock cfg solm evm
+      (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: .require guard :: rest)
+      .reverted := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
+
+theorem assignStorageBlock {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {rhs : Expr} {ref : StorageRef} {value : Value}
+    (hrhs : evalExpr? cfg solm evm rhs = .ok value)
+    (hassign : assignStorageRef? cfg solm evm .storage ref value = .ok (solm, evm')) :
+    ExecBlock cfg solm evm [ .assign .storage ref rhs ] (.ok solm evm') := by
+  exact ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil
+
 theorem nonpayableBytesLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -86,6 +124,26 @@ theorem nonpayableFixedBytesLiteralBodyReturns {cfg : Config} {contract : Contra
 
 abbrev uint256Value (w : UInt256) : Value :=
   .int (Int.ofNat w.toNat)
+
+theorem evalExpr_timestampModUint32 {cfg : Config} {solm : Frame} (evm : EVM.State) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨32, by decide⟩)
+        (.binary .mod (.env .timestamp) (.intLit ((2 : Int) ^ 32)))) =
+      .ok (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
+        ((2 : Int) ^ 32))) := by
+  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
+  norm_num
+  intro _hbad
+  have hnonneg :
+      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
+        (4294967296 : Int) := by
+    exact Int.emod_nonneg _ (by norm_num)
+  have hlt :
+      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
+          (4294967296 : Int) <
+        4294967296 := by
+    exact Int.emod_lt_of_pos _ (by norm_num)
+  omega
 
 /-! ## Internal calls -/
 

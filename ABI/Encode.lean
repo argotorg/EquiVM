@@ -163,8 +163,7 @@ def encodeReturnValues? (types : List ABIType) (values : List Solm.Value) : Opti
 def encodeReturnValue? (ty : ABIType) (value : Solm.Value) : Option ByteArray :=
   encodeReturnValues? [ty] [value]
 
--- GENERALIZES Examples.Auction.Spec.encodeCallWithSelector? — same generic ABI helper,
--- promoted so benchmark specs do not duplicate selector-prefix call encoding.
+/-- ABI-encode call arguments and prefix them with a 4-byte selector. -/
 def encodeCallWithSelector? (sel : ByteArray) (tys : List ABIType)
     (args : List Solm.Value) : Option EVM.Bytes := do
   let payload <- encodeABIValues? tys args
