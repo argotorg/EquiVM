@@ -37,6 +37,18 @@ inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : 
     encodeReturnValue? abit dv = .some o →
     returnEquiv o r t
 
+inductive returnDataEquiv (o : ByteArray) (r : Option Value) : ReturnConvention → Prop where
+  | abi {t} :
+    returnEquiv o r t →
+    returnDataEquiv o r (.abi t)
+  | rawBytes :
+    r = some (.bytes o) →
+    returnDataEquiv o r .rawBytes
+  | rawBytesVoid :
+    r = none →
+    o = null →
+    returnDataEquiv o r .rawBytes
+
 /-- Account equality up to storage-map representation.  The non-storage account fields must match
     structurally, while persistent storage is compared by `find?` at every slot.  This abstracts
     over `RBMap` tree shape without equating absent storage slots with explicitly stored zeroes. -/
@@ -103,7 +115,7 @@ theorem accountMapEquiv.trans {σ τ υ : Ethereum.AccountMap}
 
 inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
-  (solmRes : ExecResult) (t : Option ABIType) : Prop where
+  (solmRes : ExecResult) (returnConvention : ReturnConvention) : Prop where
   | success :
     -- Resulting states are compared up to storage-map representation (`accountMapEquiv`), the
     -- sound notion given `SSTORE` zero-canonicalization / `RBMap` non-extensionality. Syntactic
@@ -113,12 +125,12 @@ inductive execResultsEquiv
     createdAccounts' = solmState.createdAccounts →
     accountMapEquiv σ' solmState.accountMap →
     -- A' = solmState.substate → /- We ignore the substate -/
-    returnEquiv o retVal t →
-    execResultsEquiv evmRes solmRes t
+    returnDataEquiv o retVal returnConvention →
+    execResultsEquiv evmRes solmRes returnConvention
   | revert :
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →
-    execResultsEquiv evmRes solmRes t
+    execResultsEquiv evmRes solmRes returnConvention
   -- There is intentionally no case for `evmRes = .error e`: bytecode that refines a Solm spec
   -- must never halt exceptionally.  A Solm `.reverted` is matched only by a clean `REVERT`
   -- (the `revert` case above); a real EVM exception leaves `execResultsEquiv` unmatchable, so the
@@ -151,74 +163,6 @@ inductive ctorResultEquiv
   --   solmRes = .reverted →
   --   ctorResultEquiv evmRes solmRes runtimeCode
 
--- Solm transaction dispatch and execution.
-inductive solmExec
-    (conf : Config)
-    (contract : ContractDecl) /- Spec -/
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
-    (σ : Ethereum.AccountMap)
-    (σ₀ : Ethereum.AccountMap)
-    (g : Ethereum.UInt256)
-    (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (solmRes : ExecResult)
-: Option ABIType -> Prop where
-  | intro :
-    /- Solm transition dispatch -/
-    dispatchMsg contract I.calldata = .some transition →
-    transitionSig = transitionSignature transition →
-    decodeCalldataWithMode conf.abiDecodeMode (transition.params.map Param.name)
-      transitionSig.paramTypes I.calldata = .some callargs →
-    evmState =
-      { (default : EVM.State) with
-          accountMap := σ
-          σ₀ := σ₀
-          executionEnv := I
-          substate := A
-          createdAccounts := createdAccounts
-          machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
-      } →
-    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
-    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes transition.returnType
-
--- Solm constructor execution.
-inductive solmCtorExec
-    (conf : Config)
-    (contract : ContractDecl) /- Spec -/
-    (args : List Value)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
-    (σ : Ethereum.AccountMap)
-    (σ₀ : Ethereum.AccountMap)
-    (g : Ethereum.UInt256)
-    (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (solmRes : ExecResult)
-: Prop where
-  | intro :
-    evmState =
-      { (default : EVM.State) with
-          accountMap := σ
-          σ₀ := σ₀
-          executionEnv := I
-          substate := A
-          createdAccounts := createdAccounts
-          machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
-      } →
-    -- This may be redundant when `cfg.selfDeployment` already enforces valid constructor ABI
-    -- encoding, but it keeps the parameter store from relying on `List.zip` truncation.
-    args.length = contract.ctor.params.length →
-    argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
-    ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
-    solmCtorExec conf contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
-
 inductive runtimeEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
@@ -235,20 +179,20 @@ inductive runtimeEquivalenceFor (cfg : Config)
     (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) /- contains the EVM bytecode -/
 : Prop where
-  | execution {Ξ_res solmRes returnType} : /- Both executions return -/
+  | execution {Ξ_res solmRes returnConvention} : /- Both executions return -/
     /- Execute EVM transaction-/
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
     /- Solm transition dispatch + execution -/
-    solmExec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes returnType →
+    solmExec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes returnConvention →
     /- Resulting states and return must be equivalent equivalence -/
-    execResultsEquiv Ξ_res solmRes returnType →
+    execResultsEquiv Ξ_res solmRes returnConvention →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
   | noDispatch : /- Dispatch fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .none →
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .ok (.revert g' o) →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
   | decodingFailed {transition transitionSig g' o} : /- Decoding fails in Solm, EVM reverts -/
-    dispatchMsg contract I.calldata = .some transition →
+    selectorDispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
     decodeCalldataWithMode cfg.abiDecodeMode (transition.params.map Param.name)
       transitionSig.paramTypes I.calldata = .none →

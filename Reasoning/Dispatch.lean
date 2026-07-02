@@ -45,16 +45,13 @@ theorem dispatchList_cons (t : TransitionDecl) (ts : List TransitionDecl) (cd : 
     dispatchList (t :: ts) cd =
       if selectorOf t == cd.extract 0 4 then some t else dispatchList ts cd := rfl
 
-/-- `dispatchMsg` agrees with its pure list form for contracts with no fallback — the bridge that
-    lets the single-selector lemmas (and any example's N-way dispatch) reason about
-    `dispatchList`. -/
-theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray)
-    (hfallback : contract.fallback = none := by rfl) :
-    dispatchMsg contract cd = dispatchList contract.transitions cd := by
-  simp only [dispatchMsg]
+/-- `selectorDispatchMsg` agrees with its pure list form. -/
+theorem selectorDispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray) :
+    selectorDispatchMsg contract cd = dispatchList contract.transitions cd := by
+  simp only [selectorDispatchMsg]
   generalize contract.transitions = ts
   induction ts with
-  | nil => simpa [dispatchList, hfallback]
+  | nil => simp [dispatchList]
   | cons t ts ih =>
     simp only [List.map_cons, List.find?_cons, Prod.map, id_eq, Function.comp_apply]
     rw [dispatchList_cons, selectorOf]
@@ -62,6 +59,16 @@ theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray)
         == cd.extract 0 4) = true
     · rw [if_pos hb]; simp only [hb]
     · rw [if_neg hb]; simp only [Bool.not_eq_true] at hb; simp only [hb]; exact ih
+
+/-- `dispatchMsg` agrees with its pure list form for contracts with no receive/fallback — the bridge
+    that lets the single-selector lemmas (and any example's N-way dispatch) reason about
+    `dispatchList`. -/
+theorem dispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : ByteArray)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
+    dispatchMsg contract cd = dispatchList contract.transitions cd := by
+  rw [dispatchMsg, selectorDispatchMsg_eq_dispatchList contract cd]
+  cases dispatchList contract.transitions cd <;> simp [receiveDispatchMsg, hreceive, hfallback]
 
 /-- Calldata shorter than a selector dispatches to nothing, for **any** number of transitions
     (every selector is 4 bytes, so none can equal a `< 4`-byte prefix). -/
@@ -129,9 +136,11 @@ theorem dispatchList_eq_some_of_split {pre post : List TransitionDecl} {ti : Tra
 /-- `dispatchMsg` no-match, n-ary: no transition selector matches ⇒ no dispatch. -/
 theorem dispatchMsg_none_of_all_ne {contract : ContractDecl} {cd : ByteArray}
     (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl)
     (h : ∀ t ∈ contract.transitions, (selectorOf t == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
-  rw [dispatchMsg_eq_dispatchList contract cd hfallback]; exact dispatchList_none_of_all_ne h
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback hreceive]
+  exact dispatchList_none_of_all_ne h
 
 /-- `dispatchMsg` first-match, n-ary: the transitions split as `pre ++ ti :: post`, every `pre`
     selector misses and `ti`'s hits ⇒ dispatch returns `ti`. -/
@@ -140,9 +149,10 @@ theorem dispatchMsg_eq_some_of_split {contract : ContractDecl} {pre post : List 
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = pre ++ ti :: post)
     (hpre : ∀ t ∈ pre, (selectorOf t == cd.extract 0 4) = false)
-    (hhit : (selectorOf ti == cd.extract 0 4) = true) :
+    (hhit : (selectorOf ti == cd.extract 0 4) = true)
+    (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = some ti := by
-  rw [dispatchMsg_eq_dispatchList contract cd hfallback, htr]
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback hreceive, htr]
   exact dispatchList_eq_some_of_split hpre hhit
 
 /-- `dispatchMsg` of a single-transition contract is the selector compare — the `n = 1` instance of
@@ -151,35 +161,38 @@ theorem dispatch_eq
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
-    (cd : ByteArray) :
+    (cd : ByteArray)
+    (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = if (selBytes == cd.extract 0 4) then some transition else none := by
-  rw [dispatchMsg_eq_dispatchList contract cd hfallback, htr, dispatchList_cons,
+  rw [dispatchMsg_eq_dispatchList contract cd hfallback hreceive, htr, dispatchList_cons,
     dispatchList_nil, selectorOf, hsel]
 
 /-- A single-transition contract dispatches only to that transition. -/
 theorem dispatch_unique
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    {cd : ByteArray} {t : TransitionDecl} (h : dispatchMsg contract cd = some t) :
+    {cd : ByteArray} {t : TransitionDecl} (h : dispatchMsg contract cd = some t)
+    (hreceive : contract.receive = none := by rfl) :
     t = transition := by
-  simp only [dispatchMsg, htr, List.map_cons, List.map_nil] at h
-  split at h
-  · rename_i pair heq
-    have hmem := List.mem_of_find?_eq_some heq
-    simp only [List.mem_singleton, Prod.map, id_eq, Prod.mk.injEq] at hmem
-    rw [Option.some.injEq] at h
-    rw [← h, hmem.1]
-  · rw [hfallback] at h
-    exact absurd h (by simp)
+  have hsel := selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback h
+  rw [selectorDispatchMsg_eq_dispatchList contract cd, htr, dispatchList_cons, dispatchList_nil]
+    at hsel
+  by_cases hb : (selectorOf transition == cd.extract 0 4) = true
+  · rw [if_pos hb] at hsel
+    cases hsel
+    rfl
+  · rw [if_neg hb] at hsel
+    simp at hsel
 
 /-- Calldata shorter than the 4-byte selector cannot dispatch. -/
 theorem dispatch_none_short
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
-    (hsize : selBytes.size = 4) {cd : ByteArray} (h : cd.size < 4) :
+    (hsize : selBytes.size = 4) {cd : ByteArray} (h : cd.size < 4)
+    (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = none := by
-  rw [dispatch_eq hfallback htr hsel]
+  rw [dispatch_eq hfallback htr hsel _ hreceive]
   have hfalse : (selBytes == cd.extract 0 4) = false := by
     by_contra hc
     rw [Bool.not_eq_false] at hc
@@ -194,9 +207,10 @@ theorem dispatch_none_nomatch
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
-    {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false) :
+    {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false)
+    (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = none := by
-  rw [dispatch_eq hfallback htr hsel]; simp [h]
+  rw [dispatch_eq hfallback htr hsel _ hreceive]; simp [h]
 
 /-! ## Single-selector bundle
 
@@ -220,11 +234,12 @@ theorem singleSelectorDispatch
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
     (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
-    (hsize : selBytes.size = 4) :
+    (hsize : selBytes.size = 4)
+    (hreceive : contract.receive = none := by rfl) :
     SingleSelectorDispatch contract transition selBytes where
-  eq cd := dispatch_eq hfallback htr hsel cd
-  none_short h := dispatch_none_short hfallback htr hsel hsize h
-  none_nomatch h := dispatch_none_nomatch hfallback htr hsel h
+  eq cd := dispatch_eq hfallback htr hsel cd hreceive
+  none_short h := dispatch_none_short hfallback htr hsel hsize h hreceive
+  none_nomatch h := dispatch_none_nomatch hfallback htr hsel h hreceive
 
 /-- The EVM return bytes `o` couple to the Solm return value `rv` whenever `o` is `rv`'s ABI
     encoding (the `returned` case of `returnEquiv`). -/
@@ -250,19 +265,21 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     (h : RDrev code g (initState cA gh bl σ_evm σ₀ g A I))
     (hbody : ∀ callargs, ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ g A I)
-              callargs transition.body .reverted) :
+              callargs transition.body .reverted)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
     · exact reEquiv_noDispatch hdisp hrev
     · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-      cases Reasoning.Theory.dispatch_unique hfallback htr ht
+      cases Reasoning.Theory.dispatch_unique hfallback htr ht hreceive
       by_cases hdec : decodeCalldataWithMode cfg.abiDecodeMode (transition.params.map Param.name)
           (transitionSignature transition).paramTypes I.calldata = none
-      · exact reEquiv_decodingFailed ht hdec hrev
+      · exact reEquiv_decodingFailed ht hdec hrev hfallback hreceive
       · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
         exact reEquiv_execution ht hca (hbody callargs) (by rw [hrev]; exact .revert rfl rfl)
+          hfallback hreceive
 
 /-- `RDret ⇒ execution` (success), state-changing form with account maps compared up to
     observable account/storage reads.  This is useful when bytecode coalesces packed storage writes
@@ -283,7 +300,9 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
               (.returned cs evm'' retVal))
     (hCreated : acc.1 = evm''.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evm''.accountMap)
-    (henc : returnEquiv o retVal t.returnType) :
+    (henc : returnEquiv o retVal t.returnType)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
@@ -298,7 +317,7 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
-    refine reEquiv_execution hd hdec hbody' ?_
+    refine reEquiv_execution hd hdec hbody' ?_ hfallback hreceive
     rw [hxi]
     have hcreated : s.createdAccounts = evm''.createdAccounts := by
       exact (congrArg Prod.fst hsacc).trans hCreated
@@ -306,7 +325,7 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
       change accountMapEquiv (s.createdAccounts, s.accountMap).2 evm''.accountMap
       rw [congrArg Prod.snd hsacc]
       exact hAccounts
-    exact execResultsEquiv.success rfl rfl hcreated haccounts henc
+    exact execResultsEquiv.success rfl rfl hcreated haccounts (.abi henc)
 
 /-- `RDret ⇒ execution` (success), **`EVMStateEquiv` simulation form**: the EVM-side post-state
     `evm'_evm` and the Solm body's post-state `evm'_solm` are related by the simulation relation
@@ -332,13 +351,15 @@ theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : Contra
     (hCreated : acc.1 = evm'_evm.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evm'_evm.accountMap)
     (hState : EVMStateEquiv evm'_evm evm'_solm)
-    (henc : returnEquiv o retVal t.returnType) :
+    (henc : returnEquiv o retVal t.returnType)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (hCreated.trans hState.createdAccounts)
     (accountMapEquiv.trans hAccounts hState.accountMap)
-    henc
+    henc hfallback hreceive
 
 /-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
     `retVal` leaving the EVM state at `initState`, and `o` is `retVal`'s ABI encoding (`henc`).
@@ -355,11 +376,13 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
               (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
               (.returned cs (initState cA gh bl σ_solm σ₀ g A I) retVal))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (henc : returnEquiv o retVal t.returnType) :
+    (henc : returnEquiv o retVal t.returnType)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-    (by simp [initState]) (by simpa [initState] using hAccounts) henc
+    (by simp [initState]) (by simpa [initState] using hAccounts) henc hfallback hreceive
 
 /-- `RDret ⇒ execution` (success), **read-only/getter form**: the Solm body naturally returns the
     value read from `σ_solm` (`rvSolm`), while the EVM output `o` encodes the value read from `σ_evm`
@@ -379,11 +402,13 @@ theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl}
               (.returned cs (initState cA gh bl σ_solm σ₀ g A I) rvSolm))
     (hval : rvSolm = rvEvm)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (henc : returnEquiv o rvEvm t.returnType) :
+    (henc : returnEquiv o rvEvm t.returnType)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I := by
   subst hval
-  exact h.reEquivExecution hcode hd hdec hbody hAccounts henc
+  exact h.reEquivExecution hcode hd hdec hbody hAccounts henc hfallback hreceive
 
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
@@ -395,11 +420,13 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body .reverted) :
+              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body .reverted)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => by
-    refine reEquiv_execution hd hdec hbody ?_
+    refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
     rw [hrev]; exact execResultsEquiv.revert rfl rfl
 
 end Reasoning.Reach

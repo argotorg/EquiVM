@@ -220,9 +220,12 @@ theorem reEquiv_decodingFailed
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = none)
-    (h : Ξ cA gh bl σ_evm σ₀ g A I = .ok (.revert g' o)) :
+    (h : Ξ cA gh bl σ_evm σ₀ g A I = .ok (.revert g' o))
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
-  .decodingFailed hd rfl hdec h
+  .decodingFailed (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
+    rfl hdec h
 
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
     The EVM runs from `σ_evm`, the Solm body from `σ_solm` (genuinely distinct maps); `hequiv`
@@ -235,9 +238,42 @@ theorem reEquiv_execution
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
-    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes t.returnType) :
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi t.returnType))
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
-  .execution rfl (.intro hd rfl hdec rfl hbody) hequiv
+  .execution rfl
+    (.intro (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
+      rfl hdec rfl hbody)
+    hequiv
+
+/-- The receive transition executes without selector ABI decoding and `Ξ`'s result matches. -/
+theorem reEquiv_receiveExecution
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t actRes}
+    {g : UInt256}
+    (hreceive : receiveDispatchMsg contract I.calldata = some t)
+    (hparams : t.params = [])
+    (hreturn : t.returnType = none)
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) ∅ t.body actRes)
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi none)) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
+
+/-- The fallback transition executes without selector ABI decoding and `Ξ`'s result matches. -/
+theorem reEquiv_fallbackExecution
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t actRes returnConvention}
+    {g : UInt256}
+    (hd : selectorDispatchMsg contract I.calldata = none)
+    (hreceive : receiveDispatchMsg contract I.calldata = none)
+    (hfallback : contract.fallback = some t)
+    (hargs : fallbackCallargs I.calldata t.params = some callargs)
+    (hreturn : fallbackReturnConvention t = some returnConvention)
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes returnConvention) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .execution rfl (.fallback hd hreceive hfallback hargs hreturn rfl hbody) hequiv
 
 /-! ## 4. Fuel monotonicity -/
 

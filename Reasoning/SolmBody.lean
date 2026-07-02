@@ -498,6 +498,61 @@ theorem lowLevelCallFailureThenRequireFalse {cfg : Config} {C : ContractDecl}
   · exact ExecStmt.lowLevelCallFailure hreceiver heth hdata hcall
   · exact ExecBlock.consRevert (ExecStmt.requireFalse hrequire)
 
+/-- A delegatecall followed by `require cond` succeeds when the call returns `success = true` and
+the post-call condition evaluates to `true` in the frame containing `(okVar, dataVar)`. -/
+theorem delegateCallSuccessThenRequireTrue {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver cdata requireCond : Expr} {okVar dataVar : Ident}
+    {target : AccountAddress} {calldata out : ByteArray}
+    (hreceiver : evalExpr? cfg { contract := C, locals := locals } evm receiver =
+      .ok (.address target))
+    (hdata : evalExpr? cfg { contract := C, locals := locals } evm cdata =
+      .ok (.bytes calldata))
+    (hcall : delegateCallViaEVM evm (EVM.address target) calldata (true, evm', out))
+    (hrequire :
+      evalExpr? cfg
+        { contract := C, locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) }
+        evm' requireCond = .ok (.bool true)) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .delegateCall receiver cdata okVar dataVar,
+        .require requireCond ]
+      (.ok
+        { contract := C,
+          locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) } evm') := by
+  refine ExecBlock.consNormal
+    (solm' :=
+      { contract := C,
+        locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) })
+    (evm' := evm') ?_ ?_
+  · exact ExecStmt.delegateCallSuccess hreceiver hdata hcall
+  · exact ExecBlock.consNormal (ExecStmt.requireTrue hrequire) ExecBlock.nil
+
+/-- A delegatecall followed by `require cond` reverts when the call returns `success = false` and
+the post-call condition evaluates to `false` in the frame containing `(okVar, dataVar)`. -/
+theorem delegateCallFailureThenRequireFalse {cfg : Config} {C : ContractDecl}
+    {evm evm' : EVM.State} {locals : Store}
+    {receiver cdata requireCond : Expr} {okVar dataVar : Ident}
+    {target : AccountAddress} {calldata out : ByteArray}
+    (hreceiver : evalExpr? cfg { contract := C, locals := locals } evm receiver =
+      .ok (.address target))
+    (hdata : evalExpr? cfg { contract := C, locals := locals } evm cdata =
+      .ok (.bytes calldata))
+    (hcall : delegateCallViaEVM evm (EVM.address target) calldata (false, evm', out))
+    (hrequire :
+      evalExpr? cfg
+        { contract := C, locals := (locals.insert okVar (.bool false)).insert dataVar (.bytes out) }
+        evm' requireCond = .ok (.bool false)) :
+    ExecBlock cfg { contract := C, locals := locals } evm
+      [ .delegateCall receiver cdata okVar dataVar,
+        .require requireCond ]
+      .reverted := by
+  refine ExecBlock.consNormal
+    (solm' :=
+      { contract := C, locals := (locals.insert okVar (.bool false)).insert dataVar (.bytes out) })
+    (evm' := evm') ?_ ?_
+  · exact ExecStmt.delegateCallFailure hreceiver hdata hcall
+  · exact ExecBlock.consRevert (ExecStmt.requireFalse hrequire)
+
 /-- **Hoare while-rule for the Solm semantics** — the loop analog of the EVM `RD.loop`.
 
     A variant-indexed invariant `P : ℕ → Store → Prop` (`P v L` = "invariant holds with `v`
