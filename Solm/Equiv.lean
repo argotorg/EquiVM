@@ -162,6 +162,15 @@ inductive ctorResultEquiv
     -- A' = solmState.substate → /- We ignore the substate -/
     o = runtimeCode →
     ctorResultEquiv evmRes solmRes runtimeCode
+  -- Twin of `success` for a ctor body ending in a bare `return` (explicit void return `some []`);
+  -- kept separate so existing `.success` (fall-through `.none`) proofs are unchanged.
+  | successVoidReturn :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned _ solmState (some []) →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    o = runtimeCode →
+    ctorResultEquiv evmRes solmRes runtimeCode
   | revert :
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →

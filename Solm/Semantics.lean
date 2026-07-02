@@ -254,6 +254,15 @@ def updateIndex? (container key value : Value) : Option Value :=
       | _ => none
   | _ => none
 
+def fixedBytesSize (n : Fin 32) : Nat :=
+  n.val + 1
+
+def fixedBytesValid (n : Fin 32) (bytes : List UInt8) : Bool :=
+  bytes.length = fixedBytesSize n
+
+def fixedBytesToNat? (n : Fin 32) (bytes : List UInt8) : Option Nat :=
+  if fixedBytesValid n bytes then some (Ethereum.fromBytesBigEndian bytes) else none
+
 def castValue? (v : Value) (ty : StorageType) : Option Value :=
   match ty, v with
   | .elem (.bool), .bool _ => some v
@@ -269,6 +278,14 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
         some (.int (Int.ofNat a.toNat))
       else
         none
+  -- `uintN(bytesN)`: solc allows this cast only at equal width (`8·(n+1) = bits`); the bytes are
+  -- read big-endian via the same `fixedBytesToNat?` the comparison/`bitAnd` cases use.
+  | .elem (.int (.uint bits)), .fixedBytes n bs =>
+      if 8 * (n.val + 1) = bits.val then
+        match fixedBytesToNat? n bs with
+        | some k => some (.int (Int.ofNat k))
+        | none => none
+      else none
   | .elem (.int _), .int _ => some v
   | .contract _, .address _ => some v
   | .struct expected _, .struct actual _ =>
@@ -276,6 +293,12 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .array _ _, .array _ => some v
   | .dynamicArray _, .array _ => some v
   | _, _ => none
+
+-- `uint256(bytes32 0x…01) = 1`; a width mismatch (`uint128(bytes32)`) is rejected.
+#guard castValue? (.fixedBytes ⟨31, by decide⟩ (List.replicate 31 0 ++ [1]))
+    (.elem (.int (.uint ⟨256, by decide⟩))) = some (.int 1)
+#guard castValue? (.fixedBytes ⟨31, by decide⟩ (List.replicate 32 0))
+    (.elem (.int (.uint ⟨128, by decide⟩))) = none
 
 /-- Solm evaluation errors. Should never happen in well-formed programs -/
 inductive EvalError where
@@ -293,7 +316,7 @@ inductive EvalResult (α : Type) where
   | ok : α -> EvalResult α
   | revert : EvalResult α
   | error : EvalError -> EvalResult α
-  deriving Repr
+  deriving Repr, DecidableEq
 
 namespace EvalResult
 
@@ -320,15 +343,6 @@ def seqList : List (EvalResult α) -> EvalResult (List α)
       .ok (a :: as)
 
 end EvalResult
-
-def fixedBytesSize (n : Fin 32) : Nat :=
-  n.val + 1
-
-def fixedBytesValid (n : Fin 32) (bytes : List UInt8) : Bool :=
-  bytes.length = fixedBytesSize n
-
-def fixedBytesToNat? (n : Fin 32) (bytes : List UInt8) : Option Nat :=
-  if fixedBytesValid n bytes then some (Ethereum.fromBytesBigEndian bytes) else none
 
 def fixedBytesFromNat (n : Fin 32) (value : Nat) : Value :=
   .fixedBytes n ((EVM.Word.ofNat value).toBytesBE.drop (32 - fixedBytesSize n))
@@ -472,7 +486,41 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
             if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
             else .ok (fixedBytesFromNat n (x / 2 ^ s.toNat))
         | none => .error .typeError
+  -- Integer bitwise/shift: defined only on operands in `[0, 2^256)`; a negative or oversized
+  -- operand is `.error .typeError`, so specs on signed values must re-encode to a word first.
+  | .bitAnd, .int x, .int y =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
+        .ok (.int (Nat.land x.toNat y.toNat))
+      else .error .typeError
+  | .bitOr, .int x, .int y =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
+        .ok (.int (Nat.lor x.toNat y.toNat))
+      else .error .typeError
+  | .bitXor, .int x, .int y =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
+        .ok (.int (Nat.xor x.toNat y.toNat))
+      else .error .typeError
+  -- `x << s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHL`).
+  | .shl, .int x, .int s =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
+        if (256 : Int) ≤ s then .ok (.int 0)
+        else .ok (.int ((x.toNat * 2 ^ s.toNat) % EVM.wordModulus))
+      else .error .typeError
+  -- `x >> s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHR`).
+  | .shr, .int x, .int s =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
+        if (256 : Int) ≤ s then .ok (.int 0)
+        else .ok (.int (x.toNat / 2 ^ s.toNat))
+      else .error .typeError
   | _, _, _ => .error .typeError
+
+-- Bitwise mask = mod; single-bit xor flip; `shl` wraps at the top word; `shr` of the max word;
+-- and a negative operand is a type error.
+#guard evalBinaryOp? .bitAnd (.int 0xABCDEF) (.int 0xFF) = .ok (.int (0xABCDEF % 256))
+#guard evalBinaryOp? .bitXor (.int 5) (.int 2) = .ok (.int 7)
+#guard evalBinaryOp? .shl (.int (2 ^ 255)) (.int 1) = .ok (.int 0)
+#guard evalBinaryOp? .shr (.int (2 ^ 256 - 1)) (.int 255) = .ok (.int 1)
+#guard evalBinaryOp? .bitAnd (.int (-1)) (.int 0) = .error .typeError
 
 def bindParams? (params : List Param) (args : List Value) : Option Store :=
   match params, args with
