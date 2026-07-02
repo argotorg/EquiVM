@@ -80,21 +80,36 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
           -- solc's legacy ABI coder v1 cleans a narrow uintN by masking, not validating: e.g. the
           -- Dai (solc 0.6.12) permit wrapper reads its `uint8 v` param as `and(calldataload(…), 0xff)`
           -- with no revert.  `n % 2^256 = n` for uint256, so full-width decoding matches `modern`.
-          some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
+          -- The `bits.val = 0` guard mirrors `modern`: both modes agree `uint0` is ill-formed.
+          if bits.val = 0 then
+            none
+          else
+            some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
   | .elem (.int (.sint bits)) =>
-      -- Legacy `SIGNEXTEND` cleanup of narrow sintN is not modelled (no benchmark decodes a signed
-      -- param); both modes validate here.
-      if bits.val = 0 then
-        none
-      else
-        let positiveLimit := EVM.twoPow (bits.val - 1)
-        let negativeStart := EVM.wordModulus - positiveLimit
-        if n < positiveLimit then
-          some (.int (Int.ofNat n))
-        else if negativeStart ≤ n then
-          some (.int (Int.ofNat n - Int.ofNat EVM.wordModulus))
-        else
-          none
+      match mode with
+      | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else
+            let positiveLimit := EVM.twoPow (bits.val - 1)
+            let negativeStart := EVM.wordModulus - positiveLimit
+            if n < positiveLimit then
+              some (.int (Int.ofNat n))
+            else if negativeStart ≤ n then
+              some (.int (Int.ofNat n - Int.ofNat EVM.wordModulus))
+            else
+              none
+      | DecodeMode.legacySolc05 =>
+          -- solc legacy coder v1 cleans a narrow sintN by SIGNEXTEND at the declared width, not
+          -- validating.  Verified against solc 0.5.16 & 0.6.12 `--optimize`: the `f(int8)` wrapper
+          -- decodes its argument as `signextend(0x00, calldataload(0x04))` (runtime PC 0x6c in
+          -- 0.6.12) with no revert on dirty high bits.
+          if bits.val = 0 then
+            none
+          else
+            let m := n % EVM.twoPow bits.val
+            some (.int (if m < EVM.twoPow (bits.val - 1) then (m : Int)
+              else (m : Int) - (EVM.twoPow bits.val : Int)))
   | _ => none
 
 mutual
@@ -107,8 +122,17 @@ mutual
         | .elem (.bytes n) => do
             let wordBytes <- readBytes? bytes start 32
             let size := n.val + 1
-            zeroPadding? wordBytes size (32 - size)
-            some (.fixedBytes n (wordBytes.take size), start + 32)
+            match mode with
+            | DecodeMode.modern => do
+                zeroPadding? wordBytes size (32 - size)
+                some (.fixedBytes n (wordBytes.take size), start + 32)
+            | DecodeMode.legacySolc05 =>
+                -- solc legacy coder v1 cleans a `bytesN` by masking off the low padding (keeping the
+                -- high `N` bytes), not validating it.  Verified against solc 0.5.16 & 0.6.12
+                -- `--optimize`: the `g(bytes4)` wrapper decodes its argument as
+                -- `and(calldataload(0x04), not(sub(shl(0xe0,0x01),0x01)))` (runtime PC 0xd9 in 0.6.12)
+                -- with no revert on dirty low bytes.
+                some (.fixedBytes n (wordBytes.take size), start + 32)
         | .elem .function => do
             let wordBytes <- readBytes? bytes start 32
             zeroPadding? wordBytes 24 8
@@ -235,6 +259,19 @@ mutual
   termination_by (sizeOf types, 0, 0)
 
 end
+
+-- Legacy coder-v1 cleanup (Phase-1 evidence: solc 0.5.16 & 0.6.12, above): a dirty `int8` word
+-- (nonzero high bits, low byte `0xFF`) SIGNEXTENDs to `-1`; a dirty `bytes4` word masks to its high
+-- 4 bytes.  `modern` rejects both.
+#guard decodeABIWord? (.elem (.int (.sint ⟨8, by decide⟩)))
+    (EVM.Word.ofNat (0xAB * EVM.twoPow 248 + 0xFF)) DecodeMode.legacySolc05 = some (.int (-1))
+#guard decodeABIWord? (.elem (.int (.sint ⟨8, by decide⟩)))
+    (EVM.Word.ofNat (0xAB * EVM.twoPow 248 + 0xFF)) DecodeMode.modern = none
+#guard decodeABIValue? (.elem (.bytes ⟨3, by decide⟩))
+    ([0xDE, 0xAD, 0xBE, 0xEF] ++ List.replicate 28 0xFF) 0 DecodeMode.legacySolc05
+  = some (.fixedBytes ⟨3, by decide⟩ [0xDE, 0xAD, 0xBE, 0xEF], 32)
+#guard decodeABIValue? (.elem (.bytes ⟨3, by decide⟩))
+    ([0xDE, 0xAD, 0xBE, 0xEF] ++ List.replicate 28 0xFF) 0 DecodeMode.modern = none
 
 def solcTotalSizeDynamicGuard : List ABIType → Bool
   | [.string] => true
