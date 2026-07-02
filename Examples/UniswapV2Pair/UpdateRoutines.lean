@@ -35,12 +35,140 @@ abbrev uniswapSyncReserve0Word (packed : UInt256) : UInt256 :=
 abbrev uniswapSyncReserve1Word (packed : UInt256) : UInt256 :=
   UInt256.land reserve112Mask (UInt256.div packed reserve112Shift)
 
+def uniswapUpdateOverflowStringWord : UInt256 :=
+  UInt256.shiftLeft
+    (⟨1905181576457202428093485646709101176076128087⟩ : UInt256) ⟨104⟩
+
 noncomputable def uniswapSyncLogReserve0Mem (packed : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (uniswapSyncReserve0Word packed)).write 0 mem 128 32
 
 noncomputable def uniswapSyncLogMem (packed : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (uniswapSyncReserve1Word packed)).write 0
     (uniswapSyncLogReserve0Mem packed mem) 160 32
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {R : List UInt256} {mem : ByteArray}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6994⟩ R mem (UInt256.ofNat 6)
+      rdata acc k C)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have rd6998 := evm_run h with [
+    push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rd7002 := rd6998.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) (by decide) (by evm_ov)
+  have rd7021 := evm_run rd7002 with [
+    push1 ⟨229⟩, shl, dup2,
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨19⟩, push1 ⟨36⟩, dup3, add,
+    raw mstore 3 (solcErrorStringMem2 (⟨19⟩ : UInt256) mem)
+      (UInt256.ofNat 7) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov)]
+  have rd7044 := rd7021.pushConst
+    (⟨1905181576457202428093485646709101176076128087⟩ : UInt256)
+    (width := 19) (op := .PUSH19) (by decide) (by decide) (by evm_ov)
+  exact evm_run rd7044 with [
+    push1 ⟨104⟩, shl, push1 ⟨68⟩, dup3, add,
+    raw mstore 3
+      (solcErrorStringMem3 (⟨19⟩ : UInt256) uniswapUpdateOverflowStringWord mem)
+      (UInt256.ofNat 8) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size164 (⟨19⟩ : UInt256)
+        uniswapUpdateOverflowStringWord hmem hread64)
+      (by decide) (by evm_ov),
+    swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov)]
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapUpdateOverflowGuardFirstReverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
+    {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
+      k C)
+    (hfail0 : UniswapV2Pair.reserve112Mask.toNat < balance0.toNat)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have hgt0 : UInt256.gt balance0 UniswapV2Pair.reserve112Mask = ⟨1⟩ :=
+    ugt_one hfail0
+  have hgt0Lit :
+      UInt256.gt balance0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨1⟩ := by
+    simpa [UniswapV2Pair.reserve112Mask] using hgt0
+  have rd6973₀ := evm_run h with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, gt,
+    dup1, iszero, swap1, push2 ⟨6989⟩]
+  have rd6973 := rd6973₀
+  rw [hgt0Lit, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6973
+  have rd6989 := evm_run rd6973 with [jumpiT one_ne_zero_uint (by jump_dest)]
+  have rd6994 := evm_run rd6989 with [
+    jumpdest, push2 ⟨7060⟩, jumpiNT (by decide)]
+  exact RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 rd6994 hmem hread64
+    (by simp only [List.length_cons]; omega)
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapUpdateOverflowGuardSecondReverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
+    {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
+      k C)
+    (hfit0 : balance0.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
+    (hfail1 : UniswapV2Pair.reserve112Mask.toNat < balance1.toNat)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have hgt0 : UInt256.gt balance0 UniswapV2Pair.reserve112Mask = ⟨0⟩ :=
+    ugt_zero hfit0
+  have hgt1 : UInt256.gt balance1 UniswapV2Pair.reserve112Mask = ⟨1⟩ :=
+    ugt_one hfail1
+  have hgt0Lit :
+      UInt256.gt balance0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨0⟩ := by
+    simpa [UniswapV2Pair.reserve112Mask] using hgt0
+  have hgt1Lit :
+      UInt256.gt balance1
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨1⟩ := by
+    simpa [UniswapV2Pair.reserve112Mask] using hgt1
+  have rd6973₀ := evm_run h with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, gt,
+    dup1, iszero, swap1, push2 ⟨6989⟩]
+  have rd6973 := rd6973₀
+  rw [hgt0Lit] at rd6973
+  have rd6977 := evm_run rd6973 with [jumpiNT (by decide)]
+  have rd6978 := evm_run rd6977 with [pop]
+  have rd6989₀ := evm_run rd6978 with [
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup4, gt, iszero,
+    jumpdest, push2 ⟨7060⟩]
+  have rd6989 := rd6989₀
+  rw [hgt1Lit, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6989
+  have rd6994 := evm_run rd6989 with [jumpiNT (by decide)]
+  exact RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 rd6994 hmem hread64
+    (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 /-- Shared `_update` success guard: both balances fit in the packed `uint112` reserve fields,
