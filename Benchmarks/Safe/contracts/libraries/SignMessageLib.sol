@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+pragma solidity >=0.7.0 <0.9.0;
+
+import {ISafe} from "./../interfaces/ISafe.sol";
+import {SafeStorage} from "./SafeStorage.sol";
+
+/**
+ * @title Sign Message Library
+ * @notice Sign messages onchain.
+ * @author Richard Meissner - @rmeissner
+ */
+contract SignMessageLib is SafeStorage {
+    /**
+     * @dev The precomputed EIP-712 type hash for the Safe message type.
+     *      Precomputed value of: `keccak256("SafeMessage(bytes message)")`.
+     */
+    bytes32 private constant SAFE_MSG_TYPEHASH = 0x60b3cbf8b4a223d68d641b3b6ddf9a298e7f33710cf3d3a9d1146b5a6150fbca;
+
+    /**
+     * @notice A Safe message was signed onchain.
+     * @param msgHash The hash of the message.
+     */
+    event SignMsg(bytes32 indexed msgHash);
+
+    /**
+     * @notice Marks a message (`_data`) as signed.
+     * @dev Can be verified using EIP-1271 validation method by passing the pre-image of the message hash and empty bytes as the signature.
+     * @param _data Arbitrary length data that should be marked as signed on behalf of the `address(this)`.
+     */
+    function signMessage(bytes calldata _data) external {
+        bytes32 msgHash = getMessageHash(_data);
+        signedMessages[msgHash] = 1;
+        emit SignMsg(msgHash);
+    }
+
+    /**
+     * @dev Returns the hash of a message that can be signed by owners.
+     * @param message Message that should be hashed.
+     * @return Message hash.
+     */
+    function getMessageHash(bytes memory message) public view returns (bytes32) {
+        bytes32 safeMessageHash = keccak256(abi.encode(SAFE_MSG_TYPEHASH, keccak256(message)));
+        return keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), ISafe(payable(address(this))).domainSeparator(), safeMessageHash));
+    }
+}
