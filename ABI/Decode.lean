@@ -68,13 +68,22 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
       | DecodeMode.legacySolc05 =>
           some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
-      if bits.val = 0 then
-        none
-      else if n < EVM.twoPow bits.val then
-        some (.int (Int.ofNat n))
-      else
-        none
+      match mode with
+      | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else if n < EVM.twoPow bits.val then
+            some (.int (Int.ofNat n))
+          else
+            none
+      | DecodeMode.legacySolc05 =>
+          -- solc's legacy ABI coder v1 cleans a narrow uintN by masking, not validating: e.g. the
+          -- Dai (solc 0.6.12) permit wrapper reads its `uint8 v` param as `and(calldataload(…), 0xff)`
+          -- with no revert.  `n % 2^256 = n` for uint256, so full-width decoding matches `modern`.
+          some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
   | .elem (.int (.sint bits)) =>
+      -- Legacy `SIGNEXTEND` cleanup of narrow sintN is not modelled (no benchmark decodes a signed
+      -- param); both modes validate here.
       if bits.val = 0 then
         none
       else

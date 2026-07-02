@@ -31,8 +31,9 @@ inductive ElemType where
   deriving DecidableEq, Repr, Inhabited
 
 /- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
-   non-canonical address words and use signed size guards. Legacy solc 0.5.x optimized wrappers
-   mask address words and use unsigned static-size checks. -/
+   non-canonical value words and use signed size guards. Legacy solc (coder v1) instead *cleans*
+   value types rather than validating them: normalize `bool` (nonzero → true), mask `address`, and
+   mask narrow `uintN` — using unsigned static-size checks. -/
 inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
