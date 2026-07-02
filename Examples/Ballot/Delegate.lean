@@ -781,8 +781,6 @@ theorem resolveStorageRef_delegate_senderField_afterDelegate (evm : EVM.State) (
   simp [evalStorageRefFrom?, evalStorageRefStep, delegateSenderRef, delegateSenderFieldRef,
     EvalResult.bind, EvalResult.ofOption, bind, pure, hty]
 
--- LIBRARY CANDIDATE: `Reasoning.Solm` / packed storage writes.
--- Byte recomposition for the packed `bool,address` slot used by `delegate`.
 theorem delegatePackedAddressAfterBoolTrueBytes_toNat (old val : UInt256)
     (hcanon : val.toNat < EVM.addressModulus) :
     let w1 := UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
@@ -790,42 +788,8 @@ theorem delegatePackedAddressAfterBoolTrueBytes_toNat (old val : UInt256)
         ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1 ++
           (EVM.Word.toBytesLEWithSizeProof val).1.take 20 ++
           (EVM.Word.toBytesLEWithSizeProof w1).1.drop 21) =
-      1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168 := by
-  intro w1
-  have hw1nat : w1.toNat = 1 + 256 * (old.toNat / 256) := by
-    simpa [w1] using packedSetTrueWord_toNat old
-  have hlow : fromBytes' ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1) = 1 := by
-    rw [fromBytes'_take_wordLE_land_mask _ 1 (by decide)]
-    rw [u256_land_toNat]
-    rw [hw1nat]
-    change Nat.land (1 + 256 * (old.toNat / 256)) (2 ^ 8 - 1) % UInt256.size = 1
-    rw [nat_land_mask_eq_mod]
-    norm_num
-    rw [Nat.mod_eq_of_lt (by norm_num [UInt256.size])]
-  have hval : fromBytes' ((EVM.Word.toBytesLEWithSizeProof val).1.take 20) = val.toNat := by
-    rw [fromBytes'_take20_wordLE_solcAddrMask]
-    simpa [u256_land_toNat] using congrArg UInt256.toNat (solcAddrMask_clean hcanon)
-  have hhigh : fromBytes' ((EVM.Word.toBytesLEWithSizeProof w1).1.drop 21) =
-      old.toNat / 2 ^ 168 := by
-    rw [fromBytes'_drop_wordLE]
-    rw [hw1nat]
-    rw [show 256 ^ 21 = 2 ^ 168 by norm_num [Nat.pow_succ, Nat.pow_add]]
-    rw [show 2 ^ 168 = 256 * 2 ^ 160 by norm_num [Nat.pow_add]]
-    rw [← Nat.div_div_eq_div_mul]
-    rw [← Nat.div_div_eq_div_mul]
-    rw [show (1 + 256 * (old.toNat / 256)) / 256 = old.toNat / 256 by
-      rw [Nat.add_mul_div_left _ _ (by norm_num : 0 < 256)]
-      simp]
-  rw [fromBytes'_append, fromBytes'_append, hlow, hval, hhigh]
-  have hlen1 : ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1).length = 1 := by
-    rw [List.length_take, (EVM.Word.toBytesLEWithSizeProof w1).2]
-    norm_num
-  have hlen20 : ((EVM.Word.toBytesLEWithSizeProof val).1.take 20).length = 20 := by
-    rw [List.length_take, (EVM.Word.toBytesLEWithSizeProof val).2]
-    norm_num
-  rw [hlen1, List.length_append, hlen1, hlen20]
-  norm_num [Nat.pow_add]
-  ring
+      1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168 :=
+  packedAddressAfterBoolTrueBytes_toNat old val hcanon
 
 theorem evalExpr_delegate_voter_delegate (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
@@ -869,9 +833,6 @@ theorem delegateAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
   simp [delegateAfterVotedState, delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent,
     delegateSenderPackedSlot, delegateSenderSlot]
 
--- LIBRARY CANDIDATE: `Reasoning.Solm` / packed storage writes.
--- Writing the packed `delegate` address after `sender.voted = true` preserves the low bool byte
--- and the high bytes above the address field.
 theorem ballotStorageLocStore_address_offset1_after_bool_true (evm : EVM.State)
     (slot val : UInt256) {acc : Account} (hacc : evm.lookupAccount evm.executionEnv.codeOwner =
       some acc) (hcanon : val.toNat < EVM.addressModulus)
@@ -895,68 +856,8 @@ theorem ballotStorageLocStore_address_offset1_after_bool_true (evm : EVM.State)
             (UInt256.land
               (UInt256.lnot
                 (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
-              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) := by
-  have haddrWord : EVM.Word.ofNat (Fin.toNat (AccountAddress.ofNat val.toNat)) = val := by
-    apply u256_inj
-    unfold EVM.Word.ofNat UInt256.ofNat AccountAddress.ofNat UInt256.toNat
-    change ((val.val.val % AccountAddress.size) % UInt256.size) = val.val.val
-    nth_rewrite 2 [Nat.mod_eq_of_lt (by
-      simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size, UInt256.toNat] using hcanon)]
-    exact Nat.mod_eq_of_lt val.val.isLt
-  unfold storageLocStore storageLocWriteWord
-  simp only [valueToWord, haddrWord, bind, Option.bind, pure]
-  rw [voteStorageStore_executionEnv]
-  let old := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot
-  let boolWord := UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
-  have hboolNonzero : (boolWord == default) = false := by
-    apply beq_false_of_ne
-    intro h
-    have hnat := congrArg UInt256.toNat h
-    have hw1nat : boolWord.toNat = 1 + 256 * (old.toNat / 256) := by
-      simpa [boolWord, old] using packedSetTrueWord_toNat old
-    rw [hw1nat] at hnat
-    change 1 + 256 * (old.toNat / 256) = 0 at hnat
-    omega
-  have hload :
-      Solm.EVM.storageLoad
-          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot boolWord)
-          evm.executionEnv.codeOwner slot = boolWord := by
-    exact _root_.Ballot.ballotStorageLoad_storageStore_self_nonzero evm evm.executionEnv.codeOwner slot
-      boolWord hacc hboolNonzero
-  rw [hload]
-  apply congrArg some
-  apply congrArg
-    (fun w => Solm.EVM.storageStore
-      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot boolWord)
-      evm.executionEnv.codeOwner slot w)
-  apply u256_inj
-  rw [_root_.Ballot.ballotPackedAddressAfterBoolTrueWord_eq old val hcanon]
-  change fromBytes'
-      ((EVM.Word.toBytesLEWithSizeProof boolWord).1.take 1 ++
-        (EVM.Word.toBytesLEWithSizeProof val).1.take 20 ++
-        (EVM.Word.toBytesLEWithSizeProof boolWord).1.drop 21) =
-    (UInt256.ofNat (1 + val.toNat * 2 ^ 8 + old.toNat / 2 ^ 168 * 2 ^ 168)).toNat
-  rw [delegatePackedAddressAfterBoolTrueBytes_toNat old val hcanon]
-  have hlt : 1 + val.toNat * 2 ^ 8 + old.toNat / 2 ^ 168 * 2 ^ 168 < UInt256.size := by
-    have hq : old.toNat / 2 ^ 168 < 2 ^ 88 := by
-      apply Nat.div_lt_of_lt_mul
-      rw [show 2 ^ 168 * 2 ^ 88 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
-      change old.val.val < 2 ^ 256
-      simpa [UInt256.size] using old.val.isLt
-    have hv : val.toNat < 2 ^ 160 := by
-      simpa [EVM.addressModulus, EVM.twoPow] using hcanon
-    have hvle : val.toNat ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hv
-    have hqle : old.toNat / 2 ^ 168 ≤ 2 ^ 88 - 1 := Nat.le_pred_of_lt hq
-    have hvterm : val.toNat * 2 ^ 8 ≤ (2 ^ 160 - 1) * 2 ^ 8 :=
-      Nat.mul_le_mul_right _ hvle
-    have hqterm :
-        old.toNat / 2 ^ 168 * 2 ^ 168 ≤ (2 ^ 88 - 1) * 2 ^ 168 :=
-      Nat.mul_le_mul_right _ hqle
-    have hmax :
-        1 + (2 ^ 160 - 1) * 2 ^ 8 + (2 ^ 88 - 1) * 2 ^ 168 < UInt256.size := by
-      norm_num [UInt256.size, Nat.pow_add]
-    omega
-  rw [ulit_toNat' _ hlt]
+              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) :=
+  storageLocStore_address_offset1_after_bool_true evm slot val (hacc := hacc) (hcanon := hcanon)
 
 theorem delegateAssignDelegate (evm : EVM.State) (I : ExecutionEnv)
     (hacc : evm.lookupAccount evm.executionEnv.codeOwner ≠ none)

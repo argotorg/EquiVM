@@ -7,10 +7,10 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 /-!
-  Generic dynamic `_safeTransfer` return-data tails.
+  Dynamic `_safeTransfer` return-data tails for the Uniswap runtime.
 
-  LIBRARY CANDIDATE: Reasoning/ (ERC20 safeTransfer return-handling is
-  contract-independent).
+  The control-flow idea is contract-independent, but these statements are still tied to
+  Uniswap bytecode PCs and Skim memory layouts.
 -/
 
 set_option maxHeartbeats 1000000 in

@@ -1394,7 +1394,7 @@ theorem uniswapSkimX_locked {cA gh bl σ σ₀ A I} {g : Sat256} {sel toWord : U
   obtain ⟨_, _, rd5080⟩ := hdecoded
   exact RD.uniswapLockEnterLocked
     (pc := ⟨5080⟩) (okPc := ⟨5155⟩) (R := [toWord, ⟨570⟩, sel])
-    rd5080 uniswap_lock_enter_locked_wf hlocked
+    rd5080 uniswap_lock_enter_guard_wf uniswap_lock_revert_tail_wf hlocked
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Short-calldata path for `skim(address)` from the dispatcher body entry.

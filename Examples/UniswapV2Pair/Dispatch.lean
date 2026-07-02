@@ -176,17 +176,12 @@ theorem uniswapHighLowerSplitWellFormed :
   dsimp [selectorSplitWellFormed]
   repeat' first | apply And.intro | native_decide
 
--- LIBRARY CANDIDATE: Reasoning.Solc — turn a 4-byte calldata-prefix match into equality with
--- the solc selector word (`CALLDATALOAD 0; SHR 224`), parameterized by the selector bytes.
 theorem uniswapSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
     (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
     (hmatch : ((⟨#[c0, c1, c2, c3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     uniswapSelWord I = sel := by
-  apply u256_inj
-  dsimp [uniswapSelWord]
-  rw [selector_toNat I.calldata hsz]
-  rw [(extract4_eq_iff I.calldata c0 c1 c2 c3 hsz).mp hmatch, hsel]
+  exact solcSelectorWord_eq_of_beq I hsz c0 c1 c2 c3 sel hsel hmatch
 
 /-- Uniswap V2 Pair selectors in `contract.transitions` order. -/
 def uniswapSelBytes : ℕ → ByteArray
@@ -580,10 +575,6 @@ theorem uniswapBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.
 
 /-! ## Low selector branch reach -/
 
--- GENERALIZES Reasoning.Solc.solcDispatchReachSelector — support legacy solc selector load
--- emitted as `PUSH1 0; CALLDATALOAD; PUSH1 224; SHR` instead of `PUSH0; ...`.
--- LIBRARY CANDIDATE: Reasoning.Solc — generic solc-0.5.x dispatcher prefix driver,
--- parameterized by bytecode, first split PC, and the zero-push opcode/width.
 /-- Standard solc prologue/guards/selector load, stopping at the root selector split. -/
 theorem uniswapReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -591,22 +582,21 @@ theorem uniswapReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
         uniswapRootSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty (cA, σ) k C := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
-  obtain ⟨_, _, h18⟩ := solcGuardCallvalueZero
-    (ctgt := (⟨16⟩ : UInt256)) (opC := .PUSH2) (wC := 2)
-    h0 hwv (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest)
-  obtain ⟨k26, C26, h26⟩ := solcCalldataOk
-    (bodyPc := (⟨18⟩ : UInt256)) (selLoadTgt := (⟨425⟩ : UInt256))
-    (opR := .PUSH2) (wR := 2)
-    h18 hsz hsize (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h32 := evm_run h26 with [push1 ⟨0⟩, calldataload, push1 ⟨224⟩, shr]
-  refine ⟨k26 + 1 + 1 + 1 + 1, C26 + 3 + 3 + 3 + 3, ?_⟩
-  simpa [uniswapRootSplitPc, uniswapSelWord] using h32
+  simpa [uniswapRootSplitPc, uniswapSelWord] using
+    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (σ₀ := σ₀) (A := A) (g := g) (code := uniswapV2PairBytecode)
+      (bodyPc := (⟨18⟩ : UInt256)) (loadPc := (⟨26⟩ : UInt256))
+      (firstPc := uniswapRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
+      (revertTgt := (⟨425⟩ : UInt256)) (guardWidth := 2) (revertWidth := 2)
+      (guardOp := .PUSH2) (revertOp := .PUSH2)
+      hcode hwv hsz hsize
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by jump_dest) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 theorem uniswapX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :

@@ -1595,5 +1595,5 @@ theorem uniswapSyncX_locked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd6016⟩ := uniswapSyncX_decoded (g := g) hreach
   exact RD.uniswapLockEnterLocked
     (pc := ⟨6016⟩) (okPc := ⟨6091⟩) (R := [⟨570⟩, sel])
-    rd6016 uniswap_lock_enter_locked_wf hlocked
+    rd6016 uniswap_lock_enter_guard_wf uniswap_lock_revert_tail_wf hlocked
     (by simp only [List.length_cons, List.length_nil]; omega)

@@ -197,10 +197,11 @@ theorem RD.uniswapApproveExternalToInternal {g : Sat256} {s0 : State} {ee : Exec
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: uniswapSourceWord ee :: ⟨2907⟩ :: ⟨0⟩ :: value :: spender :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
-  have rd7412₀ := evm_run h with [
-    jumpdest, push1 ⟨0⟩, push2 ⟨2907⟩, caller, dup5, dup5, push2 ⟨7412⟩]
-  exact ⟨_, _, by
-    simpa [uniswapSourceWord] using rd7412₀.jump (by decide) (by jump_dest) (by evm_ov)⟩
+  simpa [uniswapSourceWord] using
+    RD.solcCallerTransferThunk
+      (pc := ⟨2894⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7412⟩) h
+      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide)
+      (by jump_dest) hov
 
 /-- The external `approve(address,uint256)` continuation receives `_approve`'s unit return and
     jumps to the bool-return wrapper with `true`. -/

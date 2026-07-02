@@ -440,8 +440,6 @@ theorem uniswapTransferX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩)
     hreach uniswap_address_uint256_external_entry_wf hsz4 hsize hshort
 
--- LIBRARY CANDIDATE: Reasoning.Reach — optimizer-on solc external routine that injects `CALLER`
--- as the source address and jumps to a shared private transfer routine with a dynamic continuation.
 theorem RD.uniswapTransferExternalToInternal {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value toWord ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
@@ -452,10 +450,11 @@ theorem RD.uniswapTransferExternalToInternal {g : Sat256} {s0 : State} {ee : Exe
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7510⟩
       (value :: toWord :: uniswapSourceWord ee :: ⟨2907⟩ :: ⟨0⟩ :: value :: toWord :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
-  have rd7510₀ := evm_run h with [
-    jumpdest, push1 ⟨0⟩, push2 ⟨2907⟩, caller, dup5, dup5, push2 ⟨7510⟩]
-  exact ⟨_, _, by
-    simpa [uniswapSourceWord] using rd7510₀.jump (by decide) (by jump_dest) (by evm_ov)⟩
+  simpa [uniswapSourceWord] using
+    RD.solcCallerTransferThunk
+      (pc := ⟨5061⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7510⟩) h
+      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide)
+      (by jump_dest) hov
 
 /-- Chained success prefix for `transfer(address,uint256)`, from the dispatcher body pc
     to the shared internal `_transfer` routine at pc 7510. -/

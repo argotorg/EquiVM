@@ -473,44 +473,21 @@ theorem evalExpr_sync_balance1_le_max_false (evm : EVM.State) (balance0 balance1
   rw [syncBalanceStore_balance1]
   simpa [uniswapUint256Value, evalBinaryOp?] using hbound
 
--- LIBRARY CANDIDATE: Reasoning.SolmBody — source evaluator for
--- `uint32(block.timestamp % 2^32)`, parameterized by target width and modulus.
 theorem evalExpr_sync_blockTimestamp (evm : EVM.State) (balance0 balance1 : UInt256) :
     evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
       (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
-  unfold u32 now syncBlockTimestampValue syncBlockTimestampInt
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  norm_num [twoPow32, uint32Int]
-  intro _hbad
-  have hnonneg :
-      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-        (4294967296 : Int) := by
-    exact Int.emod_nonneg _ (by norm_num)
-  have hlt :
-      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-          (4294967296 : Int) <
-        4294967296 := by
-    exact Int.emod_lt_of_pos _ (by norm_num)
-  omega
+  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+    evalExpr_timestampModUint32
+      (cfg := config) (solm := { contract := contract, locals := syncBalanceStore balance0 balance1 })
+      evm
 
 theorem evalExpr_sync_update_blockTimestamp
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
       (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
-  unfold u32 now syncBlockTimestampValue syncBlockTimestampInt
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  norm_num [twoPow32, uint32Int]
-  intro _hbad
-  have hnonneg :
-      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-        (4294967296 : Int) := by
-    exact Int.emod_nonneg _ (by norm_num)
-  have hlt :
-      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-          (4294967296 : Int) <
-        4294967296 := by
-    exact Int.emod_lt_of_pos _ (by norm_num)
-  omega
+  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+    evalExpr_timestampModUint32
+      (cfg := config) (solm := syncUpdateCallFrame evm balance0 balance1) evm
 
 theorem evalExpr_sync_blockTimestampLast (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "blockTimestampLast" = none) :

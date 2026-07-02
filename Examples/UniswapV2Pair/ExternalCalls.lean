@@ -249,8 +249,6 @@ theorem balanceOfThisCalldataMem_encode (self : AccountAddress) :
   rw [word_toBytesBE_toByteArray_eq_toByteArray]
   rfl
 
--- LIBRARY CANDIDATE: Reasoning.EVMWord — `min (literal word) (UInt256.ofNat n)` collapses
--- to the literal when `n` is large enough and in range.
 theorem balanceOfThisStaticcallWriteLen_of_size_ge (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
@@ -267,8 +265,6 @@ theorem balanceOfThisStaticcallMem_size_of_size_ge (self : UInt256) (o : ByteArr
     ByteArray.size_extract, ByteArray.size_extract, balanceOfThisCalldataMem_size]
   omega
 
--- LIBRARY CANDIDATE: Reasoning.Memory — free-pointer read below an external-call returndata
--- write into the ABI output region.
 theorem balanceOfThisStaticcallMem_read64_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (balanceOfThisStaticcallMem self o).readWithPadding 64 32 =
@@ -337,8 +333,6 @@ theorem balanceOfThisStaticcallMem_mload64_of_size_lt (self : UInt256) (o : Byte
     (by decide)
     (balanceOfThisStaticcallMem_read64_of_size_lt self o hshort hhi)
 
--- LIBRARY CANDIDATE: Reasoning.Memory — read back the first ABI return word copied by a
--- CALL-like opcode into the output region.
 theorem balanceOfThisStaticcallMem_read128_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (balanceOfThisStaticcallMem self o).readWithPadding 128 32 = o.extract 0 32 := by
@@ -394,8 +388,6 @@ theorem balanceOfThisRebuiltCalldataMem_size_of_size_ge (self : UInt256) (o : By
     balanceOfThisRebuiltSelectorMem_size_of_size_ge self o hlo hhi, toByteArray_size]
   omega
 
--- LIBRARY CANDIDATE: Reasoning.Memory — free-pointer read survives repeated
--- calldata-buffer rewrites above the free-pointer word.
 theorem balanceOfThisRebuiltCalldataMem_read64_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (balanceOfThisRebuiltCalldataMem self o).readWithPadding 64 32 =
@@ -435,8 +427,6 @@ theorem balanceOfThisRebuiltStaticcallMem_size_of_size_ge
     balanceOfThisRebuiltCalldataMem_size_of_size_ge self oPrev hprevlo hprevhi]
   omega
 
--- LIBRARY CANDIDATE: Reasoning.Memory — free-pointer read survives a second
--- external-call returndata write into the ABI output region.
 theorem balanceOfThisRebuiltStaticcallMem_read64_of_size_ge
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
@@ -470,8 +460,6 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
     (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi
       hlo hhi)
 
--- LIBRARY CANDIDATE: Reasoning.Memory — read back the first ABI return word copied by a
--- second CALL-like opcode into a rebuilt output region.
 theorem balanceOfThisRebuiltStaticcallMem_read128_of_size_ge
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
@@ -510,229 +498,6 @@ theorem balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge
 end UniswapV2Pair
 
 namespace Reasoning.Reach
-
--- LIBRARY CANDIDATE: Reasoning.Reach — generic solc high-level-call uint256 return decoder
--- after a successful CALL-like opcode, parameterized by the output buffer and dead stack pops.
-set_option maxHeartbeats 2000000 in
-theorem RD.uniswapUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
-    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {d0 d1 d2 retWord : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem
-      UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
-    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
-    (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥
-            UniswapV2Pair.balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
-       else UInt256.ofNat
-         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
-        ⟨128⟩)
-    (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UniswapV2Pair.balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
-       else UInt256.ofNat
-         (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
-        retWord)
-    (hPop0 : decode code pc = some (.POP, .none))
-    (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
-    (hPop2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.POP, .none))
-    (hPush64 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨64⟩, 1)))
-    (hMload64 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
-        some (.MLOAD, .none))
-    (hReturndatasize :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
-        some (.RETURNDATASIZE, .none))
-    (hPush32 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨32⟩, 1)))
-    (hDup2 :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2) =
-        some (.DUP2, .none))
-    (hLt :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩) =
-        some (.LT, .none))
-    (hIszero :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.ISZERO, .none))
-    (hPushOk :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH2, some (okPc, 2)))
-    (hJumpi :
-      decode code
-          ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
-        some (.JUMPI, .none))
-    (hjd : (D_J code 0).contains okPc = true)
-    (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
-    (hPopLen : decode code (okPc + ⟨1⟩) = some (.POP, .none))
-    (hMload128 : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.MLOAD, .none))
-    (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (retWord :: R)
-      mem UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
-  have rdPop0 := RD.pop h hPop0 (by simp only [List.length_cons]; omega)
-  have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
-  have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ UniswapV2Pair.balanceOfThisStaticcallActiveWords
-    rdPush64 hMload64
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
-    hMload64Value
-    (by native_decide)
-    (by omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 hReturndatasize
-    (by simp only [List.length_cons]; omega)
-  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ hPush32
-    (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush32 hDup2 (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 hLt (by simp only [List.length_cons]; omega)
-  have hlt : UInt256.lt (UInt256.ofNat o.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
-    apply Reasoning.Theory.ult_zero
-    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' o.size hhi]
-    exact hlo
-  have rdIszero := RD.iszero rdLt hIszero (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero okPc hPushOk
-    (by simp only [List.length_cons]; omega)
-  have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) (⟨32⟩ : UInt256)) ≠ ⟨0⟩ := by
-    rw [hlt]
-    decide
-  have rdJumpi := RD.jumpiT rdPushOk hJumpi hcond hjd
-    (by simp only [List.length_cons]; omega)
-  have rdJumpdest := RD.jumpdest rdJumpi hJumpdest
-    (by simp only [List.length_cons]; omega)
-  have rdPopLen := RD.pop rdJumpdest hPopLen (by simp only [List.length_cons]; omega)
-  have rdMload128 := RD.mload 0 retWord UniswapV2Pair.balanceOfThisStaticcallActiveWords
-    rdPopLen hMload128
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
-    hMload128Value
-    (by native_decide)
-    (by omega)
-  exact ⟨_, _, rdMload128⟩
-
-set_option maxHeartbeats 2000000 in
-theorem RD.uniswapUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : ExecutionEnv}
-    {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    {d0 d1 d2 : UInt256} {R : List UInt256}
-    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem
-      UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
-    (hshort : o.size < 32) (hhi : o.size < UInt256.size)
-    (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥
-            UniswapV2Pair.balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
-       else UInt256.ofNat
-         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
-        ⟨128⟩)
-    (hPop0 : decode code pc = some (.POP, .none))
-    (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
-    (hPop2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.POP, .none))
-    (hPush64 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨64⟩, 1)))
-    (hMload64 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
-        some (.MLOAD, .none))
-    (hReturndatasize :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
-        some (.RETURNDATASIZE, .none))
-    (hPush32 :
-      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨32⟩, 1)))
-    (hDup2 :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2) =
-        some (.DUP2, .none))
-    (hLt :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩) =
-        some (.LT, .none))
-    (hIszero :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.ISZERO, .none))
-    (hPushOk :
-      decode code
-          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH2, some (okPc, 2)))
-    (hJumpi :
-      decode code
-          ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
-        some (.JUMPI, .none))
-    (hPush0 :
-      decode code
-          (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
-            ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨0⟩, 1)))
-    (hDupZero :
-      decode code
-          ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-                UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
-              ⟨1⟩) + UInt256.ofNat 2) =
-        some (.DUP1, .none))
-    (hRevert :
-      decode code
-          (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-                  UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
-                ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩) =
-        some (.REVERT, .none))
-    (hov : R.length + 4 ≤ 1024) :
-    RDrev code g s0 := by
-  have rdPop0 := RD.pop h hPop0 (by simp only [List.length_cons]; omega)
-  have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
-  have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ UniswapV2Pair.balanceOfThisStaticcallActiveWords
-    rdPush64 hMload64
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
-    hMload64Value
-    (by native_decide)
-    (by omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 hReturndatasize
-    (by simp only [List.length_cons]; omega)
-  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ hPush32
-    (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush32 hDup2 (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 hLt (by simp only [List.length_cons]; omega)
-  have hlt : UInt256.lt (UInt256.ofNat o.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
-    apply Reasoning.Theory.ult_one
-    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' o.size hhi]
-    exact hshort
-  have rdIszero := RD.iszero rdLt hIszero (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero okPc hPushOk
-    (by simp only [List.length_cons]; omega)
-  have hcond :
-      UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) (⟨32⟩ : UInt256)) = ⟨0⟩ := by
-    rw [hlt]
-    decide
-  have rdFallthrough := RD.jumpiNT rdPushOk hJumpi hcond
-    (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
-    (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
@@ -792,9 +557,17 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
-  exact RD.uniswapUint256ReturnWordDecodeOk h hlo hhi
+  exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_ge self o hlo hhi)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload128_of_size_ge self o hlo hhi)
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
 
@@ -867,7 +640,11 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
         some (.REVERT, .none))
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapUint256ReturnWordDecodeShortReverts h hshort hhi
+  exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_lt self o hshort hhi)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hPush0 hDupZero hRevert hov
@@ -930,11 +707,19 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
-  exact RD.uniswapUint256ReturnWordDecodeOk h hlo hhi
+  exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
 
