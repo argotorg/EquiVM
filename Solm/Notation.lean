@@ -165,7 +165,7 @@ syntax "let " ident " : " ident " := " solmExpr         : solmStmt
 syntax "let " ident " := " solmExpr                     : solmStmt
 syntax "@" solmRef " := " solmExpr                       : solmStmt   -- storage assign
 syntax ident " := " solmExpr                             : solmStmt   -- local assign
-syntax "return " solmExpr                                : solmStmt
+syntax "return " solmExpr,*                              : solmStmt   -- 0+ comma-separated values
 syntax "break"                                           : solmStmt
 syntax "continue"                                        : solmStmt
 syntax "delete " "@" solmRef                             : solmStmt
@@ -186,7 +186,9 @@ macro_rules
   | `(sStmt% $x:ident := $e) =>
       `(Solm.Stmt.assign Solm.VarOrigin.localVar
           { base := $(quote x.getId.toString), steps := [] } (sExpr% $e))
-  | `(sStmt% return $e)            => `(Solm.Stmt.return (sExpr% $e))
+  | `(sStmt% return $es,*)         => do
+      let elems ← es.getElems.mapM fun e => `(sExpr% $e)
+      `(Solm.Stmt.return [$elems,*])
   | `(sStmt% break)                => `(Solm.Stmt.break)
   | `(sStmt% continue)             => `(Solm.Stmt.continue)
   | `(sStmt% delete @ $r:solmRef)  => `(Solm.Stmt.delete (sRef% $r))
@@ -234,8 +236,8 @@ syntax "solm_transition " ident solmParam* (" -> " ident)? "{" solmStmt* "}" : t
 macro_rules
   | `(solm_transition $nm:ident $ps:solmParam* $[ -> $ret:ident]? { $body:solmStmt* }) => do
       let retStx ← match ret with
-        | some t => `(some $(← abiTypeStx t))
-        | none   => `(none)
+        | some t => `([$(← abiTypeStx t)])
+        | none   => `([])
       `(({ name := $(quote nm.getId.toString), params := [ $[sParam% $ps],* ],
            returnType := $retStx, body := sBlock% { $body* } } : Solm.TransitionDecl))
 
@@ -244,8 +246,8 @@ syntax "solm_function " ident solmParam* (" -> " ident)? "{" solmStmt* "}" : ter
 macro_rules
   | `(solm_function $nm:ident $ps:solmParam* $[ -> $ret:ident]? { $body:solmStmt* }) => do
       let retStx ← match ret with
-        | some t => `(some $(← abiTypeStx t))
-        | none   => `(none)
+        | some t => `([$(← abiTypeStx t)])
+        | none   => `([])
       `(({ name := $(quote nm.getId.toString), params := [ $[sParam% $ps],* ],
            returnType := $retStx, body := sBlock% { $body* } } : Solm.FunctionDecl))
 

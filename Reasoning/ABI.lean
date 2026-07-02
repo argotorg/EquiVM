@@ -567,10 +567,17 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
     Option.bind]
   rw [if_pos hlen]
   simp only
-  rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
-  rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
-    < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
-  rfl
+  cases mode with
+  | modern =>
+    rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
+    rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
+    rfl
+  | legacySolc05 =>
+    -- legacy masks (`n % 2^256`), the identity on a full-width uint256 word.
+    rw [Nat.mod_eq_of_lt (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
+    rfl
 
 theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
     {start : Nat}

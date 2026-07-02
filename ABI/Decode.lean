@@ -327,6 +327,9 @@ def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (retu
         decodeABIValues? types bytes 0 0 headSize headSize DecodeMode.legacySolc05
       some values
 
+-- Decodes a single top-level value.  For a callee's multi-value return use `decodeReturnValues?` —
+-- a `.tuple` type here is one tuple-typed output (ABI-wrapped, with a leading offset word), NOT a
+-- flat multi-return.
 def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option Solm.Value := do
   match decodeReturnValues? [ty] returndata with
   | some [value] => some value

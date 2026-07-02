@@ -16,33 +16,43 @@ def defaultAbiValue : ABIType -> Option Value
   | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none
 
-inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : Prop where
+inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABIType) : Prop where
   | returned :
-    r = .some rv →
-    t = .some abit →
-    encodeReturnValue? abit rv = .some o →
-    returnEquiv o r t
-  | void :
-    /- No declared return type and no value: the EVM returns empty output. -/
-    r = .none →
-    t = .none →
-    o = null →
+    /- Explicit `return`: the returned values encode flat to the output.  `vs = []`, `t = []`
+       subsumes an explicit void return (`encodeReturnValues? [] [] = some ∅`). -/
+    r = .some vs →
+    encodeReturnValues? t vs = .some o →
     returnEquiv o r t
   | fallthrough :
-    /- Declared return type but no explicit `return`: the EVM returns the ABI
-       encoding of the type's default (zero-initialized) value. -/
+    /- No explicit `return`: the EVM returns the ABI encoding of each return type's default
+       (zero-initialized) value.  `t = []` gives empty output. -/
     r = .none →
-    t = .some abit →
-    defaultAbiValue abit = .some dv →
-    encodeReturnValue? abit dv = .some o →
+    t.mapM defaultAbiValue = .some dvs →
+    encodeReturnValues? t dvs = .some o →
     returnEquiv o r t
 
-inductive returnDataEquiv (o : ByteArray) (r : Option Value) : ReturnConvention → Prop where
+-- Flat multi-return: `(uint256[], address)` with an empty array and zero address is 96 bytes —
+-- `0x40` offset word, then the address word, then the array-length word — with no leading `0x20`.
+#guard
+  (encodeReturnValues?
+      [.dynamicArray (.elem (.int (.uint ⟨256, by decide⟩))), .elem .address]
+      [.array [], .address (.ofNat 0)]).map (·.toList)
+    = some (List.replicate 31 0 ++ [0x40] ++ List.replicate 64 0)
+
+-- Void is the empty flat encoding: `return;` / a fell-through void encodes to empty output.
+#guard (encodeReturnValues? [] []).map (·.toList) = some []
+
+/-- Bridge for migrating single-return proofs: the old one-value encoder is the list encoder at
+    a singleton.  Definitional, so it rewrites either way. -/
+@[simp] theorem encodeReturnValue_eq_singleton (t : ABIType) (v : Value) :
+    encodeReturnValue? t v = encodeReturnValues? [t] [v] := rfl
+
+inductive returnDataEquiv (o : ByteArray) (r : Option (List Value)) : ReturnConvention → Prop where
   | abi {t} :
     returnEquiv o r t →
     returnDataEquiv o r (.abi t)
   | rawBytes :
-    r = some (.bytes o) →
+    r = some [.bytes o] →
     returnDataEquiv o r .rawBytes
   | rawBytesVoid :
     r = none →

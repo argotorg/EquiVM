@@ -1344,7 +1344,8 @@ inductive Stmt where
       List Expr /- args -/ -> Ident /- decoded return, scoped to onSuccess -/ ->
       List Stmt /- onSuccess -/ -> Ident /- raw revert bytes, scoped to onFail -/ ->
       List Stmt /- onFail -/ -> (perm : Bool := true) -> Stmt
-  | return : Expr -> Stmt
+  /- `return (e₁, …, eₙ)`: return the listed values.  `[]` models `return;` / a void return. -/
+  | return : List Expr -> Stmt
   | break : Stmt
   | continue : Stmt
   /- `arr.push(v?)`: grow a dynamic storage array by one.  `some v` appends scalar `v`; `none` is a
@@ -1498,7 +1499,7 @@ mutual
         | _, _, _, _, _, _, _, isFalse hc, _ => isFalse (by intro h; cases h; exact hc rfl)
         | _, _, _, _, _, _, _, _, isFalse hp => isFalse (by intro h; cases h; exact hp rfl)
     | .return ex, .return ey =>
-        match Expr.decEq ex ey with
+        match Expr.decEqList ex ey with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .break, .break => isTrue rfl
@@ -1910,14 +1911,16 @@ structure StructDecl where
 structure FunctionDecl where
   name : Ident
   params : List Param
-  returnType : Option ABIType := none
+  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  returnType : List ABIType := []
   body : List Stmt
   deriving DecidableEq, Repr, Inhabited
 
 structure TransitionDecl where
   name : Ident
   params : List Param
-  returnType : Option ABIType := none
+  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  returnType : List ABIType := []
   body : List Stmt
   deriving DecidableEq, Repr, Inhabited
 

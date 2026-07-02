@@ -79,16 +79,22 @@ theorem assignStorageBlock {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
     ExecBlock cfg solm evm [ .assign .storage ref rhs ] (.ok solm evm') := by
   exact ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil
 
+/-- A single-expression `return` evaluates its one operand into a singleton value list. -/
+theorem evalExprs?_singleton {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {e : Expr} {v : Value} (h : evalExpr? cfg solm evm e = .ok v) :
+    evalExprs? cfg solm evm [e] = .ok [v] := by
+  simp only [evalExprs?, h, bind, EvalResult.bind, pure]
+
 theorem nonpayableBytesLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.bytesLit bytes) ]
-      (.returned { contract := contract, locals := locals } evm (some (.bytes bytes))) := by
+        .return [.bytesLit bytes] ]
+      (.returned { contract := contract, locals := locals } evm (some [.bytes bytes])) := by
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
-      ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+      ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
 
 theorem nonpayableReturnExprBodyReturns {cfg : Config} {contract : ContractDecl}
     {evm : EVM.State} {locals : Store} {expr : Expr} {value : Value}
@@ -96,19 +102,19 @@ theorem nonpayableReturnExprBodyReturns {cfg : Config} {contract : ContractDecl}
     (heval : evalExpr? cfg { contract := contract, locals := locals } evm expr = .ok value) :
     ExecTransitionBody cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return expr ]
-      (.returned { contract := contract, locals := locals } evm (some value)) := by
+        .return [expr] ]
+      (.returned { contract := contract, locals := locals } evm (some [value])) := by
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
-      ExecBlock.consReturn (ExecStmt.return heval)
+      ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton heval))
 
 theorem nonpayableIntLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
     (evm : EVM.State) (locals : Store) (n : Int)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.intLit n) ]
-      (.returned { contract := contract, locals := locals } evm (some (.int n))) := by
+        .return [.intLit n] ]
+      (.returned { contract := contract, locals := locals } evm (some [.int n])) := by
   exact nonpayableReturnExprBodyReturns h (by simp [evalExpr?, pure])
 
 theorem nonpayableFixedBytesLiteralBodyReturns {cfg : Config} {contract : ContractDecl}
@@ -116,8 +122,8 @@ theorem nonpayableFixedBytesLiteralBodyReturns {cfg : Config} {contract : Contra
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody cfg contract evm locals
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.fixedBytesLit n bytes) ]
-      (.returned { contract := contract, locals := locals } evm (some (.fixedBytes n bytes))) := by
+        .return [.fixedBytesLit n bytes] ]
+      (.returned { contract := contract, locals := locals } evm (some [.fixedBytes n bytes])) := by
   exact nonpayableReturnExprBodyReturns h (by simp [evalExpr?, pure])
 
 /-! ## Source values -/
@@ -159,14 +165,14 @@ theorem internalCallTransitionReturn {cfg : Config} {caller : Frame} {evm callee
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
     (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body
-      (.returned calleeSolm calleeEvm (some value))) :
+      (.returned calleeSolm calleeEvm (some [value]))) :
     ExecStmt cfg caller evm (.internalCall name args retVar)
       (.ok { caller with locals := caller.locals.insert retVar value } calleeEvm) := by
   simpa [TransitionDecl.toCallable, ExecTransitionBody, resumeAfterInternalCall] using
     ExecStmt.internalCallReturn (cfg := cfg) (solm := caller) (evm := evm) (name := name)
       (args := args) (retVar := retVar) (argVals := argVals) (callee := callee.toCallable)
       (locals := locals) (calleeSolm := calleeSolm) (calleeEvm := calleeEvm)
-      (value := some value) hargs hlookup (by simpa [TransitionDecl.toCallable] using hbind)
+      (value := some [value]) hargs hlookup (by simpa [TransitionDecl.toCallable] using hbind)
       (by simpa [ExecTransitionBody, TransitionDecl.toCallable] using hbody)
 
 /-- If an internal call's transition body reverts, the internal-call statement reverts. -/
@@ -187,7 +193,7 @@ theorem internalCallTransitionRevert {cfg : Config} {caller : Frame} {evm : EVM.
 helper calls. -/
 theorem internalCallFunctionReturn {cfg : Config} {caller : Frame} {evm calleeEvm : EVM.State}
     {name retVar : Ident} {args : List Expr} {argVals : List Value}
-    {callee : FunctionDecl} {locals : Store} {calleeSolm : Frame} {value : Option Value}
+    {callee : FunctionDecl} {locals : Store} {calleeSolm : Frame} {value : Option (List Value)}
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
     (hbind : bindParams? callee.params argVals = some locals)
@@ -240,7 +246,7 @@ theorem externalCallFailure {cfg : Config} {C : ContractDecl}
 theorem externalCallSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
     (hreceiver :
       evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
@@ -250,7 +256,7 @@ theorem externalCallSuccess {cfg : Config} {C : ContractDecl}
     (hdec : cfg.externalABI.decode? name out = some value) :
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
   exact ExecBlock.consNormal
     (ExecStmt.externalCallSuccess hreceiver (by simp [evalExpr?, pure]) hargs hcall hdec)
     ExecBlock.nil
@@ -299,7 +305,7 @@ theorem checkedExternalCallFailure {cfg : Config} {C : ContractDecl}
 theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
     (hguard :
       evalExpr? cfg { contract := C, locals := locals } evm
         (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true))
@@ -313,7 +319,7 @@ theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact externalCallSuccess hreceiver hargs hcall hdec
 
@@ -377,7 +383,7 @@ decoded return value. -/
 theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
     (hcall :
@@ -386,7 +392,7 @@ theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
     (hdec : cfg.externalABI.decode? name out = some value) :
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
   exact externalCallSuccess
     (receiver := .var receiver)
     (by rw [evalExpr?, hreceiver]; rfl)
@@ -441,7 +447,7 @@ return value. -/
 theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
     (hguard :
       evalExpr? cfg { contract := C, locals := locals } evm
         (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)) = .ok (.bool true))
@@ -454,7 +460,7 @@ theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar value } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
   exact checkedExternalCallSuccess
     (receiver := .var receiver)
     hguard
@@ -757,10 +763,10 @@ theorem ABlock.forStep {cfg evm solm₀ stmts₀ solm solm' rest} {init cond pos
 
 /-- Close with a `return` ⇒ the block returns `value`. -/
 theorem ABlock.returns {cfg evm solm₀ stmts₀ solm rest} {expr value}
-    (prev : ABlock cfg evm solm₀ stmts₀ solm (.return expr :: rest))
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.return [expr] :: rest))
     (heval : evalExpr? cfg solm evm expr = .ok value) :
-    ExecBlock cfg solm₀ evm stmts₀ (.returned solm evm (some value)) :=
-  prev.run (ExecBlock.consReturn (ExecStmt.return heval))
+    ExecBlock cfg solm₀ evm stmts₀ (.returned solm evm (some [value])) :=
+  prev.run (ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton heval)))
 
 /-- Close with a failing `require` ⇒ the block reverts. -/
 theorem ABlock.requireRevert {cfg evm solm₀ stmts₀ solm rest} {cond : Expr}

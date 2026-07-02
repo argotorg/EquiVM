@@ -553,7 +553,7 @@ theorem CoupledState.refines.whileLoopIndexedBody {code : ByteArray} {ee : Execu
 /-- Postcondition used by externally-dispatched transition bodies.  Here a Solm `return` really is
     an EVM `RETURN`; fall-through is left as a cursor for the ABI-encoding epilogue. -/
 def transitionPost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
-    (returnType : Option ABIType) (Q : StateRel) : StmtPost
+    (returnType : List ABIType) (Q : StateRel) : StmtPost
   | .ok frame' evm' =>
       ∃ cur' k' C', RDc code ee g s0 cur' k' C' ∧ cur'.world = worldOf evm'
         ∧ Q cur' frame' evm'
@@ -568,19 +568,19 @@ def transitionPost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : Sta
     side has reached an EVM `RETURN` with ABI-equivalent bytes. -/
 theorem CoupledState.refines.returnTransition {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {cfg : Config} {pc : UInt256} {R Q : StateRel}
-    {returnType : Option ABIType} {expr : Expr} {rest : List Stmt}
+    {returnType : List ABIType} {exprs : List Expr} {rest : List Stmt}
     (st : CoupledState code ee g s0 R pc)
-    {frame' : Frame} {evm' : State} {rv : Option Value} {o : ByteArray}
-    (hstmt : ExecStmt cfg st.frame st.evm (.return expr) (.returned frame' evm' rv))
+    {frame' : Frame} {evm' : State} {rv : Option (List Value)} {o : ByteArray}
+    (hstmt : ExecStmt cfg st.frame st.evm (.return exprs) (.returned frame' evm' rv))
     (hret : RDret code g s0 (worldOf evm') o)
     (hequiv : returnEquiv o rv returnType) :
-    CoupledState.refines st cfg (.return expr :: rest) (transitionPost code ee g s0 returnType Q) := by
+    CoupledState.refines st cfg (.return exprs :: rest) (transitionPost code ee g s0 returnType Q) := by
   refine CoupledState.refines.consReturn st ?_
   exact ⟨frame', evm', rv, hstmt, o, hret, hequiv⟩
 
 /-- Compatibility name for the external-transition interpretation of `equivStmts`. -/
 def equivTransitionStmts (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
-    (cfg : Config) (returnType : Option ABIType)
+    (cfg : Config) (returnType : List ABIType)
     (pc : UInt256) (R : StateRel) (stmts : List Stmt) (Q : StateRel) : Prop :=
   equivStmts code ee g s0 cfg pc R stmts (transitionPost code ee g s0 returnType Q)
 
@@ -695,7 +695,7 @@ theorem CoupledState.refines.externalCall {code : ByteArray} {ee : ExecutionEnv}
     (st : CoupledState code ee g s0 R pc)
     (hcall :
       ∃ (target : EVM.Address) (sendVal : ℤ) (argVals : List Value) (evm' : State)
-        (out : ByteArray) (value : Value) (cur' : Cursor) (k' C' : ℕ),
+        (out : ByteArray) (value : List Value) (cur' : Cursor) (k' C' : ℕ),
         evalExpr? cfg st.frame st.evm receiver = .ok (.address target) ∧
         evalExpr? cfg st.frame st.evm eth = .ok (.int sendVal) ∧
         evalExprs? cfg st.frame st.evm args = .ok argVals ∧
@@ -705,7 +705,7 @@ theorem CoupledState.refines.externalCall {code : ByteArray} {ee : ExecutionEnv}
         cur'.pc = pc' ∧
         RDc code ee g s0 cur' k' C' ∧
         cur'.world = worldOf evm' ∧
-        R' cur' { st.frame with locals := st.frame.locals.insert retVar value } evm')
+        R' cur' { st.frame with locals := st.frame.locals.insert retVar (collapseReturns value) } evm')
     (hrest : ∀ cur' k' C' frame' evm',
       ∀ (hpc' : cur'.pc = pc') (hRD' : RDc code ee g s0 cur' k' C')
         (hworld' : cur'.world = worldOf evm') (hrel' : R' cur' frame' evm'),
@@ -716,7 +716,7 @@ theorem CoupledState.refines.externalCall {code : ByteArray} {ee : ExecutionEnv}
   obtain ⟨target, sendVal, argVals, evm', out, value, cur', k', C',
     hrec, heth, hargs, hcallEVM, hdec, hpc', hRD', hw', hR'⟩ := hcall
   obtain ⟨result, hblock, hpost⟩ :=
-    hrest cur' k' C' { st.frame with locals := st.frame.locals.insert retVar value } evm'
+    hrest cur' k' C' { st.frame with locals := st.frame.locals.insert retVar (collapseReturns value) } evm'
       hpc' hRD' hw' hR'
   exact ⟨result,
     ExecBlock.consNormal (ExecStmt.externalCallSuccess hrec heth hargs hcallEVM hdec) hblock,
@@ -776,7 +776,7 @@ theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (hcall : ∀ cur k C frame evm, cur.pc = pc → RDc code ee g s0 cur k C → cur.world = worldOf evm →
         R cur frame evm →
         ∃ (target : EVM.Address) (sendVal : ℤ) (argVals : List Value) (evm' : State)
-          (out : ByteArray) (value : Value) (cur' : Cursor) (k' C' : ℕ),
+          (out : ByteArray) (value : List Value) (cur' : Cursor) (k' C' : ℕ),
           evalExpr? cfg frame evm receiver = .ok (.address target) ∧
           evalExpr? cfg frame evm eth = .ok (.int sendVal) ∧
           evalExprs? cfg frame evm args = .ok argVals ∧
@@ -786,7 +786,7 @@ theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
           cur'.pc = pc' ∧
           RDc code ee g s0 cur' k' C' ∧
           cur'.world = worldOf evm' ∧
-          R' cur' { frame with locals := frame.locals.insert retVar value } evm')
+          R' cur' { frame with locals := frame.locals.insert retVar (collapseReturns value) } evm')
     (hrest : equivStmts code ee g s0 cfg pc' R' rest Post) :
     equivStmts code ee g s0 cfg pc R
       (.externalCall receiver name eth args retVar (perm := perm) :: rest) Post := by
@@ -794,7 +794,7 @@ theorem equivStmts.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
   obtain ⟨target, sendVal, argVals, evm', out, value, cur', k', C',
     hrec, heth, hargs, hcallEVM, hdec, hpc', hRD', hw', hR'⟩ := hcall cur k C frame evm hpc hRD hw hR
   obtain ⟨result, hblock, hmatch⟩ :=
-    hrest cur' k' C' { frame with locals := frame.locals.insert retVar value } evm' hpc' hRD' hw' hR'
+    hrest cur' k' C' { frame with locals := frame.locals.insert retVar (collapseReturns value) } evm' hpc' hRD' hw' hR'
   exact ⟨result,
     ExecBlock.consNormal (ExecStmt.externalCallSuccess hrec heth hargs hcallEVM hdec) hblock, hmatch⟩
 
@@ -1016,7 +1016,7 @@ theorem equivStmts.toTransition {cfg : Config} {contract : ContractDecl} {t : Tr
     `ExecFuncBody.execBlockOK`. -/
 def callablePost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (entry : Cursor) (returnTo : UInt256 → Prop)
-    (Return : Cursor → Option Value → StoreRel) : StmtPost
+    (Return : Cursor → Option (List Value) → StoreRel) : StmtPost
   | .ok frame' evm' =>
       ∃ cur' k' C', RDc code ee g s0 cur' k' C' ∧ cur'.world = worldOf evm'
         ∧ Return entry none cur' frame'.locals evm'
@@ -1044,7 +1044,7 @@ def callablePost (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State
 def equivCallable (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (cfg : Config) (pc : UInt256) (R : StateRel) (callable : CallableDecl)
     (ReturnTo : Cursor → UInt256 → Prop)
-    (Return : Cursor → Option Value → StoreRel) : Prop :=
+    (Return : Cursor → Option (List Value) → StoreRel) : Prop :=
   ∀ entry k C args (frame : Frame) evm,
     (hpc : entry.pc = pc) →
     (hRD : RDc code ee g s0 entry k C) →
@@ -1062,7 +1062,7 @@ theorem CoupledState.refines.internalCall {code : ByteArray} {ee : ExecutionEnv}
     {s0 : State} {cfg : Config} {funcPc : UInt256} {R Rcall R' : StateRel}
     {Post : StmtPost} {callable : CallableDecl} {name : Ident} {args : List Expr}
     {retVar : Ident} {rest : List Stmt} {ReturnTo : Cursor → UInt256 → Prop}
-    {Return : Cursor → Option Value → StoreRel}
+    {Return : Cursor → Option (List Value) → StoreRel}
     (st : CoupledState code ee g s0 R funcPc)
     (hequiv : equivCallable code ee g s0 cfg funcPc Rcall callable ReturnTo Return)
     (hsetup :
@@ -1134,7 +1134,7 @@ theorem equivStmts.internalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     {cfg : Config} {funcPc : UInt256} {R Rcall R' : StateRel} {Post : StmtPost}
     {callable : CallableDecl} {name : Ident} {args : List Expr} {retVar : Ident}
     {rest : List Stmt} {ReturnTo : Cursor → UInt256 → Prop}
-    {Return : Cursor → Option Value → StoreRel}
+    {Return : Cursor → Option (List Value) → StoreRel}
     (hequiv : equivCallable code ee g s0 cfg funcPc Rcall callable ReturnTo Return)
     (hsetup : ∀ cur k C frame evm,
         cur.pc = funcPc →

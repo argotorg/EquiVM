@@ -38,7 +38,7 @@ def dispatchMsg (contract : ContractDecl) (calldata : ByteArray)
       | none => contract.fallback
 
 inductive ReturnConvention where
-  | abi : Option ABIType → ReturnConvention
+  | abi : List ABIType → ReturnConvention
   | rawBytes : ReturnConvention
   deriving DecidableEq, Repr, Inhabited
 
@@ -52,8 +52,8 @@ def fallbackCallargs (calldata : ByteArray) : List Param → Option Store
 
 def fallbackReturnConvention (transition : TransitionDecl) : Option ReturnConvention :=
   match transition.params, transition.returnType with
-  | [], none => some (.abi none)
-  | [param], some .bytes =>
+  | [], [] => some (.abi [])
+  | [param], [.bytes] =>
       match param.ty with
       | .bytes => some .rawBytes
       | _ => none
@@ -61,7 +61,7 @@ def fallbackReturnConvention (transition : TransitionDecl) : Option ReturnConven
 
 structure ExternalCallABI where
   encode? : Ident -> List Value -> Option EVM.Bytes
-  decode? : Ident -> EVM.Bytes-> Option Value
+  decode? : Ident -> EVM.Bytes-> Option (List Value)
 
 structure Config where
   storage : StorageLayout
@@ -94,7 +94,10 @@ structure Frame where
   locals : Store
 
 inductive ExecResult where
-  | returned : Frame -> EVM.State -> Option Value -> ExecResult
+  /- The returned-value component is `Option (List Value)`: `none` means the body fell through
+     without executing `return`; `some vs` is an explicit `return` of the listed values (`some []`
+     is an explicit void return). -/
+  | returned : Frame -> EVM.State -> Option (List Value) -> ExecResult
   | ok : Frame -> EVM.State -> ExecResult
   | break : Frame -> EVM.State -> ExecResult
   | continue : Frame -> EVM.State -> ExecResult
@@ -102,7 +105,7 @@ inductive ExecResult where
 
 structure CallableDecl where
   params : List Param
-  returnType : Option ABIType := none
+  returnType : List ABIType := []
   body : Body
   deriving Repr, Inhabited
 
@@ -1358,10 +1361,10 @@ def defaultEncodeCall? (_name : Ident) (args : List Value) : Option EVM.Bytes :=
   let words <- wordsOfValues? args
   some (words.foldl (fun bytes word => bytes ++ (Ethereum.UInt256.toByteArray word)) ByteArray.empty)
 
-def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option Value :=
+def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option (List Value) :=
   -- Default typed external calls expect one `uint256` return word.  The ABI decoder models solc's
   -- generated signed-size guard, so under-length and huge return data both decode to `none`.
-  ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) bytes
+  ABI.decodeReturnValues? [.elem (.int (.uint ⟨256, by decide⟩))] bytes
 
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }
@@ -1531,9 +1534,19 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
       → newViaEVM cfg evm name value args (EVM.address 0, evm, false)
 
 
-def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option Value) :
+/-- Collapse a callee's returned list into the single value bound to a call's result identifier.
+    This `Value.tuple` is internal-call plumbing only — it is never ABI-encoded; the ABI boundary is
+    transitions, which use the return list directly. -/
+def collapseReturns : List Value → Value
+  | []  => .unit
+  | [v] => v
+  | vs  => .tuple vs
+
+def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (List Value)) :
     Frame :=
-  let valueToWrite := match value with | some v => v | none => .unit
+  let valueToWrite := match value with
+    | none    => .unit
+    | some vs => collapseReturns vs
   { caller with locals := caller.locals.insert retVar valueToWrite }
 
 /-- `arr.push(v?)`: grow the dynamic array named by `ref` by one.  Reads the current length `L`
@@ -1733,7 +1746,7 @@ inductive ExecStmt (cfg : Config) :
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = some value ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm))
-        (.ok { solm with locals := solm.locals.insert retVar value } evm')
+        (.ok { solm with locals := solm.locals.insert retVar (collapseReturns value) } evm')
   | externalCallFailure :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -1822,7 +1835,7 @@ inductive ExecStmt (cfg : Config) :
       typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = some value ->
-      ExecBlock cfg { solm with locals := solm.locals.insert retVar value } evm' onSuccess result ->
+      ExecBlock cfg { solm with locals := solm.locals.insert retVar (collapseReturns value) } evm' onSuccess result ->
       ExecStmt cfg solm evm
         (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) result
   | checkedCallFail :
@@ -1871,11 +1884,11 @@ inductive ExecStmt (cfg : Config) :
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
   | return :
-      evalExpr? cfg solm evm expr = .ok value ->
-      ExecStmt cfg solm evm (.return expr) (.returned solm evm (some value))
+      evalExprs? cfg solm evm exprs = .ok values ->
+      ExecStmt cfg solm evm (.return exprs) (.returned solm evm (some values))
   | returnRevert :
-      evalExpr? cfg solm evm expr = .revert ->
-      ExecStmt cfg solm evm (.return expr) .reverted
+      evalExprs? cfg solm evm exprs = .revert ->
+      ExecStmt cfg solm evm (.return exprs) .reverted
   | break :
       ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
@@ -2034,7 +2047,7 @@ inductive solmExec
     /- Solidity receive dispatch has no selector or ABI argument decoding. -/
     receiveDispatchMsg contract I.calldata = .some transition →
     transition.params = [] →
-    transition.returnType = none →
+    transition.returnType = [] →
     evmState =
       { (default : EVM.State) with
           accountMap := σ
@@ -2047,7 +2060,7 @@ inductive solmExec
           genesisBlockHeader := genesisBlockHeader
       } →
     ExecTransitionBody conf contract evmState ∅ transition.body solmRes →
-    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes (.abi none)
+    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes (.abi [])
 
 -- Solm constructor execution.
 inductive solmCtorExec
