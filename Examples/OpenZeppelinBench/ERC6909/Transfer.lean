@@ -676,7 +676,7 @@ theorem erc6909TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     ExecTransitionBody config contract evm (transferStore I)
       transferTransition.body
       (.returned { contract := contract, locals := transferStoreToBalance evm I }
-        (transferPostState evm I) (some (.bool true))) := by
+        (transferPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal
@@ -692,7 +692,7 @@ theorem erc6909TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transfer_newToBalance evm I hfit)
       (transferAssignTo evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem erc6909TransferBodySourceCore (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -703,7 +703,7 @@ theorem erc6909TransferBodySourceCore (evm : EVM.State) (I : ExecutionEnv)
     ExecTransitionBody config contract evm (transferStore I)
       transferTransition.body
       (.returned { contract := contract, locals := transferStoreToBalance evm I }
-        (transferPostState evm I) (some (.bool true))) :=
+        (transferPostState evm I) (some [(.bool true)])) :=
   erc6909TransferBodyReturns evm I hwv hsender hreceiver henough hfit
 
 theorem erc6909TransferBodyReverts_sender_zero (evm : EVM.State) (I : ExecutionEnv)

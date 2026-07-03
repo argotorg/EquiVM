@@ -36,7 +36,7 @@ def uint256 : ABIType := .elem (.int (.uint ⟨256, by decide⟩))
 def powTransition : TransitionDecl :=
   { name := "pow2"
     params := [{ name := "n", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ -- non-payable guard (mirrors the compiled `CALLVALUE; ISZERO; …` prologue)
         .require (.binary .eq (.env .callvalue) (.intLit 0)),
@@ -50,7 +50,7 @@ def powTransition : TransitionDecl :=
           [ .letDecl "r" (some uint256) (.binary .mul (.var "r") (.intLit 2)),
             .letDecl "i" (some uint256) (.binary .add (.var "i") (.intLit 1)) ],
         -- return r
-        .return (.var "r") ] }
+        .return [(.var "r")] ] }
 
 /-- Solm spec of the `Pow` contract: no storage, no constructor body, one transition. -/
 def powContract : ContractDecl :=

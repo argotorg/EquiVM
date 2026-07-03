@@ -265,7 +265,7 @@ def approveFunction : FunctionDecl :=
     params :=
       [ { name := "owner", ty := addr }, { name := "spender", ty := addr },
         { name := "value", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body := [ .assign .storage (allowanceRef (.var "owner") (.var "spender")) (.var "value") ] }
 
 def transferFunction : FunctionDecl :=
@@ -273,7 +273,7 @@ def transferFunction : FunctionDecl :=
     params :=
       [ { name := "from", ty := addr }, { name := "to", ty := addr },
         { name := "value", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body :=
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -286,7 +286,7 @@ def transferFunction : FunctionDecl :=
 def mintFunction : FunctionDecl :=
   { name := "_mint"
     params := [{ name := "to", ty := addr }, { name := "value", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .assign .storage totalSupplyRef
           (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
@@ -296,7 +296,7 @@ def mintFunction : FunctionDecl :=
 def burnFunction : FunctionDecl :=
   { name := "_burn"
     params := [{ name := "from", ty := addr }, { name := "value", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
@@ -311,7 +311,7 @@ def safeTransferFunction : FunctionDecl :=
     params :=
       [ { name := "token", ty := addr }, { name := "to", ty := addr },
         { name := "value", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body :=
       [ .lowLevelCall (.var "token") (.intLit 0)
           (transferCalldataExpr (.var "to") (.var "value")) "_success" "_data",
@@ -322,7 +322,7 @@ def updateFunction : FunctionDecl :=
     params :=
       [ { name := "balance0", ty := uint256 }, { name := "balance1", ty := uint256 },
         { name := "_reserve0", ty := uint112 }, { name := "_reserve1", ty := uint112 } ]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .and
           (.binary .le (.var "balance0") (.intLit maxUint112))
@@ -355,7 +355,7 @@ def updateFunction : FunctionDecl :=
 def sqrtFunction : FunctionDecl :=
   { name := "sqrt"
     params := [{ name := "y", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .ite (.binary .gt (.var "y") (.intLit 3))
           [ .letDecl "z" (some uint256) (.var "y"),
@@ -367,21 +367,21 @@ def sqrtFunction : FunctionDecl :=
                   (.binary .div
                     (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
                     (.intLit 2)) ],
-            .return (.var "z") ]
+            .return [(.var "z")] ]
           [ .ite (.binary .ne (.var "y") (.intLit 0))
-              [ .return (.intLit 1) ]
-              [ .return (.intLit 0) ] ] ] }
+              [ .return [(.intLit 1)] ]
+              [ .return [(.intLit 0)] ] ] ] }
 
 def minFunction : FunctionDecl :=
   { name := "min"
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
-    returnType := some uint256
-    body := [ .return (.ite (.binary .lt (.var "x") (.var "y")) (.var "x") (.var "y")) ] }
+    returnType := [uint256]
+    body := [ .return [(.ite (.binary .lt (.var "x") (.var "y")) (.var "x") (.var "y"))] ] }
 
 def mintFeeFunction : FunctionDecl :=
   { name := "_mintFee"
     params := [{ name := "_reserve0", ty := uint112 }, { name := "_reserve1", ty := uint112 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       checkedExternalCallStmts (.storage factoryRef) "feeTo" (.intLit 0) [] "feeTo"
         (perm := false) ++
@@ -410,7 +410,7 @@ def mintFeeFunction : FunctionDecl :=
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .assign .storage kLastRef (.intLit 0) ]
               [] ],
-        .return (.var "feeOn") ] }
+        .return [(.var "feeOn")] ] }
 
 /-! ## Constructor -/
 
@@ -424,46 +424,46 @@ def constructorDecl : ConstructorDecl :=
 /-! ## LP-token inherited public surface -/
 
 def nameTransition : TransitionDecl :=
-  { name := "name", params := [], returnType := some .string
-    body := nonpayable ++ [ .return (.bytesLit nameBytes) ] }
+  { name := "name", params := [], returnType := [.string]
+    body := nonpayable ++ [ .return [(.bytesLit nameBytes)] ] }
 
 def symbolTransition : TransitionDecl :=
-  { name := "symbol", params := [], returnType := some .string
-    body := nonpayable ++ [ .return (.bytesLit symbolBytes) ] }
+  { name := "symbol", params := [], returnType := [.string]
+    body := nonpayable ++ [ .return [(.bytesLit symbolBytes)] ] }
 
 def decimalsTransition : TransitionDecl :=
-  { name := "decimals", params := [], returnType := some uint8
-    body := nonpayable ++ [ .return (.intLit 18) ] }
+  { name := "decimals", params := [], returnType := [uint8]
+    body := nonpayable ++ [ .return [(.intLit 18)] ] }
 
 def totalSupplyTransition : TransitionDecl :=
-  { name := "totalSupply", params := [], returnType := some uint256
-    body := nonpayable ++ [ .return (.storage totalSupplyRef) ] }
+  { name := "totalSupply", params := [], returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage totalSupplyRef)] ] }
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
     params := [{ name := "owner", ty := legacyAddr }]
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage (balanceOfRef (.var "owner"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage (balanceOfRef (.var "owner")))] ] }
 
 def allowanceTransition : TransitionDecl :=
   { name := "allowance"
     params := [{ name := "owner", ty := legacyAddr }, { name := "spender", ty := legacyAddr }]
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage (allowanceRef (.var "owner") (.var "spender"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage (allowanceRef (.var "owner") (.var "spender")))] ] }
 
 def approveTransition : TransitionDecl :=
   { name := "approve"
     params := [{ name := "spender", ty := legacyAddr }, { name := "value", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
-          .return (.boolLit true) ] }
+          .return [(.boolLit true)] ] }
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
     params := [{ name := "to", ty := legacyAddr }, { name := "value", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
@@ -473,13 +473,13 @@ def transferTransition : TransitionDecl :=
           .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
           .assign .storage (balanceOfRef (.var "to"))
             (u256 (.binary .add (.var "toBalance") (.var "value"))),
-          .return (.boolLit true) ] }
+          .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
     params := [{ name := "from", ty := legacyAddr }, { name := "to", ty := legacyAddr },
       { name := "value", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
@@ -495,21 +495,21 @@ def transferFromTransition : TransitionDecl :=
           .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
           .assign .storage (balanceOfRef (.var "to"))
             (u256 (.binary .add (.var "toBalance") (.var "value"))),
-          .return (.boolLit true) ] }
+          .return [(.boolLit true)] ] }
 
 def domainSeparatorTransition : TransitionDecl :=
-  { name := "DOMAIN_SEPARATOR", params := [], returnType := some bytes32
-    body := nonpayable ++ [ .return (.storage domainSeparatorRef) ] }
+  { name := "DOMAIN_SEPARATOR", params := [], returnType := [bytes32]
+    body := nonpayable ++ [ .return [(.storage domainSeparatorRef)] ] }
 
 def permitTypehashTransition : TransitionDecl :=
-  { name := "PERMIT_TYPEHASH", params := [], returnType := some bytes32
-    body := nonpayable ++ [ .return permitTypehashExpr ] }
+  { name := "PERMIT_TYPEHASH", params := [], returnType := [bytes32]
+    body := nonpayable ++ [ .return [permitTypehashExpr] ] }
 
 def noncesTransition : TransitionDecl :=
   { name := "nonces"
     params := [{ name := "owner", ty := legacyAddr }]
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage (noncesRef (.var "owner"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage (noncesRef (.var "owner")))] ] }
 
 def permitTransition : TransitionDecl :=
   { name := "permit"
@@ -517,7 +517,7 @@ def permitTransition : TransitionDecl :=
       [ { name := "owner", ty := legacyAddr }, { name := "spender", ty := legacyAddr },
         { name := "value", ty := uint256 }, { name := "deadline", ty := uint256 },
         { name := "v", ty := uint8 }, { name := "r", ty := bytes32 }, { name := "s", ty := bytes32 } ]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++
         [ .require (.binary .ge (.var "deadline") now),
@@ -537,46 +537,46 @@ def permitTransition : TransitionDecl :=
 /-! ## Pair getters and mutating AMM surface -/
 
 def minimumLiquidityTransition : TransitionDecl :=
-  { name := "MINIMUM_LIQUIDITY", params := [], returnType := some uint256
-    body := nonpayable ++ [ .return (.intLit minimumLiquidity) ] }
+  { name := "MINIMUM_LIQUIDITY", params := [], returnType := [uint256]
+    body := nonpayable ++ [ .return [(.intLit minimumLiquidity)] ] }
 
 def factoryTransition : TransitionDecl :=
-  { name := "factory", params := [], returnType := some addr
-    body := nonpayable ++ [ .return (.storage factoryRef) ] }
+  { name := "factory", params := [], returnType := [addr]
+    body := nonpayable ++ [ .return [(.storage factoryRef)] ] }
 
 def token0Transition : TransitionDecl :=
-  { name := "token0", params := [], returnType := some addr
-    body := nonpayable ++ [ .return (.storage token0Ref) ] }
+  { name := "token0", params := [], returnType := [addr]
+    body := nonpayable ++ [ .return [(.storage token0Ref)] ] }
 
 def token1Transition : TransitionDecl :=
-  { name := "token1", params := [], returnType := some addr
-    body := nonpayable ++ [ .return (.storage token1Ref) ] }
+  { name := "token1", params := [], returnType := [addr]
+    body := nonpayable ++ [ .return [(.storage token1Ref)] ] }
 
 def getReservesTransition : TransitionDecl :=
   { name := "getReserves"
     params := []
-    returnType := some (.tuple [uint112, uint112, uint32])
+    returnType := [uint112, uint112, uint32]
     body :=
       nonpayable ++
-        [ .return (.tupleLit
-            [ .storage reserve0Ref, .storage reserve1Ref, .storage blockTimestampLastRef ]) ] }
+        [ .return
+            [ .storage reserve0Ref, .storage reserve1Ref, .storage blockTimestampLastRef ] ] }
 
 def price0CumulativeLastTransition : TransitionDecl :=
-  { name := "price0CumulativeLast", params := [], returnType := some uint256
-    body := nonpayable ++ [ .return (.storage price0CumulativeLastRef) ] }
+  { name := "price0CumulativeLast", params := [], returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage price0CumulativeLastRef)] ] }
 
 def price1CumulativeLastTransition : TransitionDecl :=
-  { name := "price1CumulativeLast", params := [], returnType := some uint256
-    body := nonpayable ++ [ .return (.storage price1CumulativeLastRef) ] }
+  { name := "price1CumulativeLast", params := [], returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage price1CumulativeLastRef)] ] }
 
 def kLastTransition : TransitionDecl :=
-  { name := "kLast", params := [], returnType := some uint256
-    body := nonpayable ++ [ .return (.storage kLastRef) ] }
+  { name := "kLast", params := [], returnType := [uint256]
+    body := nonpayable ++ [ .return [(.storage kLastRef)] ] }
 
 def initializeTransition : TransitionDecl :=
   { name := "initialize"
     params := [{ name := "_token0", ty := legacyAddr }, { name := "_token1", ty := legacyAddr }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++
         [ .require (.binary .eq sender (.storage factoryRef)),
@@ -586,7 +586,7 @@ def initializeTransition : TransitionDecl :=
 def mintTransition : TransitionDecl :=
   { name := "mint"
     params := [{ name := "to", ty := legacyAddr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       lockEnter ++
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
@@ -619,12 +619,12 @@ def mintTransition : TransitionDecl :=
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
       lockExit ++
-        [ .return (.var "liquidity") ] }
+        [ .return [(.var "liquidity")] ] }
 
 def burnTransition : TransitionDecl :=
   { name := "burn"
     params := [{ name := "to", ty := legacyAddr }]
-    returnType := some (.tuple [uint256, uint256])
+    returnType := [uint256, uint256]
     body :=
       lockEnter ++
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
@@ -656,14 +656,14 @@ def burnTransition : TransitionDecl :=
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
       lockExit ++
-        [ .return (.tupleLit [.var "amount0", .var "amount1"]) ] }
+        [ .return  [.var "amount0", .var "amount1"] ] }
 
 def swapTransition : TransitionDecl :=
   { name := "swap"
     params :=
       [ { name := "amount0Out", ty := uint256 }, { name := "amount1Out", ty := uint256 },
         { name := "to", ty := legacyAddr }, { name := "data", ty := .bytes } ]
-    returnType := none
+    returnType := []
     body :=
       lockEnter ++
         [ .require (.binary .or
@@ -725,7 +725,7 @@ def swapTransition : TransitionDecl :=
 def skimTransition : TransitionDecl :=
   { name := "skim"
     params := [{ name := "to", ty := legacyAddr }]
-    returnType := none
+    returnType := []
     body :=
       lockEnter ++
         [ .letDecl "_token0" (some addr) (.storage token0Ref),
@@ -743,7 +743,7 @@ def skimTransition : TransitionDecl :=
 def syncTransition : TransitionDecl :=
   { name := "sync"
     params := []
-    returnType := none
+    returnType := []
     body :=
       lockEnter ++ pairBalanceOfThisStmts "balance0" "balance1" ++
       updateReservesStmts (.var "balance0") (.var "balance1") ++
@@ -751,12 +751,12 @@ def syncTransition : TransitionDecl :=
 
 /-! ## Contract and config -/
 
-def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option Value :=
+def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option (List Value) :=
   if out.size = 0 then
-    some .unit
+    some []
   else
     match ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 boolTy out with
-    | some (.bool true) => some .unit
+    | some (.bool true) => some []
     | _ => none
 
 def encodeEcrecoverInput? (args : List Value) : Option EVM.Bytes := do
@@ -781,15 +781,15 @@ def uniswapExternalABI : ExternalCallABI where
       none
   decode? := fun name out =>
     if name = "balanceOf" then
-      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 uint256 out
+      (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 uint256 out).map (fun v => [v])
     else if name = "transfer" then
       decodeOptionalBoolOrEmpty? out
     else if name = "feeTo" then
-      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out
+      (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out).map (fun v => [v])
     else if name = "uniswapV2Call" then
-      some .unit
+      some []
     else if name = "ecrecover" then
-      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out
+      (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out).map (fun v => [v])
     else
       none
 

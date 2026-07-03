@@ -279,7 +279,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           (by
             change accountMapEquiv σ' σ'_solm
             simpa [evmECall] using hPostAccounts)
-          (returnEquiv.void rfl rfl rfl)
+          (returnEquiv.fallthrough rfl rfl (by native_decide))
       · obtain ⟨_, _, _, _, rd1405⟩ :=
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
@@ -296,6 +296,6 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           (by
             change accountMapEquiv σ' σ'_solm
             simpa [evmECall] using hPostAccounts)
-          (returnEquiv.void rfl rfl rfl)
+          (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 end BlindAuction

@@ -16,8 +16,8 @@ theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "_paused" = none) :
     ExecTransitionBody config contract evm locals pausedTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩)))) := by
+        (some [(wordToElem .bool
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) ⟨255⟩))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef config { contract := contract, locals := locals } evm pausedRef =
@@ -129,18 +129,18 @@ theorem pausablePausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
         pausedTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (wordToElem .bool (pausedWord σ_solm I)))) := by
+          (some [(wordToElem .bool (pausedWord σ_solm I))])) := by
     simpa [pausedRawWord, pausedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       pausablePausedBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
   have hretVal :
-      (some (wordToElem .bool (pausedWord σ_solm I)) : Option Value) =
-        some (wordToElem .bool (pausedWord σ_evm I)) := by
+      (some [wordToElem .bool (pausedWord σ_solm I)] : Option (List Value)) =
+        some [wordToElem .bool (pausedWord σ_evm I)] := by
     simp [pausedWord, hword.symm]
   have henc :
       returnEquiv (UInt256.toByteArray (pausedReturnWord σ_evm I))
-        (some (wordToElem .bool (pausedWord σ_evm I))) pausedTransition.returnType := by
+        (some [wordToElem .bool (pausedWord σ_evm I)]) pausedTransition.returnType := by
     simpa [pausedTransition] using
       returnEquiv_of_encode (abit := boolTy) (rv := wordToElem .bool (pausedWord σ_evm I))
         (o := UInt256.toByteArray (pausedReturnWord σ_evm I))

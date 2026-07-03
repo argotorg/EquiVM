@@ -43,7 +43,7 @@ theorem truthDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 theorem truthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody truthConfig truthContract evm locals truthTransition.body
-      (.returned { contract := truthContract, locals := locals } evm (some (.bool true))) := by
+      (.returned { contract := truthContract, locals := locals } evm (some [(.bool true)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
 

@@ -1460,7 +1460,7 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 storageStore_executionEnv,
                 simpleAuctionStorageStore_accountMap]))
             hσPost
-            (returnEquiv.void rfl rfl rfl)
+            (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have hnzE : bidHighestBidWord σ_evm I ≠ ⟨0⟩ := hzero
         have hbidS' : (bidHighestBidWord σ_solm I).toNat < I.weiValue.toNat := by
           simpa [hHighestBid] using hbidLt
@@ -1563,7 +1563,7 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                   storageStore_executionEnv, simpleAuctionStorageStore_accountMap]))
               hσPost
-              (returnEquiv.void rfl rfl rfl)
+              (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hoverE : UInt256.size ≤
               (bidPendingReturnsWord σ_evm I).toNat +
                 (bidHighestBidWord σ_evm I).toNat := by

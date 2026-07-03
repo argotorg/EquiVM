@@ -21,7 +21,7 @@ theorem symbolReturnEncoding :
 theorem uniswapSymbolBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals symbolTransition.body
-      (.returned { contract := contract, locals := locals } evm (some (.bytes symbolBytes))) := by
+      (.returned { contract := contract, locals := locals } evm (some [(.bytes symbolBytes)])) := by
   simpa [symbolTransition] using uniswapBytesLiteralBodyReturns evm locals symbolBytes h
 
 private def symbolLiteralWord : UInt256 :=
@@ -157,12 +157,12 @@ theorem uniswapSymbolBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ symbolTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.bytes symbolBytes))) := by
+          (some [(.bytes symbolBytes)])) := by
     exact uniswapSymbolBodyReturns
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
-      returnEquiv symbolReturnBytes (some (.bytes symbolBytes)) symbolTransition.returnType := by
+      returnEquiv symbolReturnBytes (some [.bytes symbolBytes]) symbolTransition.returnType := by
     rw [symbolTransition]
     exact returnEquiv_of_encode symbolReturnEncoding
   exact (uniswapX_symbol (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport

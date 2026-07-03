@@ -790,7 +790,7 @@ theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
     (hn : locals.get? "n" = some (.int (Int.ofNat N))) :
     ∃ L', ExecTransitionBody powConfig Pow.powContract evm locals Pow.powTransition.body
             (.returned { contract := Pow.powContract, locals := L' } evm
-              (some (.int (Int.ofNat (2 ^ N))))) := by
+              (some [(.int (Int.ofNat (2 ^ N)))])) := by
   -- locals after `r := 1` and `i := 0`
   set Lr := locals.insert "r" (.int 1) with hLr
   set Lri := Lr.insert "i" (.int 0) with hLri

@@ -46,30 +46,30 @@ def storageDecls : List StorageDecl :=
 def setTransition : TransitionDecl :=
   { name := "set"
     params := [{ name := "value", ty := stringTy }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "copy" (some stringTy) (.var "value"),
         .assign .storage currentRef (.var "copy"),
-        .return (.arrayLength .localVar { base := "copy" }) ] }
+        .return [(.arrayLength .localVar { base := "copy" })] ] }
 
 def clearCurrentTransition : TransitionDecl :=
   { name := "clearCurrent"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "copy" (some stringTy) (.storage currentRef),
         .delete currentRef,
-        .return (.arrayLength .localVar { base := "copy" }) ] }
+        .return [(.arrayLength .localVar { base := "copy" })] ] }
 
 def currentLengthGetter : TransitionDecl :=
   { name := "currentLength"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.arrayLength .storage currentRef) ] }
+        .return [(.arrayLength .storage currentRef)] ] }
 
 def stringStoreLiteContract : ContractDecl :=
   { name := "StringStoreLite"

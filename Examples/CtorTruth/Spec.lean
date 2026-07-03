@@ -16,10 +16,10 @@ namespace CtorTruth
 def truthTransition : TransitionDecl :=
   { name := "truth"
     params := []
-    returnType := some (.elem .bool)
+    returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0))
-      , .return (.boolLit true) ] }
+      , .return [(.boolLit true)] ] }
 
 /-- A payable constructor avoids Solidity's non-payable constructor guard. -/
 def ctor : ConstructorDecl :=

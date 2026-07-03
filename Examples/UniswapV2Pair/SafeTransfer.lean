@@ -83,7 +83,7 @@ theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
     (hdata : transferCalldata? recipient value = some calldata) :
     evalExpr? config { contract := contract, locals := safeTransferCalleeStore token recipient value }
       evm (transferCalldataExpr (.var "to") (.var "value")) = .ok (.bytes calldata) := by
-  simp only [transferCalldataExpr, evalExpr?, evalExprList?, EvalResult.bind, bind, pure,
+  simp only [transferCalldataExpr, evalExpr?, Solm.evalExprList?.eq_def, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
   rw [safeTransferCalleeStore_to, safeTransferCalleeStore_value]
   simp

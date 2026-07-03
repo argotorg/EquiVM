@@ -1138,7 +1138,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
         blindAuctionWithdrawBodyReturns_zero evmS (withdrawAmountWord σ_solm I)
           (by simpa [evmS, initState] using hwv) hamountS hzeroS
       exact (blindAuctionX_withdraw_zero (g := Sat256.ofUInt256 g) hwv hreach hzero)
-        |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+        |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
     · have hword : withdrawAmountWord σ_evm I = withdrawAmountWord σ_solm I :=
         accountMapEquiv_storage_findD hAccounts I.codeOwner (withdrawAmountSlot I) ⟨0⟩
       have hnonzero : withdrawAmountWord σ_evm I ≠ ⟨0⟩ := hzero
@@ -1293,7 +1293,7 @@ theorem blindAuctionWithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
             exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
               (by simp [evmSCall, evmECall])
               (by simpa [evmSCall, evmECall] using hPostAccounts)
-              (returnEquiv.void rfl rfl rfl)
+              (returnEquiv.fallthrough rfl rfl (by native_decide))
         · let evmSFail : EVM.State :=
             { evmSZero with
               substate := (evmSZero.addAccessedAccount

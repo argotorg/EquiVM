@@ -243,7 +243,7 @@ theorem pausablePauseBody {cA gh bl σ_evm σ_solm σ₀ A I}
           simp [pausePostMap, initState, pausedRawWord, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage]))
         hσPost
-        (returnEquiv.void rfl rfl rfl)
+        (returnEquiv.fallthrough rfl rfl (by native_decide))
   · have hbody := pausablePauseBodyReverts_paused
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)

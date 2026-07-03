@@ -171,7 +171,7 @@ def constructorDecl : ConstructorDecl :=
 def giveRightToVoteTransition : TransitionDecl :=
   { name := "giveRightToVote"
     params := [{ name := "voter", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq sender (.storage chairpersonRef)),
@@ -183,7 +183,7 @@ def giveRightToVoteTransition : TransitionDecl :=
 def delegateTransition : TransitionDecl :=
   { name := "delegate"
     params := [{ name := "to", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         -- `Voter storage sender = voters[msg.sender];`
@@ -216,7 +216,7 @@ def delegateTransition : TransitionDecl :=
 def voteTransition : TransitionDecl :=
   { name := "vote"
     params := [{ name := "proposal", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letStorage "sender" (voterRef sender),
@@ -234,7 +234,7 @@ def voteTransition : TransitionDecl :=
 def winningProposalTransition : TransitionDecl :=
   { name := "winningProposal"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "winningProposal_" (some uint256) (.intLit 0),
@@ -249,18 +249,18 @@ def winningProposalTransition : TransitionDecl :=
                   (.storage (proposalF (.var "p") "voteCount")),
                 .assign .localVar { base := "winningProposal_" } (.var "p") ]
               [] ],
-        .return (.var "winningProposal_") ] }
+        .return [(.var "winningProposal_")] ] }
 
 /-- `winnerName() external view returns (bytes32)` — name of the winning proposal.
     Calls `winningProposal()` internally (the shared routine). -/
 def winnerNameTransition : TransitionDecl :=
   { name := "winnerName"
     params := []
-    returnType := some bytes32
+    returnType := [bytes32]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .internalCall "winningProposal" [] "w",
-        .return (.storage (proposalF (.var "w") "name")) ] }
+        .return [(.storage (proposalF (.var "w") "name"))] ] }
 
 /-! ## Transitions — auto-generated public getters -/
 
@@ -268,35 +268,35 @@ def winnerNameTransition : TransitionDecl :=
 def chairpersonGetter : TransitionDecl :=
   { name := "chairperson"
     params := []
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage chairpersonRef) ] }
+        .return [(.storage chairpersonRef)] ] }
 
 /-- `voters(address) view returns (uint256 weight, bool voted, address delegate, uint256 vote)`.
     The struct getter returns the members as an ABI tuple. -/
 def votersGetter : TransitionDecl :=
   { name := "voters"
     params := [{ name := "a", ty := addr }]
-    returnType := some (.tuple [uint256, boolTy, addr, uint256])
+    returnType := [uint256, boolTy, addr, uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.tupleLit
+        .return
           [ .storage (voterF (.var "a") "weight"),
             .storage (voterF (.var "a") "voted"),
             .storage (voterF (.var "a") "delegate"),
-            .storage (voterF (.var "a") "vote") ]) ] }
+            .storage (voterF (.var "a") "vote") ] ] }
 
 /-- `proposals(uint256) view returns (bytes32 name, uint256 voteCount)`. -/
 def proposalsGetter : TransitionDecl :=
   { name := "proposals"
     params := [{ name := "i", ty := uint256 }]
-    returnType := some (.tuple [bytes32, uint256])
+    returnType := [bytes32, uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.tupleLit
+        .return
           [ .storage (proposalF (.var "i") "name"),
-            .storage (proposalF (.var "i") "voteCount") ]) ] }
+            .storage (proposalF (.var "i") "voteCount") ] ] }
 
 /-! ## Contract + config -/
 

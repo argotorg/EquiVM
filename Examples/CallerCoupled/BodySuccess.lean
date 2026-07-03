@@ -26,6 +26,47 @@ noncomputable section
 
 set_option maxRecDepth 10000
 
+private theorem decodeReturnValues_uint256_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
+    ABI.decodeReturnValues? [abiUInt256] returndata =
+      some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : (returndata.toList.take 32).length = 32 := by
+    rw [List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+private theorem decodeReturnValues_uint256_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
+
+private theorem decodeReturnValues_uint256_none_huge {returndata : ByteArray}
+    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
+
 /-- All `callerBytecode` jump targets validated by one tactic. -/
 macro "caller_jd" : term => `(by jump_dest)
 
@@ -738,7 +779,7 @@ def CallerAssignRel {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHea
 
 def CallerBodyPost (code : ByteArray) (g : Sat256) (s0 : State) : StmtPost
   | .ok _ evm' =>
-      ∃ o, RDret code g s0 (worldOf evm') o ∧ returnEquiv o none none
+      ∃ o, RDret code g s0 (worldOf evm') o ∧ returnEquiv o none []
   | .reverted =>
       RDrev code g s0
   | .returned _ _ _ | .break _ _ | .continue _ _ =>
@@ -1090,10 +1131,10 @@ theorem callerCoupled_externalCall {cA : Batteries.RBSet AccountAddress compare}
     · by_cases hoSmall : o.size < 2 ^ 255
       · set kw := fromByteArrayBigEndian (o.extract 0 32) with hkw
         have hdec : callerConfig.externalABI.decode? "pow2" o =
-            some (.int (Int.ofNat kw)) := by
+            some [(.int (Int.ofNat kw))] := by
           show defaultDecodeReturn? "pow2" o = _
           simpa [defaultDecodeReturn?, ← hkw, Int.ofNat_eq_natCast] using
-            decodeReturnValue_uint256_ok (returndata := o) ho32 hoSmall
+            decodeReturnValues_uint256_ok (returndata := o) ho32 hoSmall
         have hmem32 : o.write 0 (callerCalldataMem I) 128
             (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat =
             o.write 0 (callerCalldataMem I) 128 32 := by
@@ -1138,7 +1179,7 @@ theorem callerCoupled_externalCall {cA : Batteries.RBSet AccountAddress compare}
         have hdecn : callerConfig.externalABI.decode? "pow2" o = none := by
           show defaultDecodeReturn? "pow2" o = none
           simpa [defaultDecodeReturn?] using
-            decodeReturnValue_uint256_none_huge (returndata := o) hoSmall
+            decodeReturnValues_uint256_none_huge (returndata := o) hoSmall
         have hmem32 : o.write 0 (callerCalldataMem I) 128
             (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat =
             o.write 0 (callerCalldataMem I) 128 32 := by
@@ -1168,7 +1209,7 @@ theorem callerCoupled_externalCall {cA : Batteries.RBSet AccountAddress compare}
       have hdecn : callerConfig.externalABI.decode? "pow2" o = none := by
         show defaultDecodeReturn? "pow2" o = none
         simpa [defaultDecodeReturn?] using
-          decodeReturnValue_uint256_none_short (returndata := o) ho32
+          decodeReturnValues_uint256_none_short (returndata := o) ho32
       rw [callerL_rev o.size ho32] at rd144
       have hfp : (if (⟨64⟩ : UInt256).toNat ≥
               (o.write 0 (callerCalldataMem I) 128 o.size).size
@@ -1262,7 +1303,7 @@ theorem callerCoupled_assignReturn {cA : Batteries.RBSet AccountAddress compare}
     rw [← hworldRet]
     exact hret
   exact ⟨.ok frameS evmS, ExecBlock.consNormal hstmt ExecBlock.nil,
-    ByteArray.empty, hretWorld, returnEquiv.void rfl rfl rfl⟩
+    ByteArray.empty, hretWorld, returnEquiv.fallthrough rfl rfl (by native_decide)⟩
 
 set_option maxHeartbeats 4000000 in
 /-- Coupled body-suffix proof from the decoded `Caller.run` body entry at pc 66. -/

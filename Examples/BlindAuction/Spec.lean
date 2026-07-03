@@ -115,10 +115,10 @@ def constructorDecl : ConstructorDecl :=
 def placeBidFn : FunctionDecl :=
   { name := "placeBid"
     params := [{ name := "bidder", ty := addr }, { name := "value", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .ite (.binary .le (.var "value") (.storage highestBidRef))
-          [ .return (.boolLit false) ] [],
+          [ .return [(.boolLit false)] ] [],
         .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
           [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
               (u256 (.binary .add
@@ -127,7 +127,7 @@ def placeBidFn : FunctionDecl :=
           [],
         .assign .storage highestBidRef (.var "value"),
         .assign .storage highestBidderRef (.var "bidder"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 /-! ## Transitions -/
 
@@ -135,7 +135,7 @@ def placeBidFn : FunctionDecl :=
 def bidTransition : TransitionDecl :=
   { name := "bid"
     params := [{ name := "blindedBid", ty := bytes32 }]
-    returnType := none
+    returnType := []
     body :=
       -- `onlyBefore(biddingEnd)`: `if (block.timestamp >= biddingEnd) revert TooLate(biddingEnd);`
       [ .require (.binary .lt now (.storage biddingEndRef)),
@@ -158,7 +158,7 @@ def revealTransition : TransitionDecl :=
     params := [ { name := "values",  ty := .dynamicArray uint256 },
                 { name := "fakes",   ty := .dynamicArray boolTy },
                 { name := "secrets", ty := .dynamicArray bytes32 } ]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         -- `onlyAfter(biddingEnd)`; `onlyBefore(revealEnd)`
@@ -201,7 +201,7 @@ def revealTransition : TransitionDecl :=
 def withdrawTransition : TransitionDecl :=
   { name := "withdraw"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "amount" (some uint256) (.storage (pendingReturnsRef sender)),
@@ -215,7 +215,7 @@ def withdrawTransition : TransitionDecl :=
 def auctionEndTransition : TransitionDecl :=
   { name := "auctionEnd"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         -- `onlyAfter(revealEnd)`: `if (block.timestamp <= revealEnd) revert TooEarly(revealEnd);`
@@ -230,46 +230,46 @@ def auctionEndTransition : TransitionDecl :=
 /-! ## Transitions — auto-generated public getters -/
 
 def beneficiaryGetter : TransitionDecl :=
-  { name := "beneficiary", params := [], returnType := some addr
+  { name := "beneficiary", params := [], returnType := [addr]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage beneficiaryRef) ] }
+              .return [(.storage beneficiaryRef)] ] }
 
 def biddingEndGetter : TransitionDecl :=
-  { name := "biddingEnd", params := [], returnType := some uint256
+  { name := "biddingEnd", params := [], returnType := [uint256]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage biddingEndRef) ] }
+              .return [(.storage biddingEndRef)] ] }
 
 def revealEndGetter : TransitionDecl :=
-  { name := "revealEnd", params := [], returnType := some uint256
+  { name := "revealEnd", params := [], returnType := [uint256]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage revealEndRef) ] }
+              .return [(.storage revealEndRef)] ] }
 
 def endedGetter : TransitionDecl :=
-  { name := "ended", params := [], returnType := some boolTy
+  { name := "ended", params := [], returnType := [boolTy]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage endedRef) ] }
+              .return [(.storage endedRef)] ] }
 
 def highestBidderGetter : TransitionDecl :=
-  { name := "highestBidder", params := [], returnType := some addr
+  { name := "highestBidder", params := [], returnType := [addr]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage highestBidderRef) ] }
+              .return [(.storage highestBidderRef)] ] }
 
 def highestBidGetter : TransitionDecl :=
-  { name := "highestBid", params := [], returnType := some uint256
+  { name := "highestBid", params := [], returnType := [uint256]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage highestBidRef) ] }
+              .return [(.storage highestBidRef)] ] }
 
 /-- `bids(address, uint256) view returns (bytes32 blindedBid, uint256 deposit)` — the two-key getter
     solc generates for the public `mapping(address => Bid[])`. -/
 def bidsGetter : TransitionDecl :=
   { name := "bids"
     params := [{ name := "a", ty := addr }, { name := "i", ty := uint256 }]
-    returnType := some (.tuple [bytes32, uint256])
+    returnType := [bytes32, uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.tupleLit
+        .return
           [ .storage (bidF (.var "a") (.var "i") "blindedBid"),
-            .storage (bidF (.var "a") (.var "i") "deposit") ]) ] }
+            .storage (bidF (.var "a") (.var "i") "deposit") ] ] }
 
 /-! ## Contract + config -/
 

@@ -27,8 +27,8 @@ theorem blindAuctionEndedBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "ended" = none) :
     ExecTransitionBody blindAuctionConfig blindAuctionContract evm locals endedGetter.body
       (.returned { contract := blindAuctionContract, locals := locals } evm
-        (some (wordToElem .bool
-          (UInt256.land ⟨255⟩ (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))))) := by
+        (some [(wordToElem .bool
+          (UInt256.land ⟨255⟩ (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩)))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef blindAuctionConfig
@@ -154,7 +154,7 @@ theorem blindAuctionEndedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
           endedGetter.body
           (.returned { contract := blindAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (wordToElem .bool (endedMaskedWord σ_solm I)))) := by
+            (some [(wordToElem .bool (endedMaskedWord σ_solm I))])) := by
       simpa [endedWord, endedMaskedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         blindAuctionEndedBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -177,7 +177,7 @@ theorem blindAuctionEndedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
         (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
-          (rest := [.return (.storage endedRef)])
+          (rest := [.return [(.storage endedRef)]])
           (by simp only [initState]; exact hwv))
     exact (blindAuctionX_ended_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionRevert hcode hd hdec hbody

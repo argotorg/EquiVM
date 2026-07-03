@@ -41,7 +41,7 @@ theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals
       CtorTruth.truthTransition.body
-      (.returned { contract := CtorTruth.contract, locals := locals } evm (some (.bool true))) := by
+      (.returned { contract := CtorTruth.contract, locals := locals } evm (some [(.bool true)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
 

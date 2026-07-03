@@ -10,10 +10,10 @@ open Solm ABI
 def truthTransition : TransitionDecl :=
   { name := "truth"
     params := []
-    returnType := some (.elem .bool)
+    returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0))
-      , .return (.boolLit true) ] }
+      , .return [(.boolLit true)] ] }
 
 /-- Solm specification of the `Truth` contract: no storage, no constructor body,
     a single transition. -/

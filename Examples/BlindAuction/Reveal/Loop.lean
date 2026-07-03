@@ -2249,7 +2249,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false (evm : EVM.State) (callargs : S
         (locals := scratch_placeBidStore evm.executionEnv.source value)
         (calleeSolm := calleeFrame)
         (calleeEvm := evm)
-        (value := some (.bool false))
+        (value := some [(.bool false)])
         (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
         scratch_placeBid_lookup
         (by simpa [FunctionDecl.toCallable] using
@@ -2375,7 +2375,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
         (.returned
           { contract := blindAuctionContract,
             locals := scratch_placeBidStore evm.executionEnv.source value }
-          evmPB (some (.bool true))))
+          evmPB (some [(.bool true)])))
     (href : scratch_revealBidEvaledRef evmPB i = scratch_revealBidEvaledRef evm i) :
     ExecBlock blindAuctionConfig
       { contract := blindAuctionContract, locals := scratch_revealLoopStore callargs len refund i }
@@ -2460,7 +2460,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
         (locals := scratch_placeBidStore evm.executionEnv.source value)
         (calleeSolm := calleeFrame)
         (calleeEvm := evmPB)
-        (value := some (.bool true))
+        (value := some [(.bool true)])
         (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
         scratch_placeBid_lookup
         (by simpa [FunctionDecl.toCallable] using
@@ -3373,7 +3373,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false_of_get (evm : EVM.State) (local
         (locals := scratch_placeBidStore evm.executionEnv.source value)
         (calleeSolm := calleeFrame)
         (calleeEvm := evm)
-        (value := some (.bool false))
+        (value := some [(.bool false)])
         (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
         scratch_placeBid_lookup
         (by simpa [FunctionDecl.toCallable] using
@@ -3502,7 +3502,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
         (.returned
           { contract := blindAuctionContract,
             locals := scratch_placeBidStore evm.executionEnv.source value }
-          evmPB (some (.bool true))))
+          evmPB (some [(.bool true)])))
     (href : scratch_revealBidEvaledRef evmPB i = scratch_revealBidEvaledRef evm i) :
     ExecBlock blindAuctionConfig
       { contract := blindAuctionContract, locals := locals }
@@ -3586,7 +3586,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
         (locals := scratch_placeBidStore evm.executionEnv.source value)
         (calleeSolm := calleeFrame)
         (calleeEvm := evmPB)
-        (value := some (.bool true))
+        (value := some [(.bool true)])
         (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
         scratch_placeBid_lookup
         (by simpa [FunctionDecl.toCallable] using

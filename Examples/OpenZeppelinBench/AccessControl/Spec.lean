@@ -81,42 +81,42 @@ def storageLayout : StorageLayout where
 def defaultAdminRoleTransition : TransitionDecl :=
   { name := "DEFAULT_ADMIN_ROLE"
     params := []
-    returnType := some bytes32
+    returnType := [bytes32]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return defaultAdminRole ] }
+        .return [defaultAdminRole] ] }
 
 def supportsInterfaceTransition : TransitionDecl :=
   { name := "supportsInterface"
     params := [{ name := "interfaceId", ty := bytes4 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return
+        .return [
           (.binary .or
             (.binary .eq (.var "interfaceId") iaccessControlId)
-            (.binary .eq (.var "interfaceId") ierc165Id)) ] }
+            (.binary .eq (.var "interfaceId") ierc165Id))] ] }
 
 def hasRoleTransition : TransitionDecl :=
   { name := "hasRole"
     params := [{ name := "role", ty := bytes32 }, { name := "account", ty := addr }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (roleHasRoleRef (.var "role") (.var "account"))) ] }
+        .return [(.storage (roleHasRoleRef (.var "role") (.var "account")))] ] }
 
 def getRoleAdminTransition : TransitionDecl :=
   { name := "getRoleAdmin"
     params := [{ name := "role", ty := bytes32 }]
-    returnType := some bytes32
+    returnType := [bytes32]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (roleAdminRef (.var "role"))) ] }
+        .return [(.storage (roleAdminRef (.var "role")))] ] }
 
 def grantRoleTransition : TransitionDecl :=
   { name := "grantRole"
     params := [{ name := "role", ty := bytes32 }, { name := "account", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "adminRole" (some bytes32) (.storage (roleAdminRef (.var "role"))),
@@ -129,7 +129,7 @@ def grantRoleTransition : TransitionDecl :=
 def revokeRoleTransition : TransitionDecl :=
   { name := "revokeRole"
     params := [{ name := "role", ty := bytes32 }, { name := "account", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "adminRole" (some bytes32) (.storage (roleAdminRef (.var "role"))),
@@ -142,7 +142,7 @@ def revokeRoleTransition : TransitionDecl :=
 def renounceRoleTransition : TransitionDecl :=
   { name := "renounceRole"
     params := [{ name := "role", ty := bytes32 }, { name := "callerConfirmation", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.var "callerConfirmation") sender),

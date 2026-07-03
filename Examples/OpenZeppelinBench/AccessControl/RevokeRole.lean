@@ -1751,7 +1751,7 @@ theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             exact (accessControlRevokeRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htarget rd517)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
           · have htargetNonzero :
                 UInt256.land (revokeRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :
@@ -1791,7 +1791,7 @@ theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                     revokeRoleTargetStorageWord, revokeRoleStorageWordAt]))
                 hσPost
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have hdec := accessControlDecode_revokeRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (revokeRoleAccountWord I)

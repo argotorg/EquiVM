@@ -154,8 +154,8 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody erc20Config erc20Contract evm (allowanceStore I) allowanceTransition.body
       (.returned { contract := erc20Contract, locals := allowanceStore I } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [allowanceRef] using evalExpr_allowance_storage evm I)
@@ -786,7 +786,7 @@ theorem erc20AllowanceBodyCore
                 allowanceTransition.body
                 (.returned { contract := erc20Contract, locals := allowanceStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some (.int (Int.ofNat (allowanceWord σ_solm I).toNat)))) := by
+                  (some [(.int (Int.ofNat (allowanceWord σ_solm I).toNat))])) := by
             simpa [allowanceWord, allowanceSlot, initState, Solm.EVM.storageLoad,
               State.lookupAccount] using erc20AllowanceBodyReturns
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I

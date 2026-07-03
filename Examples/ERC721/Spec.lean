@@ -100,28 +100,28 @@ def erc721StorageLayout : StorageLayout where
 def ownerOfTransition : TransitionDecl :=
   { name := "ownerOf"
     params := [{ name := "id", ty := uint256 }]
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "owner" (some addr) (.storage (ownerOfRef (.var "id"))),
         .require (.binary .ne (.var "owner") zeroAddr),
-        .return (.var "owner") ] }
+        .return [(.var "owner")] ] }
 
 /-- `balanceOf(address owner) view returns (uint256)` — reverts `ZERO_ADDRESS`. -/
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
     params := [{ name := "owner", ty := addr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .ne (.var "owner") zeroAddr),
-        .return (.storage (balanceOfRef (.var "owner"))) ] }
+        .return [(.storage (balanceOfRef (.var "owner")))] ] }
 
 /-- `approve(address spender, uint256 id)` — owner or operator may approve. -/
 def approveTransition : TransitionDecl :=
   { name := "approve"
     params := [{ name := "spender", ty := addr }, { name := "id", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "owner" (some addr) (.storage (ownerOfRef (.var "id"))),
@@ -134,7 +134,7 @@ def approveTransition : TransitionDecl :=
 def setApprovalForAllTransition : TransitionDecl :=
   { name := "setApprovalForAll"
     params := [{ name := "operator", ty := addr }, { name := "approved", ty := boolTy }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage (isApprovedForAllRef sender (.var "operator")) (.var "approved") ] }
@@ -145,7 +145,7 @@ def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
     params := [{ name := "from", ty := addr }, { name := "to", ty := addr },
       { name := "id", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.var "from") (.storage (ownerOfRef (.var "id")))),
@@ -167,19 +167,19 @@ def transferFromTransition : TransitionDecl :=
 def getApprovedGetter : TransitionDecl :=
   { name := "getApproved"
     params := [{ name := "id", ty := uint256 }]
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (getApprovedRef (.var "id"))) ] }
+        .return [(.storage (getApprovedRef (.var "id")))] ] }
 
 /-- `isApprovedForAll(address, address) view returns (bool)` — auto-generated public getter. -/
 def isApprovedForAllGetter : TransitionDecl :=
   { name := "isApprovedForAll"
     params := [{ name := "owner", ty := addr }, { name := "operator", ty := addr }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (isApprovedForAllRef (.var "owner") (.var "operator"))) ] }
+        .return [(.storage (isApprovedForAllRef (.var "owner") (.var "operator")))] ] }
 
 /-! ## Contract + config -/
 

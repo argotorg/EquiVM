@@ -61,11 +61,11 @@ theorem ballotStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
   simpa [Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
 
-/-- ABI-encoding a `Proposal` getter tuple is exactly `name || voteCount`. -/
+/-- ABI-encoding a `Proposal` getter return list is exactly `name || voteCount`. -/
 theorem ballotProposalReturnEncoding (name count : UInt256) :
-    encodeReturnValue? (.tuple [bytes32, uint256])
-      (.tuple [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name),
-        .int (Int.ofNat count.toNat)]) =
+    encodeReturnValues? [bytes32, uint256]
+      [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name),
+        .int (Int.ofNat count.toNat)] =
       some (UInt256.toByteArray name ++ UInt256.toByteArray count) := by
   have hnameLen : (EVM.Word.toBytesBE name).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size name
@@ -82,22 +82,12 @@ theorem ballotProposalReturnEncoding (name count : UInt256) :
       encodeABIValue? uint256 (.int (Int.ofNat count.toNat)) =
         some (EVM.Word.toBytesBE count) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hheadInner : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hheadOuter : abiTupleHeadSize? [(.tuple [bytes32, uint256])] = some 64 := by native_decide
+  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
   have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
   have hdynUint : isDynamicABIType uint256 = false := by native_decide
-  have hdynTuple : isDynamicABIType (.tuple [bytes32, uint256]) = false := by native_decide
-  have hinner :
-      encodeABIValue? (.tuple [bytes32, uint256])
-        (.tuple [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name),
-          .int (Int.ofNat count.toNat)]) =
-        some (EVM.Word.toBytesBE name ++ EVM.Word.toBytesBE count) := by
-    simp only [encodeABIValue?, encodeABIValues?, encodeABIValuesFrom?,
-      hheadInner, hencName, hencCount, hdynBytes, hdynUint, bind, Option.bind,
-      Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   rw [toByteArray_eq_toBytesBE name, toByteArray_eq_toBytesBE count]
-  simp only [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hheadOuter, hinner, hdynTuple, bind, Option.bind, Bool.false_eq_true, if_false,
+  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
+    hhead, hencName, hencCount, hdynBytes, hdynUint, bind, Option.bind, Bool.false_eq_true, if_false,
     List.nil_append, List.append_nil]
   apply congrArg some
   apply ByteArray.ext

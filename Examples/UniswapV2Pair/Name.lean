@@ -21,7 +21,7 @@ theorem nameReturnEncoding :
 theorem uniswapNameBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals nameTransition.body
-      (.returned { contract := contract, locals := locals } evm (some (.bytes nameBytes))) := by
+      (.returned { contract := contract, locals := locals } evm (some [(.bytes nameBytes)])) := by
   simpa [nameTransition] using uniswapBytesLiteralBodyReturns evm locals nameBytes h
 
 private def nameLiteralWord : UInt256 :=
@@ -157,12 +157,12 @@ theorem uniswapNameBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ nameTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.bytes nameBytes))) := by
+          (some [(.bytes nameBytes)])) := by
     exact uniswapNameBodyReturns
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
-      returnEquiv nameReturnBytes (some (.bytes nameBytes)) nameTransition.returnType := by
+      returnEquiv nameReturnBytes (some [.bytes nameBytes]) nameTransition.returnType := by
     rw [nameTransition]
     exact returnEquiv_of_encode nameReturnEncoding
   exact (uniswapX_name (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport

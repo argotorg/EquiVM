@@ -22,9 +22,9 @@ theorem uniswapFactoryBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "factory" = none) :
     ExecTransitionBody config contract evm locals factoryTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   simpa [factoryTransition] using
     uniswapAddressGetterBodyReturns (slot := ⟨5⟩) (ref := factoryRef)
       (er := ({ base := "factory", steps := [] } : EvaledStorageRef)) evm locals h
@@ -67,7 +67,7 @@ theorem uniswapFactoryBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ factoryTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (factoryReturnWord σ_solm I).toNat)))) := by
+          (some [(.address (AccountAddress.ofNat (factoryReturnWord σ_solm I).toNat))])) := by
     simpa [factoryWord, factoryReturnWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using uniswapFactoryBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

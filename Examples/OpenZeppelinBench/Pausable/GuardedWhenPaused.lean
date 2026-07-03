@@ -13,7 +13,7 @@ theorem pausableGuardedWhenPausedBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "_paused" = none)
     (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
     ExecTransitionBody config contract evm locals guardedWhenPausedTransition.body
-      (.returned { contract := contract, locals := locals } evm (some (.bool true))) := by
+      (.returned { contract := contract, locals := locals } evm (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold guardedWhenPausedTransition
   exact ((ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireStep
@@ -139,7 +139,7 @@ theorem pausableGuardedWhenPausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
           guardedWhenPausedTransition.body
           (.returned { contract := contract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.bool true))) := by
+            (some [(.bool true)])) := by
       exact pausableGuardedWhenPausedBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp) (by simpa [initState] using hnzSolm)

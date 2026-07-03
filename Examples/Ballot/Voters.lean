@@ -109,13 +109,14 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (_hcanon : (votersArgWord I).toNat < EVM.addressModulus) :
     ExecTransitionBody ballotConfig ballotContract evm (votersStore I) votersGetter.body
       (.returned { contract := ballotContract, locals := votersStore I } evm
-        (some (.tuple [
+        (some  [
           .int (Int.ofNat (votersWeightWord evm.accountMap I).toNat),
           wordToElem .bool (votersVotedWord evm.accountMap I),
           .address (AccountAddress.ofNat (votersDelegateWord evm.accountMap I).toNat),
-          .int (Int.ofNat (votersVoteWord evm.accountMap I).toNat)]))) := by
+          .int (Int.ofNat (votersVoteWord evm.accountMap I).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).run <|
+      ExecBlock.consReturn <| ExecStmt.return (by
       have hweight :
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "weight")) =
@@ -168,7 +169,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           ballotStorageLocLoad_uint256]
         simp [votersVoteWord, votersVoteSlot, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
-      simp [evalExpr?, evalExprList?, EvalResult.bind, bind, pure,
+      simp only [Solm.evalExprs?.eq_def, EvalResult.bind, bind, pure,
         hweight, hvoted, hdelegate, hvote])
 
 /-! ## Memory used by the voter getter -/
@@ -545,12 +546,12 @@ theorem ballotBoolWordEncoding (w : UInt256) :
     rw [show UInt256.ofNat 1 = (⟨1⟩ : UInt256) from rfl]
 
 theorem ballotVotersReturnEncoding (weight packed vote : UInt256) :
-    encodeReturnValue? (.tuple [uint256, boolTy, addr, uint256])
-      (.tuple [.int (Int.ofNat weight.toNat),
+    encodeReturnValues? [uint256, boolTy, addr, uint256]
+      [.int (Int.ofNat weight.toNat),
         wordToElem .bool (UInt256.land packed ⟨255⟩),
         .address (AccountAddress.ofNat
           (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask).toNat),
-        .int (Int.ofNat vote.toNat)]) =
+        .int (Int.ofNat vote.toNat)] =
       some (UInt256.toByteArray weight ++
         UInt256.toByteArray (UInt256.isZero (UInt256.isZero (UInt256.land packed ⟨255⟩))) ++
         UInt256.toByteArray (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask) ++
@@ -592,37 +593,18 @@ theorem ballotVotersReturnEncoding (weight packed vote : UInt256) :
       encodeABIValue? uint256 (.int (Int.ofNat vote.toNat)) =
         some (EVM.Word.toBytesBE vote) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hvote, hvoteLt]
-  have hheadInner :
+  have hhead :
       abiTupleHeadSize? [uint256, boolTy, addr, uint256] = some 128 := by native_decide
-  have hheadOuter :
-      abiTupleHeadSize? [(.tuple [uint256, boolTy, addr, uint256])] = some 128 := by
-    native_decide
   have hdynUint : isDynamicABIType uint256 = false := by native_decide
   have hdynBool : isDynamicABIType boolTy = false := by native_decide
   have hdynAddr : isDynamicABIType addr = false := by native_decide
-  have hdynTuple : isDynamicABIType (.tuple [uint256, boolTy, addr, uint256]) = false := by
-    native_decide
-  have hinner :
-      encodeABIValue? (.tuple [uint256, boolTy, addr, uint256])
-        (.tuple [.int (Int.ofNat weight.toNat),
-          wordToElem .bool (UInt256.land packed ⟨255⟩),
-          .address (AccountAddress.ofNat
-            (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask).toNat),
-          .int (Int.ofNat vote.toNat)]) =
-        some (EVM.Word.toBytesBE weight ++
-          EVM.Word.toBytesBE (UInt256.isZero (UInt256.isZero (UInt256.land packed ⟨255⟩))) ++
-          EVM.Word.toBytesBE (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask) ++
-          EVM.Word.toBytesBE vote) := by
-    simp only [encodeABIValue?, encodeABIValues?, encodeABIValuesFrom?,
-      hheadInner, hencWeight, hencBool, hencDelegate, hencVote, hdynUint, hdynBool,
-      hdynAddr, bind, Option.bind, Bool.false_eq_true, if_false, List.nil_append,
-      List.append_nil]
   rw [toByteArray_eq_toBytesBE weight,
     toByteArray_eq_toBytesBE (UInt256.isZero (UInt256.isZero (UInt256.land packed ⟨255⟩))),
     toByteArray_eq_toBytesBE (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask),
     toByteArray_eq_toBytesBE vote]
-  simp only [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hheadOuter, hinner, hdynTuple, bind, Option.bind, Bool.false_eq_true, if_false,
+  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
+    hhead, hencWeight, hencBool, hencDelegate, hencVote, hdynUint, hdynBool,
+    hdynAddr, bind, Option.bind, Bool.false_eq_true, if_false,
     List.nil_append, List.append_nil]
   apply congrArg some
   apply ByteArray.ext
@@ -969,11 +951,11 @@ theorem ballotVotersBodyCore
               votersGetter.body
               (.returned { contract := ballotContract, locals := votersStore I }
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (some (.tuple [
+                (some  [
                   .int (Int.ofNat (votersWeightWord σ_solm I).toNat),
                   wordToElem .bool (votersVotedWord σ_solm I),
                   .address (AccountAddress.ofNat (votersDelegateWord σ_solm I).toNat),
-                  .int (Int.ofNat (votersVoteWord σ_solm I).toNat)]))) := by
+                  .int (Int.ofNat (votersVoteWord σ_solm I).toNat)])) := by
           simpa [initState] using ballotVotersBodyReturns
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
@@ -981,7 +963,7 @@ theorem ballotVotersBodyCore
           |>.reEquivExecutionTransport hcode hd hdec hbody
             (by simp [hweight, hpacked, hvote, votersVotedWord, votersDelegateWord])
             hAccounts
-            (returnEquiv_of_encode
+            (returnEquiv.returned rfl
               (ballotVotersReturnEncoding (votersWeightWord σ_evm I)
                 (votersPackedWord σ_evm I) (votersVoteWord σ_evm I)))
       · have hdec := ballotDecode_voters_none_noncanon (I := I) hsz36 hbig hcanon

@@ -81,67 +81,67 @@ def storageLayout : StorageLayout where
 def supportsInterfaceTransition : TransitionDecl :=
   { name := "supportsInterface"
     params := [{ name := "interfaceId", ty := bytes4 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return
+        .return [
           (.binary .or
             (.binary .eq (.var "interfaceId") ierc6909Id)
-            (.binary .eq (.var "interfaceId") ierc165Id)) ] }
+            (.binary .eq (.var "interfaceId") ierc165Id))] ] }
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
     params := [{ name := "owner", ty := addr }, { name := "id", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (balanceRef (.var "owner") (.var "id"))) ] }
+        .return [(.storage (balanceRef (.var "owner") (.var "id")))] ] }
 
 def allowanceTransition : TransitionDecl :=
   { name := "allowance"
     params := [{ name := "owner", ty := addr }, { name := "spender", ty := addr },
       { name := "id", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (allowanceRef (.var "owner") (.var "spender") (.var "id"))) ] }
+        .return [(.storage (allowanceRef (.var "owner") (.var "spender") (.var "id")))] ] }
 
 def isOperatorTransition : TransitionDecl :=
   { name := "isOperator"
     params := [{ name := "owner", ty := addr }, { name := "spender", ty := addr }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (operatorApprovalRef (.var "owner") (.var "spender"))) ] }
+        .return [(.storage (operatorApprovalRef (.var "owner") (.var "spender")))] ] }
 
 def approveTransition : TransitionDecl :=
   { name := "approve"
     params := [{ name := "spender", ty := addr }, { name := "id", ty := uint256 },
       { name := "amount", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .ne sender zeroAddr),
         .require (.binary .ne (.var "spender") zeroAddr),
         .assign .storage (allowanceRef sender (.var "spender") (.var "id")) (.var "amount"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def setOperatorTransition : TransitionDecl :=
   { name := "setOperator"
     params := [{ name := "spender", ty := addr }, { name := "approved", ty := boolTy }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .ne sender zeroAddr),
         .require (.binary .ne (.var "spender") zeroAddr),
         .assign .storage (operatorApprovalRef sender (.var "spender")) (.var "approved"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
     params := [{ name := "receiver", ty := addr }, { name := "id", ty := uint256 },
       { name := "amount", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .ne sender zeroAddr),
@@ -153,13 +153,13 @@ def transferTransition : TransitionDecl :=
         .letDecl "toBalance" (some uint256) (.storage (balanceRef (.var "receiver") (.var "id"))),
         .assign .storage (balanceRef (.var "receiver") (.var "id"))
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
     params := [{ name := "sender", ty := addr }, { name := "receiver", ty := addr },
       { name := "id", ty := uint256 }, { name := "amount", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .ite
@@ -185,7 +185,7 @@ def transferFromTransition : TransitionDecl :=
           (.storage (balanceRef (.var "receiver") (.var "id"))),
         .assign .storage (balanceRef (.var "receiver") (.var "id"))
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def constructorDecl : ConstructorDecl :=
   { params := []

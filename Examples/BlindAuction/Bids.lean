@@ -199,12 +199,13 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
     ExecTransitionBody blindAuctionConfig blindAuctionContract evm (bidsStore I) bidsGetter.body
       (.returned { contract := blindAuctionContract, locals := bidsStore I } evm
-        (some (.tuple [
+        (some  [
           .fixedBytes ⟨31, by decide⟩
             (EVM.Word.toBytesBE (bidsBlindedCurrent evm I)),
-          .int (Int.ofNat (bidsDepositCurrent evm I).toNat)]))) := by
+          .int (Int.ofNat (bidsDepositCurrent evm I).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).run <|
+      ExecBlock.consReturn <| ExecStmt.return (by
       have hbaseBlinded :
           (bidsStore I).get? (bidF (.var "a") (.var "i") "blindedBid").base = none := by
         simp [bidsStore, bidF]
@@ -241,15 +242,14 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             .int (Int.ofNat (bidsDepositCurrent evm I).toNat) := by
         simpa [bidsDepositCurrent] using
           blindAuctionStorageLocLoad_uint256 evm (bidsDepositSlot I)
-      rw [evalExpr?, evalExprList?,
+      simp only [Solm.evalExprs?.eq_def,
         evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
           (her := evalStorageRef_bidsField_ok evm I "blindedBid" hbound)
-          (hty := htyBlinded) (hloc := hlocBlinded)]
-      rw [evalExprList?,
+          (hty := htyBlinded) (hloc := hlocBlinded),
         evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseDeposit)
           (her := evalStorageRef_bidsField_ok evm I "deposit" hbound)
-          (hty := htyDeposit) (hloc := hlocDeposit)]
-      simp [evalExprList?, EvalResult.bind, bind, pure, hloadBlinded, hloadDeposit,
+          (hty := htyDeposit) (hloc := hlocDeposit),
+        EvalResult.bind, bind, pure, hloadBlinded, hloadDeposit,
         bidsBlindedCurrent, bidsDepositCurrent])
 
 theorem blindAuctionBidsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
@@ -268,13 +268,13 @@ theorem blindAuctionBidsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
               { contract := blindAuctionContract, locals := bidsStore I } evm
               (bidF (.var "a") (.var "i") "blindedBid") = .revert :=
           evalStorageRef_bidsField_oob evm I "blindedBid" hbound
-        simp [evalExpr?, evalExprList?, resolveStorageRef?, hbaseGet, herBlindedRevert,
+        simp [evalExpr?, Solm.evalExprs?.eq_def, resolveStorageRef?, hbaseGet, herBlindedRevert,
           EvalResult.bind, bind])))
 
 theorem blindAuctionBidsReturnEncoding (blinded deposit : UInt256) :
-    encodeReturnValue? (.tuple [bytes32, uint256])
-      (.tuple [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded),
-        .int (Int.ofNat deposit.toNat)]) =
+    encodeReturnValues? [bytes32, uint256]
+      [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded),
+        .int (Int.ofNat deposit.toNat)] =
       some (UInt256.toByteArray blinded ++ UInt256.toByteArray deposit) := by
   have hblindedLen : (EVM.Word.toBytesBE blinded).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size blinded
@@ -291,22 +291,13 @@ theorem blindAuctionBidsReturnEncoding (blinded deposit : UInt256) :
       encodeABIValue? uint256 (.int (Int.ofNat deposit.toNat)) =
         some (EVM.Word.toBytesBE deposit) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hheadInner : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hheadOuter : abiTupleHeadSize? [(.tuple [bytes32, uint256])] = some 64 := by native_decide
+  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
   have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
   have hdynUint : isDynamicABIType uint256 = false := by native_decide
-  have hdynTuple : isDynamicABIType (.tuple [bytes32, uint256]) = false := by native_decide
-  have hinner :
-      encodeABIValue? (.tuple [bytes32, uint256])
-        (.tuple [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded),
-          .int (Int.ofNat deposit.toNat)]) =
-        some (EVM.Word.toBytesBE blinded ++ EVM.Word.toBytesBE deposit) := by
-    simp only [encodeABIValue?, encodeABIValues?, encodeABIValuesFrom?,
-      hheadInner, hencBlinded, hencDeposit, hdynBytes, hdynUint, bind, Option.bind,
-      Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   rw [toByteArray_eq_toBytesBE blinded, toByteArray_eq_toBytesBE deposit]
-  simp only [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hheadOuter, hinner, hdynTuple, bind, Option.bind, Bool.false_eq_true, if_false,
+  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
+    hhead, hencBlinded, hencDeposit, hdynBytes, hdynUint, bind, Option.bind,
+    Bool.false_eq_true, if_false,
     List.nil_append, List.append_nil]
   apply congrArg some
   apply ByteArray.ext
@@ -991,7 +982,7 @@ theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                 hcanon hbound hreach)
               |>.reEquivExecutionTransport hcode hd hdec hbody
                 (by simp [hblinded, hdeposit]) hAccounts
-                (returnEquiv_of_encode
+                (returnEquiv.returned rfl
                   (blindAuctionBidsReturnEncoding (bidsBlindedWord σ_evm I)
                     (bidsDepositWord σ_evm I)))
           · have hbody := blindAuctionBidsBodyReverts_oob
@@ -1009,9 +1000,9 @@ theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
               (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
                 (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (locals := bidsStore I)
-                (rest := [.return (.tupleLit [
+                (rest := [.return  [
                   .storage (bidF (.var "a") (.var "i") "blindedBid"),
-                  .storage (bidF (.var "a") (.var "i") "deposit")])])
+                  .storage (bidF (.var "a") (.var "i") "deposit")]])
                 (by simp only [initState]; exact hwv))
           exact (blindAuctionBidsX_callvalue_ne (g := Sat256.ofUInt256 g) hreach hwv)
             |>.reEquivExecutionRevert hcode hd hdec hbody

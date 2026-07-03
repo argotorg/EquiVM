@@ -107,9 +107,9 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (allowanceStore I) allowanceTransition.body
       (.returned { contract := contract, locals := allowanceStore I } evm
-        (some (.int (Int.ofNat
+        (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (allowanceStorageSlot I)).toNat)))) := by
+            (allowanceStorageSlot I)).toNat))])) := by
   have hgowner := allowanceStore_owner_getElem? I
   have hgspender := allowanceStore_spender_getElem? I
   exact ExecFuncBody.execBlockRet <|
@@ -247,7 +247,7 @@ theorem uniswapAllowanceBodyCoreOk
         allowanceTransition.body
         (.returned { contract := contract, locals := allowanceStore I }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (allowanceWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (allowanceWord σ_solm I).toNat))])) := by
     simpa [allowanceWord, allowanceStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapAllowanceBodyReturns

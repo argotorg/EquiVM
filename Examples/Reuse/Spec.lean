@@ -35,18 +35,18 @@ def sRef : StorageRef := { base := "s" }
 def fTransition : TransitionDecl :=
   { name := "f"
     params := [{ name := "v", ty := uint256 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ -- non-payable guard (mirrors solc's global `CALLVALUE; ISZERO; …` prologue)
         .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.inRange uint256Int
-          (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1))) ] }
+        .return [(.inRange uint256Int
+          (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1)))] ] }
 
 /-- `g(uint256 v) external { s = f(v); }` — invokes `f` as an **internal call**, then stores. -/
 def gTransition : TransitionDecl :=
   { name := "g"
     params := [{ name := "v", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .internalCall "f" [.var "v"] "r",

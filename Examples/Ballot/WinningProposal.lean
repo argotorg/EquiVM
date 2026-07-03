@@ -538,7 +538,7 @@ theorem ballotWinningProposalBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "proposals" = none) :
     ∃ locals', ExecTransitionBody ballotConfig ballotContract evm locals winningProposalTransition.body
       (.returned { contract := ballotContract, locals := locals' } evm
-        (some (.int (Int.ofNat (winningProposalResultCurrent evm).toNat)))) := by
+        (some [(.int (Int.ofNat (winningProposalResultCurrent evm).toNat))])) := by
   let Lwp := locals.insert "winningProposal_" (.int (Int.ofNat (0 : Nat)))
   let Lcount := Lwp.insert "winningVoteCount" (.int (Int.ofNat (0 : Nat)))
   have hwpEval :

@@ -1061,7 +1061,7 @@ theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
             exact (accessControlRenounceRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanon htarget rd436)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
           · have htargetNonzero : renounceRoleMaskedWord σ_evm I ≠ ⟨0⟩ := htarget
             have htargetSolm :
                 UInt256.land
@@ -1100,7 +1100,7 @@ theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,
                     Account.lookupStorage, renounceRoleStorageWord]))
                 hσPost
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hcallerSolm :
               AccountAddress.ofNat (renounceRoleCallerWord I).toNat ≠ evmS.executionEnv.source := by
             simpa [evmS, initState] using hcaller

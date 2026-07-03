@@ -1752,7 +1752,7 @@ theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : Executi
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   change ExecBlock config { contract := contract, locals := transferFromStore I } evm
     [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
@@ -1769,7 +1769,7 @@ theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : Executi
       .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
       .assign .storage (balanceOfRef (.var "to"))
         (u256 (.binary .add (.var "toBalance") (.var "value"))),
-      .return (.boolLit true) ]
+      .return [(.boolLit true)] ]
     .reverted
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false hwv))
 
@@ -1783,7 +1783,7 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
     (hfit : transferFromNewToNat evm I < UInt256.size) :
     ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
       (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
-        (transferFromPostState evm I) (some (.bool true))) := by
+        (transferFromPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   change ExecBlock config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
@@ -1794,9 +1794,9 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
-      (transferFromPostState evm I) (some (.bool true)))
+      (transferFromPostState evm I) (some [(.bool true)]))
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
@@ -1809,7 +1809,7 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_newToBalance evm I hfit)
       (transferFromAssignTo evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1818,7 +1818,7 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
     (hfit : transferFromNewToNatMax evm I < UInt256.size) :
     ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
       (.returned { contract := contract, locals := transferFromStoreToBalanceMax evm I }
-        (transferFromPostStateMax evm I) (some (.bool true))) := by
+        (transferFromPostStateMax evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   change ExecBlock config { contract := contract, locals := transferFromStore I } evm
     (transferFromAllowancePrefixBody ++
@@ -1829,9 +1829,9 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     (.returned { contract := contract, locals := transferFromStoreToBalanceMax evm I }
-      (transferFromPostStateMax evm I) (some (.bool true)))
+      (transferFromPostStateMax evm I) (some [(.bool true)]))
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
   refine ExecBlock.consNormal
@@ -1843,7 +1843,7 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_newToBalanceMax evm I hfit)
       (transferFromAssignToMax evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1861,7 +1861,7 @@ theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : Executio
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   exact execBlock_append_term
     (s2 :=
@@ -1872,7 +1872,7 @@ theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : Executio
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     (uniswapTransferFromAllowanceFailurePrefix evm I hwv hlt) (by intro f e h; cases h)
 
 theorem uniswapTransferFromBodyReverts_balance_finiteAllowance
@@ -1895,7 +1895,7 @@ theorem uniswapTransferFromBodyReverts_balance_finiteAllowance
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
@@ -1920,7 +1920,7 @@ theorem uniswapTransferFromBodyReverts_balance_maxAllowance
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
@@ -1948,7 +1948,7 @@ theorem uniswapTransferFromBodyReverts_overflow_finiteAllowance
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
@@ -1980,7 +1980,7 @@ theorem uniswapTransferFromBodyReverts_overflow_maxAllowance
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
           (u256 (.binary .add (.var "toBalance") (.var "value"))),
-        .return (.boolLit true) ])
+        .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_

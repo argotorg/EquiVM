@@ -19,8 +19,8 @@ theorem uniswapPrice1CumulativeLastBodyReturns (evm : EVM.State) (locals : Store
     (hlocals : locals.get? "price1CumulativeLast" = none) :
     ExecTransitionBody config contract evm locals price1CumulativeLastTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat))])) := by
   simpa [price1CumulativeLastTransition] using
     uniswapUint256GetterBodyReturns (slot := ⟨10⟩) (ref := price1CumulativeLastRef)
       (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef)) evm locals h
@@ -66,7 +66,7 @@ theorem uniswapPrice1CumulativeLastBodyCore
         price1CumulativeLastTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (price1CumulativeLastWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (price1CumulativeLastWord σ_solm I).toNat))])) := by
     simpa [price1CumulativeLastWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapPrice1CumulativeLastBodyReturns

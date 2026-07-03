@@ -286,7 +286,7 @@ theorem erc6909SetOperatorBodyReturns (evm : EVM.State)
     ExecTransitionBody config contract evm (setOperatorStore evm.executionEnv)
       setOperatorTransition.body
       (.returned { contract := contract, locals := setOperatorStore evm.executionEnv }
-        (setOperatorPostState evm evm.executionEnv) (some (.bool true))) := by
+        (setOperatorPostState evm evm.executionEnv) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal
@@ -297,7 +297,7 @@ theorem erc6909SetOperatorBodyReturns (evm : EVM.State)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_setOperator_approved evm evm.executionEnv)
       (setOperatorAssign evm evm.executionEnv)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem erc6909SetOperatorBodyReverts_sender (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1198,7 +1198,7 @@ theorem erc6909SetOperatorBodyCore
                   ExecTransitionBody config contract evmS (setOperatorStore I)
                     setOperatorTransition.body
                     (.returned { contract := contract, locals := setOperatorStore I }
-                      (setOperatorPostState evmS I) (some (.bool true))) := by
+                      (setOperatorPostState evmS I) (some [(.bool true)])) := by
                 simpa [evmS, initState] using erc6909SetOperatorBodyReturns evmS
                   (by simp only [evmS, initState]; exact hwv)
                   (by simpa [evmS, initState] using hsource)

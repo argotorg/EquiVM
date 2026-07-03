@@ -113,7 +113,7 @@ def storageDecls : List StorageDecl :=
 def safeTransferETHWithFallback : FunctionDecl :=
   { name := "_safeTransferETHWithFallback"
     params := [{ name := "to", ty := addr }, { name := "amount", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .lowLevelCall (.var "to") (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
         .ite (.unary .not (.var "success"))
@@ -126,7 +126,7 @@ def safeTransferETHWithFallback : FunctionDecl :=
 def settleAuctionFn : FunctionDecl :=
   { name := "_settleAuction"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .letDecl "_auction" none (.storage auctionRef),
         .require (.binary .ne (auctionMemField "startTime") (.intLit 0)),
@@ -147,7 +147,7 @@ def settleAuctionFn : FunctionDecl :=
 def createAuctionFn : FunctionDecl :=
   { name := "_createAuction"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .checkedCall (.storage nounsRef) "mint" (.intLit 0) [] "nounId"
           [ .letDecl "startTime" (some uint256) now,
@@ -175,7 +175,7 @@ def initializeTransition : TransitionDecl :=
       [ { name := "_nouns", ty := addr }, { name := "_weth", ty := addr },
         { name := "_timeBuffer", ty := uint256 }, { name := "_reservePrice", ty := uint256 },
         { name := "_minBidIncrementPercentage", ty := uint8 }, { name := "_duration", ty := uint256 } ]
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.unary .not (.storage initializedRef)),
@@ -198,7 +198,7 @@ def initializeTransition : TransitionDecl :=
 def createBidTransition : TransitionDecl :=
   { name := "createBid"
     params := [{ name := "nounId", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .ne (.storage statusRef) entered),
         .assign .storage statusRef entered,
@@ -228,7 +228,7 @@ def createBidTransition : TransitionDecl :=
 def settleAndCreateTransition : TransitionDecl :=
   { name := "settleCurrentAndCreateNewAuction"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .ne (.storage statusRef) entered),
@@ -242,7 +242,7 @@ def settleAndCreateTransition : TransitionDecl :=
 def settleAuctionTransition : TransitionDecl :=
   { name := "settleAuction"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.storage pausedRef),
@@ -255,7 +255,7 @@ def settleAuctionTransition : TransitionDecl :=
 def pauseTransition : TransitionDecl :=
   { name := "pause"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -266,7 +266,7 @@ def pauseTransition : TransitionDecl :=
 def unpauseTransition : TransitionDecl :=
   { name := "unpause"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -281,7 +281,7 @@ def unpauseTransition : TransitionDecl :=
 def setTimeBufferTransition : TransitionDecl :=
   { name := "setTimeBuffer"
     params := [{ name := "_timeBuffer", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -291,7 +291,7 @@ def setTimeBufferTransition : TransitionDecl :=
 def setReservePriceTransition : TransitionDecl :=
   { name := "setReservePrice"
     params := [{ name := "_reservePrice", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -301,7 +301,7 @@ def setReservePriceTransition : TransitionDecl :=
 def setMinBidIncTransition : TransitionDecl :=
   { name := "setMinBidIncrementPercentage"
     params := [{ name := "_minBidIncrementPercentage", ty := uint8 }]
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -311,7 +311,7 @@ def setMinBidIncTransition : TransitionDecl :=
 def transferOwnershipTransition : TransitionDecl :=
   { name := "transferOwnership"
     params := [{ name := "newOwner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -322,7 +322,7 @@ def transferOwnershipTransition : TransitionDecl :=
 def renounceOwnershipTransition : TransitionDecl :=
   { name := "renounceOwnership"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ nonpayable,
         .require (.binary .eq sender (.storage ownerRef)),
@@ -333,64 +333,64 @@ def renounceOwnershipTransition : TransitionDecl :=
 def ownerGetter : TransitionDecl :=
   { name := "owner"
     params := []
-    returnType := some addr
-    body := [ nonpayable, .return (.storage ownerRef) ] }
+    returnType := [addr]
+    body := [ nonpayable, .return [(.storage ownerRef)] ] }
 
 def pausedGetter : TransitionDecl :=
   { name := "paused"
     params := []
-    returnType := some boolTy
-    body := [ nonpayable, .return (.storage pausedRef) ] }
+    returnType := [boolTy]
+    body := [ nonpayable, .return [(.storage pausedRef)] ] }
 
 def nounsGetter : TransitionDecl :=
   { name := "nouns"
     params := []
-    returnType := some addr
-    body := [ nonpayable, .return (.storage nounsRef) ] }
+    returnType := [addr]
+    body := [ nonpayable, .return [(.storage nounsRef)] ] }
 
 def wethGetter : TransitionDecl :=
   { name := "weth"
     params := []
-    returnType := some addr
-    body := [ nonpayable, .return (.storage wethRef) ] }
+    returnType := [addr]
+    body := [ nonpayable, .return [(.storage wethRef)] ] }
 
 def timeBufferGetter : TransitionDecl :=
   { name := "timeBuffer"
     params := []
-    returnType := some uint256
-    body := [ nonpayable, .return (.storage timeBufferRef) ] }
+    returnType := [uint256]
+    body := [ nonpayable, .return [(.storage timeBufferRef)] ] }
 
 def reservePriceGetter : TransitionDecl :=
   { name := "reservePrice"
     params := []
-    returnType := some uint256
-    body := [ nonpayable, .return (.storage reservePriceRef) ] }
+    returnType := [uint256]
+    body := [ nonpayable, .return [(.storage reservePriceRef)] ] }
 
 def minBidIncGetter : TransitionDecl :=
   { name := "minBidIncrementPercentage"
     params := []
-    returnType := some uint8
-    body := [ nonpayable, .return (.storage minBidIncRef) ] }
+    returnType := [uint8]
+    body := [ nonpayable, .return [(.storage minBidIncRef)] ] }
 
 def durationGetter : TransitionDecl :=
   { name := "duration"
     params := []
-    returnType := some uint256
-    body := [ nonpayable, .return (.storage durationRef) ] }
+    returnType := [uint256]
+    body := [ nonpayable, .return [(.storage durationRef)] ] }
 
 def auctionGetter : TransitionDecl :=
   { name := "auction"
     params := []
-    returnType := some (.tuple [uint256, uint256, uint256, uint256, addr, boolTy])
+    returnType := [uint256, uint256, uint256, uint256, addr, boolTy]
     body :=
       [ nonpayable,
-        .return (.tupleLit
+        .return
           [ .storage (aField "nounId"),
             .storage (aField "amount"),
             .storage (aField "startTime"),
             .storage (aField "endTime"),
             .storage (aField "bidder"),
-            .storage (aField "settled") ]) ] }
+            .storage (aField "settled") ] ] }
 
 /-! ## Contract and runtime ABI -/
 
@@ -505,7 +505,7 @@ def auctionExternalABI : ExternalCallABI where
       none
   decode? := fun name out =>
     if name = "mint" then defaultDecodeReturn? name out
-    else if isVoidExternal name then some .unit
+    else if isVoidExternal name then some []
     else none
 
 end Auction

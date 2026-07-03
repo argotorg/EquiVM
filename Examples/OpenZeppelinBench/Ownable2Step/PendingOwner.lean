@@ -21,9 +21,9 @@ theorem ownable2StepPendingOwnerBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "_pendingOwner" = none) :
     ExecTransitionBody config contract evm locals pendingOwnerTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef config { contract := contract, locals := locals } evm
@@ -109,7 +109,7 @@ theorem ownable2StepPendingOwnerBody
         pendingOwnerTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (pendingOwnerReturnWord σ_solm I).toNat)))) := by
+          (some [(.address (AccountAddress.ofNat (pendingOwnerReturnWord σ_solm I).toNat))])) := by
     simpa [pendingOwnerWord, pendingOwnerReturnWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using ownable2StepPendingOwnerBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

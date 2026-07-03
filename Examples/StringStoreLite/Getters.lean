@@ -525,7 +525,7 @@ theorem currentLengthBodyReturns {evm : EVM.State} {n : Nat}
         .ok ({ base := "current", steps := [] }, .string))
     (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
-      (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some (.int n))) := by
+      (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some [(.int n)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns (by
       simp only [evalExpr?, hresolve, readStorageArrayLength?, EvalResult.bind, bind, hlen, pure])
@@ -541,13 +541,14 @@ theorem currentLengthBodyReverts {evm : EVM.State}
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
       (ExecBlock.consRevert (ExecStmt.returnRevert (by
-        simp only [evalExpr?, hresolve, readStorageArrayLength?, EvalResult.bind, bind, hlen])))
+        simp only [Solm.evalExprs?.eq_def, evalExpr?, hresolve, readStorageArrayLength?,
+          EvalResult.bind, bind, hlen, pure])))
 
 theorem currentLengthBodyReturnsOfLength {evm : EVM.State} {n : Nat}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
-      (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some (.int n))) :=
+      (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some [(.int n)])) :=
   currentLengthBodyReturns hwv (currentLengthResolve evm) hlen
 
 theorem currentLengthBodyRevertsOfLength {evm : EVM.State}
@@ -597,7 +598,7 @@ theorem clearCurrentBodyReturnsZero {evm evm' : EVM.State}
       (.returned
         { contract := stringStoreLiteContract,
           locals := (∅ : Store).insert "copy" (.bytes ByteArray.empty) }
-        evm' (some (.int 0))) := by
+        evm' (some [(.int 0)])) := by
   let solm1 : Frame :=
     { contract := stringStoreLiteContract,
       locals := (∅ : Store).insert "copy" (.bytes ByteArray.empty) }
@@ -609,7 +610,7 @@ theorem clearCurrentBodyReturnsZero {evm evm' : EVM.State}
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consNormal (ExecStmt.letDecl hread) <|
         ExecBlock.consNormal (ExecStmt.delete (by simpa [solm1] using hdel)) <|
-          ExecBlock.consReturn (ExecStmt.return hret)
+          ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
 theorem clearCurrentBodyReturnsBytes {evm evm' : EVM.State} {copy : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -625,7 +626,7 @@ theorem clearCurrentBodyReturnsBytes {evm evm' : EVM.State} {copy : ByteArray}
       (.returned
         { contract := stringStoreLiteContract,
           locals := (∅ : Store).insert "copy" (.bytes copy) }
-        evm' (some (.int copy.size))) := by
+        evm' (some [(.int copy.size)])) := by
   let solm1 : Frame :=
     { contract := stringStoreLiteContract,
       locals := (∅ : Store).insert "copy" (.bytes copy) }
@@ -637,7 +638,7 @@ theorem clearCurrentBodyReturnsBytes {evm evm' : EVM.State} {copy : ByteArray}
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consNormal (ExecStmt.letDecl hread) <|
         ExecBlock.consNormal (ExecStmt.delete (by simpa [solm1] using hdel)) <|
-          ExecBlock.consReturn (ExecStmt.return hret)
+          ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
 theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -654,7 +655,7 @@ theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
       (.returned
         { contract := stringStoreLiteContract
           locals := ((∅ : Store).insert "value" (.bytes value)).insert "copy" (.bytes value) }
-        evmCurrent (some (.int value.size))) := by
+        evmCurrent (some [(.int value.size)])) := by
   let locals0 : Store := (∅ : Store).insert "value" (.bytes value)
   let locals1 : Store := locals0.insert "copy" (.bytes value)
   let solm0 : Frame := { contract := stringStoreLiteContract, locals := locals0 }
@@ -671,7 +672,7 @@ theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consNormal (ExecStmt.letDecl hvalue) <|
         ExecBlock.consNormal (ExecStmt.assign hcopy (by simpa [solm1, locals1, locals0] using hassignCurrent)) <|
-          ExecBlock.consReturn (ExecStmt.return hret)
+          ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
 theorem assignCurrentOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
     (hwrite : writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
@@ -705,7 +706,7 @@ theorem setBodyReturnsOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
       (.returned
         { contract := stringStoreLiteContract
           locals := ((∅ : Store).insert "value" (.bytes value)).insert "copy" (.bytes value) }
-        evmCurrent (some (.int value.size))) := by
+        evmCurrent (some [(.int value.size)])) := by
   exact setBodyReturns (evm := evm) (evmCurrent := evmCurrent) (value := value)
     hwv (assignCurrentOfWrite hwrite)
 
@@ -727,7 +728,7 @@ theorem setRuntimeOfWriteAccountMapEquiv
       { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
     (hCreated : acc.1 = evmCurrent.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evmCurrent.accountMap)
-    (henc : returnEquiv o (some (.int value.size)) setTransition.returnType) :
+    (henc : returnEquiv o (some [.int value.size]) setTransition.returnType) :
     runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -757,7 +758,7 @@ theorem setRuntimeOfWriteEVMStateEquiv
     (hCreated : acc.1 = evmEvm.createdAccounts)
     (hAccounts : accountMapEquiv acc.2 evmEvm.accountMap)
     (hState : EVMStateEquiv evmEvm evmCurrent)
-    (henc : returnEquiv o (some (.int value.size)) setTransition.returnType) :
+    (henc : returnEquiv o (some [.int value.size]) setTransition.returnType) :
     runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -5987,7 +5988,7 @@ theorem stringStoreLiteCurrentLengthLongValidBodyCore {cA gh bl σ_evm σ_solm �
         currentLengthGetter.body
         (.returned { contract := stringStoreLiteContract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩).toNat)))) := by
+          (some [(.int (Int.ofNat (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩).toNat))])) := by
     exact currentLengthBodyReturnsOfLength
       (by simp only [initState]; exact hwv) hlen
   exact (stringStoreLiteX_currentLengthLongValid
@@ -6062,9 +6063,9 @@ theorem stringStoreLiteCurrentLengthShortValidBodyCore {cA gh bl σ_evm σ_solm 
         currentLengthGetter.body
         (.returned { contract := stringStoreLiteContract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int
+          (some [(.int
             (Int.ofNat
-              (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩).toNat)))) := by
+              (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩).toNat))])) := by
     exact currentLengthBodyReturnsOfLength
       (by simp only [initState]; exact hwv) hlen
   exact (stringStoreLiteX_currentLengthShortValid
@@ -6330,7 +6331,7 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {cA gh bl σ_evm σ_solm σ�
         (.returned
           { contract := stringStoreLiteContract,
             locals := (∅ : Store).insert "copy" (.bytes ByteArray.empty) }
-          evmSolm1 (some (.int 0))) := by
+          evmSolm1 (some [(.int 0)])) := by
     exact clearCurrentBodyReturnsZero (evm := evmSolm0) (evm' := evmSolm1)
       (by simp [evmSolm0, initState]; exact hwv) hread hdel
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
@@ -6410,7 +6411,7 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {cA gh bl σ_evm σ_s
         (.returned
           { contract := stringStoreLiteContract,
             locals := (∅ : Store).insert "copy" (.bytes copy) }
-          evmSolm1 (some (.int 0))) := by
+          evmSolm1 (some [(.int 0)])) := by
     simpa [hcopySize] using hbodyBytes
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
@@ -6485,7 +6486,7 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {cA gh bl σ_evm σ_solm 
         (.returned
           { contract := stringStoreLiteContract,
             locals := (∅ : Store).insert "copy" (.bytes copy) }
-          evmSolm1 (some (.int len.toNat))) := by
+          evmSolm1 (some [(.int len.toNat)])) := by
     simpa [hcopySize] using hbodyBytes
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])

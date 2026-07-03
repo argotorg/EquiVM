@@ -1263,7 +1263,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     grantRoleTargetStorageWord, grantRoleStorageWordAt,
                     revokeRoleStorageWordAt]))
                 hσPost
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
           · have htargetNonzero :
                 UInt256.land (grantRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :
@@ -1280,7 +1280,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             exact (accessControlGrantRoleX_grant_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htargetNonzero rd379)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have hdec := accessControlDecode_grantRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (grantRoleAccountWord I)

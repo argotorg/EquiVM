@@ -53,17 +53,17 @@ theorem uniswapAddress_self (a : AccountAddress) : EVM.address a.val = a := by
 
 theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "balanceOf" returndata =
-      some (skimBalanceValue
-        (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
+      some [skimBalanceValue
+        (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))] := by
   have hword :
       (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))).toNat =
         fromByteArrayBigEndian (returndata.extract 0 32) := by
     exact UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)
   change uniswapExternalABI.decode? "balanceOf" returndata = _
   rw [show
-      some (skimBalanceValue
-        (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) =
-      some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) by
+      some [skimBalanceValue
+        (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))] =
+      some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] by
       simp only [skimBalanceValue, uniswapUint256Value, uint256Value, hword]]
   simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_ok (returndata := returndata) hlo)
@@ -313,7 +313,7 @@ theorem uniswapSkimFirstBalanceReturn_source
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false ∧
-      config.externalABI.decode? "balanceOf" o = some (skimBalanceValue balance0) ∧
+      config.externalABI.decode? "balanceOf" o = some [skimBalanceValue balance0] ∧
       accountMapEquiv σ' evm0S.accountMap ∧
       evm0S.createdAccounts = cA' ∧
       evm0S.σ₀ = σ₀ ∧
@@ -339,7 +339,7 @@ theorem uniswapSkimFirstBalanceReturn_source
       (true, evm0S, o) false := by
     simpa [evmS, hz] using hcallAll
   have hdecode :
-      config.externalABI.decode? "balanceOf" o = some (skimBalanceValue balance0) := by
+      config.externalABI.decode? "balanceOf" o = some [skimBalanceValue balance0] := by
     simpa [balance0] using uniswapSkimBalanceOfDecode_ok (returndata := o) ho32
   have howner : evm0S.executionEnv.codeOwner = I.codeOwner := by
     have henv := typedCallViaEVM_executionEnv_eq hcall0
@@ -1802,7 +1802,7 @@ theorem uniswapSkimBody
                               UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                             have hdec1 :
                                 config.externalABI.decode? "balanceOf" out2 =
-                                  some (skimBalanceValue balance1) := by
+                                  some [skimBalanceValue balance1] := by
                               simpa [balance1] using
                                 uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                             let reserve1E :=
@@ -2059,7 +2059,7 @@ theorem uniswapSkimBody
                                     storageStore_accountMap, henv3] using hs
                                 exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                   (uniswapDecode_skim_ok hsz36 hcanonTo) hbody hCreatedRet
-                                  hAccountsRet (returnEquiv.void rfl rfl rfl)
+                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
                               by_cases hz3False : z3 = false
                               · have htransfer1False : callViaEVM evm2S
                                     (EVM.address
@@ -2559,7 +2559,7 @@ theorem uniswapSkimBody
                                     UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                                   have hdec1 :
                                       config.externalABI.decode? "balanceOf" out2 =
-                                        some (skimBalanceValue balance1) := by
+                                        some [skimBalanceValue balance1] := by
                                     simpa [balance1] using
                                       uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                                   let reserve1E :=
@@ -2826,7 +2826,7 @@ theorem uniswapSkimBody
                                           storageStore_accountMap, henv3] using hs
                                       exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                         (uniswapDecode_skim_ok hsz36 hcanonTo) hbody hCreatedRet
-                                        hAccountsRet (returnEquiv.void rfl rfl rfl)
+                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
                                     by_cases hz3False : z3 = false
                                     · have htransfer1False : callViaEVM evm2S
                                           (EVM.address
@@ -3252,7 +3252,7 @@ theorem uniswapSkimBody
                   simpa [evmS, hzTrue] using hcallAll
                 have hdec0 :
                     config.externalABI.decode? "balanceOf" o =
-                      some (skimBalanceValue balance0) := by
+                      some [skimBalanceValue balance0] := by
                   simpa [balance0] using uniswapSkimBalanceOfDecode_ok (returndata := o) ho32
                 let reserve0E := UInt256.land
                   (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩)
@@ -3745,7 +3745,7 @@ theorem uniswapSkimBody
                               UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                             have hdec1 :
                                 config.externalABI.decode? "balanceOf" out2 =
-                                  some (skimBalanceValue balance1) := by
+                                  some [skimBalanceValue balance1] := by
                               simpa [balance1] using
                                 uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                             let reserve1E :=
@@ -4002,7 +4002,7 @@ theorem uniswapSkimBody
                                     storageStore_accountMap, henv3] using hs
                                 exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                   (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hbody hCreatedRet
-                                  hAccountsRet (returnEquiv.void rfl rfl rfl)
+                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
                               by_cases hz3False : z3 = false
                               · have htransfer1False : callViaEVM evm2S
                                     (EVM.address
@@ -4502,7 +4502,7 @@ theorem uniswapSkimBody
                                     UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                                   have hdec1 :
                                       config.externalABI.decode? "balanceOf" out2 =
-                                        some (skimBalanceValue balance1) := by
+                                        some [skimBalanceValue balance1] := by
                                     simpa [balance1] using
                                       uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                                   let reserve1E :=
@@ -4770,7 +4770,7 @@ theorem uniswapSkimBody
                                           storageStore_accountMap, henv3] using hs
                                       exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                         (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hbody hCreatedRet
-                                        hAccountsRet (returnEquiv.void rfl rfl rfl)
+                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
                                     by_cases hz3False : z3 = false
                                     · have htransfer1False : callViaEVM evm2S
                                           (EVM.address

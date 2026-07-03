@@ -17,7 +17,7 @@ theorem uniswapMinimumLiquidityBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals minimumLiquidityTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.int (Int.ofNat minimumLiquidityWord.toNat)))) := by
+        (some [(.int (Int.ofNat minimumLiquidityWord.toNat))])) := by
   simpa [minimumLiquidityTransition, minimumLiquidity, minimumLiquidityWord] using
     uniswapIntLiteralBodyReturns evm locals minimumLiquidity h
 
@@ -61,13 +61,13 @@ theorem uniswapMinimumLiquidityBodyCore
         minimumLiquidityTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat minimumLiquidityWord.toNat)))) := by
+          (some [(.int (Int.ofNat minimumLiquidityWord.toNat))])) := by
     exact uniswapMinimumLiquidityBodyReturns
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
-      returnEquiv (UInt256.toByteArray minimumLiquidityWord)
-        (some (.int (Int.ofNat minimumLiquidityWord.toNat)))
+    returnEquiv (UInt256.toByteArray minimumLiquidityWord)
+        (some [(.int (Int.ofNat minimumLiquidityWord.toNat))])
         minimumLiquidityTransition.returnType := by
     rw [minimumLiquidityTransition]
     exact returnEquiv_of_encode

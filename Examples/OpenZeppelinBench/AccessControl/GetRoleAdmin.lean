@@ -141,8 +141,8 @@ theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
   ExecTransitionBody config contract evm (getRoleAdminStore I) getRoleAdminTransition.body
       (.returned { contract := contract, locals := getRoleAdminStore I } evm
-        (some (.fixedBytes bytes32Width
-          (EVM.Word.toBytesBE (getRoleAdminCurrent evm I))))) := by
+        (some [(.fixedBytes bytes32Width
+          (EVM.Word.toBytesBE (getRoleAdminCurrent evm I)))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her :
@@ -540,8 +540,8 @@ theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ_solm σ₀ A I}
             (getRoleAdminStore I) getRoleAdminTransition.body
             (.returned { contract := contract, locals := getRoleAdminStore I }
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (some (.fixedBytes bytes32Width
-                (EVM.Word.toBytesBE (getRoleAdminWord σ_solm I))))) := by
+              (some [(.fixedBytes bytes32Width
+                (EVM.Word.toBytesBE (getRoleAdminWord σ_solm I)))])) := by
         simpa [getRoleAdminCurrent, getRoleAdminWord, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using
           accessControlGetRoleAdminBodyReturns

@@ -83,15 +83,15 @@ def tokenTotalAllocation (tokenBalance token : Expr) : Expr :=
 def ownerTransition : TransitionDecl :=
   { name := "owner"
     params := []
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage ownerRef) ] }
+        .return [(.storage ownerRef)] ] }
 
 def transferOwnershipTransition : TransitionDecl :=
   { name := "transferOwnership"
     params := [{ name := "newOwner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage ownerRef) sender),
@@ -101,7 +101,7 @@ def transferOwnershipTransition : TransitionDecl :=
 def renounceOwnershipTransition : TransitionDecl :=
   { name := "renounceOwnership"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage ownerRef) sender),
@@ -110,90 +110,90 @@ def renounceOwnershipTransition : TransitionDecl :=
 def startTransition : TransitionDecl :=
   { name := "start"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return vestingStart ] }
+        .return [vestingStart] ] }
 
 def durationTransition : TransitionDecl :=
   { name := "duration"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return vestingDuration ] }
+        .return [vestingDuration] ] }
 
 def endTransition : TransitionDecl :=
   { name := "end"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return vestingEnd ] }
+        .return [vestingEnd] ] }
 
 def releasedTransition : TransitionDecl :=
   { name := "released"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage releasedRef) ] }
+        .return [(.storage releasedRef)] ] }
 
 def releasedTokenTransition : TransitionDecl :=
   { name := "released"
     params := [{ name := "token", ty := addr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (erc20ReleasedRef (.var "token"))) ] }
+        .return [(.storage (erc20ReleasedRef (.var "token")))] ] }
 
 def vestedAmountTransition : TransitionDecl :=
   { name := "vestedAmount"
     params := [{ name := "timestamp", ty := uint64 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (vestingSchedule nativeTotalAllocation (.var "timestamp")) ] }
+        .return [(vestingSchedule nativeTotalAllocation (.var "timestamp"))] ] }
 
 def vestedAmountTokenTransition : TransitionDecl :=
   { name := "vestedAmount"
     params := [{ name := "token", ty := addr }, { name := "timestamp", ty := uint64 }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .externalCall (.var "token") "balanceOf" (.intLit 0) [.env .this] "tokenBalance",
-        .return
+        .return [
           (vestingSchedule (tokenTotalAllocation (.var "tokenBalance") (.var "token"))
-            (.var "timestamp")) ] }
+            (.var "timestamp"))] ] }
 
 def releasableTransition : TransitionDecl :=
   { name := "releasable"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "vested" (some uint256)
           (vestingSchedule nativeTotalAllocation (.env .timestamp)),
-        .return (valueInUInt256 (.binary .sub (.var "vested") (.storage releasedRef))) ] }
+        .return [(valueInUInt256 (.binary .sub (.var "vested") (.storage releasedRef)))] ] }
 
 def releasableTokenTransition : TransitionDecl :=
   { name := "releasable"
     params := [{ name := "token", ty := addr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .externalCall (.var "token") "balanceOf" (.intLit 0) [.env .this] "tokenBalance",
         .letDecl "vested" (some uint256)
           (vestingSchedule (tokenTotalAllocation (.var "tokenBalance") (.var "token"))
             (.env .timestamp)),
-        .return
+        .return [
           (valueInUInt256
-            (.binary .sub (.var "vested") (.storage (erc20ReleasedRef (.var "token"))))) ] }
+            (.binary .sub (.var "vested") (.storage (erc20ReleasedRef (.var "token")))))] ] }
 
 def releaseTransition : TransitionDecl :=
   { name := "release"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "vested" (some uint256)
@@ -209,7 +209,7 @@ def releaseTransition : TransitionDecl :=
 def releaseTokenTransition : TransitionDecl :=
   { name := "release"
     params := [{ name := "token", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .externalCall (.var "token") "balanceOf" (.intLit 0) [.env .this] "tokenBalance",
@@ -253,7 +253,7 @@ def contract : ContractDecl :=
 
 def externalABI : ExternalCallABI where
   encode? := defaultEncodeCall?
-  decode? := fun name out => if name = "balanceOf" then defaultDecodeReturn? name out else some .unit
+  decode? := fun name out => if name = "balanceOf" then defaultDecodeReturn? name out else some []
 
 def config : Config :=
   { storage := storageLayout

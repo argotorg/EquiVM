@@ -33,15 +33,15 @@ def storageLayout : StorageLayout where
 def pausedTransition : TransitionDecl :=
   { name := "paused"
     params := []
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage pausedRef) ] }
+        .return [(.storage pausedRef)] ] }
 
 def pauseTransition : TransitionDecl :=
   { name := "pause"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.unary .not (.storage pausedRef)),
@@ -50,7 +50,7 @@ def pauseTransition : TransitionDecl :=
 def unpauseTransition : TransitionDecl :=
   { name := "unpause"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.storage pausedRef),
@@ -59,20 +59,20 @@ def unpauseTransition : TransitionDecl :=
 def guardedWhenNotPausedTransition : TransitionDecl :=
   { name := "guardedWhenNotPaused"
     params := []
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.unary .not (.storage pausedRef)),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def guardedWhenPausedTransition : TransitionDecl :=
   { name := "guardedWhenPaused"
     params := []
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.storage pausedRef),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def constructorDecl : ConstructorDecl :=
   { params := []

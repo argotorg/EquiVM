@@ -551,7 +551,7 @@ theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : Executi
     ExecTransitionBody config contract evm (supportsInterfaceStore I)
       supportsInterfaceTransition.body
       (.returned { contract := contract, locals := supportsInterfaceStore I } evm
-        (some (.bool (supportsInterfaceResult I)))) := by
+        (some [(.bool (supportsInterfaceResult I))])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns ?_
   simp [supportsInterfaceStore, supportsInterfaceResult, iaccessControlId, ierc165Id, evalExpr?,
@@ -828,7 +828,7 @@ theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ_solm σ₀ A I}
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some (.bool (supportsInterfaceResult I)))) := by
+                  (some [(.bool (supportsInterfaceResult I))])) := by
             exact accessControlSupportsInterfaceBodyReturns
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)

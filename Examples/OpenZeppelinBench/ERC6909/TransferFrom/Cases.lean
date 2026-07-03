@@ -16,7 +16,7 @@ abbrev transferFromTailReceiverBody : List Stmt :=
       (.storage (balanceRef (.var "receiver") (.var "id"))),
     .assign .storage (balanceRef (.var "receiver") (.var "id"))
       (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
-    .return (.boolLit true) ]
+    .return [(.boolLit true)] ]
 
 abbrev transferFromAfterAllowanceBody : List Stmt :=
   [ .require (.binary .ne (.var "sender") zeroAddr),
@@ -30,7 +30,7 @@ abbrev transferFromAfterAllowanceBody : List Stmt :=
       (.storage (balanceRef (.var "receiver") (.var "id"))),
     .assign .storage (balanceRef (.var "receiver") (.var "id"))
       (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
-    .return (.boolLit true) ]
+    .return [(.boolLit true)] ]
 
 theorem erc6909TransferFromAllowanceMaxPrefixBlock (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -86,7 +86,7 @@ theorem erc6909TransferFromTailReceiverCoreCurrentAllowance
         { contract := contract,
           locals := transferFromTailStoreToBalance (transferFromStoreCurrentAllowance evm I)
             evm I }
-        (transferFromTailPostState evm I) (some (.bool true))) := by
+        (transferFromTailPostState evm I) (some [(.bool true)])) := by
   have hbase : "_balances" ∉ transferFromStoreCurrentAllowance evm I := by
     simp [transferFromStoreCurrentAllowance, transferFromStore]
   dsimp [transferFromTailReceiverBody]
@@ -105,7 +105,7 @@ theorem erc6909TransferFromTailReceiverCoreCurrentAllowance
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_receiver evm I)
         (transferFromStoreCurrentAllowance_id evm I) hbase hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 set_option maxHeartbeats 50000000 in
 theorem erc6909TransferFromAfterAllowanceCore (evm : EVM.State) (I : ExecutionEnv)
@@ -125,7 +125,7 @@ theorem erc6909TransferFromAfterAllowanceCore (evm : EVM.State) (I : ExecutionEn
         { contract := contract,
           locals := transferFromTailStoreToBalance (transferFromStoreCurrentAllowance evm I)
             evm I }
-        (transferFromTailPostState evm I) (some (.bool true))) := by
+        (transferFromTailPostState evm I) (some [(.bool true)])) := by
   dsimp [transferFromAfterAllowanceBody]
   refine ExecBlock.consNormal (ExecStmt.requireTrue hsenderNonzero) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreceiverNonzero) ?_
@@ -161,7 +161,7 @@ theorem erc6909TransferFromAfterAllowanceCore (evm : EVM.State) (I : ExecutionEn
       { contract := contract,
         locals := transferFromTailStoreToBalance (transferFromStoreCurrentAllowance evm I)
           evm I }
-      (transferFromTailPostState evm I) (some (.bool true)))
+      (transferFromTailPostState evm I) (some [(.bool true)]))
   exact erc6909TransferFromTailReceiverCoreCurrentAllowance evm I hfit
 
 theorem erc6909TransferFromAfterAllowanceReverts_sender_zero
@@ -331,7 +331,7 @@ theorem erc6909TransferFromBodyCoreAllowanceDebit (evm : EVM.State) (I : Executi
     ExecTransitionBody config contract evm (transferFromStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
-        (transferFromPostState evm I) (some (.bool true))) := by
+        (transferFromPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   dsimp [transferFromTransition]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -379,7 +379,7 @@ theorem erc6909TransferFromBodyCoreAllowanceDebit (evm : EVM.State) (I : Executi
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_receiver_credit evm I hfit)
       (transferFromAssignReceiverBalance evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 set_option maxHeartbeats 12000000 in
 theorem erc6909TransferFromBodyCoreAllowanceMax (evm : EVM.State) (I : ExecutionEnv)
@@ -405,7 +405,7 @@ theorem erc6909TransferFromBodyCoreAllowanceMax (evm : EVM.State) (I : Execution
     (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
     ∃ cs, ExecTransitionBody config contract evm (transferFromStore I)
       transferFromTransition.body
-      (.returned cs (transferFromTailPostState evm I) (some (.bool true))) := by
+      (.returned cs (transferFromTailPostState evm I) (some [(.bool true)])) := by
   let cs : Frame :=
     { contract := contract
       locals := transferFromTailStoreToBalance (transferFromStoreCurrentAllowance evm I) evm I }
@@ -522,7 +522,7 @@ theorem erc6909TransferFromBodyCoreNoAllowance (evm : EVM.State) (I : ExecutionE
     ExecTransitionBody config contract evm (transferFromStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := transferFromTailStoreToBalance (transferFromStore I) evm I }
-        (transferFromTailPostState evm I) (some (.bool true))) := by
+        (transferFromTailPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   dsimp [transferFromTransition]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -544,7 +544,7 @@ theorem erc6909TransferFromBodyCoreNoAllowance (evm : EVM.State) (I : ExecutionE
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_tail_receiver_credit evm I hfit)
       (transferFromTailAssignReceiverBalance evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem erc6909TransferFromBodyRevertsAllowance_insufficient
     (evm : EVM.State) (I : ExecutionEnv)

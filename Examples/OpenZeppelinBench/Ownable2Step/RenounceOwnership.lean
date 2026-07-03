@@ -481,7 +481,7 @@ theorem ownable2StepRenounceOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
             renounceOwnershipAfterPendingState_executionEnv, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage]))
         hσPost
-        (returnEquiv.void rfl rfl rfl)
+        (returnEquiv.fallthrough rfl rfl (by native_decide))
   · have hownerSolm :
         UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨0⟩)
             solcAddrMask ≠

@@ -38,23 +38,23 @@ def storageLayout : StorageLayout where
 def ownerTransition : TransitionDecl :=
   { name := "owner"
     params := []
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage ownerRef) ] }
+        .return [(.storage ownerRef)] ] }
 
 def pendingOwnerTransition : TransitionDecl :=
   { name := "pendingOwner"
     params := []
-    returnType := some addr
+    returnType := [addr]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage pendingOwnerRef) ] }
+        .return [(.storage pendingOwnerRef)] ] }
 
 def transferOwnershipTransition : TransitionDecl :=
   { name := "transferOwnership"
     params := [{ name := "newOwner", ty := addr }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage ownerRef) sender),
@@ -63,7 +63,7 @@ def transferOwnershipTransition : TransitionDecl :=
 def acceptOwnershipTransition : TransitionDecl :=
   { name := "acceptOwnership"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage pendingOwnerRef) sender),
@@ -73,7 +73,7 @@ def acceptOwnershipTransition : TransitionDecl :=
 def renounceOwnershipTransition : TransitionDecl :=
   { name := "renounceOwnership"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage ownerRef) sender),

@@ -2610,7 +2610,7 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
       (delegateTailFalseSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
-      (returnEquiv.void rfl rfl rfl)
+      (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailNotVotedOverflowEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I}
@@ -2780,7 +2780,7 @@ theorem ballotDelegateTailVotedSuccessEquiv
       (delegateTailTrueSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
-      (returnEquiv.void rfl rfl rfl)
+      (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailVotedOobEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I}

@@ -24,9 +24,9 @@ theorem blindAuctionHighestBidderBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "highestBidder" = none) :
     ExecTransitionBody blindAuctionConfig blindAuctionContract evm locals highestBidderGetter.body
       (.returned { contract := blindAuctionContract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef blindAuctionConfig
@@ -155,7 +155,7 @@ theorem blindAuctionHighestBidderBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
           highestBidderGetter.body
           (.returned { contract := blindAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.address (AccountAddress.ofNat (highestBidderReturnWord σ_solm I).toNat)))) := by
+            (some [(.address (AccountAddress.ofNat (highestBidderReturnWord σ_solm I).toNat))])) := by
       simpa [highestBidderWord, highestBidderReturnWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using blindAuctionHighestBidderBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -172,7 +172,7 @@ theorem blindAuctionHighestBidderBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
         (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
-          (rest := [.return (.storage highestBidderRef)])
+          (rest := [.return [(.storage highestBidderRef)]])
           (by simp only [initState]; exact hwv))
     exact (blindAuctionX_highestBidder_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionRevert hcode hd hdec hbody

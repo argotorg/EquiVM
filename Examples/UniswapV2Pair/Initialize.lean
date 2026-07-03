@@ -637,7 +637,7 @@ theorem uniswapInitializeBodyCoreOk
   exact (uniswapX_initialize_success (g := Sat256.ofUInt256 g)
       hperm hsz68 hsize hfactory hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody hcreated
-      hAccountsPost (returnEquiv.void rfl rfl rfl)
+      hAccountsPost (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem uniswapInitializeBodyCoreRevert_forbidden
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

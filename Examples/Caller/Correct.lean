@@ -28,6 +28,47 @@ set_option maxRecDepth 10000
 
 namespace Caller
 
+private theorem decodeReturnValues_uint256_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
+    ABI.decodeReturnValues? [abiUInt256] returndata =
+      some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : (returndata.toList.take 32).length = 32 := by
+    rw [List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+private theorem decodeReturnValues_uint256_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
+
+private theorem decodeReturnValues_uint256_none_huge {returndata : ByteArray}
+    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
+
 /-! ## Solm-side dispatch facts (mirror `Truth`) -/
 
 /-- Single-selector dispatch bundle (via `callerSelectorBytes`): `.eq` is the 4-byte
@@ -38,7 +79,7 @@ theorem callerDispatch :
 
 
 /-- **The Solm body stores the decoded result.**  With zero call value, the decoded `t ↦ address`,
-    `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `value`, and the
+    `n ↦ int`, a *successful* external call (`z = true`) whose return decodes to `[value]`, and the
     storage assign succeeding, `run`'s body runs to completion (`returned … none`), leaving the
     `stored` slot written. -/
 theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
@@ -48,7 +89,7 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     (hn : locals.get? "n" = some (.int nval))
     (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
               (true, evm', out))
-    (hdec : callerConfig.externalABI.decode? "pow2" out = some value)
+    (hdec : callerConfig.externalABI.decode? "pow2" out = some [value])
     (hassign : assignStorageRef? callerConfig
         { contract := callerContract, locals := locals.insert "tmp" value } evm'
         .storage { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
@@ -1158,10 +1199,10 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
         set kw := fromByteArrayBigEndian (o.extract 0 32) with hkw
         have hassign := callerAssign evmP ((callerDecStore I).insert "tmp" (.int (Int.ofNat kw))) kw
           (callerStore_stored I _)
-        have hdecv : callerConfig.externalABI.decode? "pow2" o = some (.int (Int.ofNat kw)) := by
+        have hdecv : callerConfig.externalABI.decode? "pow2" o = some [(.int (Int.ofNat kw))] := by
           show defaultDecodeReturn? "pow2" o = _
           simpa [defaultDecodeReturn?, ← hkw, Int.ofNat_eq_natCast] using
-            decodeReturnValue_uint256_ok (returndata := o) ho32 ho255
+            decodeReturnValues_uint256_ok (returndata := o) ho32 ho255
         have hbody := callerBodySuccess (initState cA gh bl σ_solm σ₀ g A I)
           (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
           hcoin_solm hdecv hassign
@@ -1169,7 +1210,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
           (by rw [storageStore_createdAccounts])
           (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
           (hStateCall.storageStore_codeOwner ⟨0⟩ rfl)
-          (returnEquiv.void rfl rfl rfl)
+          (returnEquiv.fallthrough rfl rfl (by native_decide))
       · -- `|o| < 32`: decode reverts
         rw [not_le] at ho32
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
@@ -1187,7 +1228,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
         have hdecn : callerConfig.externalABI.decode? "pow2" o = none := by
           show defaultDecodeReturn? "pow2" o = none
           simpa [defaultDecodeReturn?] using
-            decodeReturnValue_uint256_none_short (returndata := o) ho32
+            decodeReturnValues_uint256_none_short (returndata := o) ho32
         exact callerBodyDecodeRevert _ (callerDecStore I) (by exact hwv) (callerStore_t I)
           (callerStore_n I) hcoin_solm hdecn
     · -- `2^255 ≤ |o| < 2^256`: the ABI decoder and solc signed check both revert.
@@ -1207,7 +1248,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
       have hdecn : callerConfig.externalABI.decode? "pow2" o = none := by
         show defaultDecodeReturn? "pow2" o = none
         simpa [defaultDecodeReturn?] using
-          decodeReturnValue_uint256_none_huge (returndata := o) hhi
+          decodeReturnValues_uint256_none_huge (returndata := o) hhi
       exact callerBodyDecodeRevert _ (callerDecStore I) (by exact hwv) (callerStore_t I)
         (callerStore_n I) hcoin_solm hdecn
 

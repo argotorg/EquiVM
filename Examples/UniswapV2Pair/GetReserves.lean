@@ -60,9 +60,9 @@ theorem getReservesReturnEncoding (r0 r1 ts : UInt256)
     (hr0 : r0.toNat < EVM.twoPow 112)
     (hr1 : r1.toNat < EVM.twoPow 112)
     (hts : ts.toNat < EVM.twoPow 32) :
-    encodeReturnValue? (.tuple [uint112, uint112, uint32])
-      (.tuple [.int (Int.ofNat r0.toNat), .int (Int.ofNat r1.toNat),
-        .int (Int.ofNat ts.toNat)]) =
+    encodeReturnValues? [uint112, uint112, uint32]
+      [.int (Int.ofNat r0.toNat), .int (Int.ofNat r1.toNat),
+        .int (Int.ofNat ts.toNat)] =
       some (UInt256.toByteArray r0 ++ UInt256.toByteArray r1 ++ UInt256.toByteArray ts) := by
   have hword0 : EVM.word r0.toNat = r0 := u256_ofNat_toNat r0
   have hword1 : EVM.word r1.toNat = r1 := u256_ofNat_toNat r1
@@ -79,26 +79,13 @@ theorem getReservesReturnEncoding (r0 r1 ts : UInt256)
       encodeABIValue? uint32 (.int (Int.ofNat ts.toNat)) =
         some (EVM.Word.toBytesBE ts) := by
     simp [uint32, uint32Int, encodeABIValue?, encodeABIWord?, hwordTs, hts]
-  have hheadInner : abiTupleHeadSize? [uint112, uint112, uint32] = some 96 := by
-    native_decide
-  have hheadOuter : abiTupleHeadSize? [(.tuple [uint112, uint112, uint32])] = some 96 := by
+  have hhead : abiTupleHeadSize? [uint112, uint112, uint32] = some 96 := by
     native_decide
   have hdyn112 : isDynamicABIType uint112 = false := by native_decide
   have hdyn32 : isDynamicABIType uint32 = false := by native_decide
-  have hdynTuple : isDynamicABIType (.tuple [uint112, uint112, uint32]) = false := by
-    native_decide
-  have hinner :
-      encodeABIValue? (.tuple [uint112, uint112, uint32])
-        (.tuple [.int (Int.ofNat r0.toNat), .int (Int.ofNat r1.toNat),
-          .int (Int.ofNat ts.toNat)]) =
-        some (EVM.Word.toBytesBE r0 ++ EVM.Word.toBytesBE r1 ++
-          EVM.Word.toBytesBE ts) := by
-    simp only [encodeABIValue?, encodeABIValues?, encodeABIValuesFrom?, hheadInner, henc0,
-      henc1, hencTs, hdyn112, hdyn32, bind, Option.bind, Bool.false_eq_true, if_false,
-      List.nil_append, List.append_nil]
   rw [toByteArray_eq_toBytesBE r0, toByteArray_eq_toBytesBE r1, toByteArray_eq_toBytesBE ts]
-  simp only [encodeReturnValue?, encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hheadOuter, hinner, hdynTuple, bind, Option.bind, Bool.false_eq_true, if_false,
+  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?, hhead, henc0,
+    henc1, hencTs, hdyn112, hdyn32, bind, Option.bind, Bool.false_eq_true, if_false,
     List.nil_append, List.append_nil]
   apply congrArg some
   apply ByteArray.ext
@@ -116,7 +103,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm ∅ getReservesTransition.body
       (.returned { contract := contract, locals := ∅ } evm
-        (some (.tuple [
+        (some  [
           .int (Int.ofNat (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩) reserve112Mask).toNat),
           .int (Int.ofNat (UInt256.land
@@ -124,9 +111,10 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
               reserve112Shift) reserve112Mask).toNat),
           .int (Int.ofNat (UInt256.land
             (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
-              reserve224Shift) reserve32Mask).toNat)]))) := by
+              reserve224Shift) reserve32Mask).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).run <|
+      ExecBlock.consReturn <| ExecStmt.return (by
       have hload0 :
           storageLocLoad evm (uint112Loc0 ⟨8⟩) =
             .int (Int.ofNat (UInt256.land
@@ -145,8 +133,12 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
               (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
                 reserve224Shift) reserve32Mask).toNat) := by
         simpa using uniswapStorageLocLoad_uint32_offset28 evm ⟨8⟩
-      rw [evalExpr?, evalExprList?,
-        evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve0Ref)
+      have hret0 :
+          evalExpr? config { contract := contract, locals := ∅ } evm (.storage reserve0Ref) =
+            .ok (.int (Int.ofNat (UInt256.land
+              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+              reserve112Mask).toNat)) := by
+        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve0Ref)
           (er := ({ base := "reserve0", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc0 ⟨8⟩)
           (hbase := by simp [reserve0Ref])
@@ -154,8 +146,13 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             pure, bind])
           (hty := by rfl)
           (hloc := by rfl)]
-      rw [evalExprList?,
-        evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve1Ref)
+        rw [hload0]
+      have hret1 :
+          evalExpr? config { contract := contract, locals := ∅ } evm (.storage reserve1Ref) =
+            .ok (.int (Int.ofNat (UInt256.land
+              (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+                reserve112Shift) reserve112Mask).toNat)) := by
+        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve1Ref)
           (er := ({ base := "reserve1", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc14 ⟨8⟩)
           (hbase := by simp [reserve1Ref])
@@ -163,8 +160,13 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             pure, bind])
           (hty := by rfl)
           (hloc := by rfl)]
-      rw [evalExprList?,
-        evalExpr_storage_scalar (t := .int uint32Int) (slot := blockTimestampLastRef)
+        rw [hload1]
+      have hretTs :
+          evalExpr? config { contract := contract, locals := ∅ } evm (.storage blockTimestampLastRef) =
+            .ok (.int (Int.ofNat (UInt256.land
+              (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+                reserve224Shift) reserve32Mask).toNat)) := by
+        rw [evalExpr_storage_scalar (t := .int uint32Int) (slot := blockTimestampLastRef)
           (er := ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef))
           (loc := uint32Loc28 ⟨8⟩)
           (hbase := by simp [blockTimestampLastRef])
@@ -172,7 +174,8 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             EvalResult.bind, pure, bind])
           (hty := by rfl)
           (hloc := by rfl)]
-      simp [evalExprList?, EvalResult.bind, bind, pure, hload0, hload1, hloadTs])
+        rw [hloadTs]
+      simp only [Solm.evalExprs?.eq_def, hret0, hret1, hretTs, EvalResult.bind, bind, pure])
 
 /-! ## Return wrapper memory -/
 
@@ -493,24 +496,24 @@ theorem uniswapGetReservesBodyCore
         getReservesTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.tuple [
+          (some  [
             .int (Int.ofNat (reserve0Word σ_solm I).toNat),
             .int (Int.ofNat (reserve1Word σ_solm I).toNat),
-            .int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)]))) := by
+            .int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)])) := by
     simpa [reserve0Word, reserve1Word, blockTimestampLastWord, getReservesSlotWord,
       initState, Solm.EVM.storageLoad, State.lookupAccount] using
       uniswapGetReservesBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv)
   have hval :
-      some (Value.tuple [
-          .int (Int.ofNat (reserve0Word σ_solm I).toNat),
-          .int (Int.ofNat (reserve1Word σ_solm I).toNat),
-          .int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)]) =
-        some (Value.tuple [
-          .int (Int.ofNat (reserve0Word σ_evm I).toNat),
-          .int (Int.ofNat (reserve1Word σ_evm I).toNat),
-          .int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)]) := by
+      some [
+          Value.int (Int.ofNat (reserve0Word σ_solm I).toNat),
+          Value.int (Int.ofNat (reserve1Word σ_solm I).toNat),
+          Value.int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)] =
+        some [
+          Value.int (Int.ofNat (reserve0Word σ_evm I).toNat),
+          Value.int (Int.ofNat (reserve1Word σ_evm I).toNat),
+          Value.int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)] := by
     have hslot : getReservesSlotWord σ_solm I = getReservesSlotWord σ_evm I := hword.symm
     simp [reserve0Word, reserve1Word, blockTimestampLastWord, hslot]
   have henc :
@@ -518,13 +521,13 @@ theorem uniswapGetReservesBodyCore
         (UInt256.toByteArray (reserve0Word σ_evm I) ++
           UInt256.toByteArray (reserve1Word σ_evm I) ++
           UInt256.toByteArray (blockTimestampLastWord σ_evm I))
-        (some (.tuple [
+        (some [
           .int (Int.ofNat (reserve0Word σ_evm I).toNat),
           .int (Int.ofNat (reserve1Word σ_evm I).toNat),
-          .int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)]))
+          .int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)])
         getReservesTransition.returnType := by
-    rw [show getReservesTransition.returnType = some (.tuple [uint112, uint112, uint32]) from rfl]
-    exact returnEquiv_of_encode
+    rw [show getReservesTransition.returnType = [uint112, uint112, uint32] from rfl]
+    exact returnEquiv.returned rfl
       (getReservesReturnEncoding (reserve0Word σ_evm I) (reserve1Word σ_evm I)
         (blockTimestampLastWord σ_evm I)
         (by simpa [reserve0Word] using reserve112Word_lt (getReservesSlotWord σ_evm I))

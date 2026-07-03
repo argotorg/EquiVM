@@ -66,8 +66,8 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody erc20Config erc20Contract evm (balanceOfStore I) balanceOfTransition.body
       (.returned { contract := erc20Contract, locals := balanceOfStore I } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar (t := .int uint256Int)
@@ -503,7 +503,7 @@ theorem erc20BalanceOfBodyCore
               balanceOfTransition.body
               (.returned { contract := erc20Contract, locals := balanceOfStore I }
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
+                (some [(.int (Int.ofNat (balanceOfWord σ_solm I).toNat))])) := by
           simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
             State.lookupAccount] using erc20BalanceOfBodyReturns
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I

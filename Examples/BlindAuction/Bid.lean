@@ -977,7 +977,7 @@ theorem blindAuctionBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
             (by simp [evmE, worldOf])
             (by simp [evmE, worldOf]; exact accountMapEquiv.refl _)
             hσPost
-            (returnEquiv.void rfl rfl rfl)
+            (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have htimeLe : (biddingEndWord σ_evm I).toNat ≤ (bidTimestampWord I).toNat := by
           omega
         have htimeS' : (biddingEndWord σ_solm I).toNat ≤ (bidTimestampWord I).toNat := by

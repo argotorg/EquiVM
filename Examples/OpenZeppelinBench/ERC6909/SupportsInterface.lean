@@ -250,7 +250,7 @@ theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (supportsInterfaceStore I) supportsInterfaceTransition.body
       (.returned { contract := contract, locals := supportsInterfaceStore I } evm
-        (some (.bool (supportsInterfaceResult I)))) := by
+        (some [(.bool (supportsInterfaceResult I))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
@@ -532,7 +532,7 @@ theorem erc6909SupportsInterfaceBodyCore
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some (.bool (supportsInterfaceResult I)))) := by
+                  (some [(.bool (supportsInterfaceResult I))])) := by
             exact erc6909SupportsInterfaceBodyReturns
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
