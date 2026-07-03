@@ -204,6 +204,83 @@ theorem daiDispatchRely {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd]
   native_decide
 
+theorem daiDispatchBurn {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 3)) :
+    dispatchMsg contract I.calldata = some burnTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 3 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some burnTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchMint {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 7)) :
+    dispatchMsg contract I.calldata = some mintTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 7 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some mintTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchMove {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 8)) :
+    dispatchMsg contract I.calldata = some moveTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 8 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some moveTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchPermit {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 11)) :
+    dispatchMsg contract I.calldata = some permitTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 11 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some permitTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchPull {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 13)) :
+    dispatchMsg contract I.calldata = some pullTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 13 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some pullTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchPush {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 14)) :
+    dispatchMsg contract I.calldata = some pushTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 14 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some pushTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
+theorem daiDispatchTransfer {I : ExecutionEnv}
+    (hsel : selIs I (daiSelBytes 18)) :
+    dispatchMsg contract I.calldata = some transferTransition := by
+  have hcd : I.calldata.extract 0 4 = daiSelBytes 18 :=
+    (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some transferTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd]
+  native_decide
+
 /-! ## Dispatcher layout -/
 
 /-- Root `GT` split at selector pivot `0x7ecebe00`. -/
@@ -820,6 +897,144 @@ theorem daiReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `burn(address,uint256)`'s external wrapper at pc `946`. -/
+theorem daiReachBurnBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 3)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨946⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0x9dc29fac⟩ :=
+    daiSelWord_eq_of_beq I hsz 0x9d 0xc2 0x9f 0xac ⟨0x9dc29fac⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachHighBody 4 (by decide) ⟨946⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `mint(address,uint256)`'s external wrapper at pc `642`. -/
+theorem daiReachMintBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 7)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨642⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0x40c10f19⟩ :=
+    daiSelWord_eq_of_beq I hsz 0x40 0xc1 0x0f 0x19 ⟨0x40c10f19⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachLowBody 2 (by decide) ⟨642⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `move(address,address,uint256)`'s external wrapper at pc `1078`. -/
+theorem daiReachMoveBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 8)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1078⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0xbb35783b⟩ :=
+    daiSelWord_eq_of_beq I hsz 0xbb 0x35 0x78 0x3b ⟨0xbb35783b⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachVeryHighBody 2 (by decide) ⟨1078⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `permit(...)`'s external wrapper at pc `810`. -/
+theorem daiReachPermitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 11)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨810⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0x8fcbaf0c⟩ :=
+    daiSelWord_eq_of_beq I hsz 0x8f 0xcb 0xaf 0x0c ⟨0x8fcbaf0c⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachHighBody 1 (by decide) ⟨810⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `pull(address,uint256)`'s external wrapper at pc `1216`. -/
+theorem daiReachPullBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 13)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1216⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0xf2d5d56b⟩ :=
+    daiSelWord_eq_of_beq I hsz 0xf2 0xd5 0xd5 0x6b ⟨0xf2d5d56b⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachVeryHighBody 5 (by decide) ⟨1216⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `push(address,uint256)`'s external wrapper at pc `1034`. -/
+theorem daiReachPushBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 14)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1034⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0xb753a98c⟩ :=
+    daiSelWord_eq_of_beq I hsz 0xb7 0x53 0xa9 0x8c ⟨0xb753a98c⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachVeryHighBody 1 (by decide) ⟨1034⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by
+      rw [hword]
+      interval_cases j <;> native_decide)
+    (by rw [hword]; native_decide)
+    (by jump_dest)
+    (by native_decide)
+
+/-- Reach `transfer(address,uint256)`'s external wrapper at pc `990`. -/
+theorem daiReachTransferBody {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (daiSelBytes 18)) :
+    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨990⟩
+        [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hword : daiSelWord I = ⟨0xa9059cbb⟩ :=
+    daiSelWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨0xa9059cbb⟩
+      (by native_decide) (by simpa [daiSelBytes] using hsel)
+  exact daiReachVeryHighBody 0 (by decide) ⟨990⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (fun j hj => by omega)
     (by rw [hword]; native_decide)
     (by jump_dest)
     (by native_decide)

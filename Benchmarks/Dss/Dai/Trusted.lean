@@ -122,4 +122,32 @@ axiom daiWardsSelectorBytes :
     (ffi.KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4
       = daiSelBytes 21
 
+/-! Constructor-domain keccak constants.
+
+These are the opaque `ffi.KEC` facts needed to connect the constructor bytecode's literal
+EIP-712 domain hash constants to the Solm source expression.
+-/
+
+/-- `keccak("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
+-/
+axiom daiCtorTypeHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨63076024560530113402979550242307453568063438748328787417531900361828837441551⟩ =
+      (List.toByteArray
+        (ByteArray.toList (ffi.KEC
+          (String.toByteArray
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"))))
+
+/-- `keccak("Dai Stablecoin")`. -/
+axiom daiCtorNameHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨5011453723555049355537294002125739255229783229906611468909068372094763020939⟩ =
+      (List.toByteArray (ByteArray.toList (ffi.KEC (String.toByteArray "Dai Stablecoin"))))
+
+/-- `keccak("1")`. -/
+axiom daiCtorVersionHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨90743482286830539503240959006302832933333810038750515972785732718729991261126⟩ =
+      (List.toByteArray (ByteArray.toList (ffi.KEC (String.toByteArray "1"))))
+
 end Benchmarks.Dss.Dai
