@@ -4,7 +4,15 @@ import Solm.Value
 
 namespace ABI
 
+/-- Bound used by modern solc dynamic ABI decoder guards. -/
 def solcMaxU64 : Nat := 18446744073709551615
+
+/-- Bound used by solc 0.5 optimized dynamic ABI decoder guards (`PUSH5 2^32; GT`). -/
+def solcLegacyMaxU32 : Nat := 4294967296
+
+abbrev solcDynamicGuardMax : DecodeMode → Nat
+  | DecodeMode.modern => solcMaxU64
+  | DecodeMode.legacySolc05 => solcLegacyMaxU32
 
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
@@ -70,10 +78,18 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
   | .elem (.int (.uint bits)) =>
       if bits.val = 0 then
         none
-      else if n < EVM.twoPow bits.val then
-        some (.int (Int.ofNat n))
       else
-        none
+        match mode with
+        | DecodeMode.modern =>
+            if n < EVM.twoPow bits.val then
+              some (.int (Int.ofNat n))
+            else
+              none
+        | DecodeMode.legacySolc05 =>
+            if bits.val = 256 then
+              some (.int (Int.ofNat n))
+            else
+              some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
   | .elem (.int (.sint bits)) =>
       if bits.val = 0 then
         none
@@ -123,7 +139,7 @@ mutual
         some (.tuple values, endOffset)
     | .bytes => do
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcDynamicGuardMax mode < size then
           none
         else
         let payloadStart := start + 32
@@ -132,7 +148,7 @@ mutual
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .string => do
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcDynamicGuardMax mode < size then
           none
         else
         let payloadStart := start + 32
@@ -142,7 +158,7 @@ mutual
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
-        if solcMaxU64 < size then
+        if solcDynamicGuardMax mode < size then
           none
         else
         let elemsStart := start + 32
@@ -187,7 +203,7 @@ mutual
     | 0 => some ([], maxEnd)
     | n + 1 => do
         let relativeOffset <- readNat? bytes (base + headCursor)
-        if solcMaxU64 < relativeOffset then
+        if solcDynamicGuardMax mode < relativeOffset then
           none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -205,7 +221,7 @@ mutual
     | ty :: restTypes => do
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
-          if solcMaxU64 < relativeOffset then
+          if solcDynamicGuardMax mode < relativeOffset then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -232,16 +248,26 @@ def solcTotalSizeDynamicGuard : List ABIType → Bool
   | [.bytes] => true
   | _ => false
 
+abbrev calldataDynamicGuard (mode : DecodeMode) (types : List ABIType)
+    (calldata : ByteArray) : Prop :=
+  match mode with
+  | DecodeMode.modern => types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length
+  | DecodeMode.legacySolc05 => False
+
+instance instDecidableCalldataDynamicGuard (mode : DecodeMode) (types : List ABIType)
+    (calldata : ByteArray) : Decidable (calldataDynamicGuard mode types calldata) := by
+  unfold calldataDynamicGuard
+  cases mode <;> infer_instance
+
 def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray)
     (mode : DecodeMode := DecodeMode.modern) : Option Solm.Store :=
   if calldata.toList.length < 4 then
     none
   else
     let argsArray := calldata.toList.drop 4
-    -- Dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
-    -- If it is a negative signed word (`>= 2^255`), the generated decoder reverts before
-    -- accepting any dynamic tail.
-    if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
+    -- Modern dynamic decoders use signed comparisons against the full `CALLDATASIZE`.
+    -- Legacy solc 0.5 wrappers use per-offset and per-length guards instead.
+    if calldataDynamicGuard mode types calldata then
       none
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,

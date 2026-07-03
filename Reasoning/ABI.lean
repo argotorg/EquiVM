@@ -15,6 +15,9 @@ open Solm ABI Ethereum Ethereum.EVM
 /-- The ABI type `uint256`, named here so contracts do not need to import another example's spec. -/
 abbrev abiUInt256 : ABIType := .elem (.int (.uint ⟨256, by decide⟩))
 
+/-- The ABI type `uint8`, named here so contracts do not need to import another example's spec. -/
+abbrev abiUInt8 : ABIType := .elem (.int (.uint ⟨8, by decide⟩))
+
 /-- The ABI type `address`, named here so contracts do not need example-local aliases. -/
 abbrev abiAddress : ABIType := .elem .address
 
@@ -352,7 +355,7 @@ theorem decodeCalldata_scalarWords_eq {names : List Solm.Ident} {types : List AB
     conv_rhs => rw [if_neg hlt]
     have hdynFalse : types.any isDynamicABIType = false :=
       isABIScalarWordTypes_any_dynamic_false hscalar
-    conv_lhs => rw [if_neg (by simp [hdynFalse])]
+    conv_lhs => rw [if_neg (by simp [hdynFalse, calldataDynamicGuard])]
     cases types with
     | nil =>
         simp [decodeCalldata.decodeArgs, decodeScalarWords?]
@@ -403,9 +406,7 @@ theorem decodeCalldataWithMode_legacyScalarWords_eq {names : List Solm.Ident}
     conv_rhs => rw [if_pos hlt]
   · conv_lhs => rw [if_neg hlt]
     conv_rhs => rw [if_neg hlt]
-    have hdynFalse : types.any isDynamicABIType = false :=
-      isABIScalarWordTypes_any_dynamic_false hscalar
-    conv_lhs => rw [if_neg (by simp [hdynFalse])]
+    conv_lhs => rw [if_neg (by simp [calldataDynamicGuard])]
     cases types with
     | nil =>
         simp [decodeCalldata.decodeArgs, decodeScalarWordsWithMode?]
@@ -568,9 +569,11 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
   rw [if_pos hlen]
   simp only
   rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
-  rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
-    < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
-  rfl
+  cases mode
+  · rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
+    rfl
+  · simp [UInt256.toNat]
 
 theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
     {start : Nat}
@@ -581,6 +584,29 @@ theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes :
   simp only [abiUInt256, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
     Option.bind]
   rw [if_neg hshort]
+
+theorem decodeScalarWordWithMode_legacy_uint8_ok {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWordWithMode? DecodeMode.legacySolc05 abiUInt8 bytes start =
+      some (.int (Int.ofNat
+          ((ABI.bytesToWord ((bytes.drop start).take 32)).toNat % EVM.twoPow 8)),
+        start + 32) := by
+  simp only [decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
+  rw [if_pos hlen]
+  simp only
+  rw [if_neg (show ¬ ((8 : Nat) = 0) from by decide)]
+  simp [UInt256.toNat]
+
+theorem decodeABIValueWithMode_legacy_uint8_ok {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32) :
+    decodeABIValue? abiUInt8 bytes start DecodeMode.legacySolc05 =
+      some (.int (Int.ofNat
+          ((ABI.bytesToWord ((bytes.drop start).take 32)).toNat % EVM.twoPow 8)),
+        start + 32) := by
+  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
+    (ty := abiUInt8) (bytes := bytes) (start := start) (by decide)]
+  exact decodeScalarWordWithMode_legacy_uint8_ok hlen
 
 
 theorem bytesToWord_take32_eq_extract0_32 {returndata : ByteArray} :

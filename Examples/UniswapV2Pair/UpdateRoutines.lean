@@ -26,6 +26,14 @@ abbrev uniswapUpdatePackedReserveWord
           (UInt256.lor (UInt256.land reserve112Mask balance0)
             (UInt256.land (UInt256.lnot reserve112Mask) slotWord)))))
 
+theorem uniswapUpdatePackedReserveWord_eq_setters
+    (slotWord timestamp balance1 balance0 : UInt256) :
+    setUint32Offset28Word
+        (setUint112Offset14Word (setUint112Offset0Word slotWord balance0) balance1)
+        timestamp =
+      uniswapUpdatePackedReserveWord slotWord timestamp balance1 balance0 := by
+  rfl
+
 abbrev uniswapSyncTopic : UInt256 :=
   ⟨0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1⟩
 
@@ -255,6 +263,159 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
   have rd7108 := evm_run rd7091 with [jumpiT one_ne_zero_uint (by jump_dest)]
   have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
   have rd7128 := evm_run rd7111 with [jumpiT one_ne_zero_uint (by jump_dest)]
+  have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
+  exact ⟨_, _, evm_run rd7130 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Shared `_update` slice for the condition-false branch where `timeElapsed != 0` but the
+previous packed `reserve0` is zero. The cumulative price updates are skipped. -/
+theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
+    {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
+    (helapsedNe :
+      UInt256.land
+        (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+          (UInt256.land reserve32Mask
+            (UInt256.div
+              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              reserve224Shift)))
+        reserve32Mask ≠ ⟨0⟩)
+    (hreserve0Zero : UInt256.land reserve0 reserve112Mask = ⟨0⟩)
+    (hov : R.length + 12 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+      (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+          (UInt256.land reserve32Mask
+            (UInt256.div
+              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              reserve224Shift)) ::
+        UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
+        reserve1 :: reserve0 :: balance1 :: balance0 :: R)
+      mem aw rdata acc k' C' := by
+  have helapsedIsZero :
+      UInt256.isZero
+        (UInt256.land
+          (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+            (UInt256.land reserve32Mask
+              (UInt256.div
+                (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                reserve224Shift)))
+          reserve32Mask) = ⟨0⟩ :=
+    isZero_eq_zero_of_ne helapsedNe
+  have hreserve0ZeroLit :
+      UInt256.land reserve0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨0⟩ := by
+    simpa [reserve112Mask, reserve112Shift] using hreserve0Zero
+  have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
+  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7091₀ := evm_run rd7070 with [
+    dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
+    dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
+  have rd7091 := rd7091₀
+  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7091
+  have rd7095 := evm_run rd7091 with [jumpiNT (by decide)]
+  have rd7108₀ := evm_run rd7095 with [
+    pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, and, iszero,
+    iszero]
+  have rd7108 := rd7108₀
+  rw [hreserve0ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7108
+  have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
+  have rd7128 := evm_run rd7111 with [jumpiT one_ne_zero_uint (by jump_dest)]
+  have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
+  exact ⟨_, _, evm_run rd7130 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
+
+set_option maxHeartbeats 1000000 in
+/-- Shared `_update` slice for the condition-false branch where `timeElapsed != 0`, `reserve0`
+is nonzero, and the previous packed `reserve1` is zero. The cumulative price updates are skipped. -/
+theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
+    {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
+    (helapsedNe :
+      UInt256.land
+        (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+          (UInt256.land reserve32Mask
+            (UInt256.div
+              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              reserve224Shift)))
+        reserve32Mask ≠ ⟨0⟩)
+    (hreserve0Ne : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
+    (hreserve1Zero : UInt256.land reserve1 reserve112Mask = ⟨0⟩)
+    (hov : R.length + 12 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
+      (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+          (UInt256.land reserve32Mask
+            (UInt256.div
+              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              reserve224Shift)) ::
+        UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
+        reserve1 :: reserve0 :: balance1 :: balance0 :: R)
+      mem aw rdata acc k' C' := by
+  have helapsedIsZero :
+      UInt256.isZero
+        (UInt256.land
+          (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
+            (UInt256.land reserve32Mask
+              (UInt256.div
+                (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                reserve224Shift)))
+          reserve32Mask) = ⟨0⟩ :=
+    isZero_eq_zero_of_ne helapsedNe
+  have hreserve0NeLit :
+      UInt256.land reserve0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) ≠
+        ⟨0⟩ := by
+    simpa [reserve112Mask, reserve112Shift] using hreserve0Ne
+  have hreserve0IsZero :
+      UInt256.isZero
+        (UInt256.land reserve0
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩)) =
+        ⟨0⟩ :=
+    isZero_eq_zero_of_ne hreserve0NeLit
+  have hreserve1ZeroLit :
+      UInt256.land reserve1
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩) =
+        ⟨0⟩ := by
+    simpa [reserve112Mask, reserve112Shift] using hreserve1Zero
+  have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
+  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7091₀ := evm_run rd7070 with [
+    dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
+    dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
+  have rd7091 := rd7091₀
+  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7091
+  have rd7095 := evm_run rd7091 with [jumpiNT (by decide)]
+  have rd7108₀ := evm_run rd7095 with [
+    pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, and, iszero,
+    iszero]
+  have rd7108 := rd7108₀
+  rw [hreserve0IsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7108
+  have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
+  have rd7115 := evm_run rd7111 with [jumpiNT (by decide)]
+  have rd7128₀ := evm_run rd7115 with [
+    pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup4, and, iszero,
+    iszero]
+  have rd7128 := rd7128₀
+  rw [hreserve1ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7128
   have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
   exact ⟨_, _, evm_run rd7130 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
 

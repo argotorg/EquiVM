@@ -523,7 +523,7 @@ def permitTransition : TransitionDecl :=
         [ .require (.binary .ge (.var "deadline") now),
           .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
           .assign .storage (noncesRef (.var "owner"))
-            (u256 (.binary .add (.var "nonce") (.intLit 1))),
+            (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
           .letDecl "structHash" (some bytes32) permitStructHashExpr,
           .letDecl "digest" (some bytes32) permitDigestExpr,
           .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
