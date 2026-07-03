@@ -1,7 +1,11 @@
 # Agent prompt — proving EVM↔Solm correctness for a contract
 
 You are proving that a concrete EVM bytecode artifact refines its Solm
-specification.
+specification. You goal is to complete the proof of the top-level theorem 
+in `Correct.lean` with no `sorry` and no added axioms, except for the 
+accepted trusted base below.
+
+```lean
 
 You are given a working directory, which is named after the contract
 (`<Name>/`) and includes:
@@ -89,7 +93,8 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
    dispatcher (`by_cases` on `callvalue`/`size`/each selector, routing
    each selector to its per-function `…BodyCore`, plus the shared
    revert paths). This skeleton should type-check and route correctly
-   before the leaves are done.
+   before the leaves are done. Add the necessary ABI selector axiom 
+   as needed.
 
 2. For each ABI function `<Fn>`, route to a `…BodyCore` whose proof is
    a `sorry`. That `…BodyCore` should be defined in that function's
@@ -122,19 +127,21 @@ The proof of each function follows, roughly, four phases:
    `…_none_short`, `…_none_huge`, `…_none_noncanon`). One `simpa …
    using <lib lemma>` per branch (see `BalanceOf.lean`).
 
-2. Solm source body. Prove the `ExecTransitionBody` result (return
+2. Add trusted selector facts for the public selectors in `Trusted.lean`.
+
+3. Solm source body. Prove the `ExecTransitionBody` result (return
    value / storage update / revert) using `Reasoning.SolmBody`
    (`ExecStmt`/`ExecBlock` combinators, `evalExpr_*`, `requireStep`,
    `returns`). For mutating functions, split success and revert
    branches early.
 
-3. EVM reachability. Thread the bytecode trace from the body entry PC
+4. EVM reachability. Thread the bytecode trace from the body entry PC
    to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
    ]` cooked-step chains and factored `RD.*` routine lemmas. Never
    write one giant `evm_run`; split into named `have`s, one per
    phase/routine.
 
-4. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
+5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
    `runtimeEquivalenceFor`.

@@ -210,6 +210,11 @@ def nonpayable : List Stmt :=
 def auth : List Stmt :=
   [ .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
 
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar (perm := perm) ]
+
 def checkedAddUintInto (name : Ident) (x y : Expr) : List Stmt :=
   [ .letDecl name (some uint256) (add256 x y),
     .require (.binary .ge (.var name) x) ]
@@ -229,9 +234,9 @@ def constructorDecl : ConstructorDecl :=
       [ .assign .storage (wardsRef sender) (.intLit 1),
         .assign .storage vatRef (.var "vat_"),
         .assign .storage flapperRef (.var "flapper_"),
-        .assign .storage flopperRef (.var "flopper_"),
-        .externalCall (.storage vatRef) "hope" (.intLit 0) [.var "flapper_"] "_hopeRet",
-        .assign .storage liveRef (.intLit 1) ] }
+        .assign .storage flopperRef (.var "flopper_") ] ++
+      checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flapper_"] "_hopeRet" ++
+      [ .assign .storage liveRef (.intLit 1) ] }
 
 /-! ## Internal functions -/
 
@@ -365,9 +370,11 @@ def fileAddressTransition : TransitionDecl :=
       nonpayable ++ auth ++
       [ .ite
           (.binary .eq (.var "what") flapperParamLit)
-          [ .externalCall (.storage vatRef) "nope" (.intLit 0) [.storage flapperRef] "_nopeRet",
-            .assign .storage flapperRef (.var "data"),
-            .externalCall (.storage vatRef) "hope" (.intLit 0) [.var "data"] "_hopeRet" ]
+          (checkedExternalCallStmts (.storage vatRef) "nope" (.intLit 0)
+              [.storage flapperRef] "_nopeRet" ++
+            [ .assign .storage flapperRef (.var "data") ] ++
+            checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0)
+              [.var "data"] "_hopeRet")
           [ .ite
               (.binary .eq (.var "what") flopperParamLit)
               [ .assign .storage flopperRef (.var "data") ]
@@ -402,13 +409,15 @@ def healTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++
-      [ .externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai" false,
-        .require (.binary .le (.var "rad") (.var "vatDai")),
-        .externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin" false,
-        .internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin",
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
+        (perm := false) ++
+      [ .require (.binary .le (.var "rad") (.var "vatDai")) ] ++
+      checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
+        (perm := false) ++
+      [ .internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin",
         .internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt",
-        .require (.binary .le (.var "rad") (.var "healDebt")),
-        .externalCall (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet" ] }
+        .require (.binary .le (.var "rad") (.var "healDebt")) ] ++
+      checkedExternalCallStmts (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet" }
 
 def kissTransition : TransitionDecl :=
   { name := "kiss"
@@ -416,12 +425,13 @@ def kissTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++
-      [ .require (.binary .le (.var "rad") (.storage AshRef)),
-        .externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai" false,
-        .require (.binary .le (.var "rad") (.var "vatDai")),
+      [ .require (.binary .le (.var "rad") (.storage AshRef)) ] ++
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
+        (perm := false) ++
+      [ .require (.binary .le (.var "rad") (.var "vatDai")),
         .internalCall "sub" [.storage AshRef, .var "rad"] "AshNew",
-        .assign .storage AshRef (.var "AshNew"),
-        .externalCall (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet" ] }
+        .assign .storage AshRef (.var "AshNew") ] ++
+      checkedExternalCallStmts (.storage vatRef) "heal" (.intLit 0) [.var "rad"] "_healRet" }
 
 def flopTransition : TransitionDecl :=
   { name := "flop"
@@ -429,17 +439,19 @@ def flopTransition : TransitionDecl :=
     returnType := [uint256]
     body :=
       nonpayable ++
-      [ .externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin" false,
-        .internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin",
+      checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
+        (perm := false) ++
+      [ .internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin",
         .internalCall "sub" [.var "freeSin", .storage AshRef] "flopDebt",
-        .require (.binary .le (.storage sumpRef) (.var "flopDebt")),
-        .externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai" false,
-        .require (.binary .eq (.var "vatDai") (.intLit 0)),
+        .require (.binary .le (.storage sumpRef) (.var "flopDebt")) ] ++
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
+        (perm := false) ++
+      [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
         .internalCall "add" [.storage AshRef, .storage sumpRef] "AshNew",
-        .assign .storage AshRef (.var "AshNew"),
-        .externalCall (.storage flopperRef) "kick" (.intLit 0)
-          [thisAddr, .storage dumpRef, .storage sumpRef] "id",
-        .return [.var "id"] ] }
+        .assign .storage AshRef (.var "AshNew") ] ++
+      checkedExternalCallStmts (.storage flopperRef) "kick" (.intLit 0)
+        [thisAddr, .storage dumpRef, .storage sumpRef] "id" ++
+      [ .return [.var "id"] ] }
 
 def flapTransition : TransitionDecl :=
   { name := "flap"
@@ -447,18 +459,21 @@ def flapTransition : TransitionDecl :=
     returnType := [uint256]
     body :=
       nonpayable ++
-      [ .externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai" false,
-        .externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin0" false,
-        .internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0",
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
+        (perm := false) ++
+      checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin0"
+        (perm := false) ++
+      [ .internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0",
         .internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed",
-        .require (.binary .ge (.var "vatDai") (.var "surplusNeed")),
-        .externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin1" false,
-        .internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin",
+        .require (.binary .ge (.var "vatDai") (.var "surplusNeed")) ] ++
+      checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin1"
+        (perm := false) ++
+      [ .internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin",
         .internalCall "sub" [.var "freeSin", .storage AshRef] "debt",
-        .require (.binary .eq (.var "debt") (.intLit 0)),
-        .externalCall (.storage flapperRef) "kick" (.intLit 0)
-          [.storage bumpRef, .intLit 0] "id",
-        .return [.var "id"] ] }
+        .require (.binary .eq (.var "debt") (.intLit 0)) ] ++
+      checkedExternalCallStmts (.storage flapperRef) "kick" (.intLit 0)
+        [.storage bumpRef, .intLit 0] "id" ++
+      [ .return [.var "id"] ] }
 
 def cageTransition : TransitionDecl :=
   { name := "cage"
@@ -469,14 +484,18 @@ def cageTransition : TransitionDecl :=
       [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
         .assign .storage liveRef (.intLit 0),
         .assign .storage SinRef (.intLit 0),
-        .assign .storage AshRef (.intLit 0),
-        .externalCall (.storage vatRef) "dai" (.intLit 0) [.storage flapperRef] "flapperDai" false,
-        .externalCall (.storage flapperRef) "cage" (.intLit 0) [.var "flapperDai"] "_flapCageRet",
-        .externalCall (.storage flopperRef) "cage" (.intLit 0) [] "_flopCageRet",
-        .externalCall (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai" false,
-        .externalCall (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin" false,
-        .internalCall "min" [.var "vatDai", .var "vatSin"] "healRad",
-        .externalCall (.storage vatRef) "heal" (.intLit 0) [.var "healRad"] "_healRet" ] }
+        .assign .storage AshRef (.intLit 0) ] ++
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [.storage flapperRef]
+        "flapperDai" (perm := false) ++
+      checkedExternalCallStmts (.storage flapperRef) "cage" (.intLit 0)
+        [.var "flapperDai"] "_flapCageRet" ++
+      checkedExternalCallStmts (.storage flopperRef) "cage" (.intLit 0) [] "_flopCageRet" ++
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
+        (perm := false) ++
+      checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin"
+        (perm := false) ++
+      [ .internalCall "min" [.var "vatDai", .var "vatSin"] "healRad" ] ++
+      checkedExternalCallStmts (.storage vatRef) "heal" (.intLit 0) [.var "healRad"] "_healRet" }
 
 def transitions : List TransitionDecl :=
   [ AshTransition,
