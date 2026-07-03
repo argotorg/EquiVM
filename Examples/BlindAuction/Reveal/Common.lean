@@ -6,6 +6,15 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000
 namespace BlindAuction
 
+private theorem evalBinaryOp_eq_int_ok (x y : Int) :
+    evalBinaryOp? .eq (.int x) (.int y) =
+      .ok (.bool (Value.int x == Value.int y)) := by
+  rfl
+
+private theorem evalBinaryOp_lt_int_ok (x y : Int) :
+    evalBinaryOp? .lt (.int x) (.int y) = .ok (.bool (x < y)) := by
+  rfl
+
 abbrev revealScratchTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
@@ -1757,7 +1766,10 @@ theorem evalExpr_reveal_local_empty_length_eq_zero_var (evm : EVM.State) (locals
   rw [evalExpr?]
   simp only [evalExpr_reveal_local_empty_array_length evm locals name harr,
     evalExpr_reveal_var_int evm locals "length" 0 hlen, EvalResult.bind, bind]
+  change evalBinaryOp? .eq (.int 0) (.int 0) = .ok (.bool true)
+  rw [evalBinaryOp_eq_int_ok]
   rfl
+  all_goals decide
 
 theorem evalExpr_reveal_local_array_length_eq_var_false (evm : EVM.State) (locals : Store)
     (name : Ident) (xs : List Value) (len : UInt256)
@@ -1771,10 +1783,13 @@ theorem evalExpr_reveal_local_array_length_eq_var_false (evm : EVM.State) (local
   simp only [evalExpr_reveal_local_array_length evm locals name xs harr,
     evalExpr_reveal_var_int evm locals "length" (Int.ofNat len.toNat) hlen,
     EvalResult.bind, bind]
-  simp [evalBinaryOp?]
+  change evalBinaryOp? .eq (.int (Int.ofNat xs.length)) (.int (Int.ofNat len.toNat)) =
+    .ok (.bool false)
+  rw [evalBinaryOp_eq_int_ok]
   have hint : (Int.ofNat xs.length == Int.ofNat len.toNat) = false := by
     simp [beq_eq_false_iff_ne, hne]
   simpa [hint] using hne
+  all_goals decide
 
 theorem evalExpr_reveal_local_array_length_eq_var_true (evm : EVM.State) (locals : Store)
     (name : Ident) (xs : List Value) (len : UInt256)
@@ -1788,7 +1803,11 @@ theorem evalExpr_reveal_local_array_length_eq_var_true (evm : EVM.State) (locals
   simp only [evalExpr_reveal_local_array_length evm locals name xs harr,
     evalExpr_reveal_var_int evm locals "length" (Int.ofNat len.toNat) hlen,
     EvalResult.bind, bind]
-  simp [evalBinaryOp?, heq]
+  change evalBinaryOp? .eq (.int (Int.ofNat xs.length)) (.int (Int.ofNat len.toNat)) =
+    .ok (.bool true)
+  rw [evalBinaryOp_eq_int_ok]
+  simp [heq]
+  all_goals decide
 
 theorem evalExpr_reveal_loop_cond_false (evm : EVM.State) (locals : Store)
     (hi : locals.get? "i" = some (.int 0))
@@ -1798,7 +1817,10 @@ theorem evalExpr_reveal_loop_cond_false (evm : EVM.State) (locals : Store)
   rw [evalExpr?]
   simp only [evalExpr_reveal_var_int evm locals "i" 0 hi,
     evalExpr_reveal_var_int evm locals "length" 0 hlen, EvalResult.bind, bind]
+  change evalBinaryOp? .lt (.int 0) (.int 0) = .ok (.bool false)
+  rw [evalBinaryOp_lt_int_ok]
   rfl
+  all_goals decide
 
 theorem evalExpr_reveal_local_array_index_any (evm : EVM.State) (locals : Store)
     (name : Ident) (xs : List Value) (idx : UInt256) (v : Value)

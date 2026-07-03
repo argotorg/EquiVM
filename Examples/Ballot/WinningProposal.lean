@@ -10,6 +10,18 @@ namespace Ballot
 
 /-! ## `winningProposal()` -/
 
+private theorem evalBinaryOp_lt_int_ok (x y : Int) :
+    evalBinaryOp? .lt (.int x) (.int y) = .ok (.bool (x < y)) := by
+  rfl
+
+private theorem evalBinaryOp_gt_int_ok (x y : Int) :
+    evalBinaryOp? .gt (.int x) (.int y) = .ok (.bool (x > y)) := by
+  rfl
+
+private theorem evalBinaryOp_add_int_ok (x y : Int) :
+    evalBinaryOp? .add (.int x) (.int y) = .ok (.int (x + y)) := by
+  rfl
+
 def winningProposalLengthWord (sigma : AccountMap) (I : ExecutionEnv) : UInt256 :=
   sigma.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
 
@@ -176,7 +188,12 @@ theorem winningProposalEvalLoopCond (evm : EVM.State) (locals : Store) (p : UInt
   rw [winningProposalLoopCondExpr, evalExpr?]
   rw [winningProposalEvalVar evm locals "p" p hp]
   rw [winningProposalEvalLength evm locals hbase]
-  rfl
+  simp only [EvalResult.bind, bind, pure]
+  change evalBinaryOp? .lt (.int (Int.ofNat p.toNat))
+      (.int (Int.ofNat (winningProposalLengthCurrent evm).toNat)) =
+    .ok (.bool (Int.ofNat p.toNat < Int.ofNat (winningProposalLengthCurrent evm).toNat))
+  rw [evalBinaryOp_lt_int_ok]
+  all_goals decide
 
 theorem winningProposalEvalLoopCond_true (evm : EVM.State) (locals : Store) (p : UInt256)
     (hbase : locals.get? "proposals" = none)
@@ -215,7 +232,13 @@ theorem winningProposalEvalVoteGt (evm : EVM.State) (locals : Store)
   rw [evalExpr?]
   rw [winningProposalEvalVoteCount evm locals p hbase hp hbound]
   rw [winningProposalEvalVar evm locals "winningVoteCount" winningVoteCount hcount]
-  rfl
+  simp only [EvalResult.bind, bind, pure]
+  change evalBinaryOp? .gt (.int (Int.ofNat (winningProposalVoteCountCurrent evm p).toNat))
+      (.int (Int.ofNat winningVoteCount.toNat)) =
+    .ok (.bool (Int.ofNat (winningProposalVoteCountCurrent evm p).toNat >
+      Int.ofNat winningVoteCount.toNat))
+  rw [evalBinaryOp_gt_int_ok]
+  all_goals decide
 
 theorem winningProposalEvalVoteGt_true (evm : EVM.State) (locals : Store)
     (p winningVoteCount : UInt256) (hbase : locals.get? "proposals" = none)
@@ -307,8 +330,12 @@ theorem winningProposalLoopPostStep (evm : EVM.State) (locals : Store) (p : UInt
           .ok (.int (Int.ofNat (p + ⟨1⟩).toNat))
       rw [evalExpr?]
       rw [winningProposalEvalVar evm locals "p" p hold]
-      simp [evalExpr?, evalBinaryOp?, EvalResult.bind, bind, pure]
-      exact hadd
+      simp only [evalExpr?, EvalResult.bind, bind, pure]
+      change evalBinaryOp? .add (.int (Int.ofNat p.toNat)) (.int 1) =
+        .ok (.int (Int.ofNat (p + ⟨1⟩).toNat))
+      rw [evalBinaryOp_add_int_ok]
+      simpa [hadd]
+      all_goals decide
     · exact winningProposalAssignLocal evm locals "p" p (p + ⟨1⟩) hold
   · exact ExecBlock.nil
 

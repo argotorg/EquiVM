@@ -556,7 +556,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
     pushArray? blindAuctionConfig { contract := blindAuctionContract, locals := bidStore evm.executionEnv }
       evm (bidsRef sender) (some (bidStructValue evm.executionEnv)) =
       .ok (bidPostState evm evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv)) := by
-  unfold pushArray? resolveDynamicArrayRef? resolveStorageRef? evalStorageRef evalStorageRefSteps
+  unfold pushArray? resolveStorageRef? evalStorageRef evalStorageRefSteps
     evalStorageRefStep bidsRef sender valueToKey? storageTypeAt? storageTypeStep?
     blindAuctionContract storageDecls bidStructTy bidStructDecl blindAuctionConfig
     blindAuctionStorageLayout bidPostState bidAfterBlindedState bidAfterLengthState

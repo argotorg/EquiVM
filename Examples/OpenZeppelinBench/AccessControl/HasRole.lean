@@ -140,18 +140,27 @@ def hasRoleEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "_roles",
     steps := [.mindex (hasRoleRoleKey I), .field "hasRole", .mindex (hasRoleAccountKey I)] }
 
-theorem evalStorageRef_hasRole (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalStorageRef_hasRole (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     evalStorageRef config { contract := contract, locals := hasRoleStore I } evm
       (roleHasRoleRef (.var "role") (.var "account")) =
         EvalResult.ok (hasRoleEvaledRef I) := by
   have hgrole := hasRoleStore_role_getElem? I
   have hgaccount := hasRoleStore_account_getElem? I
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hlen : (hasRoleRoleBytes I).length = 32 := by
+    rw [hasRoleRoleBytes, List.length_take, List.length_drop, htlen]
+    omega
   simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, roleHasRoleRef,
     hasRoleEvaledRef, evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, pure,
-    valueToKey?, Std.HashMap.get?_eq_getElem?, hgrole, hgaccount, hasRoleRoleValue,
-    hasRoleAccountValue]
+    Std.HashMap.get?_eq_getElem?, hgrole, hgaccount, hasRoleRoleValue,
+    hasRoleAccountValue, accessControlValueToKey_bytes32_of_length hlen,
+    accessControlValueToKey_address]
 
-theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := hasRoleStore I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) =
         .ok (wordToElem .bool
@@ -159,7 +168,7 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv) :
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩)) := by
   rw [evalExpr_storage_scalar (t := .bool)
     (hbase := by simpa [roleHasRoleRef] using hasRoleStore_roles I)
-    (her := evalStorageRef_hasRole evm I)
+    (her := evalStorageRef_hasRole evm I hsz68)
     (hty := by
       simp [storageTypeAt?, hasRoleEvaledRef, contract, storageDecls, roleDataSt, boolSt,
         storageTypeStep?])
@@ -171,7 +180,7 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv) :
   rw [accessControlStorageLocLoad_bool_offset0 evm (hasRoleSlot I)]
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :
     ExecTransitionBody config contract evm (hasRoleStore I) hasRoleTransition.body
       (.returned { contract := contract, locals := hasRoleStore I } evm
         (some [(wordToElem .bool
@@ -179,7 +188,7 @@ theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      simpa [roleHasRoleRef] using evalExpr_hasRole_storage evm I)
+      simpa [roleHasRoleRef] using evalExpr_hasRole_storage evm I hsz68)
 
 theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     keyValueToWord (hasRoleRoleKey I) = hasRoleRoleWord I := by
@@ -687,7 +696,7 @@ theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
             Solm.EVM.storageLoad, State.lookupAccount] using
               accessControlHasRoleBodyReturns
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-                (by simp only [initState]; exact hwv)
+                (by simp only [initState]; exact hwv) hsz68
         have hretVal :
             (some [wordToElem .bool (hasRoleMaskedWord σ_solm I)] : Option (List Value)) =
               some [wordToElem .bool (hasRoleMaskedWord σ_evm I)] := by

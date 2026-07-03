@@ -554,9 +554,13 @@ theorem accessControlSupportsInterfaceBodyReturns (evm : EVM.State) (I : Executi
         (some [(.bool (supportsInterfaceResult I))])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns ?_
-  simp [supportsInterfaceStore, supportsInterfaceResult, iaccessControlId, ierc165Id, evalExpr?,
-    EvalResult.bind, EvalResult.ofOption, bind, pure, evalBinaryOp?,
-    accessControlFixedBytes4_beq]
+  by_cases hac : supportsInterfaceBytes I == [0x79, 0x65, 0xdb, 0x0b]
+  · simp [supportsInterfaceStore, supportsInterfaceResult, iaccessControlId, ierc165Id, evalExpr?,
+      EvalResult.bind, EvalResult.ofOption, bind, pure, evalBinaryOp?,
+      accessControlFixedBytes4_beq, hac]
+  · simp [supportsInterfaceStore, supportsInterfaceResult, iaccessControlId, ierc165Id, evalExpr?,
+      EvalResult.bind, EvalResult.ofOption, bind, pure, evalBinaryOp?,
+      accessControlFixedBytes4_beq, hac]
 
 theorem accessControlSupportsInterfaceX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}

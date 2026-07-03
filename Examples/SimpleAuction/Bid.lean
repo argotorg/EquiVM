@@ -10,6 +10,11 @@ namespace SimpleAuction
 
 /-! ## `bid()` local words, storage slots, and small EVM helpers -/
 
+private theorem evalBinaryOp_ne_int_ok (x y : Int) :
+    evalBinaryOp? .ne (.int x) (.int y) =
+      .ok (.bool (!(Value.int x == Value.int y))) := by
+  rfl
+
 def bidTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
@@ -1120,7 +1125,12 @@ theorem evalExpr_bid_highestBid_ne_true (evm : EVM.State)
     apply hnz
     apply u256_inj
     simpa [UInt256.toNat] using h
-  simp [evalBinaryOp?, hnat]
+  change evalBinaryOp? .ne
+      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat))
+      (.int 0) = .ok (.bool true)
+  rw [evalBinaryOp_ne_int_ok]
+  simp [hnat]
+  all_goals decide
 
 theorem evalExpr_bid_highestBid_ne_false (evm : EVM.State)
     (hzero : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩ = ⟨0⟩) :
@@ -1129,7 +1139,10 @@ theorem evalExpr_bid_highestBid_ne_false (evm : EVM.State)
   rw [evalExpr?]
   simp only [evalExpr_bid_highestBid, evalExpr?, bind, EvalResult.bind, pure]
   rw [hzero]
+  change evalBinaryOp? .ne (.int 0) (.int 0) = .ok (.bool false)
+  rw [evalBinaryOp_ne_int_ok]
   rfl
+  all_goals decide
 
 theorem bidPendingSum_toNat (evm : EVM.State)
     (hfit :

@@ -10,6 +10,13 @@ namespace UniswapV2Pair
 
 /-! ## `sync()` source/ABI prefix -/
 
+private theorem valueInt_beq_false_of_ne {x y : Int} (h : x ≠ y) :
+    (Value.int x == Value.int y) = false := by
+  rw [beq_eq_false_iff_ne]
+  intro hv
+  cases hv
+  exact h rfl
+
 theorem uniswapDecode_sync {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (syncTransition.params.map Param.name)
       (transitionSignature syncTransition).paramTypes I.calldata = some ∅ := by
@@ -111,8 +118,11 @@ theorem evalExpr_sync_update_bounds_true (evm : EVM.State) (balance0 balance1 : 
         (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool true) := by
   simp only [evalExpr?, EvalResult.bind, bind]
   rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
-  simp [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?]
-  exact ⟨hbound0, hbound1⟩
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound0
+  have hb1 : decide (Int.ofNat balance1.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound1
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0, hb1]
 
 theorem evalExpr_sync_update_bounds_false_first (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
@@ -123,12 +133,12 @@ theorem evalExpr_sync_update_bounds_false_first (evm : EVM.State) (balance0 bala
   have hnot : ¬ Int.ofNat balance0.toNat ≤ maxUint112 := by omega
   simp only [evalExpr?, EvalResult.bind, bind]
   rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
-  simp [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?]
-  intro hle
-  exact False.elim (hnot hle)
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = false :=
+    decide_eq_false hnot
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0]
 
 theorem evalExpr_sync_update_bounds_false_second (evm : EVM.State) (balance0 balance1 : UInt256)
-    (_hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
     evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
       (.binary .and
@@ -136,9 +146,11 @@ theorem evalExpr_sync_update_bounds_false_second (evm : EVM.State) (balance0 bal
         (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
   simp only [evalExpr?, EvalResult.bind, bind]
   rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
-  simp [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?]
-  intro _hle0
-  exact hbound1
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound0
+  have hb1 : decide (Int.ofNat balance1.toNat ≤ maxUint112) = false :=
+    decide_eq_false (by omega)
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0, hb1]
 
 theorem evalExprs_sync_update_call_args (evm : EVM.State) (balance0 balance1 : UInt256) :
     evalExprs? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
@@ -599,7 +611,7 @@ theorem evalExpr_sync_update_condition_false_elapsed_zero
     syncUpdateTimeElapsedStore_reserve1]
   unfold syncTimeElapsedValue
   rw [helapsed]
-  simp [evalBinaryOp?]
+  simp [evalBinaryOp?, pure]
 
 theorem evalExpr_sync_update_condition_false_reserve0_zero
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -616,8 +628,12 @@ theorem evalExpr_sync_update_condition_false_reserve0_zero
   rw [syncUpdateTimeElapsedStore_timeElapsed, syncUpdateTimeElapsedStore_reserve0,
     syncUpdateTimeElapsedStore_reserve1]
   unfold syncTimeElapsedValue
-  rw [hreserve0]
-  simp [evalBinaryOp?]
+  by_cases helapsed : 0 < syncTimeElapsedInt evm
+  · have htime : decide (0 < syncTimeElapsedInt evm) = true := decide_eq_true helapsed
+    simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hreserve0]
+    rfl
+  · have htime : decide (0 < syncTimeElapsedInt evm) = false := decide_eq_false helapsed
+    simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime]
 
 theorem evalExpr_sync_update_condition_false_reserve1_zero
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -634,8 +650,18 @@ theorem evalExpr_sync_update_condition_false_reserve1_zero
   rw [syncUpdateTimeElapsedStore_timeElapsed, syncUpdateTimeElapsedStore_reserve0,
     syncUpdateTimeElapsedStore_reserve1]
   unfold syncTimeElapsedValue
-  rw [hreserve1]
-  simp [evalBinaryOp?]
+  by_cases helapsed : 0 < syncTimeElapsedInt evm
+  · have htime : decide (0 < syncTimeElapsedInt evm) = true := decide_eq_true helapsed
+    by_cases hreserve0 : Int.ofNat (uniswapReserve0Word evm).toNat = 0
+    · simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hreserve0, hreserve1]
+      rfl
+    · have hne0 :
+          (Value.int (Int.ofNat (uniswapReserve0Word evm).toNat) == Value.int 0) = false :=
+        valueInt_beq_false_of_ne hreserve0
+      simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hreserve1, hne0]
+      rfl
+  · have htime : decide (0 < syncTimeElapsedInt evm) = false := decide_eq_false helapsed
+    simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime]
 
 theorem evalExpr_sync_update_condition_true
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -654,14 +680,15 @@ theorem evalExpr_sync_update_condition_true
   rw [syncUpdateTimeElapsedStore_timeElapsed, syncUpdateTimeElapsedStore_reserve0,
     syncUpdateTimeElapsedStore_reserve1]
   unfold syncTimeElapsedValue
-  simp [evalBinaryOp?]
-  constructor
-  · simpa [syncTimeElapsedInt] using helapsed
-  · constructor
-    · intro hzero
-      exact hreserve0 (by simp [hzero])
-    · intro hzero
-      exact hreserve1 (by simp [hzero])
+  have htime : decide (0 < syncTimeElapsedInt evm) = true := decide_eq_true helapsed
+  have hne0 :
+      (Value.int (Int.ofNat (uniswapReserve0Word evm).toNat) == Value.int 0) = false :=
+    valueInt_beq_false_of_ne hreserve0
+  have hne1 :
+      (Value.int (Int.ofNat (uniswapReserve1Word evm).toNat) == Value.int 0) = false :=
+    valueInt_beq_false_of_ne hreserve1
+  simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hne0, hne1]
+  rfl
 
 theorem evalExpr_sync_update_price0Cumulative
     (storageEvm updateEvm : EVM.State) (balance0 balance1 : UInt256)

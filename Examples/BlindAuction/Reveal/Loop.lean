@@ -275,6 +275,7 @@ theorem scratch_evalExpr_reveal_loop_cond_true (evm : EVM.State) (callargs : Sto
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   exact hbound
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_loop_cond_false (evm : EVM.State) (callargs : Store)
     (len refund i : UInt256) (hbound : len.toNat ≤ i.toNat) :
@@ -290,6 +291,7 @@ theorem scratch_evalExpr_reveal_loop_cond_false (evm : EVM.State) (callargs : St
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   exact hbound
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_loop_cond_true_of_get (evm : EVM.State) (locals : Store)
     (len i : UInt256)
@@ -305,6 +307,7 @@ theorem scratch_evalExpr_reveal_loop_cond_true_of_get (evm : EVM.State) (locals 
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   exact hbound
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_loop_cond_false_of_get (evm : EVM.State) (locals : Store)
     (len i : UInt256)
@@ -320,6 +323,7 @@ theorem scratch_evalExpr_reveal_loop_cond_false_of_get (evm : EVM.State) (locals
     EvalResult.bind, bind]
   simp [evalBinaryOp?]
   exact hbound
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_local_array_index_norm (evm : EVM.State) (locals : Store)
     (name : Ident) (xs : List Value) (idx : UInt256) (rawv v : Value)
@@ -651,6 +655,7 @@ theorem scratch_evalExpr_reveal_hash_guard_true (evm : EVM.State) (locals : Stor
   simp only [scratch_evalExpr_reveal_bid_blinded evm locals i blinded hbid hblinded,
     hhash, EvalResult.bind, bind]
   simp [evalBinaryOp?, hne]
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_hash_guard_false (evm : EVM.State) (locals : Store)
     (i blinded : UInt256) (hashBytes : List UInt8)
@@ -673,6 +678,7 @@ theorem scratch_evalExpr_reveal_hash_guard_false (evm : EVM.State) (locals : Sto
     hhash, EvalResult.bind, bind]
   subst hashBytes
   simp [evalBinaryOp?]
+  all_goals decide
 
 theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callargs : Store)
     (values fakes secrets : List Value) (len refund i value secret blinded : UInt256)
@@ -1326,6 +1332,7 @@ theorem scratch_evalExpr_reveal_refund_add_deposit (evm : EVM.State) (locals : S
   simp only [uint256Int]
   rw [if_neg hif]
   rfl
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_refund_add_deposit_revert (evm : EVM.State)
     (locals : Store) (i refund deposit : UInt256)
@@ -1356,6 +1363,7 @@ theorem scratch_evalExpr_reveal_refund_add_deposit_revert (evm : EVM.State)
     exact Or.inr hge
   simp only [uint256Int]
   rw [if_pos hif]
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_refund_sub_value (evm : EVM.State) (locals : Store)
     (refund value : UInt256)
@@ -1392,6 +1400,7 @@ theorem scratch_evalExpr_reveal_refund_sub_value (evm : EVM.State) (locals : Sto
     EvalResult.ok (Value.int (Int.ofNat (refund.toNat - value.toNat)))
   rw [← Int.ofNat_sub hle]
   rfl
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_refund_sub_value_revert (evm : EVM.State) (locals : Store)
     (refund value : UInt256)
@@ -1415,6 +1424,7 @@ theorem scratch_evalExpr_reveal_refund_sub_value_revert (evm : EVM.State) (local
         (2 : Int) ^ 256 ≤ (refund.toNat : Int) - (value.toNat : Int) := Or.inl hneg
   simp only [uint256Int]
   rw [if_pos hif]
+  all_goals decide
 
 theorem scratch_evalExpr_reveal_i_add_one (evm : EVM.State) (locals : Store)
     (i : UInt256)
@@ -1430,6 +1440,7 @@ theorem scratch_evalExpr_reveal_i_add_one (evm : EVM.State) (locals : Store)
   have hadd : (i + ⟨1⟩).toNat = i.toNat + 1 := add1_toNat hfit
   rw [hadd]
   norm_num
+  all_goals decide
 
 theorem scratch_revealLoopPostStep (evm : EVM.State) (locals : Store) (i : UInt256)
     (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))

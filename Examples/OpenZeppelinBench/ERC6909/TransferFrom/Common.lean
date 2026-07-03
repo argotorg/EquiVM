@@ -11,6 +11,11 @@ set_option linter.unnecessarySimpa false
 
 namespace OpenZeppelinBench.ERC6909
 
+private theorem evalBinaryOp_ne_address_ok (a b : AccountAddress) :
+    evalBinaryOp? .ne (.address a) (.address b) =
+      .ok (.bool (!(Value.address a == Value.address b))) := by
+  rfl
+
 def transferFromOperatorEvaledRef (evm : EVM.State) (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "_operatorApprovals",
     steps := [.mindex (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat)),
@@ -277,7 +282,12 @@ theorem evalExpr_transferFrom_sender_ne_env_false (evm : EVM.State) (I : Executi
   simp only [EvalResult.bind, bind]
   change evalBinaryOp? .ne (transferFromSenderValue I) (.address I.source) =
     .ok (.bool false)
-  simp [evalBinaryOp?, transferFromSenderValue, haddr]
+  change evalBinaryOp? .ne
+      (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
+      (.address I.source) = .ok (.bool false)
+  rw [evalBinaryOp_ne_address_ok]
+  simp [transferFromSenderValue, haddr]
+  all_goals decide
 
 theorem evalExpr_transferFrom_sender_ne_env_true (evm : EVM.State) (I : ExecutionEnv)
     (hsource : evm.executionEnv.source = I.source)
@@ -292,7 +302,14 @@ theorem evalExpr_transferFrom_sender_ne_env_true (evm : EVM.State) (I : Executio
     simpa [hsource] using evalExpr_transferFrom_env_sender evm I
   rw [hcaller]
   simp only [EvalResult.bind, bind]
-  simp [evalBinaryOp?, hne]
+  change evalBinaryOp? .ne (transferFromSenderValue I) (.address I.source) =
+    .ok (.bool true)
+  change evalBinaryOp? .ne
+      (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
+      (.address I.source) = .ok (.bool true)
+  rw [evalBinaryOp_ne_address_ok]
+  simp [hne]
+  all_goals decide
 
 theorem evalExpr_transferFrom_operator_not_true (evm : EVM.State) (I : ExecutionEnv)
     (hop : transferFromOperatorWord evm I = ⟨0⟩) :

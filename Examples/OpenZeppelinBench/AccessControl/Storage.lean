@@ -45,6 +45,22 @@ theorem accessControlStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : 
     storageLocLoad evm (boolLoc slot) = .bool true := by
   simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
+theorem accessControlValueToKey_bytes32_of_length {bs : List UInt8}
+    (hlen : bs.length = 32) :
+    valueToKey? (.fixedBytes bytes32Width bs) = some (.fixedBytes bytes32Width bs) := by
+  simpa [valueToKey?, bytes32Width, hlen]
+
+theorem accessControlValueToKey_bytes32_toBytesBE (w : UInt256) :
+    valueToKey? (.fixedBytes bytes32Width (EVM.Word.toBytesBE w)) =
+      some (.fixedBytes bytes32Width (EVM.Word.toBytesBE w)) := by
+  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size w
+  exact accessControlValueToKey_bytes32_of_length hlen
+
+theorem accessControlValueToKey_address (a : AccountAddress) :
+    valueToKey? (.address a) = some (.address a) := by
+  rfl
+
 theorem accessControlAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
     (a : AccountAddress) (slot val : UInt256) (hστ : accountMapEquiv σ τ) :
     accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) :=

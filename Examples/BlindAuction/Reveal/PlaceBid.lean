@@ -103,6 +103,7 @@ theorem scratch_eval_placeBid_value_le_highestBid_true
     (Int.ofNat value.toNat) (scratch_placeBidStore_value bidder value), EvalResult.bind, bind]
   rw [scratch_eval_placeBid_highestBid evm bidder value high hhigh]
   simp [evalBinaryOp?, hle]
+  all_goals decide
 
 theorem scratch_eval_placeBid_value_le_highestBid_false
     (evm : EVM.State) (bidder : AccountAddress) (value high : UInt256)
@@ -118,6 +119,7 @@ theorem scratch_eval_placeBid_value_le_highestBid_false
   have hltInt : (Int.ofNat high.toNat) < Int.ofNat value.toNat := Int.ofNat_lt.mpr hlt
   have hnot : ¬ Int.ofNat value.toNat ≤ Int.ofNat high.toNat := not_le_of_gt hltInt
   simp [evalBinaryOp?, hnot, hlt]
+  all_goals decide
 
 theorem scratch_eval_placeBid_highestBidder
     (evm : EVM.State) (bidder : AccountAddress) (value old : UInt256)
@@ -151,6 +153,7 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_false
     EvalResult.bind, bind]
   simp [zeroAddr, addrSt, evalExpr?, hzero, evalBinaryOp?, castValue?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, AccountAddress.ofNat]
+  all_goals decide
 
 theorem scratch_eval_placeBid_highestBidder_ne_zero_true
     (evm : EVM.State) (bidder : AccountAddress) (value old : UInt256)
@@ -193,6 +196,8 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_true
           omega
     simp [zeroAddr, addrSt, evalExpr?, evalBinaryOp?, castValue?, EvalResult.ofOption,
       EvalResult.bind, bind, pure, AccountAddress.ofNat, haddr, hnotdiv]
+    all_goals decide
+  all_goals decide
 
 theorem scratch_evalStorageRef_placeBid_pendingReturns
     (evm : EVM.State) (bidder oldAddr : AccountAddress) (value old : UInt256)
@@ -269,6 +274,7 @@ theorem scratch_eval_placeBid_pending_add
   simp only [uint256Int]
   rw [if_neg hif]
   rfl
+  all_goals decide
 
 theorem scratch_eval_placeBid_pending_add_revert
     (evm : EVM.State) (bidder oldAddr : AccountAddress) (value old high pending : UInt256)
@@ -303,6 +309,7 @@ theorem scratch_eval_placeBid_pending_add_revert
     exact hge
   simp only [uint256Int]
   rw [if_pos hif]
+  all_goals decide
 
 theorem scratch_assign_placeBid_pendingReturns
     (evm : EVM.State) (bidder oldAddr : AccountAddress)
