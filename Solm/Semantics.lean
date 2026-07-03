@@ -126,6 +126,16 @@ def envValue (evm : EVM.State) : EnvVar -> Value
       .int (Int.ofNat ((evm.lookupAccount evm.executionEnv.codeOwner).option
         (EVM.Word.ofNat 0) (·.balance)).toNat)
   | .gasprice => .int (Int.ofNat (EVM.Word.ofNat evm.executionEnv.gasPrice).toNat)
+  -- Each mirrors the evmlean opcode handler (Semantics.lean:485-531) / StateOps.lean.
+  | .number => .int (Int.ofNat (EVM.Word.ofNat evm.executionEnv.header.number).toNat)      -- NUMBER
+  | .coinbase => .address evm.executionEnv.header.beneficiary                               -- COINBASE
+  | .gaslimit => .int (Int.ofNat (EVM.Word.ofNat evm.executionEnv.header.gasLimit).toNat)   -- GASLIMIT
+  | .prevrandao => .int (Int.ofNat evm.executionEnv.header.prevRandao.toNat)                -- PREVRANDAO
+  | .basefee => .int (Int.ofNat (EVM.Word.ofNat evm.executionEnv.header.baseFeePerGas).toNat) -- BASEFEE
+  | .msgSig =>
+      let b := evm.executionEnv.calldata.toList.take 4
+      .fixedBytes ⟨3, by decide⟩ (b ++ List.replicate (4 - b.length) 0)
+  | .msgData => .bytes evm.executionEnv.calldata
 
 def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
   match ty, value with
@@ -401,7 +411,15 @@ def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   | .neg, .int i => some (.int (-i))
   | .bitNot, .fixedBytes n bytes =>
       if fixedBytesValid n bytes then some (.fixedBytes n (bytes.map (fun b => ~~~b))) else none
+  -- `~x` on an int is the word complement, defined only on `[0, 2^256)`.
+  | .bitNot, .int x =>
+      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) then some (.int (EVM.wordModulus - 1 - x.toNat))
+      else none
   | _, _ => none
+
+#guard evalUnaryOp? .bitNot (.int 0) = some (.int (EVM.wordModulus - 1))
+#guard evalUnaryOp? .bitNot (.int (EVM.wordModulus - 1)) = some (.int 0)
+#guard evalUnaryOp? .bitNot (.int (-1)) = none
 
 def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   match op, v₁, v₂ with
@@ -421,6 +439,13 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   | .le, .int x, .int y => .ok (.bool (x <= y))
   | .gt, .int x, .int y => .ok (.bool (x > y))
   | .ge, .int x, .int y => .ok (.bool (x >= y))
+  -- addresses are zero-extended words on the stack, so word-LT ≡ Nat compare of their values.
+  | .lt, .address a, .address b => .ok (.bool (a.toNat < b.toNat))
+  | .le, .address a, .address b => .ok (.bool (a.toNat <= b.toNat))
+  | .gt, .address a, .address b => .ok (.bool (a.toNat > b.toNat))
+  | .ge, .address a, .address b => .ok (.bool (a.toNat >= b.toNat))
+  -- `x ** y`: exact integer power; exponent must be ≥ 0 (spec wraps `% 2^N` by hand, like add/mul).
+  | .exp, .int x, .int y => if y < 0 then .error .typeError else .ok (.int (x ^ y.toNat))
   | .lt, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
@@ -522,6 +547,11 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
 #guard evalBinaryOp? .shl (.int (2 ^ 255)) (.int 1) = .ok (.int 0)
 #guard evalBinaryOp? .shr (.int (2 ^ 256 - 1)) (.int 255) = .ok (.int 1)
 #guard evalBinaryOp? .bitAnd (.int (-1)) (.int 0) = .error .typeError
+#guard evalBinaryOp? .exp (.int 2) (.int 10) = .ok (.int 1024)
+#guard evalBinaryOp? .exp (.int 0) (.int 0) = .ok (.int 1)
+#guard evalBinaryOp? .exp (.int 2) (.int (-1)) = .error .typeError
+#guard evalBinaryOp? .lt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool true)
+#guard evalBinaryOp? .gt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool false)
 
 def bindParams? (params : List Param) (args : List Value) : Option Store :=
   match params, args with
@@ -590,6 +620,10 @@ mutual
     | .abiDecode _ e => exprEvalSize e + 1
     | .extCodeSize e => exprEvalSize e + 1
     | .extCodePrefix addrE lenE => exprEvalSize addrE + exprEvalSize lenE + 1
+    | .tupleGet e _ => exprEvalSize e + 1
+    | .blockhash e => exprEvalSize e + 1
+    | .balanceOf e => exprEvalSize e + 1
+    | .extCodeHash e => exprEvalSize e + 1
     | .fixedBytesLit _ _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
@@ -993,9 +1027,21 @@ end
     are `N/8` big-endian bytes, `bool` is one byte, `address` is its 20 bytes, `bytesN` is its `N`
     bytes, and dynamic `bytes` is its raw contents.  Only the cases needed by current specs are
     handled; anything else returns `none` rather than risk a silent mis-encoding. -/
+-- `abi.encodePacked` of an array: each element is a full 32-byte padded word, no length prefix
+-- (verified from solc 0.8.35 Yul IR — `add(pos, 0x20)` per element).  Elementary elements only
+-- (`encodeABIWord?` returns `none` for nested/dynamic element types).
+def encodePackedArrayElems? (elemTy : ABIType) : List Value → Option (List UInt8)
+  | [] => some []
+  | v :: vs => do
+      let w <- encodeABIWord? elemTy v
+      let rest <- encodePackedArrayElems? elemTy vs
+      some (EVM.Word.toBytesBE w ++ rest)
+
 def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
   match ty, v with
   | .elem .bool, .bool b => some [if b then (1 : UInt8) else 0]
+  | .array elemTy _, .array vs => encodePackedArrayElems? elemTy vs
+  | .dynamicArray elemTy, .array vs => encodePackedArrayElems? elemTy vs
   | .elem .address, .address a => some ((EVM.word a).toBytesBE.drop 12)
   | .elem (.int (.uint bits)), .int _ => do
       let w <- encodeABIWord? ty v
@@ -1008,6 +1054,9 @@ def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
   | .bytes, .bytes ba => some ba.toList
   | .string, .bytes ba => some ba.toList
   | _, _ => none
+
+#guard encodePackedValue? (.dynamicArray (.elem (.int (.uint ⟨8, by decide⟩)))) (.array [.int 1, .int 2])
+  = some (List.replicate 31 0 ++ [1] ++ List.replicate 31 0 ++ [2])
 
 -- `b[s:e]`: solc compiles `d[x:y]` to two `GT → REVERT` guards (verified solc 0.6.12 & 0.8.35):
 -- revert iff `s > e` or `e > b.size`; negative bounds are ill-typed.
@@ -1022,6 +1071,25 @@ def sliceBytes? (ba : ByteArray) (s e : Int) : EvalResult Value :=
 #guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 2 1 = .revert
 #guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 2 2 = .ok (.bytes (ByteArray.mk #[]))
 #guard sliceBytes? (ByteArray.mk #[10, 20, 30]) (-1) 2 = .error .typeError
+
+def tupleGetValue? (v : Value) (i : Nat) : EvalResult Value :=
+  match v with
+  | .tuple vs => match vs[i]? with | some c => .ok c | none => .error .typeError
+  | _ => .error .typeError
+
+#guard tupleGetValue? (.tuple [.int 7, .bool true]) 0 = .ok (.int 7)
+#guard tupleGetValue? (.tuple [.int 7, .bool true]) 1 = .ok (.bool true)
+#guard tupleGetValue? (.tuple [.int 7, .bool true]) 2 = .error .typeError
+#guard tupleGetValue? (.int 7) 0 = .error .typeError
+
+-- CREATE2 salt: a `bytes32` value → its 32 salt bytes; anything else is invalid.
+def saltBytes? : Value → Option ByteArray
+  | .fixedBytes n bs => if n.val = 31 ∧ bs.length = 32 then some (ByteArray.mk bs.toArray) else none
+  | _ => none
+
+#guard saltBytes? (.fixedBytes ⟨31, by decide⟩ (List.replicate 32 0))
+  = some (ByteArray.mk (Array.replicate 32 0))
+#guard saltBytes? (.int 5) = none
 
 mutual
 
@@ -1359,6 +1427,34 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
             pure (.bytes (codePrefix ++
               ByteArray.mk (Array.replicate (n.toNat - codePrefix.size) (0 : UInt8))))
       | _, _ => .error .typeError
+  | .tupleGet e i => do
+      let v <- evalExpr? cfg solm evm e
+      tupleGetValue? v i
+  -- BLOCKHASH: mirrors `Ethereum.State.blockHash` (256-block window; current/future → 0), as bytes32.
+  | .blockhash e => do
+      let v <- evalExpr? cfg solm evm e
+      match v with
+      | .int n => if n < 0 then .error .typeError
+                  else pure (.fixedBytes ⟨31, by decide⟩
+                    (EVM.Word.toBytesBE (evm.blockHash (EVM.Word.ofNat n.toNat))))
+      | _ => .error .typeError
+  -- BALANCE: mirrors `Ethereum.State.balance` (absent account → 0).
+  | .balanceOf e => do
+      let v <- evalExpr? cfg solm evm e
+      match v with
+      | .address a =>
+          pure (.int (Int.ofNat ((evm.lookupAccount a).option (EVM.Word.ofNat 0) (·.balance)).toNat))
+      | _ => .error .typeError
+  -- EXTCODEHASH: mirrors `Ethereum.State.extCodeHash` (dead account → 0), as bytes32.
+  | .extCodeHash e => do
+      let v <- evalExpr? cfg solm evm e
+      match v with
+      | .address a =>
+          let h : EVM.Word :=
+            if Ethereum.State.dead evm.accountMap a then ⟨0⟩
+            else (evm.lookupAccount a).option ⟨0⟩ Ethereum.Account.codeHash
+          pure (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE h))
+      | _ => .error .typeError
   | .fixedBytesLit n bs => pure (.fixedBytes n bs)
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
@@ -1566,7 +1662,7 @@ def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :
     ∧ initCode.size ≤ 49152                     -- init code within the limit (EIP-3860)
 
 inductive newViaEVM (cfg : Config) (evm : EVM.State)
-    (name : Ident) (value : ℤ) (args : List Value) :
+    (name : Ident) (value : ℤ) (args : List Value) (salt : Option ByteArray) :
     (EVM.Address × EVM.State × Bool) → Prop where
   | created :
       cfg.creationCode name args = .some initCode
@@ -1600,15 +1696,15 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
             valueWord                   -- endowment
             initCode                    -- initialisation EVM code
             (evm.executionEnv.depth + 1)
-            .none                       -- salt: `none` ⇒ CREATE (not CREATE2)
+            salt                        -- `none` ⇒ CREATE; `some s` ⇒ CREATE2 with salt `s`
             evm.executionEnv.header
             true)                       -- permission to modify state
       → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
-      → newViaEVM cfg evm name value args (addr, evm', z)
+      → newViaEVM cfg evm name value args salt (addr, evm', z)
   | notCreated :
       cfg.creationCode name args = .some initCode
       → ¬ newCanCreate evm value initCode
-      → newViaEVM cfg evm name value args (EVM.address 0, evm, false)
+      → newViaEVM cfg evm name value args salt (EVM.address 0, evm, false)
 
 
 /-- Collapse a callee's returned list into the single value bound to a call's result identifier.
@@ -1637,17 +1733,33 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (L
     value, `.revert` is the only non-`.ok` outcome. -/
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     (value : Option Value) : EvalResult EVM.State := do
-  let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
-  let lenLoc <- EvalResult.ofOption .storageError
-    (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-  match storageLocLoad evm lenLoc with
-  | .int len => do
-      let evmLen <- EvalResult.ofOption .storageError (storageLocStore evm lenLoc (.int (len + 1)))
-      match value with
-        | some v =>
-            writeStorage? cfg evmLen
-              { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
-        | none => pure evmLen
+  let (er, ty) <- resolveStorageRef? cfg solm evm ref
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+      match storageLocLoad evm lenLoc with
+      | .int len => do
+          let evmLen <- EvalResult.ofOption .storageError (storageLocStore evm lenLoc (.int (len + 1)))
+          match value with
+            | some v =>
+                writeStorage? cfg evmLen
+                  { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
+            | none => pure evmLen
+      | _ => .error .storageError
+  -- `bytes`/`string` push: read-modify-write the whole value through the layout hooks (they handle
+  -- short↔long transitions).  Arg-less appends a zero byte; else a `bytes1` (`fixedBytes ⟨0,_⟩`).
+  | .bytes | .string => do
+      match (← readStorage? cfg evm er ty) with
+      | .bytes ba =>
+          match value with
+          | none => writeStorage? cfg evm er ty (.bytes (ba.push 0))
+          | some (.fixedBytes n bs) =>
+              if n.val = 0 ∧ bs.length = 1 then
+                writeStorage? cfg evm er ty (.bytes (ba ++ ByteArray.mk bs.toArray))
+              else .error .typeError
+          | some _ => .error .typeError
+      | _ => .error .storageError
   | _ => .error .storageError
 
 /-- `arr.pop()`: remove the last element of the dynamic array named by `ref`.  Reverts when the
@@ -1656,16 +1768,26 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
     sets the length to `L-1`. -/
 def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
-  let (er, elemTy) <- resolveDynamicArrayRef? cfg solm evm ref
-  let lenLoc <- EvalResult.ofOption .storageError
-    (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-  match storageLocLoad evm lenLoc with
-  | .int len =>
-      if len ≤ 0 then .revert
-      else do
-        let evm1 <- clearStorage? cfg evm
-          { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
-        EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
+  let (er, ty) <- resolveStorageRef? cfg solm evm ref
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+      match storageLocLoad evm lenLoc with
+      | .int len =>
+          if len ≤ 0 then .revert
+          else do
+            let evm1 <- clearStorage? cfg evm
+              { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
+            EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
+      | _ => .error .storageError
+  -- `bytes`/`string` pop: read-modify-write; empty → revert (solc `Panic(0x31)`).
+  | .bytes | .string => do
+      match (← readStorage? cfg evm er ty) with
+      | .bytes ba =>
+          if ba.size = 0 then .revert
+          else writeStorage? cfg evm er ty (.bytes (ba.extract 0 (ba.size - 1)))
+      | _ => .error .storageError
   | _ => .error .storageError
 
 /-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
@@ -1675,6 +1797,16 @@ def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : Storag
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
   clearStorage? cfg evm er ty
+
+-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2.
+def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    Option Expr → EvalResult (Option ByteArray)
+  | none => .ok none
+  | some e => do
+      let v <- evalExpr? cfg solm evm e
+      match saltBytes? v with
+      | some b => .ok (some b)
+      | none => .error .typeError
 
 mutual
 
@@ -1955,22 +2087,24 @@ inductive ExecStmt (cfg : Config) :
   | newSuccess :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
-      newViaEVM cfg evm name sendVal argVals (addr, evm', true) ->
-      ExecStmt cfg solm evm (.new name valExpr args retVar)
+      evalSalt? cfg solm evm salt = .ok saltBytes ->
+      newViaEVM cfg evm name sendVal argVals saltBytes (addr, evm', true) ->
+      ExecStmt cfg solm evm (.new name valExpr args retVar salt)
         (.ok { solm with locals := solm.locals.insert retVar (.address addr) } evm')
   | newRevert :
       -- A failed creation reverts the caller, unlike a low-level external call.
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
-      newViaEVM cfg evm name sendVal argVals (addr, evm', false) ->
-      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
+      evalSalt? cfg solm evm salt = .ok saltBytes ->
+      newViaEVM cfg evm name sendVal argVals saltBytes (addr, evm', false) ->
+      ExecStmt cfg solm evm (.new name valExpr args retVar salt) .reverted
   | newValueRevert :
       evalExpr? cfg solm evm valExpr = .revert ->
-      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
+      ExecStmt cfg solm evm (.new name valExpr args retVar salt) .reverted
   | newArgsRevert :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
-      ExecStmt cfg solm evm (.new name valExpr args retVar) .reverted
+      ExecStmt cfg solm evm (.new name valExpr args retVar salt) .reverted
   | return :
       evalExprs? cfg solm evm exprs = .ok values ->
       ExecStmt cfg solm evm (.return exprs) (.returned solm evm (some values))
