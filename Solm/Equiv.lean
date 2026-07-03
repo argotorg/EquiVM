@@ -331,3 +331,96 @@ inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode
     constructorEquivalence cfg initcode contract runtimeCode →
     runtimeEquivalence!?! cfg runtimeCode contract →
     contractEquivalence cfg initcode runtimeCode contract
+
+/-! ## Parameterized (immutable-aware) constructor equivalence
+
+The runtime code a constructor returns may depend on the immutable values the spec constructor binds
+as locals (convention: `letDecl "imm_<name>" …`).  These siblings replace the constant
+`runtimeCode : ByteArray` with `runtimeCodeOf : Store → Option ByteArray`, read against the final
+frame's locals — a per-benchmark function that reads those names, `valueToWord`s each, and calls
+`patchRuntime template offsetTable`.  The constant case `fun _ => some runtimeCode` recovers the
+originals exactly (`ctorResultEquiv_const`).  The `∀`-over-immutable-values composition lives at the
+per-benchmark theorem site, so no value type is baked in here. -/
+
+inductive ctorResultEquivWith
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (solmRes : ExecResult) (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | success :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned solmFrame solmState .none →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    runtimeCodeOf solmFrame.locals = some o →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | successVoidReturn :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned solmFrame solmState (some []) →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    runtimeCodeOf solmFrame.locals = some o →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | revert :
+    evmRes = .ok (.revert g o) →
+    solmRes = .reverted →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+
+/-- The constant-runtime constructor relation is exactly the parameterized one at
+    `runtimeCodeOf := fun _ => some runtimeCode`. -/
+theorem ctorResultEquiv_const {evmRes solmRes} {rc : ByteArray} :
+    ctorResultEquiv evmRes solmRes rc ↔ ctorResultEquivWith evmRes solmRes (fun _ => some rc) := by
+  constructor
+  · intro h; cases h with
+    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | revert e1 e2 => exact .revert e1 e2
+    | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+  · intro h; cases h with
+    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | revert e1 e2 => exact .revert e1 e2
+    | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+
+inductive constructorEquivalenceForWith (cfg : Config)
+    (contract : ContractDecl) (args : List Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | execution {Ξ_res solmRes} :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
+    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes →
+    ctorResultEquivWith Ξ_res solmRes runtimeCodeOf →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+  | outOfGas :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+
+inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+      (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+      (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+    cfg.selfDeployment initcode args = .some deployedInitcode →
+    I.code = deployedInitcode →
+    I.calldata = .empty →
+    I.perm = true →
+    accountMapEquiv σ_evm σ_solm →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    ) →
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf
+
+-- Runtime side stays keyed on a concrete `runtimeCode`; the per-benchmark theorem instantiates
+-- `runtimeCodeOf` and `runtimeCode` together for each immutable-value assignment.
+inductive contractEquivalenceWith (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes)
+    (contract : ContractDecl) (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
+    runtimeEquivalence!?! cfg runtimeCode contract →
+    contractEquivalenceWith cfg initcode runtimeCode contract runtimeCodeOf
