@@ -165,6 +165,11 @@ def storageLayout : StorageLayout :=
 def nonpayable : List Stmt :=
   [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
 
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar (perm := perm) ]
+
 /-! ## Constructor -/
 
 def constructorDecl : ConstructorDecl :=
@@ -266,7 +271,8 @@ def claimInternalFunction : FunctionDecl :=
           (.storage (rewardConfigF (.var "comet") "multiplier")),
         .require (.binary .ne (.var "token") zeroAddr),
         .ite (.var "shouldAccrue")
-          [ .externalCall (.var "comet") "accrueAccount" (.intLit 0) [.var "src"] "_accrued" ]
+          (checkedExternalCallStmts (.var "comet") "accrueAccount" (.intLit 0)
+            [.var "src"] "_accrued")
           [],
         .letDecl "claimed" (some uint256)
           (.storage (rewardsClaimedRef (.var "comet") (.var "src"))),
@@ -316,8 +322,10 @@ def getRewardOwedTransition : TransitionDecl :=
         .letDecl "multiplier" (some uint256)
           (.storage (rewardConfigF (.var "comet") "multiplier")),
         .require (.binary .ne (.var "token") zeroAddr),
-        .externalCall (.var "comet") "accrueAccount" (.intLit 0)
-          [.var "account"] "_accrued",
+      ] ++
+      checkedExternalCallStmts (.var "comet") "accrueAccount" (.intLit 0)
+        [.var "account"] "_accrued" ++
+      [
         .letDecl "claimed" (some uint256)
           (.storage (rewardsClaimedRef (.var "comet") (.var "account"))),
         .internalCall "getRewardAccrued"

@@ -20,7 +20,7 @@ the checked-in `.abi.json` files.
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Ready for proof | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Ready for proof | Yes |
-| `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Scaffolded; audit needed | No |
+| `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Ready for proof | Yes |
 | `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
@@ -77,6 +77,17 @@ the checked-in `.abi.json` files.
   message-call abstraction; exact 2300-gas stipend precision would be framework-level refinement,
   not missing local scaffold work.
 
+- `CompoundIII/CometRewards`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`. Fresh solc 0.8.15 via-IR
+  output exactly matches the checked-in Lean creation/runtime byte arrays and ABI; the solc storage
+  layout matches the spec, including packed `RewardConfig` fields. The runtime has six
+  `STATICCALL` sites, three `CALL` sites, and two `EXTCODESIZE` guards; the spec models the view
+  calls as `perm := false` and the two guarded `accrueAccount` calls with explicit code-size
+  checks. Events and custom-error payloads are omitted consistently with the framework's
+  substate/revert-data abstraction. No semantic blocker is currently known; expected proof work is
+  via-IR dispatch, packed storage writes, dynamic calldata arrays, `pow10`/overflow paths, and typed
+  external-call return decoding.
+
 - `UniswapV3Pool`: handed off. Target theorem:
   `Benchmarks.UniswapV3Pool.uniswapV3PoolContractCorrect`. Large stress benchmark with
   constructor-set immutables and complex pool paths; proof work should expect substantial selector,
@@ -84,8 +95,7 @@ the checked-in `.abi.json` files.
 
 ## Scaffolded, not yet handed off
 
-- `CompoundIII/CometRewards`: scaffolded. Needs a final semantic audit before handoff. Notes:
-  solc 0.8.15 via-IR artifact and storage layout are present.
+- None currently.
 
 ## Needs prep before handoff
 
@@ -96,6 +106,7 @@ the checked-in `.abi.json` files.
   receive, dynamic arrays, loops, `CREATE2` address derivation, raw TransferHelper calls, and many
   typed external calls. Needs a focused semantic audit before agent assignment.
 
-- `CompoundIII/Comet`: not ready for unsupervised handoff. The runtime artifact is an unpatched
-  immutable template, there is no honest whole-contract constructor wrapper yet, and several
-  protocol bodies remain source-level scaffolds rather than proof-ready specs.
+- `CompoundIII/Comet`: not ready for unsupervised handoff. A parameterized immutable-aware wrapper
+  exists, but the constructor spec still has placeholders for `numAssets`, asset-list creation,
+  constructor validation, and constructor external-call wiring. Several runtime protocol bodies
+  also remain source-level scaffolds or placeholders rather than proof-ready specs.

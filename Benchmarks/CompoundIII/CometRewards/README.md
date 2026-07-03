@@ -28,3 +28,15 @@ Artifacts:
 
 Main source sha256:
 `ba7a859d2936926943613a2add8e651da02b9a38535ac3c3440f6484cf6e9e3c`.
+
+Status:
+
+- Ready for proof as of 2026-07-03. Target theorem:
+  `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`.
+- Fresh solc `0.8.15` via-IR output matches the checked-in Lean creation/runtime byte arrays and
+  ABI exactly. The storage payload matches modulo regenerated source-path strings.
+- The runtime has six `STATICCALL` sites, three `CALL` sites, and two `EXTCODESIZE` guards. The
+  spec models the view calls with `perm := false`; the two no-return `accrueAccount` calls are
+  guarded with explicit `EXTCODESIZE > 0` checks.
+- The three source events and custom-error revert payloads are intentionally not represented under
+  the current equivalence relation, which ignores substate/logs and revert data.
