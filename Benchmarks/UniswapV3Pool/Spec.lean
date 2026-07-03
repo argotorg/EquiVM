@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Benchmarks.UniswapV3Pool.Immutables
 
 /-!
 # UniswapV3Pool benchmark spec
@@ -13,7 +14,7 @@ return storage-backed values for compiler-visible public state where practical, 
 zero/default return values until the full source semantics are proved.
 -/
 
-open Solm ABI
+open Solm ABI Benchmarks.UniswapV3Pool.Immutables
 
 namespace Benchmarks.UniswapV3Pool
 
@@ -69,6 +70,9 @@ def int56ArrayTy : ABIType := .dynamicArray int56
 def uint160ArrayTy : ABIType := .dynamicArray uint160
 
 def zeroAddr : Expr := .cast (.intLit 0) addrSt
+
+/-- An address value as an `Expr` literal (cast a `uint160` literal to `address`). -/
+def addrLit (a : EVM.Address) : Expr := .cast (.intLit (Int.ofNat a.toNat)) addrSt
 
 /-! ## Storage references -/
 
@@ -260,9 +264,27 @@ def nonpayable : List Stmt :=
 
 /-! ## Constructor -/
 
+-- The pool constructor: `IUniswapV3PoolDeployer(msg.sender).parameters()` returns
+-- `(factory, token0, token1, fee, tickSpacing)`; `original := address(this)`; and
+-- `maxLiquidityPerTick := Tick.tickSpacingToMaxLiquidityPerTick(tickSpacing)`.  That formula's only
+-- signed division `(-887272 / ts)` (ts > 0) equals `-(887272 / ts)`, so the whole thing reduces to
+-- `(2^128-1) / (2*(887272 / ts) + 1)` over positive operands — where Solm's `/` (Euclidean) already
+-- matches EVM truncating division.  Each immutable is bound to `imm_<name>` for `runtimeCodeOf`.
 def constructorDecl : ConstructorDecl :=
   { params := []
-    body := nonpayable }
+    body := nonpayable ++
+      [ .externalCall (.env .caller) "parameters" (.intLit 0) [] "r" (perm := false),
+        .letDecl "imm_factory" none (.tupleGet (.var "r") 0),
+        .letDecl "imm_token0" none (.tupleGet (.var "r") 1),
+        .letDecl "imm_token1" none (.tupleGet (.var "r") 2),
+        .letDecl "imm_fee" none (.tupleGet (.var "r") 3),
+        .letDecl "imm_tickSpacing" none (.tupleGet (.var "r") 4),
+        .letDecl "imm_original" none (.env .this),
+        .letDecl "imm_maxLiquidityPerTick" none
+          (.binary .div (.intLit (2 ^ 128 - 1))
+            (.binary .add
+              (.binary .mul (.intLit 2) (.binary .div (.intLit 887272) (.var "imm_tickSpacing")))
+              (.intLit 1))) ] }
 
 /-! ## Public ABI surface -/
 
@@ -284,17 +306,17 @@ def collectprotocolTransition : TransitionDecl :=
     returnType := [uint128, uint128]
     body := nonpayable ++ [ .return [(.intLit 0), (.intLit 0)] ] }
 
-def factoryTransition : TransitionDecl :=
+def factoryTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "factory"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [zeroAddr] ] }
+    body := nonpayable ++ [ .return [addrLit v.factory] ] }
 
-def feeTransition : TransitionDecl :=
+def feeTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "fee"
     params := []
     returnType := [uint24]
-    body := nonpayable ++ [ .return [.intLit 0] ] }
+    body := nonpayable ++ [ .return [.intLit v.fee] ] }
 
 def feegrowthglobal0X128Transition : TransitionDecl :=
   { name := "feeGrowthGlobal0X128"
@@ -332,11 +354,11 @@ def liquidityTransition : TransitionDecl :=
     returnType := [uint128]
     body := nonpayable ++ [ .return [.storage liquidityRef] ] }
 
-def maxliquiditypertickTransition : TransitionDecl :=
+def maxliquiditypertickTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "maxLiquidityPerTick"
     params := []
     returnType := [uint128]
-    body := nonpayable ++ [ .return [.intLit 0] ] }
+    body := nonpayable ++ [ .return [.intLit v.maxLiquidityPerTick] ] }
 
 def mintTransition : TransitionDecl :=
   { name := "mint"
@@ -398,11 +420,11 @@ def tickbitmapTransition : TransitionDecl :=
     returnType := [uint256]
     body := nonpayable ++ [ .return [.storage (tickBitmapRef (.var "arg0"))] ] }
 
-def tickspacingTransition : TransitionDecl :=
+def tickspacingTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "tickSpacing"
     params := []
     returnType := [int24]
-    body := nonpayable ++ [ .return [.intLit 0] ] }
+    body := nonpayable ++ [ .return [.intLit v.tickSpacing] ] }
 
 def ticksTransition : TransitionDecl :=
   { name := "ticks"
@@ -410,32 +432,32 @@ def ticksTransition : TransitionDecl :=
     returnType := [uint128, int128, uint256, uint256, int56, uint160, uint32, boolTy]
     body := nonpayable ++ [ .return [(.storage (ticksF (.var "arg0") "liquidityGross")), (.storage (ticksF (.var "arg0") "liquidityNet")), (.storage (ticksF (.var "arg0") "feeGrowthOutside0X128")), (.storage (ticksF (.var "arg0") "feeGrowthOutside1X128")), (.storage (ticksF (.var "arg0") "tickCumulativeOutside")), (.storage (ticksF (.var "arg0") "secondsPerLiquidityOutsideX128")), (.storage (ticksF (.var "arg0") "secondsOutside")), (.storage (ticksF (.var "arg0") "initialized"))] ] }
 
-def token0Transition : TransitionDecl :=
+def token0Transition (v : PoolImmutables) : TransitionDecl :=
   { name := "token0"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [zeroAddr] ] }
+    body := nonpayable ++ [ .return [addrLit v.token0] ] }
 
-def token1Transition : TransitionDecl :=
+def token1Transition (v : PoolImmutables) : TransitionDecl :=
   { name := "token1"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [zeroAddr] ] }
+    body := nonpayable ++ [ .return [addrLit v.token1] ] }
 
-def transitions : List TransitionDecl :=
+def transitions (v : PoolImmutables) : List TransitionDecl :=
   [
         burnTransition,
         collectTransition,
         collectprotocolTransition,
-        factoryTransition,
-        feeTransition,
+        factoryTransition v,
+        feeTransition v,
         feegrowthglobal0X128Transition,
         feegrowthglobal1X128Transition,
         flashTransition,
         increaseobservationcardinalitynextTransition,
         initializeTransition,
         liquidityTransition,
-        maxliquiditypertickTransition,
+        maxliquiditypertickTransition v,
         mintTransition,
         observationsTransition,
         observeTransition,
@@ -446,22 +468,22 @@ def transitions : List TransitionDecl :=
         snapshotcumulativesinsideTransition,
         swapTransition,
         tickbitmapTransition,
-        tickspacingTransition,
+        tickspacingTransition v,
         ticksTransition,
-        token0Transition,
-        token1Transition ]
+        token0Transition v,
+        token1Transition v ]
 
-def contract : ContractDecl :=
+def contract (v : PoolImmutables) : ContractDecl :=
   { name := "UniswapV3Pool"
     storage := storageDecls
     ctor := constructorDecl
     structs := structs
     functions := []
-    transitions := transitions }
+    transitions := transitions v }
 
-def config : Config :=
+def config (v : PoolImmutables) : Config :=
   { storage := storageLayout
     externalABI := defaultExternalCallABI
-    selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
 
 end Benchmarks.UniswapV3Pool

@@ -4,21 +4,25 @@ import Solm.Equiv
 /-!
 # UniswapV3Pool benchmark correctness stub
 
-The upstream Solidity source tree, optimized runtime bytecode, Solm AST spec, and Solm syntax spec
-are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
-also exposes the whole-contract wrapper that combines the constructor and runtime targets.
+Parameterized over the pool's immutable values `v`.  For each `v`, the deployed runtime is the
+template patched with `v` (`patchRuntime uniswapV3PoolBytecode (patches v) = some code`), and runtime
+equivalence is stated against `contract v` (whose immutable getters return `v`'s values).  The
+whole-contract bundle pairs this with the parameterized constructor target.  All proofs are targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM
+open Solm ABI Ethereum Ethereum.EVM Benchmarks.UniswapV3Pool.Immutables
 
 namespace Benchmarks.UniswapV3Pool
 
-theorem uniswapV3PoolCorrect :
-    runtimeEquivalence!?! config uniswapV3PoolBytecode contract := by
+theorem uniswapV3PoolCorrect (v : PoolImmutables) {code : ByteArray}
+    (hcode : patchRuntime uniswapV3PoolBytecode (patches v) = some code) :
+    runtimeEquivalence!?! (config v) code (contract v) := by
   sorry
 
-theorem uniswapV3PoolContractCorrect :
-    contractEquivalence config uniswapV3PoolCreationBytecode uniswapV3PoolBytecode contract :=
-  contractEquivalence.intro uniswapV3PoolConstructorCorrect uniswapV3PoolCorrect
+theorem uniswapV3PoolContractCorrect (v : PoolImmutables) {code : ByteArray}
+    (hcode : patchRuntime uniswapV3PoolBytecode (patches v) = some code) :
+    contractEquivalenceWith (config v) uniswapV3PoolCreationBytecode code (contract v)
+      (runtimeCodeOf uniswapV3PoolBytecode) :=
+  contractEquivalenceWith.intro (uniswapV3PoolConstructorCorrect v) (uniswapV3PoolCorrect v hcode)
 
 end Benchmarks.UniswapV3Pool

@@ -9,7 +9,7 @@ The file still mirrors the established benchmark convention by exposing a syntax
 and checking it is definitionally equal to the AST spec.
 -/
 
-open Solm Solm.Notation
+open Solm Solm.Notation Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet.Syntax
 
@@ -17,24 +17,27 @@ def storageDeclsSyntax : List StorageDecl := Benchmarks.CompoundIII.Comet.storag
 
 def constructorDeclSyntax : ConstructorDecl := Benchmarks.CompoundIII.Comet.constructorDecl
 
-def transitionsSyntax : List TransitionDecl := Benchmarks.CompoundIII.Comet.transitions
+def transitionsSyntax (v : CometImmutables) : List TransitionDecl :=
+  Benchmarks.CompoundIII.Comet.transitions v
 
-def fallbackTransitionSyntax : TransitionDecl := Benchmarks.CompoundIII.Comet.fallbackTransition
+def fallbackTransitionSyntax (v : CometImmutables) : TransitionDecl :=
+  Benchmarks.CompoundIII.Comet.fallbackTransition v
 
-def contractSyntax : ContractDecl :=
+def contractSyntax (v : CometImmutables) : ContractDecl :=
   { name := "CometWithExtendedAssetList"
     storage := storageDeclsSyntax
     ctor := constructorDeclSyntax
     structs := Benchmarks.CompoundIII.Comet.structs
     functions := []
-    transitions := transitionsSyntax
-    fallback := some fallbackTransitionSyntax }
+    transitions := transitionsSyntax v
+    fallback := some (fallbackTransitionSyntax v) }
 
 theorem storageDeclsSyntax_eq :
     storageDeclsSyntax = Benchmarks.CompoundIII.Comet.storageDecls := by
   rfl
 
-theorem contractSyntax_eq : contractSyntax = Benchmarks.CompoundIII.Comet.contract := by
+theorem contractSyntax_eq (v : CometImmutables) :
+    contractSyntax v = Benchmarks.CompoundIII.Comet.contract v := by
   rfl
 
 end Benchmarks.CompoundIII.Comet.Syntax

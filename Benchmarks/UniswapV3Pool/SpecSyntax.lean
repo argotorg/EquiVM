@@ -9,7 +9,7 @@ The file still mirrors the established benchmark convention by exposing a syntax
 and checking it is definitionally equal to the AST spec.
 -/
 
-open Solm Solm.Notation
+open Solm Solm.Notation Benchmarks.UniswapV3Pool.Immutables
 
 namespace Benchmarks.UniswapV3Pool.Syntax
 
@@ -17,20 +17,22 @@ def storageDeclsSyntax : List StorageDecl := Benchmarks.UniswapV3Pool.storageDec
 
 def constructorDeclSyntax : ConstructorDecl := Benchmarks.UniswapV3Pool.constructorDecl
 
-def transitionsSyntax : List TransitionDecl := Benchmarks.UniswapV3Pool.transitions
+def transitionsSyntax (v : PoolImmutables) : List TransitionDecl :=
+  Benchmarks.UniswapV3Pool.transitions v
 
-def contractSyntax : ContractDecl :=
+def contractSyntax (v : PoolImmutables) : ContractDecl :=
   { name := "UniswapV3Pool"
     storage := storageDeclsSyntax
     ctor := constructorDeclSyntax
     structs := Benchmarks.UniswapV3Pool.structs
     functions := []
-    transitions := transitionsSyntax }
+    transitions := transitionsSyntax v }
 
 theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.UniswapV3Pool.storageDecls := by
   rfl
 
-theorem contractSyntax_eq : contractSyntax = Benchmarks.UniswapV3Pool.contract := by
+theorem contractSyntax_eq (v : PoolImmutables) :
+    contractSyntax v = Benchmarks.UniswapV3Pool.contract v := by
   rfl
 
 end Benchmarks.UniswapV3Pool.Syntax
