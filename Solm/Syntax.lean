@@ -1337,9 +1337,10 @@ inductive Stmt where
      no value. -/
   | delegateCall : Expr /- target -/ -> Expr /- calldata bytes -/ ->
       Ident /- success binder -/ -> Ident /- raw returndata binder -/ -> Stmt
-  /- `try recv.name{value}(args) returns (retVar) { onSuccess } catch Error(string) { onCatch }`.
-     Only `Error(string)`-reason callee reverts are caught; other reverts propagate.  `retVar` is
-     bound only within `onSuccess`. -/
+  /- `try recv.name{value}(args) returns (retVar) { onSuccess } catch { onFail }`.  All callee
+     reverts hand control to `onFail` with the raw revert bytes bound to `errVar`; the spec filters by
+     selector prefix (e.g. `Error(string)`) and re-reverts uncaught cases via `require false`.
+     `retVar` is bound only within `onSuccess`. -/
   | checkedCall : Expr /- receiver -/ -> Ident /- name -/ -> Expr /- ETH -/ ->
       List Expr /- args -/ -> Ident /- decoded return, scoped to onSuccess -/ ->
       List Stmt /- onSuccess -/ -> Ident /- raw revert bytes, scoped to onFail -/ ->

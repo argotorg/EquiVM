@@ -153,7 +153,8 @@ def valueToKey? (v : Value) : Option KeyValue :=
   | .int i => pure $ .int i
   | .bool b => pure $ .bool b
   | .address a => pure $ .address a
-  | .fixedBytes n bs => pure $ .fixedBytes n bs
+  -- Reject a length-mismatched `bytesN` key loudly (avoid `keyValueToWord`'s silent slot-`0` fallback).
+  | .fixedBytes n bs => if bs.length = n.val + 1 then pure (.fixedBytes n bs) else .none
   | _ => .none
 
 def lookupAssoc [DecidableEq α] (entries : List (α × β)) (key : α) : Option β :=
@@ -269,10 +270,12 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .elem (.address), .address _ => some v
   | .elem (.bytes expected), .fixedBytes actual _ =>
       if expected = actual then some v else none
+  -- A negative int fails loudly (silent `n.toNat = 0` would be a wrong value); literal-`0` casts are ≥0.
   | .elem (.bytes expected), .int n =>
-      some (.fixedBytes expected ((EVM.Word.ofNat n.toNat).toBytesBE.drop (32 - (expected.val + 1))))
+      if n < 0 then none
+      else some (.fixedBytes expected ((EVM.Word.ofNat n.toNat).toBytesBE.drop (32 - (expected.val + 1))))
   -- `address(n)`: an integer cast to `address` (e.g. `address(0)`), truncated to the address width.
-  | .elem (.address), .int n => some (.address (.ofNat n.toNat))
+  | .elem (.address), .int n => if n < 0 then none else some (.address (.ofNat n.toNat))
   | .elem (.int (.uint bits)), .address a =>
       if a.toNat < EVM.twoPow bits.val then
         some (.int (Int.ofNat a.toNat))
@@ -442,8 +445,6 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
         | some x, some y => .ok (.bool (x >= y))
         | _, _ => .error .typeError
       else .error .typeError
-  | .and, .bool x, .bool y => .ok (.bool (x && y))
-  | .or, .bool x, .bool y => .ok (.bool (x || y))
   | .bitAnd, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
@@ -1008,6 +1009,20 @@ def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
   | .string, .bytes ba => some ba.toList
   | _, _ => none
 
+-- `b[s:e]`: solc compiles `d[x:y]` to two `GT → REVERT` guards (verified solc 0.6.12 & 0.8.35):
+-- revert iff `s > e` or `e > b.size`; negative bounds are ill-typed.
+def sliceBytes? (ba : ByteArray) (s e : Int) : EvalResult Value :=
+  if s < 0 || e < 0 then .error .typeError
+  else if s.toNat > e.toNat || e.toNat > ba.size then .revert
+  else .ok (.bytes (ba.extract s.toNat e.toNat))
+
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30, 40, 50]) 1 3 = .ok (.bytes (ByteArray.mk #[20, 30]))
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 0 3 = .ok (.bytes (ByteArray.mk #[10, 20, 30]))
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 0 4 = .revert
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 2 1 = .revert
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30]) 2 2 = .ok (.bytes (ByteArray.mk #[]))
+#guard sliceBytes? (ByteArray.mk #[10, 20, 30]) (-1) 2 = .error .typeError
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -1222,9 +1237,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       let startV <- evalExpr? cfg solm evm startE
       let endV <- evalExpr? cfg solm evm endE
       match baseV, startV, endV with
-      | .bytes ba, .int s, .int e =>
-          if s < 0 || e < 0 then .error .typeError
-          else pure (.bytes (ba.extract s.toNat e.toNat))
+      | .bytes ba, .int s, .int e => sliceBytes? ba s e
       | _, _, _ => .error .typeError
   | .var name => EvalResult.ofOption .unboundVariable (solm.locals.get? name)
   | .env var => pure (envValue evm var)
@@ -1265,6 +1278,22 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .unary op expr => do
       let value <- evalExpr? cfg solm evm expr
       EvalResult.ofOption .typeError (evalUnaryOp? op value)
+  | .binary .and lhs rhs => do
+      match <- evalExpr? cfg solm evm lhs with
+      | .bool false => pure (.bool false)
+      | .bool true =>
+          (match <- evalExpr? cfg solm evm rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
+  | .binary .or lhs rhs => do
+      match <- evalExpr? cfg solm evm lhs with
+      | .bool true => pure (.bool true)
+      | .bool false =>
+          (match <- evalExpr? cfg solm evm rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
   | .binary op lhs rhs => do
       let lhsValue <- evalExpr? cfg solm evm lhs
       let rhsValue <- evalExpr? cfg solm evm rhs
@@ -1897,6 +1926,17 @@ inductive ExecStmt (cfg : Config) :
       ExecBlock cfg { solm with locals := solm.locals.insert errVar (.bytes out) } evm' onFail result ->
       ExecStmt cfg solm evm
         (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) result
+  | checkedCallReturnDecodeRevert :
+      -- Call succeeds but returndata doesn't ABI-decode (`decode? = none`, e.g. codeless callee):
+      -- solc's return decoder reverts *uncaught* (never enters `onFail`).  Cf. externalCall twin.
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
+        (true, evm', out) perm ->
+      cfg.externalABI.decode? name out = none ->
+      ExecStmt cfg solm evm
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
   | checkedCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
       ExecStmt cfg solm evm
