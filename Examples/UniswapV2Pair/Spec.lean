@@ -255,7 +255,7 @@ def permitStructHashExpr : Expr :=
 def permitDigestExpr : Expr :=
   .keccak256 (.abiEncodePacked
     [ (bytes2, .fixedBytesLit bytes2Width [0x19, 0x01]),
-      (bytes32, .storage domainSeparatorRef),
+      (bytes32, .var "domainSeparator"),
       (bytes32, .var "structHash") ])
 
 /-! ## Internal functions -/
@@ -521,6 +521,7 @@ def permitTransition : TransitionDecl :=
     body :=
       nonpayable ++
         [ .require (.binary .ge (.var "deadline") now),
+          .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
           .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
           .assign .storage (noncesRef (.var "owner"))
             (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
@@ -763,6 +764,10 @@ def encodeEcrecoverInput? (args : List Value) : Option EVM.Bytes := do
   let payload <- ABI.encodeABIValues? [bytes32, uint8, bytes32, bytes32] args
   some payload.toByteArray
 
+def decodeEcrecoverOutput? (out : EVM.Bytes) : Option Value :=
+  some (.address (Ethereum.AccountAddress.ofNat
+    (Ethereum.fromByteArrayBigEndian (out.readWithPadding 0 32))))
+
 def uniswapExternalABI : ExternalCallABI where
   encode? := fun name args =>
     if name = "balanceOf" then
@@ -789,7 +794,7 @@ def uniswapExternalABI : ExternalCallABI where
     else if name = "uniswapV2Call" then
       some .unit
     else if name = "ecrecover" then
-      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out
+      decodeEcrecoverOutput? out
     else
       none
 
