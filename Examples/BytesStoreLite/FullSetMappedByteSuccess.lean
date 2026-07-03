@@ -545,6 +545,226 @@ theorem bytesStoreLiteX_setMappedByteLongWriteReturnDecodedLength
     (by simp)
   simpa [σ'] using hdecoded
 
+theorem bytesStoreLiteX_setMappedByteLongWriteReturnDecodedPostLongLength
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len lenPost : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hlenPost : lenPost = UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
+    (hperm : I.perm = true) :
+    ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨905⟩
+      [lenPost, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+        (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+          (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ I)) k C := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setMappedByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hperm
+  have hdecoded := bytesStoreLiteX_bytesLengthDecoderLongValidMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetMappedByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+      bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+    (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hvalidPost)
+    (by native_decide)
+    (by simp)
+  simpa [σ', hlenPost] using hdecoded
+
+theorem bytesStoreLiteX_setMappedByteLongWriteReturnDecodedShortLength
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hperm : I.perm = true) :
+    ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨905⟩
+      [UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩,
+        bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+        (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+          (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+      (UInt256.ofNat 3) ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ I)) k C := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setMappedByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hperm
+  have hdecoded := bytesStoreLiteX_bytesLengthDecoderShortValidMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetMappedByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+      bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+    (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hvalidPost)
+    (by native_decide)
+    (by simp)
+  simpa [σ'] using hdecoded
+
+theorem bytesStoreLiteX_setMappedByteLongWriteReturnLongMalformed
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨32⟩) = ⟨0⟩)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setMappedByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hperm
+  exact bytesStoreLiteX_bytesLengthDecoderLongMalformedMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetMappedByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+      bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hbadPost)
+    (by simp)
+
+theorem bytesStoreLiteX_setMappedByteLongWriteReturnShortMalformed
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ = ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) =
+          ⟨0⟩)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setMappedByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hperm
+  exact bytesStoreLiteX_bytesLengthDecoderShortMalformedMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetMappedByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+      bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hbadPost)
+    (by simp)
+
 theorem bytesStoreLiteX_setMappedByteShortReadReturnToWrapper
     {cA gh bl σinit τ σ₀ A I} {g : Sat256} {len header : UInt256} {mem : ByteArray}
     (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
@@ -711,6 +931,57 @@ theorem bytesStoreLiteX_setMappedByteLongReadReturnToWrapper
     mul, push1 ⟨248⟩, shr,
     swap5, swap4, pop, pop, pop, pop, jump (by native_decide)]
   exact ⟨_, _, by simpa [hbyte] using rd301⟩
+
+theorem bytesStoreLiteX_setMappedBytePanic32MemFromReach
+    {cA gh bl σinit σ σ₀ A I} {g : Sat256} {stk : List UInt256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨2579⟩ stk
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hov : stk.length + 3 ≤ 1024) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) := by
+  obtain ⟨_, _, rd2579⟩ := hreach
+  have hsel :
+      UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ =
+        bytesStoreLiteFullPanicSelectorWord := by
+    decide
+  have rd2591₀ := evm_run rd2579 with [
+    jumpdest, push4 ⟨0x4e487b71⟩, push1 ⟨224⟩, shl, push0]
+  have rd2591 := rd2591₀
+  rw [hsel] at rd2591
+  exact evm_run rd2591 with [
+    raw mstore 0 (bytesStoreLiteFullPanic22Mem1From mem) (UInt256.ofNat 3) (by native_decide)
+      mem_cost
+      (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨0x32⟩, push1 ⟨4⟩,
+    raw mstore 0 (bytesStoreLiteFullPanicMemFrom ⟨0x32⟩ mem) (UInt256.ofNat 3)
+      (by native_decide)
+      mem_cost
+      (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨36⟩, push0,
+    raw rev 0 (by native_decide) mem_cost
+      (by evm_ov)]
+
+theorem bytesStoreLiteX_setMappedByteReturnOobLength
+    {cA gh bl σinit σ σ₀ A I} {g : Sat256} {len : UInt256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨905⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : ¬ (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) := by
+  obtain ⟨_, _, rd905⟩ := hreach
+  have hlt : UInt256.lt (bytesStoreLiteSetMappedByteIndexWord I) len = ⟨0⟩ :=
+    ult_zero (by omega)
+  have rd2579 := evm_run rd905 with [
+    jumpdest, dup2, lt, push2 ⟨919⟩,
+    jumpiNT (by simpa using hlt),
+    push2 ⟨919⟩, push2 ⟨2579⟩, jump (by native_decide)]
+  exact bytesStoreLiteX_setMappedBytePanic32MemFromReach ⟨_, _, rd2579⟩
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem bytesStoreLiteX_setMappedByteShortReadReturn
     {cA gh bl σinit τ σ₀ A I} {g : Sat256} {len header : UInt256} {mem : ByteArray}
@@ -911,7 +1182,7 @@ theorem bytesStoreLiteX_setMappedByteShortSuccessReturn
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   simpa [σ'] using hret
 
-theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
+theorem bytesStoreLiteX_setMappedByteLongSuccessReturn_of_post_header
     {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256} {acc : Account}
     (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨772⟩
@@ -925,6 +1196,27 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
     (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
       ⟨0⟩)
+    (hlenPost : len = UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
+    (hheaderPost :
+      bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I =
+        bytesStoreLiteSetMappedByteHeaderWord σ I)
     (hperm : I.perm = true)
     (hacc : σ.find? I.codeOwner = some acc) :
     RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
@@ -947,23 +1239,6 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
         (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
         (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
     simpa [hlen] using h805Raw
-  have hheaderPost :
-      bytesStoreLiteSetMappedByteHeaderWord σ' I =
-        bytesStoreLiteSetMappedByteHeaderWord σ I := by
-    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord,
-      bytesStoreLiteSetMappedByteLongDataSlot] using
-        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
-          (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
-          (idx := bytesStoreLiteSetMappedByteIndexWord I)
-          (val := bytesStoreLiteSetMappedByteLongStoredWord σ I) (by rfl)
-  have hflagPost :
-      UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ' I) ⟨1⟩ ≠ ⟨0⟩ := by
-    simpa [hheaderPost] using hflag
-  have hvalidPost : UInt256.sub (UInt256.land
-        (bytesStoreLiteSetMappedByteHeaderWord σ' I) ⟨1⟩)
-        (UInt256.lt (UInt256.div
-          (bytesStoreLiteSetMappedByteHeaderWord σ' I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩ := by
-    simpa [hheaderPost] using hvalid
   have hreadRaw := bytesStoreLiteX_setMappedByteLongWriteReturnDecodedLength
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (len := len) h805 hbound hflag
@@ -980,17 +1255,12 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
           (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
             (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)))
         (UInt256.ofNat 3) ByteArray.empty (cA, σ') k C := by
-    simpa [σ', hheaderPost, hlen] using hreadRaw
+    simpa [σ', hlenPost] using hreadRaw
   have hheader :
       ((σ'.find? I.codeOwner).option ⟨0⟩
         (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)) =
           bytesStoreLiteSetMappedByteHeaderWord σ I := by
-    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord,
-      bytesStoreLiteSetMappedByteLongDataSlot] using
-        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
-          (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
-          (idx := bytesStoreLiteSetMappedByteIndexWord I)
-          (val := bytesStoreLiteSetMappedByteLongStoredWord σ I) (by rfl)
+    simpa [σ', bytesStoreLiteSetMappedByteHeaderWord] using hheaderPost
   have hdata :
       ((σ'.find? I.codeOwner).option ⟨0⟩
         (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩)) =
@@ -1038,6 +1308,222 @@ theorem bytesStoreLiteX_setMappedByteLongSuccessReturn
     hreadMemSize hreadMem64
     (by simpa [readMem] using hread)
     hbound hheader hflag hdata hbyte
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  simpa [σ', readMem] using hret
+
+theorem bytesStoreLiteX_setMappedByteLongLongSuccessReturn
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len lenPost : UInt256} {acc : Account}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (hacc : σ.find? I.codeOwner = some acc) :
+    RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ I))
+      (UInt256.toByteArray (bytesStoreLiteSetMappedByteValueWord I)) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  let header' : UInt256 :=
+    Option.option ⟨0⟩
+      (fun acc => Batteries.RBMap.findD acc.storage (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)
+      (Batteries.RBMap.find? σ' I.codeOwner)
+  let dataWord' : UInt256 :=
+    Option.option ⟨0⟩
+      (fun acc =>
+        Batteries.RBMap.findD acc.storage (bytesStoreLiteSetMappedByteLongDataSlot I) ⟨0⟩)
+      (Batteries.RBMap.find? σ' I.codeOwner)
+  have hread := bytesStoreLiteX_setMappedByteLongWriteReturnDecodedPostLongLength
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) (lenPost := lenPost)
+    hreach hbound hflag hlenPost hflagPost hvalidPost hperm
+  have hheader : header' = bytesStoreLiteSetMappedByteHeaderWord σ' I := by
+    rfl
+  have hdata : dataWord' = bytesStoreLiteSetMappedByteLongStoredWord σ I := by
+    simpa [dataWord', σ'] using
+      sstoreAccountMap_storage_findD_self_of_find_some_any σ I.codeOwner acc
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ I) hacc
+  have hbyteAt :
+      UInt256.byteAt (bytesStoreLiteSetMappedByteLongWordIndex I) dataWord' =
+        bytesStoreLiteSetMappedByteValueWord I := by
+    rw [hdata]
+    exact bytesStoreLiteSetMappedByteLongStoredWord_byteAt
+      (σ := σ) (I := I) hcanon
+  have hbyte :
+      UInt256.shiftRight
+        (UInt256.mul
+          (UInt256.byteAt (bytesStoreLiteSetMappedByteLongWordIndex I) dataWord')
+          (UInt256.shiftLeft ⟨1⟩ ⟨248⟩))
+        ⟨248⟩ = bytesStoreLiteSetMappedByteValueWord I := by
+    rw [hbyteAt]
+    exact bytesStoreLiteSetMappedByteValueHighMulShiftRight hcanon
+  let readMem : ByteArray :=
+    twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem))
+  have hreadMemSize : readMem.size = 96 := by
+    exact twoWordHashMem_size_96 _ _
+      (wordAt0Mem_size_96 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size))
+  have hreadMem64 :
+      readMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact twoWordHashMem_read64 _ _
+      (wordAt0Mem_size_96 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size))
+      (bytesStoreLiteWordAt0Mem_read64 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size)
+        (twoWordHashMem_read64 _ _ solcFreePtrMem_size solcFreePtrMem_read64))
+  have hret := bytesStoreLiteX_setMappedByteLongReadReturn
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g) (len := lenPost)
+    (header := header') (dataWord := dataWord') (mem := readMem)
+    hreadMemSize hreadMem64
+    (by simpa [readMem] using hread)
+    hboundPost
+    hheader
+    (by simpa [hheader, σ'] using hflagPost)
+    (by rfl)
+    hbyte
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  simpa [σ', readMem] using hret
+
+theorem bytesStoreLiteX_setMappedByteLongShortSuccessReturn
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len lenPost : UInt256} {acc : Account}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨805⟩
+      [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+        bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.land (UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (hacc : σ.find? I.codeOwner = some acc) :
+    RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
+      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ I))
+      (UInt256.toByteArray (bytesStoreLiteSetMappedByteValueWord I)) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ I)
+  let header' : UInt256 :=
+    Option.option ⟨0⟩
+      (fun acc => Batteries.RBMap.findD acc.storage (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩)
+      (Batteries.RBMap.find? σ' I.codeOwner)
+  have hread := bytesStoreLiteX_setMappedByteLongWriteReturnDecodedShortLength
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len)
+    hreach hbound hflag hflagPost hvalidPost hperm
+  have hheaderStored : header' = bytesStoreLiteSetMappedByteLongStoredWord σ I := by
+    by_cases hEq :
+        bytesStoreLiteSetMappedByteSlot I = bytesStoreLiteSetMappedByteLongDataSlot I
+    · simpa [header', σ', bytesStoreLiteSetMappedByteHeaderWord, hEq] using
+        sstoreAccountMap_storage_findD_self_of_find_some_any σ I.codeOwner acc
+          (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ I) hacc
+    · have hheaderOld :
+          bytesStoreLiteSetMappedByteHeaderWord σ' I =
+            bytesStoreLiteSetMappedByteHeaderWord σ I := by
+        simpa [σ', bytesStoreLiteSetMappedByteHeaderWord,
+          bytesStoreLiteSetMappedByteLongDataSlot] using
+          bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before_of_ne
+            (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+            (idx := bytesStoreLiteSetMappedByteIndexWord I)
+            (val := bytesStoreLiteSetMappedByteLongStoredWord σ I) hEq (by rfl)
+      have hzeroOld :
+          UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ I) ⟨1⟩ = ⟨0⟩ := by
+        rw [← hheaderOld]
+        simpa [σ', header', bytesStoreLiteSetMappedByteHeaderWord] using hflagPost
+      exact False.elim (hflag hzeroOld)
+  have hvalid0 :
+      UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlenPost, hflagPost] using hvalidPost
+  have hshortPost : lenPost.toNat < 32 :=
+    solidityShortBytesValid_lt32 hvalid0
+  have hidxLt32 : (bytesStoreLiteSetMappedByteIndexWord I).toNat < 32 :=
+    lt_trans hboundPost hshortPost
+  have hbyteAt :
+      UInt256.byteAt (bytesStoreLiteSetMappedByteIndexWord I) header' =
+        bytesStoreLiteSetMappedByteValueWord I := by
+    rw [hheaderStored]
+    exact bytesStoreLiteSetMappedByteLongStoredWord_byteAt_index_of_lt32
+      (σ := σ) (I := I) hcanon hidxLt32
+  have hbyte :
+      UInt256.shiftRight
+        (UInt256.mul
+          (UInt256.byteAt (bytesStoreLiteSetMappedByteIndexWord I) header')
+          (UInt256.shiftLeft ⟨1⟩ ⟨248⟩))
+        ⟨248⟩ = bytesStoreLiteSetMappedByteValueWord I := by
+    rw [hbyteAt]
+    exact bytesStoreLiteSetMappedByteValueHighMulShiftRight hcanon
+  let readMem : ByteArray :=
+    twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩
+      (wordAt0Mem (bytesStoreLiteSetMappedByteSlot I)
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem))
+  have hreadMemSize : readMem.size = 96 := by
+    exact twoWordHashMem_size_96 _ _
+      (wordAt0Mem_size_96 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size))
+  have hreadMem64 :
+      readMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    exact twoWordHashMem_read64 _ _
+      (wordAt0Mem_size_96 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size))
+      (bytesStoreLiteWordAt0Mem_read64 _
+        (twoWordHashMem_size_96 _ _ solcFreePtrMem_size)
+        (twoWordHashMem_read64 _ _ solcFreePtrMem_size solcFreePtrMem_read64))
+  have hret := bytesStoreLiteX_setMappedByteShortReadReturn
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g) (len := lenPost) (header := header')
+    (mem := readMem) hreadMemSize hreadMem64
+    (by simpa [readMem, hlenPost] using hread) hboundPost (by rfl)
+    (by simpa [header', σ'] using hflagPost) hbyte
     (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
   simpa [σ', readMem] using hret
 
@@ -1121,7 +1607,7 @@ theorem bytesStoreLiteSetMappedByteShortSuccessRuntime
     hpostAccounts
     (returnEquiv_of_encode (uint8ReturnEncoding (bytesStoreLiteSetMappedByteValueWord I) hcanon))
 
-theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
+theorem bytesStoreLiteSetMappedByteLongSuccessRuntime_of_post_readback
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len : UInt256} {accEvm : Account}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
@@ -1135,7 +1621,22 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
     (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
         (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
-      ⟨0⟩) :
+      ⟨0⟩)
+    (hheaderPost :
+      bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore
+            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            I.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          I.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
@@ -1153,10 +1654,14 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
   have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
     (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
-  have hret := bytesStoreLiteX_setMappedByteLongSuccessReturn
+  have hret := bytesStoreLiteX_setMappedByteLongSuccessReturn_of_post_header
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) (len := len) (acc := accEvm)
-    hreachBody hcanon hlen hbound hflag hvalid hperm haccEvm
+    hreachBody hcanon hlen hbound hflag hvalid
+    (by simpa [hheaderPost] using hlen)
+    (by simpa [hheaderPost] using hflag)
+    (by simpa [hheaderPost] using hvalid)
+    hheaderPost hperm haccEvm
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetMappedByteLongDataSlot I)
@@ -1186,10 +1691,13 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
           (bytesStoreLiteSetMappedByteFrame I)
           evmSolm1 (some (bytesStoreLiteSetMappedByteValue I))) := by
     simpa [evmSolm0, evmSolm1, initState, bytesStoreLiteSetMappedByteFrame] using
-      bytesStoreLiteSetMappedByteLongBodyReturns
+      bytesStoreLiteSetMappedByteLongBodyReturns_of_post_readback
         (evm := evmSolm0) (σ := σ_evm) (I := I) (len := len) (acc := accSolm)
         (by simp [evmSolm0, initState]; exact hwv)
         hloadHeader hloadData
+        (by
+          simpa [evmSolm0, evmSolm1, initState, storageStore_executionEnv] using
+            hloadHeaderPost)
         (by simpa [evmSolm0, initState] using haccSolm)
         hcanon hlen hbound hflag hvalid
   have hpostAccounts :
@@ -1205,6 +1713,861 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     hpostAccounts
     (returnEquiv_of_encode (uint8ReturnEncoding (bytesStoreLiteSetMappedByteValueWord I) hcanon))
+
+theorem bytesStoreLiteSetMappedByteLongReturnLongSuccessRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len lenPost : UInt256}
+    {accEvm : Account}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (haccEvm : σ_evm.find? I.codeOwner = some accEvm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hret := bytesStoreLiteX_setMappedByteLongLongSuccessReturn
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len) (lenPost := lenPost)
+    (acc := accEvm)
+    h805 hcanon hlenPost hflagPost hvalidPost hbound hboundPost hflag hperm haccEvm
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  obtain ⟨accSolm, haccSolm⟩ :=
+    accountMapEquiv_find?_some_exists hAccounts haccEvm
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body
+        (.returned
+          (bytesStoreLiteSetMappedByteFrame I)
+          evmSolm1 (some (bytesStoreLiteSetMappedByteValue I))) := by
+    simpa [evmSolm0, evmSolm1, initState, bytesStoreLiteSetMappedByteFrame] using
+      bytesStoreLiteSetMappedByteLongBodyReturnsOfPostLongReadback
+        (evm := evmSolm0) (σ := σ_evm) (I := I)
+        (len := len) (lenPost := lenPost)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (acc := accSolm)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost
+        (by simpa [evmSolm0, initState] using haccSolm)
+        hcanon hlen hlenPost hbound hboundPost hflag hvalid hflagPost hvalidPost
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
+    hpostAccounts
+    (returnEquiv_of_encode (uint8ReturnEncoding (bytesStoreLiteSetMappedByteValueWord I) hcanon))
+
+theorem bytesStoreLiteSetMappedByteLongReturnShortSuccessRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len lenPost : UInt256}
+    {accEvm : Account}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (haccEvm : σ_evm.find? I.codeOwner = some accEvm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.land (UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨127⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hret := bytesStoreLiteX_setMappedByteLongShortSuccessReturn
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len) (lenPost := lenPost)
+    (acc := accEvm)
+    h805 hcanon hlenPost hflagPost hvalidPost hbound hboundPost hflag hperm haccEvm
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hvalid0 :
+      UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlenPost, hflagPost] using hvalidPost
+  have hshortPost : lenPost.toNat < 32 :=
+    solidityShortBytesValid_lt32 hvalid0
+  have hidxLt32 : (bytesStoreLiteSetMappedByteIndexWord I).toNat < 32 :=
+    lt_trans hboundPost hshortPost
+  have hbytePost :
+      UInt256.byteAt (bytesStoreLiteSetMappedByteIndexWord I)
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) =
+        bytesStoreLiteSetMappedByteValueWord I := by
+    by_cases hEq :
+        bytesStoreLiteSetMappedByteSlot I = bytesStoreLiteSetMappedByteLongDataSlot I
+    · have hheaderPostStored :
+          bytesStoreLiteSetMappedByteHeaderWord
+              (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+                (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+            bytesStoreLiteSetMappedByteLongStoredWord σ_evm I := by
+        simpa [bytesStoreLiteSetMappedByteHeaderWord, hEq] using
+          sstoreAccountMap_storage_findD_self_of_find_some_any σ_evm I.codeOwner accEvm
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) haccEvm
+      rw [hheaderPostStored]
+      exact bytesStoreLiteSetMappedByteLongStoredWord_byteAt_index_of_lt32
+        (σ := σ_evm) (I := I) hcanon hidxLt32
+    · have hheaderOld :
+          bytesStoreLiteSetMappedByteHeaderWord
+              (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+                (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+            bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+        simpa [bytesStoreLiteSetMappedByteHeaderWord,
+          bytesStoreLiteSetMappedByteLongDataSlot] using
+          bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before_of_ne
+            (σ := σ_evm) (I := I) (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+            (idx := bytesStoreLiteSetMappedByteIndexWord I)
+            (val := bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hEq (by rfl)
+      have hflagOldZero :
+          UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
+        rw [← hheaderOld]
+        exact hflagPost
+      exact False.elim (hflag hflagOldZero)
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body
+        (.returned
+          (bytesStoreLiteSetMappedByteFrame I)
+          evmSolm1 (some (bytesStoreLiteSetMappedByteValue I))) := by
+    simpa [evmSolm0, evmSolm1, initState, bytesStoreLiteSetMappedByteFrame] using
+      bytesStoreLiteSetMappedByteLongBodyReturnsOfPostShortReadback
+        (evm := evmSolm0) (σ := σ_evm) (I := I)
+        (len := len) (lenPost := lenPost)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost
+        hcanon hlen hlenPost hbound hboundPost hflag hvalid hflagPost hvalidPost
+        hbytePost
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
+    hpostAccounts
+    (returnEquiv_of_encode (uint8ReturnEncoding (bytesStoreLiteSetMappedByteValueWord I) hcanon))
+
+theorem bytesStoreLiteSetMappedByteLongReturnLongOobLengthRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len lenPost : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : ¬ (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hread := bytesStoreLiteX_setMappedByteLongWriteReturnDecodedPostLongLength
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len) (lenPost := lenPost)
+    h805 hbound hflag hlenPost hflagPost hvalidPost hperm
+  have hrev := bytesStoreLiteX_setMappedByteReturnOobLength
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ_evm)
+    (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (len := lenPost)
+    hread hboundPost
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body .reverted := by
+    simpa [evmSolm0, initState] using
+      bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongLength
+        (evm := evmSolm0) (σ := σ_evm) (I := I)
+        (len := len) (lenPost := lenPost)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost hcanon hlen hlenPost hbound hboundPost
+        hflag hvalid hflagPost hvalidPost
+  exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+
+theorem bytesStoreLiteSetMappedByteLongReturnShortOobLengthRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len lenPost : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlenPost : lenPost = UInt256.land (UInt256.div
+      (bytesStoreLiteSetMappedByteHeaderWord
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨127⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hboundPost : ¬ (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hread := bytesStoreLiteX_setMappedByteLongWriteReturnDecodedShortLength
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len)
+    h805 hbound hflag hflagPost hvalidPost hperm
+  have hrev := bytesStoreLiteX_setMappedByteReturnOobLength
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ_evm)
+    (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (len := lenPost)
+    (by simpa [hlenPost] using hread) hboundPost
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body .reverted := by
+    simpa [evmSolm0, initState] using
+      bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortLength
+        (evm := evmSolm0) (σ := σ_evm) (I := I)
+        (len := len) (lenPost := lenPost)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost hcanon hlen hlenPost hbound hboundPost
+        hflag hvalid hflagPost hvalidPost
+  exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+
+theorem bytesStoreLiteSetMappedByteLongReturnLongMalformedRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hrev := bytesStoreLiteX_setMappedByteLongWriteReturnLongMalformed
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len)
+    h805 hbound hflag hflagPost hbadPost hperm
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body .reverted := by
+    simpa [evmSolm0, initState] using
+      bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongMalformed
+        (evm := evmSolm0) (σ := σ_evm) (I := I) (len := len)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost hcanon hlen hbound hflag hvalid
+        hflagPost hbadPost
+  exact hrev.reEquivExecutionRevert hcode hd hdec hbody
+
+theorem bytesStoreLiteSetMappedByteLongReturnShortMalformedRuntime
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {len : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x13, 0x2f, 0xa3, 0x46]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (bytesStoreLiteSetMappedByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩) ⟨32⟩) ≠
+      ⟨0⟩)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩ = ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) =
+          ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hsz := bytesStoreLiteSetMappedByteSelector_size hsel
+  have hreach := bytesStoreLiteReachSetMappedByte (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz hsize hsel
+  have hreachPc : ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨319⟩
+      [bytesStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ_evm) k C := by
+    simpa [bytesStoreLiteSetMappedByteEntryPc] using hreach
+  have hreachBody := bytesStoreLiteX_setMappedByteDecodeValid
+    (g := Sat256.ofUInt256 g) hreachPc hsz100 hhi hsize
+    (bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon)
+  have hdecLen := bytesStoreLiteX_setMappedByteReachLengthDecoder
+    (g := Sat256.ofUInt256 g) hreachBody
+  have h805Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hdecLen hflag hvalid
+    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  have h805 :
+      ∃ k C, RD bytesStoreLiteBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨805⟩
+        [len, bytesStoreLiteSetMappedByteIndexWord I, bytesStoreLiteSetMappedByteSlot I,
+          UInt256.shiftLeft (bytesStoreLiteSetMappedByteValueWord I) ⟨248⟩, ⟨0⟩,
+          bytesStoreLiteSetMappedByteValueWord I, bytesStoreLiteSetMappedByteIndexWord I,
+          bytesStoreLiteSetMappedByteKeyWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+        (twoWordHashMem (bytesStoreLiteSetMappedByteKeyWord I) ⟨4⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+    simpa [hlen] using h805Raw
+  have hrev := bytesStoreLiteX_setMappedByteLongWriteReturnShortMalformed
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (I := I) (g := Sat256.ofUInt256 g) (len := len)
+    h805 hbound hflag hflagPost hbadPost hperm
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+    (bytesStoreLiteSetMappedByteLongDataSlot I)
+    (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
+  have hloadHeader :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadData :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteLongDataSlot I) =
+        bytesStoreLiteSetMappedByteLongOldWord σ_evm I := by
+    simpa [evmSolm0] using
+      bytesStoreLiteStorageLoadSetMappedByteLongData_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hpostAccounts :
+      accountMapEquiv
+        (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        evmSolm1.accountMap := by
+    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner
+      (bytesStoreLiteSetMappedByteLongDataSlot I)
+      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+  have hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
+            (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+          evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedByteSlot I) =
+        bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
+    have hword :
+        bytesStoreLiteSetMappedByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
+          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
+      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
+    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
+      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
+      using hword.symm
+  have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
+    (by simpa [selIs] using hsel)
+  have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
+  have hbody :
+      ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
+        (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body .reverted := by
+    simpa [evmSolm0, initState] using
+      bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortMalformed
+        (evm := evmSolm0) (σ := σ_evm) (I := I) (len := len)
+        (postHeaderWord := bytesStoreLiteSetMappedByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+            (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I)
+        (by simp [evmSolm0, initState]; exact hwv)
+        hloadHeader hloadData hloadHeaderPost hcanon hlen hbound hflag hvalid
+        hflagPost hbadPost
+  exact hrev.reEquivExecutionRevert hcode hd hdec hbody
 
 theorem bytesStoreLiteSetMappedByteRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
@@ -1227,12 +2590,87 @@ theorem bytesStoreLiteSetMappedByteRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
             by_cases hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len.toNat
             · by_cases haccSome : ∃ accEvm, σ_evm.find? I.codeOwner = some accEvm
               · obtain ⟨accEvm, haccEq⟩ := haccSome
-                exact bytesStoreLiteSetMappedByteLongSuccessRuntime
-                  (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                  (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                  (len := len) (accEvm := accEvm)
-                  hcode hsize hperm hwv hsel hAccounts haccEq hsz100 hhi hcanon
-                  (by rfl) hbound hflagLong hvalidLong
+                let postHeader :=
+                  bytesStoreLiteSetMappedByteHeaderWord
+                    (sstoreAccountMap I.codeOwner σ_evm
+                      (bytesStoreLiteSetMappedByteLongDataSlot I)
+                      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I
+                by_cases hflagPostLong : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩
+                · by_cases hvalidPostLong :
+                    UInt256.sub (UInt256.land postHeader ⟨1⟩)
+                      (UInt256.lt (UInt256.div postHeader ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩
+                  · let lenPost := UInt256.div postHeader ⟨2⟩
+                    by_cases hboundPost :
+                        (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat
+                    · exact bytesStoreLiteSetMappedByteLongReturnLongSuccessRuntime
+                        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                        (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                        (len := len) (lenPost := lenPost) (accEvm := accEvm)
+                        hcode hsize hperm hwv hsel hAccounts haccEq hsz100 hhi hcanon
+                        (by rfl) (by simpa [postHeader] using hflagPostLong)
+                        (by simpa [postHeader] using hvalidPostLong)
+                        (by rfl) hbound hboundPost hflagLong hvalidLong
+                    · exact bytesStoreLiteSetMappedByteLongReturnLongOobLengthRuntime
+                        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                        (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                        (len := len) (lenPost := lenPost)
+                        hcode hsize hperm hwv hsel hAccounts hsz100 hhi hcanon
+                        (by rfl) (by simpa [postHeader] using hflagPostLong)
+                        (by simpa [postHeader] using hvalidPostLong)
+                        (by rfl) hbound hboundPost hflagLong hvalidLong
+                  · have hbadPostLong :
+                      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+                        (UInt256.lt (UInt256.div postHeader ⟨2⟩) ⟨32⟩) = ⟨0⟩ := by
+                      by_contra hne
+                      exact hvalidPostLong hne
+                    exact bytesStoreLiteSetMappedByteLongReturnLongMalformedRuntime
+                      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                      (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                      (len := len)
+                      hcode hsize hperm hwv hsel hAccounts hsz100 hhi hcanon
+                      (by rfl) hbound hflagLong hvalidLong
+                      (by simpa [postHeader] using hflagPostLong)
+                      (by simpa [postHeader] using hbadPostLong)
+                · have hflagPostShort : UInt256.land postHeader ⟨1⟩ = ⟨0⟩ := by
+                    by_contra hne
+                    exact hflagPostLong hne
+                  by_cases hvalidPostShort :
+                      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+                        (UInt256.lt (UInt256.land (UInt256.div postHeader ⟨2⟩) ⟨127⟩)
+                          ⟨32⟩) ≠ ⟨0⟩
+                  · let lenPost := UInt256.land (UInt256.div postHeader ⟨2⟩) ⟨127⟩
+                    by_cases hboundPost :
+                        (bytesStoreLiteSetMappedByteIndexWord I).toNat < lenPost.toNat
+                    · exact bytesStoreLiteSetMappedByteLongReturnShortSuccessRuntime
+                        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                        (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                        (len := len) (lenPost := lenPost) (accEvm := accEvm)
+                        hcode hsize hperm hwv hsel hAccounts haccEq hsz100 hhi hcanon
+                        (by rfl) (by simpa [postHeader] using hflagPostShort)
+                        (by simpa [postHeader] using hvalidPostShort)
+                        (by rfl) hbound hboundPost hflagLong hvalidLong
+                    · exact bytesStoreLiteSetMappedByteLongReturnShortOobLengthRuntime
+                        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                        (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                        (len := len) (lenPost := lenPost)
+                        hcode hsize hperm hwv hsel hAccounts hsz100 hhi hcanon
+                        (by rfl) (by simpa [postHeader] using hflagPostShort)
+                        (by simpa [postHeader] using hvalidPostShort)
+                        (by rfl) hbound hboundPost hflagLong hvalidLong
+                  · have hbadPostShort :
+                      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+                        (UInt256.lt (UInt256.land (UInt256.div postHeader ⟨2⟩) ⟨127⟩)
+                          ⟨32⟩) = ⟨0⟩ := by
+                      by_contra hne
+                      exact hvalidPostShort hne
+                    exact bytesStoreLiteSetMappedByteLongReturnShortMalformedRuntime
+                      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
+                      (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                      (len := len)
+                      hcode hsize hperm hwv hsel hAccounts hsz100 hhi hcanon
+                      (by rfl) hbound hflagLong hvalidLong
+                      (by simpa [postHeader] using hflagPostShort)
+                      (by simpa [postHeader] using hbadPostShort)
               · have haccNone : σ_evm.find? I.codeOwner = none := by
                   cases haccEq : σ_evm.find? I.codeOwner with
                   | none => rfl

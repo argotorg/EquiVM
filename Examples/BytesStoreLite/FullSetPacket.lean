@@ -3,6 +3,7 @@ import Examples.BytesStoreLite.FullSetLongOldLongRuntime
 import Examples.BytesStoreLite.FullPushChunkLongTail
 import Examples.BytesStoreLite.FullPushChunkLongStorage
 import Examples.BytesStoreLite.FullSetPacketStorage
+import Examples.BytesStoreLite.StorageLoopFacts
 
 /-!
 # BytesStoreLite — `setPacket(bytes,uint256)` runtime slice

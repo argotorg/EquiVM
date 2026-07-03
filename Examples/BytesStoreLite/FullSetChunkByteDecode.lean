@@ -716,6 +716,111 @@ theorem bytesStoreLiteX_setChunkByteReturnReachLengthDecoderMem
   exact ⟨_, _, evm_run rd1372 with [
     push2 ⟨905⟩, swap1, push2 ⟨2246⟩, jump (by native_decide)]⟩
 
+theorem bytesStoreLiteX_setChunkByteReturnOobChunksLengthMem
+    {cA gh bl σinit σ σ₀ A I} {g : Sat256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨1342⟩
+      [⟨0⟩, bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord σ I).toNat) :
+    ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨2579⟩
+      [⟨1360⟩, bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨1⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd1342⟩ := hreach
+  have hlt :
+      UInt256.lt (bytesStoreLiteSetChunkByteChunkIndexWord I)
+        (bytesStoreLiteChunksLengthWord σ I) = ⟨0⟩ :=
+    ult_zero (by omega)
+  have rd1346 := evm_run rd1342 with [
+    push1 ⟨1⟩, dup5, dup2]
+  obtain ⟨_, _, rd1347₀⟩ := rd1346.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1347⟩ :
+      ∃ k C, RD bytesStoreLiteBytecode I g
+        (initState cA gh bl σinit σ₀ g A I) ⟨1347⟩
+        [bytesStoreLiteChunksLengthWord σ I, bytesStoreLiteSetChunkByteChunkIndexWord I,
+          ⟨1⟩, ⟨0⟩, bytesStoreLiteSetChunkByteValueWord I,
+          bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteChunkIndexWord I,
+          ⟨301⟩, bytesStoreLiteSelWord I]
+        mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    exact ⟨_, _, by
+      simpa [bytesStoreLiteChunksLengthWord, initState] using rd1347₀⟩
+  have rd2579 := evm_run rd1347 with [
+    dup2, lt, push2 ⟨1360⟩, jumpiNT (by simpa using hlt),
+    push2 ⟨1360⟩, push2 ⟨2579⟩, jump (by native_decide)]
+  exact ⟨_, _, rd2579⟩
+
+theorem bytesStoreLiteX_panic32MemFromReach {cA gh bl σinit σ σ₀ A I} {g : Sat256}
+    {stk : List UInt256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨2579⟩ stk
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hov : stk.length + 3 ≤ 1024) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) := by
+  obtain ⟨_, _, rd2579⟩ := hreach
+  have hsel :
+      UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ =
+        bytesStoreLiteFullPanicSelectorWord := by
+    decide
+  have rd2591₀ := evm_run rd2579 with [
+    jumpdest, push4 ⟨0x4e487b71⟩, push1 ⟨224⟩, shl, push0]
+  have rd2591 := rd2591₀
+  rw [hsel] at rd2591
+  exact evm_run rd2591 with [
+    raw mstore 0 (bytesStoreLiteFullPanic22Mem1From mem) (UInt256.ofNat 3) (by native_decide)
+      mem_cost
+      (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨0x32⟩, push1 ⟨4⟩,
+    raw mstore 0 (bytesStoreLiteFullPanicMemFrom ⟨0x32⟩ mem) (UInt256.ofNat 3)
+      (by native_decide)
+      mem_cost
+      (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨36⟩, push0,
+    raw rev 0 (by native_decide) mem_cost
+      (by evm_ov)]
+
+theorem bytesStoreLiteX_setChunkByteReturnOobChunksLength
+    {cA gh bl σinit σ σ₀ A I} {g : Sat256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨1342⟩
+      [⟨0⟩, bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord σ I).toNat) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) := by
+  exact bytesStoreLiteX_panic32MemFromReach
+    (bytesStoreLiteX_setChunkByteReturnOobChunksLengthMem hreach hbound)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+theorem bytesStoreLiteX_setChunkByteReturnOobLength
+    {cA gh bl σinit σ σ₀ A I} {g : Sat256} {len : UInt256} {mem : ByteArray}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σinit σ₀ g A I) ⟨905⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hbound : ¬ (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) := by
+  obtain ⟨_, _, rd905⟩ := hreach
+  have hlt : UInt256.lt (bytesStoreLiteSetChunkByteIndexWord I) len = ⟨0⟩ :=
+    ult_zero (by omega)
+  have rd2579 := evm_run rd905 with [
+    jumpdest, dup2, lt, push2 ⟨919⟩,
+    jumpiNT (by simpa using hlt),
+    push2 ⟨919⟩, push2 ⟨2579⟩, jump (by native_decide)]
+  exact bytesStoreLiteX_panic32MemFromReach ⟨_, _, rd2579⟩
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
 theorem bytesStoreLiteX_setChunkByteLongWriteReturnReachLengthDecoder
     {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
     (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
@@ -799,6 +904,166 @@ theorem bytesStoreLiteX_setChunkByteShortWriteReturnReachLengthDecoder
       (bytesStoreLiteSetChunkByteShortStoredWord σ I))
     h1342 hchunkBoundPost
 
+theorem bytesStoreLiteX_setChunkByteLongWriteReturnOobChunksLength
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hchunkBoundPost :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I).toNat)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have h1313 := bytesStoreLiteX_setChunkByteLongReachStoreCommon
+    (g := g) hreach hbound hflag
+  have h1342 := bytesStoreLiteX_setChunkByteLongStore
+    (g := g) h1313 hperm
+  exact bytesStoreLiteX_setChunkByteReturnOobChunksLength
+    (σinit := σ)
+    (σ := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+      (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+    h1342 hchunkBoundPost
+
+theorem bytesStoreLiteX_setChunkByteShortWriteReturnOobChunksLength
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
+    (hchunkBoundPost :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteSlot I)
+            (bytesStoreLiteSetChunkByteShortStoredWord σ I)) I).toNat)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have h1313 := bytesStoreLiteX_setChunkByteShortReachStoreCommon
+    (g := g) hreach hbound hflag
+  have h1342 := bytesStoreLiteX_setChunkByteShortStore
+    (g := g) h1313 hperm
+  exact bytesStoreLiteX_setChunkByteReturnOobChunksLength
+    (σinit := σ)
+    (σ := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteSlot I)
+      (bytesStoreLiteSetChunkByteShortStoredWord σ I))
+    h1342 hchunkBoundPost
+
+theorem bytesStoreLiteX_setChunkByteLongWriteReturnLongMalformed
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I).toNat)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩ ≠ ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.div
+          (bytesStoreLiteSetChunkByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+              (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨2⟩) ⟨32⟩) = ⟨0⟩)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setChunkByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hchunkBoundPost hperm
+  exact bytesStoreLiteX_bytesLengthDecoderLongMalformedMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetChunkByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+      bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := wordAt0Mem (⟨1⟩ : UInt256)
+      (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
+        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem)))
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hbadPost)
+    (by simp)
+
+theorem bytesStoreLiteX_setChunkByteLongWriteReturnShortMalformed
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I).toNat)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩ = ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetChunkByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+              (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩)
+    (hperm : I.perm = true) :
+    RDrev bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setChunkByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hchunkBoundPost hperm
+  exact bytesStoreLiteX_bytesLengthDecoderShortMalformedMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetChunkByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+      bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := wordAt0Mem (⟨1⟩ : UInt256)
+      (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
+        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem)))
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hbadPost)
+    (by simp)
+
 theorem bytesStoreLiteX_setChunkByteLongWriteReturnDecodedLength
     {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
     (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
@@ -850,6 +1115,75 @@ theorem bytesStoreLiteX_setChunkByteLongWriteReturnDecodedLength
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (len := len) hreach hbound hflag hchunkBoundPost hperm
   have hdecoded := bytesStoreLiteX_bytesLengthDecoderLongValidMemCarried
+    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
+    (A := A) (I := I) (g := g)
+    (header := bytesStoreLiteSetChunkByteHeaderWord σ' I) (ret := ⟨905⟩)
+    (rest := [bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+      ⟨0⟩, bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+      bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I])
+    (mem := wordAt0Mem (⟨1⟩ : UInt256)
+      (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
+        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem)))
+    (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
+    (by simpa [σ'] using hdec)
+    (by simpa [σ'] using hflagPost)
+    (by simpa [σ'] using hvalidPost)
+    (by native_decide)
+    (by simp)
+  simpa [σ'] using hdecoded
+
+theorem bytesStoreLiteX_setChunkByteLongWriteReturnDecodedShortLength
+    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
+      [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
+        UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty (cA, σ) k C)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
+        (bytesStoreLiteChunksLengthWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I).toNat)
+    (hflagPost : UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land
+        (bytesStoreLiteSetChunkByteHeaderWord
+          (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div
+          (bytesStoreLiteSetChunkByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+              (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hperm : I.perm = true) :
+    ∃ k C, RD bytesStoreLiteBytecode I g
+      (initState cA gh bl σ σ₀ g A I) ⟨905⟩
+      [UInt256.land (UInt256.div
+          (bytesStoreLiteSetChunkByteHeaderWord
+            (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+              (bytesStoreLiteSetChunkByteLongStoredWord σ I)) I) ⟨2⟩) ⟨127⟩,
+        bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I, ⟨0⟩,
+        bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
+        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
+      (wordAt0Mem (⟨1⟩ : UInt256)
+        (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
+          (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem))) (UInt256.ofNat 3)
+      ByteArray.empty
+      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+        (bytesStoreLiteSetChunkByteLongStoredWord σ I)) k C := by
+  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hdec := bytesStoreLiteX_setChunkByteLongWriteReturnReachLengthDecoder
+    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g) (len := len) hreach hbound hflag hchunkBoundPost hperm
+  have hdecoded := bytesStoreLiteX_bytesLengthDecoderShortValidMemCarried
     (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
     (A := A) (I := I) (g := g)
     (header := bytesStoreLiteSetChunkByteHeaderWord σ' I) (ret := ⟨905⟩)
@@ -1169,301 +1503,6 @@ theorem bytesStoreLiteX_setChunkByteLongReadReturn
     (bytesStoreLiteWordAt0Mem_read64 _ hsize hread64)
     h301
   simpa [hcanon] using hret
-
-/-
-theorem bytesStoreLiteX_setChunkByteShortSuccessReturn
-    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256} {acc : Account}
-    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1226⟩
-      [bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
-        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
-    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
-    (hchunkBound :
-      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
-        (bytesStoreLiteChunksLengthWord σ I).toNat)
-    (hlen : len =
-      UInt256.land (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨127⟩)
-    (hshort : len.toNat < 32)
-    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
-    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
-    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
-        (UInt256.lt
-          (UInt256.land (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨127⟩)
-          ⟨32⟩) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
-    (hacc : σ.find? I.codeOwner = some acc) :
-    RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteSlot I)
-        (bytesStoreLiteSetChunkByteShortStoredWord σ I))
-      (UInt256.toByteArray (bytesStoreLiteSetChunkByteValueWord I)) := by
-  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteSlot I)
-    (bytesStoreLiteSetChunkByteShortStoredWord σ I)
-  let header' : UInt256 :=
-    Option.option ⟨0⟩
-      (fun ac => Batteries.RBMap.findD ac.storage (bytesStoreLiteSetChunkByteSlot I) ⟨0⟩)
-      (Batteries.RBMap.find? σ' I.codeOwner)
-  have hdec := bytesStoreLiteX_setChunkByteReachLengthDecoder (g := g) hreach hchunkBound
-  have h1270Raw := bytesStoreLiteX_bytesLengthDecoderShortValidMem
-    (A := A) (I := I) (g := g) hdec hflag hvalid (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have h1270 :
-      ∃ k C, RD bytesStoreLiteBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
-        [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
-          UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
-          bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
-          bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
-        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
-    simpa [hlen] using h1270Raw
-  have hchunkBoundPost :
-      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
-        (bytesStoreLiteChunksLengthWord σ' I).toNat := by
-    simpa [hsigmaPost] using
-      bytesStoreLiteChunkBoundAfterChunkHeaderSstore
-        (σ := σ) (I := I) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
-        (val := bytesStoreLiteSetChunkByteShortStoredWord σ I) hchunkBound
-  have hheader : header' = bytesStoreLiteSetChunkByteShortStoredWord σ I := by
-    rw [hsigmaPost]
-    simpa [header'] using
-      sstoreAccountMap_storage_findD_self_of_find_some_any σ I.codeOwner acc
-        (bytesStoreLiteSetChunkByteSlot I)
-        (bytesStoreLiteSetChunkByteShortStoredWord σ I) hacc
-  have hheaderPost :
-      bytesStoreLiteSetChunkByteHeaderWord σ' I =
-        bytesStoreLiteSetChunkByteShortStoredWord σ I := by
-    simpa [header', bytesStoreLiteSetChunkByteHeaderWord] using hheader
-  have hflagPost :
-      UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩ = ⟨0⟩ := by
-    rw [hheaderPost, bytesStoreLiteSetChunkByteShortStoredWord_flag_eq
-      (σ := σ) (I := I) (len := len) hshort hbound, hflag]
-  have hltLen : UInt256.lt len ⟨32⟩ = ⟨1⟩ := by
-    exact ult_one (by
-      simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using hshort)
-  have hvalidLen : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
-    rw [hltLen]
-    native_decide
-  have hlenPost :
-      UInt256.land (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨2⟩) ⟨127⟩ =
-        len := by
-    rw [hheaderPost, bytesStoreLiteSetChunkByteShortStoredWord_shortLen_eq
-      (σ := σ) (I := I) (len := len) hshort hbound]
-    exact hlen.symm
-  have hvalidPost : UInt256.sub (UInt256.land
-        (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩)
-        (UInt256.lt (UInt256.land (UInt256.div
-          (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩ := by
-    simpa [hflagPost, hlenPost] using hvalidLen
-  let headerPost := bytesStoreLiteSetChunkByteHeaderWord σ' I
-  have hheaderLoad :
-      ((σ'.find? I.codeOwner).option ⟨0⟩
-        (fun acc => acc.storage.findD (bytesStoreLiteSetChunkByteSlot I) ⟨0⟩)) =
-          headerPost := by
-    rfl
-  have hflagHeader : UInt256.land headerPost ⟨1⟩ = ⟨0⟩ := by
-    change UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩ = ⟨0⟩
-    exact hflagPost
-  have hread := bytesStoreLiteX_setChunkByteShortWriteReturnDecodedLength
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) (len := len) h1270
-    hbound hflag
-    (by
-      rw [← hsigmaPost]
-      exact hchunkBoundPost)
-    (by
-      rw [← hsigmaPost]
-      exact hflagPost)
-    (by
-      rw [← hsigmaPost]
-      exact hvalidPost)
-    hperm
-  have hbyteAt :
-      UInt256.byteAt (bytesStoreLiteSetChunkByteIndexWord I) headerPost =
-        bytesStoreLiteSetChunkByteValueWord I := by
-    change UInt256.byteAt (bytesStoreLiteSetChunkByteIndexWord I)
-        (bytesStoreLiteSetChunkByteHeaderWord σ' I) =
-      bytesStoreLiteSetChunkByteValueWord I
-    rw [hheaderPost]
-    exact bytesStoreLiteSetChunkByteShortStoredWord_byteAt
-      (σ := σ) (I := I) (len := len) hcanon hshort hbound
-  have hbyte :
-      UInt256.shiftRight
-        (UInt256.mul (UInt256.byteAt (bytesStoreLiteSetChunkByteIndexWord I) headerPost)
-          (UInt256.shiftLeft ⟨1⟩ ⟨248⟩))
-        ⟨248⟩ = bytesStoreLiteSetChunkByteValueWord I := by
-    rw [hbyteAt]
-    exact bytesStoreLiteSetByteValueHighMulShiftRight hcanon
-  have h301 :
-      ∃ k C, RD bytesStoreLiteBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨301⟩
-        [bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSelWord I]
-        (wordAt0Mem (⟨1⟩ : UInt256)
-          (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem))
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ') k C := by
-    exact bytesStoreLiteX_setChunkByteShortReadReturnToWrapper
-      (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
-      (A := A) (I := I) (g := g) (len := len)
-      (header := headerPost)
-      (mem := wordAt0Mem (⟨1⟩ : UInt256)
-        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem))
-      hread hbound hheaderLoad hflagHeader hbyte
-  have hret := bytesStoreLiteX_returnUInt8_301OfMem
-    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) (val := bytesStoreLiteSetChunkByteValueWord I)
-    (mem := wordAt0Mem (⟨1⟩ : UInt256)
-      (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem))
-    (wordAt0Mem_size_96 _ (wordAt0Mem_size_96 _ solcFreePtrMem_size))
-    (bytesStoreLiteWordAt0Mem_read64 _
-      (wordAt0Mem_size_96 _ solcFreePtrMem_size)
-      (bytesStoreLiteWordAt0Mem_read64 _ solcFreePtrMem_size solcFreePtrMem_read64))
-    h301
-  rw [← hsigmaPost]
-  simpa [bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon] using hret
-
-theorem bytesStoreLiteX_setChunkByteLongSuccessReturn
-    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256} {acc : Account}
-    (hreach : ∃ k C, RD bytesStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1226⟩
-      [bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
-        bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
-    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
-    (hchunkBound :
-      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
-        (bytesStoreLiteChunksLengthWord σ I).toNat)
-    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
-    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
-    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
-    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
-    (hacc : σ.find? I.codeOwner = some acc) :
-    RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
-        (bytesStoreLiteSetChunkByteLongStoredWord σ I))
-      (UInt256.toByteArray (bytesStoreLiteSetChunkByteValueWord I)) := by
-  let σ' := sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetChunkByteLongDataSlot I)
-    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
-  let header' : UInt256 :=
-    Option.option ⟨0⟩
-      (fun ac => Batteries.RBMap.findD ac.storage (bytesStoreLiteSetChunkByteSlot I) ⟨0⟩)
-      (Batteries.RBMap.find? σ' I.codeOwner)
-  let dataWord' : UInt256 :=
-    Option.option ⟨0⟩
-      (fun ac => Batteries.RBMap.findD ac.storage (bytesStoreLiteSetChunkByteLongDataSlot I) ⟨0⟩)
-      (Batteries.RBMap.find? σ' I.codeOwner)
-  have hdec := bytesStoreLiteX_setChunkByteReachLengthDecoder (g := g) hreach hchunkBound
-  have h1270Raw := bytesStoreLiteX_bytesLengthDecoderLongValidMem
-    (A := A) (I := I) (g := g) hdec hflag hvalid (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have h1270 :
-      ∃ k C, RD bytesStoreLiteBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨1270⟩
-        [len, bytesStoreLiteSetChunkByteIndexWord I, bytesStoreLiteSetChunkByteSlot I,
-          UInt256.shiftLeft (bytesStoreLiteSetChunkByteValueWord I) ⟨248⟩, ⟨0⟩,
-          bytesStoreLiteSetChunkByteValueWord I, bytesStoreLiteSetChunkByteIndexWord I,
-          bytesStoreLiteSetChunkByteChunkIndexWord I, ⟨301⟩, bytesStoreLiteSelWord I]
-        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem) (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
-    simpa [hlen] using h1270Raw
-  have hchunkBoundPost :
-      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
-        (bytesStoreLiteChunksLengthWord σ' I).toNat := by
-    simpa [σ', bytesStoreLiteSetChunkByteLongDataSlot] using
-      bytesStoreLiteChunkBoundAfterChunkDataSstore
-        (σ := σ) (I := I) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
-        (idx := bytesStoreLiteSetChunkByteIndexWord I)
-        (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hchunkBound
-  have hheader : header' = bytesStoreLiteSetChunkByteHeaderWord σ I := by
-    simpa [header', σ', bytesStoreLiteSetChunkByteHeaderWord,
-      bytesStoreLiteSetChunkByteLongDataSlot] using
-        bytesStoreLiteBytesHeaderWordAfterDataSstore_eq_of_before
-          (σ := σ) (I := I) (baseSlot := bytesStoreLiteSetChunkByteSlot I)
-          (idx := bytesStoreLiteSetChunkByteIndexWord I)
-          (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) (by rfl)
-  have hheaderPost :
-      bytesStoreLiteSetChunkByteHeaderWord σ' I =
-        bytesStoreLiteSetChunkByteHeaderWord σ I := by
-    simpa [header', bytesStoreLiteSetChunkByteHeaderWord] using hheader
-  have hflagPost :
-      UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩ ≠ ⟨0⟩ := by
-    simpa [hheaderPost] using hflag
-  have hvalidPost : UInt256.sub (UInt256.land
-        (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩)
-        (UInt256.lt (UInt256.div
-          (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩ := by
-    simpa [hheaderPost] using hvalid
-  have hread := bytesStoreLiteX_setChunkByteLongWriteReturnDecodedLength
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) (len := len) h1270
-    hbound hflag
-    (by
-      change (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat <
-        (bytesStoreLiteChunksLengthWord σ' I).toNat
-      exact hchunkBoundPost)
-    (by
-      change UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩ ≠ ⟨0⟩
-      exact hflagPost)
-    (by
-      change UInt256.sub (UInt256.land
-          (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨1⟩)
-          (UInt256.lt (UInt256.div
-            (bytesStoreLiteSetChunkByteHeaderWord σ' I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩
-      exact hvalidPost)
-    hperm
-  have hdata : dataWord' = bytesStoreLiteSetChunkByteLongStoredWord σ I := by
-    simpa [dataWord', σ'] using
-      sstoreAccountMap_storage_findD_self_of_find_some_any σ I.codeOwner acc
-        (bytesStoreLiteSetChunkByteLongDataSlot I)
-        (bytesStoreLiteSetChunkByteLongStoredWord σ I) hacc
-  have hbyteAt :
-      UInt256.byteAt (bytesStoreLiteSetChunkByteLongWordIndex I) dataWord' =
-        bytesStoreLiteSetChunkByteValueWord I := by
-    rw [hdata]
-    exact bytesStoreLiteSetChunkByteLongStoredWord_byteAt
-      (σ := σ) (I := I) hcanon
-  have hbyte :
-      UInt256.shiftRight
-        (UInt256.mul (UInt256.byteAt (bytesStoreLiteSetChunkByteLongWordIndex I) dataWord')
-          (UInt256.shiftLeft ⟨1⟩ ⟨248⟩))
-        ⟨248⟩ = bytesStoreLiteSetChunkByteValueWord I := by
-    rw [hbyteAt]
-    exact bytesStoreLiteSetByteValueHighMulShiftRight hcanon
-  have h301 := bytesStoreLiteX_setChunkByteLongReadReturnToWrapper
-    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (τ := σ') (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) (len := len) (header := header')
-    (dataWord := dataWord')
-    (mem := wordAt0Mem (⟨1⟩ : UInt256)
-      (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
-        (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem)))
-    hread hbound (by rfl) (by simpa [hheader] using hflag) (by rfl) hbyte
-  have hret := bytesStoreLiteX_returnUInt8_301OfMem
-    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ := σ') (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) (val := bytesStoreLiteSetChunkByteValueWord I)
-    (mem := wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
-      (wordAt0Mem (⟨1⟩ : UInt256)
-        (wordAt0Mem (bytesStoreLiteSetChunkByteSlot I)
-          (wordAt0Mem (⟨1⟩ : UInt256) solcFreePtrMem))))
-    (wordAt0Mem_size_96 _
-      (wordAt0Mem_size_96 _
-        (wordAt0Mem_size_96 _
-          (wordAt0Mem_size_96 _ solcFreePtrMem_size))))
-    (bytesStoreLiteWordAt0Mem_read64 _
-      (wordAt0Mem_size_96 _
-        (wordAt0Mem_size_96 _
-          (wordAt0Mem_size_96 _ solcFreePtrMem_size)))
-      (bytesStoreLiteWordAt0Mem_read64 _
-        (wordAt0Mem_size_96 _
-          (wordAt0Mem_size_96 _ solcFreePtrMem_size))
-        (bytesStoreLiteWordAt0Mem_read64 _
-          (wordAt0Mem_size_96 _ solcFreePtrMem_size)
-          (bytesStoreLiteWordAt0Mem_read64 _ solcFreePtrMem_size solcFreePtrMem_read64))))
-    h301
-  change RDret bytesStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ')
-    (UInt256.toByteArray (bytesStoreLiteSetChunkByteValueWord I))
-  simpa [bytesStoreLiteSetPacketByteLand255_eq_self_of_uint8 hcanon] using hret
--/
 
 theorem bytesStoreLiteSetChunkByteDecodeShortRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}

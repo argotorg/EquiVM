@@ -1,4 +1,5 @@
 import Examples.BytesStoreLite.FullSetChunkOldLongReturn
+import Examples.BytesStoreLite.StorageLoopFacts
 
 /-!
 # BytesStoreLite — `setMapped(uint256,bytes)` runtime slice

@@ -19,12 +19,29 @@ theorem ugt_eq_zero_of_ne_one_local {a b : UInt256}
     native_decide
 
 set_option maxHeartbeats 200000 in
-theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -50,18 +67,18 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (hnoTailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
         (UInt256.lt
           (UInt256.land
-            (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+            (UInt256.div postHeader ⟨2⟩)
             ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.land (UInt256.div oldHeader ⟨2⟩) ⟨127⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -142,13 +159,6 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
       (len := len) (n := value.size) hsizeDecoded hlong hlenMaxLen
   have hmod : len.toNat % 32 = 0 := by
     simpa [len] using hnoTailMod
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -205,21 +215,15 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
           locals := (∅ : Store).insert "value" (.bytes value) }
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, oldBytesLen, header, value] using
-      bytesStoreLitePushChunkLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -286,13 +290,120 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime {cA gh bl σ_evm σ_
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
+set_option maxHeartbeats 200000 in
+theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hnoTailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongNoTailShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong hnoTailMod hflag hvalid
+
+set_option maxHeartbeats 200000 in
 set_option maxHeartbeats 800000 in
-theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
+theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime_of_post_header
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -318,18 +429,18 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (hnoTailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
           ⟨32⟩) ≠ ⟨0⟩)
     (hgtOldNew :
-      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -422,13 +533,6 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
   have holdLenLe : oldBytesLen.toNat ≤ len.toNat :=
     BytesStoreLiteCore.ugt_eq_zero_toNat_le
       (by simpa [oldBytesLen, oldHeader, len] using hgtOldNew)
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -489,13 +593,6 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -503,8 +600,9 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, clearFuel, header, value,
       solidityBytesDataWordCount] using
-      bytesStoreLitePushChunkLongOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -580,13 +678,120 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
-set_option maxHeartbeats 3000000 in
-theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
+set_option maxHeartbeats 200000 in
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime_of_ne
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hnoTailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong hnoTailMod hflag hvalid hgtOldNew
+
+set_option maxHeartbeats 800000 in
+set_option maxHeartbeats 3000000 in
+theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -612,18 +817,18 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (hnoTailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
           ⟨32⟩) ≠ ⟨0⟩)
     (hgtOldNew :
-      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -724,13 +929,6 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
   have holdGtNat : len.toNat < oldBytesLen.toNat :=
     BytesStoreLiteCore.ugt_eq_one_toNat_lt
       (by simpa [oldBytesLen, oldHeader, len] using hgtOldNew)
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -791,13 +989,6 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -805,8 +996,9 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, clearFuel, tailFuel, header,
       value, solidityBytesDataWordCount] using
-      bytesStoreLitePushChunkLongOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -957,13 +1149,121 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
+set_option maxHeartbeats 200000 in
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hnoTailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong hnoTailMod hflag hvalid hgtOldNew
+
+set_option maxHeartbeats 3000000 in
 set_option maxHeartbeats 300000 in
-theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkLongTailShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -989,18 +1289,18 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (htailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
         (UInt256.lt
           (UInt256.land
-            (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+            (UInt256.div postHeader ⟨2⟩)
             ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.land (UInt256.div oldHeader ⟨2⟩) ⟨127⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -1088,13 +1388,6 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
       (len := len) (n := value.size) hsizeDecoded hlong hlenMaxLen
   have htailModLen : len.toNat % 32 ≠ 0 := by
     simpa [len] using htailMod
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -1151,21 +1444,15 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
           locals := (∅ : Store).insert "value" (.bytes value) }
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, oldBytesLen, header, value] using
-      bytesStoreLitePushChunkLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -1245,12 +1532,120 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime {cA gh bl σ_evm σ_so
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
 set_option maxHeartbeats 3000000 in
-theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
+set_option maxHeartbeats 300000 in
+theorem bytesStoreLitePushChunkLongTailShortPackedRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (htailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongTailShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong htailMod hflag hvalid
+
+set_option maxHeartbeats 300000 in
+set_option maxHeartbeats 3000000 in
+theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_post_header
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -1276,18 +1671,18 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (htailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
           ⟨32⟩) ≠ ⟨0⟩)
     (hgtOldNew :
-      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -1395,13 +1790,6 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
   have holdGtNat : len.toNat < oldBytesLen.toNat :=
     BytesStoreLiteCore.ugt_eq_one_toNat_lt
       (by simpa [oldBytesLen, oldHeader, len] using hgtOldNew)
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -1462,13 +1850,6 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -1476,8 +1857,9 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, clearFuel, tailFuel, header,
       value, solidityBytesDataWordCount] using
-      bytesStoreLitePushChunkLongOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -1637,13 +2019,120 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
-set_option maxHeartbeats 800000 in
-theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
+set_option maxHeartbeats 300000 in
+set_option maxHeartbeats 3000000 in
+theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_ne
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (htailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong htailMod hflag hvalid hgtOldNew
+
+set_option maxHeartbeats 3000000 in
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -1669,18 +2158,18 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (htailMod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
           ⟨32⟩) ≠ ⟨0⟩)
     (hgtOldNew :
-      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -1780,13 +2269,6 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
   have holdLenLe : oldBytesLen.toNat ≤ len.toNat :=
     BytesStoreLiteCore.ugt_eq_zero_toNat_le
       (by simpa [oldBytesLen, oldHeader, len] using hgtOldNew)
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -1847,13 +2329,6 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
@@ -1861,8 +2336,9 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, clearFuel, header, value,
       solidityBytesDataWordCount] using
-      bytesStoreLitePushChunkLongOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen hloadElem
+      bytesStoreLitePushChunkLongOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeLong hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -1950,12 +2426,179 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
-theorem bytesStoreLitePushChunkLongOldLongNoClearRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+set_option maxHeartbeats 3000000 in
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (htailMod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 ≠ 0)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongTailOldLongNoClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hnewLong htailMod hflag hvalid hgtOldNew
+
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongOldLongNoClearRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  have hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0 := by
+    intro hzero
+    exact hnewLong (by omega)
+  by_cases hmod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0
+  · exact bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid hgtOldNew
+  · exact bytesStoreLitePushChunkLongTailOldLongNoClearRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid hgtOldNew
+
+set_option maxHeartbeats 800000 in
+theorem bytesStoreLitePushChunkLongOldLongNoClearRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -1987,29 +2630,133 @@ theorem bytesStoreLitePushChunkLongOldLongNoClearRuntime {cA gh bl σ_evm σ_sol
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongOldLongNoClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnewLong hflag hvalid hgtOldNew
+
+theorem bytesStoreLitePushChunkLongOldLongClearRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩)
+    (hgtOldNew :
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
   have hnz :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0 := by
     intro hzero
     exact hnewLong (by omega)
   by_cases hmod :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0
-  · exact bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime
+  · exact bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_post_header
       (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid hgtOldNew
-  · exact bytesStoreLitePushChunkLongTailOldLongNoClearRuntime
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid hgtOldNew
+  · exact bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_post_header
       (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid hgtOldNew
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid hgtOldNew
 
-theorem bytesStoreLitePushChunkLongOldLongClearRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkLongOldLongClearRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2041,29 +2788,131 @@ theorem bytesStoreLitePushChunkLongOldLongClearRuntime {cA gh bl σ_evm σ_solm 
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  have hnz :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0 := by
-    intro hzero
-    exact hnewLong (by omega)
-  by_cases hmod :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0
-  · exact bytesStoreLitePushChunkLongNoTailOldLongClearRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid hgtOldNew
-  · exact bytesStoreLitePushChunkLongTailOldLongClearRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid hgtOldNew
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongOldLongClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnewLong hflag hvalid hgtOldNew
 
-theorem bytesStoreLitePushChunkLongOldLongRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkLongOldLongRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  by_cases hgtOldNew :
+      UInt256.gt (UInt256.div postHeader ⟨2⟩)
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩
+  · exact bytesStoreLitePushChunkLongOldLongClearRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnewLong hflag hvalid hgtOldNew
+  · have hgtOldNewZero :
+        UInt256.gt (UInt256.div postHeader ⟨2⟩)
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩ := by
+      exact ugt_eq_zero_of_ne_one_local hgtOldNew
+    exact bytesStoreLitePushChunkLongOldLongNoClearRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnewLong hflag hvalid hgtOldNewZero
+
+theorem bytesStoreLitePushChunkLongOldLongRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2092,31 +2941,76 @@ theorem bytesStoreLitePushChunkLongOldLongRuntime {cA gh bl σ_evm σ_solm σ₀
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  by_cases hgtOldNew :
-      UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
-        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩
-  · exact bytesStoreLitePushChunkLongOldLongClearRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnewLong hflag hvalid hgtOldNew
-  · have hgtOldNewZero :
-        UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
-          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩ := by
-      exact ugt_eq_zero_of_ne_one_local hgtOldNew
-    exact bytesStoreLitePushChunkLongOldLongNoClearRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnewLong hflag hvalid hgtOldNewZero
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongOldLongRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnewLong hflag hvalid
 
 set_option maxHeartbeats 900000 in
-theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2140,15 +3034,15 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
     (hshort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
-    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
-  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -2232,13 +3126,6 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
       bytesStoreLiteOptimizedShortStoredWord_abbrev_eq_solidityShortBytesWord
         (I := I) (len := len) (payloadStart := payloadStart)
         hlenAbiLocal hpayloadStartLocal hoffMax hnzLen hshortLen hsrc hpayloadList
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -2298,21 +3185,15 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hpush :
       pushArray? bytesStoreLiteConfig
         { contract := bytesStoreLiteContract,
           locals := (∅ : Store).insert "value" (.bytes value) }
         evmSolm0 chunksRef (some (.bytes value)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, value] using
-      bytesStoreLitePushChunkShortOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen value hvalueSizeShort hloadLen hloadElem
+      bytesStoreLitePushChunkShortOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen value hvalueSizeShort hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -2393,20 +3274,36 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime {cA gh bl σ_evm σ_s
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
 set_option maxHeartbeats 900000 in
-theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
-    {g : UInt256}
+theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
     (hsizeSign : I.calldata.size < 2 ^ 255)
-    (hlenZero :
-      uInt256OfByteArray
-        (I.calldata.readBytes
-          ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hshort :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid :
       UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
@@ -2416,6 +3313,92 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
       σ_evm σ_solm σ₀ g A I := by
   let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
   let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkShortNonemptyOldLongRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hshort hflag hvalid
+
+set_option maxHeartbeats 900000 in
+set_option maxHeartbeats 900000 in
+theorem bytesStoreLitePushChunkEmptyOldLongRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenZero :
+      uInt256OfByteArray
+        (I.calldata.readBytes
+          ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := postHeader
   let oldBytesLen : UInt256 := UInt256.div oldHeader ⟨2⟩
   let len : UInt256 := calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)
   let payloadStart : UInt256 := ((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩
@@ -2496,13 +3479,6 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
         [len, payloadStart, ⟨263⟩, bytesStoreLiteSelWord I]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
     simpa [len, payloadStart, hlenEvm] using hdecodedReach
-  have hheaderAfter :
-      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩ (oldLen + ⟨1⟩)).find? I.codeOwner |>.option
-          ⟨0⟩ (fun acc => acc.storage.findD (chunksDataBase + oldLen) ⟨0⟩)) =
-        oldHeader := by
-    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
-      bytesStoreLitePushChunkSlot] using
-      bytesStoreLitePushChunkHeaderAfterLengthStore (σ := σ_evm) (I := I) oldLen
   have hflagAfter :
       UInt256.land
         ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
@@ -2561,13 +3537,6 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
       bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
-  have hloadElem :
-      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = oldHeader := by
-    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
-      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-        (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hshortEmpty : solidityShortBytesWord ByteArray.empty = ⟨0⟩ := by
     rw [solidityShortBytesWord, empty_readWithPadding_word_zero]
     rfl
@@ -2577,8 +3546,9 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
           locals := (∅ : Store).insert "value" (.bytes ByteArray.empty) }
         evmSolm0 chunksRef (some (.bytes ByteArray.empty)) = .ok evmSolm1 := by
     simpa [evmSolm1, evmSolmLen, oldBytesLen, oldFuel, hshortEmpty] using
-      bytesStoreLitePushChunkShortOldLongPushArray (evm := evmSolm0)
-        oldLen oldHeader oldBytesLen ByteArray.empty (by decide) hloadLen hloadElem
+      bytesStoreLitePushChunkShortOldLongPushArray_of_post_header (evm := evmSolm0)
+        oldLen oldHeader oldBytesLen ByteArray.empty (by decide) hloadLen
+        (by simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using hloadElemLen)
         (by simpa [oldHeader] using hflag)
         (by simp [oldBytesLen])
         (by simpa [oldHeader, oldBytesLen] using hvalid)
@@ -2657,12 +3627,160 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime {cA gh bl σ_evm σ_solm σ�
             (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)))))
 
-theorem bytesStoreLitePushChunkLongShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+set_option maxHeartbeats 900000 in
+set_option maxHeartbeats 900000 in
+theorem bytesStoreLitePushChunkEmptyOldLongRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenZero :
+      uInt256OfByteArray
+        (I.calldata.readBytes
+          ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩)
+    (hflag : UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkEmptyOldLongRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenZero hflag hvalid
+
+set_option maxHeartbeats 900000 in
+theorem bytesStoreLitePushChunkLongShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnewLong :
+      ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div postHeader ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let lenNat :=
+    (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat
+  have hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0 := by
+    intro hzero
+    exact hnewLong (by omega)
+  by_cases hmod :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0
+  · exact bytesStoreLitePushChunkLongNoTailShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid
+  · exact bytesStoreLitePushChunkLongTailShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hnewLong hmod hflag hvalid
+
+set_option maxHeartbeats 900000 in
+theorem bytesStoreLitePushChunkLongShortPackedRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2694,31 +3812,129 @@ theorem bytesStoreLitePushChunkLongShortPackedRuntime {cA gh bl σ_evm σ_solm �
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  let lenNat :=
-    (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat
-  have hnz :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0 := by
-    intro hzero
-    exact hnewLong (by omega)
-  by_cases hmod :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat % 32 = 0
-  · exact bytesStoreLitePushChunkLongNoTailShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid
-  · exact bytesStoreLitePushChunkLongTailShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hnewLong hmod hflag hvalid
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkLongShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnewLong hflag hvalid
 
-theorem bytesStoreLitePushChunkNonemptyShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkNonemptyShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hnz :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat ≠ 0)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div postHeader ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  by_cases hshort :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
+  · exact bytesStoreLitePushChunkShortNonemptyShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnz hshort hflag hvalid
+  · exact bytesStoreLitePushChunkLongShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hshort hflag hvalid
+
+theorem bytesStoreLitePushChunkNonemptyShortPackedRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2750,25 +3966,137 @@ theorem bytesStoreLitePushChunkNonemptyShortPackedRuntime {cA gh bl σ_evm σ_so
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  by_cases hshort :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
-  · exact bytesStoreLitePushChunkShortNonemptyShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnz hshort hflag hvalid
-  · exact bytesStoreLitePushChunkLongShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hshort hflag hvalid
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkNonemptyShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hnz hflag hvalid
 
-theorem bytesStoreLitePushChunkValidShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkValidShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div postHeader ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  by_cases hzero :
+      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat = 0
+  · have hwordZero :
+        calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
+      simpa [hzero] using
+        (u256_ofNat_toNat
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat))).symm
+    have hlenZero :
+        uInt256OfByteArray
+          (I.calldata.readBytes
+            ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩ := by
+      rw [BytesStoreLiteCore.setLengthWord_eq_abi I.calldata hoffMax]
+      exact hwordZero
+    exact bytesStoreLitePushChunkEmptyShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenZero hflag hvalid
+  · exact bytesStoreLitePushChunkNonemptyShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hzero hflag hvalid
+
+theorem bytesStoreLitePushChunkValidShortPackedRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2798,36 +4126,121 @@ theorem bytesStoreLitePushChunkValidShortPackedRuntime {cA gh bl σ_evm σ_solm 
           ⟨32⟩) ≠ ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  by_cases hzero :
-      (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat = 0
-  · have hwordZero :
-        calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-      simpa [hzero] using
-        (u256_ofNat_toNat
-          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat))).symm
-    have hlenZero :
-        uInt256OfByteArray
-          (I.calldata.readBytes
-            ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩ := by
-      rw [BytesStoreLiteCore.setLengthWord_eq_abi I.calldata hoffMax]
-      exact hwordZero
-    exact bytesStoreLitePushChunkEmptyShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenZero hflag hvalid
-  · exact bytesStoreLitePushChunkNonemptyShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hzero hflag hvalid
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkValidShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    hflag hvalid
 
-theorem bytesStoreLitePushChunkValidZeroRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkValidZeroRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (_hzero :
+      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.findD
+          (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩)
+    (hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div postHeader ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  exact bytesStoreLitePushChunkValidShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts postHeader
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hflag hvalid
+
+theorem bytesStoreLitePushChunkValidZeroRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2853,6 +4266,44 @@ theorem bytesStoreLitePushChunkValidZeroRuntime {cA gh bl σ_evm σ_solm σ₀ A
           (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
   have hflag :
       UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
     unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
@@ -2868,18 +4319,98 @@ theorem bytesStoreLitePushChunkValidZeroRuntime {cA gh bl σ_evm σ_solm σ₀ A
     unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
     rw [hzero]
     native_decide
-  exact bytesStoreLitePushChunkValidShortPackedRuntime
+  exact bytesStoreLitePushChunkValidZeroRuntime_of_post_header
     (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
     (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-    hlenMax hpayloadList hpayloadWord hflag hvalid
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hzero
+    hflag hvalid
 
-theorem bytesStoreLitePushChunkValidZeroOrShortPackedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hcase :
+      ((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+        (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div postHeader ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+      (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+        UInt256.sub (UInt256.land postHeader ⟨1⟩)
+          (UInt256.lt
+            (UInt256.land
+              (UInt256.div postHeader ⟨2⟩)
+              ⟨127⟩)
+            ⟨32⟩) ≠ ⟨0⟩)) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  rcases hcase with ⟨hzero, ⟨hflag, hvalid⟩⟩ | ⟨hflag, hvalid⟩
+  ·
+    exact bytesStoreLitePushChunkValidZeroRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hzero
+      hflag hvalid
+  · exact bytesStoreLitePushChunkValidShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hflag hvalid
+
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2912,24 +4443,196 @@ theorem bytesStoreLitePushChunkValidZeroOrShortPackedRuntime {cA gh bl σ_evm σ
             ⟨32⟩) ≠ ⟨0⟩)) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  rcases hcase with hzero | ⟨hflag, hvalid⟩
-  · exact bytesStoreLitePushChunkValidZeroRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hzero
-  · exact bytesStoreLitePushChunkValidShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hflag hvalid
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  have hcasePost :
+      ((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.findD
+              (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+          (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ ∧
+            UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩)) ∨
+        (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩) := by
+    rcases hcase with hzero | hshort
+    · left
+      have hflag :
+          UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
+        unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+        rw [hzero]
+        native_decide
+      have hvalid :
+          UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩ := by
+        unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+        rw [hzero]
+        native_decide
+      exact ⟨hzero, ⟨hflag, hvalid⟩⟩
+    · exact Or.inr hshort
+  exact bytesStoreLitePushChunkValidZeroOrShortPackedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hcasePost
 
-theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongNoClearRuntime
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongNoClearRuntime_of_post_header
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hcase :
+      (((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.findD
+              (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+        (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div postHeader ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+        (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div postHeader ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+      (UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩ ∧
+        UInt256.sub (UInt256.land postHeader ⟨1⟩)
+          (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+            ⟨32⟩) ≠ ⟨0⟩ ∧
+        UInt256.gt (UInt256.div postHeader ⟨2⟩)
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩)) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  rcases hcase with hvalidPacked | ⟨hflag, hvalid, hgtOldNew⟩
+  · exact bytesStoreLitePushChunkValidZeroOrShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hvalidPacked
+  · have hgt31 :
+        UInt256.lt ⟨31⟩
+          (UInt256.div postHeader ⟨2⟩) ≠ ⟨0⟩ :=
+      BytesStoreLiteCore.clearCurrentLongValid_gt31
+        (header := postHeader)
+        (len := UInt256.div postHeader ⟨2⟩)
+        hflag hvalid
+    have holdGt31 :
+        31 < (UInt256.div postHeader ⟨2⟩).toNat := by
+      simpa [show (⟨31⟩ : UInt256).toNat = 31 from by decide] using
+        ult_ne_zero_toNat_lt hgt31
+    have holdLeNew :
+        (UInt256.div postHeader ⟨2⟩).toNat ≤
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat :=
+      BytesStoreLiteCore.ugt_eq_zero_toNat_le hgtOldNew
+    have hnewLong :
+        ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32 := by
+      intro hshort
+      omega
+    exact bytesStoreLitePushChunkLongOldLongNoClearRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+      hnewLong hflag hvalid hgtOldNew
+
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongNoClearRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -2968,43 +4671,233 @@ theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongNoClearRuntime
           (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩)) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  rcases hcase with hvalidPacked | ⟨hflag, hvalid, hgtOldNew⟩
-  · exact bytesStoreLitePushChunkValidZeroOrShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hvalidPacked
-  · have hgt31 :
-        UInt256.lt ⟨31⟩
-          (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩) ≠ ⟨0⟩ :=
-      BytesStoreLiteCore.clearCurrentLongValid_gt31
-        (header := bytesStoreLitePushChunkHeaderWord σ_evm I)
-        (len := UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
-        hflag hvalid
-    have holdGt31 :
-        31 < (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩).toNat := by
-      simpa [show (⟨31⟩ : UInt256).toNat = 31 from by decide] using
-        ult_ne_zero_toNat_lt hgt31
-    have holdLeNew :
-        (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩).toNat ≤
-          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat :=
-      BytesStoreLiteCore.ugt_eq_zero_toNat_le hgtOldNew
-    have hnewLong :
-        ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32 := by
-      intro hshort
-      omega
-    exact bytesStoreLitePushChunkLongOldLongNoClearRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hnewLong hflag hvalid hgtOldNew
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  have hcasePost :
+      (((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.findD
+              (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+          (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ ∧
+            UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩)) ∨
+        (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+      (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ ≠ ⟨0⟩ ∧
+        UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+          (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+            ⟨32⟩) ≠ ⟨0⟩ ∧
+        UInt256.gt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩) := by
+    rcases hcase with hvalidPacked | holdLong
+    · left
+      rcases hvalidPacked with hzero | hshort
+      · left
+        have hflag :
+            UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
+          unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+          rw [hzero]
+          native_decide
+        have hvalid :
+            UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩ := by
+          unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+          rw [hzero]
+          native_decide
+        exact ⟨hzero, ⟨hflag, hvalid⟩⟩
+      · exact Or.inr hshort
+    · exact Or.inr holdLong
+  exact bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongNoClearRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hcasePost
 
-theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime_of_post_header
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hcase :
+      (((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.findD
+              (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+        (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div postHeader ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+        (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt
+              (UInt256.land
+                (UInt256.div postHeader ⟨2⟩)
+                ⟨127⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+      (UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩ ∧
+        UInt256.sub (UInt256.land postHeader ⟨1⟩)
+          (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+            ⟨32⟩) ≠ ⟨0⟩)) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  rcases hcase with hvalidPacked | ⟨hflag, hvalid⟩
+  · have hvalidPackedPost :
+        ((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.findD
+                (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+            (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+              UInt256.sub (UInt256.land postHeader ⟨1⟩)
+                (UInt256.lt
+                  (UInt256.land
+                    (UInt256.div postHeader ⟨2⟩)
+                    ⟨127⟩)
+                  ⟨32⟩) ≠ ⟨0⟩)) ∨
+          (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+            UInt256.sub (UInt256.land postHeader ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div postHeader ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩) := by
+      rcases hvalidPacked with hzero | hshort
+      · exact Or.inl hzero
+      · exact Or.inr hshort
+    exact bytesStoreLitePushChunkValidZeroOrShortPackedRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader
+      hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hvalidPackedPost
+  · by_cases hzero :
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat = 0
+    · have hwordZero :
+          calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
+        simpa [hzero] using
+          (u256_ofNat_toNat
+            (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat))).symm
+      have hlenZero :
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩ := by
+        rw [BytesStoreLiteCore.setLengthWord_eq_abi I.calldata hoffMax]
+        exact hwordZero
+      exact bytesStoreLitePushChunkEmptyOldLongRuntime_of_post_header
+        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hperm hwv hsel hAccounts postHeader
+        hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenZero hflag hvalid
+    · by_cases hshort :
+          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
+      · exact bytesStoreLitePushChunkShortNonemptyOldLongRuntime_of_post_header
+          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          hcode hsize hperm hwv hsel hAccounts postHeader
+          hheaderAfter hloadElemLen
+          hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+          hzero hshort hflag hvalid
+      · exact bytesStoreLitePushChunkLongOldLongRuntime_of_post_header
+          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          hcode hsize hperm hwv hsel hAccounts postHeader
+          hheaderAfter hloadElemLen
+          hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+          hshort hflag hvalid
+
+theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime_of_ne
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -3041,49 +4934,175 @@ theorem bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime
             ⟨32⟩) ≠ ⟨0⟩)) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  rcases hcase with hvalidPacked | ⟨hflag, hvalid⟩
-  · exact bytesStoreLitePushChunkValidZeroOrShortPackedRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hvalidPacked
-  · by_cases hzero :
-        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat = 0
-    · have hwordZero :
-          calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-        simpa [hzero] using
-          (u256_ofNat_toNat
-            (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat))).symm
-      have hlenZero :
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    (by
+      rcases hcase with hvalidPacked | holdLong
+      · left
+        rcases hvalidPacked with hzero | hshort
+        · left
+          have hflag :
+              UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
+            unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+            rw [hzero]
+            native_decide
+          have hvalid :
+              UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+                (UInt256.lt
+                  (UInt256.land
+                    (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                    ⟨127⟩)
+                  ⟨32⟩) ≠ ⟨0⟩ := by
+            unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+            rw [hzero]
+            native_decide
+          exact ⟨hzero, ⟨hflag, hvalid⟩⟩
+        · exact Or.inr hshort
+      · exact Or.inr holdLong)
+
+theorem bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
           uInt256OfByteArray
             (I.calldata.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩ := by
-        rw [BytesStoreLiteCore.setLengthWord_eq_abi I.calldata hoffMax]
-        exact hwordZero
-      exact bytesStoreLitePushChunkEmptyOldLongRuntime
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hcase :
+      ((((σ_evm.find? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.findD
+                (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩ ∧
+          (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+            UInt256.sub (UInt256.land postHeader ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div postHeader ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩)) ∨
+          (UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+            UInt256.sub (UInt256.land postHeader ⟨1⟩)
+              (UInt256.lt
+                (UInt256.land
+                  (UInt256.div postHeader ⟨2⟩)
+                  ⟨127⟩)
+                ⟨32⟩) ≠ ⟨0⟩)) ∨
+        (UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩ ∧
+          UInt256.sub (UInt256.land postHeader ⟨1⟩)
+            (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+              ⟨32⟩) ≠ ⟨0⟩)) ∨
+      ((UInt256.land postHeader ⟨1⟩ = ⟨0⟩ ∧
+        UInt256.sub (UInt256.land postHeader ⟨1⟩)
+          (UInt256.lt
+            (UInt256.land
+              (UInt256.div postHeader ⟨2⟩)
+              ⟨127⟩)
+            ⟨32⟩) = ⟨0⟩) ∨
+       (UInt256.land postHeader ⟨1⟩ ≠ ⟨0⟩ ∧
+        UInt256.sub (UInt256.land postHeader ⟨1⟩)
+          (UInt256.lt (UInt256.div postHeader ⟨2⟩)
+            ⟨32⟩) = ⟨0⟩))) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  rcases hcase with hvalidCase | hmalformedCase
+  · exact bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime_of_post_header
+      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+      hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hvalidCase
+  · rcases hmalformedCase with ⟨hflag, hbad⟩ | ⟨hflag, hbad⟩
+    · exact bytesStoreLitePushChunkShortMalformedRuntime_of_post_header
         (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
         (σ₀ := σ₀) (A := A) (I := I) (g := g)
-        hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-        hlenZero hflag hvalid
-    · by_cases hshort :
-          (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
-      · exact bytesStoreLitePushChunkShortNonemptyOldLongRuntime
-          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord hzero hshort hflag hvalid
-      · exact bytesStoreLitePushChunkLongOldLongRuntime
-          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord hshort hflag hvalid
+        hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hflag hbad
+    · exact bytesStoreLitePushChunkLongMalformedRuntime_of_post_header
+        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord hflag hbad
 
-theorem bytesStoreLitePushChunkDecodedProvedHeaderRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -3131,30 +5150,99 @@ theorem bytesStoreLitePushChunkDecodedProvedHeaderRuntime {cA gh bl σ_evm σ_so
             ⟨32⟩) = ⟨0⟩))) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  rcases hcase with hvalidCase | hmalformedCase
-  · exact bytesStoreLitePushChunkValidZeroOrShortPackedOrOldLongRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord hvalidCase
-  · rcases hmalformedCase with ⟨hflag, hbad⟩ | ⟨hflag, hbad⟩
-    · exact bytesStoreLitePushChunkShortMalformedRuntime
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g)
-        hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-        hlenMax hpayloadList hpayloadWord hflag hbad
-    · exact bytesStoreLitePushChunkLongMalformedRuntime
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g)
-        hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-        hlenMax hpayloadList hpayloadWord hflag hbad
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+    (by
+      rcases hcase with hvalidCase | hmalformedCase
+      · left
+        rcases hvalidCase with hvalidPacked | holdLong
+        · left
+          rcases hvalidPacked with hzero | hshort
+          · left
+            have hflag :
+                UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩ := by
+              unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+              rw [hzero]
+              native_decide
+            have hvalid :
+                UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
+                  (UInt256.lt
+                    (UInt256.land
+                      (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
+                      ⟨127⟩)
+                    ⟨32⟩) ≠ ⟨0⟩ := by
+              unfold bytesStoreLitePushChunkHeaderWord bytesStoreLitePushChunkSlot
+              rw [hzero]
+              native_decide
+            exact ⟨hzero, ⟨hflag, hvalid⟩⟩
+          · exact Or.inr hshort
+        · exact Or.inr holdLong
+      · exact Or.inr hmalformedCase)
 
-theorem bytesStoreLitePushChunkDecodedRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
-    {g : UInt256}
+theorem bytesStoreLitePushChunkDecodedRuntime_of_post_header
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
@@ -3176,52 +5264,124 @@ theorem bytesStoreLitePushChunkDecodedRuntime {cA gh bl σ_evm σ_solm σ₀ A I
         (UInt256.ofNat I.calldata.size) = ⟨0⟩) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
-  by_cases hzero :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD
-          (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩
-  · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-      hlenMax hpayloadList hpayloadWord (Or.inl (Or.inl (Or.inl hzero)))
-  · by_cases hflag :
-        UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩
-    · by_cases hvalid :
-        UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-          (UInt256.lt
-            (UInt256.land
-              (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
-              ⟨127⟩)
-            ⟨32⟩) ≠ ⟨0⟩
-      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime
+  by_cases hflag : UInt256.land postHeader ⟨1⟩ = ⟨0⟩
+  · by_cases hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt
+          (UInt256.land
+            (UInt256.div postHeader ⟨2⟩)
+            ⟨127⟩)
+          ⟨32⟩) ≠ ⟨0⟩
+    · by_cases hzero :
+        (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) = ⟨0⟩
+      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
           (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
           (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord
+          hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+          hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+          (Or.inl (Or.inl (Or.inl ⟨hzero, ⟨hflag, hvalid⟩⟩)))
+      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+          hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
           (Or.inl (Or.inl (Or.inr ⟨hflag, hvalid⟩)))
-      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime
-          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord
-          (Or.inr (Or.inl ⟨hflag, not_ne_iff.mp hvalid⟩))
-    · by_cases hvalid :
-        UInt256.sub (UInt256.land (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨1⟩)
-          (UInt256.lt (UInt256.div (bytesStoreLitePushChunkHeaderWord σ_evm I) ⟨2⟩)
-            ⟨32⟩) ≠ ⟨0⟩
-      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime
-          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord
-          (Or.inl (Or.inr ⟨hflag, hvalid⟩))
-      · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime
-          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoffMax hlenWord hsizeSign
-          hlenMax hpayloadList hpayloadWord
-          (Or.inr (Or.inr ⟨hflag, not_ne_iff.mp hvalid⟩))
+    · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+        (Or.inr (Or.inl ⟨hflag, not_ne_iff.mp hvalid⟩))
+  · by_cases hvalid :
+      UInt256.sub (UInt256.land postHeader ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeader ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩
+    · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+        (Or.inl (Or.inr ⟨hflag, hvalid⟩))
+    · exact bytesStoreLitePushChunkDecodedProvedHeaderRuntime_of_post_header
+        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+        hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
+        (Or.inr (Or.inr ⟨hflag, not_ne_iff.mp hvalid⟩))
+
+theorem bytesStoreLitePushChunkDecodedRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256))
+    (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hlenWord : 4 + (calldataWord I.calldata 4).toNat + 32 ≤ I.calldata.size)
+    (hsizeSign : I.calldata.size < 2 ^ 255)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat)
+    (hpayloadList :
+      ((((I.calldata.toList.drop 4).drop ((calldataWord I.calldata 4).toNat + 32)).take
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat).length =
+        (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat))
+    (hpayloadWord :
+      UInt256.gt
+        (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) +
+          uInt256OfByteArray
+            (I.calldata.readBytes
+              ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) +
+          ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkDecodedRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+    hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayloadList hpayloadWord
 
 theorem bytesStoreLitePushChunkPayloadWordFull_of_core {cd : ByteArray} {flag : UInt256}
     (hcore :
@@ -3340,12 +5500,28 @@ theorem bytesStoreLitePushChunkDecodeTotalHighRuntime {cA gh bl σ_evm σ_solm �
       hcode hwv hsz36 hhi hsize hsel hoffMax hsizeHigh)
     |>.reEquivDecodingFailed hcode hd hdec
 
-theorem bytesStoreLitePushChunkRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem bytesStoreLitePushChunkRuntime_of_post_header {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
     (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (postHeader : UInt256)
+    (hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader) :
     runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
       σ_evm σ_solm σ₀ g A I := by
   by_cases hshort : I.calldata.size < 36
@@ -3435,14 +5611,103 @@ theorem bytesStoreLitePushChunkRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
                     BytesStoreLiteCore.setPayloadWord_zero_of_payload I.calldata hsize
                       hoff hlenWord hlenHuge hpayload
                   exact bytesStoreLitePushChunkPayloadWordFull_of_core hpayloadWordCore
-                exact bytesStoreLitePushChunkDecodedRuntime
+                exact bytesStoreLitePushChunkDecodedRuntime_of_post_header
                   (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
                   (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                  hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoff hlenWord hsizeSign
+                  hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
+                  hsz36 hhi hoff hlenWord hsizeSign
                   hlenHuge hpayload hpayloadWord
           · exact bytesStoreLitePushChunkDecodeTotalHighRuntime
               (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
               (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hcode hsize hperm hwv hsel hAccounts hsz36 hhi hoff hsizeSign
+
+theorem bytesStoreLitePushChunkRuntime_of_ne {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hne : chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I ≠ (⟨1⟩ : UInt256)) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let oldLen : UInt256 := bytesStoreLiteChunksLengthWord σ_evm I
+  let oldHeader : UInt256 := bytesStoreLitePushChunkHeaderWord σ_evm I
+  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [oldLen, oldHeader, bytesStoreLitePushChunkHeaderWord,
+      bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkHeaderAfterLengthStore_of_ne
+        (σ := σ_evm) (I := I) oldLen (by simpa [oldLen] using hne)
+  have hloadLen :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨1⟩ = oldLen := by
+    simpa [evmSolm0, oldLen] using
+      bytesStoreLiteStorageLoadChunksLength_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElem :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = oldHeader := by
+    simpa [evmSolm0, oldLen, oldHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      bytesStoreLitePushChunkHeaderWord σ_evm I := by
+    simpa [evmSolm0, oldLen, oldHeader, storageStore_executionEnv] using
+      bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evmSolm0)
+        oldLen oldHeader (by simpa [oldLen] using hne) hloadElem
+  exact bytesStoreLitePushChunkRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts (bytesStoreLitePushChunkHeaderWord σ_evm I)
+    hheaderAfter hloadElemLen
+
+theorem bytesStoreLitePushChunkRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = bytesStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xb5, 0x0c, 0xc8, 0xac]⟩)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    runtimeEquivalenceFor bytesStoreLiteConfig bytesStoreLiteContract cA gh bl
+      σ_evm σ_solm σ₀ g A I := by
+  let postHeader : UInt256 := bytesStoreLitePushChunkPostLengthHeaderWord σ_evm I
+  have hheaderAfter :
+      ((sstoreAccountMap I.codeOwner σ_evm ⟨1⟩
+          (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩)).find? I.codeOwner |>.option
+          ⟨0⟩ (fun acc => acc.storage.findD
+            (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) ⟨0⟩)) =
+        postHeader := by
+    simpa [postHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLitePushChunkPostLengthHeaderWord_sstore σ_evm I
+  have hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          ⟨1⟩ (bytesStoreLiteChunksLengthWord σ_evm I + ⟨1⟩))
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (chunksDataBase + bytesStoreLiteChunksLengthWord σ_evm I) =
+      postHeader := by
+    simpa [postHeader, bytesStoreLitePushChunkSlot] using
+      bytesStoreLiteStorageLoadPushChunkPostLengthHeader_initState_of_accountMapEquiv
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+  exact bytesStoreLitePushChunkRuntime_of_post_header
+    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    hcode hsize hperm hwv hsel hAccounts postHeader hheaderAfter hloadElemLen
 
 end BytesStoreLite

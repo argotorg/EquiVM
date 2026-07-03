@@ -1,5 +1,5 @@
 import Examples.BytesStoreLite.FullPushChunkCalldataWords
-import Examples.BytesStoreLite.StorageLayoutFacts
+import Examples.BytesStoreLite.StorageLoopFacts
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -47,13 +47,15 @@ theorem bytesStoreLiteLongDataWordsLoopStride_zero_ofNat :
         BytesStoreLiteCore.u256_32_add_ofNat]
       congr 1
 
-theorem bytesStoreLitePushChunkLongPushArray {evm : EVM.State}
+theorem bytesStoreLitePushChunkLongPushArray_of_post_header {evm : EVM.State}
     (oldLen header oldBytesLen : UInt256) (value : ByteArray)
     (hvalueSize : ¬ value.size < 32)
     (hloadLen :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
-    (hloadElem :
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+        evm.executionEnv.codeOwner
         (chunksDataBase + oldLen) = header)
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hlen : oldBytesLen = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
@@ -78,13 +80,9 @@ theorem bytesStoreLitePushChunkLongPushArray {evm : EVM.State}
       storageLocStore evm (uint256Loc ⟨1⟩) (.int (Int.ofNat oldLen.toNat + 1)) =
         some evmLen := by
     simpa [evmLen] using bytesStoreLiteStorageLocStore_uint256_addOne evm ⟨1⟩ oldLen
-  have hloadElemLen :
-      Solm.EVM.storageLoad evmLen evmLen.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = header := by
-    simpa [evmLen, storageStore_executionEnv] using
-      bytesStoreLiteChunkHeaderAfterLengthStore (evm := evm) oldLen header hloadElem
   have hpackedLen : checkBytesPacked (chunksDataBase + oldLen) evmLen = true :=
-    checkBytesPacked_of_storageLoad_land_one_zero hloadElemLen hflag
+    checkBytesPacked_of_storageLoad_land_one_zero
+      (by simpa [evmLen, storageStore_executionEnv] using hloadElemLen) hflag
   have hwrite :
       writeStorage? bytesStoreLiteConfig evmLen
         { base := "chunks", steps := [.aindex (.int (Int.ofNat oldLen.toNat))] }
@@ -96,7 +94,9 @@ theorem bytesStoreLitePushChunkLongPushArray {evm : EVM.State}
             (solidityBytesDataWordCount value.size)).executionEnv.codeOwner
           (chunksDataBase + oldLen) (solidityBytesHeaderWord value.size)) := by
     exact bytesStoreLiteWriteChunkLongPacked (evm := evmLen)
-      oldLen header oldBytesLen value hvalueSize hloadElemLen hpackedLen hflag hlen hvalid
+      oldLen header oldBytesLen value hvalueSize
+      (by simpa [evmLen, storageStore_executionEnv] using hloadElemLen)
+      hpackedLen hflag hlen hvalid
   rw [pushArray?, bytesStoreLiteChunksResolveValue evm value]
   simp only [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
     bytesStoreLiteLayout, EvalResult.ofOption, EvalResult.bind, bind]
@@ -116,13 +116,43 @@ theorem bytesStoreLitePushChunkLongPushArray {evm : EVM.State}
   simp [evmLen, storageStore_executionEnv,
     writeSolidityBytesDataWordsFrom_executionEnv]
 
-theorem bytesStoreLitePushChunkLongOldLongPushArray {evm : EVM.State}
+theorem bytesStoreLitePushChunkLongPushArray_of_ne {evm : EVM.State}
     (oldLen header oldBytesLen : UInt256) (value : ByteArray)
+    (hne : chunksDataBase + oldLen ≠ (⟨1⟩ : UInt256))
     (hvalueSize : ¬ value.size < 32)
     (hloadLen :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
     (hloadElem :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = header)
+    (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
+    (hlen : oldBytesLen = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt oldBytesLen ⟨32⟩) ≠ ⟨0⟩) :
+    pushArray? bytesStoreLiteConfig
+      { contract := bytesStoreLiteContract,
+        locals := (∅ : Store).insert "value" (.bytes value) }
+      evm chunksRef (some (.bytes value)) =
+      .ok (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+          (chunksDataBase + oldLen) value 0 (solidityBytesDataWordCount value.size))
+        evm.executionEnv.codeOwner (chunksDataBase + oldLen)
+        (solidityBytesHeaderWord value.size)) := by
+  exact bytesStoreLitePushChunkLongPushArray_of_post_header (evm := evm)
+    oldLen header oldBytesLen value hvalueSize hloadLen
+    (bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evm) oldLen header hne hloadElem)
+    hflag hlen hvalid
+
+theorem bytesStoreLitePushChunkLongOldLongPushArray_of_post_header {evm : EVM.State}
+    (oldLen header oldBytesLen : UInt256) (value : ByteArray)
+    (hvalueSize : ¬ value.size < 32)
+    (hloadLen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+        evm.executionEnv.codeOwner
         (chunksDataBase + oldLen) = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
     (hlen : oldBytesLen = UInt256.div header ⟨2⟩)
@@ -160,11 +190,6 @@ theorem bytesStoreLitePushChunkLongOldLongPushArray {evm : EVM.State}
       storageLocStore evm (uint256Loc ⟨1⟩) (.int (Int.ofNat oldLen.toNat + 1)) =
         some evmLen := by
     simpa [evmLen] using bytesStoreLiteStorageLocStore_uint256_addOne evm ⟨1⟩ oldLen
-  have hloadElemLen :
-      Solm.EVM.storageLoad evmLen evmLen.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = header := by
-    simpa [evmLen, storageStore_executionEnv] using
-      bytesStoreLiteChunkHeaderAfterLengthStore (evm := evm) oldLen header hloadElem
   have hwrite :
       writeStorage? bytesStoreLiteConfig evmLen
         { base := "chunks", steps := [.aindex (.int (Int.ofNat oldLen.toNat))] }
@@ -185,7 +210,8 @@ theorem bytesStoreLitePushChunkLongOldLongPushArray {evm : EVM.State}
             (solidityBytesDataWordCount value.size)).executionEnv.codeOwner
           (chunksDataBase + oldLen) (solidityBytesHeaderWord value.size)) := by
     exact bytesStoreLiteWriteChunkLongFromLongPrepared (evm := evmLen)
-      oldLen header oldBytesLen value hvalueSize hloadElemLen hflag hlen hvalid
+      oldLen header oldBytesLen value hvalueSize
+      (by simpa [evmLen, storageStore_executionEnv] using hloadElemLen) hflag hlen hvalid
   rw [pushArray?, bytesStoreLiteChunksResolveValue evm value]
   simp only [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
     bytesStoreLiteLayout, EvalResult.ofOption, EvalResult.bind, bind]
@@ -214,13 +240,56 @@ theorem bytesStoreLitePushChunkLongOldLongPushArray {evm : EVM.State}
       (solidityBytesHeaderWord value.size))
   rw [hwrite]
 
-theorem bytesStoreLitePushChunkShortOldLongPushArray {evm : EVM.State}
+theorem bytesStoreLitePushChunkLongOldLongPushArray_of_ne {evm : EVM.State}
     (oldLen header oldBytesLen : UInt256) (value : ByteArray)
-    (hvalueSize : value.size < 32)
+    (hne : chunksDataBase + oldLen ≠ (⟨1⟩ : UInt256))
+    (hvalueSize : ¬ value.size < 32)
     (hloadLen :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
     (hloadElem :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = header)
+    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
+    (hlen : oldBytesLen = UInt256.div header ⟨2⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt oldBytesLen ⟨32⟩) ≠ ⟨0⟩) :
+    pushArray? bytesStoreLiteConfig
+      { contract := bytesStoreLiteContract,
+        locals := (∅ : Store).insert "value" (.bytes value) }
+      evm chunksRef (some (.bytes value)) =
+      .ok (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom
+            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+            (chunksDataBase + oldLen)
+            (solidityBytesDataWordCount value.size)
+            (solidityBytesDataWordCount oldBytesLen.toNat -
+              solidityBytesDataWordCount value.size))
+          (chunksDataBase + oldLen) value 0 (solidityBytesDataWordCount value.size))
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom
+            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+            (chunksDataBase + oldLen)
+            (solidityBytesDataWordCount value.size)
+            (solidityBytesDataWordCount oldBytesLen.toNat -
+              solidityBytesDataWordCount value.size))
+          (chunksDataBase + oldLen) value 0
+          (solidityBytesDataWordCount value.size)).executionEnv.codeOwner
+        (chunksDataBase + oldLen) (solidityBytesHeaderWord value.size)) := by
+  exact bytesStoreLitePushChunkLongOldLongPushArray_of_post_header (evm := evm)
+    oldLen header oldBytesLen value hvalueSize hloadLen
+    (bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evm) oldLen header hne hloadElem)
+    hflag hlen hvalid
+
+theorem bytesStoreLitePushChunkShortOldLongPushArray_of_post_header {evm : EVM.State}
+    (oldLen header oldBytesLen : UInt256) (value : ByteArray)
+    (hvalueSize : value.size < 32)
+    (hloadLen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
+    (hloadElemLen :
+      Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+        evm.executionEnv.codeOwner
         (chunksDataBase + oldLen) = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
     (hlen : oldBytesLen = UInt256.div header ⟨2⟩)
@@ -247,11 +316,6 @@ theorem bytesStoreLitePushChunkShortOldLongPushArray {evm : EVM.State}
       storageLocStore evm (uint256Loc ⟨1⟩) (.int (Int.ofNat oldLen.toNat + 1)) =
         some evmLen := by
     simpa [evmLen] using bytesStoreLiteStorageLocStore_uint256_addOne evm ⟨1⟩ oldLen
-  have hloadElemLen :
-      Solm.EVM.storageLoad evmLen evmLen.executionEnv.codeOwner
-        (chunksDataBase + oldLen) = header := by
-    simpa [evmLen, storageStore_executionEnv] using
-      bytesStoreLiteChunkHeaderAfterLengthStore (evm := evm) oldLen header hloadElem
   have hwrite :
       writeStorage? bytesStoreLiteConfig evmLen
         { base := "chunks", steps := [.aindex (.int (Int.ofNat oldLen.toNat))] }
@@ -263,7 +327,8 @@ theorem bytesStoreLitePushChunkShortOldLongPushArray {evm : EVM.State}
             ((oldBytesLen.toNat + 31) / 32)).executionEnv.codeOwner
           (chunksDataBase + oldLen) (solidityShortBytesWord value)) := by
     exact bytesStoreLiteWriteChunkShortFromLongPrepared (evm := evmLen)
-      oldLen header oldBytesLen value hvalueSize hloadElemLen hflag hlen hvalid
+      oldLen header oldBytesLen value hvalueSize
+      (by simpa [evmLen, storageStore_executionEnv] using hloadElemLen) hflag hlen hvalid
   rw [pushArray?, bytesStoreLiteChunksResolveValue evm value]
   simp only [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
     bytesStoreLiteLayout, EvalResult.ofOption, EvalResult.bind, bind]
@@ -273,6 +338,36 @@ theorem bytesStoreLitePushChunkShortOldLongPushArray {evm : EVM.State}
   rw [hstoreLen]
   simpa [evmLen, storageStore_executionEnv, clearSolidityBytesDataWordsFrom_executionEnv]
     using hwrite
+
+theorem bytesStoreLitePushChunkShortOldLongPushArray_of_ne {evm : EVM.State}
+    (oldLen header oldBytesLen : UInt256) (value : ByteArray)
+    (hne : chunksDataBase + oldLen ≠ (⟨1⟩ : UInt256))
+    (hvalueSize : value.size < 32)
+    (hloadLen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = oldLen)
+    (hloadElem :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (chunksDataBase + oldLen) = header)
+    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
+    (hlen : oldBytesLen = UInt256.div header ⟨2⟩)
+    (hvalid :
+      UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt oldBytesLen ⟨32⟩) ≠ ⟨0⟩) :
+    pushArray? bytesStoreLiteConfig
+      { contract := bytesStoreLiteContract,
+        locals := (∅ : Store).insert "value" (.bytes value) }
+      evm chunksRef (some (.bytes value)) =
+      .ok (Solm.EVM.storageStore
+        (clearSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+          (chunksDataBase + oldLen) 0 ((oldBytesLen.toNat + 31) / 32))
+        (clearSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩ (oldLen + ⟨1⟩))
+          (chunksDataBase + oldLen) 0 ((oldBytesLen.toNat + 31) / 32)).executionEnv.codeOwner
+        (chunksDataBase + oldLen) (solidityShortBytesWord value)) := by
+  exact bytesStoreLitePushChunkShortOldLongPushArray_of_post_header (evm := evm)
+    oldLen header oldBytesLen value hvalueSize hloadLen
+    (bytesStoreLiteChunkHeaderAfterLengthStore_of_ne (evm := evm) oldLen header hne hloadElem)
+    hflag hlen hvalid
 
 theorem accountMapEquiv_clearDataWordsForwardFrom_shift_bytesLikeBase
     {owner : AccountAddress} {σ τ : AccountMap} (baseSlot : UInt256) :

@@ -194,6 +194,15 @@ theorem bytesStoreLiteSetChunkByteLongWordIndex_lt32 (I : ExecutionEnv) :
   rw [bytesStoreLiteSetChunkByteLongWordIndex_toNat]
   exact Nat.mod_lt _ (by decide : 0 < 32)
 
+theorem bytesStoreLiteSetChunkByteLongWordIndex_eq_index_of_lt32
+    {I : ExecutionEnv}
+    (hidx : (bytesStoreLiteSetChunkByteIndexWord I).toNat < 32) :
+    bytesStoreLiteSetChunkByteLongWordIndex I =
+      bytesStoreLiteSetChunkByteIndexWord I := by
+  apply u256_inj
+  rw [bytesStoreLiteSetChunkByteLongWordIndex_toNat]
+  exact Nat.mod_eq_of_lt hidx
+
 theorem bytesStoreLiteSetChunkByte_storageTypeAt {I : ExecutionEnv} :
     storageTypeAt? bytesStoreLiteContract.storage (bytesStoreLiteSetChunkByteRef I) =
       some uint8St := by
@@ -487,6 +496,18 @@ theorem bytesStoreLiteSetChunkByteLongStoredWord_byteAt
     (old := (bytesStoreLiteSetChunkByteLongOldWord σ I).toNat)
     (v := (bytesStoreLiteSetChunkByteValueWord I).toNat)
     (k := (31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat) * 8) hv hk
+
+theorem bytesStoreLiteSetChunkByteLongStoredWord_byteAt_index_of_lt32
+    {σ : AccountMap} {I : ExecutionEnv}
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hidx : (bytesStoreLiteSetChunkByteIndexWord I).toNat < 32) :
+    UInt256.byteAt (bytesStoreLiteSetChunkByteIndexWord I)
+      (bytesStoreLiteSetChunkByteLongStoredWord σ I) =
+        bytesStoreLiteSetChunkByteValueWord I := by
+  have heq := bytesStoreLiteSetChunkByteLongWordIndex_eq_index_of_lt32
+    (I := I) hidx
+  rw [← heq]
+  exact bytesStoreLiteSetChunkByteLongStoredWord_byteAt (σ := σ) (I := I) hcanon
 
 theorem bytesStoreLiteSetChunkByteShortStoredWord_toNat_update
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -986,6 +1007,41 @@ theorem bytesStoreLiteSetChunkByteBodyReturns {evm evm' : EVM.State} {I : Execut
       ExecBlock.consNormal (ExecStmt.assign hvalue hassign) <|
         ExecBlock.consReturn (ExecStmt.return hret)
 
+theorem bytesStoreLiteSetChunkByteBodyReturnReverts {evm evm' : EVM.State} {I : ExecutionEnv}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm'))
+    (hret :
+      evalExpr? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm' (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) = .revert) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let solm : Frame := bytesStoreLiteSetChunkByteFrame I
+  have hvalue :
+      evalExpr? bytesStoreLiteConfig solm evm (.var "value") =
+        .ok (bytesStoreLiteSetChunkByteValue I) := by
+    simp [solm, bytesStoreLiteSetChunkByteFrame, bytesStoreLiteSetChunkByteValue,
+      bytesStoreLiteSetChunkByteLocals, evalExpr?, EvalResult.ofOption]
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig solm evm .storage
+        (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (solm, evm') := by
+    simpa [solm] using hassign
+  have hret :
+      evalExpr? bytesStoreLiteConfig solm evm'
+        (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) = .revert := by
+    simpa [solm] using hret
+  exact ExecFuncBody.execBlockRevert <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consNormal (ExecStmt.assign hvalue hassign) <|
+        ExecBlock.consRevert (ExecStmt.returnRevert hret)
+
 theorem bytesStoreLiteSetChunkByteResolveOfLength {evm : EVM.State} {I : ExecutionEnv}
     {chunksLen : UInt256} {len : Nat}
     (hload :
@@ -1099,12 +1155,20 @@ theorem bytesStoreLiteSetChunkByteAssignOfLength {evm evm' : EVM.State}
         pure]
       rw [hstoreLoc']
 
-theorem bytesStoreLiteSetChunkByteShortBodyReturns
+theorem bytesStoreLiteSetChunkByteShortBodyReturns_of_post_readback
     {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
-    {chunksLen len : UInt256} {acc : Account}
+    {chunksLen chunksLenPost len : UInt256} {acc : Account}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
     (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteSlot I)
+            (bytesStoreLiteSetChunkByteShortStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
     (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
     (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
@@ -1191,12 +1255,9 @@ theorem bytesStoreLiteSetChunkByteShortBodyReturns
           (bytesStoreLiteSetChunkByteSlot I)
           (bytesStoreLiteSetChunkByteShortStoredWord σ I)
     simpa [evm', storageStore_executionEnv] using hloadPostOwner
-  have hloadChunksPost :
-      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLen := by
-    simpa [evm', storageStore_executionEnv] using
-      bytesStoreLiteStorageLoadChunksLengthAfterChunkHeaderStore_eq_of_before
-        (evm := evm) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
-        (val := bytesStoreLiteSetChunkByteShortStoredWord σ I) hloadChunks
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
   have hflagPost :
       UInt256.land (bytesStoreLiteSetChunkByteShortStoredWord σ I) ⟨1⟩ = ⟨0⟩ := by
     rw [bytesStoreLiteSetChunkByteShortStoredWord_flag_eq
@@ -1246,8 +1307,8 @@ theorem bytesStoreLiteSetChunkByteShortBodyReturns
           .ok (bytesStoreLiteSetChunkByteValue I) := by
     rw [evalExpr?]
     rw [bytesStoreLiteSetChunkByteResolveOfLength
-      (evm := evm') (I := I) (chunksLen := chunksLen) (len := len.toNat)
-      hloadChunksPost hchunkBound hlenPost hbound]
+      (evm := evm') (I := I) (chunksLen := chunksLenPost) (len := len.toNat)
+      hloadChunksPost' hchunkBoundPost hlenPost hbound]
     simp only [bind, EvalResult.bind]
     rw [Solm.readStorage?.eq_def]
     rw [hlayoutPost]
@@ -1265,24 +1326,215 @@ theorem bytesStoreLiteSetChunkByteShortBodyReturns
     bytesStoreLiteSetChunkByteBodyReturns (evm := evm) (evm' := evm') (I := I)
       hwv hassign hret
 
-theorem bytesStoreLiteSetChunkByteLongBodyReturns
+theorem bytesStoreLiteSetChunkByteLongBodyReturns_of_post_readback
     {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
-    {chunksLen len : UInt256} {acc : Account}
+    {chunksLen chunksLenPost len lenPost postHeaderWord : UInt256} {acc : Account}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
     (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
     (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
     (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bytesStoreLiteSetChunkByteLongDataSlot I) =
       bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
     (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
     (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
     (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hlenPost : lenPost = UInt256.div postHeaderWord ⟨2⟩)
     (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetChunkByteIndexWord I).toNat < lenPost.toNat)
     (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeaderWord ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body
+      (.returned
+        (bytesStoreLiteSetChunkByteFrame I)
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteLongDataSlot I)
+          (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+        (some (bytesStoreLiteSetChunkByteValue I))) := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadHeaderPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hlenPost :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok lenPost.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderPostSlot :
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
+    have hvalidLenPost :
+        UInt256.sub (UInt256.land postHeaderWord ⟨1⟩) (UInt256.lt lenPost ⟨32⟩) ≠
+          ⟨0⟩ := by
+      simpa [hlenPost] using hvalidPost
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost, ← hlenPost,
+      hvalidLenPost, u256_ofNat_toNat]
+  have hpackedPost : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm' = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeaderPost' hflagPost
+  have hlayoutPost :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm' =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm') (I := I) hpackedPost
+  have hloadDataPost :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteLongDataSlot I) =
+        bytesStoreLiteSetChunkByteLongStoredWord σ I := by
+    simpa [evm', storageStore_executionEnv] using
+      storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
+        (bytesStoreLiteSetChunkByteLongDataSlot I)
+        (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hret :
+      evalExpr? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm' (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) =
+          .ok (bytesStoreLiteSetChunkByteValue I) := by
+    rw [evalExpr?]
+    rw [bytesStoreLiteSetChunkByteResolveOfLength
+      (evm := evm') (I := I) (chunksLen := chunksLenPost) (len := lenPost.toNat)
+      hloadChunksPost' hchunkBoundPost hlenPost hboundPost]
+    simp only [bind, EvalResult.bind]
+    rw [Solm.readStorage?.eq_def]
+    rw [hlayoutPost]
+    simp [uint8St]
+    rw [storageLocLoad_uint8Loc_byteAt
+      (evm := evm') (slot := bytesStoreLiteSetChunkByteLongDataSlot I)
+      (idx := bytesStoreLiteSetChunkByteLongWordIndex I)
+      (off := ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+        have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+        omega⟩)
+      (by rfl)
+      (by
+        have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+        omega)]
+    rw [hloadDataPost]
+    rw [bytesStoreLiteSetChunkByteLongStoredWord_byteAt (σ := σ) (I := I) hcanon]
+    simp [bytesStoreLiteSetChunkByteValue]
+  simpa [evm'] using
+    bytesStoreLiteSetChunkByteBodyReturns (evm := evm) (evm' := evm') (I := I)
+      hwv hassign hret
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnsOfPostShortReadback
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len lenPost postHeaderWord : UInt256} {acc : Account}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
+    (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hlenPost : lenPost = UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hboundPost : (bytesStoreLiteSetChunkByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ = ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
           ⟨0⟩) :
     ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
       (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body
@@ -1340,55 +1592,91 @@ theorem bytesStoreLiteSetChunkByteLongBodyReturns
           .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
     bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
       hloadChunks hchunkBound hlenRead hbound hstore
-  have hloadHeaderPost :
+  have hloadHeaderPost' :
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (bytesStoreLiteSetChunkByteSlot I) =
-        bytesStoreLiteSetChunkByteHeaderWord σ I := by
-    simpa [evm', storageStore_executionEnv, bytesStoreLiteSetChunkByteLongDataSlot] using
-      bytesStoreLiteStorageLoadBytesHeaderAfterDataStore_eq_of_before
-        (evm := evm) (baseSlot := bytesStoreLiteSetChunkByteSlot I)
-        (idx := bytesStoreLiteSetChunkByteIndexWord I)
-        (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hloadHeader
-  have hloadChunksPost :
-      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLen := by
-    simpa [evm', storageStore_executionEnv, bytesStoreLiteSetChunkByteLongDataSlot] using
-      bytesStoreLiteStorageLoadChunksLengthAfterChunkDataStore_eq_of_before
-        (evm := evm) (chunkIndex := bytesStoreLiteSetChunkByteChunkIndexWord I)
-        (idx := bytesStoreLiteSetChunkByteIndexWord I)
-        (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hloadChunks
-  have hlenPost :
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hvalid0 :
+      UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hflagPost, hlenPost] using hvalidPost
+  have hshortPost : lenPost.toNat < 32 :=
+    solidityShortBytesValid_lt32 hvalid0
+  have hlenPostRead :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetChunkByteHeaderRef I) =
-        .ok len.toNat := by
+        .ok lenPost.toNat := by
     have hchunkNN :
         ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
     have hloadHeaderPostSlot :
         Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
             (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
-          bytesStoreLiteSetChunkByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
     simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
       bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
       solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
-      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflag, ← hlen,
-      hvalidLen, u256_ofNat_toNat]
-  have hpackedPost : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm' = false :=
-    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeaderPost hflag
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost,
+      ← hlenPost, hvalid0, u256_ofNat_toNat]
+  have hpackedPost : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm' = true :=
+    checkBytesPacked_of_storageLoad_land_one_zero hloadHeaderPost' hflagPost
+  have hidx31 : (bytesStoreLiteSetChunkByteIndexWord I).toNat < 31 :=
+    bytesStoreLiteSetChunkByteIndex_lt31_of_short_bound (I := I) (len := lenPost)
+      hshortPost hboundPost
   have hlayoutPost :
       bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm' =
-        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
-          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
-            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
-            omega⟩) :=
-    bytesStoreLiteSetChunkByteLayoutLong (evm := evm') (I := I) hpackedPost
-  have hloadDataPost :
-      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (bytesStoreLiteSetChunkByteLongDataSlot I) =
-        bytesStoreLiteSetChunkByteLongStoredWord σ I := by
-    simpa [evm', storageStore_executionEnv] using
-      storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
-        (bytesStoreLiteSetChunkByteLongDataSlot I)
-        (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+        some (uint8Loc (bytesStoreLiteSetChunkByteSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteIndexWord I).toNat, by omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutShort (evm := evm') (I := I) hpackedPost hidx31
+  have hheaderStored : postHeaderWord = bytesStoreLiteSetChunkByteLongStoredWord σ I := by
+    by_cases hEq : bytesStoreLiteSetChunkByteSlot I =
+        bytesStoreLiteSetChunkByteLongDataSlot I
+    · have hsame :
+          Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+              (bytesStoreLiteSetChunkByteSlot I) =
+            bytesStoreLiteSetChunkByteLongStoredWord σ I := by
+        have hsameOwner :
+            Solm.EVM.storageLoad evm' evm.executionEnv.codeOwner
+                (bytesStoreLiteSetChunkByteLongDataSlot I) =
+              bytesStoreLiteSetChunkByteLongStoredWord σ I := by
+          simpa [evm'] using
+            storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
+              (bytesStoreLiteSetChunkByteLongDataSlot I)
+              (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+        simpa [evm', storageStore_executionEnv, hEq] using hsameOwner
+      exact hloadHeaderPost'.symm.trans hsame
+    · have hpostOld :
+          Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+              (bytesStoreLiteSetChunkByteSlot I) =
+            bytesStoreLiteSetChunkByteHeaderWord σ I := by
+        have hne :
+            bytesStoreLiteSetChunkByteSlot I ≠
+              bytesLikeDataBase (bytesStoreLiteSetChunkByteSlot I) +
+                UInt256.div (bytesStoreLiteSetChunkByteIndexWord I) ⟨32⟩ := by
+          simpa [bytesStoreLiteSetChunkByteLongDataSlot] using hEq
+        have hpostOldOwner :
+            Solm.EVM.storageLoad evm' evm.executionEnv.codeOwner
+                (bytesStoreLiteSetChunkByteSlot I) =
+              Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+                (bytesStoreLiteSetChunkByteSlot I) := by
+          simpa [evm', bytesStoreLiteSetChunkByteLongDataSlot] using
+            bytesStoreLiteStorageLoadBytesHeaderAfterDataStore_ne_of_ne
+              (evm := evm) (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+              (idx := bytesStoreLiteSetChunkByteIndexWord I)
+              (val := bytesStoreLiteSetChunkByteLongStoredWord σ I) hne
+        simpa [evm', storageStore_executionEnv, hloadHeader] using hpostOldOwner
+      have hzeroOld :
+          UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ = ⟨0⟩ := by
+        have hpostWord :
+            postHeaderWord = bytesStoreLiteSetChunkByteHeaderWord σ I :=
+          hloadHeaderPost'.symm.trans hpostOld
+        simpa [hpostWord] using hflagPost
+      exact False.elim (hflag hzeroOld)
+  have hidxLe : (bytesStoreLiteSetChunkByteIndexWord I).toNat ≤ 31 := by
+    omega
   have hret :
       evalExpr? bytesStoreLiteConfig
         (bytesStoreLiteSetChunkByteFrame I)
@@ -1396,24 +1684,21 @@ theorem bytesStoreLiteSetChunkByteLongBodyReturns
           .ok (bytesStoreLiteSetChunkByteValue I) := by
     rw [evalExpr?]
     rw [bytesStoreLiteSetChunkByteResolveOfLength
-      (evm := evm') (I := I) (chunksLen := chunksLen) (len := len.toNat)
-      hloadChunksPost hchunkBound hlenPost hbound]
+      (evm := evm') (I := I) (chunksLen := chunksLenPost) (len := lenPost.toNat)
+      hloadChunksPost' hchunkBoundPost hlenPostRead hboundPost]
     simp only [bind, EvalResult.bind]
     rw [Solm.readStorage?.eq_def]
     rw [hlayoutPost]
     simp [uint8St]
     rw [storageLocLoad_uint8Loc_byteAt
-      (evm := evm') (slot := bytesStoreLiteSetChunkByteLongDataSlot I)
-      (idx := bytesStoreLiteSetChunkByteLongWordIndex I)
-      (off := ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
-        have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
-        omega⟩)
-      (by rfl)
-      (by
-        have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
-        omega)]
-    rw [hloadDataPost]
-    rw [bytesStoreLiteSetChunkByteLongStoredWord_byteAt (σ := σ) (I := I) hcanon]
+      (slot := bytesStoreLiteSetChunkByteSlot I)
+      (idx := bytesStoreLiteSetChunkByteIndexWord I)
+      (off := ⟨31 - (bytesStoreLiteSetChunkByteIndexWord I).toNat, by omega⟩)
+      (hoff := by rfl) (hidx := hidxLe)]
+    rw [hloadHeaderPost']
+    rw [hheaderStored]
+    rw [bytesStoreLiteSetChunkByteLongStoredWord_byteAt_index_of_lt32
+      (σ := σ) (I := I) hcanon (by omega)]
     simp [bytesStoreLiteSetChunkByteValue]
   simpa [evm'] using
     bytesStoreLiteSetChunkByteBodyReturns (evm := evm) (evm' := evm') (I := I)
@@ -1686,6 +1971,730 @@ theorem bytesStoreLiteSetChunkByteBodyBoundsRevertsOfChunksLength {evm : EVM.Sta
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
+
+theorem bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostChunksLength
+    {evm evm' : EVM.State} {I : ExecutionEnv} {chunksLenPost : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm'))
+    (hloadPost :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hboundPost :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  have hret :
+      evalExpr? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm' (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) = .revert := by
+    rw [evalExpr?]
+    rw [bytesStoreLiteSetChunkByteResolveRevertsOfChunksLength
+      (evm := evm') (I := I) (chunksLen := chunksLenPost) hloadPost hboundPost]
+    rfl
+  exact bytesStoreLiteSetChunkByteBodyReturnReverts
+    (evm := evm) (evm' := evm') (I := I) hwv hassign hret
+
+theorem bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLengthRead
+    {evm evm' : EVM.State} {I : ExecutionEnv} {chunksLenPost : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm'))
+    (hloadPost :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hlenPost :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+        (bytesStoreLiteSetChunkByteHeaderRef I) = .revert) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  have hret :
+      evalExpr? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm' (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) = .revert := by
+    rw [evalExpr?]
+    rw [bytesStoreLiteSetChunkByteResolveRevertsOfLengthRead
+      (evm := evm') (I := I) (chunksLen := chunksLenPost)
+      hloadPost hchunkBoundPost hlenPost]
+    rfl
+  exact bytesStoreLiteSetChunkByteBodyReturnReverts
+    (evm := evm) (evm' := evm') (I := I) hwv hassign hret
+
+theorem bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLength
+    {evm evm' : EVM.State} {I : ExecutionEnv} {chunksLenPost : UInt256} {lenPost : Nat}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm'))
+    (hloadPost :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hlenPost :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+        (bytesStoreLiteSetChunkByteHeaderRef I) = .ok lenPost)
+    (hboundPost : ¬ (bytesStoreLiteSetChunkByteIndexWord I).toNat < lenPost) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  have hret :
+      evalExpr? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm' (.storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))) = .revert := by
+    rw [evalExpr?]
+    rw [bytesStoreLiteSetChunkByteResolveRevertsOfLength
+      (evm := evm') (I := I) (chunksLen := chunksLenPost) (len := lenPost)
+      hloadPost hchunkBoundPost hlenPost hboundPost]
+    rfl
+  exact bytesStoreLiteSetChunkByteBodyReturnReverts
+    (evm := evm) (evm' := evm') (I := I) hwv hassign hret
+
+theorem bytesStoreLiteSetChunkByteShortBodyReturnRevertsOfPostChunksLength
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteSlot I)
+            (bytesStoreLiteSetChunkByteShortStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len =
+      UInt256.land (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨127⟩)
+    (hshort : len.toNat < 32)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ = ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteSlot I)
+    (bytesStoreLiteSetChunkByteShortStoredWord σ I)
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hltLen : UInt256.lt len ⟨32⟩ = ⟨1⟩ := by
+      exact ult_one (by
+        simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using hshort)
+    have hvalidLen : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+      rw [hltLen]
+      native_decide
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = true :=
+    checkBytesPacked_of_storageLoad_land_one_zero hloadHeader hflag
+  have hidx31 : (bytesStoreLiteSetChunkByteIndexWord I).toNat < 31 :=
+    bytesStoreLiteSetChunkByteIndex_lt31_of_short_bound (I := I) (len := len)
+      hshort hbound
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteIndexWord I).toNat, by omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutShort (evm := evm) (I := I) hpacked hidx31
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreShort
+        (evm := evm) (σ := σ) (I := I) (len := len)
+        hloadHeader hcanon hshort hbound
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostChunksLength
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    hwv hassign hloadChunksPost' hchunkBoundPost
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnRevertsOfPostChunksLength
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      ¬ (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostChunksLength
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    hwv hassign hloadChunksPost' hchunkBoundPost
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnRevertsOfPostLongMalformed
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len postHeaderWord : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ ≠ ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeaderWord ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hloadHeaderPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hlenPost :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+          (bytesStoreLiteSetChunkByteHeaderRef I) = .revert := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderPostSlot :
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost,
+      hbadPost, u256_ofNat_toNat]
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLengthRead
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    hwv hassign hloadChunksPost' hchunkBoundPost hlenPost
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnRevertsOfPostLongLength
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len lenPost postHeaderWord : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hlenPost : lenPost = UInt256.div postHeaderWord ⟨2⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hboundPost : ¬ (bytesStoreLiteSetChunkByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ ≠ ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.div postHeaderWord ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hloadHeaderPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hlenPostRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+          (bytesStoreLiteSetChunkByteHeaderRef I) = .ok lenPost.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderPostSlot :
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
+    have hvalidLenPost :
+        UInt256.sub (UInt256.land postHeaderWord ⟨1⟩) (UInt256.lt lenPost ⟨32⟩) ≠
+          ⟨0⟩ := by
+      simpa [hlenPost] using hvalidPost
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost,
+      ← hlenPost, hvalidLenPost, u256_ofNat_toNat]
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLength
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    (lenPost := lenPost.toNat)
+    hwv hassign hloadChunksPost' hchunkBoundPost hlenPostRead hboundPost
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnRevertsOfPostShortLength
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len lenPost postHeaderWord : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hlenPost : lenPost = UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hboundPost : ¬ (bytesStoreLiteSetChunkByteIndexWord I).toNat < lenPost.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ = ⟨0⟩)
+    (hvalidPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
+          ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hloadHeaderPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hlenPostRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+          (bytesStoreLiteSetChunkByteHeaderRef I) = .ok lenPost.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderPostSlot :
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
+    have hvalidLenPost :
+        UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
+      simpa [hflagPost, hlenPost] using hvalidPost
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost,
+      ← hlenPost, hvalidLenPost, u256_ofNat_toNat]
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLength
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    (lenPost := lenPost.toNat)
+    hwv hassign hloadChunksPost' hchunkBoundPost hlenPostRead hboundPost
+
+theorem bytesStoreLiteSetChunkByteLongBodyReturnRevertsOfPostShortMalformed
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    {chunksLen chunksLenPost len postHeaderWord : UInt256}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hloadChunks : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hchunkBound : (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLen.toNat)
+    (hloadChunksPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner ⟨1⟩ = chunksLenPost)
+    (hchunkBoundPost :
+      (bytesStoreLiteSetChunkByteChunkIndexWord I).toNat < chunksLenPost.toNat)
+    (hloadHeader : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteSlot I) = bytesStoreLiteSetChunkByteHeaderWord σ I)
+    (hloadData : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetChunkByteLongDataSlot I) =
+      bytesStoreLiteSetChunkByteLongOldWord σ I)
+    (hloadHeaderPost :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (bytesStoreLiteSetChunkByteLongDataSlot I)
+            (bytesStoreLiteSetChunkByteLongStoredWord σ I))
+          evm.executionEnv.codeOwner (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord)
+    (hcanon : (bytesStoreLiteSetChunkByteValueWord I).toNat < EVM.twoPow 8)
+    (hlen : len = UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩)
+    (hbound : (bytesStoreLiteSetChunkByteIndexWord I).toNat < len.toNat)
+    (hflag : UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
+    (hvalid : UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
+          ⟨0⟩)
+    (hflagPost : UInt256.land postHeaderWord ⟨1⟩ = ⟨0⟩)
+    (hbadPost : UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
+        (UInt256.lt (UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩) :
+    ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evm
+      (bytesStoreLiteSetChunkByteLocals I) setChunkByteTransition.body .reverted := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (bytesStoreLiteSetChunkByteLongDataSlot I)
+    (bytesStoreLiteSetChunkByteLongStoredWord σ I)
+  have hvalidLen :
+      UInt256.sub (UInt256.land (bytesStoreLiteSetChunkByteHeaderWord σ I) ⟨1⟩)
+        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
+    simpa [hlen] using hvalid
+  have hlenRead :
+      readStorageBytesLength? bytesStoreLiteConfig evm
+          (bytesStoreLiteSetChunkByteHeaderRef I) =
+        .ok len.toNat := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderSlot :
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          bytesStoreLiteSetChunkByteHeaderWord σ I := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderSlot, hflag, ← hlen,
+      hvalidLen, u256_ofNat_toNat]
+  have hpacked : checkBytesPacked (bytesStoreLiteSetChunkByteSlot I) evm = false :=
+    checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
+  have hlayout :
+      bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm =
+        some (uint8Loc (bytesStoreLiteSetChunkByteLongDataSlot I)
+          ⟨31 - (bytesStoreLiteSetChunkByteLongWordIndex I).toNat, by
+            have hidx := bytesStoreLiteSetChunkByteLongWordIndex_lt32 I
+            omega⟩) :=
+    bytesStoreLiteSetChunkByteLayoutLong (evm := evm) (I := I) hpacked
+  have hstore :
+      (match bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetChunkByteRef I) evm with
+      | some loc => storageLocStore evm loc (bytesStoreLiteSetChunkByteValue I)
+      | none => none) = some evm' := by
+    rw [hlayout]
+    simpa [evm'] using
+      bytesStoreLiteSetChunkByteStorageLocStoreLong
+        (evm := evm) (σ := σ) (I := I) hloadData hcanon
+  have hassign :
+      assignStorageRef? bytesStoreLiteConfig
+        (bytesStoreLiteSetChunkByteFrame I)
+        evm .storage (chunkByteRef (.var "chunkIndex") (.var "byteIndex"))
+          (bytesStoreLiteSetChunkByteValue I) =
+          .ok (bytesStoreLiteSetChunkByteFrame I, evm') :=
+    bytesStoreLiteSetChunkByteAssignOfLength (evm := evm) (evm' := evm') (I := I)
+      hloadChunks hchunkBound hlenRead hbound hstore
+  have hloadChunksPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨1⟩ = chunksLenPost := by
+    simpa [evm', storageStore_executionEnv] using hloadChunksPost
+  have hloadHeaderPost' :
+      Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+          (bytesStoreLiteSetChunkByteSlot I) =
+        postHeaderWord := by
+    simpa [evm', storageStore_executionEnv] using hloadHeaderPost
+  have hlenPost :
+      readStorageBytesLength? bytesStoreLiteConfig evm'
+          (bytesStoreLiteSetChunkByteHeaderRef I) = .revert := by
+    have hchunkNN :
+        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
+    have hloadHeaderPostSlot :
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
+            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
+          postHeaderWord := by
+      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeaderPost'
+    have hbadPost' :
+        UInt256.sub ⟨0⟩
+          (UInt256.lt (UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩) ⟨32⟩) =
+          ⟨0⟩ := by
+      simpa [hflagPost] using hbadPost
+    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
+      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, bytesStoreLiteSetChunkByteHeaderRef,
+      chunksElemSlot?, nonnegativeIndexSlot?, hchunkNN, hloadHeaderPostSlot, hflagPost,
+      hbadPost', u256_ofNat_toNat]
+  exact bytesStoreLiteSetChunkByteBodyReturnRevertsOfPostLengthRead
+    (evm := evm) (evm' := evm') (I := I) (chunksLenPost := chunksLenPost)
+    hwv hassign hloadChunksPost' hchunkBoundPost hlenPost
 
 theorem bytesStoreLiteDecode_setChunkByte {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
