@@ -1,5 +1,5 @@
 import Examples.UniswapV2Pair.MutatorDispatch
-import Reasoning.MemCascade
+import Examples.UniswapV2Pair.PermitRuntime
 import Reasoning.Refinement
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
@@ -143,114 +143,32 @@ abbrev permitNonceNextWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   permitNonceWord σ I + ⟨1⟩
 
 abbrev permitTypehashWord : UInt256 :=
-  ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
+  permitRuntimeTypehashWord
 
 noncomputable def permitStructHashDataWrites (σ : AccountMap) (I : ExecutionEnv) :
     List (Nat × UInt256) :=
-  [ (160, permitTypehashWord),
-    (192, permitOwnerMaskedWord I),
-    (224, permitSpenderMaskedWord I),
-    (256, permitValueWord I),
-    (288, permitNonceWord σ I),
-    (320, permitDeadlineWord I) ]
+  permitRuntimeStructHashDataWrites (permitOwnerMaskedWord I) (permitSpenderMaskedWord I)
+    (permitValueWord I) (permitNonceWord σ I) (permitDeadlineWord I)
 
 noncomputable def permitStructHashDataMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  writeCascade (permitNonceHashMem I) (permitStructHashDataWrites σ I)
+  permitRuntimeStructHashDataMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
+    (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
+    (permitDeadlineWord I)
 
 noncomputable def permitStructHashLenMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  writeCascade (permitStructHashDataMem σ I) [(128, (⟨192⟩ : UInt256))]
+  permitRuntimeStructHashLenMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
+    (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
+    (permitDeadlineWord I)
 
 noncomputable def permitStructHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  writeCascade (permitStructHashLenMem σ I) [(64, (⟨352⟩ : UInt256))]
+  permitRuntimeStructHashMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
+    (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
+    (permitDeadlineWord I)
 
 noncomputable abbrev permitStructHashWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.ofNat
-    (fromByteArrayBigEndian (ffi.KEC ((permitStructHashMem σ I).readWithPadding 160 192)))
-
-theorem permitStructHashDataWrites_gaps (σ : AccountMap) (I : ExecutionEnv) :
-    WriteGapsOk 96 (permitStructHashDataWrites σ I) := by
-  simp [WriteGapsOk, permitStructHashDataWrites]
-  exact lt_usize _ (by norm_num)
-
-theorem permitStructHashDataWrites_size (σ : AccountMap) (I : ExecutionEnv) :
-    writeCascadeSize 96 (permitStructHashDataWrites σ I) = 352 := by
-  rfl
-
-theorem permitStructHashDataWrites_disjoint64 (σ : AccountMap) (I : ExecutionEnv) :
-    WindowDisjointFromWrites 96 64 32 (permitStructHashDataWrites σ I) := by
-  simp [WindowDisjointFromWrites, permitStructHashDataWrites]
-  exact lt_usize _ (by norm_num)
-
-theorem permitStructHashDataMem_size (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashDataMem σ I).size = 352 := by
-  unfold permitStructHashDataMem
-  exact writeCascade_size_of_base (permitNonceHashMem I) (permitStructHashDataWrites σ I)
-    (permitNonceHashMem_size I) (permitStructHashDataWrites_gaps σ I)
-    (permitStructHashDataWrites_size σ I)
-
-theorem permitStructHashDataMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashDataMem σ I).readWithPadding 64 32 =
-      UInt256.toByteArray (⟨128⟩ : UInt256) := by
-  unfold permitStructHashDataMem
-  rw [writeCascade_read_preserved]
-  · exact permitNonceHashMem_read64 I
-  · rw [permitNonceHashMem_size]
-    exact permitStructHashDataWrites_disjoint64 σ I
-
-theorem permitStructHashDataMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitStructHashDataMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((permitStructHashDataMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadWordValue_of_readWithPadding
-    (by rw [permitStructHashDataMem_size]; decide)
-    (by native_decide)
-    (permitStructHashDataMem_read64 σ I)
-
-theorem permitStructHashLenMem_size (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashLenMem σ I).size = 352 := by
-  unfold permitStructHashLenMem writeCascade Reasoning.Theory.writeWord
-  exact toByteArray_write32_size_of_le (permitStructHashDataMem σ I) (⟨192⟩ : UInt256)
-    128 352 352 (permitStructHashDataMem_size σ I)
-    (by rw [permitStructHashDataMem_size]; omega) (by norm_num)
-
-theorem permitStructHashMem_size (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashMem σ I).size = 352 := by
-  unfold permitStructHashMem writeCascade Reasoning.Theory.writeWord
-  exact toByteArray_write32_size_of_le (permitStructHashLenMem σ I) (⟨352⟩ : UInt256)
-    64 352 352 (permitStructHashLenMem_size σ I)
-    (by rw [permitStructHashLenMem_size]; omega) (by norm_num)
-
-theorem permitStructHashLenMem_read128 (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashLenMem σ I).readWithPadding 128 32 =
-      UInt256.toByteArray (⟨192⟩ : UInt256) := by
-  unfold permitStructHashLenMem writeCascade Reasoning.Theory.writeWord
-  exact toByteArray_write32_read_back (permitStructHashDataMem σ I) (⟨192⟩ : UInt256) 128
-    (by rw [permitStructHashDataMem_size]; omega)
-
-theorem permitStructHashMem_read128 (σ : AccountMap) (I : ExecutionEnv) :
-    (permitStructHashMem σ I).readWithPadding 128 32 =
-      UInt256.toByteArray (⟨192⟩ : UInt256) := by
-  unfold permitStructHashMem writeCascade Reasoning.Theory.writeWord
-  simp only [writeCascade_nil]
-  rw [write32_read_above _ _ 64 128 (by rw [toByteArray_size])
-      (by rw [permitStructHashLenMem_size]; omega) (by omega)
-      (by rw [permitStructHashLenMem_size]; omega)]
-  exact permitStructHashLenMem_read128 σ I
-
-theorem permitStructHashMem_mload128 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (permitStructHashMem σ I).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((permitStructHashMem σ I).readWithPadding (⟨128⟩ : UInt256).toNat 32)))
-      = ⟨192⟩ :=
-  mloadWordValue_of_readWithPadding
-    (by rw [permitStructHashMem_size]; decide)
-    (by native_decide)
-    (permitStructHashMem_read128 σ I)
+  permitRuntimeStructHashWord (permitNonceHashMem I) (permitOwnerMaskedWord I)
+    (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
+    (permitDeadlineWord I)
 
 abbrev permitAfterNonceAccountMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (mapSlot (permitOwnerMaskedWord I) ⟨4⟩)
