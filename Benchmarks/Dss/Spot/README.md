@@ -51,6 +51,8 @@ spot.sol.ast.json  sha256 3b8eadb6c97c88fe178542d7301709856fab894843f2ef9d184e04
 
 Scaffold notes:
 
+- Readiness: ready for proof as of 2026-07-03. Fresh solc output exactly matches the checked-in
+  Lean creation/runtime byte arrays, and the solc storage layout matches `Spec.lean`.
 - The named ABI surface includes public storage getters, auth, three overloaded `file` functions,
   `poke`, and `cage`.
 - Storage layout is transcribed from solc's `--storage-layout`: `wards` slot 0, `ilks` slot 1,
@@ -58,6 +60,10 @@ Scaffold notes:
 - `PipLike.peek()` and `VatLike.file(bytes32,bytes32,uint256)` are represented with a custom
   external ABI. `peek` is modeled as a normal external call because the upstream interface is not
   declared `view`.
+- The runtime has two `CALL` sites and two matching `EXTCODESIZE` guards. The spec models solc's
+  guard on both `poke` calls: `PipLike.peek()` and `VatLike.file(bytes32,bytes32,uint256)`.
+- The `Poke` event is intentionally omitted; the current equivalence relation ignores substate/logs,
+  matching the policy used by the other event-bearing benchmarks.
 - The conditional arithmetic in `poke` is short-circuited: if `has` is false, the nested
   `mul/rdiv/rdiv` path is not evaluated.
 - No known Solm syntax or semantics change is required to start proving this benchmark. The likely

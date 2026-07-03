@@ -51,6 +51,8 @@ pot.sol.ast.json  sha256 f207fff82a6a016fa3d2b1b1be527bc076c85e98f6cff5a0a08ac33
 
 Scaffold notes:
 
+- Readiness: ready for proof as of 2026-07-03. Fresh solc output exactly matches the checked-in
+  Lean creation/runtime byte arrays, and the solc storage layout matches `Spec.lean`.
 - The named ABI surface includes public storage getters, auth, overloaded `file`, `drip`, `join`,
   `exit`, and `cage`.
 - Storage layout is transcribed from solc's `--storage-layout`: `wards` slot 0, `pie` slot 1,
@@ -58,6 +60,9 @@ Scaffold notes:
   `live` slot 8.
 - `VatLike.move(address,address,uint256)` and `VatLike.suck(address,address,uint256)` are
   represented with a custom external ABI.
+- The runtime has two optimized `CALL` sites and two matching `EXTCODESIZE` guards. The source has
+  three high-level `VatLike` calls because `join` and `exit` share one optimized bytecode call path;
+  the spec models solc's guard on all three source-level calls.
 - The assembly `_rpow` helper is modeled structurally as a Solm loop with the same checked multiply,
   rounding-add, division, and odd-exponent update shape. Reusable proof work should isolate `_rpow`,
   `_rmul`, and typed external-call lemmas.

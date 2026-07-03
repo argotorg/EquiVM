@@ -149,6 +149,11 @@ def auth : List Stmt :=
 def requireLive : List Stmt :=
   [ .require (.binary .eq (.storage liveRef) (.intLit 1)) ]
 
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar (perm := perm) ]
+
 def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
   [ .letDecl name (some uint256) (mul256 x y),
     .require
@@ -274,8 +279,9 @@ def pokeTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++
-      [ .externalCall (.storage (ilksF (.var "ilk") "pip")) "peek" (.intLit 0) [] "peekRet",
-        .letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0),
+      checkedExternalCallStmts (.storage (ilksF (.var "ilk") "pip")) "peek" (.intLit 0) []
+        "peekRet" ++
+      [ .letDecl "val" (some bytes32) (.tupleGet (.var "peekRet") 0),
         .letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1),
         .letDecl "spot" (some uint256) (.intLit 0),
         .ite (.var "has")
@@ -283,9 +289,9 @@ def pokeTransition : TransitionDecl :=
             [ .internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1",
               .internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")] "spot2",
               .assign .localVar { base := "spot" } (.var "spot2") ])
-          [],
-        .externalCall (.storage vatRef) "file" (.intLit 0)
-          [.var "ilk", spotParamLit, .var "spot"] "_fileRet" ] }
+          [] ] ++
+      checkedExternalCallStmts (.storage vatRef) "file" (.intLit 0)
+        [.var "ilk", spotParamLit, .var "spot"] "_fileRet" }
 
 def cageTransition : TransitionDecl :=
   { name := "cage"

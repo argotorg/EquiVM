@@ -131,6 +131,11 @@ def nonpayable : List Stmt :=
 def auth : List Stmt :=
   [ .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
 
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar (perm := perm) ]
+
 def checkedAddUintInto (name : Ident) (x y : Expr) : List Stmt :=
   [ .letDecl name (some uint256) (add256 x y),
     .require (.binary .ge (.var name) x) ]
@@ -328,10 +333,10 @@ def dripTransition : TransitionDecl :=
         .internalCall "_sub" [.var "tmp", .storage chiRef] "chi_",
         .assign .storage chiRef (.var "tmp"),
         .assign .storage rhoRef (.env .timestamp),
-        .internalCall "_mul" [.storage PieRef, .var "chi_"] "rad",
-        .externalCall (.storage vatRef) "suck" (.intLit 0)
-          [.storage vowRef, .env .this, .var "rad"] "_suckRet",
-        .return [.var "tmp"] ] }
+        .internalCall "_mul" [.storage PieRef, .var "chi_"] "rad" ] ++
+      checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
+        [.storage vowRef, .env .this, .var "rad"] "_suckRet" ++
+      [ .return [.var "tmp"] ] }
 
 def joinTransition : TransitionDecl :=
   { name := "join"
@@ -344,9 +349,9 @@ def joinTransition : TransitionDecl :=
       [ .assign .storage (pieRef sender) (.var "pieNew") ] ++
       checkedAddUintInto "PieNew" (.storage PieRef) (.var "wad") ++
       [ .assign .storage PieRef (.var "PieNew"),
-        .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
-        .externalCall (.storage vatRef) "move" (.intLit 0)
-          [sender, .env .this, .var "rad"] "_moveRet" ] }
+        .internalCall "_mul" [.storage chiRef, .var "wad"] "rad" ] ++
+      checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+        [sender, .env .this, .var "rad"] "_moveRet" }
 
 def exitTransition : TransitionDecl :=
   { name := "exit"
@@ -358,9 +363,9 @@ def exitTransition : TransitionDecl :=
       [ .assign .storage (pieRef sender) (.var "pieNew") ] ++
       checkedSubUintInto "PieNew" (.storage PieRef) (.var "wad") ++
       [ .assign .storage PieRef (.var "PieNew"),
-        .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
-        .externalCall (.storage vatRef) "move" (.intLit 0)
-          [.env .this, sender, .var "rad"] "_moveRet" ] }
+        .internalCall "_mul" [.storage chiRef, .var "wad"] "rad" ] ++
+      checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+        [.env .this, sender, .var "rad"] "_moveRet" }
 
 def transitions : List TransitionDecl :=
   [ PieTransition,
