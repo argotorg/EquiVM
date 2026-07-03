@@ -29,6 +29,9 @@
   + 
   + no delete for memory arrays
 
+
+- Discuss legacy Solidity issues that came up. 
+
 - Solidity out-of-scope
   + Checked arithmetic (we have unbounded arithmetic with explicit inRange checks)
   + Events
@@ -40,6 +43,7 @@
   + memory references
   + fixed-point decimals
   + function pointers
+  + Solm's parameter types carry no memory/calldata marker
 
 - Still TODOs
   + string/bytes handling
