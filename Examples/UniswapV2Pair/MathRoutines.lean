@@ -326,6 +326,41 @@ theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y) 
       · have hcond := evalExpr_sqrtLoopCond_false evm locals x z hx hz hlt
         exact ⟨locals, z, ExecStmt.whileFalse hcond, hz⟩
 
+set_option maxHeartbeats 1000000 in
+theorem execStmt_sqrtLoopTerminates_bound (evm : EVM.State) (y : Int) (hypos : 0 < y) :
+    ∀ fuel, ∀ locals x z,
+      z.toNat = fuel → 0 < x → 0 ≤ z →
+      locals.get? "y" = some (.int y) → locals.get? "x" = some (.int x) →
+      locals.get? "z" = some (.int z) →
+      ∃ locals' result,
+        ExecStmt config ({ contract := contract, locals := locals } : Frame) evm
+          (.while sqrtLoopCond sqrtLoopBody)
+          (.ok (show Frame from { contract := contract, locals := locals' }) evm) ∧
+        locals'.get? "z" = some (.int result) ∧
+        0 ≤ result ∧ result.toNat ≤ fuel := by
+  intro fuel
+  induction fuel using Nat.strong_induction_on with
+  | h fuel ih =>
+      intro locals x z hzFuel hxpos hznonneg hy hx hz
+      by_cases hlt : x < z
+      · have hcond := evalExpr_sqrtLoopCond_true evm locals x z hx hz hlt
+        have hbody := execBlock_sqrtLoopBody evm locals y x z hy hx hz (ne_of_gt hxpos)
+        have hzpos : 0 < z := by omega
+        have hmeasure : x.toNat < fuel := by
+          rw [← hzFuel]
+          exact (Int.toNat_lt_toNat hzpos).mpr hlt
+        obtain ⟨locals', result, hwhile, hzFinal, hresultNonneg, hresultFuel⟩ :=
+          ih x.toNat hmeasure
+            (sqrtLoopAfterBodyStore locals y x) (sqrtLoopNextX y x) x rfl
+            (sqrtLoopNextX_pos y x hypos hxpos) (by omega)
+            (sqrtLoopAfterBodyStore_y locals y x hy) (sqrtLoopAfterBodyStore_x locals y x)
+            (sqrtLoopAfterBodyStore_z locals y x)
+        exact ⟨locals', result, ExecStmt.whileTrue hcond hbody hwhile, hzFinal,
+          hresultNonneg, le_trans hresultFuel (Nat.le_of_lt hmeasure)⟩
+      · have hcond := evalExpr_sqrtLoopCond_false evm locals x z hx hz hlt
+        exact ⟨locals, z, ExecStmt.whileFalse hcond, hz, hznonneg, by
+          rw [hzFuel]⟩
+
 theorem uniswapSqrtFunctionBody_gt3 (evm : EVM.State) (y : UInt256)
     (hlarge : 3 < y.toNat) :
     ∃ locals' result,
@@ -380,6 +415,64 @@ theorem uniswapSqrtFunctionBody_gt3 (evm : EVM.State) (y : UInt256)
     rw [hzFinal]
   exact ExecBlock.consReturn (ExecStmt.return hret)
 
+theorem uniswapSqrtFunctionBody_gt3_bound (evm : EVM.State) (y : UInt256)
+    (hlarge : 3 < y.toNat) :
+    ∃ locals' result,
+      ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
+        sqrtFunction.body
+        (.returned { contract := contract, locals := locals' } evm (some (.int result))) ∧
+      0 ≤ result ∧ result.toNat < UInt256.size := by
+  have hypos : 0 < sqrtFunctionYInt y := by
+    unfold sqrtFunctionYInt
+    have hyNat : 0 < y.toNat := by omega
+    exact Int.ofNat_lt.mpr hyNat
+  obtain ⟨locals', result, hwhile, hzFinal, hresultNonneg, hresultFuel⟩ :=
+    execStmt_sqrtLoopTerminates_bound evm (sqrtFunctionYInt y) hypos y.toNat
+      (sqrtFunctionAfterInitStore y) (sqrtFunctionInitialX y) (sqrtFunctionYInt y)
+      (by simp [sqrtFunctionYInt])
+      (sqrtFunctionInitialX_pos y) (by simp [sqrtFunctionYInt])
+      (sqrtFunctionAfterInitStore_y y) (sqrtFunctionAfterInitStore_x y)
+      (sqrtFunctionAfterInitStore_z y)
+  have hresultSize : result.toNat < UInt256.size :=
+    lt_of_le_of_lt hresultFuel y.val.isLt
+  refine ⟨locals', result, ?_, hresultNonneg, hresultSize⟩
+  refine ExecFuncBody.execBlockRet ?_
+  change ExecBlock config { contract := contract, locals := sqrtFunctionCallStore y } evm
+    [ .ite (.binary .gt (.var "y") (.intLit 3))
+        [ .letDecl "z" (some uint256) (.var "y"),
+          .letDecl "x" (some uint256)
+            (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)),
+          .while (.binary .lt (.var "x") (.var "z"))
+            [ .assign .localVar { base := "z" } (.var "x"),
+              .assign .localVar { base := "x" }
+                (.binary .div
+                  (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+                  (.intLit 2)) ],
+          .return (.var "z") ]
+        [ .ite (.binary .ne (.var "y") (.intLit 0))
+            [ .return (.intLit 1) ]
+            [ .return (.intLit 0) ] ] ]
+    (.returned { contract := contract, locals := locals' } evm (some (.int result)))
+  refine ExecBlock.consReturn (ExecStmt.iteTrue
+    (evalExpr_sqrtFunction_outer_true evm y hlarge) ?_)
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)) ?_
+  have hwhile' :
+      ExecStmt config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
+        evm (.while sqrtLoopCond sqrtLoopBody)
+        (.ok ({ contract := contract, locals := locals' } : Frame) evm) := by
+    simpa using hwhile
+  change ExecBlock config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
+    evm [ .while sqrtLoopCond sqrtLoopBody, .return (.var "z") ]
+    (.returned { contract := contract, locals := locals' } evm (some (.int result)))
+  refine ExecBlock.consNormal hwhile' ?_
+  have hret :
+      evalExpr? config { contract := contract, locals := locals' } evm (.var "z") =
+        .ok (.int result) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [hzFinal]
+  exact ExecBlock.consReturn (ExecStmt.return hret)
+
 theorem uniswapSqrtFunctionBody_exists (evm : EVM.State) (y : UInt256) :
     ∃ locals' value,
       ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
@@ -391,6 +484,39 @@ theorem uniswapSqrtFunctionBody_exists (evm : EVM.State) (y : UInt256) :
   · have hlarge : 3 < y.toNat := by omega
     obtain ⟨locals', result, hbody⟩ := uniswapSqrtFunctionBody_gt3 evm y hlarge
     exact ⟨locals', .int result, hbody⟩
+
+theorem uniswapSqrtFunctionBody_intExists (evm : EVM.State) (y : UInt256) :
+    ∃ locals' result,
+      ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
+        sqrtFunction.body
+        (.returned { contract := contract, locals := locals' } evm (some (.int result))) := by
+  by_cases hsmall : y.toNat ≤ 3
+  · by_cases hy : y.toNat = 0
+    · refine ⟨sqrtFunctionCallStore y, 0, ?_⟩
+      simpa [sqrtFunctionSmallResultValue, hy] using
+        uniswapSqrtFunctionBody_le3 evm y hsmall
+    · refine ⟨sqrtFunctionCallStore y, 1, ?_⟩
+      simpa [sqrtFunctionSmallResultValue, hy] using
+        uniswapSqrtFunctionBody_le3 evm y hsmall
+  · have hlarge : 3 < y.toNat := by omega
+    exact uniswapSqrtFunctionBody_gt3 evm y hlarge
+
+theorem uniswapSqrtFunctionBody_intExistsBounded (evm : EVM.State) (y : UInt256) :
+    ∃ locals' result,
+      ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
+        sqrtFunction.body
+        (.returned { contract := contract, locals := locals' } evm (some (.int result))) ∧
+      0 ≤ result ∧ result.toNat < UInt256.size := by
+  by_cases hsmall : y.toNat ≤ 3
+  · by_cases hy : y.toNat = 0
+    · refine ⟨sqrtFunctionCallStore y, 0, ?_, by omega, by norm_num [UInt256.size]⟩
+      simpa [sqrtFunctionSmallResultValue, hy] using
+        uniswapSqrtFunctionBody_le3 evm y hsmall
+    · refine ⟨sqrtFunctionCallStore y, 1, ?_, by omega, by norm_num [UInt256.size]⟩
+      simpa [sqrtFunctionSmallResultValue, hy] using
+        uniswapSqrtFunctionBody_le3 evm y hsmall
+  · have hlarge : 3 < y.toNat := by omega
+    exact uniswapSqrtFunctionBody_gt3_bound evm y hlarge
 
 theorem uniswapSqrtFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     {y : UInt256} {args : List Expr} {retVar : Ident}
@@ -412,6 +538,50 @@ theorem uniswapSqrtFunctionCallSuccess {caller : Frame} {evm : EVM.State}
       (by simpa [hcontract] using uniswapLookupSqrtFunction)
       (bindParams_sqrtFunction_call y)
       (by simpa [hcontract] using hbody)⟩
+
+theorem uniswapSqrtFunctionCallSuccessInt {caller : Frame} {evm : EVM.State}
+    {y : UInt256} {args : List Expr} {retVar : Ident}
+    (hcontract : caller.contract = contract)
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    ∃ result,
+      ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+        (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) := by
+  obtain ⟨locals', result, hbody⟩ := uniswapSqrtFunctionBody_intExists evm y
+  exact ⟨result,
+    internalCallFunctionReturn
+      (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
+      (name := "sqrt") (retVar := retVar) (args := args)
+      (argVals := [sqrtFunctionYValue y])
+      (callee := sqrtFunction) (locals := sqrtFunctionCallStore y)
+      (calleeSolm := { contract := contract, locals := locals' })
+      (value := some (.int result))
+      hargs
+      (by simpa [hcontract] using uniswapLookupSqrtFunction)
+      (bindParams_sqrtFunction_call y)
+      (by simpa [hcontract] using hbody)⟩
+
+theorem uniswapSqrtFunctionCallSuccessIntBounded {caller : Frame} {evm : EVM.State}
+    {y : UInt256} {args : List Expr} {retVar : Ident}
+    (hcontract : caller.contract = contract)
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    ∃ result,
+      ExecStmt config caller evm (.internalCall "sqrt" args retVar)
+        (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) ∧
+      0 ≤ result ∧ result.toNat < UInt256.size := by
+  obtain ⟨locals', result, hbody, hresultNonneg, hresultSize⟩ :=
+    uniswapSqrtFunctionBody_intExistsBounded evm y
+  refine ⟨result, ?_, hresultNonneg, hresultSize⟩
+  exact internalCallFunctionReturn
+    (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
+    (name := "sqrt") (retVar := retVar) (args := args)
+    (argVals := [sqrtFunctionYValue y])
+    (callee := sqrtFunction) (locals := sqrtFunctionCallStore y)
+    (calleeSolm := { contract := contract, locals := locals' })
+    (value := some (.int result))
+    hargs
+    (by simpa [hcontract] using uniswapLookupSqrtFunction)
+    (bindParams_sqrtFunction_call y)
+    (by simpa [hcontract] using hbody)
 
 abbrev minFunctionXValue (x : UInt256) : Value :=
   uniswapUint256Value x
