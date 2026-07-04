@@ -21,7 +21,7 @@ the checked-in `.abi.json` files.
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Ready for proof | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Ready for proof | Yes |
-| `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Ready for proof | Yes |
+| `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
 | `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
@@ -76,7 +76,7 @@ the checked-in `.abi.json` files.
   message-call abstraction; exact 2300-gas stipend precision would be framework-level refinement,
   not missing local scaffold work.
 
-- `CompoundIII/CometRewards`: ready for proof, not yet handed off. Target theorem:
+- `CompoundIII/CometRewards`: handed off. Target theorem:
   `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`. Fresh solc 0.8.15 via-IR
   output exactly matches the checked-in Lean creation/runtime byte arrays and ABI; the solc storage
   layout matches the spec, including packed `RewardConfig` fields. The runtime has six
