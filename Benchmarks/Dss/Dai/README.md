@@ -35,9 +35,8 @@ Generated artifacts and scaffold files:
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold.
 - `SpecSyntax.lean`: Solm notation presentation, checked by `rfl` against the AST spec.
-- `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
-- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper,
-  intentionally `sorry` at the runtime target.
+- `Constructor.lean`: top-level constructor-equivalence theorem.
+- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper.
 
 Source and artifact hashes:
 
@@ -65,9 +64,8 @@ Scaffold notes:
 - `permit` is represented with its EIP-712 digest construction and an `ecrecover` precompile-shaped
   static call.  The reusable proof work here should isolate precompile-call, ABI-word encoding, and
   `ecrecover` return-data lemmas rather than baking them into one contract-specific proof.
-- This scaffold is not ready for proof agents until the remaining `uint8` ABI masking mismatch is
-  resolved: the bytecode masks `permit`'s `v` argument with `0xff`, while the current ABI decoder's
-  legacy mode still rejects non-canonical `uint8` calldata words.
+- The `permit` proof uses local legacy-mode ABI decode lemmas for the Solidity 0.6 wrapper's
+  `uint8`, `bool`, and `bytes32` calldata behavior.
 - Selector bytes, if needed during proof development, should follow the `Examples/*/Trusted.lean`
   convention: trust only the opaque Keccak selector byte computations, then prove dispatch facts
   from those axioms.
