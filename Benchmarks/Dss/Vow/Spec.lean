@@ -459,9 +459,9 @@ def flapTransition : TransitionDecl :=
     returnType := [uint256]
     body :=
       nonpayable ++
-      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
-        (perm := false) ++
       checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin0"
+        (perm := false) ++
+      checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
         (perm := false) ++
       [ .internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0",
         .internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed",
