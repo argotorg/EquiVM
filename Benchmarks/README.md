@@ -15,7 +15,7 @@ the checked-in `.abi.json` files.
 | Benchmark | Runtime bytes | Creation bytes | ABI surface | Readiness level | Ready for proof |
 | --- | ---: | ---: | --- | --- | --- |
 | `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
-| `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Handed off | Yes |
+| `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Ready for proof | Yes |
 | `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Ready for proof | Yes |
@@ -32,11 +32,8 @@ the checked-in `.abi.json` files.
 - `Dss/Dai`: completed. Target theorem: `Benchmarks.Dss.Dai.daiContractCorrect`.
   Proof work has been marked done.
 
-- `Dss/Vow`: handed off. Target theorem: `Benchmarks.Dss.Vow.vowContractCorrect`.
-  The scaffold builds with the intended constructor/runtime `sorry`s. The external-call
-  `EXTCODESIZE` guards have been audited against the bytecode. No semantic blocker is currently
-  known; remaining work is proof engineering around selectors, checked external calls, constructor,
-  and function bodies.
+- `Dss/Vow`: completed. Target theorem: `Benchmarks.Dss.Vow.vowContractCorrect`.
+  Proof work has been marked done.
 
 - `Dss/Vat`: ready for proof, not yet handed off. Target theorem:
   `Benchmarks.Dss.Vat.vatContractCorrect`. Fresh solc output exactly matches the checked-in Lean
