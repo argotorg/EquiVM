@@ -309,4 +309,90 @@ theorem execSubFunctionRevert (evm : EVM.State) {x y : UInt256}
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hSubRev)
   simpa [subFunction, checkedSubUintInto, locals] using ExecFuncBody.execBlockRevert hblock
 
+theorem execMinFunctionReturnLeft (evm : EVM.State) {x y : UInt256}
+    (hle : x.toNat ≤ y.toNat) :
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+      minFunction.body
+      (.returned { contract := contract, locals := uintBinaryLocalsZ x y x } evm
+        (some [.int (Int.ofNat x.toNat)])) := by
+  let locals := uintBinaryLocals x y
+  let localsZ := uintBinaryLocalsZ x y x
+  have hx :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [locals] using evalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
+  have hy :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "y") =
+        .ok (.int (Int.ofNat y.toNat)) := by
+    simpa [locals] using evalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
+  have hcond :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .le (.var "x") (.var "y")) = .ok (.bool true) :=
+    evalExpr_le_uint256_true hx hy hle
+  have hmin :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")) =
+          .ok (.int (Int.ofNat x.toNat)) := by
+    simp [evalExpr?, EvalResult.bind, bind, hcond, hx]
+  have hz :
+      evalExpr? config { contract := contract, locals := localsZ } evm (.var "z") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [localsZ] using evalExpr_varUInt256 (evm := evm)
+      (locals := localsZ) (name := "z") (value := x) (uintBinaryLocalsZ_get_z x y x)
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm
+        [ .letDecl "z" (some uint256)
+            (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")),
+          .return [.var "z"] ]
+        (.returned { contract := contract, locals := localsZ } evm
+          (some [.int (Int.ofNat x.toNat)])) := by
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmin) ?_
+    exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
+  simpa [minFunction, locals, localsZ] using ExecFuncBody.execBlockRet hblock
+
+theorem execMinFunctionReturnRight (evm : EVM.State) {x y : UInt256}
+    (hlt : y.toNat < x.toNat) :
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
+      minFunction.body
+      (.returned { contract := contract, locals := uintBinaryLocalsZ x y y } evm
+        (some [.int (Int.ofNat y.toNat)])) := by
+  let locals := uintBinaryLocals x y
+  let localsZ := uintBinaryLocalsZ x y y
+  have hx :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [locals] using evalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
+  have hy :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "y") =
+        .ok (.int (Int.ofNat y.toNat)) := by
+    simpa [locals] using evalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
+  have hcond :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .le (.var "x") (.var "y")) = .ok (.bool false) :=
+    evalExpr_le_uint256_false hx hy hlt
+  have hmin :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")) =
+          .ok (.int (Int.ofNat y.toNat)) := by
+    simp [evalExpr?, EvalResult.bind, bind, hcond, hy]
+  have hz :
+      evalExpr? config { contract := contract, locals := localsZ } evm (.var "z") =
+        .ok (.int (Int.ofNat y.toNat)) := by
+    simpa [localsZ] using evalExpr_varUInt256 (evm := evm)
+      (locals := localsZ) (name := "z") (value := y) (uintBinaryLocalsZ_get_z x y y)
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm
+        [ .letDecl "z" (some uint256)
+            (.ite (.binary .le (.var "x") (.var "y")) (.var "x") (.var "y")),
+          .return [.var "z"] ]
+        (.returned { contract := contract, locals := localsZ } evm
+          (some [.int (Int.ofNat y.toNat)])) := by
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmin) ?_
+    exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
+  simpa [minFunction, locals, localsZ] using ExecFuncBody.execBlockRet hblock
+
 end Benchmarks.Dss.Vow

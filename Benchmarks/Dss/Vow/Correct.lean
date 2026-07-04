@@ -1,17 +1,23 @@
 import Benchmarks.Dss.Vow.Ash
 import Benchmarks.Dss.Vow.Bump
 import Benchmarks.Dss.Vow.Cage
+import Benchmarks.Dss.Vow.CageBodyRuntime
+import Benchmarks.Dss.Vow.CageBodyRuntimeTail
 import Benchmarks.Dss.Vow.Common
-import Benchmarks.Dss.Vow.Constructor
+import Benchmarks.Dss.Vow.ConstructorTail
 import Benchmarks.Dss.Vow.Deny
 import Benchmarks.Dss.Vow.Dump
 import Benchmarks.Dss.Vow.Fess
 import Benchmarks.Dss.Vow.FileAddressFlapperBody
 import Benchmarks.Dss.Vow.FileUint
-import Benchmarks.Dss.Vow.Flap
+import Benchmarks.Dss.Vow.FlapRuntime
 import Benchmarks.Dss.Vow.Flapper
 import Benchmarks.Dss.Vow.Flog
 import Benchmarks.Dss.Vow.Flop
+import Benchmarks.Dss.Vow.FlopDai
+import Benchmarks.Dss.Vow.FlopAsh
+import Benchmarks.Dss.Vow.FlopKick
+import Benchmarks.Dss.Vow.FlopBody
 import Benchmarks.Dss.Vow.Flopper
 import Benchmarks.Dss.Vow.HealBody
 import Benchmarks.Dss.Vow.Hump
@@ -274,7 +280,7 @@ theorem vowCorrectWith
 
 theorem vowCorrect :
     runtimeEquivalence!?! config vowBytecode contract := by
-  sorry
+  exact vowCorrectWith vowCageBody vowFlapBody vowFlopBody
 
 theorem vowContractCorrect :
     contractEquivalence config vowCreationBytecode vowBytecode contract :=

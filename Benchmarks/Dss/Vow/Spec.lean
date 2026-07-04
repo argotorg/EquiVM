@@ -235,7 +235,7 @@ def constructorDecl : ConstructorDecl :=
         .assign .storage vatRef (.var "vat_"),
         .assign .storage flapperRef (.var "flapper_"),
         .assign .storage flopperRef (.var "flopper_") ] ++
-      checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flapper_"] "_hopeRet" ++
+      checkedExternalCallStmts (.var "vat_") "hope" (.intLit 0) [.var "flapper_"] "_hopeRet" ++
       [ .assign .storage liveRef (.intLit 1) ] }
 
 /-! ## Internal functions -/
@@ -461,10 +461,11 @@ def flapTransition : TransitionDecl :=
       nonpayable ++
       checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin0"
         (perm := false) ++
+      [ .internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0",
+        .internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed" ] ++
       checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [thisAddr] "vatDai"
         (perm := false) ++
-      [ .internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0",
-        .internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed",
+      [
         .require (.binary .ge (.var "vatDai") (.var "surplusNeed")) ] ++
       checkedExternalCallStmts (.storage vatRef) "sin" (.intLit 0) [thisAddr] "vatSin1"
         (perm := false) ++

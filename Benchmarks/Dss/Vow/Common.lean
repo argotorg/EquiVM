@@ -226,6 +226,55 @@ theorem RD.solcCheckedAddEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State
     raw dup1 hdRev2 (by evm_ov),
     raw rev 0 hdRev3 mem_cost (by evm_ov)]
 
+theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with ⟨hadd, hdRev0, hdRev2, hdRev3⟩
+  rcases hadd with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
+  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
+    have ha : a.toNat < UInt256.size := a.val.isLt
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have hmod : (a.toNat + b.toNat) % UInt256.size =
+      a.toNat + b.toNat - UInt256.size := by
+    rw [Nat.mod_eq_sub_mod hover]
+    exact Nat.mod_eq_of_lt (by omega)
+  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
+    rw [uadd_toNat, hmod]
+  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have rd6 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw dup1 hd1 (by evm_ov),
+    raw dup3 hd2 (by evm_ov),
+    raw add hd3 (by evm_ov),
+    raw dup3 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov)]
+  have rd7₀ := evm_run rd6 with [raw lt hd6 (by evm_ov)]
+  have rd7 := rd7₀
+  rw [hlt] at rd7
+  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
+  have rd8 := rd8₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
+  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
+  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
+  have rdTail := by
+    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
+  have rdRev := evm_run rdTail with [
+    raw push1 ⟨0⟩ hdRev0 (by evm_ov),
+    raw dup1 hdRev2 (by evm_ov)]
+  exact RD.rev 0 rdRev hdRev3 (fun s _ hstk => memExpRevert0 s hstk) (by evm_ov)
+
 -- LIBRARY CANDIDATE: checked-sub variant of `RD.solcCheckedAddEmptyRevert`.
 @[reducible] def solcCheckedSubEmptyRevertWf
     (code : ByteArray) (pc okPc : UInt256) : Prop :=
