@@ -191,14 +191,8 @@ def pow10Function : FunctionDecl :=
     params := [{ name := "n", ty := (.elem (.int (.uint ⟨8, by decide⟩))) }]
     returnType := [uint256]
     body :=
-      [ .letDecl "result" (some uint256) (.intLit 1),
-        .letDecl "i" (some uint256) (.intLit 0),
-        .while (.binary .lt (.var "i") (.var "n"))
-          [ .assign .localVar { base := "result" }
-              (u256 (.binary .mul (.var "result") (.intLit 10))),
-            .assign .localVar { base := "i" }
-              (.binary .add (.var "i") (.intLit 1)) ],
-        .return [.var "result"] ] }
+      [ .require (.binary .le (.var "n") (.intLit 77)),
+        .return [u256 (.binary .exp (.intLit 10) (.var "n"))] ] }
 
 def getRewardAccruedFunction : FunctionDecl :=
   { name := "getRewardAccrued"

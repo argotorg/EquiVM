@@ -1,10 +1,11 @@
 # Benchmark Status
 
-Last updated: 2026-07-03.
+Last updated: 2026-07-04.
 
-This file tracks whether a benchmark is ready to give to a proving agent. "Handed off" means the
-benchmark has been selected for agent proof work and no current semantic blocker is recorded here.
-It does not mean the theorem is already proved.
+This file tracks whether a benchmark is ready to give to a proving agent. "Completed" means the
+proof task has been marked done. "Handed off" means the benchmark has been selected for agent proof
+work and no current semantic blocker is recorded here. It does not mean the theorem is already
+proved.
 
 Sizes are byte counts from checked-in `runtime.hex` and `creation.hex`. ABI surface counts are from
 the checked-in `.abi.json` files.
@@ -13,7 +14,7 @@ the checked-in `.abi.json` files.
 
 | Benchmark | Runtime bytes | Creation bytes | ABI surface | Readiness level | Ready for proof |
 | --- | ---: | ---: | --- | --- | --- |
-| `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Handed off | Yes |
+| `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
 | `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Handed off | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Ready for proof | Yes |
 | `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
@@ -26,12 +27,10 @@ the checked-in `.abi.json` files.
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
 | `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
 
-## Ready for proof / handed off
+## Completed / ready for proof / handed off
 
-- `Dss/Dai`: handed off. Target theorem: `Benchmarks.Dss.Dai.daiContractCorrect`.
-  The scaffold builds with the intended constructor/runtime `sorry`s. Remaining work is proof
-  engineering around selectors, dispatcher/body traces, EIP-712 hashing, `ecrecover`, and ERC20
-  state updates.
+- `Dss/Dai`: completed. Target theorem: `Benchmarks.Dss.Dai.daiContractCorrect`.
+  Proof work has been marked done.
 
 - `Dss/Vow`: handed off. Target theorem: `Benchmarks.Dss.Vow.vowContractCorrect`.
   The scaffold builds with the intended constructor/runtime `sorry`s. The external-call
