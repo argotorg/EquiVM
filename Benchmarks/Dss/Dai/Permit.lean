@@ -1105,6 +1105,15 @@ theorem permitRecoveredStore_get_nonces (evm : EVM.State) (I : ExecutionEnv)
   rw [store_get_ne _ _ (by native_decide)]
   exact permitStore_get_nonces I
 
+theorem evalExpr_binary_nonshort {cfg solm evm op lhs rhs}
+    (hand : op ≠ BinaryOp.and) (hor : op ≠ BinaryOp.or) :
+    evalExpr? cfg solm evm (.binary op lhs rhs) =
+      (do
+        let lhsValue <- evalExpr? cfg solm evm lhs
+        let rhsValue <- evalExpr? cfg solm evm rhs
+        evalBinaryOp? op lhsValue rhsValue) := by
+  cases op <;> simp [evalExpr?] at hand hor ⊢
+
 theorem evalExpr_permitRecoveredStore_holder_eq_recovered_true
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (recovered : AccountAddress)
@@ -1113,7 +1122,7 @@ theorem evalExpr_permitRecoveredStore_holder_eq_recovered_true
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "holder") (.var "recovered")) =
       .ok (.bool true) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_holder, evalExpr_permitRecoveredStore_recovered]
   simp only [EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.eq (permitHolderValue I) (.address recovered) = .ok (.bool true)
@@ -1129,7 +1138,7 @@ theorem evalExpr_permitRecoveredStore_holder_eq_recovered_false
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "holder") (.var "recovered")) =
       .ok (.bool false) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_holder, evalExpr_permitRecoveredStore_recovered]
   simp only [EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.eq (permitHolderValue I) (.address recovered) = .ok (.bool false)
@@ -1186,7 +1195,7 @@ theorem evalExpr_permitRecoveredStore_nonce_eq_storage_true
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "nonce") (.storage (noncesRef (.var "holder")))) =
       .ok (.bool true) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_nonce, evalExpr_permitRecoveredStore_nonce_storage]
   simp [EvalResult.bind, bind, pure, evalBinaryOp?, permitNonceValue, hmatch]
 
@@ -1200,7 +1209,7 @@ theorem evalExpr_permitRecoveredStore_nonce_eq_storage_false
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "nonce") (.storage (noncesRef (.var "holder")))) =
       .ok (.bool false) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_nonce, evalExpr_permitRecoveredStore_nonce_storage]
   simp [EvalResult.bind, bind, pure, evalBinaryOp?, permitNonceValue]
   intro hbad
@@ -1215,7 +1224,7 @@ theorem evalExpr_permitRecoveredStore_expiry_eq_zero_true
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "expiry") (.intLit 0)) =
       .ok (.bool true) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_expiry]
   rw [show evalExpr? config
       { contract := contract, locals := permitRecoveredStore evm I out recovered }
@@ -1233,7 +1242,7 @@ theorem evalExpr_permitRecoveredStore_expiry_eq_zero_false
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .eq (.var "expiry") (.intLit 0)) =
       .ok (.bool false) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_expiry]
   rw [show evalExpr? config
       { contract := contract, locals := permitRecoveredStore evm I out recovered }
@@ -1256,7 +1265,7 @@ theorem evalExpr_permitRecoveredStore_timestamp_le_expiry_true
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .le (.env .timestamp) (.var "expiry")) =
       .ok (.bool true) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_expiry]
   rw [show evalExpr? config
       { contract := contract, locals := permitRecoveredStore evm I out recovered }
@@ -1279,7 +1288,7 @@ theorem evalExpr_permitRecoveredStore_timestamp_le_expiry_false
         { contract := contract, locals := permitRecoveredStore evm I out recovered }
         evm' (.binary .le (.env .timestamp) (.var "expiry")) =
       .ok (.bool false) := by
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_expiry]
   rw [show evalExpr? config
       { contract := contract, locals := permitRecoveredStore evm I out recovered }
@@ -1356,7 +1365,7 @@ theorem evalExpr_permitRecoveredStore_nonce_increment
         evm' (uncheckedAdd256 (.storage (noncesRef (.var "holder"))) (.intLit 1)) =
       .ok (.int (Int.ofNat (permitNonceWord I).toNat + 1)) := by
   rw [uncheckedAdd256]
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   rw [evalExpr_permitRecoveredStore_nonce_storage]
   rw [show evalExpr? config
       { contract := contract, locals := permitRecoveredStore evm I out recovered }
@@ -1646,7 +1655,7 @@ theorem evalExpr_permit_holder_ne_zero_true (evm : EVM.State) (I : ExecutionEnv)
     exact hnz (permitHolderMaskedWord_eq_zero_of_address_zero I hbad)
   have hlhs := evalExpr_permitStore_holder evm I
   have hrhs := evalExpr_zeroAddr evm (permitStore I)
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   simp only [hlhs, hrhs, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.ne (permitHolderValue I)
       (.address (AccountAddress.ofNat 0)) = .ok (.bool true)
@@ -1662,7 +1671,7 @@ theorem evalExpr_permit_holder_ne_zero_false (evm : EVM.State) (I : ExecutionEnv
   have haddr := permitHolderAddress_eq_zero_of_masked_zero I hz
   have hlhs := evalExpr_permitStore_holder evm I
   have hrhs := evalExpr_zeroAddr evm (permitStore I)
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   simp only [hlhs, hrhs, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.ne (permitHolderValue I)
       (.address (AccountAddress.ofNat 0)) = .ok (.bool false)
@@ -1679,7 +1688,7 @@ theorem evalExpr_permitDigestStore_holder_ne_zero_true (evm : EVM.State) (I : Ex
     exact hnz (permitHolderMaskedWord_eq_zero_of_address_zero I hbad)
   have hlhs := evalExpr_permitDigestStore_holder evm I
   have hrhs := evalExpr_zeroAddr evm (permitDigestStore evm I)
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   simp only [hlhs, hrhs, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.ne (permitHolderValue I)
       (.address (AccountAddress.ofNat 0)) = .ok (.bool true)
@@ -1695,7 +1704,7 @@ theorem evalExpr_permitDigestStore_holder_ne_zero_false (evm : EVM.State) (I : E
   have haddr := permitHolderAddress_eq_zero_of_masked_zero I hz
   have hlhs := evalExpr_permitDigestStore_holder evm I
   have hrhs := evalExpr_zeroAddr evm (permitDigestStore evm I)
-  rw [evalExpr?]
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
   simp only [hlhs, hrhs, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.ne (permitHolderValue I)
       (.address (AccountAddress.ofNat 0)) = .ok (.bool false)
