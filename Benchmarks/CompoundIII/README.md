@@ -60,10 +60,14 @@ Scaffold notes:
 - Selector bytes, if needed in downstream proofs, should follow the `Examples/*/Trusted.lean`
   convention: trust only opaque Keccak selector byte computations, then prove dispatch facts from
   those axioms.
+- `CometRewards` has been handed off for proof and semantically audited for the current equivalence
+  relation. Its 0.8.15 via-IR artifacts match the Lean byte arrays, its packed storage layout
+  matches the spec, and its no-return `accrueAccount` calls include the solc `EXTCODESIZE` guards
+  in the spec.
 - The Comet runtime artifact is solc's unpatched `--bin-runtime` template. Its immutable template
   values are explicit in `Comet/Immutables.lean`, and its payable fallback is modeled in
   `Comet/Spec.lean`.
-- Comet does not currently expose a whole-contract constructor wrapper. The constructor returns
-  runtime bytes patched with immutable values derived from constructor calldata and external
-  constructor calls, while the current `constructorEquivalence` shape compares against one fixed
-  runtime byte array.
+- Comet exposes a parameterized immutable-aware whole-contract wrapper using
+  `constructorEquivalenceWith`, but it is still not ready for proof: the constructor spec contains
+  placeholders for `numAssets`, asset-list creation, constructor validation, and external-call
+  wiring, and several runtime protocol bodies remain source-level scaffolds.

@@ -51,11 +51,15 @@ vat.sol.ast.json  sha256 403328c674c3b6f3365d616e039a4ff048a546a7b273412d0440461
 
 Scaffold notes:
 
+- Readiness: ready for proof as of 2026-07-03. Fresh solc output exactly matches the checked-in
+  Lean creation/runtime byte arrays, and the solc storage layout matches `Spec.lean`.
 - The named ABI surface includes public storage getters, auth, permission, administration,
   fungibility, CDP manipulation, confiscation, settlement, and rate updates.
 - Storage layout is transcribed from solc's `--storage-layout`: `wards` slot 0, `can` slot 1,
   `ilks` slot 2, `urns` slot 3, `gem` slot 4, `dai` slot 5, `sin` slot 6, `debt` slot 7,
   `vice` slot 8, `Line` slot 9, and `live` slot 10.
+- Runtime opcode audit: no `CALL`, `STATICCALL`, `DELEGATECALL`, `CALLCODE`, `CREATE`, `CREATE2`,
+  `SELFDESTRUCT`, or `EXTCODESIZE` sites are present in the deployed runtime.
 - Maker's checked `_add`, `_sub`, and `_mul` helpers are modeled explicitly for both unsigned and
   signed arguments. Reusable proof work should isolate these helper lemmas.
 - The `either` and `both` helpers are ordinary internal Solidity functions, so arithmetic-heavy

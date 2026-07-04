@@ -41,10 +41,9 @@ Status:
   slots.
 - The payable fallback path is represented by a raw-bytes Solm fallback that delegates to
   `extensionDelegate`.
-- There is no honest whole-contract constructor wrapper for this artifact yet. Comet's constructor
-  returns runtime bytecode whose immutable slots depend on constructor calldata and external
-  constructor calls, while the current `constructorEquivalence` statement compares against one fixed
-  runtime byte array.
+- The theorem now uses an immutable-aware `constructorEquivalenceWith` wrapper, but the constructor
+  spec is still not faithful enough for handoff: `numAssets`, asset-list creation, constructor
+  validation, and constructor external-call wiring remain placeholders.
 - Several protocol bodies are still source-level scaffolds, not final proof-ready specs. In
-  particular, the lending/transfer/liquidation paths and asset-list external calls still need full
-  Solm bodies before this benchmark is ready for an agent to prove end-to-end.
+  particular, the lending, transfer, liquidation, oracle, collateral, and asset-list paths still
+  need full Solm bodies before this benchmark is ready for an agent to prove end-to-end.

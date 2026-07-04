@@ -408,6 +408,40 @@ def rawCallTransportConfig (storage : StorageLayout) (calldata : ByteArray) : Co
         decode? := fun _ _ => none }
     selfDeployment := fun _ _ => none }
 
+/-- Raw low-level call transport across observationally equivalent account maps, for either ordinary
+    calls or static calls. -/
+theorem callViaEVM_accountMapEquiv_perm {storage : StorageLayout}
+    {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray} {z : Bool} {out : ByteArray}
+    {callPerm : Bool}
+    (hcall : callViaEVM evm_evm tgt value calldata (z, evm'_evm, out) callPerm)
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (hSubstate : evm_solm.substate = evm_evm.substate)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM evm_solm tgt value calldata
+        (z,
+          { evm_solm with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) callPerm ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm := by
+  let cfg := rawCallTransportConfig storage calldata
+  have htyped : typedCallViaEVM cfg evm_evm tgt "" value [] (z, evm'_evm, out) callPerm :=
+    ⟨calldata, rfl, hcall⟩
+  obtain ⟨σ'_solm, A'_solm, htyped_solm, hσ'⟩ :=
+    typedCallViaEVM_accountMapEquiv htyped hAccounts hOriginalAccounts hCreated hGenesis hBlocks
+      hSubstate hEnv
+  rcases htyped_solm with ⟨calldata', henc, hraw⟩
+  simp only [cfg, rawCallTransportConfig] at henc
+  cases henc
+  exact ⟨σ'_solm, A'_solm, hraw, hσ'⟩
+
 /-- Raw low-level call transport across observationally equivalent account maps. -/
 theorem callViaEVM_accountMapEquiv {storage : StorageLayout}
     {evm_evm evm_solm evm'_evm : EVM.State}
@@ -428,17 +462,36 @@ theorem callViaEVM_accountMapEquiv {storage : StorageLayout}
               substate := A'_solm
               createdAccounts := evm'_evm.createdAccounts },
           out) ∧
-      accountMapEquiv evm'_evm.accountMap σ'_solm := by
-  let cfg := rawCallTransportConfig storage calldata
-  have htyped : typedCallViaEVM cfg evm_evm tgt "" value [] (z, evm'_evm, out) :=
-    ⟨calldata, rfl, hcall⟩
-  obtain ⟨σ'_solm, A'_solm, htyped_solm, hσ'⟩ :=
-    typedCallViaEVM_accountMapEquiv htyped hAccounts hOriginalAccounts hCreated hGenesis hBlocks
-      hSubstate hEnv
-  rcases htyped_solm with ⟨calldata', henc, hraw⟩
-  simp only [cfg, rawCallTransportConfig] at henc
-  cases henc
-  exact ⟨σ'_solm, A'_solm, hraw, hσ'⟩
+      accountMapEquiv evm'_evm.accountMap σ'_solm :=
+  callViaEVM_accountMapEquiv_perm (storage := storage) hcall hAccounts hOriginalAccounts
+    hCreated hGenesis hBlocks hSubstate hEnv
+
+/-- `initState`-specialized raw low-level call transport. -/
+theorem callViaEVM_initState_accountMapEquiv_perm {storage : StorageLayout}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray} {callPerm : Bool}
+    (hcall : callViaEVM (initState cA gh bl σ_evm σ₀ g A I) tgt value calldata
+      (z, evm'_evm, out) callPerm)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM (initState cA gh bl σ_solm σ₀ g A I) tgt value calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀ g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) callPerm ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm :=
+  callViaEVM_accountMapEquiv_perm (storage := storage)
+    (evm_solm := initState cA gh bl σ_solm σ₀ g A I) hcall
+    (by simpa [initState] using hAccounts)
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
+    (by simp [initState])
 
 /-- `initState`-specialized raw low-level call transport. -/
 theorem callViaEVM_initState_accountMapEquiv {storage : StorageLayout}
@@ -457,15 +510,33 @@ theorem callViaEVM_initState_accountMapEquiv {storage : StorageLayout}
               createdAccounts := evm'_evm.createdAccounts },
           out) ∧
       accountMapEquiv evm'_evm.accountMap σ'_solm :=
-  callViaEVM_accountMapEquiv (storage := storage)
-    (evm_solm := initState cA gh bl σ_solm σ₀ g A I) hcall
-    (by simpa [initState] using hAccounts)
-    (by simp [initState])
-    (by simp [initState])
-    (by simp [initState])
-    (by simp [initState])
-    (by simp [initState])
-    (by simp [initState])
+  callViaEVM_initState_accountMapEquiv_perm (storage := storage) hcall hAccounts
+
+/-- `EVMStateEquiv`-returning form of raw low-level call transport. -/
+theorem callViaEVM_initState_EVMStateEquiv_perm {storage : StorageLayout}
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray} {callPerm : Bool}
+    (hcall : callViaEVM (initState cA gh bl σ_evm σ₀ g A I) tgt value calldata
+      (z, evm'_evm, out) callPerm)
+    (hEnv : evm'_evm.executionEnv = (initState cA gh bl σ_solm σ₀ g A I).executionEnv)
+    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      callViaEVM (initState cA gh bl σ_solm σ₀ g A I) tgt value calldata
+        (z,
+          { initState cA gh bl σ_solm σ₀ g A I with
+              accountMap := σ'_solm
+              substate := A'_solm
+              createdAccounts := evm'_evm.createdAccounts },
+          out) callPerm ∧
+      EVMStateEquiv evm'_evm
+        { initState cA gh bl σ_solm σ₀ g A I with
+            accountMap := σ'_solm
+            substate := A'_solm
+            createdAccounts := evm'_evm.createdAccounts } := by
+  obtain ⟨σ'_solm, A'_solm, hcall_solm, hσ'⟩ :=
+    callViaEVM_initState_accountMapEquiv_perm (storage := storage) hcall hAccounts
+  exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
 
 /-- `EVMStateEquiv`-returning form of raw low-level call transport. -/
 theorem callViaEVM_initState_EVMStateEquiv {storage : StorageLayout}
@@ -488,10 +559,8 @@ theorem callViaEVM_initState_EVMStateEquiv {storage : StorageLayout}
         { initState cA gh bl σ_solm σ₀ g A I with
             accountMap := σ'_solm
             substate := A'_solm
-            createdAccounts := evm'_evm.createdAccounts } := by
-  obtain ⟨σ'_solm, A'_solm, hcall_solm, hσ'⟩ :=
-    callViaEVM_initState_accountMapEquiv (storage := storage) hcall hAccounts
-  exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
+            createdAccounts := evm'_evm.createdAccounts } :=
+  callViaEVM_initState_EVMStateEquiv_perm (storage := storage) hcall hEnv hAccounts
 
 theorem delegateCallViaEVM_executionEnv_eq {evm evm' : EVM.State}
     {target : EVM.Address} {calldata : ByteArray} {z : Bool} {out : ByteArray}

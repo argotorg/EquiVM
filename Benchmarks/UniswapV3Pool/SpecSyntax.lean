@@ -20,12 +20,15 @@ def constructorDeclSyntax : ConstructorDecl := Benchmarks.UniswapV3Pool.construc
 def transitionsSyntax (v : PoolImmutables) : List TransitionDecl :=
   Benchmarks.UniswapV3Pool.transitions v
 
+def functionsSyntax (v : PoolImmutables) : List FunctionDecl :=
+  Benchmarks.UniswapV3Pool.functions v
+
 def contractSyntax (v : PoolImmutables) : ContractDecl :=
   { name := "UniswapV3Pool"
     storage := storageDeclsSyntax
     ctor := constructorDeclSyntax
     structs := Benchmarks.UniswapV3Pool.structs
-    functions := []
+    functions := functionsSyntax v
     transitions := transitionsSyntax v }
 
 theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.UniswapV3Pool.storageDecls := by

@@ -4,6 +4,7 @@ import Examples.Caller.Correct
 import Examples.ERC20.Correct
 import Examples.CtorTruth.Correct
 import Examples.CtorStore.Correct
+import Examples.TinyImmutable.Correct
 import Examples.Ballot.Correct
 import Examples.SimpleAuction.Correct
 import Examples.StringStoreLite.Correct

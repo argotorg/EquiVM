@@ -8,4 +8,5 @@ _mcp_snippet_*.lean
 CLAUDE.md
 .claude
 .codex
-.vscode
+.vscodei
+.DS_STORE

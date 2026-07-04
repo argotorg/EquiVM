@@ -25,8 +25,8 @@ Compiler:
 
 Generated artifacts:
 
-- `creation.hex`: optimized creation bytecode.
-- `runtime.hex`: optimized deployed runtime bytecode.
+- `creation.hex`: optimized creation bytecode, 2055 bytes.
+- `runtime.hex`: optimized deployed runtime bytecode, 1763 bytes.
 - `WETH9.abi.json`: ABI emitted by solc.
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold.
@@ -44,10 +44,14 @@ runtime.hex    sha256 f9305212a27f96e0334879d068df59d0fed30ab0afeabd9e5c5b7278ad
 
 Current scaffold notes:
 
+- Readiness: ready for proof as of 2026-07-03. Fresh solc output exactly matches the checked-in
+  Lean creation/runtime byte arrays.
 - The named ABI surface is explicit.
 - The payable fallback `function() external payable { deposit(); }` is modeled as the same storage
   update as `deposit()`.
 - `name` and `symbol` use Solidity compact dynamic-string storage: creation initializes slots 0 and
   1, and the runtime getters read those storage values.
 - `withdraw` uses `lowLevelCall` plus `require(success)` to model `msg.sender.transfer(wad)`;
-  the exact 2300-gas stipend is a later proof/detail refinement.
+  the deployed runtime has one value-sending `CALL` site and no `EXTCODESIZE` guard. Under Solm's
+  current message-call abstraction, the exact 2300-gas stipend is a framework-level precision
+  refinement rather than missing local benchmark scaffold work.
