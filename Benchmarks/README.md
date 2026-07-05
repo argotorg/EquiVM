@@ -18,7 +18,7 @@ the checked-in `.abi.json` files.
 | `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Ready for proof | Yes |
 | `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
-| `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Handed off | Yes |
+| `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Handed off | Yes |
 | `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Ready for proof | Yes |
@@ -51,12 +51,11 @@ the checked-in `.abi.json` files.
   bytecode call path). No semantic blocker is currently known; expected proof work is `_rpow`,
   checked arithmetic, and typed external-call reasoning.
 
-- `Dss/Jug`: handed off. Target theorem:
+- `Dss/Jug`: completed. Target theorem:
   `Benchmarks.Dss.Jug.jugContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
-  `VatLike.ilks` and `VatLike.fold`. No semantic blocker is currently known; expected proof work is
-  `_rpow`, `_rmul`, `_diff`, timestamp/rho arithmetic, and typed external-call return decoding.
+  `VatLike.ilks` and `VatLike.fold`. Proof work has been marked done.
 
 - `Dss/Spot`: ready for proof, not yet handed off. Target theorem:
   `Benchmarks.Dss.Spot.spotContractCorrect`. Fresh solc output exactly matches the checked-in Lean
