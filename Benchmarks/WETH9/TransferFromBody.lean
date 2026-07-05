@@ -526,6 +526,42 @@ def wtfPostMap (ee : ExecutionEnv) (σ : AccountMap) (src dst wad : UInt256) : A
   sstoreAccountMap ee.codeOwner (wtfSrcDebitedMap ee σ src wad) (wtfBalSlot dst)
     (UInt256.add wad (solcSlotWord (wtfSrcDebitedMap ee σ src wad) ee (wtfBalSlot dst)))
 
+/-- `wordAt0Mem` leaves the free-pointer slot (bytes 64–95) untouched. -/
+private theorem wtfTail_wordAt0Mem_read64 {m : ByteArray} (word : UInt256) (hm : m.size = 96) :
+    (wordAt0Mem word m).readWithPadding 64 32 = m.readWithPadding 64 32 := by
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hm]; omega) (by omega)
+    (by rw [hm])]
+
+/-- Overwriting `mem[0]` with `key` (leaving `slot` at `mem[32]`) makes the first 64 scratch bytes
+    hash to the mapping slot `keccak(key ‖ slot)`. -/
+private theorem wtfTail_wordAt0Mem_keccak {m : ByteArray} (key slot : UInt256) (hm : m.size = 96)
+    (hread32 : m.readWithPadding 32 32 = UInt256.toByteArray slot) :
+    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem key m).readWithPadding 0 64))) =
+      solcMappingSlot slot key := by
+  have hread0 : (wordAt0Mem key m).readWithPadding 0 32 = UInt256.toByteArray key :=
+    wordAt0Mem_read0 key m
+  have hread32' : (wordAt0Mem key m).readWithPadding 32 32 = UInt256.toByteArray slot := by
+    unfold wordAt0Mem
+    rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size]) (by rw [hm]; omega) (by omega)
+      (by rw [hm]; omega)]
+    exact hread32
+  have hread0_64 : (wordAt0Mem key m).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+    rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [wordAt0Mem_size_96 key hm]; omega)]
+    have hleft : (wordAt0Mem key m).extract 0 32 = UInt256.toByteArray key := by
+      rw [← readWithPadding_eq_extract _ 0 (by rw [wordAt0Mem_size_96 key hm]; omega), hread0]
+    have hright : (wordAt0Mem key m).extract 32 64 = UInt256.toByteArray slot := by
+      rw [← readWithPadding_eq_extract _ 32 (by rw [wordAt0Mem_size_96 key hm]; omega), hread32']
+    rw [show (wordAt0Mem key m).extract 0 64 =
+        (wordAt0Mem key m).extract 0 32 ++ (wordAt0Mem key m).extract 32 64 by
+      rw [ByteArray.extract_append_extract]; norm_num]
+    rw [hleft, hright]
+  rw [hread0_64]
+  unfold solcMappingSlot
+  exact mappingSlot_single key slot
+
 /-- The shared tail (pc 1282 → JUMP `ret`): `balanceOf[src] -= wad`, `balanceOf[dst] += wad`,
     emit the `Transfer` LOG3, push the boolean `1`, and JUMP back to the caller's return address,
     leaving `[1, S]` on the stack with the wad written to the scratch return buffer. -/
@@ -541,6 +577,79 @@ theorem weth9TFTail {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : L
     ∃ k' C', RD weth9Bytecode ee g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad) (UInt256.ofNat 5)
       rdata (cA, wtfPostMap ee σ src dst wad) k' C' := by
-  sorry
+  have hmem0size : (twoWordHashMem src ⟨3⟩ mem).size = 96 :=
+    twoWordHashMem_size_96 src ⟨3⟩ hmemsize
+  have hM0size : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).size = 96 :=
+    wordAt0Mem_size_96 dst hmem0size
+  have hM0read64 : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 64 32
+      = UInt256.toByteArray ⟨128⟩ := by
+    rw [wtfTail_wordAt0Mem_read64 dst hmem0size, twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64]
+  have hkecSrc : UInt256.ofNat (fromByteArrayBigEndian
+      (ffi.KEC ((twoWordHashMem src ⟨3⟩ mem).readWithPadding 0 64))) = wtfBalSlot src :=
+    twoWordHashMem_solcMappingSlot ⟨3⟩ src hmemsize
+  have hkecDst : UInt256.ofNat (fromByteArrayBigEndian
+      (ffi.KEC ((wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 0 64)))
+        = wtfBalSlot dst :=
+    wtfTail_wordAt0Mem_keccak dst ⟨3⟩ hmem0size (twoWordHashMem_read32 src ⟨3⟩ hmemsize)
+  -- pc 1282 → 1293: build the address mask, mask `src`
+  have rdA := evm_run h with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup1, dup6, and]
+  rw [wtf_maskLiteral hsrc] at rdA
+  -- pc 1294 → 1311: scratch `src ‖ 3`, keccak `balanceOf[src]` slot, DUP1 for the store
+  have rdB := evm_run rdA with [
+    push1 ⟨0⟩, dup2, dup2,
+    raw mstore 0 (wordAt0Mem src mem) (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl)
+      (by native_decide) (by evm_ov),
+    push1 ⟨3⟩, push1 ⟨32⟩, swap1, dup2,
+    raw mstore 0 (twoWordHashMem src ⟨3⟩ mem) (UInt256.ofNat 3) (by native_decide) mem_cost
+      (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl) (by native_decide) (by evm_ov),
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (wtfBalSlot src) (UInt256.ofNat 3) (by native_decide) mem_cost hkecSrc
+      (by native_decide) (by evm_ov),
+    dup1]
+  obtain ⟨_, _, rdB2⟩ := rdB.sload (by native_decide) (by evm_ov)
+  -- pc 1313 → 1316: `balanceOf[src] - wad`, arrange slot/value for the SSTORE
+  have rdC := evm_run rdB2 with [dup9, swap1, sub, swap1]
+  obtain ⟨_, _, rdC2⟩ := rdC.sstore hperm (by native_decide) (by evm_ov)
+  -- pc 1318 → 1320: mask `dst`
+  have rdD := evm_run rdC2 with [swap4, dup8, and]
+  rw [wtf_maskLiteral hdst] at rdD
+  -- pc 1321 → 1328: scratch `dst ‖ 3`, keccak `balanceOf[dst]` slot, DUP1 for the store
+  have rdE := evm_run rdD with [
+    dup1, dup4,
+    raw mstore 0 (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov),
+    swap2, dup5, swap1,
+    raw keccak256 0 (wtfBalSlot dst) (UInt256.ofNat 3) (by native_decide) mem_cost hkecDst
+      (by native_decide) (by evm_ov),
+    dup1]
+  obtain ⟨_, _, rdE2⟩ := rdE.sload (by native_decide) (by evm_ov)
+  -- pc 1330 → 1332: `wad + balanceOf[dst]`, arrange for the SSTORE
+  have rdF := evm_run rdE2 with [dup8, add, swap1]
+  obtain ⟨_, _, rdF2⟩ := rdF.sstore hperm (by native_decide) (by evm_ov)
+  -- pc 1334 → 1342: MLOAD free ptr, MSTORE wad into the log-data slot, reload the free ptr
+  have rdG := evm_run rdF2 with [
+    dup4,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+      (mloadFreePtrValue (by rw [hM0size]; decide) (by decide) hM0read64) (by native_decide)
+      (by evm_ov),
+    dup7, dup2,
+    raw mstore 6 (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad)
+      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
+    swap4,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
+      (solcScratchReturnMem_mload64 wad hM0size hM0read64) (by native_decide) (by evm_ov),
+    swap2, swap4]
+  -- pc 1343: PUSH32 the `Transfer(address,address,uint256)` topic
+  have rdG2 := rdG.pushConst
+      (⟨100389287136786176327247604509743168900146139575972864366142685224231313322991⟩ : UInt256)
+      (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+  -- pc 1376 → 1394: arrange `[offset, len, t0, t1, t2]`, LOG3, push `1`, JUMP `ret`
+  have rdRet := evm_run rdG2 with [
+    swap3, swap1, dup2, swap1, sub, swap1, swap2, add, swap1,
+    raw log3 0 (UInt256.ofNat 5) (by native_decide) hperm mem_cost (by decide) (by evm_ov),
+    pop, push1 ⟨1⟩, swap4, swap3, pop, pop, pop,
+    jump hretDest]
+  exact ⟨_, _, rdRet⟩
 
 end Benchmarks.WETH9

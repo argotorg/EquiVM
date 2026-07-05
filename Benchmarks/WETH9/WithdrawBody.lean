@@ -558,8 +558,9 @@ theorem withdrawLogMem_size (I : ExecutionEnv) : (withdrawLogMem I).size = 160 :
       (by rw [hgap32]; exact lt_usize 32 (by norm_num)), hgap32]
   have hzsize : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
     rw [ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))]
-  rw [hgapeq, ByteArray.size_append, ByteArray.size_append, hthmsize, hzsize,
-    (UInt256.toByteArrayWithSizeProof (withdrawWadWord I)).2]
+  have hcvsize : (UInt256.toByteArray (withdrawWadWord I)).size = 32 :=
+    (UInt256.toByteArrayWithSizeProof (withdrawWadWord I)).2
+  rw [hgapeq, ByteArray.size_append, ByteArray.size_append, hthmsize, hzsize, hcvsize]
 
 theorem withdrawLogMem_mload64 (I : ExecutionEnv) :
     (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLogMem I).size
@@ -569,5 +570,151 @@ theorem withdrawLogMem_mload64 (I : ExecutionEnv) :
   rw [if_neg (by rw [withdrawLogMem_size]; decide),
     show (⟨64⟩ : UInt256).toNat = 64 from rfl, withdrawLogMem_read64]
   native_decide
+
+/-- Call succeeded (`status = 1`): store `wad`, emit the `Withdrawal` `LOG2`, and `STOP`. -/
+theorem weth9WithdrawSuccessTail {cA gh bl σ σ₀ A I} {g : Sat256} {o : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (hperm : I.perm = true)
+    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+      [⟨1⟩, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      (withdrawStoreMem I) (UInt256.ofNat 3) o acc k C) :
+    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
+  have hpermI : (initState cA gh bl σ σ₀ g A I).executionEnv.perm = true := by
+    simp [initState]; exact hperm
+  have hA := evm_run h with [
+    iszero, dup1, iszero, push2 ⟨1486⟩, jumpiT (by decide) (by jump_dest),
+    jumpdest, pop, push1 ⟨64⟩, dup1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (withdrawStoreMem_mload64 I)
+      (by native_decide) (by evm_ov),
+    dup3, dup2,
+    raw mstore 6 (withdrawLogMem I) (UInt256.ofNat 5) (by native_decide) mem_cost
+      (by unfold withdrawLogMem; rw [show (⟨128⟩ : UInt256).toNat = 128 from rfl])
+      (by native_decide) (by evm_ov),
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (withdrawLogMem_mload64 I)
+      (by native_decide) (by evm_ov),
+    caller, swap2]
+  have hB := hA.pushConst
+    (⟨57810043145978950376228313794938171962422655018555593468903716172405399886693⟩ : UInt256)
+    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+  have h1541 := evm_run hB with [swap2, swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1]
+  have h1542 := RD.log2 0 (UInt256.ofNat 5) h1541 (by native_decide) hpermI mem_cost
+    (by native_decide) (by evm_ov)
+  exact (h1542.pop (by native_decide) (by evm_ov)).jump (by native_decide) (by jump_dest)
+      (by evm_ov)
+    |>.jumpdest (by native_decide) (by evm_ov)
+    |>.stop (by native_decide) (by evm_ov)
+
+/-! ## EVM trace: the three `CALL` outcomes -/
+
+/-- `bal ≥ wad`, depth limit reached (`depth = 1024`): the `CALL` returns `0`, the body reverts. -/
+theorem weth9WithdrawCallDepthRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
+    (hdepth : I.depth = 1024)
+    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+      [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
+  obtain ⟨_, _, rd1465⟩ :=
+    h1464.callValueDepthLimitEmptyInOut hperm (by native_decide) hdepth (by evm_ov)
+  obtain ⟨_, _, rd1470⟩ := weth9WithdrawAfterCall rd1465
+  exact weth9WithdrawFailureTail (by decide) rd1470
+
+/-- `bal ≥ wad`, insufficient contract balance: the `CALL` returns `0`, the body reverts. -/
+theorem weth9WithdrawCallInsufficientRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
+    (hbalance : ¬ withdrawWadWord I ≤
+      ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : I.depth.val < 1024)
+    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+      [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
+  obtain ⟨_, _, rd1465⟩ :=
+    h1464.callValueInsufficientBalanceEmptyInOut hperm (by native_decide) hbalance hdepth (by evm_ov)
+  obtain ⟨_, _, rd1470⟩ := weth9WithdrawAfterCall rd1465
+  exact weth9WithdrawFailureTail (by decide) rd1470
+
+/-- `bal ≥ wad`, sufficient balance, depth OK: the value `CALL` is dispatched; expose its `Θ` witness
+    (for the Solm-side coupling) and the post-call `RD` at the branch (pc 1470). -/
+theorem weth9WithdrawCallMade {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
+    (hbalance : withdrawWadWord I ≤
+      ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hdepth : I.depth.val < 1024)
+    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+      [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o : ByteArray)
+      (A_in : Substate) (callGas : UInt256),
+      (∃ (g'' : UInt256) (A' : Substate),
+        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
+          (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
+          (initState cA gh bl σ σ₀ g A I).blocks (withdrawStoreMap σ I)
+          (initState cA gh bl σ σ₀ g A I).σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+          (AccountAddress.ofUInt256 (solcSourceWord I))
+          (toExecute (withdrawStoreMap σ I) (AccountAddress.ofUInt256 (solcSourceWord I)))
+          callGas (UInt256.ofNat I.gasPrice) (withdrawWadWord I) (withdrawWadWord I)
+          ByteArray.empty (I.depth + 1) I.header I.perm)
+      ∧ o.size < UInt256.size
+      ∧ ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+          [(if z then ⟨1⟩ else ⟨0⟩), withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+          (withdrawStoreMem I) (UInt256.ofNat 3) o (cA', σ') k' C' := by
+  obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
+  obtain ⟨cA', σ', z, o, A_in, callGas, _, _, hΘ, rd1465, hosz⟩ :=
+    h1464.callValueMadeEmptyInOut (by native_decide) hperm hbalance hdepth (by evm_ov)
+  refine ⟨cA', σ', z, o, A_in, callGas, ?_, hosz, weth9WithdrawAfterCall rd1465⟩
+  simpa [initState] using hΘ
+
+/-! ## Solm store-state accountMap (for the external-call coupling) -/
+
+/-- The Solm store state's `accountMap` is the caller-keyed decremented map. -/
+theorem withdrawStoreState_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
+    (withdrawStoreState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+      sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+        (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I)) := by
+  have hco : (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
+  have h : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+      = solcSlotWord σ I (callerBalSlot I) := by
+    simp [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, initState,
+      Ethereum.Account.lookupStorage]
+  unfold withdrawStoreState
+  rw [hco, storageStore_accountMap, show (initState cA gh bl σ σ₀ g A I).accountMap = σ from rfl, h]
+
+/-- The store state keeps the execution environment. -/
+theorem withdrawStoreState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).executionEnv = evm.executionEnv := by
+  unfold withdrawStoreState; rw [storageStore_executionEnv]
+
+theorem withdrawStoreState_originalMap (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).σ₀ = evm.σ₀ := by
+  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
+  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+
+theorem withdrawStoreState_createdAccounts (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).createdAccounts = evm.createdAccounts := by
+  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
+  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+
+theorem withdrawStoreState_genesisBlockHeader (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).genesisBlockHeader = evm.genesisBlockHeader := by
+  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
+  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+
+theorem withdrawStoreState_blocks (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).blocks = evm.blocks := by
+  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
+  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+
+theorem withdrawStoreState_substate (evm : EVM.State) (I : ExecutionEnv) :
+    (withdrawStoreState evm I).substate = evm.substate := by
+  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
+  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 end Benchmarks.WETH9
