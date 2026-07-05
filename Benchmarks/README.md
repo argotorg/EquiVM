@@ -1,6 +1,6 @@
 # Benchmark Status
 
-Last updated: 2026-07-04.
+Last updated: 2026-07-05.
 
 This file tracks whether a benchmark is ready to give to a proving agent. "Completed" means the
 proof task has been marked done. "Handed off" means the benchmark has been selected for agent proof
@@ -18,9 +18,10 @@ the checked-in `.abi.json` files.
 | `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Ready for proof | Yes |
 | `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
-| `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Ready for proof | Yes |
+| `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Handed off | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
-| `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Ready for proof | Yes |
+| `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Handed off | Yes |
+| `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Ready for proof | Yes |
 | `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
 | `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
@@ -50,7 +51,7 @@ the checked-in `.abi.json` files.
   bytecode call path). No semantic blocker is currently known; expected proof work is `_rpow`,
   checked arithmetic, and typed external-call reasoning.
 
-- `Dss/Jug`: ready for proof, not yet handed off. Target theorem:
+- `Dss/Jug`: handed off. Target theorem:
   `Benchmarks.Dss.Jug.jugContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
@@ -72,6 +73,15 @@ the checked-in `.abi.json` files.
   runtime `CALL` site. No benchmark-local semantic blocker is currently known under Solm's current
   message-call abstraction; exact 2300-gas stipend precision would be framework-level refinement,
   not missing local scaffold work.
+
+- `EAS/Attester`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.EAS.Attester.attesterContractCorrect`. Fresh solc 0.8.26 output exactly matches the
+  checked-in Lean creation/runtime byte arrays, and the solc storage layout is empty because `_eas`
+  is immutable. The runtime template has four `_eas` immutable patch sites and four typed EAS
+  `CALL`s; the spec models the two no-return calls (`revoke`, `multiRevoke`) with their explicit
+  `EXTCODESIZE` guards, while `attest` and `multiAttest` rely on return decoding as the bytecode
+  does. No semantic blocker is currently known; expected proof work is immutable patching, dynamic
+  calldata arrays, tuple ABI encoding, loop bodies, and external-call return decoding.
 
 - `CompoundIII/CometRewards`: handed off. Target theorem:
   `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`. Fresh solc 0.8.15 via-IR

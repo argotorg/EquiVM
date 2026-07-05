@@ -10,3 +10,4 @@ import Benchmarks.Dss.Spot.Correct
 import Benchmarks.Dss.Vow.Correct
 import Benchmarks.CompoundIII.CometRewards.Correct
 import Benchmarks.CompoundIII.Comet.Correct
+import Benchmarks.EAS.Attester.Correct
