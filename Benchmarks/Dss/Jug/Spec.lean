@@ -37,7 +37,11 @@ def u256 (e : Expr) : Expr := .inRange uint256Int e
 def s256 (e : Expr) : Expr := .inRange int256Int e
 
 def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def checkedSub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def sub256 (x y : Expr) : Expr :=
+  .ite (.binary .le y x)
+    (checkedSub256 x y)
+    (u256 (.binary .sub (.binary .add (.intLit (Int.ofNat Ethereum.UInt256.size)) x) y))
 def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
 
 def dutyParamLit : Expr :=
