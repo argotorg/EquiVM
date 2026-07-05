@@ -387,6 +387,47 @@ theorem decodeCalldata_set_none_payloadShort {I : ExecutionEnv}
   exact decodeCalldata_string_none_payload_short (x := "value") hsz36 hhi hoffMax hlenWord
     hlenMax hpayload
 
+theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
+    (hsz36 : 36 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
+    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
+    (hlenMax :
+      ¬ ABI.solcMaxU64 <
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
+    (hpayload :
+      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
+        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
+    decodeCalldata [x] [ABIType.string] cd =
+      some ((∅ : Store).insert x (.bytes (ByteArray.mk
+        (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
+          (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray))) := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [htlen] at hhuge
+    omega)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [List.length_drop, htlen] at hhuge
+    omega)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [htlen] at hhuge
+    omega)]
+  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
+  have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
+    rw [htlen]
+    omega
+  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, decodeABIValues?,
+    decodeABIValue?, isDynamicABIType, abiTupleHeadSize?, ABI.solcMaxLen, hreadOff, hoffMax,
+    hreadLen, hlenMax, hpayloadRead, hnotHeadShort]
+
 theorem decodeCalldata_set_empty {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (_hhi : I.calldata.size < 2 ^ 255 + 4)
     (hsizeSign : I.calldata.size < 2 ^ 255)

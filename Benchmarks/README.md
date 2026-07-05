@@ -21,7 +21,7 @@ the checked-in `.abi.json` files.
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Handed off | Yes |
-| `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Ready for proof | Yes |
+| `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
 | `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
 | `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
@@ -73,7 +73,7 @@ the checked-in `.abi.json` files.
   message-call abstraction; exact 2300-gas stipend precision would be framework-level refinement,
   not missing local scaffold work.
 
-- `EAS/Attester`: ready for proof, not yet handed off. Target theorem:
+- `EAS/Attester`: handed off. Target theorem:
   `Benchmarks.EAS.Attester.attesterContractCorrect`. Fresh solc 0.8.26 output exactly matches the
   checked-in Lean creation/runtime byte arrays, and the solc storage layout is empty because `_eas`
   is immutable. The runtime template has four `_eas` immutable patch sites and four typed EAS

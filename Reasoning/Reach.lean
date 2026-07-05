@@ -1508,14 +1508,24 @@ theorem Theta_returnData_size_lt
   Ethereum.EVM.theta_projection_output_size_lt_uint256 blob cA gh blocks σ σ₀ A s o r c d
     g p v v' e H w hd
 
-/-- Tight `Θ` return-data bound, pending the generic gas-derived EVM proof. -/
-axiom Theta_returnData_size_lt_2pow138
+/-- The gas-derived return-data bound in evmlean is strictly below `2^138`. -/
+theorem maxReturnDataSizeByGas_lt_2pow138 :
+    Ethereum.EVM.maxReturnDataSizeByGas < 2 ^ 138 := by
+  norm_num [Ethereum.EVM.maxReturnDataSizeByGas, Ethereum.EVM.maxReturnDataWordsByGas]
+
+/-- Tight `Θ` return-data bound from evmlean's generic gas-derived EVM proof. -/
+theorem Theta_returnData_size_lt_2pow138
     (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (c : ToExecute) (g p v v' : UInt256) (d : ByteArray)
-    (e : Fin 1025) (H : BlockHeader) (w : Bool) (hd : d.size < UInt256.size) :
+    (e : Fin 1025) (H : BlockHeader) (w : Bool)
+    (hd : d.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) :
     (Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w).2.2.2.2.2.size <
-      2 ^ 138
+      2 ^ 138 := by
+  exact Nat.lt_of_le_of_lt
+    (Ethereum.EVM.theta_projection_output_size_le_maxReturnDataSizeByGas
+      blob cA gh blocks σ σ₀ A s o r c d g p v v' e H w hd)
+    maxReturnDataSizeByGas_lt_2pow138
 
 theorem Theta_returnData_size_lt_2pow138_of_eq
     (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
@@ -1526,7 +1536,7 @@ theorem Theta_returnData_size_lt_2pow138_of_eq
     {g' : UInt256} {A' : Substate} {z : Bool} {out : ByteArray}
     (hΘ : (cA', σ', g', A', z, out) =
       Ethereum.EVM.Θ blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w)
-    (hd : d.size < UInt256.size) :
+    (hd : d.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) :
     out.size < 2 ^ 138 := by
   have htheta :=
     Theta_returnData_size_lt_2pow138 blob cA gh blocks σ σ₀ A s o r c g p v v' d e H w hd
