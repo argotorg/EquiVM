@@ -2409,7 +2409,7 @@ theorem uniswapSkimBody
                                 (e := I.depth + 1) (H := I.header) (w := I.perm)
                                 (by simpa [evm0E, safeData0, safeValue0, hperm] using hΘsafeEq)
                                 (by
-                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
                                     _ _ _)
                             by_cases htoken1NoCode :
                                 uniswapExtCodeSizeWord σ1
@@ -2701,7 +2701,7 @@ theorem uniswapSkimBody
                                             hΘsafeEq1)
                                         (by
                                           exact
-                                            Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                            Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
                                               _ _ _)
                                     have hcallE1 : callViaEVM evm2E
                                         (AccountAddress.ofUInt256
@@ -4352,7 +4352,7 @@ theorem uniswapSkimBody
                                 (e := I.depth + 1) (H := I.header) (w := I.perm)
                                 (by simpa [evm0E, safeData0, safeValue0, hperm] using hΘsafeEq)
                                 (by
-                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                  exact Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
                                     _ _ _)
                             by_cases htoken1NoCode :
                                 uniswapExtCodeSizeWord σ1
@@ -4645,7 +4645,7 @@ theorem uniswapSkimBody
                                             hΘsafeEq1)
                                         (by
                                           exact
-                                            Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256
+                                            Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
                                               _ _ _)
                                     have hcallE1 : callViaEVM evm2E
                                         (AccountAddress.ofUInt256
