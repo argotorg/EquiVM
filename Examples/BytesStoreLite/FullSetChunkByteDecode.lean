@@ -1693,28 +1693,16 @@ theorem bytesStoreLiteSetChunkByteOobLongRuntime
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetChunkByteHeaderRef I) =
           .ok (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ_evm I) ⟨2⟩).toNat := by
-    have hchunkNN :
-        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad
-          { (default : EVM.State) with
-            accountMap := σ_solm
-            σ₀ := σ₀
-            executionEnv := I
-            substate := A
-            createdAccounts := cA
-            machineState.gasAvailable := .ofUInt256 g
-            blocks := bl
-            genesisBlockHeader := gh }
-          I.codeOwner
-            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
-          bytesStoreLiteSetChunkByteHeaderWord σ_evm I := by
-      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader'
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, initState,
-      bytesStoreLiteSetChunkByteHeaderRef, chunksElemSlot?, nonnegativeIndexSlot?,
-      hchunkNN, hloadHeaderSlot, hflag, hvalid, u256_ofNat_toNat]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetChunkByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+      (header := bytesStoreLiteSetChunkByteHeaderWord σ_evm I)
+      (len := (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ_evm I) ⟨2⟩).toNat)
+      (bytesStoreLiteSetChunkByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      (by simpa [initState] using hloadHeader)
+      (solidityDecodeBytesLengthHeader_long_valid hflag rfl hvalid)
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1803,28 +1791,17 @@ theorem bytesStoreLiteSetChunkByteOobShortRuntime
         (bytesStoreLiteSetChunkByteHeaderRef I) =
           .ok (UInt256.land
             (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩).toNat := by
-    have hchunkNN :
-        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad
-          { (default : EVM.State) with
-            accountMap := σ_solm
-            σ₀ := σ₀
-            executionEnv := I
-            substate := A
-            createdAccounts := cA
-            machineState.gasAvailable := .ofUInt256 g
-            blocks := bl
-            genesisBlockHeader := gh }
-          I.codeOwner
-            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
-          bytesStoreLiteSetChunkByteHeaderWord σ_evm I := by
-      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader'
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, initState,
-      bytesStoreLiteSetChunkByteHeaderRef, chunksElemSlot?, nonnegativeIndexSlot?,
-      hchunkNN, hloadHeaderSlot, hflag, hvalid0, u256_ofNat_toNat]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetChunkByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+      (header := bytesStoreLiteSetChunkByteHeaderWord σ_evm I)
+      (len := (UInt256.land
+        (UInt256.div (bytesStoreLiteSetChunkByteHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩).toNat)
+      (bytesStoreLiteSetChunkByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      (by simpa [initState] using hloadHeader)
+      (solidityDecodeBytesLengthHeader_short_valid hflag rfl hvalid)
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1900,28 +1877,15 @@ theorem bytesStoreLiteSetChunkByteLongMalformedRuntime
       readStorageBytesLength? bytesStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetChunkByteHeaderRef I) = .revert := by
-    have hchunkNN :
-        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad
-          { (default : EVM.State) with
-            accountMap := σ_solm
-            σ₀ := σ₀
-            executionEnv := I
-            substate := A
-            createdAccounts := cA
-            machineState.gasAvailable := .ofUInt256 g
-            blocks := bl
-            genesisBlockHeader := gh }
-          I.codeOwner
-            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
-          bytesStoreLiteSetChunkByteHeaderWord σ_evm I := by
-      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader'
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, initState,
-      bytesStoreLiteSetChunkByteHeaderRef, chunksElemSlot?, nonnegativeIndexSlot?,
-      hchunkNN, hloadHeaderSlot, hflag, hbad, u256_ofNat_toNat]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetChunkByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+      (header := bytesStoreLiteSetChunkByteHeaderWord σ_evm I)
+      (bytesStoreLiteSetChunkByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      (by simpa [initState] using hloadHeader)
+      (by simp [solidityDecodeBytesLengthHeader, hflag, hbad])
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -2005,28 +1969,15 @@ theorem bytesStoreLiteSetChunkByteShortMalformedRuntime
       readStorageBytesLength? bytesStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetChunkByteHeaderRef I) = .revert := by
-    have hchunkNN :
-        ¬ (((bytesStoreLiteSetChunkByteChunkIndexWord I).toNat : Int) < 0) := by omega
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad
-          { (default : EVM.State) with
-            accountMap := σ_solm
-            σ₀ := σ₀
-            executionEnv := I
-            substate := A
-            createdAccounts := cA
-            machineState.gasAvailable := .ofUInt256 g
-            blocks := bl
-            genesisBlockHeader := gh }
-          I.codeOwner
-            (chunksDataBase + bytesStoreLiteSetChunkByteChunkIndexWord I) =
-          bytesStoreLiteSetChunkByteHeaderWord σ_evm I := by
-      simpa [bytesStoreLiteSetChunkByteSlot] using hloadHeader'
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout, initState,
-      bytesStoreLiteSetChunkByteHeaderRef, chunksElemSlot?, nonnegativeIndexSlot?,
-      hchunkNN, hloadHeaderSlot, hflag, hbad0, u256_ofNat_toNat]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetChunkByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetChunkByteSlot I)
+      (header := bytesStoreLiteSetChunkByteHeaderWord σ_evm I)
+      (bytesStoreLiteSetChunkByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      (by simpa [initState] using hloadHeader)
+      (by simp [solidityDecodeBytesLengthHeader, hflag, hbad0])
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)

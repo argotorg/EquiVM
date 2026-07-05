@@ -1,4 +1,5 @@
 import Examples.BytesStoreLite.FullSetChunkOldLongReturn
+import Examples.BytesStoreLite.StorageReadbackFacts
 import Examples.BytesStoreLite.StorageLoopFacts
 
 /-!
@@ -45,6 +46,32 @@ def bytesStoreLiteSetMappedSlotOf (key : UInt256) : UInt256 :=
 
 def bytesStoreLiteSetMappedSlot (I : ExecutionEnv) : UInt256 :=
   bytesStoreLiteSetMappedSlotOf (bytesStoreLiteSetMappedKeyWord I)
+
+theorem accountMapEquiv_setMappedHeaderStore {σ : AccountMap} {evm : EVM.State}
+    (I : ExecutionEnv) (owner : AccountAddress) (header : UInt256)
+    (hAccounts : accountMapEquiv σ evm.accountMap) :
+  accountMapEquiv
+      (sstoreAccountMap owner σ (bytesStoreLiteSetMappedSlot I) header)
+      (Solm.EVM.storageStore evm owner (bytesStoreLiteSetMappedSlot I) header).accountMap := by
+  exact accountMapEquiv_bytesHeaderStore owner (bytesStoreLiteSetMappedSlot I) header hAccounts
+
+theorem bytesStoreLiteSetMappedRefOf_length_slot (evm : EVM.State) (key : UInt256) :
+    ∃ loc, bytesStoreLiteLayout
+        { bytesStoreLiteSetMappedRefOf key with
+          steps := (bytesStoreLiteSetMappedRefOf key).steps ++ [.length] } evm =
+          some loc ∧
+        loc.slot = bytesStoreLiteSetMappedSlotOf key := by
+  refine ⟨bytesLikeLengthLoc (bytesStoreLiteSetMappedSlotOf key) evm, ?_, ?_⟩
+  · simp [bytesStoreLiteLayout, bytesStoreLiteSetMappedRefOf, bytesStoreLiteSetMappedSlotOf]
+  · simp [bytesLikeLengthLoc]
+
+theorem bytesStoreLiteSetMappedRef_length_slot (evm : EVM.State) (I : ExecutionEnv) :
+    ∃ loc, bytesStoreLiteLayout
+        { bytesStoreLiteSetMappedRef I with
+          steps := (bytesStoreLiteSetMappedRef I).steps ++ [.length] } evm =
+          some loc ∧
+        loc.slot = bytesStoreLiteSetMappedSlot I := by
+  exact bytesStoreLiteSetMappedRefOf_length_slot evm (bytesStoreLiteSetMappedKeyWord I)
 
 def bytesStoreLiteSetMappedHeaderWordOf (σ : AccountMap) (I : ExecutionEnv)
     (key : UInt256) : UInt256 :=
@@ -140,25 +167,13 @@ theorem bytesStoreLiteSetMappedResolve {evm : EVM.State}
       evalStorageRef bytesStoreLiteConfig
         (bytesStoreLiteSetMappedFrameOf key value) evm (mappedRef (.var "key")) =
           .ok (bytesStoreLiteSetMappedRefOf key) := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
-      evalExpr?, mappedRef, bytesStoreLiteSetMappedFrameOf, bytesStoreLiteSetMappedRefOf,
-      valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind, hgetKey]
-  rw [resolveStorageRef?]
-  simp only [mappedRef, bytesStoreLiteSetMappedFrameOf, hgetMappedRaw]
-  change
-    (match
-        evalStorageRef bytesStoreLiteConfig
-          (bytesStoreLiteSetMappedFrameOf key value) evm (mappedRef (.var "key")) with
-      | .ok er => do
-          let ty ← EvalResult.ofOption EvalError.storageError
-            (storageTypeAt? bytesStoreLiteContract.storage er)
-          pure (er, ty)
-      | .revert => .revert
-      | .error e => .error e) =
-        .ok (bytesStoreLiteSetMappedRefOf key, .bytes)
-  rw [her]
-  simp [bytesStoreLiteSetMappedRefOf, storageTypeAt?, bytesStoreLiteContract, storageDecls,
-    bytesSt, uint256Int, storageTypeStep?, EvalResult.ofOption, EvalResult.bind, pure, bind]
+    exact evalStorageRef_mindex_var_of_get?
+      (base := "mapped")
+      (hget := by simpa [Std.HashMap.get?_eq_getElem?] using hgetKey)
+      (hkey := by simp [valueToKey?])
+  exact resolveStorageRef?_ok hgetMappedRaw her (by
+    simp [bytesStoreLiteSetMappedFrameOf, bytesStoreLiteSetMappedRefOf, storageTypeAt?,
+      bytesStoreLiteContract, storageDecls, bytesSt, uint256Int, storageTypeStep?])
 
 theorem bytesStoreLiteSetMappedAssign {evm evm' : EVM.State}
     {key : UInt256} {value : ByteArray}
@@ -171,7 +186,7 @@ theorem bytesStoreLiteSetMappedAssign {evm evm' : EVM.State}
         .ok (bytesStoreLiteSetMappedFrameOf key value, evm') := by
   have hresolve :=
     bytesStoreLiteSetMappedResolve (evm := evm) (key := key) (value := value)
-  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+  exact assignStorageRef_storage_bytes_ok_of_write hresolve hwrite
 
 theorem bytesStoreLiteSetMappedLengthAfterWrite {evm : EVM.State}
     {key : UInt256} {value : ByteArray} {n : Nat}
@@ -211,8 +226,7 @@ theorem bytesStoreLiteSetMappedBodyReturnsOfWrite {evm evm' : EVM.State}
       unfold bytesStoreLiteSetMappedLocalsOf
       exact store_get_self ((∅ : Store).insert "key"
         (.int (Int.ofNat key.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetMappedFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetMappedFrameOf] using hlookup)
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (mappedRef (.var "key")) (.bytes value) =
@@ -250,8 +264,7 @@ theorem bytesStoreLiteSetMappedBodyRevertsOfWrite {evm : EVM.State}
       unfold bytesStoreLiteSetMappedLocalsOf
       exact store_get_self ((∅ : Store).insert "key"
         (.int (Int.ofNat key.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetMappedFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetMappedFrameOf] using hlookup)
   have hresolve :=
     bytesStoreLiteSetMappedResolve (evm := evm) (key := key) (value := value)
   have hresolve0 :
@@ -262,7 +275,7 @@ theorem bytesStoreLiteSetMappedBodyRevertsOfWrite {evm : EVM.State}
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (mappedRef (.var "key")) (.bytes value) = .revert := by
-    simp [assignStorageRef?, hresolve0, hwrite, EvalResult.bind, bind, pure]
+    exact assignStorageRef_storage_bytes_revert_of_write hresolve0 hwrite
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
@@ -615,29 +628,10 @@ theorem bytesStoreLiteSetMappedShortFromLongPostAccountMapEquiv
           (bytesStoreLiteSetMappedSlot I) 0 ((oldLen.toNat + 31) / 32))
         I.codeOwner (bytesStoreLiteSetMappedSlot I)
           (solidityShortBytesWord value)).accountMap := by
-  have hdivNat :
-      (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩).toNat =
-        (oldLen.toNat + 31) / 32 :=
-    BytesStoreLiteCore.u256_div_add31_toNat_of_lt_sign (x := oldLen) holdLenLt
-  have hcountNat :
-      (UInt256.sub (UInt256.shiftRight (oldLen + ⟨31⟩) ⟨5⟩) ⟨0⟩).toNat =
-        (oldLen.toNat + 31) / 32 := by
-    rw [bytesStoreLite_shiftRight_five_eq_div_thirtyTwo,
-      BytesStoreLiteCore.uint256_sub_zero_right]
-    exact hdivNat
-  have hbase :
-      ((⟨0⟩ : UInt256) + bytesLikeDataBase (bytesStoreLiteSetMappedSlot I)) =
-        solidityBytesDataBaseSlot (bytesStoreLiteSetMappedSlot I) := by
-    rw [u256_add_comm (⟨0⟩ : UInt256) (bytesLikeDataBase (bytesStoreLiteSetMappedSlot I))]
-    rw [BytesStoreLiteCore.uint256_add_zero_right]
-    rfl
-  simp [initState, clearSolidityBytesDataWordsFrom_accountMap,
-    storageStore_accountMap, hcountNat, hstored, hbase]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-    (solidityShortBytesWord value)
-    (accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-      (solidityBytesDataBaseSlot (bytesStoreLiteSetMappedSlot I)) ⟨0⟩
-      ((oldLen.toNat + 31) / 32) hAccounts)
+  exact accountMapEquiv_setBytesShortFromLongPostAccountMapEquiv
+    (baseSlot := bytesStoreLiteSetMappedSlot I)
+    (oldLen := oldLen) (storedWord := storedWord) (value := value)
+    hAccounts hstored holdLenLt
 
 theorem bytesStoreLiteSetMappedEmptyFromLongPostAccountMapEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {oldLen : UInt256}
@@ -778,35 +772,10 @@ theorem bytesStoreLiteSetMappedLengthAfterEmptyWrite
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetMappedSlot I) ⟨0⟩
-  have hheader :
-      ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256))) = ⟨0⟩ := by
-    simp [evmSolm1, evmSolm0, storageStore_accountMap, initState]
-    unfold sstoreAccountMap
-    cases hacc : σ_solm.find? I.codeOwner with
-    | none =>
-        simp [hacc, Option.option]
-        rfl
-    | some acc =>
-        have hzero : ((⟨0⟩ : UInt256) = (default : UInt256)) := rfl
-        simp [Option.option, accountMap_find_insert_self, hzero, storage_findD_erase_self]
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetMappedRef, bytesStoreLiteSetMappedRefOf,
-    bytesStoreLiteSetMappedSlot, bytesStoreLiteSetMappedSlotOf,
-    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    storageStore_executionEnv]
-  rw [show
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
-      I.codeOwner by rfl]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256)))) = .ok 0
-  rw [hheader]
-  rfl
+  exact bytesStoreLiteReadLengthAfterHeaderStoreZero
+    (er := bytesStoreLiteSetMappedRef I) (evm := evmSolm0) (evmData := evmSolm1)
+    (baseSlot := bytesStoreLiteSetMappedSlot I) (by rfl)
+    (bytesStoreLiteSetMappedRef_length_slot evmSolm1 I)
 
 theorem bytesStoreLiteSetMappedLengthAfterShortWrite
     {cA gh bl σ_solm σ₀ A I} {g len payloadStart : UInt256} {acc : Account}
@@ -824,18 +793,6 @@ theorem bytesStoreLiteSetMappedLengthAfterShortWrite
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetMappedSlot I) storedWord
-  have hheader :
-      ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256))) = storedWord := by
-    have hbeq : (storedWord == (default : UInt256)) = false := by
-      simpa [storedWord, bytesStoreLiteSetMappedShortStoredWord] using
-        bytesStoreLiteSetChunkShortStoredWord_beq_zero_false
-          (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
-    simp [evmSolm1, evmSolm0, storageStore_accountMap, initState]
-    unfold sstoreAccountMap
-    simp [hacc, hbeq, Option.option, accountMap_find_insert_self,
-      storage_findD_insert_self]
   have hdecode :
       solidityDecodeBytesLengthHeader storedWord = .ok len.toNat := by
     exact solidityDecodeBytesLengthHeader_short_valid
@@ -861,22 +818,15 @@ theorem bytesStoreLiteSetMappedLengthAfterShortWrite
               (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
         rw [hflag]
         native_decide)
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetMappedRef, bytesStoreLiteSetMappedRefOf,
-    bytesStoreLiteSetMappedSlot, bytesStoreLiteSetMappedSlotOf,
-    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    storageStore_executionEnv]
-  rw [show
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
-      I.codeOwner by rfl]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256)))) = .ok len.toNat
-  rw [hheader, hdecode]
-  rfl
+  have hacc0 : evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner = some acc := by
+    simpa [evmSolm0, initState] using hacc
+  exact bytesStoreLiteReadLengthAfterHeaderStorePresent
+    (er := bytesStoreLiteSetMappedRef I) (evm := evmSolm0) (evmData := evmSolm1)
+    (baseSlot := bytesStoreLiteSetMappedSlot I) (header := storedWord) (len := len.toNat)
+    (by rfl)
+    (bytesStoreLiteSetMappedRef_length_slot evmSolm1 I)
+    hacc0
+    hdecode
 
 theorem bytesStoreLiteSetMappedLengthAfterLongStoreOfState
     {evm : EVM.State} {I : ExecutionEnv} {len header : UInt256} {acc : Account}
@@ -891,34 +841,18 @@ theorem bytesStoreLiteSetMappedLengthAfterLongStoreOfState
       (bytesStoreLiteSetMappedRef I) = .ok len.toNat := by
   dsimp only
   let evmData := Solm.EVM.storageStore evm I.codeOwner (bytesStoreLiteSetMappedSlot I) header
-  have hheaderLoad :
-      ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256))) = header := by
-    have hbeq : (header == (default : UInt256)) = false := by
-      apply beq_false_of_ne
-      intro hzero
-      exact hflag (by rw [hzero]; native_decide)
-    simp [evmData, storageStore_accountMap]
-    unfold sstoreAccountMap
-    simp [hacc, hbeq, Option.option, accountMap_find_insert_self,
-      storage_findD_insert_self]
   have hdecode :
       solidityDecodeBytesLengthHeader header = .ok len.toNat := by
     exact solidityDecodeBytesLengthHeader_long_valid
       (header := header) (len := len) hflag hlen (by simpa [← hlen] using hvalid)
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetMappedRef, bytesStoreLiteSetMappedRefOf,
-    bytesStoreLiteSetMappedSlot, bytesStoreLiteSetMappedSlotOf, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, storageStore_executionEnv, howner]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256)))) = .ok len.toNat
-  rw [hheaderLoad, hdecode]
-  rfl
+  simpa [evmData, storageStore_executionEnv, howner] using
+    bytesStoreLiteReadLengthAfterHeaderStorePresent
+      (er := bytesStoreLiteSetMappedRef I) (evm := evm) (evmData := evmData)
+      (baseSlot := bytesStoreLiteSetMappedSlot I) (header := header) (len := len.toNat)
+      (by simp [evmData, howner])
+      (by simpa [evmData, howner] using bytesStoreLiteSetMappedRef_length_slot evmData I)
+      (by simpa [howner] using hacc)
+      hdecode
 
 theorem bytesStoreLiteSetMappedLengthAfterShortStoreOfState
     {evm : EVM.State} {I : ExecutionEnv} {len payloadStart : UInt256} {acc : Account}
@@ -933,18 +867,6 @@ theorem bytesStoreLiteSetMappedLengthAfterShortStoreOfState
   dsimp only
   let storedWord := bytesStoreLiteSetMappedShortStoredWord I len payloadStart
   let evmData := Solm.EVM.storageStore evm I.codeOwner (bytesStoreLiteSetMappedSlot I) storedWord
-  have hheader :
-      ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256))) = storedWord := by
-    have hbeq : (storedWord == (default : UInt256)) = false := by
-      simpa [storedWord, bytesStoreLiteSetMappedShortStoredWord] using
-        bytesStoreLiteSetChunkShortStoredWord_beq_zero_false
-          (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
-    simp [evmData, storageStore_accountMap]
-    unfold sstoreAccountMap
-    simp [hacc, hbeq, Option.option, accountMap_find_insert_self,
-      storage_findD_insert_self]
   have hdecode :
       solidityDecodeBytesLengthHeader storedWord = .ok len.toNat := by
     exact solidityDecodeBytesLengthHeader_short_valid
@@ -970,18 +892,14 @@ theorem bytesStoreLiteSetMappedLengthAfterShortStoreOfState
               (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
         rw [hflag]
         native_decide)
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetMappedRef, bytesStoreLiteSetMappedRefOf,
-    bytesStoreLiteSetMappedSlot, bytesStoreLiteSetMappedSlotOf, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, storageStore_executionEnv, howner]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256)))) = .ok len.toNat
-  rw [hheader, hdecode]
-  rfl
+  simpa [evmData, storageStore_executionEnv, howner] using
+    bytesStoreLiteReadLengthAfterHeaderStorePresent
+      (er := bytesStoreLiteSetMappedRef I) (evm := evm) (evmData := evmData)
+      (baseSlot := bytesStoreLiteSetMappedSlot I) (header := storedWord) (len := len.toNat)
+      (by simp [evmData, howner])
+      (by simpa [evmData, howner] using bytesStoreLiteSetMappedRef_length_slot evmData I)
+      (by simpa [howner] using hacc)
+      hdecode
 
 theorem bytesStoreLiteSetMappedLengthAfterEmptyStoreOfState
     {evm : EVM.State} {I : ExecutionEnv}
@@ -991,31 +909,12 @@ theorem bytesStoreLiteSetMappedLengthAfterEmptyStoreOfState
       (bytesStoreLiteSetMappedRef I) = .ok 0 := by
   dsimp only
   let evmData := Solm.EVM.storageStore evm I.codeOwner (bytesStoreLiteSetMappedSlot I) ⟨0⟩
-  have hheader :
-      ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256))) = ⟨0⟩ := by
-    simp [evmData, storageStore_accountMap]
-    unfold sstoreAccountMap
-    cases hacc : evm.accountMap.find? I.codeOwner with
-    | none =>
-        simp [hacc, Option.option]
-        rfl
-    | some acc =>
-        have hzero : ((⟨0⟩ : UInt256) = (default : UInt256)) := rfl
-        simp [Option.option, accountMap_find_insert_self, hzero, storage_findD_erase_self]
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetMappedRef, bytesStoreLiteSetMappedRefOf,
-    bytesStoreLiteSetMappedSlot, bytesStoreLiteSetMappedSlotOf, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, storageStore_executionEnv, howner]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmData.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlot I)
-            (default : UInt256)))) = .ok 0
-  rw [hheader]
-  rfl
+  simpa [evmData, storageStore_executionEnv, howner] using
+    bytesStoreLiteReadLengthAfterHeaderStoreZero
+      (er := bytesStoreLiteSetMappedRef I) (evm := evm) (evmData := evmData)
+      (baseSlot := bytesStoreLiteSetMappedSlot I)
+      (by simp [evmData, howner])
+      (by simpa [evmData, howner] using bytesStoreLiteSetMappedRef_length_slot evmData I)
 
 theorem bytesStoreLiteSetMappedSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xe1, 0x91, 0x9b, 0x17]⟩) :
@@ -3508,13 +3407,20 @@ theorem bytesStoreLiteSetMappedEmptyHeaderAfterWrite
     bytesStoreLiteSetMappedHeaderWordOf
         (sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedSlotOf key) ⟨0⟩) I key =
       ⟨0⟩ := by
-  unfold bytesStoreLiteSetMappedHeaderWordOf sstoreAccountMap
-  cases hacc : σ.find? I.codeOwner with
+  unfold bytesStoreLiteSetMappedHeaderWordOf
+  change (((sstoreAccountMap I.codeOwner σ (bytesStoreLiteSetMappedSlotOf key) ⟨0⟩).find?
+      I.codeOwner).option (default : UInt256)
+      (fun acc => acc.storage.findD (bytesStoreLiteSetMappedSlotOf key) (default : UInt256))) =
+    ⟨0⟩
+  have h := sstoreAccountMap_storage_findD_eq_if σ I.codeOwner
+    (bytesStoreLiteSetMappedSlotOf key) (bytesStoreLiteSetMappedSlotOf key) (⟨0⟩ : UInt256)
+  rw [h]
+  cases σ.find? I.codeOwner with
   | none =>
-      simp [hacc, Option.option]
-  | some acc =>
-      have hzero : ((⟨0⟩ : UInt256) = (default : UInt256)) := rfl
-      simp [Option.option, accountMap_find_insert_self, hzero, storage_findD_erase_self]
+      simp [Option.option]
+      rfl
+  | some _ =>
+      simp [Option.option]
 
 theorem bytesStoreLiteX_setMappedShortNonemptyOldLongReturns
     {cA gh bl σ σ₀ A I} {g : Sat256} {len payloadStart key oldStoredLen : UInt256}
@@ -4489,14 +4395,14 @@ theorem bytesStoreLiteSetMappedLongOldShortAbsentRuntimeOfReturn
   have hlenMapped :
       readStorageBytesLength? bytesStoreLiteConfig evmSolm0
         (bytesStoreLiteSetMappedRefOf key) = .ok 0 := by
-    simp [readStorageBytesLength?, bytesStoreLiteConfig, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, solidityReadBytesLength?, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedRefOf, bytesLikeLengthLoc, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, hmissingSolm0,
-      storageNatResultToEval]
-    change storageNatResultToEval (solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256)) = .ok 0
-    rw [solidityDecodeBytesLengthHeader_zero]
-    rfl
+    have hload :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedSlotOf key) = (⟨0⟩ : UInt256) := by
+      simp [Solm.EVM.storageLoad, State.lookupAccount, hmissingSolm0, Option.option]
+    exact bytesStoreLiteReadLengthZeroOfHeaderLoad
+      (er := bytesStoreLiteSetMappedRefOf key) (evm := evmSolm0)
+      (baseSlot := bytesStoreLiteSetMappedSlotOf key)
+      (bytesStoreLiteSetMappedRefOf_length_slot evmSolm0 key) hload
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body
@@ -4623,10 +4529,8 @@ theorem bytesStoreLiteSetMappedLongNoTailOldShortRuntimeOfReach
       bytesStoreLiteSetMappedRef, hkey] using hwrite₀
   have hdataFuelEq : dataFuel = len.toNat / 32 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    omega
+    exact solidityBytesDataWordCount_eq_div_of_mod_zero hnoTailMod
   have hAccountsLoop : accountMapEquiv σLoop evmLoop.accountMap := by
     have hbridge :
         accountMapEquiv
@@ -4679,10 +4583,10 @@ theorem bytesStoreLiteSetMappedLongNoTailOldShortRuntimeOfReach
           (sstoreAccountMap I.codeOwner σLoop (bytesStoreLiteSetMappedSlot I)
             (len * (⟨2⟩ : UInt256) + ⟨1⟩))
           evmData.accountMap := by
-      simpa [evmData, evmLoop, hheaderEq, storageStore_accountMap,
+      simpa [evmData, evmLoop, hheaderEq,
         writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-          header hAccountsLoop
+        accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+          hAccountsLoop
     simpa [σFinal] using hAccountsData
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
@@ -4812,20 +4716,13 @@ theorem bytesStoreLiteSetMappedLongNoTailOldLongNoClearRuntimeOfReach
     exact hbad hgtOldNew
   have hdataFuelEq : dataFuel = len.toNat / 32 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    omega
+    exact solidityBytesDataWordCount_eq_div_of_mod_zero hnoTailMod
   have hclearCountZero :
       solidityBytesDataWordCount oldStoredLen.toNat -
           solidityBytesDataWordCount value.size = 0 := by
-    have hcountLe :
-        solidityBytesDataWordCount oldStoredLen.toNat ≤
-          solidityBytesDataWordCount value.size := by
-      unfold solidityBytesDataWordCount
-      rw [hsizeDecoded]
-      exact BytesStoreLiteCore.nat_ceil32_le_ceil32 hOldLeLen
-    exact Nat.sub_eq_zero_of_le hcountLe
+    rw [hsizeDecoded]
+    exact solidityBytesDataWordCount_sub_eq_zero_of_le hOldLeLen
   have hdataCountEq : solidityBytesDataWordCount value.size = len.toNat / 32 := by
     simpa [dataFuel] using hdataFuelEq
   have hclearCountZeroLen :
@@ -4894,10 +4791,10 @@ theorem bytesStoreLiteSetMappedLongNoTailOldLongNoClearRuntimeOfReach
           (sstoreAccountMap I.codeOwner σLoop (bytesStoreLiteSetMappedSlot I)
             (len * (⟨2⟩ : UInt256) + ⟨1⟩))
           evmData.accountMap := by
-      simpa [evmData, evmLoop, hheaderEq, storageStore_accountMap,
+      simpa [evmData, evmLoop, hheaderEq,
         writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-          header hAccountsLoop
+        accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+          hAccountsLoop
     simpa [σFinal] using hAccountsData
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
@@ -5010,17 +4907,15 @@ theorem bytesStoreLiteSetMappedLongNoTailOldLongClearRuntimeOfReach
     rw [hsizeDecoded]
   have hdataFuelEq : dataFuel = len.toNat / 32 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    omega
+    exact solidityBytesDataWordCount_eq_div_of_mod_zero hnoTailMod
   have hclearFuelEq : clearFuel = len.toNat / 32 := by
     rw [hclearFuelCeil]
-    exact BytesStoreLiteCore.nat_ceil32_eq_div_of_mod_zero hnoTailMod
+    exact solidityBytesDataWordCount_eq_div_of_mod_zero hnoTailMod
   have hclearLeOld : clearFuel ≤ oldFuel := by
     dsimp [oldFuel]
     rw [hclearFuelCeil]
-    exact BytesStoreLiteCore.nat_ceil32_le_ceil32 (Nat.le_of_lt holdGtNat)
+    exact solidityBytesDataWordCount_mono (Nat.le_of_lt holdGtNat)
   have holdLenLt : oldStoredLen.toNat < 2 ^ 255 :=
     BytesStoreLiteCore.clearCurrent_len_toNat_lt_sign_of_div2
       (header := bytesStoreLiteSetMappedHeaderWord σ_evm I)
@@ -5168,11 +5063,11 @@ theorem bytesStoreLiteSetMappedLongNoTailOldLongClearRuntimeOfReach
       clearSolidityBytesDataWordsFrom_executionEnv, evmClear, evmSolm0, initState,
       bytesStoreLiteSetMappedRef, hkey] using hlen₀
   have hAccountsPost : accountMapEquiv σFinal evmData.accountMap := by
-    simpa [σFinal, evmData, evmLoop, hheaderEq, storageStore_accountMap,
+    simpa [σFinal, evmData, evmLoop, hheaderEq,
       writeSolidityBytesDataWordsFrom_executionEnv,
       clearSolidityBytesDataWordsFrom_executionEnv, evmClear, evmSolm0, initState, header] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-        header hAccountsLoop
+      accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+        hAccountsLoop
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body
@@ -5298,12 +5193,8 @@ theorem bytesStoreLiteSetMappedLongTailOldLongClearRuntimeOfReach
     rw [hsizeDecoded]
   have hdataFuelEq : dataFuel = len.toNat / 32 + 1 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    have hremLt := Nat.mod_lt len.toNat (by decide : 0 < 32)
-    have hremPos : 0 < len.toNat % 32 := Nat.pos_of_ne_zero htailMod
-    omega
+    exact solidityBytesDataWordCount_eq_div_succ_of_mod_ne htailMod
   have hdataCountEq :
       solidityBytesDataWordCount (bytesStoreLiteSetMappedValueBytes I).size =
         len.toNat / 32 + 1 := by
@@ -5311,7 +5202,7 @@ theorem bytesStoreLiteSetMappedLongTailOldLongClearRuntimeOfReach
   have hclearLeOld : clearFuel ≤ oldFuel := by
     dsimp [oldFuel]
     rw [hclearFuelCeil]
-    exact BytesStoreLiteCore.nat_ceil32_le_ceil32 (Nat.le_of_lt holdGtNat)
+    exact solidityBytesDataWordCount_mono (Nat.le_of_lt holdGtNat)
   have holdLenLt : oldStoredLen.toNat < 2 ^ 255 :=
     BytesStoreLiteCore.clearCurrent_len_toNat_lt_sign_of_div2
       (header := bytesStoreLiteSetMappedHeaderWord σ_evm I)
@@ -5454,37 +5345,17 @@ theorem bytesStoreLiteSetMappedLongTailOldLongClearRuntimeOfReach
         BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel =
           solidityBytesDataSlot baseSlot fullFuel := by
       exact bytesStoreLiteLongDataWordsLoopSlot_bytesLikeDataBase baseSlot fullFuel
-    have htailStore :
-        accountMapEquiv
-          (sstoreAccountMap I.codeOwner
-            (bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner σClear
-              (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
-            (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-            (BytesStoreLiteCore.longDataTailMaskedWord
-              (bytesStoreLiteCalldataLongDataWord I payloadStart
-                (UInt256.ofNat (32 * fullFuel)) 0) len))
-          (solidityDataWordsForwardFrom I.codeOwner evmClear.accountMap baseSlot value 0
-            (fullFuel + 1)) := by
-      have hsplit :
-          solidityDataWordsForwardFrom I.codeOwner evmClear.accountMap baseSlot value 0
-              (fullFuel + 1) =
-            sstoreAccountMap I.codeOwner
-              (solidityDataWordsForwardFrom I.codeOwner evmClear.accountMap baseSlot value 0
-                fullFuel)
-              (solidityBytesDataSlot baseSlot fullFuel)
-              (uInt256OfByteArray (value.readWithPadding (fullFuel * 32) 32)) := by
-        have happ := solidityDataWordsForwardFrom_append I.codeOwner evmClear.accountMap
-          baseSlot value 0 fullFuel 1
-        rw [happ]
-        simp [solidityDataWordsForwardFrom]
-      rw [hsplit]
-      simpa [hslotEq, htailWord] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner
-          (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-          (BytesStoreLiteCore.longDataTailMaskedWord
-            (bytesStoreLiteCalldataLongDataWord I payloadStart
-              (UInt256.ofNat (32 * fullFuel)) 0) len)
-          hdataFull
+    have htailStore :=
+      accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last
+        (owner := I.codeOwner) (σ := bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner
+          σClear (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
+        (τ := evmClear.accountMap) (baseSlot := baseSlot)
+        (slot := BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
+        (word := BytesStoreLiteCore.longDataTailMaskedWord
+          (bytesStoreLiteCalldataLongDataWord I payloadStart
+            (UInt256.ofNat (32 * fullFuel)) 0) len)
+        (bytes := value) (idx := 0) (fuel := fullFuel)
+        hdataFull (by simpa using hslotEq) (by simpa using htailWord)
     simpa [σTail, σLoop, σClear, clearCount, tailSlot, tailWord, evmLoop, evmClear,
       evmSolm0, initState, value, baseSlot, fullFuel, hdataFuelEq,
       writeSolidityBytesDataWordsFrom_accountMap,
@@ -5517,11 +5388,11 @@ theorem bytesStoreLiteSetMappedLongTailOldLongClearRuntimeOfReach
       clearSolidityBytesDataWordsFrom_executionEnv, evmClear, evmSolm0, initState,
       bytesStoreLiteSetMappedRef, hkey] using hlen₀
   have hAccountsPost : accountMapEquiv σFinal evmData.accountMap := by
-    simpa [σFinal, evmData, evmLoop, hheaderEq, storageStore_accountMap,
+    simpa [σFinal, evmData, evmLoop, hheaderEq,
       writeSolidityBytesDataWordsFrom_executionEnv,
       clearSolidityBytesDataWordsFrom_executionEnv, evmClear, evmSolm0, initState, header] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-        header hAccountsTail
+      accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+        hAccountsTail
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body
@@ -5669,12 +5540,8 @@ theorem bytesStoreLiteSetMappedLongTailOldShortRuntimeOfReach
       bytesStoreLiteSetMappedRef, hkey] using hwrite₀
   have hdataFuelEq : dataFuel = len.toNat / 32 + 1 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    have hremLt := Nat.mod_lt len.toNat (by decide : 0 < 32)
-    have hremPos : 0 < len.toNat % 32 := Nat.pos_of_ne_zero htailMod
-    omega
+    exact solidityBytesDataWordCount_eq_div_succ_of_mod_ne htailMod
   have hAccountsTail : accountMapEquiv σTail evmLoop.accountMap := by
     let baseSlot : UInt256 := bytesStoreLiteSetMappedSlot I
     let fullFuel : Nat := len.toNat / 32
@@ -5713,36 +5580,17 @@ theorem bytesStoreLiteSetMappedLongTailOldShortRuntimeOfReach
         BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel =
           solidityBytesDataSlot baseSlot fullFuel := by
       exact bytesStoreLiteLongDataWordsLoopSlot_bytesLikeDataBase baseSlot fullFuel
-    have htailStore :
-        accountMapEquiv
-          (sstoreAccountMap I.codeOwner
-            (bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner σ_evm
-              (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
-            (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-            (BytesStoreLiteCore.longDataTailMaskedWord
-              (bytesStoreLiteCalldataLongDataWord I payloadStart
-                (UInt256.ofNat (32 * fullFuel)) 0) len))
-          (solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0
-            (fullFuel + 1)) := by
-      have hsplit :
-          solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0
-              (fullFuel + 1) =
-            sstoreAccountMap I.codeOwner
-              (solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0 fullFuel)
-              (solidityBytesDataSlot baseSlot fullFuel)
-              (uInt256OfByteArray (value.readWithPadding (fullFuel * 32) 32)) := by
-        have happ := solidityDataWordsForwardFrom_append I.codeOwner σ_solm baseSlot
-          value 0 fullFuel 1
-        rw [happ]
-        simp [solidityDataWordsForwardFrom]
-      rw [hsplit]
-      simpa [hslotEq, htailWord] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner
-          (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-          (BytesStoreLiteCore.longDataTailMaskedWord
-            (bytesStoreLiteCalldataLongDataWord I payloadStart
-              (UInt256.ofNat (32 * fullFuel)) 0) len)
-          hdataFull
+    have htailStore :=
+      accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last
+        (owner := I.codeOwner) (σ := bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner
+          σ_evm (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
+        (τ := σ_solm) (baseSlot := baseSlot)
+        (slot := BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
+        (word := BytesStoreLiteCore.longDataTailMaskedWord
+          (bytesStoreLiteCalldataLongDataWord I payloadStart
+            (UInt256.ofNat (32 * fullFuel)) 0) len)
+        (bytes := value) (idx := 0) (fuel := fullFuel)
+        hdataFull (by simpa using hslotEq) (by simpa using htailWord)
     simpa [σTail, σLoop, tailSlot, tailWord, evmLoop, evmSolm0, initState, value,
       baseSlot, fullFuel, hdataFuelEq, writeSolidityBytesDataWordsFrom_accountMap,
       bytesStoreLiteLongDataWordsLoopStride_zero_ofNat] using htailStore
@@ -5770,10 +5618,10 @@ theorem bytesStoreLiteSetMappedLongTailOldShortRuntimeOfReach
       writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState,
       bytesStoreLiteSetMappedRef, hkey] using hlen₀
   have hAccountsPost : accountMapEquiv σFinal evmData.accountMap := by
-    simpa [σFinal, evmData, evmLoop, hheaderEq, storageStore_accountMap,
+    simpa [σFinal, evmData, evmLoop, hheaderEq,
       writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState, header] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-        header hAccountsTail
+      accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+        hAccountsTail
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body
@@ -5919,22 +5767,13 @@ theorem bytesStoreLiteSetMappedLongTailOldLongNoClearRuntimeOfReach
     exact hbad hgtOldNew
   have hdataFuelEq : dataFuel = len.toNat / 32 + 1 := by
     dsimp [dataFuel]
-    unfold solidityBytesDataWordCount
     rw [hsizeDecoded]
-    have hdiv := Nat.div_add_mod len.toNat 32
-    have hremLt := Nat.mod_lt len.toNat (by decide : 0 < 32)
-    have hremPos : 0 < len.toNat % 32 := Nat.pos_of_ne_zero htailMod
-    omega
+    exact solidityBytesDataWordCount_eq_div_succ_of_mod_ne htailMod
   have hclearCountZero :
       solidityBytesDataWordCount oldStoredLen.toNat -
           solidityBytesDataWordCount value.size = 0 := by
-    have hcountLe :
-        solidityBytesDataWordCount oldStoredLen.toNat ≤
-          solidityBytesDataWordCount value.size := by
-      unfold solidityBytesDataWordCount
-      rw [hsizeDecoded]
-      exact BytesStoreLiteCore.nat_ceil32_le_ceil32 hOldLeLen
-    exact Nat.sub_eq_zero_of_le hcountLe
+    rw [hsizeDecoded]
+    exact solidityBytesDataWordCount_sub_eq_zero_of_le hOldLeLen
   have hdataCountEq : solidityBytesDataWordCount value.size = len.toNat / 32 + 1 := by
     simpa [dataFuel] using hdataFuelEq
   have hclearCountZeroLen :
@@ -5989,36 +5828,17 @@ theorem bytesStoreLiteSetMappedLongTailOldLongNoClearRuntimeOfReach
         BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel =
           solidityBytesDataSlot baseSlot fullFuel := by
       exact bytesStoreLiteLongDataWordsLoopSlot_bytesLikeDataBase baseSlot fullFuel
-    have htailStore :
-        accountMapEquiv
-          (sstoreAccountMap I.codeOwner
-            (bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner σ_evm
-              (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
-            (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-            (BytesStoreLiteCore.longDataTailMaskedWord
-              (bytesStoreLiteCalldataLongDataWord I payloadStart
-                (UInt256.ofNat (32 * fullFuel)) 0) len))
-          (solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0
-            (fullFuel + 1)) := by
-      have hsplit :
-          solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0
-              (fullFuel + 1) =
-            sstoreAccountMap I.codeOwner
-              (solidityDataWordsForwardFrom I.codeOwner σ_solm baseSlot value 0 fullFuel)
-              (solidityBytesDataSlot baseSlot fullFuel)
-              (uInt256OfByteArray (value.readWithPadding (fullFuel * 32) 32)) := by
-        have happ := solidityDataWordsForwardFrom_append I.codeOwner σ_solm baseSlot
-          value 0 fullFuel 1
-        rw [happ]
-        simp [solidityDataWordsForwardFrom]
-      rw [hsplit]
-      simpa [hslotEq, htailWord] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner
-          (BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
-          (BytesStoreLiteCore.longDataTailMaskedWord
-            (bytesStoreLiteCalldataLongDataWord I payloadStart
-              (UInt256.ofNat (32 * fullFuel)) 0) len)
-          hdataFull
+    have htailStore :=
+      accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last
+        (owner := I.codeOwner) (σ := bytesStoreLiteCalldataLongDataForwardFrom I.codeOwner
+          σ_evm (bytesLikeDataBase baseSlot) payloadStart (⟨0⟩ : UInt256) I fullFuel)
+        (τ := σ_solm) (baseSlot := baseSlot)
+        (slot := BytesStoreLiteCore.longDataWordsLoopSlot (bytesLikeDataBase baseSlot) fullFuel)
+        (word := BytesStoreLiteCore.longDataTailMaskedWord
+          (bytesStoreLiteCalldataLongDataWord I payloadStart
+            (UInt256.ofNat (32 * fullFuel)) 0) len)
+        (bytes := value) (idx := 0) (fuel := fullFuel)
+        hdataFull (by simpa using hslotEq) (by simpa using htailWord)
     simpa [σTail, σLoop, tailSlot, tailWord, evmLoop, evmSolm0, initState, value,
       baseSlot, fullFuel, hdataFuelEq, writeSolidityBytesDataWordsFrom_accountMap,
       bytesStoreLiteLongDataWordsLoopStride_zero_ofNat] using htailStore
@@ -6046,10 +5866,10 @@ theorem bytesStoreLiteSetMappedLongTailOldLongNoClearRuntimeOfReach
       writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState,
       bytesStoreLiteSetMappedRef, hkey] using hlen₀
   have hAccountsPost : accountMapEquiv σFinal evmData.accountMap := by
-    simpa [σFinal, evmData, evmLoop, hheaderEq, storageStore_accountMap,
+    simpa [σFinal, evmData, evmLoop, hheaderEq,
       writeSolidityBytesDataWordsFrom_executionEnv, evmSolm0, initState, header] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I)
-        header hAccountsTail
+      accountMapEquiv_setMappedHeaderStore I evmLoop.executionEnv.codeOwner header
+        hAccountsTail
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body
@@ -6450,9 +6270,11 @@ theorem bytesStoreLiteSetMappedEmptyOldShortRuntimeOfReach
   have hCreated : (cA, σFinal).1 = evmSolm1.createdAccounts := by
     simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts]
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    simp [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetMappedSlot I) ⟨0⟩
-      hAccounts
+    simpa [σFinal, evmSolm1, evmSolm0, initState] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedSlot I) ⟨0⟩
   have henc :
       returnEquiv (UInt256.toByteArray (⟨0⟩ : UInt256)) (some (.int 0))
         setMappedTransition.returnType := by
@@ -6570,10 +6392,11 @@ theorem bytesStoreLiteSetMappedShortNonemptyOldShortRuntimeOfReach
   have hCreated : (cA, σFinal).1 = evmSolm1.createdAccounts := by
     simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts]
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    have hpost := accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedSlot I) (solidityShortBytesWord value) hAccounts
-    simpa [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap, hstored]
-      using hpost
+    simpa [σFinal, evmSolm1, evmSolm0, initState, hstored] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedSlot I) (solidityShortBytesWord value)
   have henc :
       returnEquiv (UInt256.toByteArray len) (some (.int value.size))
         setMappedTransition.returnType := by
@@ -6664,14 +6487,14 @@ theorem bytesStoreLiteSetMappedShortNonemptyOldShortAbsentRuntimeOfReach
   have hlenMapped :
       readStorageBytesLength? bytesStoreLiteConfig evmSolm0
         (bytesStoreLiteSetMappedRefOf key) = .ok 0 := by
-    simp [readStorageBytesLength?, bytesStoreLiteConfig, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, solidityReadBytesLength?, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedRefOf, bytesLikeLengthLoc, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, storageNatResultToEval,
-      hmissingSolm0]
-    change storageNatResultToEval (solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256)) = .ok 0
-    rw [solidityDecodeBytesLengthHeader_zero]
-    rfl
+    have hload :
+      Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner
+          (bytesStoreLiteSetMappedSlotOf key) = (⟨0⟩ : UInt256) := by
+      simp [Solm.EVM.storageLoad, State.lookupAccount, hmissingSolm0, Option.option]
+    exact bytesStoreLiteReadLengthZeroOfHeaderLoad
+      (er := bytesStoreLiteSetMappedRefOf key) (evm := evmSolm0)
+      (baseSlot := bytesStoreLiteSetMappedSlotOf key)
+      (bytesStoreLiteSetMappedRefOf_length_slot evmSolm0 key) hload
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedLocals I) setMappedTransition.body

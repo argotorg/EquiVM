@@ -328,6 +328,123 @@ def bytesStoreLiteSetChunkRef (I : ExecutionEnv) : EvaledStorageRef :=
 def bytesStoreLiteSetChunkSlot (I : ExecutionEnv) : UInt256 :=
   chunksDataBase + bytesStoreLiteSetChunkIndexWord I
 
+theorem bytesStoreLiteSetChunkLocalsOf_get_chunkIndex (chunkIndex : UInt256)
+    (value : ByteArray) :
+    (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
+      some (.int (Int.ofNat chunkIndex.toNat)) := by
+  unfold bytesStoreLiteSetChunkLocalsOf
+  rw [store_get_ne]
+  · exact store_get_self (∅ : Store) "chunkIndex" (.int (Int.ofNat chunkIndex.toNat))
+  · native_decide
+
+theorem bytesStoreLiteSetChunkLocalsOf_getElem_chunkIndex (chunkIndex : UInt256)
+    (value : ByteArray) :
+    (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunkIndex"]? =
+      some (.int (Int.ofNat chunkIndex.toNat)) := by
+  simpa [Std.HashMap.get?_eq_getElem?] using
+    bytesStoreLiteSetChunkLocalsOf_get_chunkIndex chunkIndex value
+
+theorem bytesStoreLiteSetChunkLocalsOf_get_chunks_none (chunkIndex : UInt256)
+    (value : ByteArray) :
+    (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none := by
+  unfold bytesStoreLiteSetChunkLocalsOf
+  rw [store_get_ne]
+  · rw [store_get_ne]
+    · simp
+    · native_decide
+  · native_decide
+
+theorem bytesStoreLiteSetChunk_storageTypeAt {chunkIndex : UInt256} :
+    storageTypeAt? bytesStoreLiteContract.storage (bytesStoreLiteSetChunkRefOf chunkIndex) =
+      some .bytes := by
+  simp [bytesStoreLiteSetChunkRefOf, storageTypeAt?,
+    bytesStoreLiteContract, storageDecls, bytesSt, storageTypeStep?]
+
+theorem accountMapEquiv_setChunkHeaderStore {σ : AccountMap} {evm : EVM.State}
+    (I : ExecutionEnv) (owner : AccountAddress) (header : UInt256)
+    (hAccounts : accountMapEquiv σ evm.accountMap) :
+  accountMapEquiv
+      (sstoreAccountMap owner σ (bytesStoreLiteSetChunkSlot I) header)
+      (Solm.EVM.storageStore evm owner (bytesStoreLiteSetChunkSlot I) header).accountMap := by
+  exact accountMapEquiv_bytesHeaderStore owner (bytesStoreLiteSetChunkSlot I) header hAccounts
+
+theorem bytesStoreLiteSetChunkRef_length_slot (evm : EVM.State) (I : ExecutionEnv) :
+    ∃ loc, bytesStoreLiteLayout
+        { bytesStoreLiteSetChunkRef I with
+          steps := (bytesStoreLiteSetChunkRef I).steps ++ [.length] } evm =
+          some loc ∧
+        loc.slot = bytesStoreLiteSetChunkSlot I := by
+  refine ⟨bytesLikeLengthLoc (bytesStoreLiteSetChunkSlot I) evm, ?_, ?_⟩
+  · have hnonneg : ¬ ((bytesStoreLiteSetChunkIndexWord I).toNat : Int) < 0 := by
+      omega
+    simp [bytesStoreLiteLayout, bytesStoreLiteSetChunkRef, bytesStoreLiteSetChunkRefOf,
+      chunksElemSlot?, nonnegativeIndexSlot?, bytesStoreLiteSetChunkSlot, u256_ofNat_toNat]
+    simp [hnonneg]
+  · simp [bytesLikeLengthLoc]
+
+theorem bytesStoreLiteSetChunkEvalStorageRefOfLength {evm : EVM.State}
+    {chunkIndex chunksLen : UInt256} {value : ByteArray}
+    (hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hbound : chunkIndex.toNat < chunksLen.toNat) :
+    evalStorageRef bytesStoreLiteConfig
+      (bytesStoreLiteSetChunkFrameOf chunkIndex value)
+      evm (chunkRef (.var "chunkIndex")) =
+        .ok (bytesStoreLiteSetChunkRefOf chunkIndex) := by
+  have hgetIndex :
+      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
+        some (.int (Int.ofNat chunkIndex.toNat)) :=
+    bytesStoreLiteSetChunkLocalsOf_get_chunkIndex chunkIndex value
+  have hkey :
+      valueToKey? (.int (Int.ofNat chunkIndex.toNat)) =
+        some (.int (Int.ofNat chunkIndex.toNat)) := by
+    simp [valueToKey?]
+  have hbounds :
+      arrayIndexInBounds? bytesStoreLiteConfig evm
+        (bytesStoreLiteSetChunkFrameOf chunkIndex value).contract.storage "chunks" []
+        (.int (Int.ofNat chunkIndex.toNat)) = .ok () := by
+    simpa [arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
+      bytesStoreLiteSetChunkFrameOf, bytesStoreLiteContract, storageDecls, bytesSt,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, bytesStoreLiteLayout,
+      bytesStoreLiteStorageLocLoad_uint256, hload] using hbound
+  simpa [chunkRef, bytesStoreLiteSetChunkFrameOf, bytesStoreLiteSetChunkRefOf] using
+    (evalStorageRef_aindex_var_of_get?_ok
+      (cfg := bytesStoreLiteConfig)
+      (solm := bytesStoreLiteSetChunkFrameOf chunkIndex value)
+      (evm := evm) (base := "chunks") (name := "chunkIndex")
+      hgetIndex hkey hbounds)
+
+theorem bytesStoreLiteSetChunkEvalStorageRefRevertsOfChunksLength {evm : EVM.State}
+    {chunkIndex chunksLen : UInt256} {value : ByteArray}
+    (hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ = chunksLen)
+    (hbound : ¬ chunkIndex.toNat < chunksLen.toNat) :
+    evalStorageRef bytesStoreLiteConfig
+      (bytesStoreLiteSetChunkFrameOf chunkIndex value)
+      evm (chunkRef (.var "chunkIndex")) = .revert := by
+  have hgetIndex :
+      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
+        some (.int (Int.ofNat chunkIndex.toNat)) :=
+    bytesStoreLiteSetChunkLocalsOf_get_chunkIndex chunkIndex value
+  have hkey :
+      valueToKey? (.int (Int.ofNat chunkIndex.toNat)) =
+        some (.int (Int.ofNat chunkIndex.toNat)) := by
+    simp [valueToKey?]
+  have hbounds :
+      arrayIndexInBounds? bytesStoreLiteConfig evm
+        (bytesStoreLiteSetChunkFrameOf chunkIndex value).contract.storage "chunks" []
+        (.int (Int.ofNat chunkIndex.toNat)) = .revert := by
+    simpa [arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
+      bytesStoreLiteSetChunkFrameOf, bytesStoreLiteContract, storageDecls, bytesSt,
+      bytesStoreLiteStorageLayout, solidityStorageLayout, bytesStoreLiteLayout,
+      bytesStoreLiteStorageLocLoad_uint256, hload] using Nat.le_of_not_gt hbound
+  simpa [chunkRef, bytesStoreLiteSetChunkFrameOf] using
+    (evalStorageRef_aindex_var_of_get?_revert
+      (cfg := bytesStoreLiteConfig)
+      (solm := bytesStoreLiteSetChunkFrameOf chunkIndex value)
+      (evm := evm) (base := "chunks") (name := "chunkIndex")
+      hgetIndex hkey hbounds)
+
 def bytesStoreLiteSetChunkHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩
     (fun acc => acc.storage.findD (bytesStoreLiteSetChunkSlot I) ⟨0⟩)
@@ -377,69 +494,19 @@ theorem bytesStoreLiteSetChunkResolveOfLength {evm : EVM.State}
       (bytesStoreLiteSetChunkFrameOf chunkIndex value) evm
       (chunkRef (.var "chunkIndex")) =
         .ok (bytesStoreLiteSetChunkRefOf chunkIndex, .bytes) := by
-  have hgetIndex :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · exact store_get_self (∅ : Store) "chunkIndex" (.int (Int.ofNat chunkIndex.toNat))
-    · native_decide
-  have hgetIndexElem :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunkIndex"]? =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
   have hgetChunks :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · rw [store_get_ne]
-      · simp
-      · native_decide
-    · native_decide
-  have hgetChunksElem :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunks"]? = none := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetChunks
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-        evm (chunkRef (.var "chunkIndex")) =
-          .ok (bytesStoreLiteSetChunkRefOf chunkIndex) := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, chunkRef,
-      bytesStoreLiteSetChunkFrameOf, bytesStoreLiteSetChunkRefOf, hgetIndexElem,
-      valueToKey?, EvalResult.ofOption,
-      EvalResult.bind, bind, pure, arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
-      bytesStoreLiteContract, storageDecls, bytesSt, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, bytesStoreLiteLayout, bytesStoreLiteStorageLocLoad_uint256,
-      hload, hbound]
-  have her' :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-        evm { base := "chunks", steps := [.aindex (.var "chunkIndex")] } =
-          .ok (bytesStoreLiteSetChunkRefOf chunkIndex) := by
-    simpa [chunkRef] using her
-  rw [resolveStorageRef?]
-  simp only [chunkRef, hgetChunks, bytesStoreLiteSetChunkFrameOf]
+      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none :=
+    bytesStoreLiteSetChunkLocalsOf_get_chunks_none chunkIndex value
   have her'' :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetChunkLocalsOf chunkIndex value }
         evm { base := "chunks", steps := [.aindex (.var "chunkIndex")] } =
           .ok (bytesStoreLiteSetChunkRefOf chunkIndex) := by
-    simpa [bytesStoreLiteSetChunkFrameOf] using her'
-  change
-    (match
-        evalStorageRef bytesStoreLiteConfig
-          (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-          evm { base := "chunks", steps := [.aindex (.var "chunkIndex")] } with
-      | .ok er => do
-          let ty ← EvalResult.ofOption EvalError.storageError
-            (storageTypeAt? bytesStoreLiteContract.storage er)
-          pure (er, ty)
-      | .revert => .revert
-      | .error e => .error e) =
-        .ok (bytesStoreLiteSetChunkRefOf chunkIndex, .bytes)
-  rw [her']
-  simp [bytesStoreLiteSetChunkRefOf, storageTypeAt?, bytesStoreLiteContract, storageDecls,
-    bytesSt, storageTypeStep?, EvalResult.ofOption, EvalResult.bind, bind, pure]
+    simpa [chunkRef, bytesStoreLiteSetChunkFrameOf] using
+      (bytesStoreLiteSetChunkEvalStorageRefOfLength
+        (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
+        hload hbound)
+  exact resolveStorageRef?_ok hgetChunks her'' bytesStoreLiteSetChunk_storageTypeAt
 
 theorem bytesStoreLiteSetChunkResolveRevertsOfChunksLength {evm : EVM.State}
     {chunkIndex chunksLen : UInt256} {value : ByteArray}
@@ -449,52 +516,18 @@ theorem bytesStoreLiteSetChunkResolveRevertsOfChunksLength {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetChunkFrameOf chunkIndex value) evm
       (chunkRef (.var "chunkIndex")) = .revert := by
-  have hgetIndex :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · exact store_get_self (∅ : Store) "chunkIndex" (.int (Int.ofNat chunkIndex.toNat))
-    · native_decide
-  have hgetIndexElem :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunkIndex"]? =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
   have hgetChunks :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · rw [store_get_ne]
-      · simp
-      · native_decide
-    · native_decide
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-        evm (chunkRef (.var "chunkIndex")) = .revert := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, chunkRef,
-      bytesStoreLiteSetChunkFrameOf, hgetIndexElem, valueToKey?, EvalResult.ofOption,
-      EvalResult.bind, bind, pure, arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
-      bytesStoreLiteContract, storageDecls, bytesSt, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, bytesStoreLiteLayout, bytesStoreLiteStorageLocLoad_uint256,
-      hload, hbound]
+      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none :=
+    bytesStoreLiteSetChunkLocalsOf_get_chunks_none chunkIndex value
   have herInline :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetChunkLocalsOf chunkIndex value }
         evm (chunkRef (.var "chunkIndex")) = .revert := by
-    simpa [bytesStoreLiteSetChunkFrameOf] using her
-  rw [resolveStorageRef?]
-  simp only [chunkRef, bytesStoreLiteSetChunkFrameOf, hgetChunks]
-  change (match evalStorageRef bytesStoreLiteConfig
-      { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetChunkLocalsOf chunkIndex value }
-      evm (chunkRef (.var "chunkIndex")) with
-    | .ok er => do
-        let ty ← EvalResult.ofOption EvalError.storageError
-          (storageTypeAt? bytesStoreLiteContract.storage er)
-        pure (er, ty)
-    | .revert => .revert
-    | .error e => .error e) = .revert
-  rw [herInline]
+    simpa [bytesStoreLiteSetChunkFrameOf] using
+      (bytesStoreLiteSetChunkEvalStorageRefRevertsOfChunksLength
+        (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
+        hload hbound)
+  exact resolveStorageRef?_revert_of_evalStorageRef_revert hgetChunks herInline
 
 theorem bytesStoreLiteSetChunkAssignOfLength {evm evm' : EVM.State}
     {chunkIndex chunksLen : UInt256} {value : ByteArray}
@@ -512,7 +545,7 @@ theorem bytesStoreLiteSetChunkAssignOfLength {evm evm' : EVM.State}
     bytesStoreLiteSetChunkResolveOfLength
       (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
       hload hbound
-  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+  exact assignStorageRef_storage_bytes_ok_of_write hresolve hwrite
 
 theorem bytesStoreLiteSetChunkLengthAfterWrite {evm : EVM.State}
     {chunkIndex chunksLen : UInt256} {value : ByteArray} {n : Nat}
@@ -590,8 +623,7 @@ theorem bytesStoreLiteSetChunkBodyReturnsOfWrite {evm evm' : EVM.State}
       unfold bytesStoreLiteSetChunkLocalsOf
       exact store_get_self ((∅ : Store).insert "chunkIndex"
         (.int (Int.ofNat chunkIndex.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetChunkFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetChunkFrameOf] using hlookup)
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (chunkRef (.var "chunkIndex")) (.bytes value) =
@@ -637,8 +669,7 @@ theorem bytesStoreLiteSetChunkBodyReturnRevertsOfPostChunksLength {evm evm' : EV
       unfold bytesStoreLiteSetChunkLocalsOf
       exact store_get_self ((∅ : Store).insert "chunkIndex"
         (.int (Int.ofNat chunkIndex.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetChunkFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetChunkFrameOf] using hlookup)
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (chunkRef (.var "chunkIndex")) (.bytes value) =
@@ -680,8 +711,7 @@ theorem bytesStoreLiteSetChunkBodyRevertsOfWrite {evm : EVM.State}
       unfold bytesStoreLiteSetChunkLocalsOf
       exact store_get_self ((∅ : Store).insert "chunkIndex"
         (.int (Int.ofNat chunkIndex.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetChunkFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetChunkFrameOf] using hlookup)
   have hresolve :=
     bytesStoreLiteSetChunkResolveOfLength
       (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
@@ -694,7 +724,7 @@ theorem bytesStoreLiteSetChunkBodyRevertsOfWrite {evm : EVM.State}
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (chunkRef (.var "chunkIndex")) (.bytes value) = .revert := by
-    simp [assignStorageRef?, hresolve0, hwrite, EvalResult.bind, bind, pure]
+    exact assignStorageRef_storage_bytes_revert_of_write hresolve0 hwrite
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
@@ -707,51 +737,18 @@ theorem bytesStoreLiteSetChunkResolveRevertsOfLength {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetChunkFrameOf chunkIndex value) evm
       (chunkRef (.var "chunkIndex")) = .revert := by
-  have hgetIndex :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunkIndex" =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · exact store_get_self (∅ : Store) "chunkIndex" (.int (Int.ofNat chunkIndex.toNat))
-    · native_decide
-  have hgetIndexElem :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunkIndex"]? =
-        some (.int (Int.ofNat chunkIndex.toNat)) := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetIndex
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-        evm (chunkRef (.var "chunkIndex")) = .revert := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, chunkRef,
-      bytesStoreLiteSetChunkFrameOf, hgetIndexElem, valueToKey?, EvalResult.ofOption,
-      EvalResult.bind, bind, pure,
-      arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig, bytesStoreLiteContract,
-      storageDecls, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteLayout, bytesStoreLiteStorageLocLoad_uint256, hload, hbound]
-  have her' :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetChunkFrameOf chunkIndex value)
-        evm { base := "chunks", steps := [.aindex (.var "chunkIndex")] } = .revert := by
-    simpa [chunkRef] using her
-  rw [resolveStorageRef?]
   have hgetChunksGet :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none := by
-    unfold bytesStoreLiteSetChunkLocalsOf
-    rw [store_get_ne]
-    · rw [store_get_ne]
-      · simp
-      · native_decide
-    · native_decide
-  have hgetChunks :
-      (bytesStoreLiteSetChunkLocalsOf chunkIndex value)["chunks"]? = none := by
-    simpa [Std.HashMap.get?_eq_getElem?] using hgetChunksGet
-  simp only [chunkRef, bytesStoreLiteSetChunkFrameOf, hgetChunksGet]
+      (bytesStoreLiteSetChunkLocalsOf chunkIndex value).get? "chunks" = none :=
+    bytesStoreLiteSetChunkLocalsOf_get_chunks_none chunkIndex value
   have her'' :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetChunkLocalsOf chunkIndex value }
         evm { base := "chunks", steps := [.aindex (.var "chunkIndex")] } = .revert := by
-    simpa [bytesStoreLiteSetChunkFrameOf] using her'
-  simp [her'']
+    simpa [chunkRef, bytesStoreLiteSetChunkFrameOf] using
+      (bytesStoreLiteSetChunkEvalStorageRefRevertsOfChunksLength
+        (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
+        hload hbound)
+  exact resolveStorageRef?_revert_of_evalStorageRef_revert hgetChunksGet her''
 
 theorem bytesStoreLiteSetChunkBodyBoundsRevertsOfLength {evm : EVM.State}
     {chunkIndex chunksLen : UInt256} {value : ByteArray}
@@ -771,16 +768,14 @@ theorem bytesStoreLiteSetChunkBodyBoundsRevertsOfLength {evm : EVM.State}
       unfold bytesStoreLiteSetChunkLocalsOf
       exact store_get_self ((∅ : Store).insert "chunkIndex"
         (.int (Int.ofNat chunkIndex.toNat))) "value" (.bytes value)
-    rw [Std.HashMap.get?_eq_getElem?] at hlookup
-    simp [solm0, bytesStoreLiteSetChunkFrameOf, evalExpr?, hlookup, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by simpa [solm0, bytesStoreLiteSetChunkFrameOf] using hlookup)
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm0 evm .storage
         (chunkRef (.var "chunkIndex")) (.bytes value) = .revert := by
-    rw [assignStorageRef?]
-    rw [bytesStoreLiteSetChunkResolveRevertsOfLength
-      (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
-      hload hbound]
-    rfl
+    exact assignStorageRef_storage_revert_of_resolve
+      (bytesStoreLiteSetChunkResolveRevertsOfLength
+        (evm := evm) (chunkIndex := chunkIndex) (chunksLen := chunksLen) (value := value)
+        hload hbound)
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
@@ -912,29 +907,10 @@ theorem bytesStoreLiteSetChunkShortFromLongPostAccountMapEquiv
           (bytesStoreLiteSetChunkSlot I) 0 ((oldLen.toNat + 31) / 32))
         I.codeOwner (bytesStoreLiteSetChunkSlot I)
           (solidityShortBytesWord value)).accountMap := by
-  have hdivNat :
-      (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩).toNat =
-        (oldLen.toNat + 31) / 32 :=
-    BytesStoreLiteCore.u256_div_add31_toNat_of_lt_sign (x := oldLen) holdLenLt
-  have hcountNat :
-      (UInt256.sub (UInt256.shiftRight (oldLen + ⟨31⟩) ⟨5⟩) ⟨0⟩).toNat =
-        (oldLen.toNat + 31) / 32 := by
-    rw [bytesStoreLite_shiftRight_five_eq_div_thirtyTwo,
-      BytesStoreLiteCore.uint256_sub_zero_right]
-    exact hdivNat
-  have hbase :
-      ((⟨0⟩ : UInt256) + bytesLikeDataBase (bytesStoreLiteSetChunkSlot I)) =
-        solidityBytesDataBaseSlot (bytesStoreLiteSetChunkSlot I) := by
-    rw [u256_add_comm (⟨0⟩ : UInt256) (bytesLikeDataBase (bytesStoreLiteSetChunkSlot I))]
-    rw [BytesStoreLiteCore.uint256_add_zero_right]
-    rfl
-  simp [initState, clearSolidityBytesDataWordsFrom_accountMap,
-    storageStore_accountMap, hcountNat, hstored, hbase]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetChunkSlot I)
-    (solidityShortBytesWord value)
-    (accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-      (solidityBytesDataBaseSlot (bytesStoreLiteSetChunkSlot I)) ⟨0⟩
-      ((oldLen.toNat + 31) / 32) hAccounts)
+  exact accountMapEquiv_setBytesShortFromLongPostAccountMapEquiv
+    (baseSlot := bytesStoreLiteSetChunkSlot I)
+    (oldLen := oldLen) (storedWord := storedWord) (value := value)
+    hAccounts hstored holdLenLt
 
 theorem bytesStoreLiteSetChunkLengthAfterEmptyWrite
     {cA gh bl σ_solm σ₀ A I} {g : UInt256} :
@@ -947,42 +923,10 @@ theorem bytesStoreLiteSetChunkLengthAfterEmptyWrite
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetChunkSlot I) ⟨0⟩
-  have hslotChunk :
-      chunksElemSlot?
-        (.int ((bytesStoreLiteSetChunkIndexWord I).toNat : Int)) =
-          some (bytesStoreLiteSetChunkSlot I) := by
-    simp [chunksElemSlot?, nonnegativeIndexSlot?, bytesStoreLiteSetChunkSlot,
-      u256_ofNat_toNat]
-  have hcodeOwner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
-  have hheader :
-      ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetChunkSlot I)
-            (default : UInt256))) = ⟨0⟩ := by
-    simp [evmSolm1, evmSolm0, storageStore_accountMap, initState]
-    unfold sstoreAccountMap
-    cases hacc : σ_solm.find? I.codeOwner with
-    | none =>
-        simp [hacc, Option.option]
-        rfl
-    | some acc =>
-        have hzero : ((⟨0⟩ : UInt256) = (default : UInt256)) := rfl
-        simp [Option.option, accountMap_find_insert_self, hzero, storage_findD_erase_self]
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetChunkRef, bytesStoreLiteSetChunkRefOf,
-    hslotChunk, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    storageStore_executionEnv]
-  rw [show
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
-      I.codeOwner by rfl]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetChunkSlot I)
-            (default : UInt256)))) = .ok 0
-  rw [hheader]
-  rfl
+  exact bytesStoreLiteReadLengthAfterHeaderStoreZero
+    (er := bytesStoreLiteSetChunkRef I) (evm := evmSolm0) (evmData := evmSolm1)
+    (baseSlot := bytesStoreLiteSetChunkSlot I) (by rfl)
+    (by simpa [evmSolm1] using bytesStoreLiteSetChunkRef_length_slot evmSolm1 I)
 
 theorem bytesStoreLiteSetChunkLengthAfterShortWrite
     {cA gh bl σ_solm σ₀ A I} {g len payloadStart : UInt256} {acc : Account}
@@ -1000,24 +944,6 @@ theorem bytesStoreLiteSetChunkLengthAfterShortWrite
   let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
     (bytesStoreLiteSetChunkSlot I) storedWord
-  have hslotChunk :
-      chunksElemSlot?
-        (.int ((bytesStoreLiteSetChunkIndexWord I).toNat : Int)) =
-          some (bytesStoreLiteSetChunkSlot I) := by
-    simp [chunksElemSlot?, nonnegativeIndexSlot?, bytesStoreLiteSetChunkSlot,
-      u256_ofNat_toNat]
-  have hheader :
-      ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetChunkSlot I)
-            (default : UInt256))) = storedWord := by
-    have hbeq : (storedWord == (default : UInt256)) = false := by
-      simpa [storedWord] using
-        bytesStoreLiteSetChunkShortStoredWord_beq_zero_false
-          (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
-    simp [evmSolm1, evmSolm0, storageStore_accountMap, initState]
-    unfold sstoreAccountMap
-    simp [hacc, hbeq, Option.option, accountMap_find_insert_self,
-      storage_findD_insert_self]
   have hdecode :
       solidityDecodeBytesLengthHeader storedWord = .ok len.toNat := by
     exact solidityDecodeBytesLengthHeader_short_valid
@@ -1043,21 +969,13 @@ theorem bytesStoreLiteSetChunkLengthAfterShortWrite
               (I := I) (len := len) (payloadStart := payloadStart) hnz hshort
         rw [hflag]
         native_decide)
-  simp [readStorageBytesLength?, bytesStoreLiteConfig,
-    bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-    bytesStoreLiteLayout, bytesStoreLiteSetChunkRef, bytesStoreLiteSetChunkRefOf,
-    hslotChunk, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    storageStore_executionEnv]
-  rw [show
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
-      I.codeOwner by rfl]
-  change storageNatResultToEval
-      (solidityDecodeBytesLengthHeader
-        ((evmSolm1.accountMap.find? I.codeOwner).option (default : UInt256)
-          (fun acc => acc.storage.findD (bytesStoreLiteSetChunkSlot I)
-            (default : UInt256)))) = .ok len.toNat
-  rw [hheader, hdecode]
-  rfl
+  exact bytesStoreLiteReadLengthAfterHeaderStorePresent
+    (er := bytesStoreLiteSetChunkRef I) (evm := evmSolm0) (evmData := evmSolm1)
+    (baseSlot := bytesStoreLiteSetChunkSlot I) (header := storedWord) (len := len.toNat)
+    (by rfl)
+    (by simpa [evmSolm1] using bytesStoreLiteSetChunkRef_length_slot evmSolm1 I)
+    (by simpa [evmSolm0, initState] using hacc)
+    hdecode
 
 theorem bytesStoreLiteSetChunkSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x39, 0x3d, 0x9c, 0xd7]⟩) :
@@ -2250,14 +2168,15 @@ theorem bytesStoreLiteSetChunkEmptyHeaderAfterWrite
         I.codeOwner).option (default : UInt256)
         (fun acc => acc.storage.findD (chunksDataBase + chunkIndex) (default : UInt256))) =
       ⟨0⟩ := by
-  unfold sstoreAccountMap
-  cases hacc : σ.find? I.codeOwner with
+  have h := sstoreAccountMap_storage_findD_eq_if σ I.codeOwner
+    (chunksDataBase + chunkIndex) (chunksDataBase + chunkIndex) (⟨0⟩ : UInt256)
+  rw [h]
+  cases σ.find? I.codeOwner with
   | none =>
-      simp [hacc, Option.option]
+      simp [Option.option]
       rfl
-  | some acc =>
-      have hzero : ((⟨0⟩ : UInt256) = (default : UInt256)) := rfl
-      simp [Option.option, accountMap_find_insert_self, hzero, storage_findD_erase_self]
+  | some _ =>
+      simp [Option.option]
 
 theorem bytesStoreLiteX_setChunkReachReturnLengthDecoder
     {cA gh bl σinit σ σ₀ A I} {g : Sat256}
@@ -2973,9 +2892,11 @@ theorem bytesStoreLiteSetChunkEmptyOldShortRuntimeOfReach_of_post_bound
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    simp [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetChunkSlot I) ⟨0⟩
-      hAccounts
+    simpa [σFinal, evmSolm1, evmSolm0, initState] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetChunkSlot I) ⟨0⟩
   have hloadAfter :
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ =
           bytesStoreLiteChunksLengthWord σFinal I := by
@@ -3099,9 +3020,11 @@ theorem bytesStoreLiteSetChunkEmptyOldShortRuntimeOfReach_post_oob
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    simp [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (bytesStoreLiteSetChunkSlot I) ⟨0⟩
-      hAccounts
+    simpa [σFinal, evmSolm1, evmSolm0, initState] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetChunkSlot I) ⟨0⟩
   have hloadAfter :
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ =
           bytesStoreLiteChunksLengthWord σFinal I := by
@@ -3222,10 +3145,11 @@ theorem bytesStoreLiteSetChunkShortNonemptyOldShortRuntimeOfReach_of_post_bound
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    have hpost := accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetChunkSlot I) (solidityShortBytesWord value) hAccounts
-    simpa [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap, hstored]
-      using hpost
+    simpa [σFinal, evmSolm1, evmSolm0, initState, hstored] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetChunkSlot I) (solidityShortBytesWord value)
   have hloadAfter :
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ =
           bytesStoreLiteChunksLengthWord σFinal I := by
@@ -3378,10 +3302,11 @@ theorem bytesStoreLiteSetChunkShortNonemptyOldShortRuntimeOfReach_post_oob
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
         (I := I) (g := Sat256.ofUInt256 g) hAccounts
   have hAccountsPost : accountMapEquiv σFinal evmSolm1.accountMap := by
-    have hpost := accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetChunkSlot I) (solidityShortBytesWord value) hAccounts
-    simpa [σFinal, evmSolm1, evmSolm0, initState, storageStore_accountMap, hstored]
-      using hpost
+    simpa [σFinal, evmSolm1, evmSolm0, initState, hstored] using
+      accountMapEquiv_storageStore_initState_codeOwner
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetChunkSlot I) (solidityShortBytesWord value)
   have hloadAfter :
       Solm.EVM.storageLoad evmSolm1 evmSolm1.executionEnv.codeOwner ⟨1⟩ =
           bytesStoreLiteChunksLengthWord σFinal I := by

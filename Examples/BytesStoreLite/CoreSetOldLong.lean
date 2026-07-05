@@ -264,15 +264,6 @@ theorem clearCurrentBaseMemFrom_idem {mem : ByteArray} (hmem : 32 ≤ mem.size) 
   · rw [clearCurrentBaseMemFrom_size_of_ge32 mem hmem]
     omega
 
-theorem nat_ceil32_le_ceil32 {a b : Nat} (h : a ≤ b) :
-    (a + 31) / 32 ≤ (b + 31) / 32 := by
-  exact Nat.div_le_div_right (Nat.add_le_add_right h 31)
-
-theorem nat_ceil32_eq_div_of_mod_zero {n : Nat} (hmod : n % 32 = 0) :
-    (n + 31) / 32 = n / 32 := by
-  have hdiv := Nat.div_add_mod n 32
-  omega
-
 theorem u256_div_add31_toNat_of_lt_sign {x : UInt256} (hx : x.toNat < 2 ^ 255) :
     (UInt256.div (x + ⟨31⟩) ⟨32⟩).toNat = (x.toNat + 31) / 32 := by
   have hadd : (x + (⟨31⟩ : UInt256)).toNat = x.toNat + 31 := by
@@ -1872,17 +1863,45 @@ def longDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
         ((⟨1⟩ : UInt256) + slot) ((⟨32⟩ : UInt256) + stride) ptr
         (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) mem n
 
+abbrev LongDataWordsLoopState := UInt256 × UInt256 × UInt256
+
+def longDataWordsLoopStateNext (ptr : UInt256) :
+    LongDataWordsLoopState → LongDataWordsLoopState
+  | (slot, stride, aw) =>
+      ((⟨1⟩ : UInt256) + slot, (⟨32⟩ : UInt256) + stride,
+        UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
+
+theorem longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom
+    (owner : AccountAddress) (τ : AccountMap)
+    (slot stride ptr aw : UInt256) (mem : ByteArray) :
+    ∀ fuel,
+      longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel =
+        accountStorageStatefulWordsForwardFrom LongDataWordsLoopState owner τ
+          (fun state => state.1)
+          (fun state => longDataWordsLoopWord mem state.2.2 ptr state.2.1 0)
+          (longDataWordsLoopStateNext ptr) (slot, stride, aw) fuel
+  | 0 => rfl
+  | fuel + 1 => by
+      simp [longDataWordsForwardFrom, accountStorageStatefulWordsForwardFrom,
+        longDataWordsLoopStateNext]
+      exact longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom owner
+        (sstoreAccountMap owner τ slot (longDataWordsLoopWord mem aw ptr stride 0))
+        ((⟨1⟩ : UInt256) + slot) ((⟨32⟩ : UInt256) + stride) ptr
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) mem fuel
+
 theorem longDataWordsForwardFrom_absent_same {owner : AccountAddress} {τ : AccountMap}
     {slot stride ptr aw : UInt256} {mem : ByteArray} :
     ∀ fuel, τ.find? owner = none →
       longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel = τ
-  | 0, _hmissing => rfl
-  | fuel + 1, hmissing => by
-      simp [longDataWordsForwardFrom, sstoreAccountMap_absent_same hmissing]
-      exact longDataWordsForwardFrom_absent_same (owner := owner) (τ := τ)
-        (slot := (⟨1⟩ : UInt256) + slot) (stride := (⟨32⟩ : UInt256) + stride)
-        (ptr := ptr) (aw := UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
-        (mem := mem) fuel hmissing
+  | fuel, hmissing => by
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      exact accountStorageStatefulWordsForwardFrom_absent_same
+        (owner := owner) (σ := τ)
+        (slotAt := fun state : LongDataWordsLoopState => state.1)
+        (wordAt := fun state : LongDataWordsLoopState =>
+          longDataWordsLoopWord mem state.2.2 ptr state.2.1 0)
+        (next := longDataWordsLoopStateNext ptr) (state := (slot, stride, aw))
+        hmissing fuel
 
 theorem accountMapEquiv_longDataWordsForwardFrom
     {owner : AccountAddress} {σ τ : AccountMap}
@@ -1891,12 +1910,54 @@ theorem accountMapEquiv_longDataWordsForwardFrom
       accountMapEquiv
         (longDataWordsForwardFrom owner σ slot stride ptr aw mem fuel)
         (longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel)
-  | 0, hAccounts => hAccounts
-  | fuel + 1, hAccounts => by
-      simp [longDataWordsForwardFrom]
-      exact accountMapEquiv_longDataWordsForwardFrom fuel
-        (accountMapEquiv_sstoreAccountMap owner slot
-          (longDataWordsLoopWord mem aw ptr stride 0) hAccounts)
+  | fuel, hAccounts => by
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      exact accountMapEquiv_accountStorageStatefulWordsForwardFrom
+        (owner := owner) (σ := σ) (τ := τ)
+        (slotAt := fun state : LongDataWordsLoopState => state.1)
+        (wordAt := fun state : LongDataWordsLoopState =>
+          longDataWordsLoopWord mem state.2.2 ptr state.2.1 0)
+        (next := longDataWordsLoopStateNext ptr) (state := (slot, stride, aw))
+        fuel hAccounts
+
+theorem accountMapEquiv_sstore_header_after_longDataWordsForwardFrom
+    {owner : AccountAddress} {σ τ : AccountMap}
+    {slot stride ptr aw headerSlot header : UInt256} {mem : ByteArray} {fuel : Nat}
+    (hAccounts : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (longDataWordsForwardFrom owner σ slot stride ptr aw mem fuel)
+        headerSlot header)
+      (sstoreAccountMap owner
+        (longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel)
+        headerSlot header) := by
+  rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+  rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+  exact accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom
+    (owner := owner) (slot := headerSlot) (val := header) hAccounts
+
+theorem accountMapEquiv_sstore_tail_header_after_longDataWordsForwardFrom
+    {owner : AccountAddress} {σ τ : AccountMap}
+    {slot stride ptr aw tailSlot tailWord headerSlot header : UInt256}
+    {mem : ByteArray} {fuel : Nat}
+    (hAccounts : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (sstoreAccountMap owner
+          (longDataWordsForwardFrom owner σ slot stride ptr aw mem fuel)
+          tailSlot tailWord)
+        headerSlot header)
+      (sstoreAccountMap owner
+        (sstoreAccountMap owner
+          (longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel)
+          tailSlot tailWord)
+        headerSlot header) := by
+  rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+  rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+  exact accountMapEquiv_sstore_two_accountStorageStatefulWordsForwardFrom
+    (owner := owner) (slot₁ := tailSlot) (val₁ := tailWord)
+    (slot₂ := headerSlot) (val₂ := header) hAccounts
 
 theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
   apply u256_inj
@@ -1987,6 +2048,16 @@ theorem longDataWordsLoopStride_32_ofNat :
         u256_32_add_ofNat]
       congr 1
 
+theorem longDataWordsLoopStride_ofNat_stride_add (i : Nat) :
+    ∀ j, longDataWordsLoopStride (UInt256.ofNat (32 * (i + 1))) j =
+      UInt256.ofNat (32 * (i + j + 1))
+  | 0 => by
+      congr 1
+  | j + 1 => by
+      rw [longDataWordsLoopStride, longDataWordsLoopStride_ofNat_stride_add i j]
+      rw [u256_32_add_ofNat]
+      congr 1
+
 theorem longDataWordsLoopSlot_clearBase :
     ∀ i, longDataWordsLoopSlot clearCurrentBaseWord i =
       clearCurrentBaseWord + UInt256.ofNat i
@@ -2000,6 +2071,114 @@ theorem longDataWordsLoopSlot_clearBase :
       rw [u256_add_assoc]
       rw [u256_add_comm (UInt256.ofNat i) (⟨1⟩ : UInt256)]
       rw [u256_one_add_ofNat]
+
+theorem longDataWordsLoopIndex_succ_base (idx : UInt256) :
+    ∀ i, longDataWordsLoopIndex ((⟨32⟩ : UInt256) + idx) i =
+      (⟨32⟩ : UInt256) + longDataWordsLoopIndex idx i
+  | 0 => rfl
+  | i + 1 => by
+      simp [longDataWordsLoopIndex, longDataWordsLoopIndex_succ_base idx i]
+
+theorem longDataWordsLoopSlot_succ_base (slot : UInt256) :
+    ∀ i, longDataWordsLoopSlot ((⟨1⟩ : UInt256) + slot) i =
+      (⟨1⟩ : UInt256) + longDataWordsLoopSlot slot i
+  | 0 => rfl
+  | i + 1 => by
+      simp [longDataWordsLoopSlot, longDataWordsLoopSlot_succ_base slot i]
+
+theorem longDataWordsLoopState_slot (ptr : UInt256) :
+    ∀ (slot stride aw : UInt256) (fuel : Nat),
+      (accountStorageStatefulLoopState (longDataWordsLoopStateNext ptr)
+        (slot, stride, aw) fuel).1 =
+        longDataWordsLoopSlot slot fuel
+  | slot, stride, aw, 0 => rfl
+  | slot, stride, aw, fuel + 1 => by
+      rw [accountStorageStatefulLoopState, longDataWordsLoopStateNext]
+      rw [longDataWordsLoopState_slot ptr ((⟨1⟩ : UInt256) + slot)
+        ((⟨32⟩ : UInt256) + stride)
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) fuel]
+      exact longDataWordsLoopSlot_succ_base slot fuel
+
+theorem longDataWordsLoopSlot_base_add_ofNat (base : UInt256) (i : Nat) :
+    ∀ j, longDataWordsLoopSlot (base + UInt256.ofNat i) j =
+      base + UInt256.ofNat (i + j)
+  | 0 => by simp [longDataWordsLoopSlot]
+  | j + 1 => by
+      rw [longDataWordsLoopSlot, longDataWordsLoopSlot_base_add_ofNat base i j]
+      rw [u256_base_one_add_ofNat]
+      congr 1
+
+theorem longDataWordsLoopStride_succ_base (stride : UInt256) :
+    ∀ i, longDataWordsLoopStride ((⟨32⟩ : UInt256) + stride) i =
+      (⟨32⟩ : UInt256) + longDataWordsLoopStride stride i
+  | 0 => rfl
+  | i + 1 => by
+      simp [longDataWordsLoopStride, longDataWordsLoopStride_succ_base stride i]
+
+theorem longDataWordsLoopAw_succ_base (aw ptr stride : UInt256) :
+    ∀ i, longDataWordsLoopAw
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
+        ptr ((⟨32⟩ : UInt256) + stride) i =
+      longDataWordsLoopAw aw ptr stride (i + 1)
+  | 0 => rfl
+  | i + 1 => by
+      simp [longDataWordsLoopAw, longDataWordsLoopAw_succ_base aw ptr stride i,
+        longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
+
+theorem longDataWordsLoopWord_succ_base (mem : ByteArray) (aw ptr stride : UInt256) :
+    ∀ i, longDataWordsLoopWord mem
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
+        ptr ((⟨32⟩ : UInt256) + stride) i =
+      longDataWordsLoopWord mem aw ptr stride (i + 1)
+  | 0 => by
+      simp [longDataWordsLoopWord, longDataWordsLoopAw, longDataWordsLoopStride]
+  | i + 1 => by
+      simp [longDataWordsLoopWord, longDataWordsLoopAw_succ_base,
+        longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
+
+theorem longDataWordsLoopState_stride (ptr : UInt256) :
+    ∀ (slot stride aw : UInt256) (fuel : Nat),
+      (accountStorageStatefulLoopState (longDataWordsLoopStateNext ptr)
+        (slot, stride, aw) fuel).2.1 =
+        longDataWordsLoopStride stride fuel
+  | slot, stride, aw, 0 => rfl
+  | slot, stride, aw, fuel + 1 => by
+      rw [accountStorageStatefulLoopState, longDataWordsLoopStateNext]
+      rw [longDataWordsLoopState_stride ptr ((⟨1⟩ : UInt256) + slot)
+        ((⟨32⟩ : UInt256) + stride)
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) fuel]
+      exact longDataWordsLoopStride_succ_base stride fuel
+
+theorem longDataWordsLoopState_aw (ptr : UInt256) :
+    ∀ (slot stride aw : UInt256) (fuel : Nat),
+      (accountStorageStatefulLoopState (longDataWordsLoopStateNext ptr)
+        (slot, stride, aw) fuel).2.2 =
+        longDataWordsLoopAw aw ptr stride fuel
+  | slot, stride, aw, 0 => rfl
+  | slot, stride, aw, fuel + 1 => by
+      rw [accountStorageStatefulLoopState, longDataWordsLoopStateNext]
+      rw [longDataWordsLoopState_aw ptr ((⟨1⟩ : UInt256) + slot)
+        ((⟨32⟩ : UInt256) + stride)
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) fuel]
+      exact longDataWordsLoopAw_succ_base aw ptr stride fuel
+
+theorem longDataWordsLoopState_word (mem : ByteArray) (ptr : UInt256) :
+    ∀ (slot stride aw : UInt256) (fuel : Nat),
+      longDataWordsLoopWord mem
+        (accountStorageStatefulLoopState (longDataWordsLoopStateNext ptr)
+          (slot, stride, aw) fuel).2.2
+        ptr
+        (accountStorageStatefulLoopState (longDataWordsLoopStateNext ptr)
+          (slot, stride, aw) fuel).2.1
+        0 =
+        longDataWordsLoopWord mem aw ptr stride fuel
+  | slot, stride, aw, 0 => rfl
+  | slot, stride, aw, fuel + 1 => by
+      rw [accountStorageStatefulLoopState, longDataWordsLoopStateNext]
+      rw [longDataWordsLoopState_word mem ptr ((⟨1⟩ : UInt256) + slot)
+        ((⟨32⟩ : UInt256) + stride)
+        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) fuel]
+      exact longDataWordsLoopWord_succ_base mem aw ptr stride fuel
 
 theorem setHelperEntryAw_covers_payload_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
@@ -2265,6 +2444,90 @@ theorem longDataWordsLoopWord_setHelper_decoded_list_word_at {I : ExecutionEnv}
   simpa [longDataWordsLoopWord, longDataWordsLoopStride, longDataWordsLoopStride_32_ofNat,
     longDataWordsLoopAw_setHelper_eq (len := len) hlenMax i (Nat.le_of_lt hi)] using h
 
+theorem longDataWordsLoopAw_setHelper_shift_eq {len : UInt256}
+    (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
+    ∀ i j, i + j ≤ len.toNat / 32 →
+      longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+        (UInt256.ofNat (32 * (i + 1))) j =
+        clearCurrentHashAw (setHelperEntryAw len)
+  | i, 0, hij => rfl
+  | i, j + 1, hij => by
+      have hprev : i + j ≤ len.toNat / 32 := by omega
+      have hread : i + j < len.toNat / 32 := by omega
+      have hprevEq := longDataWordsLoopAw_setHelper_shift_eq hlenMax i j hprev
+      simp [longDataWordsLoopAw, hprevEq]
+      have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
+        have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
+        omega
+      have hawEq : clearCurrentHashAw (setHelperEntryAw len) = setHelperEntryAw len :=
+        clearCurrentHashAw_eq_self_of_ge1 hentryGe
+      have hstride :
+          longDataWordsLoopStride (UInt256.ofNat (32 * (i + 1))) j =
+            UInt256.ofNat (32 * (i + j + 1)) :=
+        longDataWordsLoopStride_ofNat_stride_add i j
+      have haddrBase := longDataWordsLoopReadAddr_toNat
+        (len := len) (i := i + j) hlenMax hread
+      have haddr :
+          ((⟨128⟩ : UInt256) +
+              longDataWordsLoopStride (UInt256.ofNat (32 * (i + 1))) j).toNat =
+            160 + 32 * (i + j) := by
+        rw [hstride]
+        simpa [longDataWordsLoopStride_32_ofNat] using haddrBase
+      have hcover := setHelperEntryAw_covers_payload_u64 (len := len) hlenMax
+      have hM : MachineState.M (clearCurrentHashAw (setHelperEntryAw len)).toNat
+          ((⟨128⟩ : UInt256) +
+            longDataWordsLoopStride (UInt256.ofNat (32 * (i + 1))) j).toNat 32 =
+          (clearCurrentHashAw (setHelperEntryAw len)).toNat := by
+        rw [hawEq, haddr]
+        simp only [MachineState.M]
+        apply max_eq_left
+        rw [Nat.div_le_iff_le_mul (by decide : 0 < 32)]
+        omega
+      rw [hM]
+      exact u256_ofNat_toNat (clearCurrentHashAw (setHelperEntryAw len))
+
+theorem longDataWordsLoopWord_setHelper_decoded_list_word_shift {I : ExecutionEnv}
+    {len payloadStart : UInt256} {i j : Nat}
+    (hnz : len.toNat ≠ 0)
+    (hlenMax : len.toNat ≤ ABI.solcMaxU64)
+    (hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size)
+    (hij : i + j < len.toNat / 32)
+    (hlenAbi : len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat))
+    (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
+    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
+    longDataWordsLoopWord
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+      (UInt256.ofNat (32 * (i + 1))) j =
+        UInt256.ofNat (fromBytesBigEndian
+          (((setDecodedValueBytes I).toList.drop (32 * (i + j))).take 32)) := by
+  unfold longDataWordsLoopWord
+  have haw := longDataWordsLoopAw_setHelper_shift_eq (len := len) hlenMax i j
+    (Nat.le_of_lt hij)
+  have hstride :
+      longDataWordsLoopStride (UInt256.ofNat (32 * (i + 1))) j =
+        UInt256.ofNat (32 * (i + j + 1)) :=
+    longDataWordsLoopStride_ofNat_stride_add i j
+  rw [haw, hstride]
+  change
+    (if (⟨128⟩ + UInt256.ofNat (32 * (i + j + 1))).toNat ≥
+          (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size ∨
+        (⟨128⟩ + UInt256.ofNat (32 * (i + j + 1))) ≥
+          clearCurrentHashAw (setHelperEntryAw len) * ⟨32⟩ then
+        ⟨0⟩
+      else
+        UInt256.ofNat
+          (fromByteArrayBigEndian
+            ((clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).readWithPadding
+              (⟨128⟩ + UInt256.ofNat (32 * (i + j + 1))).toNat 32))) =
+      UInt256.ofNat
+        (fromBytesBigEndian
+          (((setDecodedValueBytes I).toList.drop (32 * (i + j))).take 32))
+  simpa using
+    longDataWordsLoopWord_setHelper_decoded_list_word_at
+      (I := I) (len := len) (payloadStart := payloadStart) (i := i + j)
+      hnz hlenMax hsrc hij hlenAbi hpayloadStart hoffMax
+
 theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_full
     {I : ExecutionEnv} {len payloadStart : UInt256} {owner : AccountAddress}
     (hnz : len.toNat ≠ 0)
@@ -2282,59 +2545,54 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_fu
           (UInt256.ofNat (32 * (i + 1))) ⟨128⟩
           (clearCurrentHashAw (setHelperEntryAw len))
           (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) fuel)
-  | τ, i, 0, _hfuel => by
-      simp [solidityDataWordsForwardFrom, longDataWordsForwardFrom, accountMapEquiv_refl]
-  | τ, i, fuel + 1, hfuel => by
-      have hi : i < len.toNat / 32 := by omega
-      have htailFuel : i + 1 + fuel ≤ len.toNat / 32 := by omega
-      have hwordDirect :
-          uInt256OfByteArray ((setDecodedValueBytes I).readWithPadding (i * 32) 32) =
-            UInt256.ofNat
-              (fromBytesBigEndian (((setDecodedValueBytes I).toList.drop (32 * i)).take 32)) := by
-        simpa [Nat.mul_comm] using
-          setDecodedValueBytes_readWithPadding_full_word
-            (I := I) (len := len) (i := i) hsize hi
-      have hwordLoop :
-          longDataWordsLoopWord
-            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-            (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-            (UInt256.ofNat (32 * (i + 1))) 0 =
-              UInt256.ofNat
-                (fromBytesBigEndian (((setDecodedValueBytes I).toList.drop (32 * i)).take 32)) := by
-        exact longDataWordsLoopWord_setHelper_decoded_list_word_at
-          (I := I) (len := len) (payloadStart := payloadStart) (i := i)
-          hnz hlenMax hsrc hi hlenAbi hpayloadStart hoffMax
-      have hword :
-          uInt256OfByteArray ((setDecodedValueBytes I).readWithPadding (i * 32) 32) =
-            longDataWordsLoopWord
-              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-              (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-              (UInt256.ofNat (32 * (i + 1))) 0 := by
-        rw [hwordDirect, hwordLoop]
-      have hawStep :
-          UInt256.ofNat
-            (MachineState.M (clearCurrentHashAw (setHelperEntryAw len)).toNat
-              (⟨128⟩ + UInt256.ofNat (32 * (i + 1))).toNat 32) =
-            clearCurrentHashAw (setHelperEntryAw len) := by
-        have hcur := longDataWordsLoopAw_setHelper_eq (len := len) hlenMax i (Nat.le_of_lt hi)
-        have hiNext : i + 1 ≤ len.toNat / 32 := by omega
-        have hnext := longDataWordsLoopAw_setHelper_eq (len := len) hlenMax (i + 1) hiNext
-        simpa [longDataWordsLoopAw, hcur, longDataWordsLoopStride_32_ofNat] using hnext
-      have ih := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_full
-        (I := I) (len := len) (payloadStart := payloadStart) (owner := owner)
-        hnz hlenMax hsrc hsize hlenAbi hpayloadStart hoffMax
-        (τ := sstoreAccountMap owner τ
-          (clearCurrentBaseWord + UInt256.ofNat i)
-          (longDataWordsLoopWord
-            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-            (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-            (UInt256.ofNat (32 * (i + 1))) 0))
-        (i := i + 1) (fuel := fuel) htailFuel
-      simpa [solidityDataWordsForwardFrom, longDataWordsForwardFrom, hword,
-        longDataWordsLoopSlot, longDataWordsLoopSlot_clearBase,
-        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot,
-        solidityBytesDataSlot, u256_base_one_add_ofNat, u256_stride32_succ_ofNat,
-        hawStep, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih
+  | τ, i, fuel, hfuel => by
+      let mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)
+      let aw := clearCurrentHashAw (setHelperEntryAw len)
+      let slotAt : LongDataWordsLoopState → UInt256 := fun state => state.1
+      let wordAt : LongDataWordsLoopState → UInt256 :=
+        fun state => longDataWordsLoopWord mem state.2.2 ⟨128⟩ state.2.1 0
+      let next := longDataWordsLoopStateNext (⟨128⟩ : UInt256)
+      rw [solidityDataWordsForwardFrom_eq_accountStorageWordsForwardFrom]
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      exact accountMapEquiv_accountStorageWordsForwardFrom_stateful
+        (owner := owner) (σ := τ)
+        (slotAt₁ := fun j => solidityBytesDataSlot ⟨0⟩ j)
+        (wordAt₁ := fun j => solidityDataWordAt (setDecodedValueBytes I) j)
+        (slotAt₂ := slotAt) (wordAt₂ := wordAt) (next := next)
+        i (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw)
+        fuel
+        (by
+          intro j hj
+          dsimp [slotAt, next]
+          rw [longDataWordsLoopState_slot]
+          rw [longDataWordsLoopSlot_base_add_ofNat]
+          simp [clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, solidityBytesDataSlot,
+            solidityBytesDataBaseSlot])
+        (by
+          intro j hj
+          have hij : i + j < len.toNat / 32 := by omega
+          have hwordDirect :
+              solidityDataWordAt (setDecodedValueBytes I) (i + j) =
+                UInt256.ofNat
+                  (fromBytesBigEndian
+                    (((setDecodedValueBytes I).toList.drop (32 * (i + j))).take 32)) := by
+            simpa [solidityDataWordAt, Nat.mul_comm] using
+              setDecodedValueBytes_readWithPadding_full_word
+                (I := I) (len := len) (i := i + j) hsize hij
+          have hwordLoop :
+              wordAt (accountStorageStatefulLoopState next
+                (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw) j) =
+                UInt256.ofNat
+                  (fromBytesBigEndian
+                    (((setDecodedValueBytes I).toList.drop (32 * (i + j))).take 32)) := by
+            dsimp [wordAt, next]
+            rw [longDataWordsLoopState_word]
+            dsimp [mem, aw]
+            exact longDataWordsLoopWord_setHelper_decoded_list_word_shift
+              (I := I) (len := len) (payloadStart := payloadStart) (i := i) (j := j)
+              hnz hlenMax hsrc hij hlenAbi hpayloadStart hoffMax
+          dsimp
+          exact hwordDirect.trans hwordLoop.symm)
 
 theorem clearCurrentBaseMemFrom_setPaddedMem_read_payload_tail_toList
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -2814,48 +3072,6 @@ theorem longDataTail (len : UInt256) (hmod : len.toNat % 32 ≠ 0) :
   rw [hltWord]
   decide
 
-theorem longDataWordsLoopIndex_succ_base (idx : UInt256) :
-    ∀ i, longDataWordsLoopIndex ((⟨32⟩ : UInt256) + idx) i =
-      (⟨32⟩ : UInt256) + longDataWordsLoopIndex idx i
-  | 0 => rfl
-  | i + 1 => by
-      simp [longDataWordsLoopIndex, longDataWordsLoopIndex_succ_base idx i]
-
-theorem longDataWordsLoopSlot_succ_base (slot : UInt256) :
-    ∀ i, longDataWordsLoopSlot ((⟨1⟩ : UInt256) + slot) i =
-      (⟨1⟩ : UInt256) + longDataWordsLoopSlot slot i
-  | 0 => rfl
-  | i + 1 => by
-      simp [longDataWordsLoopSlot, longDataWordsLoopSlot_succ_base slot i]
-
-theorem longDataWordsLoopStride_succ_base (stride : UInt256) :
-    ∀ i, longDataWordsLoopStride ((⟨32⟩ : UInt256) + stride) i =
-      (⟨32⟩ : UInt256) + longDataWordsLoopStride stride i
-  | 0 => rfl
-  | i + 1 => by
-      simp [longDataWordsLoopStride, longDataWordsLoopStride_succ_base stride i]
-
-theorem longDataWordsLoopAw_succ_base (aw ptr stride : UInt256) :
-    ∀ i, longDataWordsLoopAw
-        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
-        ptr ((⟨32⟩ : UInt256) + stride) i =
-      longDataWordsLoopAw aw ptr stride (i + 1)
-  | 0 => rfl
-  | i + 1 => by
-      simp [longDataWordsLoopAw, longDataWordsLoopAw_succ_base aw ptr stride i,
-        longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
-
-theorem longDataWordsLoopWord_succ_base (mem : ByteArray) (aw ptr stride : UInt256) :
-    ∀ i, longDataWordsLoopWord mem
-        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
-        ptr ((⟨32⟩ : UInt256) + stride) i =
-      longDataWordsLoopWord mem aw ptr stride (i + 1)
-  | 0 => by
-      simp [longDataWordsLoopWord, longDataWordsLoopAw, longDataWordsLoopStride]
-  | i + 1 => by
-      simp [longDataWordsLoopWord, longDataWordsLoopAw_succ_base,
-        longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
-
 theorem bytesStoreLiteCoreX_setLongDataWordsLoopGenerated
     {cA gh bl σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart aw : UInt256}
@@ -3128,22 +3344,18 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_ta
     rw [longDataWordsLoopSlot_clearBase]
     simp [clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, solidityBytesDataSlot,
       solidityBytesDataBaseSlot]
-  have hcong :=
-    accountMapEquiv_sstoreAccountMap owner
-      (solidityBytesDataSlot ⟨0⟩ fullFuel) wordTail hfullTarget
-  have hsplit :
-      solidityDataWordsForwardFrom owner τ ⟨0⟩ (setDecodedValueBytes I) 0
-          (fullFuel + 1) =
-        sstoreAccountMap owner
-          (solidityDataWordsForwardFrom owner τ ⟨0⟩ (setDecodedValueBytes I) 0 fullFuel)
-          (solidityBytesDataSlot ⟨0⟩ fullFuel) wordTail := by
-    have happ := solidityDataWordsForwardFrom_append owner τ ⟨0⟩
-      (setDecodedValueBytes I) 0 fullFuel 1
-    rw [happ]
-    simp [solidityDataWordsForwardFrom, htailWord]
-  rw [hsplit]
-  rw [hmask, hslotEq]
-  exact hcong
+  have htailStore :=
+    accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last
+      (owner := owner)
+      (σ := longDataWordsForwardFrom owner τ clearCurrentBaseWord ⟨32⟩ ⟨128⟩
+        (clearCurrentHashAw (setHelperEntryAw len))
+        (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+        fullFuel)
+      (τ := τ) (baseSlot := ⟨0⟩)
+      (slot := longDataWordsLoopSlot clearCurrentBaseWord fullFuel)
+      (word := wordTail) (bytes := setDecodedValueBytes I) (idx := 0) (fuel := fullFuel)
+      (accountMapEquiv.symm hfullTarget) (by simpa using hslotEq) (by simpa using htailWord.symm)
+  simpa [hmask] using accountMapEquiv.symm htailStore
 
 theorem bytesStoreLiteCoreX_setLongDataWordsLoopDoneTail
     {cA gh bl σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
@@ -5027,6 +5239,14 @@ theorem bytesStoreLiteCoreX_setShortNonemptyLongValidReturn
   exact bytesStoreLiteCoreX_setShortNonemptyReturnFromWriteAfterClearBase
     (payloadStart := payloadStart) (len := newLen) hnz hshort hsrc hwriteReach
 
+theorem clearDataWordsLoopIndex_eq_uint256SuccFrom (idx : UInt256) :
+    ∀ i, clearDataWordsLoopIndex idx i = uint256SuccFrom idx i
+  | 0 => by
+      simp [clearDataWordsLoopIndex, uint256SuccFrom]
+  | i + 1 => by
+      simp [clearDataWordsLoopIndex, uint256SuccFrom,
+        clearDataWordsLoopIndex_eq_uint256SuccFrom idx i]
+
 theorem accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm {σ τ : AccountMap}
     (owner : AccountAddress) (base idx slot : UInt256) :
     ∀ fuel, accountMapEquiv σ τ →
@@ -5035,17 +5255,9 @@ theorem accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm {σ τ : Accou
           (clearDataWordsForwardFrom owner σ base idx fuel) slot ⟨0⟩)
         (clearDataWordsForwardFrom owner
           (sstoreAccountMap owner τ slot ⟨0⟩) base idx fuel)
-  | 0, hAccounts => accountMapEquiv_sstoreAccountMap owner slot ⟨0⟩ hAccounts
-  | n + 1, hAccounts => by
-      simp [clearDataWordsForwardFrom]
-      have hdata := accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts
-      have ih := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
-        owner base ((⟨1⟩ : UInt256) + idx) slot n hdata
-      have hcomm₀ :=
-        accountMapEquiv_sstoreAccountMap_zero_comm τ owner slot (base + idx)
-      have hcomm := accountMapEquiv_clearDataWordsForwardFrom owner base
-        ((⟨1⟩ : UInt256) + idx) n hcomm₀
-      exact accountMapEquiv.trans ih hcomm
+  | fuel, hAccounts =>
+      Reasoning.Theory.accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
+        owner base idx slot fuel hAccounts
 
 theorem accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne {σ τ : AccountMap}
     (owner : AccountAddress) (base idx slot val : UInt256) :
@@ -5057,24 +5269,13 @@ theorem accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne {σ τ : Accoun
           (clearDataWordsForwardFrom owner σ base idx fuel) slot val)
         (clearDataWordsForwardFrom owner
           (sstoreAccountMap owner τ slot val) base idx fuel)
-  | 0, _hdisjoint, hAccounts => accountMapEquiv_sstoreAccountMap owner slot val hAccounts
-  | n + 1, hdisjoint, hAccounts => by
-      simp [clearDataWordsForwardFrom]
-      have hdata := accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts
-      have htail :
-          ∀ i, i < n →
-            slot ≠ base + clearDataWordsLoopIndex ((⟨1⟩ : UInt256) + idx) i := by
-        intro i hi
-        have hne := hdisjoint (i + 1) (Nat.succ_lt_succ hi)
-        simpa [clearDataWordsLoopIndex, clearDataWordsLoopIndex_succ_base] using hne
-      have ih := accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne
-        owner base ((⟨1⟩ : UInt256) + idx) slot val n htail hdata
-      have hcomm₀ :=
-        accountMapEquiv_sstoreAccountMap_erase_comm τ owner slot val (base + idx)
-          (hdisjoint 0 (Nat.zero_lt_succ n))
-      have hcomm := accountMapEquiv_clearDataWordsForwardFrom owner base
-        ((⟨1⟩ : UInt256) + idx) n hcomm₀
-      exact accountMapEquiv.trans ih hcomm
+  | fuel, hdisjoint, hAccounts => by
+      exact Reasoning.Theory.accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne
+        owner base idx slot val fuel
+        (by
+          intro i hi
+          simpa [clearDataWordsLoopIndex_eq_uint256SuccFrom idx i] using hdisjoint i hi)
+        hAccounts
 
 theorem accountMapEquiv_sstore_currentData_clearTail_comm {σ τ : AccountMap}
     (owner : AccountAddress) (i fuel : Nat) (val : UInt256)
@@ -5108,31 +5309,22 @@ theorem accountMapEquiv_clearDataWordsForwardFrom_succ_last
           (clearDataWordsForwardFrom owner τ (bytesLikeDataBase ⟨0⟩)
             (UInt256.ofNat i) fuel)
           (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel)) ⟨0⟩)
-  | i, 0 => by
-      simp [clearDataWordsForwardFrom, accountMapEquiv_refl]
-  | i, fuel + 1 => by
-      have ih := accountMapEquiv_clearDataWordsForwardFrom_succ_last
-        (owner := owner)
-        (τ := sstoreAccountMap owner τ (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat i) ⟨0⟩)
-        (i := i + 1) (fuel := fuel)
-      simpa [clearDataWordsForwardFrom, u256_one_add_ofNat,
-        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih
+  | i, fuel => by
+      have hsucc :
+          uint256SuccFrom (UInt256.ofNat i) fuel = UInt256.ofNat (i + fuel) := by
+        simpa [u256_zero_add] using uint256SuccFrom_add_ofNat (⟨0⟩ : UInt256) i fuel
+      simpa [hsucc] using
+        (Reasoning.Theory.accountMapEquiv_clearDataWordsForwardFrom_succ_last
+          (owner := owner) (τ := τ) (base := bytesLikeDataBase ⟨0⟩)
+          (idx := UInt256.ofNat i) fuel)
 
 theorem accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_absorb_first
     {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} (fuel : Nat) :
     accountMapEquiv
       (sstoreAccountMap owner
         (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) (base + idx) ⟨0⟩)
-      (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) := by
-  simp [clearDataWordsForwardFrom]
-  have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
-    owner base ((⟨1⟩ : UInt256) + idx) (base + idx) fuel
-    (accountMapEquiv_refl (sstoreAccountMap owner τ (base + idx) ⟨0⟩))
-  have hself := accountMapEquiv_sstoreAccountMap_self_update
-    τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
-  have htailSelf := accountMapEquiv_clearDataWordsForwardFrom owner base
-    ((⟨1⟩ : UInt256) + idx) fuel hself
-  exact accountMapEquiv.trans hcomm (accountMapEquiv.symm htailSelf)
+      (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) :=
+  Reasoning.Theory.accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_absorb_first fuel
 
 theorem accountMapEquiv_clearDataWordsForwardFrom_double_prefix
     {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
@@ -5141,27 +5333,9 @@ theorem accountMapEquiv_clearDataWordsForwardFrom_double_prefix
         (clearDataWordsForwardFrom owner
           (clearDataWordsForwardFrom owner τ base idx oldFuel) base idx newFuel)
         (clearDataWordsForwardFrom owner τ base idx newFuel)
-  | 0, newFuel, _hle => by
-      simp [clearDataWordsForwardFrom, accountMapEquiv_refl]
-  | oldFuel + 1, 0, hle => by
-      omega
-  | oldFuel + 1, newFuel + 1, hle => by
-      simp [clearDataWordsForwardFrom]
-      have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
-        owner base ((⟨1⟩ : UInt256) + idx) (base + idx) oldFuel
-        (accountMapEquiv_refl (sstoreAccountMap owner τ (base + idx) ⟨0⟩))
-      have hself := accountMapEquiv_sstoreAccountMap_self_update
-        τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
-      have htailSelf := accountMapEquiv_clearDataWordsForwardFrom owner base
-        ((⟨1⟩ : UInt256) + idx) oldFuel hself
-      have hbase := accountMapEquiv.trans hcomm (accountMapEquiv.symm htailSelf)
-      have hcong := accountMapEquiv_clearDataWordsForwardFrom owner base
-        ((⟨1⟩ : UInt256) + idx) newFuel hbase
-      have htail := accountMapEquiv_clearDataWordsForwardFrom_double_prefix
-        (owner := owner) (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
-        (base := base) (idx := ((⟨1⟩ : UInt256) + idx))
-        oldFuel newFuel (by omega)
-      exact accountMapEquiv.trans hcong htail
+  | oldFuel, newFuel, hle =>
+      Reasoning.Theory.accountMapEquiv_clearDataWordsForwardFrom_double_prefix
+        oldFuel newFuel hle
 
 theorem accountMapEquiv_clearDataWordsForwardFrom_split
     {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
@@ -5171,26 +5345,10 @@ theorem accountMapEquiv_clearDataWordsForwardFrom_split
         (clearDataWordsForwardFrom owner
           (clearDataWordsForwardFrom owner τ base (clearDataWordsLoopIndex idx pref) tail)
           base idx pref)
-  | 0, tail => by
-      simp [clearDataWordsForwardFrom, clearDataWordsLoopIndex, accountMapEquiv_refl]
-  | pref + 1, tail => by
-      have hfuel : pref + 1 + tail = pref + tail + 1 := by omega
-      rw [hfuel]
-      simp [clearDataWordsForwardFrom]
-      have ih := accountMapEquiv_clearDataWordsForwardFrom_split
-        (owner := owner) (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
-        (base := base) (idx := ((⟨1⟩ : UInt256) + idx)) pref tail
-      have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
-        owner base (clearDataWordsLoopIndex ((⟨1⟩ : UInt256) + idx) pref)
-        (base + idx) tail (accountMapEquiv_refl τ)
-      have htail := accountMapEquiv_clearDataWordsForwardFrom owner base
-        ((⟨1⟩ : UInt256) + idx) pref (accountMapEquiv.symm hcomm)
-      have hidxLoop :
-          clearDataWordsLoopIndex ((⟨1⟩ : UInt256) + idx) pref =
-            clearDataWordsLoopIndex idx (pref + 1) := by
-        rw [clearDataWordsLoopIndex_succ_base]
-        rfl
-      exact accountMapEquiv.trans ih (by simpa [hidxLoop] using htail)
+  | pref, tail => by
+      simpa [clearDataWordsLoopIndex_eq_uint256SuccFrom idx pref] using
+        (Reasoning.Theory.accountMapEquiv_clearDataWordsForwardFrom_split
+          (owner := owner) (τ := τ) (base := base) (idx := idx) pref tail)
 
 theorem accountMapEquiv_clearDataWordsForwardFrom_shift_current
     {owner : AccountAddress} {σ τ : AccountMap} :
@@ -5202,31 +5360,10 @@ theorem accountMapEquiv_clearDataWordsForwardFrom_shift_current
           (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat offset) idx fuel)
         (clearDataWordsForwardFrom owner τ
           (bytesLikeDataBase ⟨0⟩) (UInt256.ofNat offset + idx) fuel)
-  | offset, idx, 0, _hbound, hAccounts => by
-      simpa [clearDataWordsForwardFrom] using hAccounts
-  | offset, idx, fuel + 1, hbound, hAccounts => by
-      simp [clearDataWordsForwardFrom]
-      have hslot :
-          (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat offset) + idx =
-            bytesLikeDataBase ⟨0⟩ + (UInt256.ofNat offset + idx) := by
-        exact u256_add_assoc (bytesLikeDataBase ⟨0⟩) (UInt256.ofNat offset) idx
-      have hstep := accountMapEquiv_sstoreAccountMap owner
-        (bytesLikeDataBase ⟨0⟩ + (UInt256.ofNat offset + idx)) (⟨0⟩ : UInt256)
-        hAccounts
-      have htail := accountMapEquiv_clearDataWordsForwardFrom_shift_current
-        (owner := owner)
-        (σ := sstoreAccountMap owner σ
-          ((bytesLikeDataBase ⟨0⟩ + UInt256.ofNat offset) + idx) ⟨0⟩)
-        (τ := sstoreAccountMap owner τ
-          (bytesLikeDataBase ⟨0⟩ + (UInt256.ofNat offset + idx)) ⟨0⟩)
-        offset ((⟨1⟩ : UInt256) + idx) fuel (by omega) (by simpa [hslot] using hstep)
-      have hidx :
-          UInt256.ofNat offset + ((⟨1⟩ : UInt256) + idx) =
-            (⟨1⟩ : UInt256) + (UInt256.ofNat offset + idx) := by
-        rw [u256_add_comm (UInt256.ofNat offset) ((⟨1⟩ : UInt256) + idx)]
-        rw [u256_add_assoc]
-        rw [u256_add_comm idx (UInt256.ofNat offset)]
-      simpa [hidx] using htail
+  | offset, idx, fuel, _hbound, hAccounts =>
+      Reasoning.Theory.accountMapEquiv_clearDataWordsForwardFrom_shift_base_offset
+        (owner := owner) (σ := σ) (τ := τ)
+        (bytesLikeDataBase ⟨0⟩) (UInt256.ofNat offset) idx fuel hAccounts
 
 theorem accountMapEquiv_clearDataWordsForwardFrom_shift_clearCurrentBase
     {owner : AccountAddress} {σ τ : AccountMap}
@@ -5292,70 +5429,48 @@ theorem accountMapEquiv_longDataWordsForwardFrom_tail_zero_comm
         (sstoreAccountMap owner
           (longDataWordsForwardFrom owner τ
             (clearCurrentBaseWord + UInt256.ofNat i)
-            (UInt256.ofNat (32 * (i + 1))) ⟨128⟩ aw mem fuel)
+              (UInt256.ofNat (32 * (i + 1))) ⟨128⟩ aw mem fuel)
           (bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel)) ⟨0⟩)
-  | τ, i, 0, aw, _hbound => by
-      simp [longDataWordsForwardFrom, accountMapEquiv_refl]
-  | τ, i, fuel + 1, aw, hbound => by
-      let slot := bytesLikeDataBase ⟨0⟩ + UInt256.ofNat i
-      let tailSlot := bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel + 1)
-      let stride := UInt256.ofNat (32 * (i + 1))
-      let word := longDataWordsLoopWord mem aw ⟨128⟩ stride 0
-      let awNext := UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ + stride).toNat 32)
-      have hslot_ne_tail : slot ≠ tailSlot := by
-        dsimp [slot, tailSlot]
-        have hi : i < 2 ^ 251 := by omega
-        have htail : i + fuel + 1 < 2 ^ 251 := by omega
-        exact currentDataSlot_ofNat_ne hi htail (by omega)
-      have hcomm :
-          accountMapEquiv
-            (sstoreAccountMap owner
-              (sstoreAccountMap owner τ tailSlot ⟨0⟩) slot word)
-            (sstoreAccountMap owner
-              (sstoreAccountMap owner τ slot word) tailSlot ⟨0⟩) := by
-        exact accountMapEquiv_sstoreAccountMap_erase_comm τ owner slot word tailSlot
-          hslot_ne_tail
-      have hcong :
-          accountMapEquiv
-            (longDataWordsForwardFrom owner
-              (sstoreAccountMap owner
-                (sstoreAccountMap owner τ tailSlot ⟨0⟩) slot word)
-              (clearCurrentBaseWord + UInt256.ofNat (i + 1))
-              (UInt256.ofNat (32 * (i + 2))) ⟨128⟩ awNext mem fuel)
-            (longDataWordsForwardFrom owner
-              (sstoreAccountMap owner
-                (sstoreAccountMap owner τ slot word) tailSlot ⟨0⟩)
-              (clearCurrentBaseWord + UInt256.ofNat (i + 1))
-              (UInt256.ofNat (32 * (i + 2))) ⟨128⟩ awNext mem fuel) := by
-        simpa [slot, tailSlot, stride, word, awNext] using
-          accountMapEquiv_longDataWordsForwardFrom
-            (owner := owner)
-            (slot := clearCurrentBaseWord + UInt256.ofNat (i + 1))
-            (stride := UInt256.ofNat (32 * (i + 2))) (ptr := (⟨128⟩ : UInt256))
-            (aw := awNext) (mem := mem) fuel hcomm
-      have ih := accountMapEquiv_longDataWordsForwardFrom_tail_zero_comm
-        (owner := owner) (mem := mem)
-        (τ := sstoreAccountMap owner τ slot word) (i := i + 1)
-        (fuel := fuel) (aw := awNext) (by omega)
-      have hih :
-          accountMapEquiv
-            (longDataWordsForwardFrom owner
-              (sstoreAccountMap owner
-                (sstoreAccountMap owner τ slot word) tailSlot ⟨0⟩)
-              (clearCurrentBaseWord + UInt256.ofNat (i + 1))
-              (UInt256.ofNat (32 * (i + 2))) ⟨128⟩ awNext mem fuel)
-            (sstoreAccountMap owner
-              (longDataWordsForwardFrom owner
-                (sstoreAccountMap owner τ slot word)
-                (clearCurrentBaseWord + UInt256.ofNat (i + 1))
-                (UInt256.ofNat (32 * (i + 2))) ⟨128⟩ awNext mem fuel)
-              tailSlot ⟨0⟩) := by
-        simpa [tailSlot, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih
-      have htail := accountMapEquiv.trans hcong hih
-      simpa [longDataWordsForwardFrom, slot, tailSlot, stride, word, awNext,
-        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, solidityBytesDataBaseSlot,
-        bytesLikeDataBase, u256_base_one_add_ofNat, u256_stride32_succ_ofNat,
-        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using htail
+  | τ, i, fuel, aw, hbound => by
+      let tailSlot := bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel)
+      let slotAt : LongDataWordsLoopState → UInt256 := fun state => state.1
+      let wordAt : LongDataWordsLoopState → UInt256 :=
+        fun state => longDataWordsLoopWord mem state.2.2 ⟨128⟩ state.2.1 0
+      let next := longDataWordsLoopStateNext (⟨128⟩ : UInt256)
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      rw [longDataWordsForwardFrom_eq_accountStorageStatefulWordsForwardFrom]
+      have hdisjoint :
+          ∀ j, j < fuel →
+            tailSlot ≠ slotAt (accountStorageStatefulLoopState next
+              (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw) j) := by
+        intro j hj
+        have hslot :
+            slotAt (accountStorageStatefulLoopState next
+              (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw) j) =
+              clearCurrentBaseWord + UInt256.ofNat (i + j) := by
+          dsimp [slotAt, next]
+          rw [longDataWordsLoopState_slot]
+          exact longDataWordsLoopSlot_base_add_ofNat clearCurrentBaseWord i j
+        have hne :
+            bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel) ≠
+              bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + j) := by
+          exact currentDataSlot_ofNat_ne (by omega) (by omega) (by omega)
+        intro heq
+        apply hne
+        calc
+          bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel) = tailSlot := by
+            rfl
+          _ = slotAt (accountStorageStatefulLoopState next
+                (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw) j) := heq
+          _ = bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + j) := by
+            rw [hslot]
+            simp [clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, solidityBytesDataBaseSlot,
+              bytesLikeDataBase]
+      exact accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom_comm_ne
+        (owner := owner) (σ := τ) (τ := τ)
+        tailSlot (⟨0⟩ : UInt256) slotAt wordAt next
+        (clearCurrentBaseWord + UInt256.ofNat i, UInt256.ofNat (32 * (i + 1)), aw)
+        fuel hdisjoint (accountMapEquiv_refl τ)
 
 theorem bytesStoreLiteCoreX_setEmptyReturnFromWriteLongMem {cA gh bl σ σ₀ A I}
     {g : Sat256} {payloadStart : UInt256} {σ' : AccountMap}
@@ -5413,6 +5528,31 @@ theorem bytesStoreLiteCoreX_setEmptyReturnFromWriteLongMem {cA gh bl σ σ₀ A 
           show (UInt256.sub ((⟨160⟩ : UInt256) + ⟨32⟩) ⟨160⟩).toNat = 32 from by decide,
           setEmptyReturnMemLong_read160])
       (by evm_ov)]
+
+theorem accountMapEquiv_setCurrentShortFromLongPostAccountMapEquiv
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {clearCount storedWord : UInt256} {oldFuel : Nat} {value : ByteArray}
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hcountNat : clearCount.toNat = oldFuel)
+    (hstored : storedWord = solidityShortBytesWord value) :
+    accountMapEquiv
+      (sstoreAccountMap I.codeOwner
+        (clearDataWordsForwardFrom I.codeOwner σ_evm
+          (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩ clearCount.toNat)
+        ⟨0⟩ storedWord)
+      (Solm.EVM.storageStore
+        (clearSolidityBytesDataWordsFrom
+          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨0⟩ 0 oldFuel)
+        I.codeOwner ⟨0⟩ (solidityShortBytesWord value)).accountMap := by
+  have hbase :
+      clearCurrentBaseWord + (⟨0⟩ : UInt256) =
+        solidityBytesDataBaseSlot ⟨0⟩ := by
+    rw [uint256_add_zero_right, clearCurrentBaseWord_eq_solidityBytesDataBaseSlot]
+  simpa [initState, hcountNat, hbase, hstored] using
+    accountMapEquiv_storageStore_clearSolidityBytesDataWordsFrom
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      hAccounts ⟨0⟩ 0 oldFuel ⟨0⟩ (solidityShortBytesWord value)
 
 theorem bytesStoreLiteCoreSetShortNonemptyLongValidRuntime
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -5573,14 +5713,15 @@ theorem bytesStoreLiteCoreSetShortNonemptyLongValidRuntime
       simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_createdAccounts,
         storageStore_createdAccounts, initState])
     (by
-      simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap, initState, hcountNat,
-        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, uint256_add_zero_right,
-        hheaderEq]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-        (solidityShortBytesWord (setDecodedValueBytes I))
-        (accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-          (solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ ((oldLen.toNat + 31) / 32) hAccounts))
+      simpa [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_executionEnv, initState,
+        hheaderEq] using
+        accountMapEquiv_setCurrentShortFromLongPostAccountMapEquiv
+          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (clearCount := UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩)
+          (storedWord := solidityShortBytesWord (setDecodedValueBytes I))
+          (oldFuel := (oldLen.toNat + 31) / 32)
+          (value := setDecodedValueBytes I) hAccounts hcountNat rfl)
     hretEnc
 
 theorem bytesStoreLiteCoreSetEmptyLongValidRuntime {cA gh bl σ_evm σ_solm σ₀ A I}
@@ -5701,12 +5842,14 @@ theorem bytesStoreLiteCoreSetEmptyLongValidRuntime {cA gh bl σ_evm σ_solm σ�
       simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_createdAccounts,
         storageStore_createdAccounts, initState])
     (by
-      simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap, initState, hcountNat,
-        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot, uint256_add_zero_right]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ ⟨0⟩
-        (accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-          (solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ ((len.toNat + 31) / 32) hAccounts))
+      simpa [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_executionEnv, initState,
+        hshortEmpty] using
+        accountMapEquiv_setCurrentShortFromLongPostAccountMapEquiv
+          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (clearCount := UInt256.sub (UInt256.div (len + ⟨31⟩) ⟨32⟩) ⟨0⟩)
+          (storedWord := (⟨0⟩ : UInt256)) (oldFuel := (len.toNat + 31) / 32)
+          (value := ByteArray.empty) hAccounts hcountNat hshortEmpty.symm)
     (returnEquiv_of_encode (uint256ReturnEncoding (⟨0⟩ : UInt256)))
 
 end BytesStoreLiteCore

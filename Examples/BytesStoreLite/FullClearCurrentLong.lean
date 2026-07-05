@@ -1103,9 +1103,8 @@ theorem bytesStoreLiteDeleteCurrentLongPrepared {evm : EVM.State} {header len : 
   have hresolve :
       resolveStorageRef? bytesStoreLiteConfig solm evm currentRef =
         .ok ({ base := "current", steps := [] }, .bytes) := by
-    simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
-      storageTypeAt?, bytesStoreLiteConfig, bytesStoreLiteContract, storageDecls, bytesSt,
-      EvalResult.ofOption, EvalResult.bind, bind, pure, solm]
+    exact bytesStoreLiteCurrentResolveOfGetNone (evm := evm) (locals := solm.locals) (by
+      simp [solm, currentRef])
   exact deleteSolidityBytesLongPrepared
     (cfg := bytesStoreLiteConfig) (layout := bytesStoreLiteLayout)
     (solm := solm)
@@ -1201,12 +1200,19 @@ theorem bytesStoreLiteClearCurrentLongValidRuntime
       simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_createdAccounts,
         storageStore_createdAccounts, initState])
     (by
-      simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
-        storageStore_accountMap, storageStore_executionEnv, initState, hcountNat,
-        BytesStoreLiteCore.clearCurrentBaseWord_eq_solidityBytesDataBaseSlot]
-      exact accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
+      have hlenStore :
+          accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨0⟩ ⟨0⟩)
+            evmSolmLen.accountMap := by
+        simpa [evmSolmLen, evmSolm0, initState] using
+          accountMapEquiv_storageStore_initState_codeOwner
+            (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+            (I := I) (g := Sat256.ofUInt256 g) hAccounts ⟨0⟩ ⟨0⟩
+      simpa [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
+        storageStore_executionEnv, initState, hcountNat,
+        BytesStoreLiteCore.clearCurrentBaseWord_eq_solidityBytesDataBaseSlot] using
+        accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
         (solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ ((len.toNat + 31) / 32)
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ ⟨0⟩ hAccounts))
+        hlenStore)
     (returnEquiv_of_encode (uint256ReturnEncoding len))
 
 theorem bytesStoreLiteClearCurrentShortDecodedZeroRuntime
@@ -1279,8 +1285,10 @@ theorem bytesStoreLiteClearCurrentShortDecodedZeroRuntime
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     (by
-      simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ ⟨0⟩ hAccounts)
+      simpa [evmSolm1, evmSolm0] using
+        accountMapEquiv_storageStore_initState_codeOwner
+          (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+          (I := I) (g := Sat256.ofUInt256 g) hAccounts (⟨0⟩ : UInt256) (⟨0⟩ : UInt256))
     (returnEquiv_of_encode (uint256ReturnEncoding (⟨0⟩ : UInt256)))
 
 theorem bytesStoreLiteClearCurrentRuntime

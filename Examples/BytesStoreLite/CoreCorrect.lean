@@ -101,12 +101,19 @@ theorem bytesStoreLiteCoreClearCurrentLongValid
       simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_createdAccounts,
         storageStore_createdAccounts, initState])
     (by
-      simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
-        storageStore_accountMap, storageStore_executionEnv, initState, hcountNat,
-        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot]
-      exact accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
+      have hlenStore :
+          accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨0⟩ ⟨0⟩)
+            evmSolmLen.accountMap := by
+        simpa [evmSolmLen, evmSolm0, initState] using
+          accountMapEquiv_storageStore_initState_codeOwner
+            (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+            (I := I) (g := Sat256.ofUInt256 g) hAccounts ⟨0⟩ ⟨0⟩
+      simpa [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
+        storageStore_executionEnv, initState, hcountNat,
+        clearCurrentBaseWord_eq_solidityBytesDataBaseSlot] using
+        accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
         (solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ ((len.toNat + 31) / 32)
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ ⟨0⟩ hAccounts))
+        hlenStore)
     (returnEquiv_of_encode (uint256ReturnEncoding len))
 
 /-! ## Branch routers -/

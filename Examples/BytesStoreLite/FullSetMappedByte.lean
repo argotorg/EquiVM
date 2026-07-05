@@ -93,6 +93,16 @@ def bytesStoreLiteSetMappedByteFrame (I : ExecutionEnv) : Frame :=
 def bytesStoreLiteSetMappedByteSlot (I : ExecutionEnv) : UInt256 :=
   bytesStoreLiteSetMappedSlotOf (bytesStoreLiteSetMappedByteKeyWord I)
 
+theorem bytesStoreLiteSetMappedByteHeaderRef_length_slot (evm : EVM.State) (I : ExecutionEnv) :
+    ∃ loc, bytesStoreLiteLayout
+        { bytesStoreLiteSetMappedByteHeaderRef I with
+          steps := (bytesStoreLiteSetMappedByteHeaderRef I).steps ++ [.length] } evm =
+          some loc ∧
+        loc.slot = bytesStoreLiteSetMappedByteSlot I := by
+  simpa [bytesStoreLiteSetMappedByteHeaderRef, bytesStoreLiteSetMappedByteSlot,
+    bytesStoreLiteSetMappedRefOf]
+    using bytesStoreLiteSetMappedRefOf_length_slot evm (bytesStoreLiteSetMappedByteKeyWord I)
+
 def bytesStoreLiteSetMappedByteHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   (σ.find? I.codeOwner |>.option ⟨0⟩
     (fun acc => acc.storage.findD (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩))
@@ -117,6 +127,17 @@ theorem bytesStoreLiteStorageLoadSetMappedByteHeader_initState_of_accountMapEqui
     bytesStoreLiteStorageLoad_initState_of_accountMapEquiv
       (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (bytesStoreLiteSetMappedByteSlot I) hAccounts
+
+theorem bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    (howner : evm.executionEnv.codeOwner = I.codeOwner)
+    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bytesStoreLiteSetMappedByteSlot I) =
+      bytesStoreLiteSetMappedByteHeaderWord σ I := by
+  exact (accountStorageWord_eq_storageLoad_of_accountMapEquiv
+    (owner := I.codeOwner) (slot := bytesStoreLiteSetMappedByteSlot I)
+    howner hAccounts).symm
 
 def bytesStoreLiteSetMappedByteShortScale (I : ExecutionEnv) : UInt256 :=
   UInt256.exp ⟨256⟩ (UInt256.sub ⟨31⟩ (bytesStoreLiteSetMappedByteIndexWord I))
@@ -995,8 +1016,9 @@ theorem bytesStoreLiteSetMappedByteBodyReturns {evm evm' : EVM.State}
   have hvalue :
       evalExpr? bytesStoreLiteConfig solm evm (.var "value") =
         .ok (bytesStoreLiteSetMappedByteValue I) := by
-    simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
-      bytesStoreLiteSetMappedByteLocals, evalExpr?, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by
+      simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
+        bytesStoreLiteSetMappedByteLocals])
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm evm .storage
         (mappedByteRef (.var "key") (.var "byteIndex"))
@@ -1031,8 +1053,9 @@ theorem bytesStoreLiteSetMappedByteBodyReturnReverts {evm evm' : EVM.State}
   have hvalue :
       evalExpr? bytesStoreLiteConfig solm evm (.var "value") =
         .ok (bytesStoreLiteSetMappedByteValue I) := by
-    simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
-      bytesStoreLiteSetMappedByteLocals, evalExpr?, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by
+      simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
+        bytesStoreLiteSetMappedByteLocals])
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm evm .storage
         (mappedByteRef (.var "key") (.var "byteIndex"))
@@ -1048,26 +1071,23 @@ theorem bytesStoreLiteSetMappedByteBodyReturnReverts {evm evm' : EVM.State}
       ExecBlock.consNormal (ExecStmt.assign hvalue hassign) <|
         ExecBlock.consRevert (ExecStmt.returnRevert hret)
 
-theorem bytesStoreLiteSetMappedByteResolveOfLength {evm : EVM.State}
+theorem bytesStoreLiteSetMappedByteEvalStorageRefOfLength {evm : EVM.State}
     {I : ExecutionEnv} {len : Nat}
     (hlen : readStorageBytesLength? bytesStoreLiteConfig evm
       (bytesStoreLiteSetMappedByteHeaderRef I) = .ok len)
     (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len) :
-    resolveStorageRef? bytesStoreLiteConfig
+    evalStorageRef bytesStoreLiteConfig
       (bytesStoreLiteSetMappedByteFrame I)
       evm (mappedByteRef (.var "key") (.var "byteIndex")) =
-        .ok (bytesStoreLiteSetMappedByteRef I, uint8St) := by
-  have hgetKeyElem :
-      (bytesStoreLiteSetMappedByteLocals I)["key"]? =
+        .ok (bytesStoreLiteSetMappedByteRef I) := by
+  have hgetKey :
+      (bytesStoreLiteSetMappedByteLocals I).get? "key" =
         some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_key I
-  have hgetByteIndexElem :
-      (bytesStoreLiteSetMappedByteLocals I)["byteIndex"]? =
+    bytesStoreLiteSetMappedByteLocals_get_key I
+  have hgetByteIndex :
+      (bytesStoreLiteSetMappedByteLocals I).get? "byteIndex" =
         some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_byteIndex I
-  have hgetMapped :
-      (bytesStoreLiteSetMappedByteLocals I).get? "mapped" = none :=
-    bytesStoreLiteSetMappedByteLocals_get_mapped_none I
+    bytesStoreLiteSetMappedByteLocals_get_byteIndex I
   have hlen' :
       readStorageBytesLength?
         { storage :=
@@ -1085,26 +1105,175 @@ theorem bytesStoreLiteSetMappedByteResolveOfLength {evm : EVM.State}
         .ok len := by
     simpa [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
       bytesStoreLiteSetMappedByteHeaderRef] using hlen
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetMappedByteFrame I)
-        evm (mappedByteRef (.var "key") (.var "byteIndex")) =
-          .ok (bytesStoreLiteSetMappedByteRef I) := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, mappedByteRef,
-      bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteRef,
-      hgetKeyElem, hgetByteIndexElem,
-      valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-      arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig, bytesStoreLiteContract,
-      storageDecls, storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteLayout]
-    rw [hlen']
-    simp [hbound]
-  have herInline :
-      evalStorageRef bytesStoreLiteConfig
-        { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetMappedByteLocals I }
-        evm (mappedByteRef (.var "key") (.var "byteIndex")) =
-          .ok (bytesStoreLiteSetMappedByteRef I) := by
-    simpa [bytesStoreLiteSetMappedByteFrame] using her
+  have hindexKey :
+      valueToKey? (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) := by
+    simp [valueToKey?]
+  have hstep :
+      evalStorageRefStep bytesStoreLiteConfig (bytesStoreLiteSetMappedByteFrame I) evm
+        "mapped" [] (.mindex (.var "key")) =
+        .ok (.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))) := by
+    have hgetKeyElem :
+        (bytesStoreLiteSetMappedByteLocals I)["key"]? =
+          some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) := by
+      simpa [Std.HashMap.get?_eq_getElem?] using hgetKey
+    simp [evalStorageRefStep, evalExpr?, bytesStoreLiteSetMappedByteFrame,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, hgetKeyElem, valueToKey?]
+  have hbounds :
+      arrayIndexInBounds? bytesStoreLiteConfig evm
+        (bytesStoreLiteSetMappedByteFrame I).contract.storage "mapped"
+        [.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))]
+        (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) = .ok () := by
+    simpa [arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
+      bytesStoreLiteSetMappedByteFrame, bytesStoreLiteContract, storageDecls,
+      storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
+      bytesStoreLiteLayout, hlen'] using hbound
+  simpa [mappedByteRef, bytesStoreLiteSetMappedByteRef] using
+    (evalStorageRef_step_aindex_var_of_get?_ok
+      (cfg := bytesStoreLiteConfig) (solm := bytesStoreLiteSetMappedByteFrame I)
+      (evm := evm) (base := "mapped") (name := "byteIndex")
+      (step := .mindex (.var "key"))
+      (estep := .mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)))
+      hstep hgetByteIndex hindexKey hbounds)
+
+theorem bytesStoreLiteSetMappedByteEvalStorageRefRevertsOfLength {evm : EVM.State}
+    {I : ExecutionEnv} {len : Nat}
+    (hlen : readStorageBytesLength? bytesStoreLiteConfig evm
+      (bytesStoreLiteSetMappedByteHeaderRef I) = .ok len)
+    (hbound : ¬ (bytesStoreLiteSetMappedByteIndexWord I).toNat < len) :
+    evalStorageRef bytesStoreLiteConfig
+      (bytesStoreLiteSetMappedByteFrame I)
+      evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
+  have hgetKey :
+      (bytesStoreLiteSetMappedByteLocals I).get? "key" =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) :=
+    bytesStoreLiteSetMappedByteLocals_get_key I
+  have hgetByteIndex :
+      (bytesStoreLiteSetMappedByteLocals I).get? "byteIndex" =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetMappedByteLocals_get_byteIndex I
+  have hlen' :
+      readStorageBytesLength?
+        { storage :=
+            { layout := bytesStoreLiteLayout
+              readValue? := solidityReadValue? bytesStoreLiteLayout
+              writeValue? := solidityWriteValue? bytesStoreLiteLayout
+              clearValue? := solidityClearValue? bytesStoreLiteLayout
+              readBytesLength := solidityReadBytesLength? bytesStoreLiteLayout }
+          externalABI := defaultExternalCallABI
+          selfDeployment := genSolidityConstructorDeployment [] }
+        evm
+        { base := "mapped"
+          steps := [
+            .mindex (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))] } =
+        .ok len := by
+    simpa [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
+      bytesStoreLiteSetMappedByteHeaderRef] using hlen
+  have hindexKey :
+      valueToKey? (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) := by
+    simp [valueToKey?]
+  have hstep :
+      evalStorageRefStep bytesStoreLiteConfig (bytesStoreLiteSetMappedByteFrame I) evm
+        "mapped" [] (.mindex (.var "key")) =
+        .ok (.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))) := by
+    have hgetKeyElem :
+        (bytesStoreLiteSetMappedByteLocals I)["key"]? =
+          some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) := by
+      simpa [Std.HashMap.get?_eq_getElem?] using hgetKey
+    simp [evalStorageRefStep, evalExpr?, bytesStoreLiteSetMappedByteFrame,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, hgetKeyElem, valueToKey?]
+  have hbounds :
+      arrayIndexInBounds? bytesStoreLiteConfig evm
+        (bytesStoreLiteSetMappedByteFrame I).contract.storage "mapped"
+        [.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))]
+        (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) = .revert := by
+    simpa [arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
+      bytesStoreLiteSetMappedByteFrame, bytesStoreLiteContract, storageDecls,
+      storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
+      bytesStoreLiteLayout, hlen'] using Nat.le_of_not_gt hbound
+  simpa [mappedByteRef] using
+    (evalStorageRef_step_aindex_var_of_get?_revert
+      (cfg := bytesStoreLiteConfig) (solm := bytesStoreLiteSetMappedByteFrame I)
+      (evm := evm) (base := "mapped") (name := "byteIndex")
+      (step := .mindex (.var "key"))
+      (estep := .mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)))
+      hstep hgetByteIndex hindexKey hbounds)
+
+theorem bytesStoreLiteSetMappedByteEvalStorageRefRevertsOfLengthRead {evm : EVM.State}
+    {I : ExecutionEnv}
+    (hlen : readStorageBytesLength? bytesStoreLiteConfig evm
+      (bytesStoreLiteSetMappedByteHeaderRef I) = .revert) :
+    evalStorageRef bytesStoreLiteConfig
+      (bytesStoreLiteSetMappedByteFrame I)
+      evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
+  have hgetKey :
+      (bytesStoreLiteSetMappedByteLocals I).get? "key" =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) :=
+    bytesStoreLiteSetMappedByteLocals_get_key I
+  have hgetByteIndex :
+      (bytesStoreLiteSetMappedByteLocals I).get? "byteIndex" =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) :=
+    bytesStoreLiteSetMappedByteLocals_get_byteIndex I
+  have hlen' :
+      readStorageBytesLength?
+        { storage :=
+            { layout := bytesStoreLiteLayout
+              readValue? := solidityReadValue? bytesStoreLiteLayout
+              writeValue? := solidityWriteValue? bytesStoreLiteLayout
+              clearValue? := solidityClearValue? bytesStoreLiteLayout
+              readBytesLength := solidityReadBytesLength? bytesStoreLiteLayout }
+          externalABI := defaultExternalCallABI
+          selfDeployment := genSolidityConstructorDeployment [] }
+        evm
+        { base := "mapped"
+          steps := [
+            .mindex (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))] } =
+        .revert := by
+    simpa [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
+      bytesStoreLiteSetMappedByteHeaderRef] using hlen
+  have hindexKey :
+      valueToKey? (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) =
+        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) := by
+    simp [valueToKey?]
+  have hstep :
+      evalStorageRefStep bytesStoreLiteConfig (bytesStoreLiteSetMappedByteFrame I) evm
+        "mapped" [] (.mindex (.var "key")) =
+        .ok (.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))) := by
+    have hgetKeyElem :
+        (bytesStoreLiteSetMappedByteLocals I)["key"]? =
+          some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) := by
+      simpa [Std.HashMap.get?_eq_getElem?] using hgetKey
+    simp [evalStorageRefStep, evalExpr?, bytesStoreLiteSetMappedByteFrame,
+      EvalResult.ofOption, EvalResult.bind, bind, pure, hgetKeyElem, valueToKey?]
+  have hbounds :
+      arrayIndexInBounds? bytesStoreLiteConfig evm
+        (bytesStoreLiteSetMappedByteFrame I).contract.storage "mapped"
+        [.mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat))]
+        (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) = .revert := by
+    simp [arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig,
+      bytesStoreLiteSetMappedByteFrame, bytesStoreLiteContract, storageDecls,
+      storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout, hlen']
+  simpa [mappedByteRef] using
+    (evalStorageRef_step_aindex_var_of_get?_revert
+      (cfg := bytesStoreLiteConfig) (solm := bytesStoreLiteSetMappedByteFrame I)
+      (evm := evm) (base := "mapped") (name := "byteIndex")
+      (step := .mindex (.var "key"))
+      (estep := .mindex (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)))
+      hstep hgetByteIndex hindexKey hbounds)
+
+theorem bytesStoreLiteSetMappedByteResolveOfLength {evm : EVM.State}
+    {I : ExecutionEnv} {len : Nat}
+    (hlen : readStorageBytesLength? bytesStoreLiteConfig evm
+      (bytesStoreLiteSetMappedByteHeaderRef I) = .ok len)
+    (hbound : (bytesStoreLiteSetMappedByteIndexWord I).toNat < len) :
+    resolveStorageRef? bytesStoreLiteConfig
+      (bytesStoreLiteSetMappedByteFrame I)
+      evm (mappedByteRef (.var "key") (.var "byteIndex")) =
+        .ok (bytesStoreLiteSetMappedByteRef I, uint8St) := by
+  have hgetMapped :
+      (bytesStoreLiteSetMappedByteLocals I).get? "mapped" = none :=
+    bytesStoreLiteSetMappedByteLocals_get_mapped_none I
   let sourceRef : StorageRef :=
     { base := "mapped"
       steps := [.mindex (.var "key"), .aindex (.var "byteIndex")] }
@@ -1114,12 +1283,11 @@ theorem bytesStoreLiteSetMappedByteResolveOfLength {evm : EVM.State}
           Frame)
         evm sourceRef =
           .ok (bytesStoreLiteSetMappedByteRef I) := by
-    simpa [sourceRef, mappedByteRef] using herInline
-  rw [resolveStorageRef?]
-  simp only [mappedByteRef, bytesStoreLiteSetMappedByteFrame, hgetMapped]
-  rw [herInline']
-  simp [bytesStoreLiteSetMappedByte_storageTypeAt, EvalResult.ofOption, EvalResult.bind, bind,
-    pure]
+    simpa [sourceRef, mappedByteRef, bytesStoreLiteSetMappedByteFrame] using
+      (bytesStoreLiteSetMappedByteEvalStorageRefOfLength
+        (evm := evm) (I := I) (len := len) hlen hbound)
+  exact resolveStorageRef?_ok hgetMapped herInline'
+    bytesStoreLiteSetMappedByte_storageTypeAt
 
 theorem bytesStoreLiteSetMappedByteAssignOfLength {evm evm' : EVM.State}
     {I : ExecutionEnv} {len : Nat}
@@ -1135,23 +1303,10 @@ theorem bytesStoreLiteSetMappedByteAssignOfLength {evm evm' : EVM.State}
       evm .storage (mappedByteRef (.var "key") (.var "byteIndex"))
         (bytesStoreLiteSetMappedByteValue I) =
         .ok (bytesStoreLiteSetMappedByteFrame I, evm') := by
-  rw [assignStorageRef?]
-  rw [bytesStoreLiteSetMappedByteResolveOfLength (I := I) hlen hbound]
-  cases hloc : bytesStoreLiteConfig.storage.layout (bytesStoreLiteSetMappedByteRef I) evm with
-  | none =>
-      simp [hloc] at hstore
-  | some loc =>
-      have hstoreLoc :
-          storageLocStore evm loc
-            (.int (Int.ofNat (bytesStoreLiteSetMappedByteValueWord I).toNat)) = some evm' := by
-        simpa [hloc, bytesStoreLiteSetMappedByteValue] using hstore
-      have hstoreLoc' :
-          storageLocStore evm loc
-            (.int ((bytesStoreLiteSetMappedByteValueWord I).toNat : Int)) = some evm' := by
-        simpa using hstoreLoc
-      simp [bytesStoreLiteSetMappedByteValue, hloc, EvalResult.ofOption, EvalResult.bind, bind,
-        pure]
-      rw [hstoreLoc']
+  exact assignStorageRef_storage_scalar_ok_of_resolve_match_store
+    (bytesStoreLiteSetMappedByteResolveOfLength (I := I) hlen hbound)
+    hstore
+    (by simp [bytesStoreLiteSetMappedByteValue])
 
 theorem bytesStoreLiteSetMappedByteShortBodyReturns
     {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -1191,16 +1346,13 @@ theorem bytesStoreLiteSetMappedByteShortBodyReturns
     have hvalidLen : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
       rw [hltLen]
       native_decide
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_short_valid hflag hlen (by simpa [hflag] using hvalidLen))
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = true :=
     checkBytesPacked_of_storageLoad_land_one_zero hloadHeader hflag
   have hidx31 : (bytesStoreLiteSetMappedByteIndexWord I).toNat < 31 :=
@@ -1232,15 +1384,10 @@ theorem bytesStoreLiteSetMappedByteShortBodyReturns
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteSlot I) =
         bytesStoreLiteSetMappedByteShortStoredWord σ I := by
-    have hloadPostOwner :
-        Solm.EVM.storageLoad evm' evm.executionEnv.codeOwner
-            (bytesStoreLiteSetMappedByteSlot I) =
-          bytesStoreLiteSetMappedByteShortStoredWord σ I := by
-      simpa [evm'] using
-        storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
-          (bytesStoreLiteSetMappedByteSlot I)
-          (bytesStoreLiteSetMappedByteShortStoredWord σ I)
-    simpa [evm', storageStore_executionEnv] using hloadPostOwner
+    simpa [evm'] using
+      storageLoad_storageStore_codeOwner_same_present evm hacc
+        (bytesStoreLiteSetMappedByteSlot I)
+        (bytesStoreLiteSetMappedByteShortStoredWord σ I)
   have hflagPost :
       UInt256.land (bytesStoreLiteSetMappedByteShortStoredWord σ I) ⟨1⟩ = ⟨0⟩ := by
     rw [bytesStoreLiteSetMappedByteShortStoredWord_flag_eq
@@ -1262,16 +1409,14 @@ theorem bytesStoreLiteSetMappedByteShortBodyReturns
       rw [bytesStoreLiteSetMappedByteShortStoredWord_shortLen_eq
         (σ := σ) (I := I) (len := len) hshort hbound]
       exact hlen.symm
-    have hloadPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteShortStoredWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadPostSlot, hflagPost,
-      hlenPostWord, hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteShortStoredWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadPost
+      (solidityDecodeBytesLengthHeader_short_valid hflagPost hlenPostWord.symm
+        (by simpa [hflagPost] using hvalidLen))
   have hpackedPost : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm' = true :=
     checkBytesPacked_of_storageLoad_land_one_zero hloadPost hflagPost
   have hlayoutPost :
@@ -1286,13 +1431,10 @@ theorem bytesStoreLiteSetMappedByteShortBodyReturns
         (bytesStoreLiteSetMappedByteFrame I)
         evm' (.storage (mappedByteRef (.var "key") (.var "byteIndex"))) =
           .ok (bytesStoreLiteSetMappedByteValue I) := by
-    rw [evalExpr?]
-    rw [bytesStoreLiteSetMappedByteResolveOfLength
-      (evm := evm') (I := I) (len := len.toNat) hlenPost hbound]
-    simp only [bind, EvalResult.bind]
-    rw [Solm.readStorage?.eq_def]
-    rw [hlayoutPost]
-    simp [uint8St]
+    rw [evalExpr_storage_scalar_of_resolve_layout
+      (bytesStoreLiteSetMappedByteResolveOfLength
+        (evm := evm') (I := I) (len := len.toNat) hlenPost hbound)
+      hlayoutPost]
     rw [storageLocLoad_uint8Loc_byteAt
       (slot := bytesStoreLiteSetMappedByteSlot I)
       (idx := bytesStoreLiteSetMappedByteIndexWord I)
@@ -1352,16 +1494,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturns_of_post_readback
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -1391,17 +1530,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturns_of_post_readback
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpackedPost : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm' = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeaderPost hflag
   have hlayoutPost :
@@ -1415,8 +1550,8 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturns_of_post_readback
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteLongDataSlot I) =
         bytesStoreLiteSetMappedByteLongStoredWord σ I := by
-    simpa [evm', storageStore_executionEnv] using
-      storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
+    simpa [evm'] using
+      storageLoad_storageStore_codeOwner_same_present evm hacc
         (bytesStoreLiteSetMappedByteLongDataSlot I)
         (bytesStoreLiteSetMappedByteLongStoredWord σ I)
   have hret :
@@ -1424,13 +1559,10 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturns_of_post_readback
         (bytesStoreLiteSetMappedByteFrame I)
         evm' (.storage (mappedByteRef (.var "key") (.var "byteIndex"))) =
           .ok (bytesStoreLiteSetMappedByteValue I) := by
-    rw [evalExpr?]
-    rw [bytesStoreLiteSetMappedByteResolveOfLength
-      (evm := evm') (I := I) (len := len.toNat) hlenPost hbound]
-    simp only [bind, EvalResult.bind]
-    rw [Solm.readStorage?.eq_def]
-    rw [hlayoutPost]
-    simp [uint8St]
+    rw [evalExpr_storage_scalar_of_resolve_layout
+      (bytesStoreLiteSetMappedByteResolveOfLength
+        (evm := evm') (I := I) (len := len.toNat) hlenPost hbound)
+      hlayoutPost]
     rw [storageLocLoad_uint8Loc_byteAt
       (evm := evm') (slot := bytesStoreLiteSetMappedByteLongDataSlot I)
       (idx := bytesStoreLiteSetMappedByteLongWordIndex I)
@@ -1502,16 +1634,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostLongReadback
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -1541,21 +1670,17 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostLongReadback
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok lenPost.toNat := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
     have hvalidLenPost :
         UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
           (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
       simpa [hlenPost] using hvalidPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost,
-      ← hlenPost, hvalidLenPost]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord) (len := lenPost.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (solidityDecodeBytesLengthHeader_long_valid hflagPost hlenPost hvalidLenPost)
   have hpackedPost : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm' = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeaderPost' hflagPost
   have hlayoutPost :
@@ -1569,8 +1694,8 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostLongReadback
       Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (bytesStoreLiteSetMappedByteLongDataSlot I) =
         bytesStoreLiteSetMappedByteLongStoredWord σ I := by
-    simpa [evm', storageStore_executionEnv] using
-      storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
+    simpa [evm'] using
+      storageLoad_storageStore_codeOwner_same_present evm hacc
         (bytesStoreLiteSetMappedByteLongDataSlot I)
         (bytesStoreLiteSetMappedByteLongStoredWord σ I)
   have hret :
@@ -1578,13 +1703,10 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostLongReadback
         (bytesStoreLiteSetMappedByteFrame I)
         evm' (.storage (mappedByteRef (.var "key") (.var "byteIndex"))) =
           .ok (bytesStoreLiteSetMappedByteValue I) := by
-    rw [evalExpr?]
-    rw [bytesStoreLiteSetMappedByteResolveOfLength
-      (evm := evm') (I := I) (len := lenPost.toNat) hlenPostRead hboundPost]
-    simp only [bind, EvalResult.bind]
-    rw [Solm.readStorage?.eq_def]
-    rw [hlayoutPost]
-    simp [uint8St]
+    rw [evalExpr_storage_scalar_of_resolve_layout
+      (bytesStoreLiteSetMappedByteResolveOfLength
+        (evm := evm') (I := I) (len := lenPost.toNat) hlenPostRead hboundPost)
+      hlayoutPost]
     rw [storageLocLoad_uint8Loc_byteAt
       (evm := evm') (slot := bytesStoreLiteSetMappedByteLongDataSlot I)
       (idx := bytesStoreLiteSetMappedByteLongWordIndex I)
@@ -1659,16 +1781,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostShortReadback
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -1698,20 +1817,17 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostShortReadback
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok lenPost.toNat := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
     have hvalidLenPost :
         UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
       simpa [hlenPost, hflagPost] using hvalidPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost,
-      ← hlenPost, hvalidLenPost]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord) (len := lenPost.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (solidityDecodeBytesLengthHeader_short_valid hflagPost hlenPost
+        (by simpa [← hlenPost] using hvalidPost))
   have hpackedPost : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm' = true :=
     checkBytesPacked_of_storageLoad_land_one_zero hloadHeaderPost' hflagPost
   have hshortPost : lenPost.toNat < 32 := by
@@ -1734,13 +1850,10 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnsOfPostShortReadback
         (bytesStoreLiteSetMappedByteFrame I)
         evm' (.storage (mappedByteRef (.var "key") (.var "byteIndex"))) =
           .ok (bytesStoreLiteSetMappedByteValue I) := by
-    rw [evalExpr?]
-    rw [bytesStoreLiteSetMappedByteResolveOfLength
-      (evm := evm') (I := I) (len := lenPost.toNat) hlenPostRead hboundPost]
-    simp only [bind, EvalResult.bind]
-    rw [Solm.readStorage?.eq_def]
-    rw [hlayoutPost]
-    simp [uint8St]
+    rw [evalExpr_storage_scalar_of_resolve_layout
+      (bytesStoreLiteSetMappedByteResolveOfLength
+        (evm := evm') (I := I) (len := lenPost.toNat) hlenPostRead hboundPost)
+      hlayoutPost]
     rw [storageLocLoad_uint8Loc_byteAt
       (slot := bytesStoreLiteSetMappedByteSlot I)
       (idx := bytesStoreLiteSetMappedByteIndexWord I)
@@ -2058,63 +2171,17 @@ theorem bytesStoreLiteSetMappedByteResolveRevertsOfLength {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetMappedByteFrame I) evm
       (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-  have hgetKeyElem :
-      (bytesStoreLiteSetMappedByteLocals I)["key"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_key I
-  have hgetByteIndexElem :
-      (bytesStoreLiteSetMappedByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_byteIndex I
   have hgetMapped :
       (bytesStoreLiteSetMappedByteLocals I).get? "mapped" = none :=
     bytesStoreLiteSetMappedByteLocals_get_mapped_none I
-  have hlen' :
-      readStorageBytesLength?
-        { storage :=
-            { layout := bytesStoreLiteLayout
-              readValue? := solidityReadValue? bytesStoreLiteLayout
-              writeValue? := solidityWriteValue? bytesStoreLiteLayout
-              clearValue? := solidityClearValue? bytesStoreLiteLayout
-              readBytesLength := solidityReadBytesLength? bytesStoreLiteLayout }
-          externalABI := defaultExternalCallABI
-          selfDeployment := genSolidityConstructorDeployment [] }
-        evm
-        { base := "mapped"
-          steps := [
-            .mindex (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))] } =
-        .ok len := by
-    simpa [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteSetMappedByteHeaderRef] using hlen
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetMappedByteFrame I)
-        evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, mappedByteRef,
-      bytesStoreLiteSetMappedByteFrame, hgetKeyElem, hgetByteIndexElem,
-      valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-      arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig, bytesStoreLiteContract,
-      storageDecls, storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteLayout]
-    rw [hlen']
-    simp [hbound]
   have herInline :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetMappedByteLocals I }
         evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-    simpa [bytesStoreLiteSetMappedByteFrame] using her
-  rw [resolveStorageRef?]
-  simp only [mappedByteRef, bytesStoreLiteSetMappedByteFrame, hgetMapped]
-  change (match evalStorageRef bytesStoreLiteConfig
-      { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetMappedByteLocals I }
-      evm (mappedByteRef (.var "key") (.var "byteIndex")) with
-    | .ok er => do
-        let ty ← EvalResult.ofOption EvalError.storageError
-          (storageTypeAt? bytesStoreLiteContract.storage er)
-        pure (er, ty)
-    | .revert => .revert
-    | .error e => .error e) = .revert
-  rw [herInline]
+    simpa [bytesStoreLiteSetMappedByteFrame] using
+      (bytesStoreLiteSetMappedByteEvalStorageRefRevertsOfLength
+        (evm := evm) (I := I) (len := len) hlen hbound)
+  exact resolveStorageRef?_revert_of_evalStorageRef_revert hgetMapped herInline
 
 theorem bytesStoreLiteSetMappedByteBodyBoundsRevertsOfLength {evm : EVM.State}
     {I : ExecutionEnv} {len : Nat}
@@ -2128,15 +2195,15 @@ theorem bytesStoreLiteSetMappedByteBodyBoundsRevertsOfLength {evm : EVM.State}
   have hvalue :
       evalExpr? bytesStoreLiteConfig solm evm (.var "value") =
         .ok (bytesStoreLiteSetMappedByteValue I) := by
-    simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
-      bytesStoreLiteSetMappedByteLocals, evalExpr?, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by
+      simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
+        bytesStoreLiteSetMappedByteLocals])
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm evm .storage
         (mappedByteRef (.var "key") (.var "byteIndex"))
           (bytesStoreLiteSetMappedByteValue I) = .revert := by
-    rw [assignStorageRef?]
-    rw [bytesStoreLiteSetMappedByteResolveRevertsOfLength (I := I) hlen hbound]
-    rfl
+    exact assignStorageRef_storage_revert_of_resolve
+      (bytesStoreLiteSetMappedByteResolveRevertsOfLength (I := I) hlen hbound)
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
@@ -2148,62 +2215,17 @@ theorem bytesStoreLiteSetMappedByteResolveRevertsOfLengthRead {evm : EVM.State}
     resolveStorageRef? bytesStoreLiteConfig
       (bytesStoreLiteSetMappedByteFrame I) evm
       (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-  have hgetKeyElem :
-      (bytesStoreLiteSetMappedByteLocals I)["key"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteKeyWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_key I
-  have hgetByteIndexElem :
-      (bytesStoreLiteSetMappedByteLocals I)["byteIndex"]? =
-        some (.int (Int.ofNat (bytesStoreLiteSetMappedByteIndexWord I).toNat)) :=
-    bytesStoreLiteSetMappedByteLocals_getElem_byteIndex I
   have hgetMapped :
       (bytesStoreLiteSetMappedByteLocals I).get? "mapped" = none :=
     bytesStoreLiteSetMappedByteLocals_get_mapped_none I
-  have hlen' :
-      readStorageBytesLength?
-        { storage :=
-            { layout := bytesStoreLiteLayout
-              readValue? := solidityReadValue? bytesStoreLiteLayout
-              writeValue? := solidityWriteValue? bytesStoreLiteLayout
-              clearValue? := solidityClearValue? bytesStoreLiteLayout
-              readBytesLength := solidityReadBytesLength? bytesStoreLiteLayout }
-          externalABI := defaultExternalCallABI
-          selfDeployment := genSolidityConstructorDeployment [] }
-        evm
-        { base := "mapped"
-          steps := [
-            .mindex (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))] } =
-        .revert := by
-    simpa [bytesStoreLiteConfig, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteSetMappedByteHeaderRef] using hlen
-  have her :
-      evalStorageRef bytesStoreLiteConfig
-        (bytesStoreLiteSetMappedByteFrame I)
-        evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-    simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, mappedByteRef,
-      bytesStoreLiteSetMappedByteFrame, hgetKeyElem, hgetByteIndexElem,
-      valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-      arrayIndexInBounds?, storageTypeAt?, bytesStoreLiteConfig, bytesStoreLiteContract,
-      storageDecls, storageTypeStep?, bytesSt, bytesStoreLiteStorageLayout, solidityStorageLayout,
-      bytesStoreLiteLayout]
-    rw [hlen']
   have herInline :
       evalStorageRef bytesStoreLiteConfig
         { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetMappedByteLocals I }
         evm (mappedByteRef (.var "key") (.var "byteIndex")) = .revert := by
-    simpa [bytesStoreLiteSetMappedByteFrame] using her
-  rw [resolveStorageRef?]
-  simp only [mappedByteRef, bytesStoreLiteSetMappedByteFrame, hgetMapped]
-  change (match evalStorageRef bytesStoreLiteConfig
-      { contract := bytesStoreLiteContract, locals := bytesStoreLiteSetMappedByteLocals I }
-      evm (mappedByteRef (.var "key") (.var "byteIndex")) with
-    | .ok er => do
-        let ty ← EvalResult.ofOption EvalError.storageError
-          (storageTypeAt? bytesStoreLiteContract.storage er)
-        pure (er, ty)
-    | .revert => .revert
-    | .error e => .error e) = .revert
-  rw [herInline]
+    simpa [bytesStoreLiteSetMappedByteFrame] using
+      (bytesStoreLiteSetMappedByteEvalStorageRefRevertsOfLengthRead
+        (evm := evm) (I := I) hlen)
+  exact resolveStorageRef?_revert_of_evalStorageRef_revert hgetMapped herInline
 
 theorem bytesStoreLiteSetMappedByteBodyRevertsOfLengthRead {evm : EVM.State}
     {I : ExecutionEnv}
@@ -2216,15 +2238,15 @@ theorem bytesStoreLiteSetMappedByteBodyRevertsOfLengthRead {evm : EVM.State}
   have hvalue :
       evalExpr? bytesStoreLiteConfig solm evm (.var "value") =
         .ok (bytesStoreLiteSetMappedByteValue I) := by
-    simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
-      bytesStoreLiteSetMappedByteLocals, evalExpr?, EvalResult.ofOption]
+    exact evalExpr_var_of_get? (by
+      simp [solm, bytesStoreLiteSetMappedByteFrame, bytesStoreLiteSetMappedByteValue,
+        bytesStoreLiteSetMappedByteLocals])
   have hassign :
       assignStorageRef? bytesStoreLiteConfig solm evm .storage
         (mappedByteRef (.var "key") (.var "byteIndex"))
           (bytesStoreLiteSetMappedByteValue I) = .revert := by
-    rw [assignStorageRef?]
-    rw [bytesStoreLiteSetMappedByteResolveRevertsOfLengthRead (I := I) hlen]
-    rfl
+    exact assignStorageRef_storage_revert_of_resolve
+      (bytesStoreLiteSetMappedByteResolveRevertsOfLengthRead (I := I) hlen)
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert (ExecStmt.assignStoreRevert hvalue hassign)
@@ -2292,16 +2314,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongMalformed
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -2334,16 +2353,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongMalformed
   have hlenPost :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) = .revert := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost, hbadPost]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (by simp [solidityDecodeBytesLengthHeader, hflagPost, hbadPost])
   exact bytesStoreLiteSetMappedByteBodyReturnRevertsOfPostLengthRead
     (evm := evm) (evm' := evm') (I := I) hwv hassign hlenPost
 
@@ -2387,16 +2403,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortMalformed
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -2429,21 +2442,18 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortMalformed
   have hlenPost :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) = .revert := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
     have hbadPost0 :
         UInt256.sub ⟨0⟩
           (UInt256.lt (UInt256.land (UInt256.div postHeaderWord ⟨2⟩) ⟨127⟩) ⟨32⟩) =
             ⟨0⟩ := by
       simpa [hflagPost] using hbadPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost, hbadPost0]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (by simp [solidityDecodeBytesLengthHeader, hflagPost, hbadPost0])
   exact bytesStoreLiteSetMappedByteBodyReturnRevertsOfPostLengthRead
     (evm := evm) (evm' := evm') (I := I) hwv hassign hlenPost
 
@@ -2488,16 +2498,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongLength
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -2530,21 +2537,17 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostLongLength
   have hlenPostRead :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) = .ok lenPost.toNat := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
     have hvalidLenPost :
         UInt256.sub (UInt256.land postHeaderWord ⟨1⟩)
           (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
       simpa [hlenPost] using hvalidPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost, ← hlenPost,
-      hvalidLenPost]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord) (len := lenPost.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (solidityDecodeBytesLengthHeader_long_valid hflagPost hlenPost hvalidLenPost)
   have hret :
       evalExpr? bytesStoreLiteConfig
         (bytesStoreLiteSetMappedByteFrame I)
@@ -2598,16 +2601,13 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortLength
       readStorageBytesLength? bytesStoreLiteConfig evm
           (bytesStoreLiteSetMappedByteHeaderRef I) =
         .ok len.toNat := by
-    have hloadHeaderSlot :
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          bytesStoreLiteSetMappedByteHeaderWord σ I := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using hloadHeader
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderSlot, hflag, ← hlen,
-      hvalidLen]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ I) (len := len.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm I)
+      hloadHeader
+      (solidityDecodeBytesLengthHeader_long_valid hflag hlen hvalidLen)
   have hpacked : checkBytesPacked (bytesStoreLiteSetMappedByteSlot I) evm = false :=
     checkBytesPacked_of_storageLoad_land_one_ne_zero hloadHeader hflag
   have hlayout :
@@ -2640,20 +2640,17 @@ theorem bytesStoreLiteSetMappedByteLongBodyReturnRevertsOfPostShortLength
   have hlenPostRead :
       readStorageBytesLength? bytesStoreLiteConfig evm'
           (bytesStoreLiteSetMappedByteHeaderRef I) = .ok lenPost.toNat := by
-    have hloadHeaderPostSlot :
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
-          (mappedValueSlot (.int ((bytesStoreLiteSetMappedByteKeyWord I).toNat : Int))) =
-          postHeaderWord := by
-      simpa [bytesStoreLiteSetMappedByteSlot, bytesStoreLiteSetMappedSlotOf] using
-        hloadHeaderPost'
     have hvalidLenPost :
         UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
       simpa [hlenPost, hflagPost] using hvalidPost
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hloadHeaderPostSlot, hflagPost, ← hlenPost,
-      hvalidLenPost]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I) (evm := evm')
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := postHeaderWord) (len := lenPost.toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot evm' I)
+      hloadHeaderPost'
+      (solidityDecodeBytesLengthHeader_short_valid hflagPost hlenPost
+        (by simpa [hlenPost] using hvalidPost))
   have hret :
       evalExpr? bytesStoreLiteConfig
         (bytesStoreLiteSetMappedByteFrame I)
@@ -2855,10 +2852,16 @@ theorem bytesStoreLiteSetMappedByteOobLongRuntime {cA gh bl σ_evm σ_solm σ₀
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetMappedByteHeaderRef I) =
           .ok (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩).toNat := by
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hcodeOwner, hloadMapped', hflag, hvalid]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ_evm I)
+      (len := (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩).toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      hload
+      (solidityDecodeBytesLengthHeader_long_valid hflag rfl hvalid)
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -2945,10 +2948,18 @@ theorem bytesStoreLiteSetMappedByteOobShortRuntime {cA gh bl σ_evm σ_solm σ�
           .ok (UInt256.land
             (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
             ⟨127⟩).toNat := by
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hcodeOwner, hloadMapped', hflag, hvalid0]
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ_evm I)
+      (len := (UInt256.land
+        (UInt256.div (bytesStoreLiteSetMappedByteHeaderWord σ_evm I) ⟨2⟩)
+        ⟨127⟩).toNat)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      hload
+      (solidityDecodeBytesLengthHeader_short_valid hflag rfl hvalid)
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -3013,10 +3024,15 @@ theorem bytesStoreLiteSetMappedByteLongMalformedRuntime
       readStorageBytesLength? bytesStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetMappedByteHeaderRef I) = .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hcodeOwner, hloadMapped, hflag, hbad]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ_evm I)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      hload
+      (by simp [solidityDecodeBytesLengthHeader, hflag, hbad])
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
@@ -3088,10 +3104,15 @@ theorem bytesStoreLiteSetMappedByteShortMalformedRuntime
       readStorageBytesLength? bytesStoreLiteConfig
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (bytesStoreLiteSetMappedByteHeaderRef I) = .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, bytesStoreLiteConfig,
-      bytesStoreLiteStorageLayout, solidityStorageLayout, solidityReadBytesLength?,
-      solidityDecodeBytesLengthHeader, bytesStoreLiteLayout,
-      bytesStoreLiteSetMappedByteHeaderRef, hcodeOwner, hloadMapped, hflag, hbad0]
+    exact bytesStoreLiteReadLengthRevertOfHeaderLoad
+      (er := bytesStoreLiteSetMappedByteHeaderRef I)
+      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (baseSlot := bytesStoreLiteSetMappedByteSlot I)
+      (header := bytesStoreLiteSetMappedByteHeaderWord σ_evm I)
+      (bytesStoreLiteSetMappedByteHeaderRef_length_slot
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+      hload
+      (by simp [solidityDecodeBytesLengthHeader, hflag, hbad0])
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)

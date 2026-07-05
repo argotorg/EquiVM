@@ -264,8 +264,12 @@ theorem bytesStoreLitePushChunkLongNoTailShortPackedRuntime_of_post_header
               (chunksDataBase + oldLen) value 0
               (solidityBytesDataWordCount value.size))
             (chunksDataBase + oldLen) header := by
-      simp [evmSolm1, evmSolm0, value, header, initState, storageStore_accountMap,
-        storageStore_executionEnv, writeSolidityBytesDataWordsFrom_accountMap]
+      simpa [evmSolm1, evmSolm0, value, header, initState] using
+        accountMap_after_lengthStore_writeDataWords_storeHeader
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) value 0 (solidityBytesDataWordCount value.size)
+          (chunksDataBase + oldLen) header
     rw [hsolmMap]
     simpa [finalEvmMap, value, header] using hbridge
   have hretWordEq :
@@ -640,13 +644,14 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongNoClearRuntime_of_post_header
                 (oldFuel - clearFuel))
               (chunksDataBase + oldLen) value 0 clearFuel)
             (chunksDataBase + oldLen) header := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, value, header,
-        initState, storageStore_accountMap, storageStore_executionEnv,
-        writeSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        writeSolidityBytesDataWordsFrom_executionEnv,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot]
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, value, header,
+        initState, bytesLikeDataBase, solidityBytesDataBaseSlot] using
+        storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) clearFuel (oldFuel - clearFuel)
+          (chunksDataBase + oldLen) value 0 clearFuel
+          (chunksDataBase + oldLen) header
     rw [hsolmMap]
     simpa [finalEvmMap, value, header, oldFuel, clearFuel] using
       accountMapEquiv_pushChunkLongNoTailStorageOldLongNoClear
@@ -1031,11 +1036,11 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_post_header
   have hclearFuelEq : clearFuel = len.toNat / 32 := by
     dsimp [clearFuel, value]
     rw [hsizeDecoded]
-    exact BytesStoreLiteCore.nat_ceil32_eq_div_of_mod_zero hmod
+    exact solidityBytesDataWordCount_eq_div_of_mod_zero hmod
   have hclearLeOld : clearFuel ≤ oldFuel := by
     dsimp [oldFuel]
     rw [hclearFuelCeil]
-    exact BytesStoreLiteCore.nat_ceil32_le_ceil32 (Nat.le_of_lt holdGtNat)
+    exact solidityBytesDataWordCount_mono (Nat.le_of_lt holdGtNat)
   have holdLenLt : oldBytesLen.toNat < 2 ^ 255 :=
     BytesStoreLiteCore.clearCurrent_len_toNat_lt_sign_of_div2
       (header := oldHeader) rfl
@@ -1094,17 +1099,20 @@ theorem bytesStoreLitePushChunkLongNoTailOldLongClearRuntime_of_post_header
               (solidityBytesDataWordCount (BytesStoreLiteCore.setDecodedValueBytes I).size))
             (chunksDataBase + oldLen)
             (solidityBytesHeaderWord (BytesStoreLiteCore.setDecodedValueBytes I).size) := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, tailFuel, value, header,
-        σSolmClear, σSolmLen, hwordCount, hheaderWord, initState, storageStore_accountMap,
-        storageStore_executionEnv,
-        writeSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        writeSolidityBytesDataWordsFrom_executionEnv,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot]
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, tailFuel, value, header,
+        σSolmClear, σSolmLen, hwordCount, hheaderWord, initState, bytesLikeDataBase,
+        solidityBytesDataBaseSlot] using
+        storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) clearFuel tailFuel
+          (chunksDataBase + oldLen) (BytesStoreLiteCore.setDecodedValueBytes I) 0
+          (solidityBytesDataWordCount (BytesStoreLiteCore.setDecodedValueBytes I).size)
+          (chunksDataBase + oldLen)
+          (solidityBytesHeaderWord (BytesStoreLiteCore.setDecodedValueBytes I).size)
     have hlenAccounts : accountMapEquiv σLen σSolmLen := by
       simpa [σLen, σSolmLen] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨1⟩ (oldLen + ⟨1⟩) hAccounts
+        accountMapEquiv_pushChunkLengthIncrement I oldLen hAccounts
     have hclearAccounts : accountMapEquiv τclear σSolmClear := by
       have hshift := accountMapEquiv_clearDataWordsForwardFrom_shift_bytesLikeBase
         (owner := I.codeOwner) (σ := σLen) (τ := σSolmLen)
@@ -1505,8 +1513,12 @@ theorem bytesStoreLitePushChunkLongTailShortPackedRuntime_of_post_header
               (chunksDataBase + oldLen) value 0
               (solidityBytesDataWordCount value.size))
             (chunksDataBase + oldLen) header := by
-      simp [evmSolm1, evmSolm0, value, header, initState, storageStore_accountMap,
-        storageStore_executionEnv, writeSolidityBytesDataWordsFrom_accountMap]
+      simpa [evmSolm1, evmSolm0, value, header, initState] using
+        accountMap_after_lengthStore_writeDataWords_storeHeader
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) value 0 (solidityBytesDataWordCount value.size)
+          (chunksDataBase + oldLen) header
     rw [hsolmMap]
     simpa [finalEvmMap, value, header] using hbridge
   have hretWordEq :
@@ -1904,7 +1916,7 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_post_header
   have hclearLeOld : clearFuel ≤ oldFuel := by
     dsimp [oldFuel]
     rw [hclearFuelCeil]
-    exact BytesStoreLiteCore.nat_ceil32_le_ceil32 (Nat.le_of_lt holdGtNat)
+    exact solidityBytesDataWordCount_mono (Nat.le_of_lt holdGtNat)
   have holdLenLt : oldBytesLen.toNat < 2 ^ 255 :=
     BytesStoreLiteCore.clearCurrent_len_toNat_lt_sign_of_div2
       (header := oldHeader) rfl
@@ -1963,17 +1975,20 @@ theorem bytesStoreLitePushChunkLongTailOldLongClearRuntime_of_post_header
               (solidityBytesDataWordCount (BytesStoreLiteCore.setDecodedValueBytes I).size))
             (chunksDataBase + oldLen)
             (solidityBytesHeaderWord (BytesStoreLiteCore.setDecodedValueBytes I).size) := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, tailFuel, value, header,
-        σSolmClear, σSolmLen, hwordCount, hheaderWord, initState, storageStore_accountMap,
-        storageStore_executionEnv,
-        writeSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        writeSolidityBytesDataWordsFrom_executionEnv,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot]
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, tailFuel, value, header,
+        σSolmClear, σSolmLen, hwordCount, hheaderWord, initState, bytesLikeDataBase,
+        solidityBytesDataBaseSlot] using
+        storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) clearFuel tailFuel
+          (chunksDataBase + oldLen) (BytesStoreLiteCore.setDecodedValueBytes I) 0
+          (solidityBytesDataWordCount (BytesStoreLiteCore.setDecodedValueBytes I).size)
+          (chunksDataBase + oldLen)
+          (solidityBytesHeaderWord (BytesStoreLiteCore.setDecodedValueBytes I).size)
     have hlenAccounts : accountMapEquiv σLen σSolmLen := by
       simpa [σLen, σSolmLen] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨1⟩ (oldLen + ⟨1⟩) hAccounts
+        accountMapEquiv_pushChunkLengthIncrement I oldLen hAccounts
     have hclearAccounts : accountMapEquiv τclear σSolmClear := by
       have hshift := accountMapEquiv_clearDataWordsForwardFrom_shift_bytesLikeBase
         (owner := I.codeOwner) (σ := σLen) (τ := σSolmLen)
@@ -2388,13 +2403,14 @@ theorem bytesStoreLitePushChunkLongTailOldLongNoClearRuntime_of_post_header
                 (oldFuel - clearFuel))
               (chunksDataBase + oldLen) value 0 clearFuel)
             (chunksDataBase + oldLen) header := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, value, header,
-        initState, storageStore_accountMap, storageStore_executionEnv,
-        writeSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        writeSolidityBytesDataWordsFrom_executionEnv,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot]
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, clearFuel, value, header,
+        initState, bytesLikeDataBase, solidityBytesDataBaseSlot] using
+        storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) clearFuel (oldFuel - clearFuel)
+          (chunksDataBase + oldLen) value 0 clearFuel
+          (chunksDataBase + oldLen) header
     rw [hsolmMap]
     simpa [finalEvmMap, value, header, oldFuel, clearFuel] using
       accountMapEquiv_pushChunkLongTailStorageOldLongNoClear
@@ -3229,28 +3245,18 @@ theorem bytesStoreLitePushChunkShortNonemptyOldLongRuntime_of_post_header
         evmSolm1.accountMap =
           sstoreAccountMap I.codeOwner σSolmClear (chunksDataBase + oldLen)
             (solidityShortBytesWord value) := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, value, σSolmClear, σSolmLen,
-        initState, storageStore_accountMap, storageStore_executionEnv,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot,
-        show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from by native_decide]
-    have hlenAccounts : accountMapEquiv σLen σSolmLen := by
-      simpa [σLen, σSolmLen] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨1⟩ (oldLen + ⟨1⟩) hAccounts
-    have hclearAccounts : accountMapEquiv τclear σSolmClear := by
-      have hbaseZero :
-          (⟨0⟩ : UInt256) + bytesLikeDataBase (chunksDataBase + oldLen) =
-            bytesLikeDataBase (chunksDataBase + oldLen) :=
-        u256_zero_add (bytesLikeDataBase (chunksDataBase + oldLen))
-      have hclear := accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-        (bytesLikeDataBase (chunksDataBase + oldLen)) (⟨0⟩ : UInt256)
-        oldFuel hlenAccounts
-      simpa [τclear, σSolmClear, clearCount, hbaseZero, hcountNat] using hclear
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, value, σSolmClear, σSolmLen,
+        initState, bytesLikeDataBase, solidityBytesDataBaseSlot,
+        show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from by native_decide] using
+        storageStore_clearSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) 0 oldFuel
+          (chunksDataBase + oldLen) (solidityShortBytesWord value)
     rw [hsolmMap]
     simpa [finalEvmMap, hstoredEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (chunksDataBase + oldLen)
-        (solidityShortBytesWord value) hclearAccounts
+      accountMapEquiv_pushChunkFinalWriteAfterClear I oldLen clearCount
+        (solidityShortBytesWord value) oldFuel hcountNat hAccounts
   have hretWordEq :
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
@@ -3583,28 +3589,18 @@ theorem bytesStoreLitePushChunkEmptyOldLongRuntime_of_post_header
     have hsolmMap :
         evmSolm1.accountMap =
           sstoreAccountMap I.codeOwner σSolmClear (chunksDataBase + oldLen) ⟨0⟩ := by
-      simp [evmSolm1, evmSolmLen, evmSolm0, oldFuel, σSolmClear, σSolmLen,
-        initState, storageStore_accountMap, storageStore_executionEnv,
-        clearSolidityBytesDataWordsFrom_accountMap,
-        clearSolidityBytesDataWordsFrom_executionEnv,
-        bytesLikeDataBase, solidityBytesDataBaseSlot,
-        show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from by native_decide]
-    have hlenAccounts : accountMapEquiv σLen σSolmLen := by
-      simpa [σLen, σSolmLen] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨1⟩ (oldLen + ⟨1⟩) hAccounts
-    have hclearAccounts : accountMapEquiv τclear σSolmClear := by
-      have hbaseZero :
-          (⟨0⟩ : UInt256) + bytesLikeDataBase (chunksDataBase + oldLen) =
-            bytesLikeDataBase (chunksDataBase + oldLen) :=
-        u256_zero_add (bytesLikeDataBase (chunksDataBase + oldLen))
-      have hclear := accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-        (bytesLikeDataBase (chunksDataBase + oldLen)) (⟨0⟩ : UInt256)
-        oldFuel hlenAccounts
-      simpa [τclear, σSolmClear, clearCount, hbaseZero, hcountNat] using hclear
+      simpa [evmSolm1, evmSolmLen, evmSolm0, oldFuel, σSolmClear, σSolmLen,
+        initState, bytesLikeDataBase, solidityBytesDataBaseSlot,
+        show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from by native_decide] using
+        storageStore_clearSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨1⟩ (oldLen + ⟨1⟩)
+          (chunksDataBase + oldLen) 0 oldFuel
+          (chunksDataBase + oldLen) ⟨0⟩
     rw [hsolmMap]
     simpa [finalEvmMap] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (chunksDataBase + oldLen)
-        (⟨0⟩ : UInt256) hclearAccounts
+      accountMapEquiv_pushChunkFinalWriteAfterClear I oldLen clearCount
+        (⟨0⟩ : UInt256) oldFuel hcountNat hAccounts
   have hretWordEq :
       (finalEvmMap.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =

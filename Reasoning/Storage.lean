@@ -51,6 +51,14 @@ theorem keyValueToWord_uint256 (w : UInt256) :
   show w.toNat % EVM.twoPow 256 = w.toNat
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le w.val.isLt (by decide))
 
+theorem wordOfInt_ofNat_eq (n : Nat) :
+    EVM.wordOfInt (Int.ofNat n) = UInt256.ofNat n := by
+  apply u256_inj
+  show (Int.ofNat n).toNat % EVM.twoPow 256 = (UInt256.ofNat n).toNat
+  rw [show (Int.ofNat n).toNat = n from rfl,
+    show (UInt256.ofNat n).toNat = n % UInt256.size from rfl,
+    show EVM.twoPow 256 = UInt256.size from by decide]
+
 theorem keyValueToWord_fixedBytes32 (w : UInt256) :
     keyValueToWord (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE w)) = w := by
   have hlen : (EVM.Word.toBytesBE w).length = 32 := by
@@ -105,6 +113,179 @@ theorem storageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
   rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
     List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
     List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+theorem storageLocStore_uint256_nat (evm : EVM.State) (slot : UInt256) (n : Nat) :
+    storageLocStore evm (uint256Loc slot) (.int (Int.ofNat n)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (UInt256.ofNat n)) := by
+  unfold storageLocStore storageLocWriteWord uint256Loc
+  simp only [valueToWord, wordOfInt_ofNat_eq, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat n)).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) =
+      (UInt256.ofNat n).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
+    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
+    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+theorem storageLocStore_oneByte
+    (evm : EVM.State) (slot valueWord target : UInt256)
+    (off : Fin 32) (typ : ABI.ElemType)
+    (hbound : off.val + (1 : Fin 33).val - 1 < 32) (v : Value)
+    (hval : valueToWord v = some valueWord)
+    (htarget : target.toNat =
+      fromBytes'
+        ((EVM.Word.toBytesLEWithSizeProof
+              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take off.val ++
+         (EVM.Word.toBytesLEWithSizeProof
+              (storageLocWriteWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+                off.val none valueWord)).1.take 1 ++
+         (EVM.Word.toBytesLEWithSizeProof
+              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop
+            (off.val + 1))) :
+    storageLocStore evm
+      { slot := slot, offset := off, size := 1, hbound := hbound, type := typ } v =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot target) := by
+  unfold storageLocStore
+  simp only [hval, bind, Option.bind]
+  congr 2
+  apply u256_inj
+  exact htarget.symm
+
+theorem storageLocStore_oneByte_int_ofNat_update
+    (evm : EVM.State) (slot old target : UInt256)
+    (off : Fin 32) (typ : ABI.ElemType)
+    (hbound : off.val + (1 : Fin 33).val - 1 < 32)
+    (byte : Nat)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot = old)
+    (hbyte : byte < 256)
+    (htarget : target.toNat =
+      old.toNat % 2 ^ (8 * off.val) +
+        2 ^ (8 * off.val) * byte +
+        2 ^ (8 * off.val + 8) * (old.toNat / 2 ^ (8 * off.val + 8))) :
+    storageLocStore evm
+      { slot := slot, offset := off, size := 1, hbound := hbound, type := typ }
+      (.int (Int.ofNat byte)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot target) := by
+  have hval : valueToWord (.int (Int.ofNat byte)) = some (UInt256.ofNat byte) := by
+    simp [valueToWord]
+    exact wordOfInt_ofNat_eq byte
+  have hoffLe : off.val ≤ 32 := Nat.le_of_lt off.isLt
+  have htargetBytes :
+      target.toNat =
+        fromBytes'
+          ((EVM.Word.toBytesLEWithSizeProof
+                (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take off.val ++
+           (EVM.Word.toBytesLEWithSizeProof
+                (storageLocWriteWord
+                  (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+                  off.val none (UInt256.ofNat byte))).1.take 1 ++
+           (EVM.Word.toBytesLEWithSizeProof
+                (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop
+              (off.val + 1)) := by
+    rw [hload]
+    simp only [storageLocWriteWord]
+    rw [fromBytes'_append, fromBytes'_append]
+    rw [fromBytes'_take_wordLE, fromBytes'_take_wordLE, fromBytes'_drop_wordLE]
+    have hslen := (EVM.Word.toBytesLEWithSizeProof old).2
+    have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat byte)).2
+    rw [List.length_take, hslen, Nat.min_eq_left hoffLe]
+    rw [List.length_append, List.length_take, hslen, Nat.min_eq_left hoffLe,
+      List.length_take, hvlen, Nat.min_eq_left (by norm_num : 1 ≤ 32)]
+    rw [show 8 * (off.val + 1) = 8 * off.val + 8 by ring]
+    rw [show 256 ^ off.val = 2 ^ (8 * off.val) by
+      rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]]
+    rw [show 256 ^ (off.val + 1) = 2 ^ (8 * off.val + 8) by
+      rw [show (256 : Nat) = 2 ^ 8 by norm_num, ← Nat.pow_mul]
+      congr 1]
+    rw [show 256 ^ 1 = 256 by norm_num]
+    rw [show (UInt256.ofNat byte).toNat % 256 = byte by
+      rw [ulit_toNat' _ (lt_of_lt_of_le hbyte (by norm_num [UInt256.size]))]
+      exact Nat.mod_eq_of_lt hbyte]
+    exact htarget
+  exact storageLocStore_oneByte evm slot (UInt256.ofNat byte) target off typ hbound
+    (.int (Int.ofNat byte)) hval htargetBytes
+
+private theorem fromBytes'_take_one_eq_mod (bs : List UInt8) :
+    fromBytes' (bs.take 1) = fromBytes' bs % 256 := by
+  cases bs with
+  | nil => simp [fromBytes']
+  | cons b bs =>
+      simp [fromBytes', Nat.add_mul_mod_self_left]
+
+theorem u256_byteAt_toNat_of_le31 {i w : UInt256} (hi : i.toNat ≤ 31) :
+    (UInt256.byteAt i w).toNat =
+      (w.toNat / 2 ^ ((31 - i.toNat) * 8)) % 256 := by
+  unfold UInt256.byteAt
+  rw [if_neg]
+  · change (UInt256.land (UInt256.shiftRight w
+        (UInt256.ofNat ((31 - i.toNat) * 8))) ⟨255⟩).toNat = _
+    rw [u256_land_toNat]
+    unfold UInt256.shiftRight
+    rw [if_neg]
+    · change Nat.land
+          (((w.val >>> (UInt256.ofNat ((31 - i.toNat) * 8)).val) :
+              Fin UInt256.size).val)
+          (⟨255⟩ : UInt256).toNat % UInt256.size = _
+      rw [Fin.shiftRight_val, Nat.shiftRight_eq_div_pow]
+      rw [show (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 by decide]
+      rw [nat_land_mask_eq_mod]
+      change w.toNat / 2 ^ (UInt256.ofNat ((31 - i.toNat) * 8)).toNat %
+          2 ^ 8 % UInt256.size = _
+      rw [show (UInt256.ofNat ((31 - i.toNat) * 8)).toNat =
+          (31 - i.toNat) * 8 by
+        apply ulit_toNat'
+        have hle : (31 - i.toNat) * 8 ≤ 31 * 8 :=
+          Nat.mul_le_mul_right _ (Nat.sub_le 31 i.toNat)
+        norm_num [UInt256.size]
+        omega]
+      have hlt : (w.toNat / 2 ^ ((31 - i.toNat) * 8) % 2 ^ 8) <
+          UInt256.size := by
+        exact lt_of_lt_of_le (Nat.mod_lt _ (by norm_num : 0 < 2 ^ 8)) (by
+          norm_num [UInt256.size])
+      rw [Nat.mod_eq_of_lt hlt]
+      rw [show 2 ^ 8 = 256 by norm_num]
+    · change ¬ (UInt256.ofNat ((31 - i.toNat) * 8)).toNat ≥ 256
+      rw [show (UInt256.ofNat ((31 - i.toNat) * 8)).toNat =
+          (31 - i.toNat) * 8 by
+        apply ulit_toNat'
+        have hle : (31 - i.toNat) * 8 ≤ 31 * 8 :=
+          Nat.mul_le_mul_right _ (Nat.sub_le 31 i.toNat)
+        norm_num [UInt256.size]
+        omega]
+      omega
+  · change ¬ (⟨31⟩ : UInt256).toNat < i.toNat
+    rw [show (⟨31⟩ : UInt256).toNat = 31 by decide]
+    omega
+
+theorem storageLocLoad_oneByte_byteAt
+    {evm : EVM.State} {slot idx : UInt256} {off : Fin 32}
+    {hbound : off.val + (1 : Fin 33).val - 1 < 32}
+    (hoff : off.val = 31 - idx.toNat)
+    (hidx : idx.toNat ≤ 31) :
+    storageLocLoad evm
+      { slot := slot, offset := off, size := 1, hbound := hbound,
+        type := .int (.uint ⟨8, by decide⟩) } =
+      .int (UInt256.byteAt idx
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).toNat := by
+  unfold storageLocLoad wordToElem
+  simp
+  change fromBytes' (List.take 1 (List.drop off.val
+      (EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)) =
+    (UInt256.byteAt idx
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).toNat
+  rw [fromBytes'_take_one_eq_mod]
+  rw [fromBytes'_drop_wordLE]
+  rw [u256_byteAt_toNat_of_le31 hidx]
+  rw [hoff]
+  rw [show 256 ^ (31 - idx.toNat) = 2 ^ ((31 - idx.toNat) * 8) by
+    rw [show 256 = 2 ^ 8 by norm_num, ← Nat.pow_mul]
+    ring]
 
 /-! ## Full-slot bytes32 storage -/
 
@@ -1143,6 +1324,30 @@ theorem sstoreAccountMap_storage_findD_eq_if (σ : AccountMap) (a : AccountAddre
             storage_findD_insert_self acc.storage writeSlot val (default : UInt256)
   · simp [hslot, sstoreAccountMap_storage_findD_ne σ a readSlot writeSlot val hslot]
 
+theorem sstoreAccountMap_storage_findD_eq_if_of_before
+    {σ : AccountMap} {a : AccountAddress} {readSlot writeSlot val word : UInt256}
+    (hword :
+      ((σ.find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) = word) :
+    (((sstoreAccountMap a σ writeSlot val).find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) =
+      if readSlot = writeSlot then
+        ((σ.find? a).option (default : UInt256) (fun _ => val))
+      else
+        word := by
+  rw [sstoreAccountMap_storage_findD_eq_if, hword]
+
+theorem sstoreAccountMap_storage_findD_eq_of_before_of_ne
+    {σ : AccountMap} {a : AccountAddress} {readSlot writeSlot val word : UInt256}
+    (hne : readSlot ≠ writeSlot)
+    (hword :
+      ((σ.find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) = word) :
+    (((sstoreAccountMap a σ writeSlot val).find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot (default : UInt256))) = word := by
+  rw [sstoreAccountMap_storage_findD_eq_if_of_before hword]
+  exact if_neg hne
+
 theorem sstoreAccountMap_storage_findD_self_of_find_some
     (σ : AccountMap) (a : AccountAddress) (acc : Account) (slot val : UInt256)
     (hacc : σ.find? a = some acc) (hval : (val == (default : UInt256)) = false) :
@@ -1151,6 +1356,19 @@ theorem sstoreAccountMap_storage_findD_self_of_find_some
   unfold sstoreAccountMap
   simp [hacc, Option.option, hval, accountMap_find_insert_self]
   exact storage_findD_insert_self acc.storage slot val (default : UInt256)
+
+theorem sstoreAccountMap_storage_findD_self_of_find_some_any
+    (σ : AccountMap) (a : AccountAddress) (acc : Account) (slot val : UInt256)
+    (hacc : σ.find? a = some acc) :
+    (((sstoreAccountMap a σ slot val).find? a).option (default : UInt256)
+        (fun acc => acc.storage.findD slot (default : UInt256))) = val := by
+  unfold sstoreAccountMap
+  by_cases hzero : (val == (default : UInt256)) = true
+  · have hval : val = (default : UInt256) := eq_of_beq hzero
+    simp [hacc, Option.option, accountMap_find_insert_self, hval,
+      storage_findD_erase_self]
+  · simp [hacc, Option.option, hzero, accountMap_find_insert_self]
+    exact storage_findD_insert_self acc.storage slot val (default : UInt256)
 
 theorem accountEquiv_refl (acc : Account) : accountEquiv acc acc := by
   exact ⟨rfl, rfl, rfl, fun _ => rfl, fun _ => rfl⟩
@@ -1367,6 +1585,26 @@ theorem storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
   simp [storageStore_accountMap]
   exact accountMapEquiv_sstoreAccountMap addr slot val hAccounts
 
+theorem accountMapEquiv_storageStore_of_accountMapEquiv {evm : EVM.State}
+    {σ : AccountMap} (hAccounts : accountMapEquiv σ evm.accountMap)
+    (addr : AccountAddress) (slot val : UInt256) :
+    accountMapEquiv (sstoreAccountMap addr σ slot val)
+      (Solm.EVM.storageStore evm addr slot val).accountMap := by
+  simp [storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap addr slot val hAccounts
+
+theorem accountMapEquiv_storageStore_two_of_accountMapEquiv {evm : EVM.State}
+    {σ : AccountMap} (hAccounts : accountMapEquiv σ evm.accountMap)
+    (addr₁ addr₂ : AccountAddress) (slot₁ val₁ slot₂ val₂ : UInt256) :
+    accountMapEquiv
+      (sstoreAccountMap addr₂ (sstoreAccountMap addr₁ σ slot₁ val₁) slot₂ val₂)
+      (Solm.EVM.storageStore
+        (Solm.EVM.storageStore evm addr₁ slot₁ val₁)
+        addr₂ slot₂ val₂).accountMap := by
+  simp [storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap addr₂ slot₂ val₂
+    (accountMapEquiv_sstoreAccountMap addr₁ slot₁ val₁ hAccounts)
+
 theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
@@ -1377,6 +1615,56 @@ theorem storageStore_absent (evm : EVM.State) (addr : AccountAddress)
     (hmissing : evm.accountMap.find? addr = none) (slot val : UInt256) :
     Solm.EVM.storageStore evm addr slot val = evm := by
   simp [Solm.EVM.storageStore, State.lookupAccount, hmissing, Option.option]
+
+theorem storageLoad_initState_codeOwner_of_accountMapEquiv
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (slot : UInt256) (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner slot =
+      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.findD slot ⟨0⟩)) := by
+  have hword :=
+    accountMapEquiv_storage_findD hAccounts I.codeOwner slot (⟨0⟩ : UInt256)
+  simpa [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage] using
+    hword.symm
+
+theorem accountMapEquiv_storageStore_initState_codeOwner
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (slot val : UInt256) :
+    accountMapEquiv
+      (sstoreAccountMap I.codeOwner σ_evm slot val)
+      (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner slot val).accountMap := by
+  simp [initState, storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap I.codeOwner slot val hAccounts
+
+theorem accountMapEquiv_storageStore_initState_codeOwner_two
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (slot1 val1 slot2 val2 : UInt256) :
+    accountMapEquiv
+      (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm slot1 val1) slot2 val2)
+      (Solm.EVM.storageStore
+        (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+          I.codeOwner slot1 val1)
+        I.codeOwner slot2 val2).accountMap := by
+  simp [initState, storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap I.codeOwner slot2 val2
+    (accountMapEquiv_sstoreAccountMap I.codeOwner slot1 val1 hAccounts)
+
+theorem storageLocStore_oneByte_absent_same
+    {evm : EVM.State} {slot : UInt256} {off : Fin 32} {byte : UInt8}
+    {typ : ABI.ElemType} {hbound : off.val + (1 : Fin 33).val - 1 < 32}
+    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none) :
+    storageLocStore evm
+      { slot := slot, offset := off, size := 1, hbound := hbound, type := typ }
+      (.int byte.toNat) = some evm := by
+  unfold storageLocStore
+  simp [storageLocWriteWord, valueToWord,
+    storageStore_absent evm evm.executionEnv.codeOwner hmissing]
 
 theorem writeSolidityBytesDataWordsFrom_absent_same :
     ∀ {evm : EVM.State} {baseSlot : UInt256} {value : ByteArray} {idx fuel : Nat},
@@ -1398,6 +1686,337 @@ def solidityDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
         (sstoreAccountMap owner τ (solidityBytesDataSlot baseSlot idx)
           (uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)))
         baseSlot bytes (idx + 1) n
+
+def accountStorageWord (σ : AccountMap) (owner : AccountAddress) (slot : UInt256) : UInt256 :=
+  (σ.find? owner).option (default : UInt256)
+    (fun acc => acc.storage.findD slot (default : UInt256))
+
+theorem accountStorageWord_eq_storageLoad_of_accountMapEquiv
+    {evm : EVM.State} {σ : AccountMap} {owner : AccountAddress} {slot : UInt256}
+    (howner : evm.executionEnv.codeOwner = owner)
+    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    accountStorageWord σ owner slot =
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
+  have hword :
+      accountStorageWord σ owner slot = accountStorageWord evm.accountMap owner slot :=
+    accountMapEquiv_storage_findD hAccounts owner slot (default : UInt256)
+  have hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot =
+        accountStorageWord evm.accountMap owner slot := by
+    rw [howner]
+    rfl
+  exact hword.trans hload.symm
+
+theorem storageLoad_eq_accountStorageWord_of_accountMapEquiv_of_word_eq
+    {evm : EVM.State} {σ τ : AccountMap} {owner : AccountAddress} {slot : UInt256}
+    (howner : evm.executionEnv.codeOwner = owner)
+    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hword : accountStorageWord σ owner slot = accountStorageWord τ owner slot) :
+    Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot =
+      accountStorageWord τ owner slot := by
+  exact (accountStorageWord_eq_storageLoad_of_accountMapEquiv howner hAccounts).symm.trans hword
+
+def solidityDataWordAt (bytes : ByteArray) (idx : Nat) : UInt256 :=
+  uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)
+
+def solidityDataWordsForwardFromReadback
+    (ownerPresent : Bool) (current : UInt256) (readSlot baseSlot : UInt256)
+    (bytes : ByteArray) (idx : Nat) : Nat → UInt256
+  | 0 => current
+  | fuel + 1 =>
+      let current' :=
+        if readSlot = solidityBytesDataSlot baseSlot idx then
+          if ownerPresent then solidityDataWordAt bytes idx else (default : UInt256)
+        else
+          current
+      solidityDataWordsForwardFromReadback ownerPresent current' readSlot baseSlot bytes
+        (idx + 1) fuel
+
+theorem option_const_eq_if_isSome {α β : Type} [Inhabited β] (opt : Option α) (val : β) :
+    opt.option (default : β) (fun _ => val) = if opt.isSome then val else default := by
+  cases opt <;> rfl
+
+theorem sstoreAccountMap_find?_owner_isSome
+    (σ : AccountMap) (owner : AccountAddress) (slot val : UInt256) :
+    ((sstoreAccountMap owner σ slot val).find? owner).isSome =
+      (σ.find? owner).isSome := by
+  unfold sstoreAccountMap
+  cases hσ : σ.find? owner with
+  | none =>
+      simp [hσ, Option.option]
+  | some acc =>
+      simp [Option.option, accountMap_find_insert_self]
+
+theorem sstoreAccountMap_find?_some_exists_of_find_some
+    {σ : AccountMap} {a : AccountAddress} {acc : Account} {slot val : UInt256}
+    (hacc : σ.find? a = some acc) :
+    ∃ acc', (sstoreAccountMap a σ slot val).find? a = some acc' := by
+  unfold sstoreAccountMap
+  simp [hacc, Option.option, accountMap_find_insert_self]
+
+theorem accountStorageWord_after_sstore_eq_if
+    (σ : AccountMap) (owner : AccountAddress) (readSlot writeSlot val : UInt256) :
+    accountStorageWord (sstoreAccountMap owner σ writeSlot val) owner readSlot =
+      if readSlot = writeSlot then
+        if (σ.find? owner).isSome then val else (default : UInt256)
+      else
+        accountStorageWord σ owner readSlot := by
+  rw [accountStorageWord, sstoreAccountMap_storage_findD_eq_if]
+  simp [accountStorageWord, option_const_eq_if_isSome]
+
+theorem accountStorageWord_solidityDataWordsForwardFrom_eq_readback
+    (σ : AccountMap) (owner : AccountAddress) (readSlot baseSlot : UInt256)
+    (bytes : ByteArray) :
+    ∀ (idx fuel : Nat),
+      accountStorageWord
+          (solidityDataWordsForwardFrom owner σ baseSlot bytes idx fuel) owner readSlot =
+        solidityDataWordsForwardFromReadback (σ.find? owner).isSome
+          (accountStorageWord σ owner readSlot) readSlot baseSlot bytes idx fuel
+  | idx, 0 => rfl
+  | idx, fuel + 1 => by
+      simp [solidityDataWordsForwardFrom]
+      rw [accountStorageWord_solidityDataWordsForwardFrom_eq_readback
+        (sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot idx)
+          (uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)))
+        owner readSlot baseSlot bytes (idx + 1) fuel]
+      rw [sstoreAccountMap_find?_owner_isSome]
+      rw [accountStorageWord_after_sstore_eq_if]
+      simp [solidityDataWordAt, solidityDataWordsForwardFromReadback]
+
+theorem solidityDataWordsForwardFromReadback_eq_current_of_ne
+    (ownerPresent : Bool) (current readSlot baseSlot : UInt256) (bytes : ByteArray) :
+    ∀ (idx fuel : Nat),
+      (∀ i, i < fuel → readSlot ≠ solidityBytesDataSlot baseSlot (idx + i)) →
+      solidityDataWordsForwardFromReadback ownerPresent current readSlot baseSlot bytes idx fuel =
+        current
+  | idx, 0, _ => rfl
+  | idx, fuel + 1, hne => by
+      have hhead : readSlot ≠ solidityBytesDataSlot baseSlot idx := by
+        simpa using hne 0 (Nat.zero_lt_succ fuel)
+      have htail :
+          ∀ i, i < fuel → readSlot ≠ solidityBytesDataSlot baseSlot (idx + 1 + i) := by
+        intro i hi
+        have h := hne (i + 1) (Nat.succ_lt_succ hi)
+        have hidx : idx + (i + 1) = idx + 1 + i := by omega
+        simpa [hidx] using h
+      simp [solidityDataWordsForwardFromReadback, hhead]
+      exact solidityDataWordsForwardFromReadback_eq_current_of_ne ownerPresent current readSlot
+        baseSlot bytes (idx + 1) fuel htail
+
+theorem accountStorageWord_solidityDataWordsForwardFrom_eq_of_ne
+    (σ : AccountMap) (owner : AccountAddress) (readSlot baseSlot : UInt256)
+    (bytes : ByteArray) (idx fuel : Nat)
+    (hne : ∀ i, i < fuel → readSlot ≠ solidityBytesDataSlot baseSlot (idx + i)) :
+    accountStorageWord
+        (solidityDataWordsForwardFrom owner σ baseSlot bytes idx fuel) owner readSlot =
+      accountStorageWord σ owner readSlot := by
+  rw [accountStorageWord_solidityDataWordsForwardFrom_eq_readback]
+  exact solidityDataWordsForwardFromReadback_eq_current_of_ne
+    (σ.find? owner).isSome (accountStorageWord σ owner readSlot) readSlot baseSlot bytes
+    idx fuel hne
+
+def accountStorageWordsForwardFrom (owner : AccountAddress) (σ : AccountMap)
+    (slotAt wordAt : Nat → UInt256) (idx : Nat) : Nat → AccountMap
+  | 0 => σ
+  | fuel + 1 =>
+      accountStorageWordsForwardFrom owner
+        (sstoreAccountMap owner σ (slotAt idx) (wordAt idx)) slotAt wordAt (idx + 1) fuel
+
+def accountStorageWriteLoopReadback
+    (ownerPresent : Bool) (current readSlot : UInt256)
+    (slotAt wordAt : Nat → UInt256) (idx : Nat) : Nat → UInt256
+  | 0 => current
+  | fuel + 1 =>
+      let current' :=
+        if readSlot = slotAt idx then
+          if ownerPresent then wordAt idx else (default : UInt256)
+        else
+          current
+      accountStorageWriteLoopReadback ownerPresent current' readSlot slotAt wordAt
+        (idx + 1) fuel
+
+theorem accountStorageWord_accountStorageWordsForwardFrom_eq_readback
+    (σ : AccountMap) (owner : AccountAddress) (readSlot : UInt256)
+    (slotAt wordAt : Nat → UInt256) :
+    ∀ (idx fuel : Nat),
+      accountStorageWord
+          (accountStorageWordsForwardFrom owner σ slotAt wordAt idx fuel) owner readSlot =
+        accountStorageWriteLoopReadback (σ.find? owner).isSome
+          (accountStorageWord σ owner readSlot) readSlot slotAt wordAt idx fuel
+  | idx, 0 => rfl
+  | idx, fuel + 1 => by
+      simp [accountStorageWordsForwardFrom]
+      rw [accountStorageWord_accountStorageWordsForwardFrom_eq_readback
+        (sstoreAccountMap owner σ (slotAt idx) (wordAt idx)) owner readSlot slotAt wordAt
+        (idx + 1) fuel]
+      rw [sstoreAccountMap_find?_owner_isSome]
+      rw [accountStorageWord_after_sstore_eq_if]
+      simp [accountStorageWriteLoopReadback]
+
+theorem accountStorageWriteLoopReadback_eq_current_of_ne
+    (ownerPresent : Bool) (current readSlot : UInt256) (slotAt wordAt : Nat → UInt256) :
+    ∀ (idx fuel : Nat),
+      (∀ i, i < fuel → readSlot ≠ slotAt (idx + i)) →
+      accountStorageWriteLoopReadback ownerPresent current readSlot slotAt wordAt idx fuel =
+        current
+  | idx, 0, _ => rfl
+  | idx, fuel + 1, hne => by
+      have hhead : readSlot ≠ slotAt idx := by
+        simpa using hne 0 (Nat.zero_lt_succ fuel)
+      have htail : ∀ i, i < fuel → readSlot ≠ slotAt (idx + 1 + i) := by
+        intro i hi
+        have h := hne (i + 1) (Nat.succ_lt_succ hi)
+        have hidx : idx + (i + 1) = idx + 1 + i := by omega
+        simpa [hidx] using h
+      simp [accountStorageWriteLoopReadback, hhead]
+      exact accountStorageWriteLoopReadback_eq_current_of_ne ownerPresent current readSlot
+        slotAt wordAt (idx + 1) fuel htail
+
+theorem accountStorageWord_accountStorageWordsForwardFrom_eq_of_ne
+    (σ : AccountMap) (owner : AccountAddress) (readSlot : UInt256)
+    (slotAt wordAt : Nat → UInt256) (idx fuel : Nat)
+    (hne : ∀ i, i < fuel → readSlot ≠ slotAt (idx + i)) :
+    accountStorageWord
+        (accountStorageWordsForwardFrom owner σ slotAt wordAt idx fuel) owner readSlot =
+      accountStorageWord σ owner readSlot := by
+  rw [accountStorageWord_accountStorageWordsForwardFrom_eq_readback]
+  exact accountStorageWriteLoopReadback_eq_current_of_ne
+    (σ.find? owner).isSome (accountStorageWord σ owner readSlot) readSlot slotAt wordAt
+    idx fuel hne
+
+theorem accountStorageWordsForwardFrom_find?_some_exists_of_find_some
+    {σ : AccountMap} {owner : AccountAddress} {acc : Account}
+    {slotAt wordAt : Nat → UInt256} {idx : Nat}
+    (hacc : σ.find? owner = some acc) :
+    ∀ fuel, ∃ acc',
+      (accountStorageWordsForwardFrom owner σ slotAt wordAt idx fuel).find? owner = some acc'
+  | 0 => ⟨acc, by simpa [accountStorageWordsForwardFrom] using hacc⟩
+  | fuel + 1 => by
+      obtain ⟨acc', hacc'⟩ :=
+        sstoreAccountMap_find?_some_exists_of_find_some
+          (σ := σ) (a := owner) (acc := acc) (slot := slotAt idx) (val := wordAt idx) hacc
+      exact accountStorageWordsForwardFrom_find?_some_exists_of_find_some
+        (σ := sstoreAccountMap owner σ (slotAt idx) (wordAt idx)) (owner := owner)
+        (acc := acc') (slotAt := slotAt) (wordAt := wordAt) (idx := idx + 1) hacc' fuel
+
+theorem accountStorageWordsForwardFrom_absent_same
+    {owner : AccountAddress} {σ : AccountMap} {slotAt wordAt : Nat → UInt256} {idx : Nat}
+    (hmissing : σ.find? owner = none) :
+    ∀ fuel, accountStorageWordsForwardFrom owner σ slotAt wordAt idx fuel = σ
+  | 0 => rfl
+  | fuel + 1 => by
+      simp [accountStorageWordsForwardFrom]
+      rw [sstoreAccountMap_absent_same (owner := owner) (τ := σ)
+        (slot := slotAt idx) (val := wordAt idx) hmissing]
+      exact accountStorageWordsForwardFrom_absent_same
+        (owner := owner) (σ := σ) (slotAt := slotAt) (wordAt := wordAt)
+        (idx := idx + 1) hmissing fuel
+
+def accountStorageStatefulWordsForwardFrom (α : Type) (owner : AccountAddress)
+    (σ : AccountMap) (slotAt wordAt : α → UInt256) (next : α → α) (state : α) :
+    Nat → AccountMap
+  | 0 => σ
+  | fuel + 1 =>
+      accountStorageStatefulWordsForwardFrom α owner
+        (sstoreAccountMap owner σ (slotAt state) (wordAt state)) slotAt wordAt next
+        (next state) fuel
+
+def accountStorageStatefulLoopState {α : Type} (next : α → α) : α → Nat → α
+  | state, 0 => state
+  | state, fuel + 1 => accountStorageStatefulLoopState next (next state) fuel
+
+theorem accountStorageStatefulWordsForwardFrom_absent_same
+    {α : Type} {owner : AccountAddress} {σ : AccountMap}
+    {slotAt wordAt : α → UInt256} {next : α → α} {state : α}
+    (hmissing : σ.find? owner = none) :
+    ∀ fuel,
+      accountStorageStatefulWordsForwardFrom α owner σ slotAt wordAt next state fuel = σ
+  | 0 => rfl
+  | fuel + 1 => by
+      simp [accountStorageStatefulWordsForwardFrom]
+      rw [sstoreAccountMap_absent_same (owner := owner) (τ := σ)
+        (slot := slotAt state) (val := wordAt state) hmissing]
+      exact accountStorageStatefulWordsForwardFrom_absent_same
+        (owner := owner) (σ := σ) (slotAt := slotAt) (wordAt := wordAt)
+        (next := next) (state := next state) hmissing fuel
+
+theorem accountMapEquiv_accountStorageStatefulWordsForwardFrom
+    {α : Type} {owner : AccountAddress} {σ τ : AccountMap}
+    {slotAt wordAt : α → UInt256} {next : α → α} {state : α} :
+    ∀ fuel, accountMapEquiv σ τ →
+      accountMapEquiv
+        (accountStorageStatefulWordsForwardFrom α owner σ slotAt wordAt next state fuel)
+        (accountStorageStatefulWordsForwardFrom α owner τ slotAt wordAt next state fuel)
+  | 0, hAccounts => hAccounts
+  | fuel + 1, hAccounts => by
+      simp [accountStorageStatefulWordsForwardFrom]
+      exact accountMapEquiv_accountStorageStatefulWordsForwardFrom fuel
+        (accountMapEquiv_sstoreAccountMap owner (slotAt state) (wordAt state) hAccounts)
+
+theorem accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom
+    {α : Type} {owner : AccountAddress} {σ τ : AccountMap}
+    {slotAt wordAt : α → UInt256} {next : α → α} {state : α}
+    {slot val : UInt256} {fuel : Nat}
+    (hAccounts : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (accountStorageStatefulWordsForwardFrom α owner σ slotAt wordAt next state fuel)
+        slot val)
+      (sstoreAccountMap owner
+        (accountStorageStatefulWordsForwardFrom α owner τ slotAt wordAt next state fuel)
+        slot val) := by
+  exact accountMapEquiv_sstoreAccountMap owner slot val
+    (accountMapEquiv_accountStorageStatefulWordsForwardFrom fuel hAccounts)
+
+theorem accountMapEquiv_sstore_two_accountStorageStatefulWordsForwardFrom
+    {α : Type} {owner : AccountAddress} {σ τ : AccountMap}
+    {slotAt wordAt : α → UInt256} {next : α → α} {state : α}
+    {slot₁ val₁ slot₂ val₂ : UInt256} {fuel : Nat}
+    (hAccounts : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (sstoreAccountMap owner
+          (accountStorageStatefulWordsForwardFrom α owner σ slotAt wordAt next state fuel)
+          slot₁ val₁)
+        slot₂ val₂)
+      (sstoreAccountMap owner
+        (sstoreAccountMap owner
+          (accountStorageStatefulWordsForwardFrom α owner τ slotAt wordAt next state fuel)
+          slot₁ val₁)
+        slot₂ val₂) := by
+  exact accountMapEquiv_sstoreAccountMap owner slot₂ val₂
+    (accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom
+      (owner := owner) (slot := slot₁) (val := val₁) hAccounts)
+
+theorem accountMapEquiv_accountStorageWordsForwardFrom_stateful
+    {α : Type} (owner : AccountAddress) (σ : AccountMap)
+    (slotAt₁ wordAt₁ : Nat → UInt256) (slotAt₂ wordAt₂ : α → UInt256)
+    (next : α → α) :
+    ∀ (idx : Nat) (state : α) (fuel : Nat),
+      (∀ i, i < fuel →
+        slotAt₁ (idx + i) = slotAt₂ (accountStorageStatefulLoopState next state i)) →
+      (∀ i, i < fuel →
+        wordAt₁ (idx + i) = wordAt₂ (accountStorageStatefulLoopState next state i)) →
+      accountMapEquiv
+        (accountStorageWordsForwardFrom owner σ slotAt₁ wordAt₁ idx fuel)
+        (accountStorageStatefulWordsForwardFrom α owner σ slotAt₂ wordAt₂ next state fuel)
+  | idx, state, 0, _hslot, _hword => accountMapEquiv_refl σ
+  | idx, state, fuel + 1, hslot, hword => by
+      simp [accountStorageWordsForwardFrom, accountStorageStatefulWordsForwardFrom]
+      have hslot0 : slotAt₁ idx = slotAt₂ state := by
+        simpa [accountStorageStatefulLoopState] using hslot 0 (Nat.zero_lt_succ fuel)
+      have hword0 : wordAt₁ idx = wordAt₂ state := by
+        simpa [accountStorageStatefulLoopState] using hword 0 (Nat.zero_lt_succ fuel)
+      rw [hslot0, hword0]
+      apply accountMapEquiv_accountStorageWordsForwardFrom_stateful
+      · intro i hi
+        have h := hslot (i + 1) (Nat.succ_lt_succ hi)
+        have hidx : idx + (i + 1) = idx + 1 + i := by omega
+        simpa [hidx, accountStorageStatefulLoopState] using h
+      · intro i hi
+        have h := hword (i + 1) (Nat.succ_lt_succ hi)
+        have hidx : idx + (i + 1) = idx + 1 + i := by omega
+        simpa [hidx, accountStorageStatefulLoopState] using h
 
 theorem writeSolidityBytesDataWordsFrom_executionEnv
     (evm : EVM.State) (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat) :
@@ -1428,6 +2047,93 @@ theorem writeSolidityBytesDataWordsFrom_accountMap
       simp [writeSolidityBytesDataWordsFrom, solidityDataWordsForwardFrom,
         storageStore_accountMap, storageStore_executionEnv, ih]
 
+theorem storageStore_writeSolidityBytesDataWordsFrom_accountMap
+    (evm : EVM.State) (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom evm baseSlot bytes idx fuel)
+        (writeSolidityBytesDataWordsFrom evm baseSlot bytes idx fuel).executionEnv.codeOwner
+        headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner evm.accountMap
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  simp [writeSolidityBytesDataWordsFrom_accountMap,
+    writeSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap]
+
+theorem storageStore_writeSolidityBytesDataWordsFrom_after_storageStore_accountMap
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+          baseSlot bytes idx fuel)
+        evm.executionEnv.codeOwner headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner
+          (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  simp [writeSolidityBytesDataWordsFrom_accountMap,
+    storageStore_accountMap, storageStore_executionEnv]
+
+theorem accountMap_after_lengthStore_writeDataWords_storeHeader
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+          baseSlot bytes idx fuel)
+        evm.executionEnv.codeOwner headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner
+          (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  exact storageStore_writeSolidityBytesDataWordsFrom_after_storageStore_accountMap
+    evm lenSlot lenVal baseSlot bytes idx fuel headerSlot header
+
+theorem solidityBytesHeaderWordAfterDataSstore_eq_if
+    (σ : AccountMap) (owner : AccountAddress) (baseSlot : UInt256)
+    (wordIndex : Nat) (val : UInt256) :
+    (((sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot wordIndex) val).find? owner).option
+        (default : UInt256) (fun acc => acc.storage.findD baseSlot (default : UInt256))) =
+      if baseSlot = solidityBytesDataSlot baseSlot wordIndex then
+        ((σ.find? owner).option (default : UInt256) (fun _ => val))
+      else
+        ((σ.find? owner).option (default : UInt256)
+          (fun acc => acc.storage.findD baseSlot (default : UInt256))) := by
+  exact sstoreAccountMap_storage_findD_eq_if σ owner baseSlot
+    (solidityBytesDataSlot baseSlot wordIndex) val
+
+theorem solidityBytesHeaderWordAfterDataSstore_eq_if_of_before
+    {σ : AccountMap} {owner : AccountAddress} {baseSlot val word : UInt256}
+    {wordIndex : Nat}
+    (hword :
+      ((σ.find? owner).option (default : UInt256)
+        (fun acc => acc.storage.findD baseSlot (default : UInt256))) = word) :
+    (((sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot wordIndex) val).find? owner).option
+        (default : UInt256) (fun acc => acc.storage.findD baseSlot (default : UInt256))) =
+      if baseSlot = solidityBytesDataSlot baseSlot wordIndex then
+        ((σ.find? owner).option (default : UInt256) (fun _ => val))
+      else
+        word := by
+  exact sstoreAccountMap_storage_findD_eq_if_of_before hword
+
+theorem solidityBytesHeaderWordAfterDataSstore_eq_of_before_of_ne
+    {σ : AccountMap} {owner : AccountAddress} {baseSlot val word : UInt256}
+    {wordIndex : Nat}
+    (hne : baseSlot ≠ solidityBytesDataSlot baseSlot wordIndex)
+    (hword :
+      ((σ.find? owner).option (default : UInt256)
+        (fun acc => acc.storage.findD baseSlot (default : UInt256))) = word) :
+    (((sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot wordIndex) val).find? owner).option
+        (default : UInt256) (fun acc => acc.storage.findD baseSlot (default : UInt256))) =
+      word := by
+  exact sstoreAccountMap_storage_findD_eq_of_before_of_ne hne hword
+
 theorem solidityDataWordsForwardFrom_append
     (owner : AccountAddress) (τ : AccountMap) (baseSlot : UInt256)
     (bytes : ByteArray) :
@@ -1444,6 +2150,81 @@ theorem solidityDataWordsForwardFrom_append
           (uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)))
         baseSlot bytes (idx + 1) fuel tail
       simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih
+
+theorem solidityDataWordsForwardFrom_succ_last
+    (owner : AccountAddress) (τ : AccountMap) (baseSlot : UInt256)
+    (bytes : ByteArray) (idx fuel : Nat) :
+    solidityDataWordsForwardFrom owner τ baseSlot bytes idx (fuel + 1) =
+      sstoreAccountMap owner
+        (solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel)
+        (solidityBytesDataSlot baseSlot (idx + fuel))
+        (uInt256OfByteArray (bytes.readWithPadding ((idx + fuel) * 32) 32)) := by
+  have happ := solidityDataWordsForwardFrom_append owner τ baseSlot bytes idx fuel 1
+  rw [happ]
+  simp [solidityDataWordsForwardFrom]
+
+theorem accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last
+    {owner : AccountAddress} {σ τ : AccountMap} {baseSlot slot word : UInt256}
+    {bytes : ByteArray} {idx fuel : Nat}
+    (hAccounts :
+      accountMapEquiv σ (solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel))
+    (hslot : slot = solidityBytesDataSlot baseSlot (idx + fuel))
+    (hword : word = uInt256OfByteArray (bytes.readWithPadding ((idx + fuel) * 32) 32)) :
+    accountMapEquiv
+      (sstoreAccountMap owner σ slot word)
+      (solidityDataWordsForwardFrom owner τ baseSlot bytes idx (fuel + 1)) := by
+  rw [solidityDataWordsForwardFrom_succ_last]
+  simpa [hslot, hword] using accountMapEquiv_sstoreAccountMap owner slot word hAccounts
+
+theorem accountMapEquiv_sstore_header_after_solidityDataWordsForwardFrom
+    {owner : AccountAddress} {σ τ : AccountMap}
+    {baseSlot headerSlot header : UInt256} {bytes : ByteArray} {idx fuel : Nat}
+    (hAccounts :
+      accountMapEquiv σ (solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel)) :
+    accountMapEquiv
+      (sstoreAccountMap owner σ headerSlot header)
+      (sstoreAccountMap owner
+        (solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel)
+        headerSlot header) := by
+  exact accountMapEquiv_sstoreAccountMap owner headerSlot header hAccounts
+
+theorem accountMapEquiv_sstore_header_after_solidityDataWordsForwardFrom_succ_last
+    {owner : AccountAddress} {σ τ : AccountMap}
+    {baseSlot slot word headerSlot header : UInt256} {bytes : ByteArray} {idx fuel : Nat}
+    (hAccounts :
+      accountMapEquiv σ (solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel))
+    (hslot : slot = solidityBytesDataSlot baseSlot (idx + fuel))
+    (hword : word = uInt256OfByteArray (bytes.readWithPadding ((idx + fuel) * 32) 32)) :
+    accountMapEquiv
+      (sstoreAccountMap owner (sstoreAccountMap owner σ slot word) headerSlot header)
+      (sstoreAccountMap owner
+        (solidityDataWordsForwardFrom owner τ baseSlot bytes idx (fuel + 1))
+        headerSlot header) := by
+  exact accountMapEquiv_sstoreAccountMap owner headerSlot header
+    (accountMapEquiv_sstore_solidityDataWordsForwardFrom_succ_last hAccounts hslot hword)
+
+theorem solidityBytesDataWordCount_mono {a b : Nat} (h : a ≤ b) :
+    solidityBytesDataWordCount a ≤ solidityBytesDataWordCount b := by
+  unfold solidityBytesDataWordCount
+  exact Nat.div_le_div_right (Nat.add_le_add_right h 31)
+
+theorem solidityBytesDataWordCount_sub_eq_zero_of_le {a b : Nat} (h : a ≤ b) :
+    solidityBytesDataWordCount a - solidityBytesDataWordCount b = 0 := by
+  exact Nat.sub_eq_zero_of_le (solidityBytesDataWordCount_mono h)
+
+theorem solidityBytesDataWordCount_eq_div_of_mod_zero {n : Nat} (hmod : n % 32 = 0) :
+    solidityBytesDataWordCount n = n / 32 := by
+  unfold solidityBytesDataWordCount
+  have hdiv := Nat.div_add_mod n 32
+  omega
+
+theorem solidityBytesDataWordCount_eq_div_succ_of_mod_ne {n : Nat} (hmod : n % 32 ≠ 0) :
+    solidityBytesDataWordCount n = n / 32 + 1 := by
+  unfold solidityBytesDataWordCount
+  have hdiv := Nat.div_add_mod n 32
+  have hremLt := Nat.mod_lt n (by decide : 0 < 32)
+  have hremPos : 0 < n % 32 := Nat.pos_of_ne_zero hmod
+  omega
 
 theorem accountMapEquiv_solidityDataWordsForwardFrom
     {owner : AccountAddress} {τ σ : AccountMap} {baseSlot : UInt256}
@@ -1463,12 +2244,198 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom
         accountMapEquiv_solidityDataWordsForwardFrom (owner := owner)
           (baseSlot := baseSlot) (bytes := bytes) (idx := idx + 1) fuel hstore
 
+theorem solidityDataWordsForwardFrom_find?_some_exists_of_find_some
+    {σ : AccountMap} {owner : AccountAddress} {acc : Account}
+    {baseSlot : UInt256} {bytes : ByteArray} {idx : Nat}
+    (hacc : σ.find? owner = some acc) :
+    ∀ fuel, ∃ acc',
+      (solidityDataWordsForwardFrom owner σ baseSlot bytes idx fuel).find? owner = some acc'
+  | 0 => ⟨acc, by simpa [solidityDataWordsForwardFrom] using hacc⟩
+  | fuel + 1 => by
+      obtain ⟨acc', hacc'⟩ :=
+        sstoreAccountMap_find?_some_exists_of_find_some
+          (σ := σ) (a := owner) (acc := acc) (slot := solidityBytesDataSlot baseSlot idx)
+          (val := uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)) hacc
+      exact solidityDataWordsForwardFrom_find?_some_exists_of_find_some
+        (σ := sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot idx)
+          (uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)))
+        (owner := owner) (acc := acc') (baseSlot := baseSlot) (bytes := bytes)
+        (idx := idx + 1) hacc' fuel
+
 def clearDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
     (base idx : UInt256) : Nat → AccountMap
   | 0 => τ
   | n + 1 =>
       clearDataWordsForwardFrom owner
         (sstoreAccountMap owner τ (base + idx) ⟨0⟩) base ((⟨1⟩ : UInt256) + idx) n
+
+def uint256SuccFrom (idx : UInt256) : Nat → UInt256
+  | 0 => idx
+  | n + 1 => (⟨1⟩ : UInt256) + uint256SuccFrom idx n
+
+theorem uint256SuccFrom_one_add (idx : UInt256) :
+    ∀ i, uint256SuccFrom ((⟨1⟩ : UInt256) + idx) i = uint256SuccFrom idx (i + 1)
+  | 0 => rfl
+  | i + 1 => by
+      simp [uint256SuccFrom, uint256SuccFrom_one_add idx i]
+
+theorem uint256SuccFrom_add_ofNat (base : UInt256) :
+    ∀ i j, uint256SuccFrom (base + UInt256.ofNat i) j = base + UInt256.ofNat (i + j)
+  | i, 0 => by simp [uint256SuccFrom]
+  | i, j + 1 => by
+      rw [uint256SuccFrom, uint256SuccFrom_add_ofNat base i j]
+      rw [u256_add_comm (⟨1⟩ : UInt256) (base + UInt256.ofNat (i + j))]
+      rw [u256_add_assoc base (UInt256.ofNat (i + j)) (⟨1⟩ : UInt256)]
+      rw [u256_add_comm (UInt256.ofNat (i + j)) (⟨1⟩ : UInt256)]
+      rw [u256_one_add_ofNat]
+      congr 1
+
+def accountStorageSuccessiveWordsForwardFrom
+    (α : Type) (owner : AccountAddress) (σ : AccountMap)
+    (slot : UInt256) (state : α) (wordAt : α → Nat → UInt256)
+    (next : α → α) : Nat → AccountMap
+  | 0 => σ
+  | fuel + 1 =>
+      accountStorageSuccessiveWordsForwardFrom α owner
+        (sstoreAccountMap owner σ slot (wordAt state 0))
+        ((⟨1⟩ : UInt256) + slot) (next state) wordAt next fuel
+
+theorem accountStorageWordsForwardFrom_ext
+    (owner : AccountAddress) (σ : AccountMap)
+    (slotAt₁ wordAt₁ slotAt₂ wordAt₂ : Nat → UInt256) :
+    ∀ (idx₁ idx₂ fuel : Nat),
+      (∀ i, i < fuel → slotAt₁ (idx₁ + i) = slotAt₂ (idx₂ + i)) →
+      (∀ i, i < fuel → wordAt₁ (idx₁ + i) = wordAt₂ (idx₂ + i)) →
+      accountStorageWordsForwardFrom owner σ slotAt₁ wordAt₁ idx₁ fuel =
+        accountStorageWordsForwardFrom owner σ slotAt₂ wordAt₂ idx₂ fuel
+  | idx₁, idx₂, 0, _, _ => rfl
+  | idx₁, idx₂, fuel + 1, hslot, hword => by
+      simp [accountStorageWordsForwardFrom]
+      have hslot0 : slotAt₁ idx₁ = slotAt₂ idx₂ := by
+        simpa using hslot 0 (Nat.zero_lt_succ fuel)
+      have hword0 : wordAt₁ idx₁ = wordAt₂ idx₂ := by
+        simpa using hword 0 (Nat.zero_lt_succ fuel)
+      rw [hslot0, hword0]
+      apply accountStorageWordsForwardFrom_ext
+      · intro i hi
+        have h := hslot (i + 1) (Nat.succ_lt_succ hi)
+        have hidx₁ : idx₁ + (i + 1) = idx₁ + 1 + i := by omega
+        have hidx₂ : idx₂ + (i + 1) = idx₂ + 1 + i := by omega
+        simpa [hidx₁, hidx₂] using h
+      · intro i hi
+        have h := hword (i + 1) (Nat.succ_lt_succ hi)
+        have hidx₁ : idx₁ + (i + 1) = idx₁ + 1 + i := by omega
+        have hidx₂ : idx₂ + (i + 1) = idx₂ + 1 + i := by omega
+        simpa [hidx₁, hidx₂] using h
+
+theorem accountStorageSuccessiveWordsForwardFrom_eq_accountStorageWordsForwardFrom
+    {α : Type} (owner : AccountAddress) (σ : AccountMap)
+    (slot : UInt256) (state : α) (wordAt : α → Nat → UInt256) (next : α → α)
+    (hwordSucc : ∀ state i, wordAt (next state) i = wordAt state (i + 1)) :
+    ∀ fuel,
+      accountStorageSuccessiveWordsForwardFrom α owner σ slot state wordAt next fuel =
+        accountStorageWordsForwardFrom owner σ
+          (fun i => uint256SuccFrom slot i) (fun i => wordAt state i) 0 fuel
+  | 0 => rfl
+  | fuel + 1 => by
+      simp [accountStorageSuccessiveWordsForwardFrom, accountStorageWordsForwardFrom,
+        uint256SuccFrom]
+      rw [accountStorageSuccessiveWordsForwardFrom_eq_accountStorageWordsForwardFrom
+        owner
+        (sstoreAccountMap owner σ slot (wordAt state 0))
+        ((⟨1⟩ : UInt256) + slot) (next state) wordAt next hwordSucc fuel]
+      apply accountStorageWordsForwardFrom_ext
+      · intro i hi
+        have hnat : i + 1 = 1 + i := by omega
+        simp [uint256SuccFrom_one_add, hnat]
+      · intro i hi
+        simpa [Nat.add_comm] using hwordSucc state i
+
+theorem solidityDataWordsForwardFrom_eq_accountStorageWordsForwardFrom
+    (owner : AccountAddress) (σ : AccountMap) (baseSlot : UInt256) (bytes : ByteArray) :
+    ∀ idx fuel,
+      solidityDataWordsForwardFrom owner σ baseSlot bytes idx fuel =
+        accountStorageWordsForwardFrom owner σ
+          (fun i => solidityBytesDataSlot baseSlot i) (fun i => solidityDataWordAt bytes i)
+          idx fuel
+  | idx, 0 => rfl
+  | idx, fuel + 1 => by
+      simp [solidityDataWordsForwardFrom, accountStorageWordsForwardFrom, solidityDataWordAt]
+      exact solidityDataWordsForwardFrom_eq_accountStorageWordsForwardFrom owner
+        (sstoreAccountMap owner σ (solidityBytesDataSlot baseSlot idx)
+          (uInt256OfByteArray (bytes.readWithPadding (idx * 32) 32)))
+        baseSlot bytes (idx + 1) fuel
+
+theorem accountMapEquiv_solidityDataWordsForwardFrom_accountStorageWordsForwardFrom
+    (owner : AccountAddress) (σ : AccountMap) (baseSlot : UInt256) (bytes : ByteArray)
+    (slotAt wordAt : Nat → UInt256) :
+    ∀ (idx₁ idx₂ fuel : Nat),
+      (∀ i, i < fuel → solidityBytesDataSlot baseSlot (idx₁ + i) = slotAt (idx₂ + i)) →
+      (∀ i, i < fuel → solidityDataWordAt bytes (idx₁ + i) = wordAt (idx₂ + i)) →
+      accountMapEquiv
+        (solidityDataWordsForwardFrom owner σ baseSlot bytes idx₁ fuel)
+        (accountStorageWordsForwardFrom owner σ slotAt wordAt idx₂ fuel)
+  | idx₁, idx₂, fuel, hslot, hword => by
+      rw [solidityDataWordsForwardFrom_eq_accountStorageWordsForwardFrom]
+      have hEq := accountStorageWordsForwardFrom_ext owner σ
+        (fun i => solidityBytesDataSlot baseSlot i) (fun i => solidityDataWordAt bytes i)
+        slotAt wordAt idx₁ idx₂ fuel hslot hword
+      rw [hEq]
+      exact accountMapEquiv_refl _
+
+theorem clearDataWordsForwardFrom_eq_accountStorageWordsForwardFrom
+    (owner : AccountAddress) (σ : AccountMap) (base idx : UInt256) :
+    ∀ fuel,
+      clearDataWordsForwardFrom owner σ base idx fuel =
+        accountStorageWordsForwardFrom owner σ
+          (fun i => base + uint256SuccFrom idx i) (fun _ => (⟨0⟩ : UInt256)) 0 fuel
+  | 0 => rfl
+  | fuel + 1 => by
+      simp [clearDataWordsForwardFrom, accountStorageWordsForwardFrom, uint256SuccFrom]
+      rw [clearDataWordsForwardFrom_eq_accountStorageWordsForwardFrom owner
+        (sstoreAccountMap owner σ (base + idx) ⟨0⟩) base ((⟨1⟩ : UInt256) + idx) fuel]
+      apply accountStorageWordsForwardFrom_ext
+      · intro i hi
+        have hnat : i + 1 = 1 + i := by omega
+        simp [uint256SuccFrom_one_add, hnat]
+      · intro i hi
+        rfl
+
+theorem accountStorageWord_clearDataWordsForwardFrom_eq_readback
+    (σ : AccountMap) (owner : AccountAddress) (readSlot base idx : UInt256) (fuel : Nat) :
+    accountStorageWord (clearDataWordsForwardFrom owner σ base idx fuel) owner readSlot =
+      accountStorageWriteLoopReadback (σ.find? owner).isSome
+        (accountStorageWord σ owner readSlot) readSlot
+        (fun i => base + uint256SuccFrom idx i) (fun _ => (⟨0⟩ : UInt256)) 0 fuel := by
+  rw [clearDataWordsForwardFrom_eq_accountStorageWordsForwardFrom]
+  exact accountStorageWord_accountStorageWordsForwardFrom_eq_readback σ owner readSlot
+    (fun i => base + uint256SuccFrom idx i) (fun _ => (⟨0⟩ : UInt256)) 0 fuel
+
+theorem accountStorageWord_clearDataWordsForwardFrom_eq_of_ne
+    (σ : AccountMap) (owner : AccountAddress) (readSlot base idx : UInt256) (fuel : Nat)
+    (hne : ∀ i, i < fuel → readSlot ≠ base + uint256SuccFrom idx i) :
+    accountStorageWord (clearDataWordsForwardFrom owner σ base idx fuel) owner readSlot =
+      accountStorageWord σ owner readSlot := by
+  rw [accountStorageWord_clearDataWordsForwardFrom_eq_readback]
+  exact accountStorageWriteLoopReadback_eq_current_of_ne
+    (σ.find? owner).isSome (accountStorageWord σ owner readSlot) readSlot
+    (fun i => base + uint256SuccFrom idx i) (fun _ => (⟨0⟩ : UInt256)) 0 fuel
+    (by simpa using hne)
+
+theorem clearDataWordsForwardFrom_find?_some_exists_of_find_some
+    {σ : AccountMap} {owner : AccountAddress} {acc : Account}
+    {base idx : UInt256}
+    (hacc : σ.find? owner = some acc) :
+    ∀ fuel, ∃ acc',
+      (clearDataWordsForwardFrom owner σ base idx fuel).find? owner = some acc'
+  | 0 => ⟨acc, by simpa [clearDataWordsForwardFrom] using hacc⟩
+  | fuel + 1 => by
+      obtain ⟨acc', hacc'⟩ :=
+        sstoreAccountMap_find?_some_exists_of_find_some
+          (σ := σ) (a := owner) (acc := acc) (slot := base + idx) (val := ⟨0⟩) hacc
+      exact clearDataWordsForwardFrom_find?_some_exists_of_find_some
+        (σ := sstoreAccountMap owner σ (base + idx) ⟨0⟩) (owner := owner)
+        (acc := acc') (base := base) (idx := (⟨1⟩ : UInt256) + idx) hacc' fuel
 
 theorem clearSolidityBytesDataWordsFrom_executionEnv
     (evm : EVM.State) (baseSlot : UInt256) (idx fuel : Nat) :
@@ -1499,6 +2466,121 @@ theorem clearSolidityBytesDataWordsFrom_accountMap
       simp [clearSolidityBytesDataWordsFrom, clearDataWordsForwardFrom, solidityBytesDataSlot,
         storageStore_accountMap, storageStore_executionEnv, ih, u256_one_add_ofNat]
 
+theorem storageStore_clear_writeSolidityBytesDataWordsFrom_accountMap
+    (evm : EVM.State) (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom evm clearBaseSlot clearIdx clearFuel)
+          baseSlot bytes idx fuel)
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom evm clearBaseSlot clearIdx clearFuel)
+          baseSlot bytes idx fuel).executionEnv.codeOwner
+        headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner
+          (clearDataWordsForwardFrom evm.executionEnv.codeOwner evm.accountMap
+            (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  simp [writeSolidityBytesDataWordsFrom_accountMap,
+    writeSolidityBytesDataWordsFrom_executionEnv,
+    clearSolidityBytesDataWordsFrom_accountMap,
+    clearSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap]
+
+theorem storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_accountMap
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom
+            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+            clearBaseSlot clearIdx clearFuel)
+          baseSlot bytes idx fuel)
+        evm.executionEnv.codeOwner headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner
+          (clearDataWordsForwardFrom evm.executionEnv.codeOwner
+            (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+            (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  simp [writeSolidityBytesDataWordsFrom_accountMap,
+    clearSolidityBytesDataWordsFrom_accountMap,
+    clearSolidityBytesDataWordsFrom_executionEnv,
+    storageStore_accountMap, storageStore_executionEnv]
+
+theorem storageStore_clear_writeSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (baseSlot : UInt256) (bytes : ByteArray) (idx fuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom
+            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+            clearBaseSlot clearIdx clearFuel)
+          baseSlot bytes idx fuel)
+        (writeSolidityBytesDataWordsFrom
+          (clearSolidityBytesDataWordsFrom
+            (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+            clearBaseSlot clearIdx clearFuel)
+          baseSlot bytes idx fuel).executionEnv.codeOwner
+        headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (solidityDataWordsForwardFrom evm.executionEnv.codeOwner
+          (clearDataWordsForwardFrom evm.executionEnv.codeOwner
+            (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+            (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+          baseSlot bytes idx fuel)
+        headerSlot header := by
+  simp [writeSolidityBytesDataWordsFrom_accountMap,
+    writeSolidityBytesDataWordsFrom_executionEnv,
+    clearSolidityBytesDataWordsFrom_accountMap,
+    clearSolidityBytesDataWordsFrom_executionEnv,
+    storageStore_accountMap, storageStore_executionEnv]
+
+theorem storageStore_clearSolidityBytesDataWordsFrom_after_storageStore_accountMap
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (clearSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+          clearBaseSlot clearIdx clearFuel)
+        evm.executionEnv.codeOwner headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (clearDataWordsForwardFrom evm.executionEnv.codeOwner
+          (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+          (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+        headerSlot header := by
+  simp [clearSolidityBytesDataWordsFrom_accountMap,
+    storageStore_accountMap, storageStore_executionEnv]
+
+theorem storageStore_clearSolidityBytesDataWordsFrom_after_storageStore_executionEnv_accountMap
+    (evm : EVM.State) (lenSlot lenVal : UInt256)
+    (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (headerSlot header : UInt256) :
+    (Solm.EVM.storageStore
+        (clearSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+          clearBaseSlot clearIdx clearFuel)
+        (clearSolidityBytesDataWordsFrom
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner lenSlot lenVal)
+          clearBaseSlot clearIdx clearFuel).executionEnv.codeOwner
+        headerSlot header).accountMap =
+      sstoreAccountMap evm.executionEnv.codeOwner
+        (clearDataWordsForwardFrom evm.executionEnv.codeOwner
+          (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap lenSlot lenVal)
+          (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+        headerSlot header := by
+  simp [clearSolidityBytesDataWordsFrom_accountMap,
+    clearSolidityBytesDataWordsFrom_executionEnv,
+    storageStore_accountMap, storageStore_executionEnv]
+
 theorem accountMapEquiv_clearDataWordsForwardFrom {σ τ : AccountMap}
     (owner : AccountAddress) (base idx : UInt256) :
     ∀ fuel, accountMapEquiv σ τ →
@@ -1510,6 +2592,52 @@ theorem accountMapEquiv_clearDataWordsForwardFrom {σ τ : AccountMap}
       simp [clearDataWordsForwardFrom]
       exact accountMapEquiv_clearDataWordsForwardFrom owner base ((⟨1⟩ : UInt256) + idx) n
         (accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts)
+
+theorem accountMapEquiv_storageStore_clearSolidityBytesDataWordsFrom
+    {evm : EVM.State} {σ : AccountMap}
+    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (clearBaseSlot : UInt256) (clearIdx clearFuel : Nat)
+    (headerSlot header : UInt256) :
+    accountMapEquiv
+      (sstoreAccountMap evm.executionEnv.codeOwner
+        (clearDataWordsForwardFrom evm.executionEnv.codeOwner σ
+          (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel)
+        headerSlot header)
+      (Solm.EVM.storageStore
+        (clearSolidityBytesDataWordsFrom evm clearBaseSlot clearIdx clearFuel)
+        evm.executionEnv.codeOwner headerSlot header).accountMap := by
+  simp [clearSolidityBytesDataWordsFrom_accountMap, storageStore_accountMap]
+  exact accountMapEquiv_sstoreAccountMap evm.executionEnv.codeOwner headerSlot header
+    (accountMapEquiv_clearDataWordsForwardFrom evm.executionEnv.codeOwner
+      (solidityBytesDataBaseSlot clearBaseSlot) (UInt256.ofNat clearIdx) clearFuel hAccounts)
+
+theorem accountMapEquiv_clearDataWordsForwardFrom_shift_base_offset
+    {owner : AccountAddress} {σ τ : AccountMap} (base offset idx : UInt256) :
+    ∀ fuel, accountMapEquiv σ τ →
+      accountMapEquiv
+        (clearDataWordsForwardFrom owner σ (base + offset) idx fuel)
+        (clearDataWordsForwardFrom owner τ base (offset + idx) fuel)
+  | 0, hAccounts => by
+      simpa [clearDataWordsForwardFrom] using hAccounts
+  | fuel + 1, hAccounts => by
+      simp [clearDataWordsForwardFrom]
+      have hslot : (base + offset) + idx = base + (offset + idx) := by
+        exact u256_add_assoc base offset idx
+      have hstep := accountMapEquiv_sstoreAccountMap owner
+        (base + (offset + idx)) (⟨0⟩ : UInt256) hAccounts
+      have htail := accountMapEquiv_clearDataWordsForwardFrom_shift_base_offset
+        (owner := owner)
+        (σ := sstoreAccountMap owner σ ((base + offset) + idx) ⟨0⟩)
+        (τ := sstoreAccountMap owner τ (base + (offset + idx)) ⟨0⟩)
+        base offset ((⟨1⟩ : UInt256) + idx) fuel
+        (by simpa [hslot] using hstep)
+      have hidx :
+          offset + ((⟨1⟩ : UInt256) + idx) =
+            (⟨1⟩ : UInt256) + (offset + idx) := by
+        rw [u256_add_comm offset ((⟨1⟩ : UInt256) + idx)]
+        rw [u256_add_assoc]
+        rw [u256_add_comm idx offset]
+      simpa [hidx] using htail
 
 theorem solidityBytesBaseSlotAndLength?_ok_of_layout
     {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -1538,6 +2666,130 @@ theorem solidityBytesBaseSlotAndLength?_revert_of_layout
   unfold solidityBytesBaseSlotAndLength?
   rw [hloc]
   simp [hslot, hload, hdecode]
+
+theorem readStorageBytesLength?_ok_of_layout
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256} {len : Nat}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .ok len) :
+    readStorageBytesLength? cfg evm er = .ok len := by
+  obtain ⟨loc, hloc, hslot⟩ := hbase
+  simp [readStorageBytesLength?, hcfg, solidityStorageLayout, solidityReadBytesLength?,
+    storageNatResultToEval, hloc, hslot, hload, hdecode]
+
+theorem readStorageBytesLength?_revert_of_layout
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .revert) :
+    readStorageBytesLength? cfg evm er = .revert := by
+  obtain ⟨loc, hloc, hslot⟩ := hbase
+  simp [readStorageBytesLength?, hcfg, solidityStorageLayout, solidityReadBytesLength?,
+    storageNatResultToEval, hloc, hslot, hload, hdecode]
+
+theorem readStorageBytesLength?_ok_of_header_load
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256} {len : Nat}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .ok len) :
+    readStorageBytesLength? cfg evm er = .ok len := by
+  exact readStorageBytesLength?_ok_of_layout hcfg hbase hload hdecode
+
+theorem readStorageBytesLength?_revert_of_header_load
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .revert) :
+    readStorageBytesLength? cfg evm er = .revert := by
+  exact readStorageBytesLength?_revert_of_layout hcfg hbase hload hdecode
+
+theorem solidityDecodeBytesLengthHeader_revert_of_readStorageBytesLength_revert
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hlen : readStorageBytesLength? cfg evm er = .revert) :
+    solidityDecodeBytesLengthHeader header = .revert := by
+  obtain ⟨loc, hloc, hslot⟩ := hbase
+  simp [readStorageBytesLength?, hcfg, solidityStorageLayout, solidityReadBytesLength?,
+    storageNatResultToEval, hloc, hslot, hload] at hlen
+  cases hdecode : solidityDecodeBytesLengthHeader header <;> simp [hdecode] at hlen
+  rfl
+
+theorem assignStorageRef_storage_bytes_ok_of_write
+    {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {ref : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : ByteArray}
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, ty))
+    (hwrite : writeStorage? cfg evm er ty (.bytes value) = .ok evm') :
+    assignStorageRef? cfg solm evm .storage ref (.bytes value) = .ok (solm, evm') := by
+  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+
+theorem assignStorageRef_storage_bytes_revert_of_write
+    {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ref : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : ByteArray}
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, ty))
+    (hwrite : writeStorage? cfg evm er ty (.bytes value) = .revert) :
+    assignStorageRef? cfg solm evm .storage ref (.bytes value) = .revert := by
+  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+
+theorem assignStorageRef_storage_scalar_ok_of_resolve_match_store
+    {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {ref : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : Value}
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, ty))
+    (hstore :
+      (match cfg.storage.layout er evm with
+      | some loc => storageLocStore evm loc value
+      | none => none) = some evm')
+    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True) :
+    assignStorageRef? cfg solm evm .storage ref value = .ok (solm, evm') := by
+  rw [assignStorageRef?]
+  rw [hresolve]
+  cases hloc : cfg.storage.layout er evm with
+  | none =>
+      simp [hloc] at hstore
+  | some loc =>
+      have hstoreLoc : storageLocStore evm loc value = some evm' := by
+        simpa [hloc] using hstore
+      cases value <;> simp at hscalar ⊢
+      all_goals simp [hloc, hstoreLoc, EvalResult.ofOption, EvalResult.bind, bind, pure]
+
+theorem assignStorageRef_storage_revert_of_resolve
+    {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ref : StorageRef} {value : Value}
+    (hresolve : resolveStorageRef? cfg solm evm ref = .revert) :
+    assignStorageRef? cfg solm evm .storage ref value = .revert := by
+  rw [assignStorageRef?]
+  rw [hresolve]
+  cases value <;> rfl
+
+theorem evalExpr_storage_scalar_of_resolve_layout
+    {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ref : StorageRef} {er : EvaledStorageRef} {t : ABI.ElemType} {loc : StorageLoc}
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .elem t))
+    (hloc : cfg.storage.layout er evm = some loc) :
+    evalExpr? cfg solm evm (.storage ref) = .ok (storageLocLoad evm loc) := by
+  rw [evalExpr?]
+  rw [hresolve]
+  simp [readStorage?, hloc, EvalResult.bind, bind]
 
 theorem clearSolidityStringShortZero
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -2491,6 +3743,70 @@ theorem evalSolidityBytesLongExists
   refine ⟨copy, ?_, hcopy⟩
   simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
 
+theorem readSolidityBytesRevertOfDecodeRevert
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {evm : EVM.State} {er : EvaledStorageRef} {baseSlot header : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .revert) :
+    readStorage? cfg evm er .bytes = .revert := by
+  have hslot :=
+    solidityBytesBaseSlotAndLength?_revert_of_layout hbase hload hdecode
+  simp [readStorage?, hcfg, solidityStorageLayout, solidityReadValue?,
+    solidityReadBytesValue?, storageValueResultToEval, hslot]
+
+theorem evalSolidityBytesRevertOfDecodeRevert
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
+    {baseSlot header : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .bytes))
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
+    (hdecode : solidityDecodeBytesLengthHeader header = .revert) :
+    evalExpr? cfg solm evm (.storage ref) = .revert := by
+  have hread := readSolidityBytesRevertOfDecodeRevert
+    (cfg := cfg) (layout := layout) (evm := evm) (er := er)
+    (baseSlot := baseSlot) (header := header)
+    hcfg hbase hload hdecode
+  simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
+
+theorem readSolidityBytesEmptyOfZeroHeader
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {evm : EVM.State} {er : EvaledStorageRef} {baseSlot : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
+    readStorage? cfg evm er .bytes = .ok (.bytes ByteArray.empty) := by
+  have hslot :=
+    solidityBytesBaseSlotAndLength?_ok_of_layout hbase hload
+      solidityDecodeBytesLengthHeader_zero
+  simp [readStorage?, hcfg, solidityStorageLayout, solidityReadValue?,
+    solidityReadBytesValue?, storageValueResultToEval, hslot, hload]
+
+theorem evalSolidityBytesEmptyOfZeroHeader
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
+    {baseSlot : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .bytes))
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+        loc.slot = baseSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
+    evalExpr? cfg solm evm (.storage ref) = .ok (.bytes ByteArray.empty) := by
+  have hread := readSolidityBytesEmptyOfZeroHeader
+    (cfg := cfg) (layout := layout) (evm := evm) (er := er)
+    (baseSlot := baseSlot) hcfg hbase hload
+  simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
+
 
 theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountAddress)
     {acc : Account} (hacc : evm.accountMap.find? addr = some acc) (slot val : UInt256) :
@@ -2508,6 +3824,79 @@ theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountA
     exact storage_findD_erase_self acc.storage slot ⟨0⟩
   · simp [hzero]
     exact storage_findD_insert_self acc.storage slot val ⟨0⟩
+
+theorem storageLoad_storageStore_same_zero (evm : EVM.State) (addr : AccountAddress)
+    (slot : UInt256) :
+    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr slot ⟨0⟩) addr slot =
+      (⟨0⟩ : UInt256) := by
+  unfold Solm.EVM.storageLoad Solm.EVM.storageStore State.lookupAccount
+  cases hacc : evm.accountMap.find? addr with
+  | none =>
+      simp [hacc, Option.option]
+  | some acc =>
+      simp only [Option.option]
+      unfold State.setAccount
+      rw [accountMap_find_insert_self]
+      unfold Account.updateStorage Account.lookupStorage
+      simp
+      exact storage_findD_erase_self acc.storage slot ⟨0⟩
+
+theorem storageLoad_storageStore_codeOwner_same_present
+    (evm : EVM.State) {acc : Account}
+    (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    (slot val : UInt256) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val)
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val).executionEnv.codeOwner
+        slot = val := by
+  simpa [storageStore_executionEnv] using
+    storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc slot val
+
+theorem readStorageBytesLength?_ok_of_layout_after_storageStore_present
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256} {len : Nat}
+    {acc : Account}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] }
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot header) =
+        some loc ∧ loc.slot = baseSlot)
+    (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    (hdecode : solidityDecodeBytesLengthHeader header = .ok len) :
+    readStorageBytesLength? cfg
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot header) er =
+      .ok len := by
+  exact readStorageBytesLength?_ok_of_layout
+    (cfg := cfg) (layout := layout) (er := er)
+    (evm := Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot header)
+    (baseSlot := baseSlot) (header := header) (len := len)
+    hcfg hbase
+    (by
+      simpa [storageStore_executionEnv] using
+        storageLoad_storageStore_same_present evm evm.executionEnv.codeOwner hacc
+          baseSlot header)
+    hdecode
+
+theorem readStorageBytesLength?_ok_of_layout_after_storageStore_zero
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {baseSlot : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] }
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot ⟨0⟩) =
+        some loc ∧ loc.slot = baseSlot) :
+    readStorageBytesLength? cfg
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot ⟨0⟩) er =
+      .ok 0 := by
+  exact readStorageBytesLength?_ok_of_layout
+    (cfg := cfg) (layout := layout) (er := er)
+    (evm := Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot ⟨0⟩)
+    (baseSlot := baseSlot) (header := (⟨0⟩ : UInt256)) (len := 0)
+    hcfg hbase
+    (by
+      simpa [storageStore_executionEnv] using
+        storageLoad_storageStore_same_zero evm evm.executionEnv.codeOwner baseSlot)
+    solidityDecodeBytesLengthHeader_zero
 
 theorem storageLoad_storageStore_ne (evm : EVM.State) (addr : AccountAddress)
     {readSlot writeSlot val : UInt256} (hne : readSlot ≠ writeSlot) :
@@ -2556,6 +3945,188 @@ theorem storageLoad_storageStore_eq_if (evm : EVM.State) (addr : AccountAddress)
         · simp [hzero, storage_findD_insert_self]
   · simp [hslot]
     exact storageLoad_storageStore_ne evm addr hslot
+
+theorem storageLoad_storageStore_eq_if_of_before
+    {evm : EVM.State} {addr : AccountAddress} {readSlot writeSlot val word : UInt256}
+    (hload : Solm.EVM.storageLoad evm addr readSlot = word) :
+    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
+      if readSlot = writeSlot then
+        (evm.accountMap.find? addr).option (default : UInt256) (fun _ => val)
+      else
+        word := by
+  rw [storageLoad_storageStore_eq_if, hload]
+
+theorem storageLoad_storageStore_eq_of_before_of_ne
+    {evm : EVM.State} {addr : AccountAddress} {readSlot writeSlot val word : UInt256}
+    (hne : readSlot ≠ writeSlot)
+    (hload : Solm.EVM.storageLoad evm addr readSlot = word) :
+    Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
+      word := by
+  rw [storageLoad_storageStore_eq_if_of_before hload]
+  exact if_neg hne
+
+theorem storageLoad_storageStore_ne_after_storageStore_same_present
+    (evm : EVM.State) (addr : AccountAddress) {acc : Account}
+    (hacc : evm.accountMap.find? addr = some acc)
+    {readSlot writeSlot header tag : UInt256} (hne : readSlot ≠ writeSlot) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (Solm.EVM.storageStore evm addr readSlot header) addr writeSlot tag)
+        addr readSlot = header := by
+  exact storageLoad_storageStore_eq_of_before_of_ne
+    (evm := Solm.EVM.storageStore evm addr readSlot header) (addr := addr)
+    (readSlot := readSlot) (writeSlot := writeSlot) (val := tag) hne
+    (storageLoad_storageStore_same_present evm addr hacc readSlot header)
+
+theorem storageLoad_storageStore_ne_after_storageStore_same_zero
+    (evm : EVM.State) (addr : AccountAddress)
+    {readSlot writeSlot tag : UInt256} (hne : readSlot ≠ writeSlot) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (Solm.EVM.storageStore evm addr readSlot ⟨0⟩) addr writeSlot tag)
+        addr readSlot = (⟨0⟩ : UInt256) := by
+  exact storageLoad_storageStore_eq_of_before_of_ne
+    (evm := Solm.EVM.storageStore evm addr readSlot ⟨0⟩) (addr := addr)
+    (readSlot := readSlot) (writeSlot := writeSlot) (val := tag) hne
+    (storageLoad_storageStore_same_zero evm addr readSlot)
+
+theorem readStorageBytesLength?_ok_of_layout_after_storageStore_ne_present
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {owner : AccountAddress}
+    {baseSlot header tagSlot tag : UInt256} {len : Nat} {acc : Account}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (howner : evm.executionEnv.codeOwner = owner)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] }
+          (Solm.EVM.storageStore
+            (Solm.EVM.storageStore evm owner baseSlot header) owner tagSlot tag) =
+        some loc ∧ loc.slot = baseSlot)
+    (hacc : evm.accountMap.find? owner = some acc)
+    (hne : baseSlot ≠ tagSlot)
+    (hdecode : solidityDecodeBytesLengthHeader header = .ok len) :
+    readStorageBytesLength? cfg
+        (Solm.EVM.storageStore
+          (Solm.EVM.storageStore evm owner baseSlot header) owner tagSlot tag) er =
+      .ok len := by
+  subst owner
+  exact readStorageBytesLength?_ok_of_layout
+    (cfg := cfg) (layout := layout) (er := er)
+    (evm := Solm.EVM.storageStore
+      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot header)
+      evm.executionEnv.codeOwner tagSlot tag)
+    (baseSlot := baseSlot) (header := header) (len := len)
+    hcfg hbase
+    (by
+      simpa [storageStore_executionEnv] using
+        storageLoad_storageStore_ne_after_storageStore_same_present
+          evm evm.executionEnv.codeOwner hacc (readSlot := baseSlot)
+          (writeSlot := tagSlot) (header := header) (tag := tag) hne)
+    hdecode
+
+theorem readStorageBytesLength?_ok_of_layout_after_storageStore_ne_zero
+    {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
+    {er : EvaledStorageRef} {evm : EVM.State} {owner : AccountAddress}
+    {baseSlot tagSlot tag : UInt256}
+    (hcfg : cfg.storage = solidityStorageLayout layout)
+    (howner : evm.executionEnv.codeOwner = owner)
+    (hbase :
+      ∃ loc, layout { er with steps := er.steps ++ [.length] }
+          (Solm.EVM.storageStore
+            (Solm.EVM.storageStore evm owner baseSlot ⟨0⟩) owner tagSlot tag) =
+        some loc ∧ loc.slot = baseSlot)
+    (hne : baseSlot ≠ tagSlot) :
+    readStorageBytesLength? cfg
+        (Solm.EVM.storageStore
+          (Solm.EVM.storageStore evm owner baseSlot ⟨0⟩) owner tagSlot tag) er =
+      .ok 0 := by
+  subst owner
+  exact readStorageBytesLength?_ok_of_layout
+    (cfg := cfg) (layout := layout) (er := er)
+    (evm := Solm.EVM.storageStore
+      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner baseSlot ⟨0⟩)
+      evm.executionEnv.codeOwner tagSlot tag)
+    (baseSlot := baseSlot) (header := (⟨0⟩ : UInt256)) (len := 0)
+    hcfg hbase
+    (by
+      simpa [storageStore_executionEnv] using
+        storageLoad_storageStore_ne_after_storageStore_same_zero
+          evm evm.executionEnv.codeOwner (readSlot := baseSlot)
+          (writeSlot := tagSlot) (tag := tag) hne)
+    solidityDecodeBytesLengthHeader_zero
+
+theorem storageLoad_storageStore_codeOwner_eq_if (evm : EVM.State)
+    (readSlot writeSlot val : UInt256) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner writeSlot val)
+        evm.executionEnv.codeOwner readSlot =
+      if readSlot = writeSlot then
+        (evm.accountMap.find? evm.executionEnv.codeOwner).option (default : UInt256)
+          (fun _ => val)
+      else
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner readSlot := by
+  exact storageLoad_storageStore_eq_if evm evm.executionEnv.codeOwner readSlot writeSlot val
+
+theorem storageLoad_storageStore_codeOwner_eq_if_of_before
+    {evm : EVM.State} {readSlot writeSlot val word : UInt256}
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner readSlot = word) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner writeSlot val)
+        evm.executionEnv.codeOwner readSlot =
+      if readSlot = writeSlot then
+        (evm.accountMap.find? evm.executionEnv.codeOwner).option (default : UInt256)
+          (fun _ => val)
+      else
+        word := by
+  exact storageLoad_storageStore_eq_if_of_before hload
+
+theorem storageLoad_storageStore_codeOwner_eq_of_before_of_ne
+    {evm : EVM.State} {readSlot writeSlot val word : UInt256}
+    (hne : readSlot ≠ writeSlot)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner readSlot = word) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner writeSlot val)
+        evm.executionEnv.codeOwner readSlot =
+      word := by
+  exact storageLoad_storageStore_eq_of_before_of_ne hne hload
+
+theorem storageLoadSolidityBytesHeaderAfterDataStore_codeOwner_eq_if
+    (evm : EVM.State) (baseSlot : UInt256) (wordIndex : Nat) (val : UInt256) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (solidityBytesDataSlot baseSlot wordIndex) val)
+        evm.executionEnv.codeOwner baseSlot =
+      if baseSlot = solidityBytesDataSlot baseSlot wordIndex then
+        (evm.accountMap.find? evm.executionEnv.codeOwner).option (default : UInt256)
+          (fun _ => val)
+      else
+        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot := by
+  exact storageLoad_storageStore_codeOwner_eq_if evm baseSlot
+    (solidityBytesDataSlot baseSlot wordIndex) val
+
+theorem storageLoadSolidityBytesHeaderAfterDataStore_codeOwner_eq_if_of_before
+    {evm : EVM.State} {baseSlot val word : UInt256} {wordIndex : Nat}
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = word) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (solidityBytesDataSlot baseSlot wordIndex) val)
+        evm.executionEnv.codeOwner baseSlot =
+      if baseSlot = solidityBytesDataSlot baseSlot wordIndex then
+        (evm.accountMap.find? evm.executionEnv.codeOwner).option (default : UInt256)
+          (fun _ => val)
+      else
+        word := by
+  exact storageLoad_storageStore_codeOwner_eq_if_of_before hload
+
+theorem storageLoadSolidityBytesHeaderAfterDataStore_codeOwner_eq_of_before_of_ne
+    {evm : EVM.State} {baseSlot val word : UInt256} {wordIndex : Nat}
+    (hne : baseSlot ≠ solidityBytesDataSlot baseSlot wordIndex)
+    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = word) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (solidityBytesDataSlot baseSlot wordIndex) val)
+        evm.executionEnv.codeOwner baseSlot =
+      word := by
+  exact storageLoad_storageStore_codeOwner_eq_of_before_of_ne hne hload
 
 structure EVMStateEquiv (evm₁ evm₂ : EVM.State) : Prop where
   executionEnv : evm₁.executionEnv = evm₂.executionEnv
@@ -2624,6 +4195,22 @@ theorem accountMapEquiv_sstoreAccountMap_two {σ τ : AccountMap}
       (sstoreAccountMap a2 (sstoreAccountMap a1 τ slot1 val1) slot2 val2) := by
   exact accountMapEquiv_sstoreAccountMap a2 slot2 val2
     (accountMapEquiv_sstoreAccountMap a1 slot1 val1 hστ)
+
+theorem accountMapEquiv_sstoreAccountMap_sameOwner {σ τ : AccountMap}
+    (owner : AccountAddress) (slot val : UInt256)
+    (hστ : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner σ slot val)
+      (sstoreAccountMap owner τ slot val) := by
+  exact accountMapEquiv_sstoreAccountMap owner slot val hστ
+
+theorem accountMapEquiv_sstoreAccountMap_sameOwner_two {σ τ : AccountMap}
+    (owner : AccountAddress) (slot1 val1 slot2 val2 : UInt256)
+    (hστ : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner (sstoreAccountMap owner σ slot1 val1) slot2 val2)
+      (sstoreAccountMap owner (sstoreAccountMap owner τ slot1 val1) slot2 val2) := by
+  exact accountMapEquiv_sstoreAccountMap_two owner owner slot1 val1 slot2 val2 hστ
 
 theorem accountMapEquiv_sstoreAccountMap_three {σ τ : AccountMap}
     (a1 a2 a3 : AccountAddress) (slot1 val1 slot2 val2 slot3 val3 : UInt256)
@@ -2780,6 +4367,200 @@ theorem accountMapEquiv_sstoreAccountMap_erase_comm
       (sstoreAccountMap a (sstoreAccountMap a σ slot val) eraseSlot ⟨0⟩) :=
   accountMapEquiv.symm
     (accountMapEquiv_sstoreAccountMap_comm σ a slot val eraseSlot ⟨0⟩ hne)
+
+theorem accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom_comm_ne
+    {α : Type} {owner : AccountAddress} {σ τ : AccountMap}
+    (slot val : UInt256) (slotAt wordAt : α → UInt256) (next : α → α) :
+    ∀ (state : α) (fuel : Nat),
+      (∀ i, i < fuel → slot ≠ slotAt (accountStorageStatefulLoopState next state i)) →
+      accountMapEquiv σ τ →
+      accountMapEquiv
+        (accountStorageStatefulWordsForwardFrom α owner
+          (sstoreAccountMap owner σ slot val) slotAt wordAt next state fuel)
+        (sstoreAccountMap owner
+          (accountStorageStatefulWordsForwardFrom α owner τ slotAt wordAt next state fuel)
+          slot val)
+  | state, 0, _hdisjoint, hAccounts => accountMapEquiv_sstoreAccountMap owner slot val hAccounts
+  | state, fuel + 1, hdisjoint, hAccounts => by
+      simp [accountStorageStatefulWordsForwardFrom]
+      have hhead : slot ≠ slotAt state := by
+        simpa [accountStorageStatefulLoopState] using hdisjoint 0 (Nat.zero_lt_succ fuel)
+      have htail :
+          ∀ i, i < fuel →
+            slot ≠ slotAt (accountStorageStatefulLoopState next (next state) i) := by
+        intro i hi
+        simpa [accountStorageStatefulLoopState] using hdisjoint (i + 1) (Nat.succ_lt_succ hi)
+      have hstep := accountMapEquiv_sstoreAccountMap owner (slotAt state) (wordAt state) hAccounts
+      have hcomm₀ :
+          accountMapEquiv
+            (sstoreAccountMap owner
+              (sstoreAccountMap owner σ slot val) (slotAt state) (wordAt state))
+            (sstoreAccountMap owner
+              (sstoreAccountMap owner τ (slotAt state) (wordAt state)) slot val) := by
+        have hcommLeft :=
+          accountMapEquiv_sstoreAccountMap_comm σ owner slot val (slotAt state) (wordAt state)
+            hhead
+        have hcong := accountMapEquiv_sstoreAccountMap owner slot val hstep
+        exact accountMapEquiv.trans hcommLeft hcong
+      have hcong :=
+        accountMapEquiv_accountStorageStatefulWordsForwardFrom
+          (owner := owner)
+          (slotAt := slotAt) (wordAt := wordAt) (next := next) (state := next state)
+          fuel hcomm₀
+      have htailComm :=
+        accountMapEquiv_sstore_accountStorageStatefulWordsForwardFrom_comm_ne
+          (owner := owner)
+          (σ := sstoreAccountMap owner τ (slotAt state) (wordAt state))
+          (τ := sstoreAccountMap owner τ (slotAt state) (wordAt state))
+          slot val slotAt wordAt next (next state) fuel htail (accountMapEquiv_refl _)
+      exact accountMapEquiv.trans hcong htailComm
+
+theorem accountMapEquiv_sstore_clearDataWordsForwardFrom {σ τ : AccountMap}
+    (owner : AccountAddress) (base idx slot val : UInt256) (fuel : Nat)
+    (hAccounts : accountMapEquiv σ τ) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (clearDataWordsForwardFrom owner σ base idx fuel) slot val)
+      (sstoreAccountMap owner
+        (clearDataWordsForwardFrom owner τ base idx fuel) slot val) := by
+  exact accountMapEquiv_sstoreAccountMap owner slot val
+    (accountMapEquiv_clearDataWordsForwardFrom owner base idx fuel hAccounts)
+
+theorem accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm {σ τ : AccountMap}
+    (owner : AccountAddress) (base idx slot : UInt256) :
+    ∀ fuel, accountMapEquiv σ τ →
+      accountMapEquiv
+        (sstoreAccountMap owner
+          (clearDataWordsForwardFrom owner σ base idx fuel) slot ⟨0⟩)
+        (clearDataWordsForwardFrom owner
+          (sstoreAccountMap owner τ slot ⟨0⟩) base idx fuel)
+  | 0, hAccounts => accountMapEquiv_sstoreAccountMap owner slot ⟨0⟩ hAccounts
+  | n + 1, hAccounts => by
+      simp [clearDataWordsForwardFrom]
+      have hdata := accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts
+      have ih := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
+        owner base ((⟨1⟩ : UInt256) + idx) slot n hdata
+      have hcomm₀ :=
+        accountMapEquiv_sstoreAccountMap_zero_comm τ owner slot (base + idx)
+      have hcomm := accountMapEquiv_clearDataWordsForwardFrom owner base
+        ((⟨1⟩ : UInt256) + idx) n hcomm₀
+      exact accountMapEquiv.trans ih hcomm
+
+theorem accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne {σ τ : AccountMap}
+    (owner : AccountAddress) (base idx slot val : UInt256) :
+    ∀ fuel,
+      (∀ i, i < fuel → slot ≠ base + uint256SuccFrom idx i) →
+      accountMapEquiv σ τ →
+      accountMapEquiv
+        (sstoreAccountMap owner
+          (clearDataWordsForwardFrom owner σ base idx fuel) slot val)
+        (clearDataWordsForwardFrom owner
+          (sstoreAccountMap owner τ slot val) base idx fuel)
+  | 0, _hdisjoint, hAccounts => accountMapEquiv_sstoreAccountMap owner slot val hAccounts
+  | n + 1, hdisjoint, hAccounts => by
+      simp [clearDataWordsForwardFrom]
+      have hdata := accountMapEquiv_sstoreAccountMap owner (base + idx) ⟨0⟩ hAccounts
+      have htail :
+          ∀ i, i < n →
+            slot ≠ base + uint256SuccFrom ((⟨1⟩ : UInt256) + idx) i := by
+        intro i hi
+        have hne := hdisjoint (i + 1) (Nat.succ_lt_succ hi)
+        simpa [uint256SuccFrom_one_add] using hne
+      have ih := accountMapEquiv_sstore_clearDataWordsForwardFrom_comm_ne
+        owner base ((⟨1⟩ : UInt256) + idx) slot val n htail hdata
+      have hcomm₀ :=
+        accountMapEquiv_sstoreAccountMap_erase_comm τ owner slot val (base + idx)
+          (hdisjoint 0 (Nat.zero_lt_succ n))
+      have hcomm := accountMapEquiv_clearDataWordsForwardFrom owner base
+        ((⟨1⟩ : UInt256) + idx) n hcomm₀
+      exact accountMapEquiv.trans ih hcomm
+
+theorem accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_absorb_first
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} (fuel : Nat) :
+    accountMapEquiv
+      (sstoreAccountMap owner
+        (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) (base + idx) ⟨0⟩)
+      (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) := by
+  simp [clearDataWordsForwardFrom]
+  have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
+    owner base ((⟨1⟩ : UInt256) + idx) (base + idx) fuel
+    (accountMapEquiv_refl (sstoreAccountMap owner τ (base + idx) ⟨0⟩))
+  have hself := accountMapEquiv_sstoreAccountMap_self_update
+    τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+  have htailSelf := accountMapEquiv_clearDataWordsForwardFrom owner base
+    ((⟨1⟩ : UInt256) + idx) fuel hself
+  exact accountMapEquiv.trans hcomm (accountMapEquiv.symm htailSelf)
+
+theorem accountMapEquiv_clearDataWordsForwardFrom_succ_last
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
+    ∀ fuel,
+      accountMapEquiv
+        (clearDataWordsForwardFrom owner τ base idx (fuel + 1))
+        (sstoreAccountMap owner
+          (clearDataWordsForwardFrom owner τ base idx fuel)
+          (base + uint256SuccFrom idx fuel) ⟨0⟩)
+  | 0 => by
+      simp [clearDataWordsForwardFrom, uint256SuccFrom, accountMapEquiv_refl]
+  | fuel + 1 => by
+      have ih := accountMapEquiv_clearDataWordsForwardFrom_succ_last
+        (owner := owner)
+        (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+        (base := base) (idx := ((⟨1⟩ : UInt256) + idx)) fuel
+      simpa [clearDataWordsForwardFrom, uint256SuccFrom_one_add, u256_add_assoc] using ih
+
+theorem accountMapEquiv_clearDataWordsForwardFrom_double_prefix
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
+    ∀ oldFuel newFuel : Nat, oldFuel ≤ newFuel →
+      accountMapEquiv
+        (clearDataWordsForwardFrom owner
+          (clearDataWordsForwardFrom owner τ base idx oldFuel) base idx newFuel)
+        (clearDataWordsForwardFrom owner τ base idx newFuel)
+  | 0, newFuel, _hle => by
+      simp [clearDataWordsForwardFrom, accountMapEquiv_refl]
+  | oldFuel + 1, 0, hle => by
+      omega
+  | oldFuel + 1, newFuel + 1, hle => by
+      simp [clearDataWordsForwardFrom]
+      have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
+        owner base ((⟨1⟩ : UInt256) + idx) (base + idx) oldFuel
+        (accountMapEquiv_refl (sstoreAccountMap owner τ (base + idx) ⟨0⟩))
+      have hself := accountMapEquiv_sstoreAccountMap_self_update
+        τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+      have htailSelf := accountMapEquiv_clearDataWordsForwardFrom owner base
+        ((⟨1⟩ : UInt256) + idx) oldFuel hself
+      have hbase := accountMapEquiv.trans hcomm (accountMapEquiv.symm htailSelf)
+      have hcong := accountMapEquiv_clearDataWordsForwardFrom owner base
+        ((⟨1⟩ : UInt256) + idx) newFuel hbase
+      have htail := accountMapEquiv_clearDataWordsForwardFrom_double_prefix
+        (owner := owner) (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+        (base := base) (idx := ((⟨1⟩ : UInt256) + idx))
+        oldFuel newFuel (by omega)
+      exact accountMapEquiv.trans hcong htail
+
+theorem accountMapEquiv_clearDataWordsForwardFrom_split
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
+    ∀ (pref tail : Nat),
+      accountMapEquiv
+        (clearDataWordsForwardFrom owner τ base idx (pref + tail))
+        (clearDataWordsForwardFrom owner
+          (clearDataWordsForwardFrom owner τ base (uint256SuccFrom idx pref) tail)
+          base idx pref)
+  | 0, tail => by
+      simp [clearDataWordsForwardFrom, uint256SuccFrom, accountMapEquiv_refl]
+  | pref + 1, tail => by
+      have hfuel : pref + 1 + tail = pref + tail + 1 := by omega
+      rw [hfuel]
+      simp [clearDataWordsForwardFrom]
+      have ih := accountMapEquiv_clearDataWordsForwardFrom_split
+        (owner := owner) (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+        (base := base) (idx := ((⟨1⟩ : UInt256) + idx)) pref tail
+      have hcomm := accountMapEquiv_sstoreZero_clearDataWordsForwardFrom_comm
+        owner base (uint256SuccFrom ((⟨1⟩ : UInt256) + idx) pref)
+        (base + idx) tail (accountMapEquiv_refl τ)
+      have htail := accountMapEquiv_clearDataWordsForwardFrom owner base
+        ((⟨1⟩ : UInt256) + idx) pref (accountMapEquiv.symm hcomm)
+      exact accountMapEquiv.trans ih (by
+        simpa [uint256SuccFrom_one_add] using htail)
 
 -- LIBRARY CANDIDATE: `Reasoning.Storage`.
 /-- Same-account/same-slot overwrite at the lookup level for `sstoreAccountMap` when the final write

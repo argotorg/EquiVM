@@ -151,9 +151,11 @@ theorem bytesStoreLiteCoreSetNewShortOldShortValidRuntime
   exact setRuntimeOfWriteAccountMapEquiv hcode hwv hret hd hdec hwrite
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     (by
-      simp [evmSolm1, evmSolm0, initState, storageStore_accountMap, hheaderEq]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-        (solidityShortBytesWord (setDecodedValueBytes I)) hAccounts)
+      simpa [evmSolm1, evmSolm0, initState, hheaderEq] using
+        accountMapEquiv_storageStore_initState_codeOwner
+          (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+          (I := I) (g := Sat256.ofUInt256 g) hAccounts ⟨0⟩
+          (solidityShortBytesWord (setDecodedValueBytes I)))
     hretEnc
 
 

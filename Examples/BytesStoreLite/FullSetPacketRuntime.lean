@@ -265,13 +265,15 @@ theorem bytesStoreLiteSetPacketShortNonemptyOldShortAbsentRuntime
   have hlen :
       readStorageBytesLength? bytesStoreLiteConfig evmSolm0
         { base := "packet", steps := [.field "data"] } = .ok 0 := by
-    simp [readStorageBytesLength?, bytesStoreLiteConfig, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, solidityReadBytesLength?, bytesStoreLiteLayout,
-      bytesLikeLengthLoc, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, storageNatResultToEval, hmissingSolm0]
-    change storageNatResultToEval (solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256)) = .ok 0
-    rw [solidityDecodeBytesLengthHeader_zero]
-    rfl
+    have hload :
+        Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨2⟩ = ⟨0⟩ := by
+      rw [Solm.EVM.storageLoad, State.lookupAccount, hmissingSolm0]
+      rfl
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLitePacketDataRef) (evm := evmSolm0) (baseSlot := ⟨2⟩)
+      (header := (⟨0⟩ : UInt256)) (len := 0)
+      (bytesStoreLitePacketDataRef_length_slot evmSolm0) hload
+      solidityDecodeBytesLengthHeader_zero
   have henc :
       returnEquiv (UInt256.toByteArray ⟨0⟩) (some (.int 0))
         setPacketTransition.returnType := by
@@ -365,13 +367,15 @@ theorem bytesStoreLiteSetPacketLongOldShortAbsentRuntimeOfReturn
   have hlen :
       readStorageBytesLength? bytesStoreLiteConfig evmSolm0
         { base := "packet", steps := [.field "data"] } = .ok 0 := by
-    simp [readStorageBytesLength?, bytesStoreLiteConfig, bytesStoreLiteStorageLayout,
-      solidityStorageLayout, solidityReadBytesLength?, bytesStoreLiteLayout,
-      bytesLikeLengthLoc, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, storageNatResultToEval, hmissingSolm0]
-    change storageNatResultToEval (solidityDecodeBytesLengthHeader (⟨0⟩ : UInt256)) = .ok 0
-    rw [solidityDecodeBytesLengthHeader_zero]
-    rfl
+    have hload :
+        Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨2⟩ = ⟨0⟩ := by
+      rw [Solm.EVM.storageLoad, State.lookupAccount, hmissingSolm0]
+      rfl
+    exact bytesStoreLiteReadLengthOfHeaderLoad
+      (er := bytesStoreLitePacketDataRef) (evm := evmSolm0) (baseSlot := ⟨2⟩)
+      (header := (⟨0⟩ : UInt256)) (len := 0)
+      (bytesStoreLitePacketDataRef_length_slot evmSolm0) hload
+      solidityDecodeBytesLengthHeader_zero
   have henc :
       returnEquiv (UInt256.toByteArray ⟨0⟩) (some (.int 0))
         setPacketTransition.returnType := by

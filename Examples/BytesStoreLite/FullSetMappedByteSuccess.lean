@@ -1598,10 +1598,12 @@ theorem bytesStoreLiteSetMappedByteShortSuccessRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteSlot I)
           (bytesStoreLiteSetMappedByteShortStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteSlot I)
-      (bytesStoreLiteSetMappedByteShortStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteSlot I)
+        (bytesStoreLiteSetMappedByteShortStoredWord σ_evm I)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     hpostAccounts
@@ -1705,10 +1707,12 @@ theorem bytesStoreLiteSetMappedByteLongSuccessRuntime_of_post_readback
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
     hpostAccounts
@@ -1808,10 +1812,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongSuccessRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -1822,16 +1828,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongSuccessRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hbody :
       ExecTransitionBody bytesStoreLiteConfig bytesStoreLiteContract evmSolm0
         (bytesStoreLiteSetMappedByteLocals I) setMappedByteTransition.body
@@ -1951,10 +1955,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortSuccessRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -1965,16 +1971,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortSuccessRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hvalid0 :
       UInt256.sub ⟨0⟩ (UInt256.lt lenPost ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hlenPost, hflagPost] using hvalidPost
@@ -2138,10 +2142,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongOobLengthRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -2152,16 +2158,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongOobLengthRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
     (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
@@ -2276,10 +2280,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortOobLengthRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -2290,16 +2296,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortOobLengthRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
     (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
@@ -2402,10 +2406,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongMalformedRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -2416,16 +2422,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnLongMalformedRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
     (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon
@@ -2528,10 +2532,12 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortMalformedRuntime
         (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
           (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
         evmSolm1.accountMap := by
-    simp [evmSolm1, evmSolm0, initState, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (bytesStoreLiteSetMappedByteLongDataSlot I)
-      (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I) hAccounts
+    simpa [evmSolm1, evmSolm0] using
+      bytesStoreLiteAccountMapEquiv_storageStore_initState
+        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+        (I := I) (g := Sat256.ofUInt256 g) hAccounts
+        (bytesStoreLiteSetMappedByteLongDataSlot I)
+        (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)
   have hloadHeaderPost :
       Solm.EVM.storageLoad
           (Solm.EVM.storageStore evmSolm0 evmSolm0.executionEnv.codeOwner
@@ -2542,16 +2548,14 @@ theorem bytesStoreLiteSetMappedByteLongReturnShortMalformedRuntime
         bytesStoreLiteSetMappedByteHeaderWord
           (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
             (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I := by
-    have hword :
-        bytesStoreLiteSetMappedByteHeaderWord
-            (sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
-              (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I)) I =
-          bytesStoreLiteSetMappedByteHeaderWord evmSolm1.accountMap I :=
-      accountMapEquiv_storage_findD hpostAccounts I.codeOwner
-        (bytesStoreLiteSetMappedByteSlot I) ⟨0⟩
-    simpa [evmSolm1, evmSolm0, initState, bytesStoreLiteSetMappedByteHeaderWord,
-      Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount, Account.lookupStorage]
-      using hword.symm
+    have howner : evmSolm1.executionEnv.codeOwner = I.codeOwner := by
+      simp [evmSolm1, evmSolm0, initState, storageStore_executionEnv]
+    simpa [evmSolm1, storageStore_executionEnv] using
+      bytesStoreLiteStorageLoadSetMappedByteHeader_of_accountMapEquiv
+        (evm := evmSolm1)
+        (σ := sstoreAccountMap I.codeOwner σ_evm (bytesStoreLiteSetMappedByteLongDataSlot I)
+          (bytesStoreLiteSetMappedByteLongStoredWord σ_evm I))
+        (I := I) howner hpostAccounts
   have hd := bytesStoreLiteDispatch_setMappedByte (cd := I.calldata)
     (by simpa [selIs] using hsel)
   have hdec := bytesStoreLiteDecode_setMappedByte (I := I) hsz100 hhi hcanon

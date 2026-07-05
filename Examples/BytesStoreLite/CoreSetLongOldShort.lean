@@ -153,8 +153,10 @@ theorem bytesStoreLiteCoreX_setLongValueShortValidPresentResidual
             ⟨0⟩ (setDecodedValueBytes I) 0 dataFuel)
           ⟨0⟩ header := by
     rw [← hdataWrite]
-    simp [header, dataFuel, writeSolidityBytesDataWordsFrom_accountMap,
-      writeSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap, initState]
+    simpa [header, dataFuel, initState] using
+      storageStore_writeSolidityBytesDataWordsFrom_accountMap
+        (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        ⟨0⟩ (setDecodedValueBytes I) 0 dataFuel ⟨0⟩ header
   have hsolmCreated : evmSolm1.createdAccounts = cA := by
     rw [← hdataWrite]
     simp [writeSolidityBytesDataWordsFrom_createdAccounts,
@@ -217,13 +219,13 @@ theorem bytesStoreLiteCoreX_setLongValueShortValidPresentResidual
                 ⟨0⟩ header) := by
           dsimp [evmPostMap]
           simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_longDataWordsForwardFrom
-                (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                (aw := clearCurrentHashAw (setHelperEntryAw len))
-                (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                (fuel := len.toNat / 32) hAccounts)
+            accountMapEquiv_sstore_header_after_longDataWordsForwardFrom
+              (owner := I.codeOwner) (slot := clearCurrentBaseWord)
+              (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
+              (aw := clearCurrentHashAw (setHelperEntryAw len))
+              (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+              (fuel := len.toNat / 32) (headerSlot := ⟨0⟩) (header := header)
+              hAccounts
         have hdataFuelEq : dataFuel = len.toNat / 32 := by
           dsimp [dataFuel]
           rw [hsizeDecoded]
@@ -248,7 +250,8 @@ theorem bytesStoreLiteCoreX_setLongValueShortValidPresentResidual
             native_decide
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
+            accountMapEquiv_sstore_header_after_solidityDataWordsForwardFrom
+              (headerSlot := ⟨0⟩) (header := header)
               (accountMapEquiv.symm hdataBridge)
         simpa [evmEvm1] using accountMapEquiv.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
@@ -342,16 +345,16 @@ theorem bytesStoreLiteCoreX_setLongValueShortValidPresentResidual
                 ⟨0⟩ header) := by
           dsimp [evmPostMap]
           simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_sstoreAccountMap I.codeOwner
-                (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
-                (longDataTailMaskedWord wordTail len)
-                (accountMapEquiv_longDataWordsForwardFrom
-                  (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                  (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                  (aw := clearCurrentHashAw (setHelperEntryAw len))
-                  (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                  (fuel := len.toNat / 32) hAccounts))
+            accountMapEquiv_sstore_tail_header_after_longDataWordsForwardFrom
+              (owner := I.codeOwner) (slot := clearCurrentBaseWord)
+              (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
+              (aw := clearCurrentHashAw (setHelperEntryAw len))
+              (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+              (fuel := len.toNat / 32)
+              (tailSlot := longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
+              (tailWord := longDataTailMaskedWord wordTail len)
+              (headerSlot := ⟨0⟩) (header := header)
+              hAccounts
         have hdataFuelEq : dataFuel = len.toNat / 32 + 1 := by
           dsimp [dataFuel]
           rw [hsizeDecoded]
@@ -380,7 +383,8 @@ theorem bytesStoreLiteCoreX_setLongValueShortValidPresentResidual
             native_decide
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
+            accountMapEquiv_sstore_header_after_solidityDataWordsForwardFrom
+              (headerSlot := ⟨0⟩) (header := header)
               (accountMapEquiv.symm hdataBridge)
         simpa [evmEvm1] using accountMapEquiv.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret

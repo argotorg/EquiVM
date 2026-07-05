@@ -31,6 +31,95 @@ theorem evalCallvalueEq_false {cfg : Config} {solm : Frame} {evm : EVM.State}
     exact h (uint256_toNat_eq_zero (Int.ofNat.inj hh))
   simp only [evalExpr?, EvalResult.bind, bind, pure, envValue, evalBinaryOp?, hval]
 
+theorem evalExpr_var_of_get? {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {value : Value}
+    (hget : solm.locals.get? name = some value) :
+    evalExpr? cfg solm evm (.var name) = .ok value := by
+  have hgetElem : solm.locals[name]? = some value := by
+    simpa [Std.HashMap.get?_eq_getElem?] using hget
+  simp [evalExpr?, EvalResult.ofOption, hgetElem]
+
+theorem evalStorageRef_field {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base field : Ident} :
+    evalStorageRef cfg solm evm { base := base, steps := [.field field] } =
+      .ok { base := base, steps := [.field field] } := by
+  simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, EvalResult.bind, bind, pure]
+
+theorem evalStorageRef_base {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base : Ident} :
+    evalStorageRef cfg solm evm { base := base, steps := [] } =
+      .ok { base := base, steps := [] } := by
+  simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, bind, pure]
+
+theorem evalStorageRef_mindex_var_of_get? {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base name : Ident} {value : Value} {key : KeyValue}
+    (hget : solm.locals.get? name = some value)
+    (hkey : valueToKey? value = some key) :
+    evalStorageRef cfg solm evm { base := base, steps := [.mindex (.var name)] } =
+      .ok { base := base, steps := [.mindex key] } := by
+  have hgetElem : solm.locals[name]? = some value := by
+    simpa [Std.HashMap.get?_eq_getElem?] using hget
+  simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, hgetElem, hkey]
+
+theorem evalStorageRef_aindex_var_of_get?_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base name : Ident} {value : Value} {key : KeyValue}
+    (hget : solm.locals.get? name = some value)
+    (hkey : valueToKey? value = some key)
+    (hbound : arrayIndexInBounds? cfg evm solm.contract.storage base [] key = .ok ()) :
+    evalStorageRef cfg solm evm { base := base, steps := [.aindex (.var name)] } =
+      .ok { base := base, steps := [.aindex key] } := by
+  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, hget, hkey, hbound]
+
+theorem evalStorageRef_aindex_var_of_get?_revert {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base name : Ident} {value : Value} {key : KeyValue}
+    (hget : solm.locals.get? name = some value)
+    (hkey : valueToKey? value = some key)
+    (hbound : arrayIndexInBounds? cfg evm solm.contract.storage base [] key = .revert) :
+    evalStorageRef cfg solm evm { base := base, steps := [.aindex (.var name)] } =
+      .revert := by
+  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, hget, hkey, hbound]
+
+theorem evalStorageRef_step_aindex_var_of_get?_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {base name : Ident} {step : StorageRefStep}
+    {estep : EvaledStorageRefStep} {value : Value} {key : KeyValue}
+    (hstep : evalStorageRefStep cfg solm evm base [] step = .ok estep)
+    (hget : solm.locals.get? name = some value)
+    (hkey : valueToKey? value = some key)
+    (hbound : arrayIndexInBounds? cfg evm solm.contract.storage base [estep] key = .ok ()) :
+    evalStorageRef cfg solm evm { base := base, steps := [step, .aindex (.var name)] } =
+      .ok { base := base, steps := [estep, .aindex key] } := by
+  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, hstep, hget, hkey]
+  rw [show ([] ++ [estep]) = [estep] by rfl]
+  rw [hbound]
+
+theorem evalStorageRef_step_aindex_var_of_get?_revert {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {base name : Ident} {step : StorageRefStep}
+    {estep : EvaledStorageRefStep} {value : Value} {key : KeyValue}
+    (hstep : evalStorageRefStep cfg solm evm base [] step = .ok estep)
+    (hget : solm.locals.get? name = some value)
+    (hkey : valueToKey? value = some key)
+    (hbound : arrayIndexInBounds? cfg evm solm.contract.storage base [estep] key = .revert) :
+    evalStorageRef cfg solm evm { base := base, steps := [step, .aindex (.var name)] } =
+      .revert := by
+  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, hstep, hget, hkey]
+  rw [show ([] ++ [estep]) = [estep] by rfl]
+  rw [hbound]
+
+theorem evalStorageRef_step_revert {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {base : Ident} {step : StorageRefStep} {rest : List StorageRefStep}
+    (hstep : evalStorageRefStep cfg solm evm base [] step = .revert) :
+    evalStorageRef cfg solm evm { base := base, steps := step :: rest } = .revert := by
+  cases rest with
+  | nil =>
+      simp only [evalStorageRef, evalStorageRefSteps, EvalResult.bind, bind, pure, hstep]
+  | cons step' rest' =>
+      simp only [evalStorageRef, evalStorageRefSteps, EvalResult.bind, bind, pure, hstep]
+
 /-- **The non-payable guard reverts the body.**  Any transition whose body opens with
     `require(callvalue == 0)` reverts when the call value is non-zero — independent of the rest of
     the body.  Shared by every contract's `callvalue ≠ 0` case. -/
@@ -266,6 +355,23 @@ theorem resolveStorageRef?_ok {cfg : Config} {solm : Frame} {evm : EVM.State} {s
     resolveStorageRef? cfg solm evm slot = .ok (er, ty) := by
   unfold resolveStorageRef?
   simp only [hbase, her, hty, EvalResult.ofOption, bind, EvalResult.bind, pure]
+
+/-- If a non-local storage reference fails while evaluating its storage path, resolution reverts too. -/
+theorem resolveStorageRef?_revert_of_evalStorageRef_revert
+    {cfg : Config} {solm : Frame} {evm : EVM.State} {slot : StorageRef}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .revert) :
+    resolveStorageRef? cfg solm evm slot = .revert := by
+  unfold resolveStorageRef?
+  simp only [hbase, her]
+
+theorem resolveDynamicArrayRef?_ok_of_resolve
+    {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ref : StorageRef} {er : EvaledStorageRef} {elemTy : StorageType}
+    (hresolve :
+      resolveStorageRef? cfg solm evm ref = .ok (er, .dynamicArray elemTy)) :
+    resolveDynamicArrayRef? cfg solm evm ref = .ok (er, elemTy) := by
+  simp [resolveDynamicArrayRef?, hresolve, EvalResult.bind, bind, pure]
 
 /-- `readStorage?` at a scalar type is exactly the single-slot `storageLocLoad`. -/
 theorem readStorage?_elem {cfg : Config} {evm : EVM.State} {er : EvaledStorageRef}
