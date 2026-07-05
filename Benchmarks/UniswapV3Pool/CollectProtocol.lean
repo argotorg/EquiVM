@@ -10,6 +10,7 @@ theorem uniswapV3PoolCollectProtocolBodyCore {v : PoolImmutables}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsel : (uniswapV3PoolSelBytes 15 == I.calldata.extract 0 4) = true) :
     runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
   sorry

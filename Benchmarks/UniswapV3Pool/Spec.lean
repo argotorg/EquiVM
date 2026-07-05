@@ -155,6 +155,8 @@ def observationsRef (index : Expr) : StorageRef :=
   { base := "observations", steps := [.aindex index] }
 def observationsF (index : Expr) (field : Ident) : StorageRef :=
   { base := "observations", steps := [.aindex index, .field field] }
+def observationsRawF (index : Expr) (field : Ident) : StorageRef :=
+  { base := "observationsRaw", steps := [.mindex index, .field field] }
 def feeGrowthGlobal0X128Ref : StorageRef := { base := "feeGrowthGlobal0X128" }
 def feeGrowthGlobal1X128Ref : StorageRef := { base := "feeGrowthGlobal1X128" }
 def liquidityRef : StorageRef := { base := "liquidity" }
@@ -235,7 +237,8 @@ def storageDecls : List StorageDecl :=
     { name := "ticks", ty := .mapping (.int int24Int) tickInfoStructTy },
     { name := "tickBitmap", ty := .mapping (.int int16Int) uint256St },
     { name := "positions", ty := .mapping (.bytes bytes32Width) positionInfoStructTy },
-    { name := "observations", ty := .array observationStructTy 65535 } ]
+    { name := "observations", ty := .array observationStructTy 65535 },
+    { name := "observationsRaw", ty := .mapping (.int uint256Int) observationStructTy } ]
 
 def structs : List StructDecl :=
   [ slot0StructDecl, protocolFeesStructDecl, tickInfoStructDecl, positionInfoStructDecl,
@@ -320,6 +323,14 @@ def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
   | { base := "observations", steps := [.aindex index, .field "secondsPerLiquidityCumulativeX128"] }, _ =>
       some (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
   | { base := "observations", steps := [.aindex index, .field "initialized"] }, _ =>
+      some (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
+  | { base := "observationsRaw", steps := [.mindex index, .field "blockTimestamp"] }, _ =>
+      some (loc (observationBase index) ⟨0, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int))
+  | { base := "observationsRaw", steps := [.mindex index, .field "tickCumulative"] }, _ =>
+      some (loc (observationBase index) ⟨4, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int))
+  | { base := "observationsRaw", steps := [.mindex index, .field "secondsPerLiquidityCumulativeX128"] }, _ =>
+      some (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
+  | { base := "observationsRaw", steps := [.mindex index, .field "initialized"] }, _ =>
       some (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
   | _, _ => none
 
@@ -421,7 +432,8 @@ def lockSuffix : List Stmt :=
   [ .assign .storage (slot0F "unlocked") (.boolLit true) ]
 
 def onlyFactoryOwner (v : PoolImmutables) : List Stmt :=
-  [ .externalCall (addrLit v.factory) "owner" (.intLit 0) [] "_factoryOwner" (perm := false),
+  [ .require (.binary .gt (.extCodeSize (addrLit v.factory)) (.intLit 0)),
+    .externalCall (addrLit v.factory) "owner" (.intLit 0) [] "_factoryOwner" (perm := false),
     .require (eqE (.env .caller) (.var "_factoryOwner")) ]
 
 def safeTransfer (token recipient amount : Expr) (tag : Ident) : List Stmt :=
@@ -1795,7 +1807,7 @@ def increaseobservationcardinalitynextTransition (v : PoolImmutables) : Transiti
               (.var "observationCardinalityNextOld") ]
           [ .letDecl "i" (some uint16) (.var "observationCardinalityNextOld"),
             .while (ltE (.var "i") (.var "observationCardinalityNextNew"))
-              [ .assign .storage (observationsF (.var "i") "blockTimestamp") (.intLit 1),
+              [ .assign .storage (observationsRawF (.var "i") "blockTimestamp") (.intLit 1),
                 .assign .localVar (varRef "i") (addE (.var "i") (.intLit 1)) ] ],
         .assign .storage (slot0F "observationCardinalityNext")
           (.var "observationCardinalityNextNew") ] ++
@@ -1871,7 +1883,13 @@ def observationsTransition : TransitionDecl :=
   { name := "observations"
     params := [ { name := "arg0", ty := uint256 } ]
     returnType := [uint32, int56, uint160, boolTy]
-    body := nonpayable ++ [ .return [(.storage (observationsF (.var "arg0") "blockTimestamp")), (.storage (observationsF (.var "arg0") "tickCumulative")), (.storage (observationsF (.var "arg0") "secondsPerLiquidityCumulativeX128")), (.storage (observationsF (.var "arg0") "initialized"))] ] }
+    body := nonpayable ++
+      [ .require (ltE (.var "arg0") (.intLit 65535)),
+        .return
+          [ .storage (observationsRawF (.var "arg0") "blockTimestamp"),
+            .storage (observationsRawF (.var "arg0") "tickCumulative"),
+            .storage (observationsRawF (.var "arg0") "secondsPerLiquidityCumulativeX128"),
+            .storage (observationsRawF (.var "arg0") "initialized") ] ] }
 
 def observeTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "observe"
