@@ -49,6 +49,324 @@ theorem selectorFalseOfMatch {I : ExecutionEnv} {want other : ByteArray}
     exact False.elim (hne (by rw [hotherEq, hwantEq]))
   · cases h : other == I.calldata.extract 0 4 <;> simp_all
 
+/-! ## ABI decode helpers not yet in `Reasoning.ABI` -/
+
+-- LIBRARY CANDIDATE: generalizes `Reasoning.Theory.decodeScalarWords_address_address_uint256_ok`
+-- by replacing the third scalar word with a canonical bool.
+theorem decodeScalarWords_address_address_bool_ok {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hlen64 : ((bytes.drop 64).take 32).length = 32)
+    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
+    (hcanon32 : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus)
+    (hbool64 :
+      ABI.bytesToWord ((bytes.drop 64).take 32) = ⟨0⟩ ∨
+        ABI.bytesToWord ((bytes.drop 64).take 32) = ⟨1⟩) :
+    decodeScalarWords? [.elem .address, .elem .address, .elem .bool] bytes 0 =
+      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
+        .address (Ethereum.AccountAddress.ofNat
+          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
+        wordToElem .bool (ABI.bytesToWord ((bytes.drop 64).take 32))] := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
+    (by simpa using hcanon0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_address_ok (start := 32) hlen32 hcanon32]
+  rcases hbool64 with hzero | hone
+  · rw [decodeScalarWord_bool_ok_zero (start := 64) hlen64 hzero]
+    simp [wordToElem, hzero]
+  · rw [decodeScalarWord_bool_ok_one (start := 64) hlen64 hone]
+    simp [wordToElem, hone]
+
+-- LIBRARY CANDIDATE: address,address,bool scalar-list noncanonical first address branch.
+theorem decodeScalarWords_address_address_bool_none_noncanon0 {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
+    decodeScalarWords? [.elem .address, .elem .address, .elem .bool] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using hlen0)
+    (by simpa using hnc0)]
+  simp only [Option.bind, bind]
+
+-- LIBRARY CANDIDATE: address,address,bool scalar-list noncanonical second address branch.
+theorem decodeScalarWords_address_address_bool_none_noncanon1 {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
+    (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
+    decodeScalarWords? [.elem .address, .elem .address, .elem .bool] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
+    (by simpa using hcanon0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_address_none_noncanon (start := 32) hlen32 hnc32]
+
+-- LIBRARY CANDIDATE: address,address,bool scalar-list noncanonical bool branch.
+theorem decodeScalarWords_address_address_bool_none_noncanon2 {bytes : List UInt8}
+    (hlen0 : (bytes.take 32).length = 32)
+    (hlen32 : ((bytes.drop 32).take 32).length = 32)
+    (hlen64 : ((bytes.drop 64).take 32).length = 32)
+    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
+    (hcanon32 : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus)
+    (hnz64 : ABI.bytesToWord ((bytes.drop 64).take 32) ≠ ⟨0⟩)
+    (hno64 : ABI.bytesToWord ((bytes.drop 64).take 32) ≠ ⟨1⟩) :
+    decodeScalarWords? [.elem .address, .elem .address, .elem .bool] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  rw [decodeScalarWord_address_ok (start := 0) (by simpa using hlen0)
+    (by simpa using hcanon0)]
+  simp only [Option.bind, bind]
+  rw [decodeScalarWord_address_ok (start := 32) hlen32 hcanon32]
+  rw [decodeScalarWord_bool_none_noncanon (start := 64) hlen64 hnz64 hno64]
+
+-- LIBRARY CANDIDATE: address,address,bool scalar-list short calldata branch.
+theorem decodeScalarWords_address_address_bool_none_short {bytes : List UInt8}
+    (hshort : bytes.length < 96) :
+    decodeScalarWords? [.elem .address, .elem .address, .elem .bool] bytes 0 = none := by
+  simp only [decodeScalarWords?, Nat.zero_add]
+  by_cases h32 : bytes.length < 32
+  · have htake0n : ¬ (bytes.take 32).length = 32 := by
+      rw [List.length_take]
+      omega
+    rw [decodeScalarWord_address_none_short (start := 0) (by simpa using htake0n)]
+    simp only [Option.bind, bind]
+  · have htake0 : (bytes.take 32).length = 32 := by
+      rw [List.length_take]
+      omega
+    by_cases h64 : bytes.length < 64
+    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]
+        omega
+      by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
+      · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
+          (by simpa using hcanon0)]
+        simp only [Option.bind, bind]
+        rw [decodeScalarWord_address_none_short (start := 32) htake32n]
+      · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
+          (by simpa using hcanon0)]
+        simp only [Option.bind, bind]
+    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]
+        omega
+      have htake64n : ¬ ((bytes.drop 64).take 32).length = 32 := by
+        rw [List.length_take, List.length_drop]
+        omega
+      by_cases hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus
+      · by_cases hcanon32 :
+          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus
+        · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
+            (by simpa using hcanon0)]
+          simp only [Option.bind, bind]
+          rw [decodeScalarWord_address_ok (start := 32) htake32 hcanon32]
+          rw [decodeScalarWord_bool_none_short (start := 64) htake64n]
+        · rw [decodeScalarWord_address_ok (start := 0) (by simpa using htake0)
+            (by simpa using hcanon0)]
+          simp only [Option.bind, bind]
+          rw [decodeScalarWord_address_none_noncanon (start := 32) htake32 hcanon32]
+      · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
+          (by simpa using hcanon0)]
+        simp only [Option.bind, bind]
+
+-- LIBRARY CANDIDATE: ABI calldata decoding for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_ok {cd : ByteArray} {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
+    (hcanon1 : (calldataWord cd 36).toNat < EVM.addressModulus)
+    (hbool : calldataWord cd 68 = ⟨0⟩ ∨ calldataWord cd 68 = ⟨1⟩) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd =
+      some ((((∅ : Solm.Store).insert x
+        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
+        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
+        (wordToElem .bool (calldataWord cd 68))) := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
+    decode_word_at_eq cd 68 (by omega) (by norm_num)
+  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have htake68' : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_address_address_bool_ok (bytes := cd.toList.drop 4) htake4
+    htake36' htake68'
+    (by rw [hword4]; exact hcanon0)
+    (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+        calldataWord cd 36 from by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm,
+          Nat.add_assoc] using hword36]; exact hcanon1)
+    (by
+      rcases hbool with hzero | hone
+      · left
+        rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+          calldataWord cd 68 from by
+            simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
+        exact hzero
+      · right
+        rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+          calldataWord cd 68 from by
+            simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
+        exact hone)]
+  change decodeCalldata.insertValues [x, y, z]
+      [.address (Ethereum.AccountAddress.ofNat
+          (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
+        .address (Ethereum.AccountAddress.ofNat
+          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat),
+        wordToElem .bool (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32))] ∅ =
+    some ((((∅ : Solm.Store).insert x
+      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
+      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
+      (wordToElem .bool (calldataWord cd 68)))
+  simp [decodeCalldata.insertValues]
+  rw [hword4, hword36, hword68]
+
+-- LIBRARY CANDIDATE: ABI calldata noncanonical first address branch for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_none_noncanon0 {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_address_address_bool_none_noncanon0 (bytes := cd.toList.drop 4)
+    htake4 (by rw [hword4]; exact hnc0)]
+
+-- LIBRARY CANDIDATE: ABI calldata noncanonical second address branch for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_none_noncanon1 {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
+    (hnc1 : ¬ (calldataWord cd 36).toNat < EVM.addressModulus) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_address_address_bool_none_noncanon1 (bytes := cd.toList.drop 4)
+    htake4 htake36'
+    (by rw [hword4]; exact hcanon0)
+    (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+        calldataWord cd 36 from by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm,
+          Nat.add_assoc] using hword36]; exact hnc1)]
+
+-- LIBRARY CANDIDATE: ABI calldata noncanonical bool branch for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_none_noncanon2 {cd : ByteArray}
+    {x y z : Solm.Ident}
+    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
+    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
+    (hcanon1 : (calldataWord cd 36).toNat < EVM.addressModulus)
+    (hnz2 : calldataWord cd 68 ≠ ⟨0⟩) (hno2 : calldataWord cd 68 ≠ ⟨1⟩) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
+  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
+    decode_word_at_eq cd 36 (by omega) (by norm_num)
+  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
+    decode_word_at_eq cd 68 (by omega) (by norm_num)
+  have htake36' : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36
+  have htake68' : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
+    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_address_address_bool_none_noncanon2 (bytes := cd.toList.drop 4)
+    htake4 htake36' htake68'
+    (by rw [hword4]; exact hcanon0)
+    (by rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
+        calldataWord cd 36 from by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm,
+          Nat.add_assoc] using hword36]; exact hcanon1)
+    (by
+      rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+        calldataWord cd 68 from by
+          simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
+      exact hnz2)
+    (by
+      rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
+        calldataWord cd 68 from by
+          simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
+      exact hno2)]
+
+-- LIBRARY CANDIDATE: ABI calldata short branch for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_none_short {cd : ByteArray}
+    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  rw [decodeScalarWords_address_address_bool_none_short (bytes := cd.toList.drop 4) (by
+    rw [List.length_drop, htlen]
+    omega)]
+
+-- LIBRARY CANDIDATE: ABI calldata huge branch for `(address,address,bool)`.
+theorem decodeCalldata_address_address_bool_none_huge {cd : ByteArray}
+    {x y z : Solm.Ident} (hbig : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata [x, y, z] [.elem .address, .elem .address, .elem .bool] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [decodeCalldata_scalarWords_eq (names := [x, y, z])
+    (types := [.elem .address, .elem .address, .elem .bool]) (cd := cd) (by decide)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_pos]
+  exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
+
 /-! ## Dispatch order and body PCs -/
 
 /-- Function selectors in bytecode dispatch-arm order. -/
