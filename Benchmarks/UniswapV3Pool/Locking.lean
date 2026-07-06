@@ -147,6 +147,112 @@ theorem storageLocStore_slot0Unlocked_false (evm : EVM.State) :
   simp [fromBytes']
   ring
 
+theorem natLorSlot0UnlockedByte (n byte : Nat) (hbyte : byte < 2 ^ 8) :
+    Nat.lor (n % 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248) (byte * 2 ^ 240) =
+      n % 2 ^ 240 + byte * 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248 := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change ((n % 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248) ||| (byte * 2 ^ 240)).testBit i =
+    (n % 2 ^ 240 + byte * 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248).testBit i
+  rw [Nat.testBit_or]
+  rw [show n % 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248 =
+      2 ^ 248 * (n / 2 ^ 248) + n % 2 ^ 240 by ring]
+  rw [Nat.testBit_two_pow_mul_add (a := n / 2 ^ 248)
+    (b_lt := lt_trans (Nat.mod_lt _ (show 0 < 2 ^ 240 by norm_num))
+      (by norm_num : 2 ^ 240 < 2 ^ 248))]
+  rw [show n % 2 ^ 240 + byte * 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248 =
+      2 ^ 248 * (n / 2 ^ 248) + (2 ^ 240 * byte + n % 2 ^ 240) by ring]
+  have hmid : 2 ^ 240 * byte + n % 2 ^ 240 < 2 ^ 248 := by
+    have hlow : n % 2 ^ 240 ≤ 2 ^ 240 - 1 :=
+      Nat.le_pred_of_lt (Nat.mod_lt _ (show 0 < 2 ^ 240 by norm_num))
+    have hbytele : byte ≤ 2 ^ 8 - 1 := Nat.le_pred_of_lt hbyte
+    have hmax : 2 ^ 240 * (2 ^ 8 - 1) + (2 ^ 240 - 1) < 2 ^ 248 := by
+      norm_num [Nat.pow_add]
+    nlinarith
+  rw [Nat.testBit_two_pow_mul_add (a := n / 2 ^ 248) (b_lt := hmid)]
+  rw [Nat.testBit_two_pow_mul_add (a := byte)
+    (b_lt := Nat.mod_lt _ (show 0 < 2 ^ 240 by norm_num))]
+  rw [show byte * 2 ^ 240 = 2 ^ 240 * byte + 0 by ring]
+  rw [Nat.testBit_two_pow_mul_add (a := byte) (b_lt := show 0 < 2 ^ 240 by norm_num)]
+  by_cases hi240 : i < 240
+  · simp [hi240]
+  · have h240le : 240 ≤ i := Nat.le_of_not_gt hi240
+    have hlowfalse : (n % 2 ^ 240).testBit i = false := by
+      exact Nat.testBit_lt_two_pow
+        (lt_of_lt_of_le (Nat.mod_lt _ (show 0 < 2 ^ 240 by norm_num))
+          (Nat.pow_le_pow_right (by norm_num) h240le))
+    by_cases hi248 : i < 248
+    · simp [hi240, hi248]
+      intro hlowtrue
+      have hlowfalse' :
+          (n % 1766847064778384329583297500742918515827483896875618958121606201292619776).testBit i =
+            false := by
+        simpa using hlowfalse
+      rw [hlowfalse'] at hlowtrue
+      cases hlowtrue
+    · have hbytefalse : byte.testBit (i - 240) = false := by
+        exact Nat.testBit_lt_two_pow
+          (lt_of_lt_of_le hbyte (Nat.pow_le_pow_right (by norm_num) (by omega)))
+      simp [hi240, hi248]
+      intro hbytetrue
+      rw [hbytefalse] at hbytetrue
+      cases hbytetrue
+
+theorem natLorSlot0UnlockedTrueByte (n : Nat) :
+    Nat.lor (n % 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248) (2 ^ 240) =
+      n % 2 ^ 240 + 2 ^ 240 + n / 2 ^ 248 * 2 ^ 248 := by
+  simpa using natLorSlot0UnlockedByte n 1 (by norm_num : 1 < 2 ^ 8)
+
+theorem slot0UnlockedTrueSlotWord_eq_of_accountMapEquiv
+    {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv}
+    (hAccounts : accountMapEquiv σ evm.accountMap) (hEnv : evm.executionEnv = I) :
+    UInt256.lor
+        (UInt256.shiftLeft ⟨1⟩ ⟨240⟩)
+        (UInt256.land slot0UnlockedClearMask (codeOwnerStorageWord I σ ⟨0⟩)) =
+      slot0UnlockedTrueSlotWord evm := by
+  have hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ =
+        codeOwnerStorageWord I σ ⟨0⟩ := by
+    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ (⟨0⟩ : UInt256)
+    simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      codeOwnerStorageWord, hEnv] using hslot.symm
+  have hclearLt :
+      (codeOwnerStorageWord I σ ⟨0⟩).toNat % 2 ^ 240 +
+          (codeOwnerStorageWord I σ ⟨0⟩).toNat / 2 ^ 248 * 2 ^ 248 <
+        UInt256.size := by
+    rw [← natLandClearSlot0UnlockedByte
+      (codeOwnerStorageWord I σ ⟨0⟩).toNat (codeOwnerStorageWord I σ ⟨0⟩).val.isLt]
+    exact lt_of_le_of_lt (nat_land_le_right _ _) (by norm_num [UInt256.size])
+  have htrueLt :
+      (codeOwnerStorageWord I σ ⟨0⟩).toNat % 2 ^ 240 + 2 ^ 240 +
+          (codeOwnerStorageWord I σ ⟨0⟩).toNat / 2 ^ 248 * 2 ^ 248 <
+        UInt256.size := by
+    let w := codeOwnerStorageWord I σ ⟨0⟩
+    have hlow : w.toNat % 2 ^ 240 ≤ 2 ^ 240 - 1 :=
+      Nat.le_pred_of_lt (Nat.mod_lt _ (by norm_num))
+    have hhighLt : w.toNat / 2 ^ 248 < 2 ^ 8 := by
+      apply Nat.div_lt_of_lt_mul
+      rw [show 2 ^ 248 * 2 ^ 8 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+      change w.val.val < UInt256.size
+      exact w.val.isLt
+    have hhigh : w.toNat / 2 ^ 248 ≤ 2 ^ 8 - 1 := Nat.le_pred_of_lt hhighLt
+    have hmax : (2 ^ 240 - 1) + 2 ^ 240 + (2 ^ 8 - 1) * 2 ^ 248 <
+        UInt256.size := by
+      norm_num [UInt256.size, Nat.pow_add]
+    dsimp [w] at hlow hhigh
+    omega
+  apply u256_inj
+  rw [slot0UnlockedTrueSlotWord, hload, u256_lor_toNat, u256_land_toNat]
+  rw [slot0UnlockedClearMask_toNat]
+  rw [nat_land_comm, natLandClearSlot0UnlockedByte]
+  rw [Nat.mod_eq_of_lt hclearLt]
+  rw [show (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨240⟩).toNat = 2 ^ 240 by
+    native_decide]
+  rw [nat_lor_comm, natLorSlot0UnlockedTrueByte]
+  rw [Nat.mod_eq_of_lt htrueLt]
+  exact (ulit_toNat' _ htrueLt).symm
+  exact (codeOwnerStorageWord I σ ⟨0⟩).val.isLt
+
 theorem storageLocStore_slot0Unlocked_true (evm : EVM.State) :
     storageLocStore evm slot0UnlockedLoc (.bool true) =
       some (slot0AfterUnlockState evm) := by

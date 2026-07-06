@@ -210,6 +210,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 
 - **Hard rule:** do not let files grow past 2000 lines. If this
   happens you should split them into smaller files by concern.
+  This is important for build speed. 
+  You can exceptionally create files larger that 2000 lines 
+  ONLY IF ABSOLUTELY NECESSARY AND UNAVOIDABLE.
+
 
 ---
 

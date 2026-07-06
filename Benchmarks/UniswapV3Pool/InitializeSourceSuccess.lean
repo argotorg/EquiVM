@@ -25,7 +25,7 @@ abbrev initializeTimeValue (I : ExecutionEnv) : Value :=
   .int (Int.ofNat (initializeObservationTimestampWord I).toNat)
 
 abbrev initializeTickValue (I : ExecutionEnv) : Value :=
-  .int (Int.ofNat (getTickEstimatedWord I).toNat)
+  wordToElem (.int int24Int) (getTickEstimatedWord I)
 
 abbrev initializeStoreWithTick (I : ExecutionEnv) : Store :=
   (initializeStore I).insert "tick" (initializeTickValue I)
@@ -1299,7 +1299,7 @@ theorem initializeSlot0AfterSqrtPriceX96State_createdAccounts
 theorem storageLocStore_initializeSlot0_tick_isSome
     (evm : EVM.State) (I : ExecutionEnv) :
     (storageLocStore evm initializeSlot0TickLoc (initializeTickValue I)).isSome := by
-  rw [show initializeTickValue I = .int (Int.ofNat (getTickEstimatedWord I).toNat) by rfl]
+  unfold initializeTickValue wordToElem int24Int
   exact storageLocStore_int_value_isSome evm initializeSlot0TickLoc _
 
 noncomputable def initializeSlot0AfterTickState

@@ -1,4 +1,5 @@
-import Benchmarks.UniswapV3Pool.InitializeSourceGetTickPostLog
+import Benchmarks.UniswapV3Pool.InitializeGetTickSqrtRatioSourceBridge
+import Benchmarks.UniswapV3Pool.InitializeSourceStorageEquiv
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.UniswapV3Pool.Immutables
 open Reasoning.Theory Reasoning.Reach Reasoning.Refinement
@@ -439,7 +440,50 @@ theorem uniswapV3PoolInitializeBodyCore {v : PoolImmutables}
                   I (initializeArgWord I) (getTickEstimatedWord I)))
               hpatch hslot0Store _hperm
               (by simp only [List.length_singleton]; omega)
-          sorry
+          have hsqrtRange : getSqrtRatioSourceTickHiAbsTickInt I ≤ 887272 := by
+            exact getSqrtRatioSourceTickHiAbsTickInt_le_maxTick I hloOk hhiOk
+          have hsqrtDen : getSqrtRatioSourceTickHiAfterBit524288Int I ≠ 0 := by
+            exact getSqrtRatioSourceTickHiAfterBit524288Int_ne_zero I
+          have hsqrtRet :
+              getSqrtRatioSourceReturnValueOf (getSqrtRatioSourceTickHiFinalRatioInt I) =
+                getTickSourceSqrtRatioAtTickHiValue I := by
+            exact getSqrtRatioSourceTickHiReturnValue_eq_word I hloOk hhiOk
+          have hcallee :=
+            uniswapV3PoolGetSqrtRatioAtTickSourceTickHiBodyOfReturnEq
+              (v := v)
+              (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (I := I)
+              hsqrtRange hsqrtDen hsqrtRet
+          have hfinalTick : getTickSourceFinalValue I = initializeTickValue I := by
+            exact getTickSourceFinalValue_eq_initializeTickValue I hloOk hhiOk
+          have hbody :=
+            uniswapV3PoolInitializeSourceSuccessBodyOfSqrtRatioAtTickHi
+              (v := v)
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+              (I := I) (g := Sat256.ofUInt256 g)
+              hwv hzeroSolm hloOk hhiOk hcallee hfinalTick
+          have hok :
+              getSqrtRatioAbsTickInRangeWord
+                  (getSqrtRatioAbsTickBranchWord (getTickHiWord I)) ≠ ⟨0⟩ := by
+            exact getSqrtRatioAbsTickInRangeWord_tickHi_ne_zero I hloOk hhiOk
+              (getTickHiWord_eq_source_of_bounds I hloOk hhiOk)
+          have hratioOk :
+              getSqrtRatioAfterAllBitsWord
+                  (getSqrtRatioAbsTickBranchWord (getTickHiWord I))
+                  (getSqrtRatioInitialBranchWord
+                    (getSqrtRatioAbsTickBranchWord (getTickHiWord I))) ≠ ⟨0⟩ := by
+            exact getSqrtRatioAfterAllBitsWord_tickHi_ne_zero I
+          have hrd := hrdSuccessIfSqrtOk hok hratioOk
+          exact hrd.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            (by
+              simp [initializeSourceAfterStorageTailState_createdAccounts, initState])
+            (by
+              exact Benchmarks.UniswapV3Pool.initializeSourceAfterStorageTailState_accountMapEquiv
+                (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+                (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts)
+            (by
+              rw [show initializeTransition.returnType = [] from rfl]
+              exact returnEquiv.fallthrough rfl rfl (by native_decide))
   · have hshort : I.calldata.size < 36 := by omega
     have hdecode := uniswapV3PoolInitializeDecodeShort (v := v) (I := I) hshort
     have hrd := uniswapV3PoolInitializeEvmDecodeShort (v := v) (code := code)

@@ -376,4 +376,49 @@ theorem ticksSignextendFifteen_idempotent (w : UInt256) :
   exact signextend_fifteen_wordOfInt_ticks i (ticksSint128Value_ge w)
     (ticksSint128Value_lt w)
 
+theorem signextend_fifteen_eq_self_of_toNat_lt_twoPow127 {w : UInt256}
+    (hlt : w.toNat < EVM.twoPow 127) :
+    UInt256.signextend ⟨15⟩ w = w := by
+  have hge : -(2 ^ 127 : Int) ≤ Int.ofNat w.toNat := by
+    exact le_trans (by norm_num : -(2 ^ 127 : Int) ≤ 0) (Int.natCast_nonneg _)
+  have hltInt : Int.ofNat w.toNat < (2 ^ 127 : Int) := by
+    exact Int.ofNat_lt.mpr (by simpa [EVM.twoPow] using hlt)
+  rw [← wordOfInt_ofNat_toNat w]
+  exact signextend_fifteen_wordOfInt_ticks (Int.ofNat w.toNat) hge hltInt
+
+theorem signextend_fifteen_eq_self_toNat_lt_twoPow127 {w : UInt256}
+    (h128 : w.toNat < EVM.twoPow 128)
+    (hcanon : UInt256.signextend ⟨15⟩ w = w) :
+    w.toNat < EVM.twoPow 127 := by
+  by_contra hlt
+  have hnotm : ¬ w.toNat % EVM.twoPow 128 < EVM.twoPow 127 := by
+    rw [Nat.mod_eq_of_lt h128]
+    exact hlt
+  have hsign : UInt256.land w (UInt256.ofNat (2 ^ 127)) ≠ ⟨0⟩ :=
+    signextend_fifteen_sign_bit_ne_zero w hnotm
+  have hnorm := signextend_fifteen_norm w
+  rw [hnorm, if_neg hsign] at hcanon
+  have hto := congrArg UInt256.toNat hcanon
+  rw [u256_lor_toNat] at hto
+  rw [show (UInt256.ofNat (UInt256.size - 2 ^ 127)).toNat =
+      UInt256.size - 2 ^ 127 by
+    exact ulit_toNat' _ (by norm_num [UInt256.size])] at hto
+  have hwlt : w.toNat < UInt256.size := by
+    simp [UInt256.toNat]
+  change w.toNat.lor (2 ^ 256 - 2 ^ 127) % UInt256.size = w.toNat at hto
+  rw [nat_lor_high_mask_127 w.toNat hwlt] at hto
+  rw [Nat.mod_eq_of_lt] at hto
+  · norm_num [UInt256.size, EVM.twoPow] at h128 hto
+    omega
+  · have hlow : w.toNat % 2 ^ 127 < 2 ^ 127 :=
+      Nat.mod_lt _ (by norm_num)
+    norm_num [UInt256.size] at hlow ⊢
+    omega
+
+theorem signextend_fifteen_ne_self_toNat_ge_twoPow127 {w : UInt256}
+    (hne : UInt256.signextend ⟨15⟩ w ≠ w) :
+    EVM.twoPow 127 ≤ w.toNat := by
+  by_contra hlt
+  exact hne (signextend_fifteen_eq_self_of_toNat_lt_twoPow127 (Nat.lt_of_not_ge hlt))
+
 end Benchmarks.UniswapV3Pool

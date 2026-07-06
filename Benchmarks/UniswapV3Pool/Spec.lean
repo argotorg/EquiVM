@@ -768,20 +768,23 @@ def observeSingleFunction : FunctionDecl :=
         { name := "liquidity", ty := uint128 }, { name := "cardinality", ty := uint16 } ]
     returnType := [int56, uint160]
     body :=
-      [ Stmt.ite (eqE (.var "secondsAgo") (.intLit 0))
-          [ .letStorage "last" (observationsRef (.var "index")),
-            Stmt.ite (neE (.field (.var "last") "blockTimestamp") (.var "time"))
-              [ .internalCall "oracleTransform"
-                  [ .field (.var "last") "blockTimestamp",
-                    .field (.var "last") "tickCumulative",
-                    .field (.var "last") "secondsPerLiquidityCumulativeX128",
-                    .var "time", .var "tick", .var "liquidity" ]
-                  "lastTransformed",
-                .return [tuple1 (.var "lastTransformed"), tuple2 (.var "lastTransformed")] ]
-              [ .return
-                  [ .field (.var "last") "tickCumulative",
-                    .field (.var "last") "secondsPerLiquidityCumulativeX128" ] ] ]
-          [],
+        [ Stmt.ite (eqE (.var "secondsAgo") (.intLit 0))
+            [ .require (ltE (.var "index") (.intLit 65535)),
+              Stmt.ite (neE (.storage (observationsRawF (.var "index") "blockTimestamp"))
+                  (.var "time"))
+                [ .internalCall "oracleTransform"
+                    [ .storage (observationsRawF (.var "index") "blockTimestamp"),
+                      .storage (observationsRawF (.var "index") "tickCumulative"),
+                      .storage (observationsRawF (.var "index")
+                        "secondsPerLiquidityCumulativeX128"),
+                      .var "time", .var "tick", .var "liquidity" ]
+                    "lastTransformed",
+                  .return [tuple1 (.var "lastTransformed"), tuple2 (.var "lastTransformed")] ]
+                [ .return
+                    [ .storage (observationsRawF (.var "index") "tickCumulative"),
+                      .storage (observationsRawF (.var "index")
+                        "secondsPerLiquidityCumulativeX128") ] ] ]
+            [],
         .letDecl "target" (some uint32) (uint32Wrap (subE (.var "time") (.var "secondsAgo"))),
         .internalCall "getSurroundingObservations"
           [.var "time", .var "target", .var "tick", .var "index", .var "liquidity",

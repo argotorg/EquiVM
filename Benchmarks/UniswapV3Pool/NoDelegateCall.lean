@@ -308,6 +308,110 @@ private theorem uniswapV3PoolNoDelegateCallJumpInOk
   exact ⟨_, _, rd5492.jump hd5492 (uniswapV3PoolJumpDestPatched11248 hpatch)
     (by simp only [List.length_cons]; omega)⟩
 
+theorem uniswapV3PoolNoDelegateCallReturnOk
+    {v : PoolImmutables} {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {R : List UInt256} {mem : ByteArray} {aw ret : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ}
+    (hpatch : patchRuntime uniswapV3PoolBytecode (patches v) = some code)
+    (h : RD code ee g s0 ⟨11248⟩ (ret :: R) mem aw rdata acc k C)
+    (hguard : uniswapV3PoolNoDelegateCallGuard v ee ≠ ⟨0⟩)
+    (htarget : (D_J code 0).contains ret = true)
+    (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret R mem aw rdata acc k' C' := by
+  have hd11248 : decode code ⟨11248⟩ = some (.JUMPDEST, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x5b) (op := .JUMPDEST)
+      hpatch (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11249 : decode code ⟨11249⟩ = some (.ADDRESS, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x30) (op := .ADDRESS)
+      hpatch (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11250 : decode code ⟨11250⟩ = some (.Push .PUSH1, some (⟨1⟩, 1)) := by
+    refine uniswapV3PoolNoDelegateCallDecodePatchedPush1 hpatch (by native_decide)
+      ?_ (by native_decide) (by native_decide)
+    exact uniswapV3PoolNoDelegateCallPatchDisjointWidth (n := 2)
+      (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+  have hd11252 : decode code ⟨11252⟩ = some (.Push .PUSH1, some (⟨1⟩, 1)) := by
+    refine uniswapV3PoolNoDelegateCallDecodePatchedPush1 hpatch (by native_decide)
+      ?_ (by native_decide) (by native_decide)
+    exact uniswapV3PoolNoDelegateCallPatchDisjointWidth (n := 2)
+      (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+  have hd11254 : decode code ⟨11254⟩ = some (.Push .PUSH1, some (⟨160⟩, 1)) := by
+    refine uniswapV3PoolNoDelegateCallDecodePatchedPush1 hpatch (by native_decide)
+      ?_ (by native_decide) (by native_decide)
+    exact uniswapV3PoolNoDelegateCallPatchDisjointWidth (n := 2)
+      (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+  have hd11256 : decode code ⟨11256⟩ = some (.SHL, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x1b) (op := .SHL)
+      hpatch (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11257 : decode code ⟨11257⟩ = some (.SUB, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x03) (op := .SUB)
+      hpatch (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11258 : decode code ⟨11258⟩ =
+      some (.Push .PUSH32, some (EVM.Word.ofNat v.original.toNat, 32)) :=
+    uniswapV3PoolOriginalConstDecode hpatch
+  have hd11291 : decode code ⟨11291⟩ = some (.AND, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x16) (op := .AND)
+      hpatch (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11292 : decode code ⟨11292⟩ = some (.EQ, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x14) (op := .EQ)
+      hpatch (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11293 : decode code ⟨11293⟩ = some (.Push .PUSH2, some (⟨11301⟩, 2)) := by
+    refine uniswapV3PoolNoDelegateCallDecodePatchedPush2 hpatch (by native_decide)
+      ?_ (by native_decide) (by native_decide)
+    exact uniswapV3PoolNoDelegateCallPatchDisjointWidth (n := 3)
+      (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+  have hd11296 : decode code ⟨11296⟩ = some (.JUMPI, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x57) (op := .JUMPI)
+      hpatch (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11301 : decode code ⟨11301⟩ = some (.JUMPDEST, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x5b) (op := .JUMPDEST)
+      hpatch (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have hd11302 : decode code ⟨11302⟩ = some (.JUMP, .none) := by
+    exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x56) (op := .JUMP)
+      hpatch (Or.inr (Or.inr ⟨by native_decide, by native_decide⟩))
+      (by native_decide) (by native_decide) (by native_decide)
+  have rd11249 := by
+    simpa using h.jumpdest hd11248 (by evm_ov)
+  have rd11250 := by
+    simpa using rd11249.uniswapAddress hd11249 (by simp only [List.length_cons]; omega)
+  have rd11252 := by
+    simpa using rd11250.push1 ⟨1⟩ hd11250 (by simp only [List.length_cons]; omega)
+  have rd11254 := by
+    simpa using rd11252.push1 ⟨1⟩ hd11252 (by simp only [List.length_cons]; omega)
+  have rd11256 := by
+    simpa using rd11254.push1 ⟨160⟩ hd11254 (by simp only [List.length_cons]; omega)
+  have rd11257 := by
+    simpa using rd11256.shl hd11256 (by simp only [List.length_cons]; omega)
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    native_decide
+  have rd11258 := by
+    simpa [hmask] using rd11257.sub hd11257 (by simp only [List.length_cons]; omega)
+  have rd11291 := by
+    simpa using rd11258.pushConst (EVM.Word.ofNat v.original.toNat)
+      (by native_decide : Operation.POp.PUSH32 ≠ .PUSH0) hd11258
+      (by simp only [List.length_cons]; omega)
+  have rd11292 := by
+    simpa using rd11291.and hd11291 (by simp only [List.length_cons]; omega)
+  have rd11293 := by
+    simpa [uniswapV3PoolNoDelegateCallGuard] using rd11292.eq hd11292
+      (by simp only [List.length_cons]; omega)
+  have rd11296 := by
+    simpa using rd11293.push2 ⟨11301⟩ hd11293 (by simp only [List.length_cons]; omega)
+  have rd11301 := rd11296.jumpiT hd11296 hguard
+    (uniswapV3PoolJumpDestPatched11301 hpatch) (by simp only [List.length_cons]; omega)
+  have rd11302 := by
+    simpa using rd11301.jumpdest hd11301 (by evm_ov)
+  exact ⟨_, _, rd11302.jump hd11302 htarget (by omega)⟩
+
 theorem uniswapV3PoolNoDelegateCallOk
     {v : PoolImmutables} {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -416,20 +520,17 @@ theorem uniswapV3PoolNoDelegateCallOk
   exact ⟨_, _, rd11302.jump hd11302 (uniswapV3PoolJumpDestPatched5493 hpatch)
     (by omega)⟩
 
-theorem uniswapV3PoolNoDelegateCallRevert
+theorem uniswapV3PoolNoDelegateCallReturnRevert
     {v : PoolImmutables} {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {s0 : State} {R : List UInt256} {mem : ByteArray} {aw ret : UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {k C : ℕ}
     (hpatch : patchRuntime uniswapV3PoolBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨5486⟩ R mem aw rdata acc k C)
+    (h : RD code ee g s0 ⟨11248⟩ (ret :: R) mem aw rdata acc k C)
     (hguard : uniswapV3PoolNoDelegateCallGuard v ee = ⟨0⟩)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  obtain ⟨_, _, rd11248⟩ :=
-    uniswapV3PoolNoDelegateCallJumpInOk (v := v) (code := code) (ee := ee) (g := g)
-      (s0 := s0) (R := R) (mem := mem) (aw := aw) (rdata := rdata) (acc := acc)
-      hpatch h (by omega)
+  let rd11248 := h
   have hd11248 : decode code ⟨11248⟩ = some (.JUMPDEST, .none) := by
     exact uniswapV3PoolNoDelegateCallDecodeNoArg (byte := 0x5b) (op := .JUMPDEST)
       hpatch (Or.inr (Or.inl ⟨by native_decide, by native_decide⟩))
@@ -525,6 +626,24 @@ theorem uniswapV3PoolNoDelegateCallRevert
   have rd11297 := rd11296.jumpiNT hd11296 hguard (by simp only [List.length_cons]; omega)
   exact RD.uniswapPush1Dup1Revert0 rd11297 hd11297 hd11299 hd11300
     (by simp only [List.length_cons]; omega)
+
+theorem uniswapV3PoolNoDelegateCallRevert
+    {v : PoolImmutables} {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ}
+    (hpatch : patchRuntime uniswapV3PoolBytecode (patches v) = some code)
+    (h : RD code ee g s0 ⟨5486⟩ R mem aw rdata acc k C)
+    (hguard : uniswapV3PoolNoDelegateCallGuard v ee = ⟨0⟩)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  obtain ⟨_, _, rd11248⟩ :=
+    uniswapV3PoolNoDelegateCallJumpInOk (v := v) (code := code) (ee := ee) (g := g)
+      (s0 := s0) (R := R) (mem := mem) (aw := aw) (rdata := rdata) (acc := acc)
+      hpatch h (by omega)
+  exact uniswapV3PoolNoDelegateCallReturnRevert (v := v) (code := code) (ee := ee) (g := g)
+    (s0 := s0) (ret := ⟨5493⟩) (R := R) (mem := mem) (aw := aw) (rdata := rdata)
+    (acc := acc) hpatch rd11248 hguard (by omega)
 
 theorem uniswapV3PoolNoDelegateCallOriginalClean (a : AccountAddress) :
     UInt256.land (EVM.Word.ofNat a.toNat) solcAddrMask = EVM.Word.ofNat a.toNat := by

@@ -15,7 +15,7 @@ import Benchmarks.UniswapV3Pool.MaxLiquidityPerTick
 import Benchmarks.UniswapV3Pool.SetFeeProtocol
 import Benchmarks.UniswapV3Pool.CollectProtocol
 import Benchmarks.UniswapV3Pool.Observe
-import Benchmarks.UniswapV3Pool.Burn
+import Benchmarks.UniswapV3Pool.BurnBody
 import Benchmarks.UniswapV3Pool.SnapshotCumulativesInside
 import Benchmarks.UniswapV3Pool.Factory
 import Benchmarks.UniswapV3Pool.TickSpacing
