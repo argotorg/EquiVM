@@ -24,6 +24,7 @@ the checked-in `.abi.json` files.
 | `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
 | `ERC721` | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
 | `OpenZeppelinBench/VestingWallet` | 2277 | 2485 | 14 fn + ctor + receive | Ready for proof | Yes |
+| `OpenZeppelinBench/TimelockController` | 6509 | 7161 | 28 fn + ctor + receive | Ready for proof | Yes |
 | `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
 | `Safe` | 11874 | 11907 | 31 fn + ctor + fallback/receive | Handed off | Yes |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
@@ -104,6 +105,21 @@ the checked-in `.abi.json` files.
   bool return checking plus the empty-return `EXTCODESIZE` guard. No benchmark-local semantic
   blocker is currently known; expected proof work is overloaded ABI dispatch, immutable creation
   patching, checked arithmetic paths, receive/fallback routing, and external-call reasoning.
+
+- `OpenZeppelinBench/TimelockController`: ready for proof, not yet handed off. Target theorem:
+  `OpenZeppelinBench.TimelockController.timelockControllerBenchContractCorrect`. Fresh solc 0.8.35
+  output with optimizer runs 200, Shanghai EVM, and `--metadata-hash none` is checked in with the
+  emitted ABI and storage layout. A benchmark-local OpenZeppelin source closure is checked in with
+  the 14 files needed by `TimelockControllerBench.sol`. The spec models the constructor's concrete
+  role grants (`msg.sender` admin/proposer/canceller and `address(0)` executor), `_roles`,
+  `_timestamps`, `_minDelay`, operation-state predicates, standard `abi.encode(...)` operation-id
+  hashing through a benchmark-local ABI hook, batch length checks, payable execution/receive,
+  low-level target calls, the reentrancy-sensitive `_afterCall` readiness check, and ERC721/ERC1155
+  receiver hooks. Events, custom-error payloads, and bubbled revert bytes are omitted consistently
+  with the framework's current log/revert-data abstraction; the event-only loop in `scheduleBatch`
+  is omitted for that reason. No benchmark-local semantic blocker is currently known; expected
+  proof work is dispatcher routing, nested-role mapping layout, dynamic ABI encoding for
+  operation ids, checked timestamp arithmetic, batch call loops, and low-level call reasoning.
 
 - `CompoundIII/CometRewards`: handed off. Target theorem:
   `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`. Fresh solc 0.8.15 via-IR
