@@ -27,7 +27,7 @@ the checked-in `.abi.json` files.
 | `Dss/DaiJoin` | 1733 | 1876 | 9 fn + ctor | Ready for proof | Yes |
 | `Dss/Cat` | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
 | `Dss/Clipper` | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
-| `Dss/Cure` | 3875 | 3971 | 20 fn + ctor | Scaffolded | No |
+| `Dss/Cure` | 3875 | 3971 | 20 fn + ctor | Ready for proof | Yes |
 | `Dss/Dog` | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
 | `Dss/End` | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
 | `Dss/Flapper` | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
@@ -115,7 +115,22 @@ the checked-in `.abi.json` files.
   binary-search dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the
   typed external-call return decodings.
 
-- `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/Flapper`, `Dss/Flipper`, and
+- `Dss/Cure`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.Dss.Cure.cureContractCorrect`. Fresh solc output is checked in, the artifact hashes
+  match `Benchmarks/Dss/Cure/README.md`, and the solc storage layout matches the spec's 10 slots
+  (`wards`, `live`, dynamic `srcs`, `wait`, `when`, `pos`, `amt`, `loaded`, `lCount`, `say`). A
+  bytecode-level audit of the checked-in 3875-byte runtime finds one `STATICCALL` and one matching
+  `EXTCODESIZE` guard for `SourceLike.cure()`, with no `CALL`, `DELEGATECALL`, contract creation,
+  or selfdestruct. The spec models all 20 public/external functions, the constructor, auth/live
+  guards, `file("wait", data)`, source-list `lift`/`drop`, `cage`, `tell`, checked `_add`/`_sub`,
+  the unchecked `lCount++` wrap in `load`, and the guarded static `SourceLike.cure()` return
+  decoding. `Trusted.lean` records the 20 opaque Keccak selector facts needed for dispatcher proof
+  work plus proof-local names for the verified jump tables. Events are omitted consistently with the
+  framework's log abstraction. No semantic blocker is currently known; expected proof work is
+  dispatcher routing, dynamic-array and mapping storage lemmas, checked arithmetic, and the
+  static-call return decoding.
+
+- `Dss/Cat`, `Dss/Clipper`, `Dss/Dog`, `Dss/Flapper`, `Dss/Flipper`, and
   `Dss/Flopper`: scaffolded, not ready for proof. Fresh upstream sources, ABI/AST/storage-layout
   artifacts, optimized creation/runtime bytecode, Lean `ByteArray`s, verified `JUMPDEST` sets, and
   top-level theorem targets are checked in and compile. Their current `Spec.lean` files are

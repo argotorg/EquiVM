@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Cure.Bytecode
+import Benchmarks.Dss.Cure.Trusted
 import Solm.Equiv
 
 /-!
