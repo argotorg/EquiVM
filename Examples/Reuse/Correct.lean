@@ -879,7 +879,7 @@ theorem cFBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size) :
     ExecTransitionBody cConfig Reuse.cContract evm (cArgStore I) Reuse.fTransition.body
       (.returned { contract := Reuse.cContract, locals := cArgStore I } evm
-        (some (cFResultValue I))) := by
+        (some [(cFResultValue I)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns
       (cEvalFReturn_ok evm I hbound)
@@ -891,7 +891,7 @@ theorem cFBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
       .reverted := by
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
-      (ExecBlock.consRevert (ExecStmt.returnRevert (cEvalFReturn_revert evm I hover)))
+      (ExecBlock.consRevert (ExecStmt.returnRevert (by simp [evalExprs?, cEvalFReturn_revert evm I hover, EvalResult.bind, bind, pure])))
 
 abbrev cGStoreAfterF (I : ExecutionEnv) : Store :=
   (cArgStore I).insert "r" (cFResultValue I)
@@ -1106,7 +1106,7 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (by rw [storageStore_createdAccounts]; simp [initState])
                 (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
                 hσPost
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
               have hbody := cGBodyReverts_overflow
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I

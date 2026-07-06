@@ -66,9 +66,9 @@ theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (noncesStore I) noncesTransition.body
       (.returned { contract := contract, locals := noncesStore I } evm
-        (some (.int (Int.ofNat
+        (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (noncesStorageSlot I)).toNat)))) := by
+            (noncesStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar (t := .int uint256Int)
@@ -182,7 +182,7 @@ theorem uniswapNoncesBodyCoreOk
         noncesTransition.body
         (.returned { contract := contract, locals := noncesStore I }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (noncesWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (noncesWord σ_solm I).toNat))])) := by
     simpa [noncesWord, noncesStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapNoncesBodyReturns

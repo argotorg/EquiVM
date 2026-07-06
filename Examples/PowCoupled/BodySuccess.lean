@@ -108,15 +108,15 @@ theorem powCoupled_loopSuffix_success {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
     {N : ℕ} {sel : UInt256} (hN : N < 256) :
     ∀ st : CoupledState powBytecode ee g s0 (PowLoopRel N sel N) u117,
       CoupledState.refines st powConfig
-        [.while Pow.powLoopCond Pow.powLoopBody, .return (.var "r")]
-        (transitionPost powBytecode ee g s0 (some Pow.uint256) (fun _ _ _ => False)) := by
+        [.while Pow.powLoopCond Pow.powLoopBody, .return [(.var "r")]]
+        (transitionPost powBytecode ee g s0 [Pow.uint256] (fun _ _ _ => False)) := by
   intro st
   refine CoupledState.refines.whileLoopIndexedBody
     (code := powBytecode) (ee := ee) (g := g) (s0 := s0) (cfg := powConfig)
     (loopPc := u117) (bodyPc := u126) (exitPc := u142)
     (Rloop := PowLoopRel N sel) (Rbody := PowBodyRel N sel) (Rexit := PowExitRel N sel)
-    (Post := transitionPost powBytecode ee g s0 (some Pow.uint256) (fun _ _ _ => False))
-    (cond := Pow.powLoopCond) (body := Pow.powLoopBody) (rest := [.return (.var "r")])
+    (Post := transitionPost powBytecode ee g s0 [Pow.uint256] (fun _ _ _ => False))
+    (cond := Pow.powLoopCond) (body := Pow.powLoopBody) (rest := [.return [(.var "r")]])
     ?hfalse ?htrue ?hbody ?hrest N st
   · intro st0
     rcases st0.hrel with ⟨i, hvar, hile, hstack, hmem, haw, hrdata, hi, hr, hn⟩
@@ -228,9 +228,9 @@ theorem powCoupled_loopSuffix_success {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       stLoop.cur, stLoop.k, stLoop.C, stLoop.hpc, stLoop.hRD, stLoop.hworld, stLoop.hrel⟩
   · intro stExit
     rcases stExit.hrel with ⟨hstack, hmem, haw, hrdata, hr, _hn⟩
-    have hstmt : ExecStmt powConfig stExit.frame stExit.evm (.return (.var "r"))
-        (.returned stExit.frame stExit.evm (some (.int (Int.ofNat (2 ^ N))))) :=
-      ExecStmt.return (by rw [Pow.evalVar hr])
+    have hstmt : ExecStmt powConfig stExit.frame stExit.evm (.return [(.var "r")])
+        (.returned stExit.frame stExit.evm (some [(.int (Int.ofNat (2 ^ N)))])) :=
+      ExecStmt.return (evalExprs?_singleton (by rw [Pow.evalVar hr]))
     have hRD0 : RD powBytecode ee g s0 u142 (exitStack N sel) solcFreePtrMem u3
         ByteArray.empty stExit.cur.world stExit.k stExit.C :=
       stExit.toRD hstack hmem haw hrdata

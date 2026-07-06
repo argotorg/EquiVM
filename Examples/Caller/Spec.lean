@@ -58,7 +58,7 @@ def callerStorageLayout : StorageLayout where
 def runTransition : TransitionDecl :=
   { name := "run"
     params := [{ name := "t", ty := addr }, { name := "n", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .externalCall (.var "t") "pow2" (.intLit 0) [.var "n"] "tmp",

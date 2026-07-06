@@ -910,7 +910,7 @@ theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Sto
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
-    (hdec : config.externalABI.decode? "balanceOf" out = some value) :
+    (hdec : config.externalABI.decode? "balanceOf" out = some [value]) :
     ExecBlock config { contract := contract, locals := locals } evm
       [ .externalCall (.storage ref) "balanceOf" (.intLit 0) [this] retVar (perm := false) ]
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
@@ -984,7 +984,7 @@ theorem uniswapCheckedExternalBalanceOfThisSuccess (evm evm' : EVM.State) (local
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
-    (hdec : config.externalABI.decode? "balanceOf" out = some value) :
+    (hdec : config.externalABI.decode? "balanceOf" out = some [value]) :
     ExecBlock config { contract := contract, locals := locals } evm
       (balanceOfThisStmts (.storage ref) retVar)
       (.ok { contract := contract, locals := locals.insert retVar value } evm') := by
@@ -1071,11 +1071,11 @@ theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some balance1) :
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [balance1]) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1")
       (.ok (uniswapBalanceOfFrame locals balance0 balance1) evm1) := by
@@ -1180,7 +1180,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
     (hbase0 : locals.get? "token0" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0) :
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0]) :
     ExecBlock config { contract := contract, locals := locals } evm
       (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
   have htoken0 :
@@ -1216,7 +1216,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (false, evm1, out1) false) :
@@ -1259,7 +1259,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (hbase1 : (locals.insert "balance0" balance0).get? "token1" = none)
     (hcall0 : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨6⟩))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
@@ -1297,11 +1297,11 @@ theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
     (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
@@ -1314,10 +1314,10 @@ theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
     (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
@@ -1330,11 +1330,11 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.bytes bytes32Width)))
     (hloc : config.storage.layout er = fun _ => some (bytes32Loc slot)) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.storage ref) ])
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
-        (some (.fixedBytes ⟨31, by decide⟩
+        (some [(.fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) := by
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
@@ -1342,16 +1342,16 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
 
 theorem uniswapIntLiteralBodyReturns (evm : EVM.State) (locals : Store) (n : Int)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.intLit n) ])
-      (.returned { contract := contract, locals := locals } evm (some (.int n))) := by
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.intLit n)] ])
+      (.returned { contract := contract, locals := locals } evm (some [(.int n)])) := by
   simpa [nonpayable] using
     nonpayableIntLiteralBodyReturns (cfg := config) (contract := contract) evm locals n h
 
 theorem uniswapFixedBytesLiteralBodyReturns (evm : EVM.State) (locals : Store)
     (n : Fin 32) (bytes : List UInt8) (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals
-      (nonpayable ++ [ .return (.fixedBytesLit n bytes) ])
-      (.returned { contract := contract, locals := locals } evm (some (.fixedBytes n bytes))) := by
+      (nonpayable ++ [ .return [(.fixedBytesLit n bytes)] ])
+      (.returned { contract := contract, locals := locals } evm (some [(.fixedBytes n bytes)])) := by
   simpa [nonpayable] using
     nonpayableFixedBytesLiteralBodyReturns (cfg := config) (contract := contract)
       evm locals n bytes h
@@ -1921,25 +1921,25 @@ theorem uniswapAddressGetterBodyCore
     (hentry : Reasoning.Reach.uniswapAddressGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapAddressSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
-    (hreturn : transition.returnType = some addr)
+    (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat
-            (uniswapAddressReturnWord slot σ_solm I).toNat))))) :
+          (some [(.address (AccountAddress.ofNat
+            (uniswapAddressReturnWord slot σ_solm I).toNat))]))) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some (Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_solm I).toNat)) =
-        some (Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)) := by
+      some [Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_solm I).toNat)] =
+        some [Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)] := by
     have hslot : uniswapSlotWord slot σ_solm I = uniswapSlotWord slot σ_evm I := hword.symm
     simp [uniswapAddressReturnWord, hslot]
   have henc :
       returnEquiv (UInt256.toByteArray (uniswapAddressReturnWord slot σ_evm I))
-        (some (.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)))
+        (some [(.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [uniswapAddressReturnWord] using
@@ -1965,23 +1965,23 @@ theorem uniswapUint256GetterBodyCore
     (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
-    (hreturn : transition.returnType = some uint256)
+    (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat))))) :
+          (some [(.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat))]))) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some (Value.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat)) =
-        some (Value.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)) := by
+      some [Value.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat)] =
+        some [Value.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)] := by
     rw [hword]
   have henc :
       returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
-        (some (.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)))
+        (some [(.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
@@ -2006,27 +2006,27 @@ theorem uniswapBytes32GetterBodyCore
     (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
-    (hreturn : transition.returnType = some bytes32)
+    (hreturn : transition.returnType = [bytes32])
     (hbody :
       ExecTransitionBody config contract
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.fixedBytes ⟨31, by decide⟩
-            (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I)))))) :
+          (some [(.fixedBytes ⟨31, by decide⟩
+            (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I)))]))) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some (Value.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I))) =
-        some (Value.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))) := by
+      some [Value.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I))] =
+        some [Value.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))] := by
     rw [← hword]
   have henc :
       returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
-        (some (.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))))
+        (some [(.fixedBytes ⟨31, by decide⟩
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I)))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode

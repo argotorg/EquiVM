@@ -153,9 +153,9 @@ theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (isOperatorStore I) isOperatorTransition.body
       (.returned { contract := contract, locals := isOperatorStore I } evm
-        (some (wordToElem .bool
+        (some [(wordToElem .bool
           (UInt256.land
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (isOperatorSlot I)) ⟨255⟩)))) := by
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (isOperatorSlot I)) ⟨255⟩))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [operatorApprovalRef] using evalExpr_isOperator_storage evm I)
@@ -765,8 +765,8 @@ theorem erc6909IsOperatorBodyCore
                 isOperatorTransition.body
                 (.returned { contract := contract, locals := isOperatorStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some (wordToElem .bool
-                    (UInt256.land (isOperatorStorageWord σ_solm I) ⟨255⟩)))) := by
+                  (some [(wordToElem .bool
+                    (UInt256.land (isOperatorStorageWord σ_solm I) ⟨255⟩))])) := by
             simpa [isOperatorStorageWord, isOperatorSlot, initState, Solm.EVM.storageLoad,
               State.lookupAccount] using erc6909IsOperatorBodyReturns
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I

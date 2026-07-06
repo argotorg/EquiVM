@@ -115,40 +115,40 @@ def constructorDecl : ConstructorDecl :=
 def totalSupplyTransition : TransitionDecl :=
   { name := "totalSupply"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage totalSupplyRef) ] }
+        .return [(.storage totalSupplyRef)] ] }
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
     params := [{ name := "owner", ty := addr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (balanceOfRef (.var "owner"))) ] }
+        .return [(.storage (balanceOfRef (.var "owner")))] ] }
 
 def allowanceTransition : TransitionDecl :=
   { name := "allowance"
     params := [{ name := "owner", ty := addr }, { name := "spender", ty := addr }]
-    returnType := some uint256
+    returnType := [uint256]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .return (.storage (allowanceRef (.var "owner") (.var "spender"))) ] }
+        .return [(.storage (allowanceRef (.var "owner") (.var "spender")))] ] }
 
 def approveTransition : TransitionDecl :=
   { name := "approve"
     params := [{ name := "spender", ty := addr }, { name := "value", ty := uint256 }]
-    returnType := some (.elem .bool)
+    returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
     params := [{ name := "to", ty := addr }, { name := "value", ty := uint256 }]
-    returnType := some (.elem .bool)
+    returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
@@ -158,13 +158,13 @@ def transferTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
     params := [{ name := "from", ty := addr }, { name := "to", ty := addr },
       { name := "value", ty := uint256 }]
-    returnType := some (.elem .bool)
+    returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
@@ -180,7 +180,7 @@ def transferFromTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 def erc20Contract : ContractDecl :=
   { name := "ERC20"

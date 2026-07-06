@@ -193,6 +193,14 @@ inductive EnvVar where
   | timestamp
   | chainid
   | selfbalance
+  | gasprice
+  | number
+  | coinbase
+  | gaslimit
+  | prevrandao
+  | basefee
+  | msgSig
+  | msgData
   deriving DecidableEq, Repr, Inhabited
 
 inductive UnaryOp where
@@ -220,6 +228,7 @@ inductive BinaryOp where
   | bitXor
   | shl
   | shr
+  | exp
   deriving DecidableEq, Repr, Inhabited
 
 /-- Whether a variable path is rooted in a memory **local** or **storage**. Resolved statically
@@ -250,6 +259,8 @@ inductive Expr where
      multi-value (tuple) return (e.g. a struct getter returning `(a, b)`); its value representation
      is `Value.tuple`, distinct from `Value.array`. -/
   | tupleLit : List Expr -> Expr
+  /- static tuple projection `t.i`: the `i`-th component. -/
+  | tupleGet : Expr -> Nat -> Expr
   /- `b[start:end]`: byte slice of dynamic bytes `b` over `[start, end)` -/
   | bytesSlice : Expr /- base -/ -> Expr /- start -/ -> Expr /- end -/ -> Expr
   | var : Ident -> Expr
@@ -286,6 +297,13 @@ inductive Expr where
      Matches `Ethereum.State.extCodeSize` — a non-existent account or an EOA (no code) has size 0.
      Used by ERC721 `safeTransferFrom`'s `to.code.length == 0` contract-detection guard. -/
   | extCodeSize : Expr -> Expr
+  /- `addr` code prefix (EXTCODECOPY): the first `len` bytes of the code at `addr`, as `bytes`,
+     zero-padded past the code end (all zero for a non-existent account or an EOA). -/
+  | extCodePrefix : Expr /- addr -/ -> Expr /- len -/ -> Expr
+  /- `blockhash(n)` (BLOCKHASH), `addr.balance` (BALANCE), `addr.codehash` (EXTCODEHASH). -/
+  | blockhash : Expr -> Expr
+  | balanceOf : Expr -> Expr
+  | extCodeHash : Expr -> Expr
   /- Fixed-size `bytesN` literal: the ABI type index (`n : Fin 32` ⇒ width `n+1`) and the bytes in
      Solidity order.  Models compile-time `bytesN` constants — hex `bytesN` literals, a function's
      `.selector` (`bytes4`), and `type(I).interfaceId` (`bytes4`) — all of which solc bakes as PUSH
@@ -1102,6 +1120,318 @@ mutual
     | .keccak256 _, .extCodeSize _ => isFalse (by intro h; cases h)
     | .extCodeSize _, .abiEncodePacked _ => isFalse (by intro h; cases h)
     | .abiEncodePacked _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodePrefix ax lx, .extCodePrefix ay ly =>
+        match Expr.decEq ax ay, Expr.decEq lx ly with
+        | isTrue ha, isTrue hl => isTrue (by cases ha; cases hl; rfl)
+        | isFalse ha, _ => isFalse (by intro h'; cases h'; exact ha rfl)
+        | _, isFalse hl => isFalse (by intro h'; cases h'; exact hl rfl)
+    | .tupleGet ex nx, .tupleGet ey ny =>
+        match Expr.decEq ex ey, (inferInstance : Decidable (nx = ny)) with
+        | isTrue he, isTrue hn => isTrue (by cases he; cases hn; rfl)
+        | isFalse he, _ => isFalse (by intro h'; cases h'; exact he rfl)
+        | _, isFalse hn => isFalse (by intro h'; cases h'; exact hn rfl)
+    | .blockhash x, .blockhash y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .balanceOf x, .balanceOf y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .extCodeHash x, .extCodeHash y =>
+        match Expr.decEq x y with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .tupleGet _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .blockhash _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .tupleGet _ _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .tupleGet _ _ => isFalse (by intro h; cases h)
+    | .blockhash _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .blockhash _ => isFalse (by intro h; cases h)
+    | .blockhash _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .blockhash _ => isFalse (by intro h; cases h)
+    | .balanceOf _, .extCodeHash _ => isFalse (by intro h; cases h)
+    | .extCodeHash _, .balanceOf _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .intLit _ => isFalse (by intro h; cases h)
+    | .intLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .boolLit _ => isFalse (by intro h; cases h)
+    | .boolLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .bytesLit _ => isFalse (by intro h; cases h)
+    | .bytesLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .newBytes _ => isFalse (by intro h; cases h)
+    | .newBytes _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .newArray _ _ => isFalse (by intro h; cases h)
+    | .newArray _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .structLit _ _ => isFalse (by intro h; cases h)
+    | .structLit _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .arrayLit _ => isFalse (by intro h; cases h)
+    | .arrayLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .tupleLit _ => isFalse (by intro h; cases h)
+    | .tupleLit _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .bytesSlice _ _ _ => isFalse (by intro h; cases h)
+    | .bytesSlice _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .var _ => isFalse (by intro h; cases h)
+    | .var _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .env _ => isFalse (by intro h; cases h)
+    | .env _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .field _ _ => isFalse (by intro h; cases h)
+    | .field _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .storage _ => isFalse (by intro h; cases h)
+    | .storage _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .inRange _ _ => isFalse (by intro h; cases h)
+    | .inRange _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .cast _ _ => isFalse (by intro h; cases h)
+    | .cast _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .addrOf _ => isFalse (by intro h; cases h)
+    | .addrOf _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .unary _ _ => isFalse (by intro h; cases h)
+    | .unary _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .binary _ _ _ => isFalse (by intro h; cases h)
+    | .binary _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .index _ _ => isFalse (by intro h; cases h)
+    | .index _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .arrayLength _ _ => isFalse (by intro h; cases h)
+    | .arrayLength _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .keccak256 _ => isFalse (by intro h; cases h)
+    | .keccak256 _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiEncodePacked _ => isFalse (by intro h; cases h)
+    | .abiEncodePacked _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiEncodeCall _ _ => isFalse (by intro h; cases h)
+    | .abiEncodeCall _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .abiDecode _ _ => isFalse (by intro h; cases h)
+    | .abiDecode _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .extCodeSize _ => isFalse (by intro h; cases h)
+    | .extCodeSize _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
+    | .extCodePrefix _ _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
+    | .fixedBytesLit _ _, .extCodePrefix _ _ => isFalse (by intro h; cases h)
     | .fixedBytesLit _ _, .intLit _ => isFalse (by intro h; cases h)
     | .intLit _, .fixedBytesLit _ _ => isFalse (by intro h; cases h)
     | .fixedBytesLit _ _, .boolLit _ => isFalse (by intro h; cases h)
@@ -1246,6 +1576,8 @@ inductive Stmt where
   | letDecl : Ident -> Option ABIType -> Expr -> Stmt
   /- local storage alias: `T storage x = ref`; stores an evaluated storage pointer in locals -/
   | letStorage : Ident -> StorageRef -> Stmt
+  /- `uint256 x = gasleft()`: bind `x` to a nondeterministic gas value (Solm tracks no gas). -/
+  | letGas : Ident -> Stmt
   /- assignment to a local (`.local`) or storage (`.storage`) variable path -/
   | assign : VarOrigin -> StorageRef -> Expr -> Stmt
   | require : Expr -> Stmt
@@ -1256,8 +1588,9 @@ inductive Stmt where
   | for : List Stmt /- init -/ -> Expr /- cond -/ -> List Stmt /- post -/ -> List Stmt /- body -/ -> Stmt
   /- conditional: `if cond { thenBranch } else { elseBranch }`; a no-`else` `if` is `elseBranch = []` -/
   | ite : Expr -> List Stmt -> List Stmt -> Stmt
-  /- constructor call -/
-  | new : Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ -> Stmt
+  /- constructor call; `salt = none` ⇒ CREATE, `some e` (bytes32) ⇒ CREATE2. -/
+  | new : Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ ->
+      (salt : Option Expr := none) -> Stmt
   /- internal and external call results are explicitly let-bound -/
   | internalCall : Ident -> List Expr -> Ident /- return value binder -/ -> Stmt
   | externalCall : Expr -> Ident -> Expr /- ETH to send -/ -> List Expr ->
@@ -1272,14 +1605,16 @@ inductive Stmt where
      no value. -/
   | delegateCall : Expr /- target -/ -> Expr /- calldata bytes -/ ->
       Ident /- success binder -/ -> Ident /- raw returndata binder -/ -> Stmt
-  /- `try recv.name{value}(args) returns (retVar) { onSuccess } catch Error(string) { onCatch }`.
-     Only `Error(string)`-reason callee reverts are caught; other reverts propagate.  `retVar` is
-     bound only within `onSuccess`. -/
+  /- `try recv.name{value}(args) returns (retVar) { onSuccess } catch { onFail }`.  All callee
+     reverts hand control to `onFail` with the raw revert bytes bound to `errVar`; the spec filters by
+     selector prefix (e.g. `Error(string)`) and re-reverts uncaught cases via `require false`.
+     `retVar` is bound only within `onSuccess`. -/
   | checkedCall : Expr /- receiver -/ -> Ident /- name -/ -> Expr /- ETH -/ ->
       List Expr /- args -/ -> Ident /- decoded return, scoped to onSuccess -/ ->
       List Stmt /- onSuccess -/ -> Ident /- raw revert bytes, scoped to onFail -/ ->
       List Stmt /- onFail -/ -> (perm : Bool := true) -> Stmt
-  | return : Expr -> Stmt
+  /- `return (e₁, …, eₙ)`: return the listed values.  `[]` models `return;` / a void return. -/
+  | return : List Expr -> Stmt
   | break : Stmt
   | continue : Stmt
   /- `arr.push(v?)`: grow a dynamic storage array by one.  `some v` appends scalar `v`; `none` is a
@@ -1306,6 +1641,48 @@ mutual
         | isTrue hn, isTrue hr => isTrue (by cases hn; cases hr; rfl)
         | isFalse hn, _ => isFalse (by intro h; cases h; exact hn rfl)
         | _, isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .letGas nx, .letGas ny =>
+        match (inferInstance : Decidable (nx = ny)) with
+        | isTrue h => isTrue (by cases h; rfl)
+        | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
+    | .letGas _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .require _ => isFalse (by intro h; cases h)
+    | .require _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .while _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .return _ => isFalse (by intro h; cases h)
+    | .return _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .break => isFalse (by intro h; cases h)
+    | .break, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .continue => isFalse (by intro h; cases h)
+    | .continue, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .letGas _ => isFalse (by intro h; cases h)
+    | .letGas _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .letGas _ => isFalse (by intro h; cases h)
     | .assign ox sx ex, .assign oy sy ey =>
         match (inferInstance : Decidable (ox = oy)), StorageRef.decEq sx sy, Expr.decEq ex ey with
         | isTrue ho, isTrue hs, isTrue he => isTrue (by cases ho; cases hs; cases he; rfl)
@@ -1327,13 +1704,14 @@ mutual
         | isFalse hc, _, _ => isFalse (by intro h; cases h; exact hc rfl)
         | _, isFalse ht, _ => isFalse (by intro h; cases h; exact ht rfl)
         | _, _, isFalse he => isFalse (by intro h; cases h; exact he rfl)
-    | .new nx vx ax rx, .new ny vy ay ry =>
-        match (inferInstance : Decidable (nx = ny)), Expr.decEq vx vy, (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)) with
-        | isTrue hn, isTrue hv, isTrue ha, isTrue hr => isTrue (by cases hn; cases hv; cases ha; cases hr; rfl)
-        | isFalse hn, _, _, _ => isFalse (by intro h; cases h; exact hn rfl)
-        | _, isFalse hv, _, _ => isFalse (by intro h; cases h; exact hv rfl)
-        | _, _, isFalse ha, _ => isFalse (by intro h; cases h; exact ha rfl)
-        | _, _, _, isFalse hr => isFalse (by intro h; cases h; exact hr rfl)
+    | .new nx vx ax rx sx, .new ny vy ay ry sy =>
+        match (inferInstance : Decidable (nx = ny)), Expr.decEq vx vy, (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)), (inferInstance : Decidable (sx = sy)) with
+        | isTrue hn, isTrue hv, isTrue ha, isTrue hr, isTrue hs => isTrue (by cases hn; cases hv; cases ha; cases hr; cases hs; rfl)
+        | isFalse hn, _, _, _, _ => isFalse (by intro h; cases h; exact hn rfl)
+        | _, isFalse hv, _, _, _ => isFalse (by intro h; cases h; exact hv rfl)
+        | _, _, isFalse ha, _, _ => isFalse (by intro h; cases h; exact ha rfl)
+        | _, _, _, isFalse hr, _ => isFalse (by intro h; cases h; exact hr rfl)
+        | _, _, _, _, isFalse hs => isFalse (by intro h; cases h; exact hs rfl)
     | .internalCall nx ax rx, .internalCall ny ay ry =>
         match (inferInstance : Decidable (nx = ny)), (inferInstance : Decidable (ax = ay)), (inferInstance : Decidable (rx = ry)) with
         | isTrue hn, isTrue ha, isTrue hr => isTrue (by cases hn; cases ha; cases hr; rfl)
@@ -1391,7 +1769,7 @@ mutual
         | _, _, _, _, _, _, _, isFalse hc, _ => isFalse (by intro h; cases h; exact hc rfl)
         | _, _, _, _, _, _, _, _, isFalse hp => isFalse (by intro h; cases h; exact hp rfl)
     | .return ex, .return ey =>
-        match Expr.decEq ex ey with
+        match Expr.decEqList ex ey with
         | isTrue h => isTrue (by cases h; rfl)
         | isFalse h => isFalse (by intro h'; cases h'; exact h rfl)
     | .break, .break => isTrue rfl
@@ -1406,8 +1784,8 @@ mutual
     | .while _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
-    | .letStorage _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
+    | .letStorage _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .letStorage _ _ => isFalse (by intro h; cases h)
     | .letStorage _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1431,7 +1809,7 @@ mutual
     | .letDecl _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .require _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .letDecl _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .letDecl _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .letDecl _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -1440,7 +1818,7 @@ mutual
     | .assign _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _ _, .require _ => isFalse (by intro h; cases h)
     | .assign _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .assign _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .assign _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .assign _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -1449,7 +1827,7 @@ mutual
     | .require _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .require _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .require _, .while _ _ => isFalse (by intro h; cases h)
-    | .require _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .require _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .require _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .require _, .return _ => isFalse (by intro h; cases h)
@@ -1458,26 +1836,26 @@ mutual
     | .while _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .require _ => isFalse (by intro h; cases h)
-    | .while _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .while _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .return _ => isFalse (by intro h; cases h)
     | .while _ _, .break => isFalse (by intro h; cases h)
     | .while _ _, .continue => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .require _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .return _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .break => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .continue => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .break => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .continue => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .letDecl _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .require _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .internalCall _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .internalCall _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .return _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .break => isFalse (by intro h; cases h)
@@ -1486,7 +1864,7 @@ mutual
     | .externalCall _ _ _ _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .externalCall _ _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .externalCall _ _ _ _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .break => isFalse (by intro h; cases h)
@@ -1495,7 +1873,7 @@ mutual
     | .return _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .return _, .require _ => isFalse (by intro h; cases h)
     | .return _, .while _ _ => isFalse (by intro h; cases h)
-    | .return _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .return _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .return _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .return _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .return _, .break => isFalse (by intro h; cases h)
@@ -1504,7 +1882,7 @@ mutual
     | .break, .assign _ _ _ => isFalse (by intro h; cases h)
     | .break, .require _ => isFalse (by intro h; cases h)
     | .break, .while _ _ => isFalse (by intro h; cases h)
-    | .break, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .break, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .break, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .break, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .break, .return _ => isFalse (by intro h; cases h)
@@ -1513,7 +1891,7 @@ mutual
     | .continue, .assign _ _ _ => isFalse (by intro h; cases h)
     | .continue, .require _ => isFalse (by intro h; cases h)
     | .continue, .while _ _ => isFalse (by intro h; cases h)
-    | .continue, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .continue, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .continue, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .continue, .return _ => isFalse (by intro h; cases h)
@@ -1522,7 +1900,7 @@ mutual
     | .assign _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .require _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .return _, .ite _ _ _ => isFalse (by intro h; cases h)
@@ -1532,7 +1910,7 @@ mutual
     | .ite _ _ _, .assign _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .require _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .while _ _ => isFalse (by intro h; cases h)
-    | .ite _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .ite _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -1543,7 +1921,7 @@ mutual
     | .lowLevelCall _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .lowLevelCall _ _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .lowLevelCall _ _ _ _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .return _ => isFalse (by intro h; cases h)
@@ -1554,7 +1932,7 @@ mutual
     | .require _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .return _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1565,7 +1943,7 @@ mutual
     | .checkedCall _ _ _ _ _ _ _ _ _, .require _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .while _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
-    | .checkedCall _ _ _ _ _ _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
+    | .checkedCall _ _ _ _ _ _ _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .checkedCall _ _ _ _ _ _ _ _ _, .lowLevelCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1577,7 +1955,7 @@ mutual
     | .require _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .while _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .externalCall _ _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
     | .lowLevelCall _ _ _ _ _ _, .checkedCall _ _ _ _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1607,8 +1985,8 @@ mutual
     | .while _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .delete _ => isFalse (by intro h; cases h)
-    | .delete _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .delete _ => isFalse (by intro h; cases h)
+    | .delete _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .delete _ => isFalse (by intro h; cases h)
     | .delete _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1637,8 +2015,8 @@ mutual
     | .while _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .push _ _ => isFalse (by intro h; cases h)
-    | .push _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
+    | .push _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .push _ _ => isFalse (by intro h; cases h)
     | .push _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1665,8 +2043,8 @@ mutual
     | .while _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .pop _ => isFalse (by intro h; cases h)
-    | .pop _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .pop _ => isFalse (by intro h; cases h)
+    | .pop _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .pop _ => isFalse (by intro h; cases h)
     | .pop _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1700,8 +2078,8 @@ mutual
     | .while _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
-    | .for _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
+    | .for _ _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .for _ _ _ _ => isFalse (by intro h; cases h)
     | .for _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1736,8 +2114,8 @@ mutual
     | .for _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
     | .delegateCall _ _ _ _, .ite _ _ _ => isFalse (by intro h; cases h)
     | .ite _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
-    | .delegateCall _ _ _ _, .new _ _ _ _ => isFalse (by intro h; cases h)
-    | .new _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
+    | .delegateCall _ _ _ _, .new _ _ _ _ _ => isFalse (by intro h; cases h)
+    | .new _ _ _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
     | .delegateCall _ _ _ _, .internalCall _ _ _ => isFalse (by intro h; cases h)
     | .internalCall _ _ _, .delegateCall _ _ _ _ => isFalse (by intro h; cases h)
     | .delegateCall _ _ _ _, .externalCall _ _ _ _ _ _ => isFalse (by intro h; cases h)
@@ -1803,14 +2181,16 @@ structure StructDecl where
 structure FunctionDecl where
   name : Ident
   params : List Param
-  returnType : Option ABIType := none
+  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  returnType : List ABIType := []
   body : List Stmt
   deriving DecidableEq, Repr, Inhabited
 
 structure TransitionDecl where
   name : Ident
   params : List Param
-  returnType : Option ABIType := none
+  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  returnType : List ABIType := []
   body : List Stmt
   deriving DecidableEq, Repr, Inhabited
 

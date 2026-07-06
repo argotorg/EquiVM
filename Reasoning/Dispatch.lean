@@ -245,8 +245,8 @@ theorem singleSelectorDispatch
     encoding (the `returned` case of `returnEquiv`). -/
 theorem returnEquiv_of_encode {abit : ABIType} {rv : Value} {o : ByteArray}
     (h : encodeReturnValue? abit rv = some o) :
-    returnEquiv o (some rv) (some abit) :=
-  returnEquiv.returned rfl rfl h
+    returnEquiv o (some [rv]) [abit] :=
+  returnEquiv.returned rfl h
 
 end Reasoning.Theory
 

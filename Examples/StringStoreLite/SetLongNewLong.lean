@@ -65,8 +65,8 @@ theorem stringStoreLiteSetNewLongRuntime
   have henc :
       returnEquiv
         (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))
-        (some (.int (setDecodedValueBytes I).size))
-        (some (.elem (.int (.uint ⟨256, by decide⟩)))) := by
+        (some [(.int (setDecodedValueBytes I).size)])
+        [(.elem (.int (.uint ⟨256, by decide⟩)))] := by
     simpa [htoNat] using
       returnEquiv_of_encode (uint256ReturnEncoding
         (UInt256.ofNat (setDecodedValueBytes I).size))

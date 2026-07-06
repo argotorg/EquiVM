@@ -788,7 +788,7 @@ theorem scratch_blindAuctionPlaceBidBodyReverts_true_nonzero_pendingOverflow
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
     [ .ite (.binary .le (.var "value") (.storage highestBidRef))
-        [ .return (.boolLit false) ] [],
+        [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
             (u256 (.binary .add
@@ -796,7 +796,7 @@ theorem scratch_blindAuctionPlaceBidBodyReverts_true_nonzero_pendingOverflow
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),
       .assign .storage highestBidderRef (.var "bidder"),
-      .return (.boolLit true) ]
+      .return [(.boolLit true)] ]
     .reverted
   refine ExecBlock.consNormal
     (solm' := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })

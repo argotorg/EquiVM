@@ -1,7 +1,11 @@
 # Agent prompt — proving EVM↔Solm correctness for a contract
 
 You are proving that a concrete EVM bytecode artifact refines its Solm
-specification.
+specification. You goal is to complete the proof of the top-level theorem 
+in `Correct.lean` with no `sorry` and no added axioms, except for the 
+accepted trusted base below.
+
+```lean
 
 You are given a working directory, which is named after the contract
 (`<Name>/`) and includes:
@@ -89,7 +93,8 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
    dispatcher (`by_cases` on `callvalue`/`size`/each selector, routing
    each selector to its per-function `…BodyCore`, plus the shared
    revert paths). This skeleton should type-check and route correctly
-   before the leaves are done.
+   before the leaves are done. Add the necessary ABI selector axiom 
+   as needed.
 
 2. For each ABI function `<Fn>`, route to a `…BodyCore` whose proof is
    a `sorry`. That `…BodyCore` should be defined in that function's
@@ -100,6 +105,13 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
 
 4. The skeleton of the proof should now route every function and the
    constructor correctly through the main top-level dispatch.
+
+*Hard rule*: You should set up the dispatch skeleton and the per ABI 
+function theorems (initially with `sorry`) in their own files before 
+proving any of the functions. 
+
+It is likely that some of the `Examples/` proof templates will be useful 
+for this phase. You can use them as a reference for the ABI dispatch skeleton.
 
 ### Phase 2: Prove each function
 
@@ -122,27 +134,32 @@ The proof of each function follows, roughly, four phases:
    `…_none_short`, `…_none_huge`, `…_none_noncanon`). One `simpa …
    using <lib lemma>` per branch (see `BalanceOf.lean`).
 
-2. Solm source body. Prove the `ExecTransitionBody` result (return
+2. Add trusted selector facts for the public selectors in `Trusted.lean`.
+
+3. Solm source body. Prove the `ExecTransitionBody` result (return
    value / storage update / revert) using `Reasoning.SolmBody`
    (`ExecStmt`/`ExecBlock` combinators, `evalExpr_*`, `requireStep`,
    `returns`). For mutating functions, split success and revert
    branches early.
 
-3. EVM reachability. Thread the bytecode trace from the body entry PC
+4. EVM reachability. Thread the bytecode trace from the body entry PC
    to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
    ]` cooked-step chains and factored `RD.*` routine lemmas. Never
    write one giant `evm_run`; split into named `have`s, one per
    phase/routine.
 
-4. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
+5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
    `runtimeEquivalenceFor`.
 
+---
 
 ### Phase 3: Prove the constructor
 
 In a similar manner, prove correct the constructor body.
+
+---
 
 ### Phase 4: Finish the proof
 
@@ -314,12 +331,29 @@ How to use the library:
 The `Examples/` directory contains a set of template proofs. You can
 use them as a reference for your own proof.
 
+Look at the examples to find known patterns and proof templates for 
+your proof.
+
 Note that not all examples are derived with the same compiler,
 version, and optimization settings. Always check the source and
 bytecode for your contract.
 
+The examples may lag behind recent Solm changes (they are migrated in
+batches). If an example does not compile, use it as a *reading*
+reference for trace/dispatch/proof patterns only — do not build it and
+do not copy its conventions blindly. In particular, examples written
+before the multi-value-return change show the old return conventions
+(`returnType := some T` / `.return e`); the current convention is
+lists (`returnType := [T]` / `.return [e]`, multi-value
+`.return [a, b]`).
+
 - For an example of binary search dispatch, see `Examples/Ballot`. 
 - For an example of linear dispatch, see `Examples/ERC20`.
+
+
+*Hard rule:* do not import code directly from `Examples/` into your proof. 
+If you find yourself needed the same lemma, prove it in your own working 
+directory and flag it for promotion to the library if it is general enough.
 
 ---
 
@@ -364,7 +398,10 @@ Function calls should be proven modularly. In particular:
 - Loops: 
 
   The `Examples/BlindAuction` example has a big complicated loop in the 
-  `Reveal` function. shows how to prove loops by induction. The loop
+  `Reveal` function and shows how to prove loops by induction: state
+  the invariant over the loop counter, prove a single reusable
+  body-step lemma, and close the loop by induction on the remaining
+  iterations, on both the Solm side and the bytecode trace.
 ---
 
 ## 7. Build discipline, tactics, proof engineering, efficiency
@@ -389,7 +426,7 @@ Function calls should be proven modularly. In particular:
 - Develop new lemmas in a small scratch file, not by editing the large
   file in place. Heavy files take minutes to rebuild and every edit
   re-elaborates the whole file. Create a throwaway
-  `Examples/<Name>/Scratch.lean` that imports the real file (so its
+  `<Name>/Scratch.lean` in your working directory that imports the real file (so its
   defs/lemmas are in scope, compiled once and cached) and develop the
   new lemma there with fast cycles. Once it compiles clean, move it
   into its proper file and delete the scratch.
@@ -460,6 +497,10 @@ When a step fails, re-check it against the disassembly first.
 
 - Do not make changes outside of your working directory.
 
+- Do not build examples and benchmarks that are not your own. 
+  **This is extremely important**. Builds are extremely expensive and time-consuming.
+  Only build your own working directory. 
+
 - If you find misspecifications, mismatches, or unprovable
   obligations, stop and report them immediately. Do not continue until
   they are resolved.
@@ -484,10 +525,15 @@ When a step fails, re-check it against the disassembly first.
 Run, and report results verbatim:
 
 ```
-lake build Examples.<Name>.Correct
-rg -n '\b(sorry|admit)\b' Examples/<Name>
-printf '%s\n' 'import Examples.<Name>.Correct' '#print axioms <Name>.<name>Correct' | lake env lean --stdin
+lake build <Module>.Correct
+rg -n '\b(sorry|admit)\b' <WorkDir>
+printf '%s\n' 'import <Module>.Correct' '#print axioms <Namespace>.<name>Correct' | lake env lean --stdin
 ```
+
+where `<WorkDir>` is your working directory, `<Module>` its Lean module
+path, and `<Namespace>` the contract's namespace — e.g. for
+`Examples/ERC20/`: `Examples.ERC20`; for `Benchmarks/Dss/Dai/`:
+`Benchmarks.Dss.Dai`.
 
 The build must succeed with no `sorry`.
 
@@ -496,7 +542,9 @@ The axiom footprint should contain only
 (from `native_decide`), the pre-existing library axiom
 `ByteArray_zeroes_size`, your contract's selector/jump-dest facts, and
 — for any contract with an external call — the tolerated external-call
-axioms `Reasoning.Theory.typedCallViaEVM_accountMapEquiv` /
-`Reasoning.Reach.Theta_returnData_size_lt` (a known trusted base being
-removed separately; do not block on these). Flag only anything beyond
-this set — a new axiom your work introduced.
+axiom `Reasoning.Reach.Theta_returnData_size_lt_2pow138` (a known
+trusted base being removed separately; do not block on it).
+(`typedCallViaEVM_accountMapEquiv` is a proved theorem in
+`Reasoning/ExternalCall.lean`, not an axiom — it does not appear in the
+footprint.) Flag only anything beyond this set — a new axiom your work
+introduced.

@@ -66,9 +66,9 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (balanceOfStore I) balanceOfTransition.body
       (.returned { contract := contract, locals := balanceOfStore I } evm
-        (some (.int (Int.ofNat
+        (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (balanceOfStorageSlot I)).toNat)))) := by
+            (balanceOfStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar (t := .int uint256Int)
@@ -182,7 +182,7 @@ theorem uniswapBalanceOfBodyCoreOk
         balanceOfTransition.body
         (.returned { contract := contract, locals := balanceOfStore I }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (balanceOfWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (balanceOfWord σ_solm I).toNat))])) := by
     simpa [balanceOfWord, balanceOfStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapBalanceOfBodyReturns

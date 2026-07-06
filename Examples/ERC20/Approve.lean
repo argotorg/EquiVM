@@ -134,11 +134,11 @@ theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody erc20Config erc20Contract evm (approveStore I) approveTransition.body
       (.returned { contract := erc20Contract, locals := approveStore I }
-        (approvePostState evm I) (some (.bool true))) := by
+        (approvePostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
   refine ExecBlock.consNormal (ExecStmt.assign (evalExpr_approve_value evm I) (approveAssign evm I)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 /-! ## EVM scratch memory and slot facts for `approve(address,uint256)` -/
 

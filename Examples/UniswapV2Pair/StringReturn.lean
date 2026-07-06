@@ -11,8 +11,8 @@ namespace UniswapV2Pair
 
 theorem uniswapBytesLiteralBodyReturns (evm : EVM.State) (locals : Store) (bytes : ByteArray)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return (.bytesLit bytes) ])
-      (.returned { contract := contract, locals := locals } evm (some (.bytes bytes))) := by
+    ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.bytesLit bytes)] ])
+      (.returned { contract := contract, locals := locals } evm (some [(.bytes bytes)])) := by
   simpa [nonpayable] using
     nonpayableBytesLiteralBodyReturns (cfg := config) (contract := contract) evm locals bytes h
 

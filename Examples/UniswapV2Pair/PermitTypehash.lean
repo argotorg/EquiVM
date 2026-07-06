@@ -22,7 +22,7 @@ theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm locals permitTypehashTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.fixedBytes bytes32Width permitTypehashBytes))) := by
+        (some [(.fixedBytes bytes32Width permitTypehashBytes)])) := by
   simpa [permitTypehashTransition, permitTypehashBytes] using
     uniswapFixedBytesLiteralBodyReturns evm locals bytes32Width permitTypehashBytes h
 
@@ -79,13 +79,13 @@ theorem uniswapPermitTypehashBodyCore
         permitTypehashTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.fixedBytes bytes32Width permitTypehashBytes))) := by
+          (some [(.fixedBytes bytes32Width permitTypehashBytes)])) := by
     exact uniswapPermitTypehashBodyReturns
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
-      returnEquiv (UInt256.toByteArray permitTypehashWord)
-        (some (.fixedBytes bytes32Width permitTypehashBytes))
+    returnEquiv (UInt256.toByteArray permitTypehashWord)
+        (some [(.fixedBytes bytes32Width permitTypehashBytes)])
         permitTypehashTransition.returnType := by
     rw [permitTypehashTransition]
     exact returnEquiv_of_encode

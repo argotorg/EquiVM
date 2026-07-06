@@ -18,8 +18,8 @@ theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store
     (hlocals : locals.get? "auctionEndTime" = none) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals auctionEndTimeGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef simpleAuctionConfig { contract := simpleAuctionContract, locals := locals }
@@ -147,7 +147,7 @@ theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ_solm σ₀ A I}
           auctionEndTimeGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.int (Int.ofNat (auctionEndTimeWord σ_solm I).toNat)))) := by
+            (some [(.int (Int.ofNat (auctionEndTimeWord σ_solm I).toNat))])) := by
       simpa [auctionEndTimeWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         simpleAuctionAuctionEndTimeBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -162,7 +162,7 @@ theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ_solm σ₀ A I}
       simpa [auctionEndTimeGetter] using
         bodyReverts_nonPayable (cfg := simpleAuctionConfig) (contract := simpleAuctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (locals := (∅ : Store)) (rest := [.return (.storage auctionEndTimeRef)])
+          (locals := (∅ : Store)) (rest := [.return [(.storage auctionEndTimeRef)]])
           (by simp only [initState]; exact hwv)
     exact (simpleAuctionX_auctionEndTime_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionRevert hcode hd hdec hbody

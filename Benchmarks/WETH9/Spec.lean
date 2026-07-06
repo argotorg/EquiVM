@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Benchmarks.WETH9.StringLayout
 
 /-!
 # WETH9 benchmark spec
@@ -84,8 +85,10 @@ def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
       some (wordLoc (allowanceSlot owner spender))
   | _, _ => none
 
+-- solc 0.5.16 compact-string semantics (total header decode + unconditional data-word clear on
+-- write) differ from the shared ≥0.8-faithful `solidityStorageLayout` defaults; see StringLayout.lean.
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  weth9StorageLayout storageLayoutRaw
 
 /-! ## Shared expressions and source bodies -/
 
@@ -95,9 +98,11 @@ def nonpayable : List Stmt :=
 def emptyBytes : Expr :=
   .newBytes (.intLit 0)
 
+-- WETH9.sol has no explicit constructor, so solc 0.5.16 emits a non-payable implicit one: the
+-- creation bytecode reverts on nonzero `msg.value` (creation.hex pc 105–115) before the field inits.
 def constructorDecl : ConstructorDecl :=
   { params := []
-    body :=
+    body := nonpayable ++
       [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
         .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
         .assign .storage decimalsRef (.intLit 18) ] }
@@ -107,37 +112,37 @@ def constructorDecl : ConstructorDecl :=
 def nameTransition : TransitionDecl :=
   { name := "name"
     params := []
-    returnType := some stringTy
-    body := nonpayable ++ [ .return (.storage nameRef) ] }
+    returnType := [stringTy]
+    body := nonpayable ++ [ .return [.storage nameRef] ] }
 
 def symbolTransition : TransitionDecl :=
   { name := "symbol"
     params := []
-    returnType := some stringTy
-    body := nonpayable ++ [ .return (.storage symbolRef) ] }
+    returnType := [stringTy]
+    body := nonpayable ++ [ .return [.storage symbolRef] ] }
 
 def decimalsTransition : TransitionDecl :=
   { name := "decimals"
     params := []
-    returnType := some uint8
-    body := nonpayable ++ [ .return (.storage decimalsRef) ] }
+    returnType := [uint8]
+    body := nonpayable ++ [ .return [.storage decimalsRef] ] }
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
     params := [{ name := "owner", ty := addr }]
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage (balanceOfRef (.var "owner"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage (balanceOfRef (.var "owner"))] ] }
 
 def allowanceTransition : TransitionDecl :=
   { name := "allowance"
     params := [{ name := "owner", ty := addr }, { name := "guy", ty := addr }]
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.storage (allowanceRef (.var "owner") (.var "guy"))) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.storage (allowanceRef (.var "owner") (.var "guy"))] ] }
 
 def depositTransition : TransitionDecl :=
   { name := "deposit"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .assign .storage (balanceOfRef sender)
           (.binary .add (.storage (balanceOfRef sender)) (.env .callvalue)) ] }
@@ -145,13 +150,13 @@ def depositTransition : TransitionDecl :=
 def fallbackTransition : TransitionDecl :=
   { name := "fallback"
     params := []
-    returnType := none
+    returnType := []
     body := depositTransition.body }
 
 def withdrawTransition : TransitionDecl :=
   { name := "withdraw"
     params := [{ name := "wad", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       nonpayable ++
         [ .require (.binary .ge (.storage (balanceOfRef sender)) (.var "wad")),
@@ -163,33 +168,33 @@ def withdrawTransition : TransitionDecl :=
 def totalSupplyTransition : TransitionDecl :=
   { name := "totalSupply"
     params := []
-    returnType := some uint256
-    body := nonpayable ++ [ .return (.env .selfbalance) ] }
+    returnType := [uint256]
+    body := nonpayable ++ [ .return [.env .selfbalance] ] }
 
 def approveTransition : TransitionDecl :=
   { name := "approve"
     params := [{ name := "guy", ty := addr }, { name := "wad", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .assign .storage (allowanceRef sender (.var "guy")) (.var "wad"),
-          .return (.boolLit true) ] }
+          .return [.boolLit true] ] }
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
     params := [{ name := "dst", ty := addr }, { name := "wad", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .internalCall "transferFrom" [sender, .var "dst", .var "wad"] "_ok",
-          .return (.var "_ok") ] }
+          .return [.var "_ok"] ] }
 
 def transferFromTransition : TransitionDecl :=
   { name := "transferFrom"
     params :=
       [ { name := "src", ty := addr }, { name := "dst", ty := addr },
         { name := "wad", ty := uint256 } ]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       nonpayable ++
         [ .require (.binary .ge (.storage (balanceOfRef (.var "src"))) (.var "wad")),
@@ -205,7 +210,7 @@ def transferFromTransition : TransitionDecl :=
             (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")),
           .assign .storage (balanceOfRef (.var "dst"))
             (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")),
-          .return (.boolLit true) ] }
+          .return [.boolLit true] ] }
 
 def contract : ContractDecl :=
   { name := "WETH9"

@@ -103,6 +103,7 @@ theorem scratch_eval_placeBid_value_le_highestBid_true
     (Int.ofNat value.toNat) (scratch_placeBidStore_value bidder value), EvalResult.bind, bind]
   rw [scratch_eval_placeBid_highestBid evm bidder value high hhigh]
   simp [evalBinaryOp?, hle]
+  all_goals decide
 
 theorem scratch_eval_placeBid_value_le_highestBid_false
     (evm : EVM.State) (bidder : AccountAddress) (value high : UInt256)
@@ -118,6 +119,7 @@ theorem scratch_eval_placeBid_value_le_highestBid_false
   have hltInt : (Int.ofNat high.toNat) < Int.ofNat value.toNat := Int.ofNat_lt.mpr hlt
   have hnot : ¬ Int.ofNat value.toNat ≤ Int.ofNat high.toNat := not_le_of_gt hltInt
   simp [evalBinaryOp?, hnot, hlt]
+  all_goals decide
 
 theorem scratch_eval_placeBid_highestBidder
     (evm : EVM.State) (bidder : AccountAddress) (value old : UInt256)
@@ -151,6 +153,7 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_false
     EvalResult.bind, bind]
   simp [zeroAddr, addrSt, evalExpr?, hzero, evalBinaryOp?, castValue?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, AccountAddress.ofNat]
+  all_goals decide
 
 theorem scratch_eval_placeBid_highestBidder_ne_zero_true
     (evm : EVM.State) (bidder : AccountAddress) (value old : UInt256)
@@ -193,6 +196,8 @@ theorem scratch_eval_placeBid_highestBidder_ne_zero_true
           omega
     simp [zeroAddr, addrSt, evalExpr?, evalBinaryOp?, castValue?, EvalResult.ofOption,
       EvalResult.bind, bind, pure, AccountAddress.ofNat, haddr, hnotdiv]
+    all_goals decide
+  all_goals decide
 
 theorem scratch_evalStorageRef_placeBid_pendingReturns
     (evm : EVM.State) (bidder oldAddr : AccountAddress) (value old : UInt256)
@@ -269,6 +274,7 @@ theorem scratch_eval_placeBid_pending_add
   simp only [uint256Int]
   rw [if_neg hif]
   rfl
+  all_goals decide
 
 theorem scratch_eval_placeBid_pending_add_revert
     (evm : EVM.State) (bidder oldAddr : AccountAddress) (value old high pending : UInt256)
@@ -303,6 +309,7 @@ theorem scratch_eval_placeBid_pending_add_revert
     exact hge
   simp only [uint256Int]
   rw [if_pos hif]
+  all_goals decide
 
 theorem scratch_assign_placeBid_pendingReturns
     (evm : EVM.State) (bidder oldAddr : AccountAddress)
@@ -412,13 +419,13 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_false
     ExecTransitionBody blindAuctionConfig blindAuctionContract evm
       (scratch_placeBidStore bidder value) placeBidFn.body
       (.returned { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value }
-        evm (some (.bool false))) := by
+        evm (some [(.bool false)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold placeBidFn
   refine ExecBlock.consReturn ?_
   refine ExecStmt.iteTrue ?_ ?_
   · exact scratch_eval_placeBid_value_le_highestBid_true evm bidder value high hhigh hle
-  · exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  · exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem scratch_blindAuctionPlaceBidBodyReturns_true_zero
     (evm : EVM.State) (bidder : AccountAddress) (value high old : UInt256)
@@ -430,13 +437,13 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_zero
       (scratch_placeBidStore bidder value) placeBidFn.body
       (.returned { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value }
         (scratch_placeBidAfterBidder (scratch_placeBidAfterHigh evm value) bidder)
-        (some (.bool true))) := by
+        (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold placeBidFn
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
     [ .ite (.binary .le (.var "value") (.storage highestBidRef))
-        [ .return (.boolLit false) ] [],
+        [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
             (u256 (.binary .add
@@ -444,10 +451,10 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_zero
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),
       .assign .storage highestBidderRef (.var "bidder"),
-      .return (.boolLit true) ]
+      .return [(.boolLit true)] ]
     (.returned { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value }
       (scratch_placeBidAfterBidder (scratch_placeBidAfterHigh evm value) bidder)
-      (some (.bool true)))
+      (some [(.bool true)]))
   refine ExecBlock.consNormal
     (solm' := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm' := evm) ?_ ?_
@@ -475,7 +482,7 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_zero
         (scratch_placeBidStore bidder value) "bidder" (.address bidder)
         (scratch_placeBidStore_bidder bidder value))
       (scratch_assign_placeBid_highestBidder (scratch_placeBidAfterHigh evm value) bidder value)
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
     (evm : EVM.State) (bidder oldAddr : AccountAddress)
@@ -495,13 +502,13 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
           (scratch_placeBidAfterHigh
             (scratch_placeBidAfterPending evm oldAddr
               (UInt256.ofNat (pending.toNat + high.toNat))) value) bidder)
-        (some (.bool true))) := by
+        (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold placeBidFn
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
     [ .ite (.binary .le (.var "value") (.storage highestBidRef))
-        [ .return (.boolLit false) ] [],
+        [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
             (u256 (.binary .add
@@ -509,13 +516,13 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),
       .assign .storage highestBidderRef (.var "bidder"),
-      .return (.boolLit true) ]
+      .return [(.boolLit true)] ]
     (.returned { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value }
       (scratch_placeBidAfterBidder
         (scratch_placeBidAfterHigh
           (scratch_placeBidAfterPending evm oldAddr
             (UInt256.ofNat (pending.toNat + high.toNat))) value) bidder)
-      (some (.bool true)))
+      (some [(.bool true)]))
   refine ExecBlock.consNormal
     (solm' := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm' := evm) ?_ ?_
@@ -572,7 +579,7 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
           (scratch_placeBidAfterPending evm oldAddr
             (UInt256.ofNat (pending.toNat + high.toNat))) value)
         bidder value)
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 /-! ### Scratch placeBid EVM-side routine -/
 

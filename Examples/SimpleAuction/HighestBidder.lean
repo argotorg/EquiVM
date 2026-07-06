@@ -21,9 +21,9 @@ theorem simpleAuctionHighestBidderBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "highestBidder" = none) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals highestBidderGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef simpleAuctionConfig
@@ -136,7 +136,7 @@ theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ_solm σ₀ A I}
           highestBidderGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.address (AccountAddress.ofNat (highestBidderReturnWord σ_solm I).toNat)))) := by
+            (some [(.address (AccountAddress.ofNat (highestBidderReturnWord σ_solm I).toNat))])) := by
       simpa [highestBidderWord, highestBidderReturnWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using simpleAuctionHighestBidderBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -153,7 +153,7 @@ theorem simpleAuctionHighestBidderBody {cA gh bl σ_evm σ_solm σ₀ A I}
         (bodyReverts_nonPayable (cfg := simpleAuctionConfig) (contract := simpleAuctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
-          (rest := [.return (.storage highestBidderRef)])
+          (rest := [.return [(.storage highestBidderRef)]])
           (by simp only [initState]; exact hwv))
     exact (simpleAuctionHighestBidderX_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)
       |>.reEquivExecutionRevert hcode hd hdec hbody

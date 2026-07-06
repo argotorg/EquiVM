@@ -250,12 +250,16 @@ theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (supportsInterfaceStore I) supportsInterfaceTransition.body
       (.returned { contract := contract, locals := supportsInterfaceStore I } evm
-        (some (.bool (supportsInterfaceResult I)))) := by
+        (some [(.bool (supportsInterfaceResult I))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
-        evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, BEq.beq,
-        erc6909Decide_eq_list_beq_uint8])
+      by_cases h6909 : (supportsInterfaceArgBytes I).beq [0x0f, 0x63, 0x2f, 0xb3] = true
+      · simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
+          evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, pure, BEq.beq,
+          erc6909Decide_eq_list_beq_uint8, h6909]
+      · simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
+          evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, pure, BEq.beq,
+          erc6909Decide_eq_list_beq_uint8, h6909])
 
 theorem erc6909SupportsInterfaceX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -532,7 +536,7 @@ theorem erc6909SupportsInterfaceBodyCore
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some (.bool (supportsInterfaceResult I)))) := by
+                  (some [(.bool (supportsInterfaceResult I))])) := by
             exact erc6909SupportsInterfaceBodyReturns
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)

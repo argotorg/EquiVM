@@ -365,7 +365,7 @@ theorem uniswapTransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferNewToNat evm I < UInt256.size) :
     ExecTransitionBody config contract evm (transferStore I) transferTransition.body
       (.returned { contract := contract, locals := transferStoreToBalance evm I }
-        (transferPostState evm I) (some (.bool true))) := by
+        (transferPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
@@ -377,7 +377,7 @@ theorem uniswapTransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transfer_newToBalance evm I hfit)
       (transferAssignTo evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem uniswapTransferBodyReverts_insufficient (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -862,7 +862,7 @@ theorem uniswapTransferBodyCoreOk
   have hbody :
       ExecTransitionBody config contract evmS (transferStore I) transferTransition.body
         (.returned { contract := contract, locals := transferStoreToBalance evmS I }
-          (transferPostState evmS I) (some (.bool true))) := by
+          (transferPostState evmS I) (some [(.bool true)])) := by
     exact uniswapTransferBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
       henoughS hfitS
   have htoSlot : transferToSlot I = mapSlot (transferToMaskedWord I) ⟨1⟩ :=

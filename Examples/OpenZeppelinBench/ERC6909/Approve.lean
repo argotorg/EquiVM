@@ -295,7 +295,7 @@ theorem erc6909ApproveBodyReturns (evm : EVM.State)
       AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0) :
     ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
       (.returned { contract := contract, locals := approveStore evm.executionEnv }
-        (approvePostState evm evm.executionEnv) (some (.bool true))) := by
+        (approvePostState evm evm.executionEnv) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal
@@ -305,7 +305,7 @@ theorem erc6909ApproveBodyReturns (evm : EVM.State)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_approve_amount evm evm.executionEnv)
       (approveAssign evm evm.executionEnv)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem erc6909ApproveBodyReverts_sender (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1143,7 +1143,7 @@ theorem erc6909ApproveBodyCore
                 ExecTransitionBody config contract evmS (approveStore I)
                   approveTransition.body
                   (.returned { contract := contract, locals := approveStore I }
-                    (approvePostState evmS I) (some (.bool true))) := by
+                    (approvePostState evmS I) (some [(.bool true)])) := by
               simpa [evmS, initState] using erc6909ApproveBodyReturns evmS
                 (by simp only [evmS, initState]; exact hwv)
                 (by simpa [evmS, initState] using hsource)

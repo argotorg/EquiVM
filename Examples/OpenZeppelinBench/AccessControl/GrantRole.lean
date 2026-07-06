@@ -137,20 +137,29 @@ theorem evalExpr_grantRole_adminRole (evm : EVM.State) (I : ExecutionEnv) :
   rw [evalExpr?, grantRoleStoreWithAdmin_adminRole]
   rfl
 
-theorem evalStorageRef_grantRole_admin (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalStorageRef_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     evalStorageRef config { contract := contract, locals := grantRoleStore I } evm
       (roleAdminRef (.var "role")) = .ok (grantRoleAdminEvaledRef I) := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hlen : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleAdminRef,
     evalExpr_grantRole_role, grantRoleAdminEvaledRef, grantRoleRoleValue, grantRoleRoleKey,
-    valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+    accessControlValueToKey_bytes32_of_length hlen, EvalResult.bind, EvalResult.ofOption, bind,
+    pure]
 
-theorem evalExpr_grantRole_admin (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExpr_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := grantRoleStore I } evm
       (.storage (roleAdminRef (.var "role"))) = .ok (grantRoleAdminValue evm I) := by
   rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
     (loc := bytes32Loc (grantRoleAdminSlot I))
     (hbase := grantRoleStore_roles I)
-    (her := evalStorageRef_grantRole_admin evm I)
+    (her := evalStorageRef_grantRole_admin evm I hsz68)
     (hty := by
       simp [storageTypeAt?, grantRoleAdminEvaledRef, contract, storageDecls, roleDataSt,
         bytes32St, storageTypeStep?])
@@ -165,7 +174,8 @@ theorem evalStorageRef_grantRole_adminHasRole (evm : EVM.State) (I : ExecutionEn
         .ok (grantRoleAdminHasRoleEvaledRef evm I) := by
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleHasRoleRef, sender,
     envValue, evalExpr_grantRole_adminRole, grantRoleAdminHasRoleEvaledRef,
-    grantRoleAdminValue, grantRoleAdminKey, grantRoleSenderKey, valueToKey?,
+    grantRoleAdminValue, grantRoleAdminKey, grantRoleSenderKey,
+    accessControlValueToKey_bytes32_toBytesBE, accessControlValueToKey_address,
     EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?]
 
 theorem evalExpr_grantRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEnv)
@@ -202,16 +212,25 @@ theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEn
       rfl)]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
-theorem evalStorageRef_grantRole_target (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalStorageRef_grantRole_target (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     evalStorageRef config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       (roleHasRoleRef (.var "role") (.var "account")) =
         .ok (grantRoleTargetEvaledRef I) := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hlen : ((I.calldata.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]
+    omega
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleHasRoleRef,
     evalExpr_grantRole_role_withAdmin, evalExpr_grantRole_account, grantRoleTargetEvaledRef,
     grantRoleRoleValue, grantRoleRoleKey, grantRoleAccountValue, grantRoleAccountKey,
-    valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+    accessControlValueToKey_bytes32_of_length hlen, accessControlValueToKey_address,
+    EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hnz : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleTargetSlot I)) ⟨255⟩ ≠
         ⟨0⟩) :
@@ -220,7 +239,7 @@ theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
   rw [evalExpr_storage_scalar (t := .bool)
     (loc := boolLoc (grantRoleTargetSlot I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
-    (her := evalStorageRef_grantRole_target evm I)
+    (her := evalStorageRef_grantRole_target evm I hsz68)
     (hty := by
       simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
@@ -229,6 +248,7 @@ theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
   rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hzero : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleTargetSlot I)) ⟨255⟩ =
         ⟨0⟩) :
@@ -237,7 +257,7 @@ theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
   rw [evalExpr_storage_scalar (t := .bool)
     (loc := boolLoc (grantRoleTargetSlot I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
-    (her := evalStorageRef_grantRole_target evm I)
+    (her := evalStorageRef_grantRole_target evm I hsz68)
     (hty := by
       simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
@@ -246,6 +266,7 @@ theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalExpr_grantRole_target_not_true (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hzero : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleTargetSlot I)) ⟨255⟩ =
         ⟨0⟩) :
@@ -253,9 +274,10 @@ theorem evalExpr_grantRole_target_not_true (evm : EVM.State) (I : ExecutionEnv)
       (.unary .not (.storage (roleHasRoleRef (.var "role") (.var "account")))) =
         .ok (.bool true) := by
   simp [evalExpr?, EvalResult.bind, bind, evalUnaryOp?, EvalResult.ofOption,
-    evalExpr_grantRole_target_false evm I hzero]
+    evalExpr_grantRole_target_false evm I hsz68 hzero]
 
 theorem evalExpr_grantRole_target_not_false (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hnz : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleTargetSlot I)) ⟨255⟩ ≠
         ⟨0⟩) :
@@ -263,9 +285,10 @@ theorem evalExpr_grantRole_target_not_false (evm : EVM.State) (I : ExecutionEnv)
       (.unary .not (.storage (roleHasRoleRef (.var "role") (.var "account")))) =
         .ok (.bool false) := by
   simp [evalExpr?, EvalResult.bind, bind, evalUnaryOp?, EvalResult.ofOption,
-    evalExpr_grantRole_target_true evm I hnz]
+    evalExpr_grantRole_target_true evm I hsz68 hnz]
 
-theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv) :
+theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size) :
     assignStorageRef? config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       .storage (roleHasRoleRef (.var "role") (.var "account")) (.bool true) =
         .ok ({ contract := contract, locals := grantRoleStoreWithAdmin evm I },
@@ -276,7 +299,7 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv) :
       (value := .bool true)
       (evm' := grantRolePostState evm I)
       (hbase := grantRoleStoreWithAdmin_roles evm I)
-      (her := evalStorageRef_grantRole_target evm I)
+      (her := evalStorageRef_grantRole_target evm I hsz68)
       (hty := by
         simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
@@ -288,6 +311,7 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv) :
           storageLocStore_bool_true_offset0 evm (grantRoleTargetSlot I))
 
 theorem accessControlGrantRoleBodyReturns_write (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hadmin : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleAdminHasRoleSlot evm I))
@@ -300,20 +324,21 @@ theorem accessControlGrantRoleBodyReturns_write (evm : EVM.State) (I : Execution
         (grantRolePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_grantRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteTrue (result := .ok
       ({ contract := contract, locals := grantRoleStoreWithAdmin evm I } : Frame)
       (grantRolePostState evm I))
-      (evalExpr_grantRole_target_not_true evm I htarget) ?_) ?_
+      (evalExpr_grantRole_target_not_true evm I hsz68 htarget) ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.assign (by simp [evalExpr?, pure]) (grantRoleAssignTarget evm I)) ?_
+      (ExecStmt.assign (by simp [evalExpr?, pure]) (grantRoleAssignTarget evm I hsz68)) ?_
     exact ExecBlock.nil
   exact ExecBlock.nil
 
 theorem accessControlGrantRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hadmin : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleAdminHasRoleSlot evm I))
@@ -325,17 +350,18 @@ theorem accessControlGrantRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionE
       (.returned { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_grantRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteFalse (result := .ok
       ({ contract := contract, locals := grantRoleStoreWithAdmin evm I } : Frame) evm)
-      (evalExpr_grantRole_target_not_false evm I htarget) ?_) ?_
+      (evalExpr_grantRole_target_not_false evm I hsz68 htarget) ?_) ?_
   · exact ExecBlock.nil
   exact ExecBlock.nil
 
 theorem accessControlGrantRoleBodyReverts_admin (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hadmin : UInt256.land
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleAdminHasRoleSlot evm I))
@@ -343,7 +369,7 @@ theorem accessControlGrantRoleBodyReverts_admin (evm : EVM.State) (I : Execution
     ExecTransitionBody config contract evm (grantRoleStore I) grantRoleTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_grantRole_adminHasRole_false evm I hadmin))
 
@@ -1200,7 +1226,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               revokeRoleStorageWordAt, grantRoleAdminHasRoleSlotFromWord,
               grantRoleAdminHasRoleSlot, grantRoleAdminKey, grantRoleAdminWord,
               grantRoleAdminStorageWord, grantRoleSenderKey] using hword
-          have hbody := accessControlGrantRoleBodyReverts_admin evmS I
+          have hbody := accessControlGrantRoleBodyReverts_admin evmS I hsz68
             (by simp only [evmS, initState]; exact hwv) hadminSolm
           exact (accessControlGrantRoleX_onlyRole_revert (g := Sat256.ofUInt256 g)
               hadmin rd527)
@@ -1234,7 +1260,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
                 grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
                   hword
-            have hbody := accessControlGrantRoleBodyReturns_write evmS I
+            have hbody := accessControlGrantRoleBodyReturns_write evmS I hsz68
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             have hval :
                 grantRoleSetTrueWord
@@ -1263,7 +1289,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     grantRoleTargetStorageWord, grantRoleStorageWordAt,
                     revokeRoleStorageWordAt]))
                 hσPost
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
           · have htargetNonzero :
                 UInt256.land (grantRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :
@@ -1276,11 +1302,11 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
                 grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
                   hword
-            have hbody := accessControlGrantRoleBodyReturns_noop evmS I
+            have hbody := accessControlGrantRoleBodyReturns_noop evmS I hsz68
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             exact (accessControlGrantRoleX_grant_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htargetNonzero rd379)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.void rfl rfl rfl)
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have hdec := accessControlDecode_grantRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (grantRoleAccountWord I)

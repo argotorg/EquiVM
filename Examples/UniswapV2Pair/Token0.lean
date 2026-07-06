@@ -22,9 +22,9 @@ theorem uniswapToken0BodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "token0" = none) :
     ExecTransitionBody config contract evm locals token0Transition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   simpa [token0Transition] using
     uniswapAddressGetterBodyReturns (slot := ⟨6⟩) (ref := token0Ref)
       (er := ({ base := "token0", steps := [] } : EvaledStorageRef)) evm locals h
@@ -67,7 +67,7 @@ theorem uniswapToken0BodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ token0Transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (token0ReturnWord σ_solm I).toNat)))) := by
+          (some [(.address (AccountAddress.ofNat (token0ReturnWord σ_solm I).toNat))])) := by
     simpa [token0Word, token0ReturnWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using uniswapToken0BodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -19,8 +19,8 @@ theorem uniswapTotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "totalSupply" = none) :
     ExecTransitionBody config contract evm locals totalSupplyTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩).toNat))])) := by
   simpa [totalSupplyTransition] using
     uniswapUint256GetterBodyReturns (slot := ⟨0⟩) (ref := totalSupplyRef)
       (er := ({ base := "totalSupply", steps := [] } : EvaledStorageRef)) evm locals h
@@ -63,7 +63,7 @@ theorem uniswapTotalSupplyBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (totalSupplyWord σ_solm I).toNat))])) := by
     simpa [totalSupplyWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapTotalSupplyBodyReturns

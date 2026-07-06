@@ -51,7 +51,7 @@ theorem accessControlDecode_defaultAdminRole {I : ExecutionEnv} (hsz : 4 ≤ I.c
 theorem accessControlDefaultAdminRoleBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm ∅ defaultAdminRoleTransition.body
-      (.returned { contract := contract, locals := ∅ } evm (some defaultAdminRoleValue)) := by
+      (.returned { contract := contract, locals := ∅ } evm (some [defaultAdminRoleValue])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [defaultAdminRoleValue, defaultAdminRole, defaultAdminRole_zeroBytes]
@@ -124,7 +124,7 @@ theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
         defaultAdminRoleTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some defaultAdminRoleValue)) := by
+          (some [defaultAdminRoleValue])) := by
     exact accessControlDefaultAdminRoleBodyReturns
       (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)

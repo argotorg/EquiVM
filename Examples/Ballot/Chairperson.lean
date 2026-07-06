@@ -22,9 +22,9 @@ theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "chairperson" = none) :
     ExecTransitionBody ballotConfig ballotContract evm locals chairpersonGetter.body
       (.returned { contract := ballotContract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef ballotConfig { contract := ballotContract, locals := locals } evm
@@ -110,7 +110,7 @@ theorem ballotChairpersonBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ chairpersonGetter.body
         (.returned { contract := ballotContract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.address (AccountAddress.ofNat (chairpersonReturnWord σ_solm I).toNat)))) := by
+          (some [(.address (AccountAddress.ofNat (chairpersonReturnWord σ_solm I).toNat))])) := by
     simpa [chairpersonWord, chairpersonReturnWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using ballotChairpersonBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

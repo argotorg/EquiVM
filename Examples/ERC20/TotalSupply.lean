@@ -23,7 +23,7 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "totalSupply" = none) :
     ExecTransitionBody erc20Config erc20Contract evm locals totalSupplyTransition.body
       (.returned { contract := erc20Contract, locals := locals } evm
-        (some (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)))) := by
+        (some [(.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef erc20Config { contract := erc20Contract, locals := locals } evm
@@ -118,7 +118,7 @@ theorem erc20TotalSupplyBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (totalSupplyWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (totalSupplyWord σ_solm I).toNat))])) := by
     simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       erc20TotalSupplyBodyReturns
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -35,18 +35,18 @@ def constructorDeclSyntax : ConstructorDecl :=
 def nameTransitionSyntax : TransitionDecl :=
   { name := "name"
     params := []
-    returnType := some stringTy
+    returnType := [stringTy]
     body := sBlock% {
       require msg.value == 0
-    } ++ [ .return (.storage nameRef) ] }
+    } ++ [ .return [.storage nameRef] ] }
 
 def symbolTransitionSyntax : TransitionDecl :=
   { name := "symbol"
     params := []
-    returnType := some stringTy
+    returnType := [stringTy]
     body := sBlock% {
       require msg.value == 0
-    } ++ [ .return (.storage symbolRef) ] }
+    } ++ [ .return [.storage symbolRef] ] }
 
 def decimalsTransitionSyntax : TransitionDecl :=
   solm_transition decimals -> uint8 {
@@ -74,13 +74,13 @@ def depositTransitionSyntax : TransitionDecl :=
 def fallbackTransitionSyntax : TransitionDecl :=
   { name := "fallback"
     params := []
-    returnType := none
+    returnType := []
     body := depositTransitionSyntax.body }
 
 def withdrawTransitionSyntax : TransitionDecl :=
   { name := "withdraw"
     params := [{ name := "wad", ty := uint256 }]
-    returnType := none
+    returnType := []
     body :=
       sBlock% {
         require msg.value == 0
@@ -95,10 +95,10 @@ def withdrawTransitionSyntax : TransitionDecl :=
 def totalSupplyTransitionSyntax : TransitionDecl :=
   { name := "totalSupply"
     params := []
-    returnType := some uint256
+    returnType := [uint256]
     body := sBlock% {
       require msg.value == 0
-    } ++ [ .return (.env .selfbalance) ] }
+    } ++ [ .return [.env .selfbalance] ] }
 
 def approveTransitionSyntax : TransitionDecl :=
   solm_transition approve (guy : address) (wad : uint256) -> bool {
@@ -110,7 +110,7 @@ def approveTransitionSyntax : TransitionDecl :=
 def transferTransitionSyntax : TransitionDecl :=
   { name := "transfer"
     params := [{ name := "dst", ty := addr }, { name := "wad", ty := uint256 }]
-    returnType := some boolTy
+    returnType := [boolTy]
     body := sBlock% {
       require msg.value == 0
     } ++
@@ -124,7 +124,7 @@ def transferFromTransitionSyntax : TransitionDecl :=
     params :=
       [ { name := "src", ty := addr }, { name := "dst", ty := addr },
         { name := "wad", ty := uint256 } ]
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       sBlock% {
         require msg.value == 0

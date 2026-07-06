@@ -108,12 +108,13 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (proposalsIndexWord I).toNat < (proposalsLengthCurrent evm).toNat) :
     ExecTransitionBody ballotConfig ballotContract evm (proposalsStore I) proposalsGetter.body
       (.returned { contract := ballotContract, locals := proposalsStore I } evm
-        (some (.tuple [
+        (some  [
           .fixedBytes ⟨31, by decide⟩
             (EVM.Word.toBytesBE (proposalNameCurrent evm I)),
-          .int (Int.ofNat (proposalCountCurrent evm I).toNat)]))) := by
+          .int (Int.ofNat (proposalCountCurrent evm I).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
-    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).run <|
+      ExecBlock.consReturn <| ExecStmt.return (by
       have hbaseName : (proposalsStore I).get? (proposalF (Expr.var "i") "name").base = none := by
         simp [proposalsStore, proposalF]
       have hbaseCount : (proposalsStore I).get? (proposalF (Expr.var "i") "voteCount").base = none := by
@@ -184,14 +185,13 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             .int (Int.ofNat (proposalCountCurrent evm I).toNat) := by
         simpa [proposalCountCurrent] using
           (ballotStorageLocLoad_uint256 evm (proposalCountSlot I))
-      rw [evalExpr?, evalExprList?,
+      simp only [Solm.evalExprs?.eq_def,
         evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
-          (her := herName) (hty := htyName) (hloc := hlocName)]
-      rw [evalExprList?,
+          (her := herName) (hty := htyName) (hloc := hlocName),
         evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseCount)
-          (her := herCount) (hty := htyCount) (hloc := hlocCount)]
-      simp [evalExprList?, EvalResult.bind, bind, pure, proposalNameCurrent,
-        proposalCountCurrent, hnameLoad, hcountLoad])
+          (her := herCount) (hty := htyCount) (hloc := hlocCount),
+        EvalResult.bind, bind, pure, proposalNameCurrent, proposalCountCurrent,
+        hnameLoad, hcountLoad])
 
 theorem ballotProposalsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -222,7 +222,7 @@ theorem ballotProposalsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
             evalStorageRefStep.eq_def, hi, proposalsIndexValue, valueToKey?, EvalResult.ofOption,
             EvalResult.bind, bind, pure, List.nil_append]
           rw [hboundsRevert]
-        simp [evalExpr?, evalExprList?, resolveStorageRef?, hbaseNameGet, herNameRevert,
+        simp [evalExpr?, Solm.evalExprs?.eq_def, resolveStorageRef?, hbaseNameGet, herNameRevert,
           EvalResult.bind, bind])))
 
 /-! ## Memory used by the proposal getter -/
@@ -665,7 +665,7 @@ theorem ballotProposalsBodyCore
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname, hcount])
             hAccounts
-            (returnEquiv_of_encode
+            (returnEquiv.returned rfl
               (ballotProposalReturnEncoding (proposalNameWord σ_evm I)
                 (proposalCountWord σ_evm I)))
       · have hbody := ballotProposalsBodyReverts_oob

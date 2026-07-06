@@ -16,8 +16,8 @@ theorem simpleAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "highestBid" = none) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals highestBidGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef simpleAuctionConfig
@@ -144,7 +144,7 @@ theorem simpleAuctionHighestBidBody {cA gh bl σ_evm σ_solm σ₀ A I}
           highestBidGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.int (Int.ofNat (highestBidWord σ_solm I).toNat)))) := by
+            (some [(.int (Int.ofNat (highestBidWord σ_solm I).toNat))])) := by
       simpa [highestBidWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         simpleAuctionHighestBidBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

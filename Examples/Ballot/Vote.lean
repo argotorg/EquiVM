@@ -1803,7 +1803,7 @@ theorem ballotVoteBodyCore_success
       (voteFinalState_EVMStateEquiv (cA := cA) (gh := gh) (bl := bl)
         (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hAccounts)
-      (returnEquiv.void rfl rfl rfl)
+      (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotVoteBodyCore_overflow
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

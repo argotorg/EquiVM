@@ -163,7 +163,7 @@ theorem ballotWinnerNameBodyReturns (evm : EVM.State)
       (winningProposalResultCurrent evm).toNat < (winningProposalLengthCurrent evm).toNat) :
     ∃ locals', ExecTransitionBody ballotConfig ballotContract evm ∅ winnerNameTransition.body
       (.returned { contract := ballotContract, locals := locals' } evm
-        (some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (winnerNameNameCurrent evm))))) := by
+        (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (winnerNameNameCurrent evm)))])) := by
   let w := winningProposalResultCurrent evm
   let Lw := winnerNameStoreAfterWinningProposal w
   obtain ⟨calleeLocals, hcallee⟩ := ballotWinningProposalBodyReturns evm ∅ h (by simp)
@@ -191,7 +191,7 @@ theorem ballotWinnerNameBodyReturns (evm : EVM.State)
   rw [winnerNameTransition]
   exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
     ExecBlock.consNormal hcall <|
-      ExecBlock.consReturn (ExecStmt.return hret)
+      ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
 theorem ballotWinnerNameBodyReverts_oob (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -224,7 +224,7 @@ theorem ballotWinnerNameBodyReverts_oob (evm : EVM.State)
     rw [winnerNameTransition]
     exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) <|
       ExecBlock.consNormal hcall <|
-        ExecBlock.consRevert (ExecStmt.returnRevert hret)
+        ExecBlock.consRevert (ExecStmt.returnRevert (by simp [evalExprs?, hret, EvalResult.bind, bind, pure]))
 
 /-! ## EVM body for `winnerName` -/
 

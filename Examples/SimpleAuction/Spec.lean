@@ -83,7 +83,7 @@ def constructorDecl : ConstructorDecl :=
 def bidTransition : TransitionDecl :=
   { name := "bid"
     params := []
-    returnType := none
+    returnType := []
     body :=
       -- `if (block.timestamp > auctionEndTime) revert AuctionAlreadyEnded();`
       [ .require (.binary .le now (.storage auctionEndTimeRef)),
@@ -104,7 +104,7 @@ def bidTransition : TransitionDecl :=
 def withdrawTransition : TransitionDecl :=
   { name := "withdraw"
     params := []
-    returnType := some boolTy
+    returnType := [boolTy]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "amount" (some uint256) (.storage (pendingReturnsRef sender)),
@@ -114,16 +114,16 @@ def withdrawTransition : TransitionDecl :=
             .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
             .ite (.unary .not (.var "success"))
               [ .assign .storage (pendingReturnsRef sender) (.var "amount"),
-                .return (.boolLit false) ]
+                .return [(.boolLit false)] ]
               [] ]
           [],
-        .return (.boolLit true) ] }
+        .return [(.boolLit true)] ] }
 
 /-- `auctionEnd() external` — once the auction is over, mark it ended and pay the beneficiary. -/
 def auctionEndTransition : TransitionDecl :=
   { name := "auctionEnd"
     params := []
-    returnType := none
+    returnType := []
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         -- `if (block.timestamp < auctionEndTime) revert AuctionNotYetEnded();`
@@ -139,24 +139,24 @@ def auctionEndTransition : TransitionDecl :=
 /-! ## Transitions — auto-generated public getters -/
 
 def beneficiaryGetter : TransitionDecl :=
-  { name := "beneficiary", params := [], returnType := some addr
+  { name := "beneficiary", params := [], returnType := [addr]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage beneficiaryRef) ] }
+              .return [(.storage beneficiaryRef)] ] }
 
 def auctionEndTimeGetter : TransitionDecl :=
-  { name := "auctionEndTime", params := [], returnType := some uint256
+  { name := "auctionEndTime", params := [], returnType := [uint256]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage auctionEndTimeRef) ] }
+              .return [(.storage auctionEndTimeRef)] ] }
 
 def highestBidderGetter : TransitionDecl :=
-  { name := "highestBidder", params := [], returnType := some addr
+  { name := "highestBidder", params := [], returnType := [addr]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage highestBidderRef) ] }
+              .return [(.storage highestBidderRef)] ] }
 
 def highestBidGetter : TransitionDecl :=
-  { name := "highestBid", params := [], returnType := some uint256
+  { name := "highestBid", params := [], returnType := [uint256]
     body := [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-              .return (.storage highestBidRef) ] }
+              .return [(.storage highestBidRef)] ] }
 
 /-! ## Contract + config -/
 

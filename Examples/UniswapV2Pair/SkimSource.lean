@@ -188,7 +188,7 @@ theorem uniswapSkimCachedFirstCallSuccess (evm evm0 : EVM.State) (I : ExecutionE
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0)) :
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0]) :
     ExecBlock config { contract := contract, locals := skimStore I } evm
       (lockEnter ++
         [ .letDecl "_token0" (some addr) (.storage token0Ref),
@@ -207,7 +207,7 @@ theorem uniswapSkimCachedFirstCallSuccess (evm evm0 : EVM.State) (I : ExecutionE
       (receiver := "_token0") (retVar := "balance0")
       (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
       (target := uniswapAddressAtSlot evmL ⟨6⟩)
-      (value := skimBalanceValue balance0)
+      (value := [skimBalanceValue balance0])
       (skimToken0GuardTrue_cached evm I hguard0)
       (by simpa [evmL] using skimTokenStore_token0 evm I)
       (evalExprs_uniswap_this_single evmL (skimTokenStore evm I))
@@ -223,12 +223,12 @@ theorem uniswapSkimBalanceOfCallsPrefix (evm evm0 evm1 : EVM.State) (I : Executi
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : skimToken1GuardTrue evm0 I balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some balance1) :
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [balance1]) :
     ExecBlock config { contract := contract, locals := skimStore I } evm
       (lockEnter ++ skimBalanceCallsBody)
       (.ok (uniswapBalanceOfFrame (skimStore I) balance0 balance1) evm1) := by
@@ -285,7 +285,7 @@ theorem uniswapSkimBalanceOfSecondCallFailure (evm evm0 evm1 : EVM.State) (I : E
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : skimToken1GuardTrue evm0 I balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
@@ -309,7 +309,7 @@ theorem uniswapSkimBalanceOfSecondCallDecodeRevert (evm evm0 evm1 : EVM.State)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some balance0)
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [balance0])
     (hguard1 : skimToken1GuardTrue evm0 I balance0)
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
@@ -630,7 +630,7 @@ theorem uniswapSkimFirstSafeTransferPrefix (evm evm0 evm1 : EVM.State)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -775,7 +775,7 @@ theorem uniswapSkimBodyReverts_firstExcessUnderflow
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (hlt : balance0.toNat < (uniswapReserve0Word evm0).toNat) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
   have hprefix :=
@@ -802,7 +802,7 @@ theorem uniswapSkimBodyReverts_secondCallFailure (evm evm0 evm1 evm2 : EVM.State
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -850,7 +850,7 @@ theorem uniswapSkimBodyReverts_secondCallDecode (evm evm0 evm1 evm2 : EVM.State)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -899,7 +899,7 @@ theorem uniswapSkimBodyReverts_secondNoCode (evm evm0 evm1 : EVM.State)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -941,7 +941,7 @@ theorem uniswapSkimBodyReverts_firstSafeTransferFailure
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hdata0 :
       transferCalldata? (skimToAddress I) (skimExcess0Word evm0 balance0) = some calldata0)
@@ -1003,7 +1003,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferFailure
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1018,7 +1018,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferFailure
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (henough1 : (uniswapReserve1Word evm2).toNat ≤ balance1.toNat)
     (hdata1 :
       transferCalldata? (skimToAddress I) (skimExcess1Word evm2 balance1) = some calldata1)
@@ -1044,7 +1044,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferFailure
       (receiver := "_token1") (retVar := "balance1")
       (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
       (target := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)
-      (value := skimBalanceValue balance1)
+      (value := [skimBalanceValue balance1])
       hguard1
       (skimFirstSafeTransferStore_token1 evm evm0 I balance0)
       (evalExprs_uniswap_this_single evm1 (skimFirstSafeTransferStore evm evm0 I balance0))
@@ -1110,7 +1110,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferStmt
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1125,7 +1125,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferStmt
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (henough1 : (uniswapReserve1Word evm2).toNat ≤ balance1.toNat)
     (hsafeStmt :
       ExecStmt config
@@ -1152,7 +1152,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferStmt
       (receiver := "_token1") (retVar := "balance1")
       (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
       (target := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)
-      (value := skimBalanceValue balance1)
+      (value := [skimBalanceValue balance1])
       hguard1
       (skimFirstSafeTransferStore_token1 evm evm0 I balance0)
       (evalExprs_uniswap_this_single evm1 (skimFirstSafeTransferStore evm evm0 I balance0))
@@ -1198,7 +1198,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferDecode
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1213,7 +1213,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferDecode
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (henough1 : (uniswapReserve1Word evm2).toNat ≤ balance1.toNat)
     (hdata1 :
       transferCalldata? (skimToAddress I) (skimExcess1Word evm2 balance1) = some calldata1)
@@ -1257,7 +1257,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferDecodeFalse
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1272,7 +1272,7 @@ theorem uniswapSkimBodyReverts_secondSafeTransferDecodeFalse
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (henough1 : (uniswapReserve1Word evm2).toNat ≤ balance1.toNat)
     (hdata1 :
       transferCalldata? (skimToAddress I) (skimExcess1Word evm2 balance1) = some calldata1)
@@ -1316,7 +1316,7 @@ theorem uniswapSkimBodyReverts_firstSafeTransferStmt
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafeStmt :
       ExecStmt config
@@ -1361,7 +1361,7 @@ theorem uniswapSkimBodyReverts_firstSafeTransferDecode
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hdata0 :
       transferCalldata? (skimToAddress I) (skimExcess0Word evm0 balance0) = some calldata0)
@@ -1401,7 +1401,7 @@ theorem uniswapSkimBodyReverts_firstSafeTransferDecodeFalse
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hdata0 :
       transferCalldata? (skimToAddress I) (skimExcess0Word evm0 balance0) = some calldata0)
@@ -1442,7 +1442,7 @@ theorem uniswapSkimBodyReverts_secondExcessUnderflow
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1457,7 +1457,7 @@ theorem uniswapSkimBodyReverts_secondExcessUnderflow
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (hlt : balance1.toNat < (uniswapReserve1Word evm2).toNat) :
     ExecTransitionBody config contract evm (skimStore I) skimTransition.body .reverted := by
   have hprefix :=
@@ -1478,7 +1478,7 @@ theorem uniswapSkimBodyReverts_secondExcessUnderflow
       (receiver := "_token1") (retVar := "balance1")
       (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
       (target := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)
-      (value := skimBalanceValue balance1)
+      (value := [skimBalanceValue balance1])
       hguard1
       (skimFirstSafeTransferStore_token1 evm evm0 I balance0)
       (evalExprs_uniswap_this_single evm1 (skimFirstSafeTransferStore evm evm0 I balance0))
@@ -1507,7 +1507,7 @@ theorem uniswapSkimBodyReturns (evm evm0 evm1 evm2 evm3 : EVM.State)
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (skimBalanceValue balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [skimBalanceValue balance0])
     (henough0 : (uniswapReserve0Word evm0).toNat ≤ balance0.toNat)
     (hsafe0 :
       ExecStmt config
@@ -1522,7 +1522,7 @@ theorem uniswapSkimBodyReturns (evm evm0 evm1 evm2 evm3 : EVM.State)
     (hcall1 : typedCallViaEVM config evm1
       (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)) "balanceOf" 0
       [.address evm1.executionEnv.codeOwner] (true, evm2, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (skimBalanceValue balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [skimBalanceValue balance1])
     (henough1 : (uniswapReserve1Word evm2).toNat ≤ balance1.toNat)
     (hsafe1 :
       ExecStmt config
@@ -1557,7 +1557,7 @@ theorem uniswapSkimBodyReturns (evm evm0 evm1 evm2 evm3 : EVM.State)
         (receiver := "_token1") (retVar := "balance1")
         (name := "balanceOf") (sendVal := 0) (args := [this]) (perm := false)
         (target := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩)
-        (value := skimBalanceValue balance1)
+        (value := [skimBalanceValue balance1])
         hguard1
         (skimFirstSafeTransferStore_token1 evm evm0 I balance0)
         (evalExprs_uniswap_this_single evm1 (skimFirstSafeTransferStore evm evm0 I balance0))

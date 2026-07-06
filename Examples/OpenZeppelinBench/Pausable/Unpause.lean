@@ -249,6 +249,6 @@ theorem pausableUnpauseBody {cA gh bl σ_evm σ_solm σ₀ A I}
           simp [unpausePostMap, initState, pausedRawWord, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage]))
         hσPost
-        (returnEquiv.void rfl rfl rfl)
+        (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 end OpenZeppelinBench.Pausable

@@ -99,7 +99,7 @@ theorem stringStoreLiteClearCurrentLongValid
         (.returned
           { contract := stringStoreLiteContract,
             locals := (∅ : Store).insert "copy" (.bytes copy) }
-          evmSolm1 (some (.int len.toNat))) := by
+          evmSolm1 (some [(.int len.toNat)])) := by
     simpa [hcopySize] using hbodyBytes
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
     (by

@@ -21,9 +21,9 @@ theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "beneficiary" = none) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm locals beneficiaryGetter.body
       (.returned { contract := simpleAuctionContract, locals := locals } evm
-        (some (.address (AccountAddress.ofNat
+        (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
-            solcAddrMask).toNat)))) := by
+            solcAddrMask).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her : evalStorageRef simpleAuctionConfig { contract := simpleAuctionContract, locals := locals }
@@ -130,7 +130,7 @@ theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ_solm σ₀ A I}
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           (.returned { contract := simpleAuctionContract, locals := ∅ }
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (.address (AccountAddress.ofNat (beneficiaryReturnWord σ_solm I).toNat)))) := by
+            (some [(.address (AccountAddress.ofNat (beneficiaryReturnWord σ_solm I).toNat))])) := by
       simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using simpleAuctionBeneficiaryBodyReturns
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅

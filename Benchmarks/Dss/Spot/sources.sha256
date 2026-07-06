@@ -1,0 +1,5 @@
+f772861927801ca1e32ba818ffc55df6ceffcc530ac3d8b6b223e7411bed118f  Benchmarks/Dss/Spot/contracts/spot.sol
+f34e920a26434f13280517184b7074656f23cef6cf3f6d602f652d1febcf27b1  Benchmarks/Dss/Spot/Spotter.abi.json
+3b8eadb6c97c88fe178542d7301709856fab894843f2ef9d184e0471bc69b0bd  Benchmarks/Dss/Spot/spot.sol.ast.json
+37f6b1f77414cf962b738035e9a1b4687b48625539850545f56fe3dbb274207a  Benchmarks/Dss/Spot/creation.hex
+6ec8e84641273e3d41440ebf39fa502ebd768fd77e0187881c36afbceba8d4cc  Benchmarks/Dss/Spot/runtime.hex

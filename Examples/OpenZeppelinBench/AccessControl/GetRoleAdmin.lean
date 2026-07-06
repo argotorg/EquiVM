@@ -138,19 +138,26 @@ theorem accessControlDecode_getRoleAdmin_none_huge {I : ExecutionEnv}
     using decodeCalldata_bytes32_none_huge (cd := I.calldata) (x := "role") hbig
 
 theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (h : evm.executionEnv.weiValue = ⟨0⟩) :
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size) :
   ExecTransitionBody config contract evm (getRoleAdminStore I) getRoleAdminTransition.body
       (.returned { contract := contract, locals := getRoleAdminStore I } evm
-        (some (.fixedBytes bytes32Width
-          (EVM.Word.toBytesBE (getRoleAdminCurrent evm I))))) := by
+        (some [(.fixedBytes bytes32Width
+          (EVM.Word.toBytesBE (getRoleAdminCurrent evm I)))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       have her :
           evalStorageRef config { contract := contract, locals := getRoleAdminStore I } evm
             (roleAdminRef (.var "role")) = .ok (getRoleAdminEvaledRef I) := by
+        have htlen : I.calldata.toList.length = I.calldata.size := by
+          rw [byteArray_toList_eq, Array.length_toList]
+          rfl
+        have hlen : (getRoleAdminRoleBytes I).length = 32 := by
+          rw [getRoleAdminRoleBytes, List.length_take, List.length_drop, htlen]
+          omega
         simp [evalStorageRef, evalStorageRefStep, roleAdminRef, getRoleAdminStore,
-          getRoleAdminRoleValue, getRoleAdminRoleKey, getRoleAdminEvaledRef, valueToKey?,
-          EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?]
+          getRoleAdminRoleValue, getRoleAdminRoleKey, getRoleAdminEvaledRef,
+          accessControlValueToKey_bytes32_of_length hlen, EvalResult.bind,
+          EvalResult.ofOption, bind, pure, evalExpr?]
       have hty :
           storageTypeAt? contract.storage (getRoleAdminEvaledRef I) =
             some (.elem (.bytes bytes32Width)) := by
@@ -540,13 +547,13 @@ theorem accessControlGetRoleAdminBody {cA gh bl σ_evm σ_solm σ₀ A I}
             (getRoleAdminStore I) getRoleAdminTransition.body
             (.returned { contract := contract, locals := getRoleAdminStore I }
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (some (.fixedBytes bytes32Width
-                (EVM.Word.toBytesBE (getRoleAdminWord σ_solm I))))) := by
+              (some [(.fixedBytes bytes32Width
+                (EVM.Word.toBytesBE (getRoleAdminWord σ_solm I)))])) := by
         simpa [getRoleAdminCurrent, getRoleAdminWord, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using
           accessControlGetRoleAdminBodyReturns
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-            (by simp only [initState]; exact hwv)
+            (by simp only [initState]; exact hwv) hsz36
       exact (accessControlGetRoleAdminX (g := Sat256.ofUInt256 g) hsz36 hsize hbig hreach)
         |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
           (returnEquiv_of_encode (abit := bytes32)

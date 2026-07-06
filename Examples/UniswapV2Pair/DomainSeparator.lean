@@ -19,9 +19,9 @@ theorem uniswapDomainSeparatorBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "DOMAIN_SEPARATOR" = none) :
     ExecTransitionBody config contract evm locals domainSeparatorTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.fixedBytes ⟨31, by decide⟩
+        (some [(.fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))))) := by
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩)))])) := by
   simpa [domainSeparatorTransition] using
     uniswapBytes32GetterBodyReturns (slot := ⟨3⟩) (ref := domainSeparatorRef)
       (er := ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef)) evm locals h
@@ -65,8 +65,8 @@ theorem uniswapDomainSeparatorBodyCore
         domainSeparatorTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.fixedBytes ⟨31, by decide⟩
-            (EVM.Word.toBytesBE (domainSeparatorWord σ_solm I))))) := by
+          (some [(.fixedBytes ⟨31, by decide⟩
+            (EVM.Word.toBytesBE (domainSeparatorWord σ_solm I)))])) := by
     simpa [domainSeparatorWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapDomainSeparatorBodyReturns

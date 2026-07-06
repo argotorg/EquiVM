@@ -16,33 +16,43 @@ def defaultAbiValue : ABIType -> Option Value
   | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none
 
-inductive returnEquiv (o : ByteArray) (r : Option Value) (t : Option ABIType) : Prop where
+inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABIType) : Prop where
   | returned :
-    r = .some rv →
-    t = .some abit →
-    encodeReturnValue? abit rv = .some o →
-    returnEquiv o r t
-  | void :
-    /- No declared return type and no value: the EVM returns empty output. -/
-    r = .none →
-    t = .none →
-    o = null →
+    /- Explicit `return`: the returned values encode flat to the output.  `vs = []`, `t = []`
+       subsumes an explicit void return (`encodeReturnValues? [] [] = some ∅`). -/
+    r = .some vs →
+    encodeReturnValues? t vs = .some o →
     returnEquiv o r t
   | fallthrough :
-    /- Declared return type but no explicit `return`: the EVM returns the ABI
-       encoding of the type's default (zero-initialized) value. -/
+    /- No explicit `return`: the EVM returns the ABI encoding of each return type's default
+       (zero-initialized) value.  `t = []` gives empty output. -/
     r = .none →
-    t = .some abit →
-    defaultAbiValue abit = .some dv →
-    encodeReturnValue? abit dv = .some o →
+    t.mapM defaultAbiValue = .some dvs →
+    encodeReturnValues? t dvs = .some o →
     returnEquiv o r t
 
-inductive returnDataEquiv (o : ByteArray) (r : Option Value) : ReturnConvention → Prop where
+-- Flat multi-return: `(uint256[], address)` with an empty array and zero address is 96 bytes —
+-- `0x40` offset word, then the address word, then the array-length word — with no leading `0x20`.
+#guard
+  (encodeReturnValues?
+      [.dynamicArray (.elem (.int (.uint ⟨256, by decide⟩))), .elem .address]
+      [.array [], .address (.ofNat 0)]).map (·.toList)
+    = some (List.replicate 31 0 ++ [0x40] ++ List.replicate 64 0)
+
+-- Void is the empty flat encoding: `return;` / a fell-through void encodes to empty output.
+#guard (encodeReturnValues? [] []).map (·.toList) = some []
+
+/-- Bridge for migrating single-return proofs: the old one-value encoder is the list encoder at
+    a singleton.  Definitional, so it rewrites either way. -/
+@[simp] theorem encodeReturnValue_eq_singleton (t : ABIType) (v : Value) :
+    encodeReturnValue? t v = encodeReturnValues? [t] [v] := rfl
+
+inductive returnDataEquiv (o : ByteArray) (r : Option (List Value)) : ReturnConvention → Prop where
   | abi {t} :
     returnEquiv o r t →
     returnDataEquiv o r (.abi t)
   | rawBytes :
-    r = some (.bytes o) →
+    r = some [.bytes o] →
     returnDataEquiv o r .rawBytes
   | rawBytesVoid :
     r = none →
@@ -131,12 +141,13 @@ inductive execResultsEquiv
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
-  -- There is intentionally no case for `evmRes = .error e`: bytecode that refines a Solm spec
-  -- must never halt exceptionally.  A Solm `.reverted` is matched only by a clean `REVERT`
-  -- (the `revert` case above); a real EVM exception leaves `execResultsEquiv` unmatchable, so the
-  -- equivalence fails rather than silently equating a crash with a revert.  (Out-of-gas is handled
-  -- separately by `runtimeEquivalenceFor.outOfGas`, not here.)
-  -- Note: the static mode error can actually happen for valid contracts, but that is very specific
+  -- `INVALID` (`0xFE`) refines a Solm `.reverted`; legacy solc uses it as the assert/panic failure
+  -- path.  It is the ONLY EVM exception matched here — any other error leaves `execResultsEquiv`
+  -- unmatchable, so a real crash never equates with a revert.
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    execResultsEquiv evmRes solmRes returnConvention
 
 inductive ctorResultEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
@@ -151,8 +162,22 @@ inductive ctorResultEquiv
     -- A' = solmState.substate → /- We ignore the substate -/
     o = runtimeCode →
     ctorResultEquiv evmRes solmRes runtimeCode
+  -- Twin of `success` for a ctor body ending in a bare `return` (explicit void return `some []`);
+  -- kept separate so existing `.success` (fall-through `.none`) proofs are unchanged.
+  | successVoidReturn :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned _ solmState (some []) →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    o = runtimeCode →
+    ctorResultEquiv evmRes solmRes runtimeCode
   | revert :
     evmRes = .ok (.revert g o) →
+    solmRes = .reverted →
+    ctorResultEquiv evmRes solmRes runtimeCode
+  -- `INVALID` (`0xFE`) refines a Solm `.reverted`, as in `execResultsEquiv.invalidHalt`.
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
     ctorResultEquiv evmRes solmRes runtimeCode
   -- Zoe: commenting out so that it matches execResultsEquiv
@@ -306,3 +331,96 @@ inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode
     constructorEquivalence cfg initcode contract runtimeCode →
     runtimeEquivalence!?! cfg runtimeCode contract →
     contractEquivalence cfg initcode runtimeCode contract
+
+/-! ## Parameterized (immutable-aware) constructor equivalence
+
+The runtime code a constructor returns may depend on the immutable values the spec constructor binds
+as locals (convention: `letDecl "imm_<name>" …`).  These siblings replace the constant
+`runtimeCode : ByteArray` with `runtimeCodeOf : Store → Option ByteArray`, read against the final
+frame's locals — a per-benchmark function that reads those names, `valueToWord`s each, and calls
+`patchRuntime template offsetTable`.  The constant case `fun _ => some runtimeCode` recovers the
+originals exactly (`ctorResultEquiv_const`).  The `∀`-over-immutable-values composition lives at the
+per-benchmark theorem site, so no value type is baked in here. -/
+
+inductive ctorResultEquivWith
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (solmRes : ExecResult) (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | success :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned solmFrame solmState .none →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    runtimeCodeOf solmFrame.locals = some o →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | successVoidReturn :
+    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    solmRes = .returned solmFrame solmState (some []) →
+    createdAccounts' = solmState.createdAccounts →
+    accountMapEquiv σ' solmState.accountMap →
+    runtimeCodeOf solmFrame.locals = some o →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | revert :
+    evmRes = .ok (.revert g o) →
+    solmRes = .reverted →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | invalidHalt :
+    evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
+
+/-- The constant-runtime constructor relation is exactly the parameterized one at
+    `runtimeCodeOf := fun _ => some runtimeCode`. -/
+theorem ctorResultEquiv_const {evmRes solmRes} {rc : ByteArray} :
+    ctorResultEquiv evmRes solmRes rc ↔ ctorResultEquivWith evmRes solmRes (fun _ => some rc) := by
+  constructor
+  · intro h; cases h with
+    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | revert e1 e2 => exact .revert e1 e2
+    | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+  · intro h; cases h with
+    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | revert e1 e2 => exact .revert e1 e2
+    | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+
+inductive constructorEquivalenceForWith (cfg : Config)
+    (contract : ContractDecl) (args : List Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | execution {Ξ_res solmRes} :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
+    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes →
+    ctorResultEquivWith Ξ_res solmRes runtimeCodeOf →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+  | outOfGas :
+    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+
+inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+      (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+      (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
+    cfg.selfDeployment initcode args = .some deployedInitcode →
+    I.code = deployedInitcode →
+    I.calldata = .empty →
+    I.perm = true →
+    accountMapEquiv σ_evm σ_solm →
+    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    ) →
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf
+
+-- Runtime side stays keyed on a concrete `runtimeCode`; the per-benchmark theorem instantiates
+-- `runtimeCodeOf` and `runtimeCode` together for each immutable-value assignment.
+inductive contractEquivalenceWith (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes)
+    (contract : ContractDecl) (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
+    runtimeEquivalence!?! cfg runtimeCode contract →
+    contractEquivalenceWith cfg initcode runtimeCode contract runtimeCodeOf

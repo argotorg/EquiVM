@@ -4,15 +4,22 @@ import Solm.Value
 
 namespace ABI
 
-/-- Bound used by modern solc dynamic ABI decoder guards. -/
 def solcMaxU64 : Nat := 18446744073709551615
 
-/-- Bound used by solc 0.5 optimized dynamic ABI decoder guards (`PUSH5 2^32; GT`). -/
-def solcLegacyMaxU32 : Nat := 4294967296
+-- Coder-v1 (solc 0.5.16 / 0.7.6) caps dynamic offsets and lengths at `2^32` *inclusive*.  Verified
+-- by disassembly (`P2.h(bytes)`, `--optimize`): both the offset and length guards are
+-- `PUSH5 0x0100000000; DUP; GT; ISZERO; JUMPI(→ok) else REVERT`, i.e. `GT` computes `value > 2^32`
+-- and reverts iff true — so `2^32` is the largest accepted value.  (Coder v2 / `solcMaxU64` uses
+-- `2^64 - 1`, and we keep applying that only in `modern`.)
+def solcMaxLenV1 : Nat := 4294967296  -- 2^32
 
-abbrev solcDynamicGuardMax : DecodeMode → Nat
-  | DecodeMode.modern => solcMaxU64
-  | DecodeMode.legacySolc05 => solcLegacyMaxU32
+def solcMaxLen : DecodeMode → Nat
+  | DecodeMode.modern       => solcMaxU64
+  | DecodeMode.legacySolc05 => solcMaxLenV1
+
+-- In `modern` the dynamic cap is exactly `solcMaxU64`, so `modern`-mode decode proofs that unfold the
+-- guards reduce back to the pre-existing `solcMaxU64 < …` shape (statements unchanged).
+@[simp] theorem solcMaxLen_modern : solcMaxLen DecodeMode.modern = solcMaxU64 := rfl
 
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
@@ -76,32 +83,48 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
       | DecodeMode.legacySolc05 =>
           some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
-      if bits.val = 0 then
-        none
-      else
-        match mode with
-        | DecodeMode.modern =>
-            if n < EVM.twoPow bits.val then
+      match mode with
+      | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else if n < EVM.twoPow bits.val then
+            some (.int (Int.ofNat n))
+          else
+            none
+      | DecodeMode.legacySolc05 =>
+          -- solc's legacy ABI coder v1 cleans a narrow uintN by masking, not validating: e.g. the
+          -- Dai (solc 0.6.12) permit wrapper reads its `uint8 v` param as `and(calldataload(…), 0xff)`
+          -- with no revert.  `n % 2^256 = n` for uint256, so full-width decoding matches `modern`.
+          -- The `bits.val = 0` guard mirrors `modern`: both modes agree `uint0` is ill-formed.
+          if bits.val = 0 then
+            none
+          else
+            some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
+  | .elem (.int (.sint bits)) =>
+      match mode with
+      | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else
+            let positiveLimit := EVM.twoPow (bits.val - 1)
+            let negativeStart := EVM.wordModulus - positiveLimit
+            if n < positiveLimit then
               some (.int (Int.ofNat n))
+            else if negativeStart ≤ n then
+              some (.int (Int.ofNat n - Int.ofNat EVM.wordModulus))
             else
               none
-        | DecodeMode.legacySolc05 =>
-            if bits.val = 256 then
-              some (.int (Int.ofNat n))
-            else
-              some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
-  | .elem (.int (.sint bits)) =>
-      if bits.val = 0 then
-        none
-      else
-        let positiveLimit := EVM.twoPow (bits.val - 1)
-        let negativeStart := EVM.wordModulus - positiveLimit
-        if n < positiveLimit then
-          some (.int (Int.ofNat n))
-        else if negativeStart ≤ n then
-          some (.int (Int.ofNat n - Int.ofNat EVM.wordModulus))
-        else
-          none
+      | DecodeMode.legacySolc05 =>
+          -- solc legacy coder v1 cleans a narrow sintN by SIGNEXTEND at the declared width, not
+          -- validating.  Verified against solc 0.5.16 & 0.6.12 `--optimize`: the `f(int8)` wrapper
+          -- decodes its argument as `signextend(0x00, calldataload(0x04))` (runtime PC 0x6c in
+          -- 0.6.12) with no revert on dirty high bits.
+          if bits.val = 0 then
+            none
+          else
+            let m := n % EVM.twoPow bits.val
+            some (.int (if m < EVM.twoPow (bits.val - 1) then (m : Int)
+              else (m : Int) - (EVM.twoPow bits.val : Int)))
   | _ => none
 
 mutual
@@ -114,8 +137,17 @@ mutual
         | .elem (.bytes n) => do
             let wordBytes <- readBytes? bytes start 32
             let size := n.val + 1
-            zeroPadding? wordBytes size (32 - size)
-            some (.fixedBytes n (wordBytes.take size), start + 32)
+            match mode with
+            | DecodeMode.modern => do
+                zeroPadding? wordBytes size (32 - size)
+                some (.fixedBytes n (wordBytes.take size), start + 32)
+            | DecodeMode.legacySolc05 =>
+                -- solc legacy coder v1 cleans a `bytesN` by masking off the low padding (keeping the
+                -- high `N` bytes), not validating it.  Verified against solc 0.5.16 & 0.6.12
+                -- `--optimize`: the `g(bytes4)` wrapper decodes its argument as
+                -- `and(calldataload(0x04), not(sub(shl(0xe0,0x01),0x01)))` (runtime PC 0xd9 in 0.6.12)
+                -- with no revert on dirty low bytes.
+                some (.fixedBytes n (wordBytes.take size), start + 32)
         | .elem .function => do
             let wordBytes <- readBytes? bytes start 32
             zeroPadding? wordBytes 24 8
@@ -139,7 +171,7 @@ mutual
         some (.tuple values, endOffset)
     | .bytes => do
         let size <- readNat? bytes start
-        if solcDynamicGuardMax mode < size then
+        if solcMaxLen mode < size then
           none
         else
         let payloadStart := start + 32
@@ -147,18 +179,21 @@ mutual
         let endOffset := payloadStart + paddedSize size
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .string => do
+        -- No padding validation: solc 0.5.16, 0.7.6 and 0.8.35 all decode `bytes` and `string`
+        -- parameters through the same copy routine (CALLDATACOPY then a zero-word cleanup write after
+        -- the data) with no padding comparison and no revert — in 0.8.35 literally one shared helper
+        -- for both types.  So `.string` decodes exactly like `.bytes`.
         let size <- readNat? bytes start
-        if solcDynamicGuardMax mode < size then
+        if solcMaxLen mode < size then
           none
         else
         let payloadStart := start + 32
         let payload <- readBytes? bytes payloadStart size
         let endOffset := payloadStart + paddedSize size
-        zeroPadding? bytes (payloadStart + size) (paddedSize size - size)
         some (.bytes (ByteArray.mk payload.toArray), endOffset)
     | .dynamicArray elemTy => do
         let size <- readNat? bytes start
-        if solcDynamicGuardMax mode < size then
+        if solcMaxLen mode < size then
           none
         else
         let elemsStart := start + 32
@@ -203,7 +238,7 @@ mutual
     | 0 => some ([], maxEnd)
     | n + 1 => do
         let relativeOffset <- readNat? bytes (base + headCursor)
-        if solcDynamicGuardMax mode < relativeOffset then
+        if solcMaxLen mode < relativeOffset then
           none
         else
           let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -221,7 +256,7 @@ mutual
     | ty :: restTypes => do
         if isDynamicABIType ty then do
           let relativeOffset <- readNat? bytes (base + headCursor)
-          if solcDynamicGuardMax mode < relativeOffset then
+          if solcMaxLen mode < relativeOffset then
             none
           else
             let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
@@ -243,21 +278,42 @@ mutual
 
 end
 
+-- Legacy coder-v1 cleanup (Phase-1 evidence: solc 0.5.16 & 0.6.12, above): a dirty `int8` word
+-- (nonzero high bits, low byte `0xFF`) SIGNEXTENDs to `-1`; a dirty `bytes4` word masks to its high
+-- 4 bytes.  `modern` rejects both.
+#guard decodeABIWord? (.elem (.int (.sint ⟨8, by decide⟩)))
+    (EVM.Word.ofNat (0xAB * EVM.twoPow 248 + 0xFF)) DecodeMode.legacySolc05 = some (.int (-1))
+#guard decodeABIWord? (.elem (.int (.sint ⟨8, by decide⟩)))
+    (EVM.Word.ofNat (0xAB * EVM.twoPow 248 + 0xFF)) DecodeMode.modern = none
+#guard decodeABIValue? (.elem (.bytes ⟨3, by decide⟩))
+    ([0xDE, 0xAD, 0xBE, 0xEF] ++ List.replicate 28 0xFF) 0 DecodeMode.legacySolc05
+  = some (.fixedBytes ⟨3, by decide⟩ [0xDE, 0xAD, 0xBE, 0xEF], 32)
+#guard decodeABIValue? (.elem (.bytes ⟨3, by decide⟩))
+    ([0xDE, 0xAD, 0xBE, 0xEF] ++ List.replicate 28 0xFF) 0 DecodeMode.modern = none
+-- A `string` with dirty (nonzero) padding bytes decodes to its `len`-byte content, exactly like
+-- `bytes` — no padding validation.  Calldata: `len = 3` word, then `"ABC"` + 29 dirty `0xFF` bytes.
+#guard decodeABIValue? .string
+    (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+  = some (.bytes (ByteArray.mk #[0x41, 0x42, 0x43]), 64)
+#guard decodeABIValue? .string
+      (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+  = decodeABIValue? .bytes
+      (List.replicate 31 0 ++ [3] ++ [0x41, 0x42, 0x43] ++ List.replicate 29 0xFF) 0 DecodeMode.modern
+
+-- Dynamic offset/length cap: coder v1 accepts `≤ 2^32`, coder v2 `≤ 2^64-1`.  The guard used at
+-- every dynamic offset/length site is `solcMaxLen mode < v`; checked here at the boundary `2^32` and
+-- one past it (`2^32 + 1`) — the same predicate governs both the offset and the length checks.
+#guard solcMaxLen DecodeMode.legacySolc05 = 4294967296          -- 2^32
+#guard solcMaxLen DecodeMode.modern       = solcMaxU64          -- 2^64 - 1 (unchanged)
+#guard (solcMaxLen DecodeMode.legacySolc05 < 4294967296) = false  -- v1: 2^32 accepted
+#guard (solcMaxLen DecodeMode.legacySolc05 < 4294967297) = true   -- v1: 2^32 + 1 rejected
+#guard (solcMaxLen DecodeMode.modern       < 4294967296) = false  -- v2: 2^32 accepted
+#guard (solcMaxLen DecodeMode.modern       < 4294967297) = false  -- v2: 2^32 + 1 still accepted
+
 def solcTotalSizeDynamicGuard : List ABIType → Bool
   | [.string] => true
   | [.bytes] => true
   | _ => false
-
-abbrev calldataDynamicGuard (mode : DecodeMode) (types : List ABIType)
-    (calldata : ByteArray) : Prop :=
-  match mode with
-  | DecodeMode.modern => types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length
-  | DecodeMode.legacySolc05 => False
-
-instance instDecidableCalldataDynamicGuard (mode : DecodeMode) (types : List ABIType)
-    (calldata : ByteArray) : Decidable (calldataDynamicGuard mode types calldata) := by
-  unfold calldataDynamicGuard
-  cases mode <;> infer_instance
 
 def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray)
     (mode : DecodeMode := DecodeMode.modern) : Option Solm.Store :=
@@ -265,9 +321,10 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     none
   else
     let argsArray := calldata.toList.drop 4
-    -- Modern dynamic decoders use signed comparisons against the full `CALLDATASIZE`.
-    -- Legacy solc 0.5 wrappers use per-offset and per-length guards instead.
-    if calldataDynamicGuard mode types calldata then
+    -- Dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
+    -- If it is a negative signed word (`>= 2^255`), the generated decoder reverts before
+    -- accepting any dynamic tail.
+    if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
       none
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,
@@ -344,6 +401,9 @@ def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (retu
         decodeABIValues? types bytes 0 0 headSize headSize DecodeMode.legacySolc05
       some values
 
+-- Decodes a single top-level value.  For a callee's multi-value return use `decodeReturnValues?` —
+-- a `.tuple` type here is one tuple-typed output (ABI-wrapped, with a leading offset word), NOT a
+-- flat multi-return.
 def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option Solm.Value := do
   match decodeReturnValues? [ty] returndata with
   | some [value] => some value

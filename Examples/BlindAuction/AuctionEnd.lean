@@ -1445,7 +1445,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
               exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                 (by simp [evmSCall, evmECall])
                 (by simpa [evmSCall, evmECall] using hPostAccounts)
-                (returnEquiv.void rfl rfl rfl)
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
           · let evmSFail : EVM.State :=
               { evmSAfter with
                 substate := (evmSAfter.addAccessedAccount

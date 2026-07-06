@@ -418,7 +418,7 @@ theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     ExecTransitionBody erc20Config erc20Contract evm (transferStore I)
       transferTransition.body
       (.returned { contract := erc20Contract, locals := transferStoreNewToBalance evm I }
-        (transferPostState evm I) (some (.bool true))) := by
+        (transferPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
@@ -431,7 +431,7 @@ theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transfer_newToBalance_var evm I)
       (transferAssignTo evm I hfit)) ?_
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem erc20TransferBodyReverts_insufficient (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

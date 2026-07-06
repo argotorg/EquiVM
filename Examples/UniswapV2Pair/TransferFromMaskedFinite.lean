@@ -724,7 +724,7 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance_masked
   have hbody :
       ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
         (.returned { contract := contract, locals := transferFromStoreToBalance evmS I }
-          (transferFromPostState evmS I) (some (.bool true))) := by
+          (transferFromPostState evmS I) (some [(.bool true)])) := by
     exact uniswapTransferFromBodyReturns_finiteAllowance evmS I
       (by simp only [evmS, initState]; exact hwv) hnotMaxS hallowanceS hbalanceS hfitS
   have hallowanceSlot : transferFromAllowanceSlot evmE I =

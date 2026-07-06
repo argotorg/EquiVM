@@ -2285,7 +2285,7 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
         (Int.ofNat amount.toNat) ByteArray.empty (true, evm', out)) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
       (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount true out }
-        evm' (some (.bool true))) := by
+        evm' (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold withdrawTransition
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -2306,7 +2306,7 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
         .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
         .ite (.unary .not (.var "success"))
           [ .assign .storage (pendingReturnsRef sender) (.var "amount"),
-            .return (.boolLit false) ]
+            .return [(.boolLit false)] ]
           [] ]
       (.ok { contract := simpleAuctionContract, locals := withdrawCallStore amount true out } evm')
     refine ExecBlock.consNormal
@@ -2320,7 +2320,7 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
     exact ExecBlock.consNormal
       (ExecStmt.iteFalse (evalExpr_withdraw_not_success_false evm' amount out) ExecBlock.nil)
       ExecBlock.nil
-  · exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+  · exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem simpleAuctionWithdrawBodyReturns_callFailure
     (evm evm' : EVM.State) (amount : UInt256) (out : ByteArray)
@@ -2334,7 +2334,7 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
         (Int.ofNat amount.toNat) ByteArray.empty (false, evm', out)) :
     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅ withdrawTransition.body
       (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-        (withdrawRestoreState evm' amount) (some (.bool false))) := by
+        (withdrawRestoreState evm' amount) (some [(.bool false)])) := by
   refine ExecFuncBody.execBlockRet ?_
   unfold withdrawTransition
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -2348,7 +2348,7 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
     (ExecStmt.iteTrue
       (result := .returned
         { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-        (withdrawRestoreState evm' amount) (some (.bool false)))
+        (withdrawRestoreState evm' amount) (some [(.bool false)]))
       (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_)
   show ExecBlock simpleAuctionConfig
     { contract := simpleAuctionContract, locals := withdrawAmountStore amount } evm
@@ -2356,10 +2356,10 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
       .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
       .ite (.unary .not (.var "success"))
         [ .assign .storage (pendingReturnsRef sender) (.var "amount"),
-          .return (.boolLit false) ]
+          .return [(.boolLit false)] ]
         [] ]
     (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-      (withdrawRestoreState evm' amount) (some (.bool false)))
+      (withdrawRestoreState evm' amount) (some [(.bool false)]))
   refine ExecBlock.consNormal
       (ExecStmt.assign (by simp [evalExpr?, pure]) (withdrawAssignZero evm amount)) ?_
   refine ExecBlock.consNormal
@@ -2372,17 +2372,17 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
   refine ExecStmt.iteTrue
     (result := .returned
       { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-      (withdrawRestoreState evm' amount) (some (.bool false)))
+      (withdrawRestoreState evm' amount) (some [(.bool false)]))
     (evalExpr_withdraw_not_success_true evm' amount out) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_withdraw_amount_callStore evm' amount false out)
       (withdrawAssignRestore evm' amount out)) ?_
   show ExecBlock simpleAuctionConfig
     { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-    (withdrawRestoreState evm' amount) [.return (.boolLit false)]
+    (withdrawRestoreState evm' amount) [.return [(.boolLit false)]]
     (.returned { contract := simpleAuctionContract, locals := withdrawCallStore amount false out }
-      (withdrawRestoreState evm' amount) (some (.bool false)))
-  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExpr?, pure]))
+      (withdrawRestoreState evm' amount) (some [(.bool false)]))
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
 theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -2414,7 +2414,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
           (.returned
             { contract := simpleAuctionContract
               locals := withdrawAmountStore (withdrawAmountWord σ_solm I) }
-            evmS (some (.bool true))) := by
+            evmS (some [(.bool true)])) := by
         refine ExecFuncBody.execBlockRet ?_
         unfold withdrawTransition
         refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -2430,7 +2430,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
           (ExecStmt.iteFalse
             (evalExpr_withdraw_amount_gt_false evmS (withdrawAmountWord σ_solm I) hzeroS)
             ExecBlock.nil) ?_
-        exact ExecBlock.consReturn (ExecStmt.return (by rw [evalExpr?]; rfl))
+        exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
       exact (simpleAuctionX_withdraw_zero (g := Sat256.ofUInt256 g) hwv hreach hzero)
         |>.reEquivExecution hcode hd hdec hbody hAccounts
           (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -2482,7 +2482,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                 { contract := simpleAuctionContract
                   locals := withdrawCallStore (withdrawAmountWord σ_solm I) false ByteArray.empty }
                 (withdrawRestoreState evmSFail (withdrawAmountWord σ_solm I))
-                (some (.bool false))) :=
+                (some [(.bool false)])) :=
           simpleAuctionWithdrawBodyReturns_callFailure evmS evmSFail
             (withdrawAmountWord σ_solm I) ByteArray.empty
             (by simpa [evmS, initState] using hwv) hamountS hposS
@@ -2591,7 +2591,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                         locals := withdrawCallStore (withdrawAmountWord σ_solm I) false
                           ByteArray.empty }
                       (withdrawRestoreState evmSCall (withdrawAmountWord σ_solm I))
-                      (some (.bool false))) :=
+                      (some [(.bool false)])) :=
                 simpleAuctionWithdrawBodyReturns_callFailure evmS evmSCall
                   (withdrawAmountWord σ_solm I) ByteArray.empty
                   (by simpa [evmS, initState] using hwv) hamountS hposS
@@ -2629,7 +2629,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                       { contract := simpleAuctionContract
                         locals := withdrawCallStore (withdrawAmountWord σ_solm I) true
                           ByteArray.empty }
-                      evmSCall (some (.bool true))) :=
+                      evmSCall (some [(.bool true)])) :=
                 simpleAuctionWithdrawBodyReturns_callSuccess evmS evmSCall
                   (withdrawAmountWord σ_solm I) ByteArray.empty
                   (by simpa [evmS, initState] using hwv) hamountS hposS
@@ -2655,7 +2655,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                         { contract := simpleAuctionContract
                           locals := withdrawCallStore (withdrawAmountWord σ_solm I) false out }
                         (withdrawRestoreState evmSCall (withdrawAmountWord σ_solm I))
-                        (some (.bool false))) :=
+                        (some [(.bool false)])) :=
                   simpleAuctionWithdrawBodyReturns_callFailure evmS evmSCall
                     (withdrawAmountWord σ_solm I) out
                     (by simpa [evmS, initState] using hwv) hamountS hposS
@@ -2692,7 +2692,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                       (.returned
                         { contract := simpleAuctionContract
                           locals := withdrawCallStore (withdrawAmountWord σ_solm I) true out }
-                        evmSCall (some (.bool true))) :=
+                        evmSCall (some [(.bool true)])) :=
                   simpleAuctionWithdrawBodyReturns_callSuccess evmS evmSCall
                     (withdrawAmountWord σ_solm I) out
                     (by simpa [evmS, initState] using hwv) hamountS hposS
@@ -2753,7 +2753,7 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                   { contract := simpleAuctionContract
                     locals := withdrawCallStore (withdrawAmountWord σ_solm I) false ByteArray.empty }
                   (withdrawRestoreState evmSFail (withdrawAmountWord σ_solm I))
-                  (some (.bool false))) :=
+                  (some [(.bool false)])) :=
             simpleAuctionWithdrawBodyReturns_callFailure evmS evmSFail
               (withdrawAmountWord σ_solm I) ByteArray.empty
               (by simpa [evmS, initState] using hwv) hamountS hposS

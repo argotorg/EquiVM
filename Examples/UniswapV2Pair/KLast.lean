@@ -19,8 +19,8 @@ theorem uniswapKLastBodyReturns (evm : EVM.State) (locals : Store)
     (hlocals : locals.get? "kLast" = none) :
     ExecTransitionBody config contract evm locals kLastTransition.body
       (.returned { contract := contract, locals := locals } evm
-        (some (.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)))) := by
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))])) := by
   simpa [kLastTransition] using
     uniswapUint256GetterBodyReturns (slot := ⟨11⟩) (ref := kLastRef)
       (er := ({ base := "kLast", steps := [] } : EvaledStorageRef)) evm locals h
@@ -63,7 +63,7 @@ theorem uniswapKLastBodyCore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ kLastTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (.int (Int.ofNat (kLastWord σ_solm I).toNat)))) := by
+          (some [(.int (Int.ofNat (kLastWord σ_solm I).toNat))])) := by
     simpa [kLastWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapKLastBodyReturns

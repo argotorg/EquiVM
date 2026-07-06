@@ -143,8 +143,8 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
       hvalueSizeShort hload hpacked hflag rfl (by simpa [oldLen] using hvalid)
     simpa [evmSolm1] using hwrite₀
   have hretEnc :
-      returnEquiv (UInt256.toByteArray len) (some (.int (setDecodedValueBytes I).size))
-        (some (.elem (.int (.uint ⟨256, by decide⟩)))) := by
+      returnEquiv (UInt256.toByteArray len) (some [.int (setDecodedValueBytes I).size])
+        [(.elem (.int (.uint ⟨256, by decide⟩)))] := by
     have hlenSize : len.toNat = (setDecodedValueBytes I).size := by
       rw [setDecodedValueBytes_size hpayload, hlenAbi]
     simpa [hlenSize] using returnEquiv_of_encode (uint256ReturnEncoding len)

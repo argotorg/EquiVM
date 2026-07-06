@@ -17,7 +17,7 @@ Artifacts:
 - `runtime.hex`: optimized deployed runtime bytecode, 22142 bytes, sha256 `ecd7503ff9ba5cface57946e85117c0c07796c0a5f2d7fe7ec20a54ec254510f`
 - `UniswapV3Pool.abi.json`: ABI emitted by solc, sha256 `ad35708734bf3131a452370efa32b747caaca88b3276e9711cfef4b0d7a67c1e`
 - `sources.sha256`: sha256 manifest for the vendored Solidity source tree
-- `Spec.lean`: Solm AST scaffold with ABI surface and solc storage layout
+- `Spec.lean`: Solm AST spec with ABI surface, solc storage layout, and source-shaped core transitions
 - `SpecSyntax.lean`: syntax-side wrapper checked definitionally against the AST scaffold
 - `Bytecode.lean`: optimized bytecode embedded as `ByteArray`, with `valid_jumps` facts
 - `Constructor.lean`: constructor equivalence target, currently `sorry`
@@ -25,4 +25,4 @@ Artifacts:
 
 Main source sha256: `d515775b7f3ffe921dd70aca86b8bad16280fa4c122425d82b4dbea4dc564a7a`.
 
-Note: The pool uses constructor-set immutables and a runtime above the Spurious Dragon mainnet size limit; the bytecode artifact is still useful as a framework stress benchmark. Events are omitted, as in the other benchmarks.
+Note: The pool uses constructor-set immutables. Its runtime is 22,142 bytes, below the Spurious Dragon mainnet size limit of 24,576 bytes, while still being large enough to serve as a framework stress benchmark. Events are omitted, as in the other benchmarks.

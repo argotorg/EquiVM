@@ -253,10 +253,10 @@ theorem reEquiv_receiveExecution
     {g : UInt256}
     (hreceive : receiveDispatchMsg contract I.calldata = some t)
     (hparams : t.params = [])
-    (hreturn : t.returnType = none)
+    (hreturn : t.returnType = [])
     (hbody : ExecTransitionBody cfg contract
               (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) ∅ t.body actRes)
-    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi none)) :
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi [])) :
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
   .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
 
