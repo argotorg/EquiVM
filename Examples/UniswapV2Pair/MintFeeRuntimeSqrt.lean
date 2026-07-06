@@ -326,6 +326,155 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroBothSqrtSmallNoMintRe
     hfeeToNonzero hkLastNonzero hclean0 hclean1 hprodSmall hkLastSmall hrootLe
 
 set_option maxHeartbeats 1000000 in
+/- Runtime-only `_mintFee` fee-on/nonzero-`kLast` first `sqrt` large branch, stopping at
+the sqrt loop header. -/
+theorem uniswapMintFeeRuntimeFirstSqrtLargeLoopEntry
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
+    (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeTo, ⟨1⟩,
+        reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
+        reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hlarge : 3 < (UInt256.mul reserve0 reserve1).toNat) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [UInt256.div (UInt256.mul reserve0 reserve1) ⟨2⟩ + ⟨1⟩,
+        UInt256.mul reserve0 reserve1, UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩,
+        kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
+        balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  exact uniswapSqrtRuntimeLargePrefix rd8046 hlarge
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
+/- Runtime-only first `sqrt` loop step with the `_mintFee` continuation stack. -/
+theorem uniswapMintFeeRuntimeFirstSqrtLoopStep
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {x z kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
+    (rd8067 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [x, z, UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeTo, ⟨1⟩,
+        reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
+        reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hlt : x.toNat < z.toNat) (hx : x ≠ ⟨0⟩) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [UInt256.div (UInt256.div (UInt256.mul reserve0 reserve1) x + x) ⟨2⟩, x,
+        UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeTo, ⟨1⟩, reserve1,
+        reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1,
+        reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  exact uniswapSqrtRuntimeLoopStep rd8067 hlt hx
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
+/- Runtime-only first `sqrt` loop exit, continuing to the second `sqrt(_kLast)` entry. -/
+theorem uniswapMintFeeRuntimeFirstSqrtLoopExitToRootKLastEntry
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {x rootK kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
+      UInt256}
+    (rd8067 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [x, rootK, UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeTo, ⟨1⟩,
+        reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
+        reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hnlt : ¬ x.toNat < rootK.toNat) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      [kLast, ⟨7899⟩, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0,
+        ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
+        ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  obtain ⟨_, _, rd7886⟩ := uniswapSqrtRuntimeLoopExit rd8067 hnlt (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨_, _, evm_run rd7886 with [
+    jumpdest, swap1, pop, push1 ⟨0⟩, push2 ⟨7899⟩, dup4, push2 ⟨8046⟩,
+    jump (by jump_dest)]⟩
+
+set_option maxHeartbeats 1000000 in
+/- Runtime-only second `sqrt(_kLast)` large branch, stopping at the sqrt loop header. -/
+theorem uniswapMintFeeRuntimeSecondSqrtLargeLoopEntry
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {rootK kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
+      UInt256}
+    (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      [kLast, ⟨7899⟩, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0,
+        ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
+        ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hlarge : 3 < kLast.toNat) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [UInt256.div kLast ⟨2⟩ + ⟨1⟩, kLast, kLast, ⟨7899⟩, ⟨0⟩, rootK,
+        kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
+        balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  exact uniswapSqrtRuntimeLargePrefix rd8046 hlarge
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
+/- Runtime-only second `sqrt(_kLast)` loop step with the `_mintFee` continuation stack. -/
+theorem uniswapMintFeeRuntimeSecondSqrtLoopStep
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {x z rootK kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
+      UInt256}
+    (rd8067 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [x, z, kLast, ⟨7899⟩, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0,
+        ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
+        ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hlt : x.toNat < z.toNat) (hx : x ≠ ⟨0⟩) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [UInt256.div (UInt256.div kLast x + x) ⟨2⟩, x, kLast, ⟨7899⟩, ⟨0⟩,
+        rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1,
+        amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩,
+        sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  exact uniswapSqrtRuntimeLoopStep rd8067 hlt hx
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
+/- Runtime-only second `sqrt(_kLast)` loop exit, reaching the root comparison block. -/
+theorem uniswapMintFeeRuntimeSecondSqrtLoopExitToRootComparison
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {x rootK rootKLast kLast feeTo amount0 amount1 balance0 balance1 reserve0 reserve1 toWord
+      sel : UInt256}
+    (rd8067 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      [x, rootKLast, kLast, ⟨7899⟩, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1,
+        reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1,
+        reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k C)
+    (hnlt : ¬ x.toNat < rootKLast.toNat) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+      [rootKLast, ⟨0⟩, rootK, kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩,
+        ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
+        toWord, ⟨861⟩, sel]
+      mem aw rdata (cAFee, σFee) k' C' := by
+  exact uniswapSqrtRuntimeLoopExit rd8067 hnlt (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` branch after both roots are loaded where `rootK > rootKLast`,
 setting up the checked subtraction `rootK - rootKLast`. -/
 theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntry

@@ -1236,6 +1236,204 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
 
+theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
+    (evm evm0 evm1 evmAfter : EVM.State) (I : ExecutionEnv) (nextLocals : Store)
+    {out0 out1 : ByteArray} {balance0 balance1 amount0 amount1 liquidity : UInt256}
+    (recipient : AccountAddress)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hguard0 :
+      evalExpr? config
+        { contract := contract, locals := mintReserveStore (uniswapLockEnteredState evm) I }
+        (uniswapLockEnteredState evm)
+        (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
+    (hguard1 :
+      evalExpr? config
+        { contract := contract,
+          locals := (mintReserveStore (uniswapLockEnteredState evm) I).insert "balance0"
+            (uniswapUint256Value balance0) } evm0
+        (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool true))
+    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
+      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
+      (true, evm0, out0) false)
+    (hdec0 :
+      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hcall1 : typedCallViaEVM config evm0
+      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
+    (hdec1 :
+      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
+    (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
+    (hfee :
+      ExecStmt config
+        { contract := contract,
+          locals := mintAmountStore (uniswapLockEnteredState evm) I balance0 balance1 }
+        evm1 (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
+        (.ok { contract := contract, locals := nextLocals } evmAfter))
+    (htotalBase : nextLocals.get? "totalSupply" = none)
+    (hto : nextLocals.get? "to" = some (.address recipient))
+    (hamount0 : nextLocals.get? "amount0" = some (uniswapUint256Value amount0))
+    (hamount1 : nextLocals.get? "amount1" = some (uniswapUint256Value amount1))
+    (hbalance0 : nextLocals.get? "balance0" = some (uniswapUint256Value balance0))
+    (hbalance1 : nextLocals.get? "balance1" = some (uniswapUint256Value balance1))
+    (hfeeOn : nextLocals.get? "feeOn" = some (.bool false))
+    (hreserve0 :
+      nextLocals.get? "_reserve0" =
+        some (.int (Int.ofNat (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat)))
+    (hreserve1 :
+      nextLocals.get? "_reserve1" =
+        some (.int (Int.ofNat (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat)))
+    (hreserve0Base : nextLocals.get? "reserve0" = none)
+    (hreserve1Base : nextLocals.get? "reserve1" = none)
+    (hunlockedBase : nextLocals.get? "unlocked" = none)
+    (htotalNonzero : mintFunctionTotalSupplyWord evmAfter ≠ ⟨0⟩)
+    (hfit0 : mintAmountProductNat amount0 (mintFunctionTotalSupplyWord evmAfter) < UInt256.size)
+    (hfit1 : mintAmountProductNat amount1 (mintFunctionTotalSupplyWord evmAfter) < UInt256.size)
+    (hreserve0Nonzero : uniswapReserve0Word (uniswapLockEnteredState evm) ≠ ⟨0⟩)
+    (hreserve1Nonzero : uniswapReserve1Word (uniswapLockEnteredState evm) ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord
+          (mintProportionalLiquidityWord amount0 (mintFunctionTotalSupplyWord evmAfter)
+            (uniswapReserve0Word (uniswapLockEnteredState evm)))
+          (mintProportionalLiquidityWord amount1 (mintFunctionTotalSupplyWord evmAfter)
+            (uniswapReserve1Word (uniswapLockEnteredState evm))))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hfitSupply : mintFunctionTotalSupplyNewNat evmAfter liquidity < UInt256.size)
+    (hfitBalance : mintFunctionToBalanceNewNat evmAfter recipient liquidity < UInt256.size)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (helapsed : 0 < syncTimeElapsedInt (mintFunctionPostState evmAfter recipient liquidity))
+    (hreserve0Post :
+      Int.ofNat (uniswapReserve0Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
+        0)
+    (hreserve1Post :
+      Int.ofNat (uniswapReserve1Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
+        0) :
+    let totalSupply := mintFunctionTotalSupplyWord evmAfter
+    let reserve0 := uniswapReserve0Word (uniswapLockEnteredState evm)
+    let reserve1 := uniswapReserve1Word (uniswapLockEnteredState evm)
+    let afterTotalSupplyLocals :=
+      nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)
+    let liquidity0 := mintProportionalLiquidityWord amount0 totalSupply reserve0
+    let liquidity1 := mintProportionalLiquidityWord amount1 totalSupply reserve1
+    let afterBranch :=
+      resumeAfterInternalCall
+        { contract := contract,
+          locals :=
+            (afterTotalSupplyLocals.insert "liquidity0"
+              (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
+                "liquidity1"
+                (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
+        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+    let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
+    let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
+    ExecBlock config { contract := contract, locals := mintStore I } evm
+      mintTransition.body
+      (.returned afterUpdate
+        (uniswapLockExitedState
+          (syncUpdateCumulativePackedReserveState
+            (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
+        (some (uniswapUint256Value liquidity))) := by
+  intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
+    afterMint afterUpdate
+  have hprefix :=
+    uniswapMintAfterMintFeeTotalSupplyPrefix_of_call evm evm0 evm1 evmAfter I nextLocals
+      hwv hunlocked hguard0 hguard1 hcall0 hdec0 hcall1 hdec1 henough0 henough1 hfee
+      htotalBase
+  have hto' :
+      afterTotalSupplyLocals.get? "to" = some (.address recipient) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get? "to" =
+      some (.address recipient)
+    rw [store_get_ne _ _ (by decide), hto]
+  have htotal' :
+      afterTotalSupplyLocals.get? "_totalSupply" =
+        some (uniswapUint256Value totalSupply) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_totalSupply" = some (uniswapUint256Value totalSupply)
+    rw [store_get_self]
+  have hamount0' :
+      afterTotalSupplyLocals.get? "amount0" = some (uniswapUint256Value amount0) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "amount0" = some (uniswapUint256Value amount0)
+    rw [store_get_ne _ _ (by decide), hamount0]
+  have hamount1' :
+      afterTotalSupplyLocals.get? "amount1" = some (uniswapUint256Value amount1) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "amount1" = some (uniswapUint256Value amount1)
+    rw [store_get_ne _ _ (by decide), hamount1]
+  have hbalance0' :
+      afterTotalSupplyLocals.get? "balance0" = some (uniswapUint256Value balance0) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "balance0" = some (uniswapUint256Value balance0)
+    rw [store_get_ne _ _ (by decide), hbalance0]
+  have hbalance1' :
+      afterTotalSupplyLocals.get? "balance1" = some (uniswapUint256Value balance1) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "balance1" = some (uniswapUint256Value balance1)
+    rw [store_get_ne _ _ (by decide), hbalance1]
+  have hfeeOn' :
+      afterTotalSupplyLocals.get? "feeOn" = some (.bool false) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get? "feeOn" =
+      some (.bool false)
+    rw [store_get_ne _ _ (by decide), hfeeOn]
+  have hreserve0' :
+      afterTotalSupplyLocals.get? "_reserve0" =
+        some (.int (Int.ofNat reserve0.toNat)) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_reserve0" = some (.int (Int.ofNat reserve0.toNat))
+    rw [store_get_ne _ _ (by decide)]
+    simpa [reserve0] using hreserve0
+  have hreserve1' :
+      afterTotalSupplyLocals.get? "_reserve1" =
+        some (.int (Int.ofNat reserve1.toNat)) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_reserve1" = some (.int (Int.ofNat reserve1.toNat))
+    rw [store_get_ne _ _ (by decide)]
+    simpa [reserve1] using hreserve1
+  have hreserve0Base' :
+      afterTotalSupplyLocals.get? "reserve0" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "reserve0" = none
+    rw [store_get_ne _ _ (by decide), hreserve0Base]
+  have hreserve1Base' :
+      afterTotalSupplyLocals.get? "reserve1" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "reserve1" = none
+    rw [store_get_ne _ _ (by decide), hreserve1Base]
+  have hunlockedBase' :
+      afterTotalSupplyLocals.get? "unlocked" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "unlocked" = none
+    rw [store_get_ne _ _ (by decide), hunlockedBase]
+  have htail :
+      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+        ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts)
+        (.returned afterUpdate
+          (uniswapLockExitedState
+            (syncUpdateCumulativePackedReserveState
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
+          (some (uniswapUint256Value liquidity))) := by
+    simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
+      afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
+      uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
+        (locals := afterTotalSupplyLocals) evmAfter recipient amount0 amount1 totalSupply
+        reserve0 reserve1 balance0 balance1 liquidity hto' htotal'
+        (by simpa [totalSupply] using htotalNonzero) hamount0' hamount1' hbalance0'
+        hbalance1' hfeeOn' hreserve0' hreserve1' hreserve0Base' hreserve1Base'
+        hunlockedBase' (by simpa [totalSupply] using hfit0)
+        (by simpa [totalSupply] using hfit1)
+        (by simpa [reserve0] using hreserve0Nonzero)
+        (by simpa [reserve1] using hreserve1Nonzero)
+        (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
+        hfitSupply hfitBalance hbound0 hbound1 helapsed hreserve0Post hreserve1Post
+  have hthrough := execBlock_append hprefix htail
+  simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
+    mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
+    afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
+
 theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
     (evm evm0 evm1 evmAfter : EVM.State) (I : ExecutionEnv) (nextLocals : Store)
     {out0 out1 : ByteArray} {balance0 balance1 amount0 amount1 liquidity : UInt256}
@@ -1439,6 +1637,222 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
         hfitSupply hfitBalance hbound0 hbound1 helapsed hfitKLast
+  have hthrough := execBlock_append hprefix htail
+  simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
+    mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
+    afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
+
+theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
+    (evm evm0 evm1 evmAfter : EVM.State) (I : ExecutionEnv) (nextLocals : Store)
+    {out0 out1 : ByteArray} {balance0 balance1 amount0 amount1 liquidity : UInt256}
+    (recipient : AccountAddress)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hguard0 :
+      evalExpr? config
+        { contract := contract, locals := mintReserveStore (uniswapLockEnteredState evm) I }
+        (uniswapLockEnteredState evm)
+        (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
+    (hguard1 :
+      evalExpr? config
+        { contract := contract,
+          locals := (mintReserveStore (uniswapLockEnteredState evm) I).insert "balance0"
+            (uniswapUint256Value balance0) } evm0
+        (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool true))
+    (hcall0 : typedCallViaEVM config (uniswapLockEnteredState evm)
+      (EVM.address (uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨6⟩))
+      "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
+      (true, evm0, out0) false)
+    (hdec0 :
+      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hcall1 : typedCallViaEVM config evm0
+      (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
+      [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
+    (hdec1 :
+      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
+    (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
+    (hfee :
+      ExecStmt config
+        { contract := contract,
+          locals := mintAmountStore (uniswapLockEnteredState evm) I balance0 balance1 }
+        evm1 (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
+        (.ok { contract := contract, locals := nextLocals } evmAfter))
+    (htotalBase : nextLocals.get? "totalSupply" = none)
+    (hto : nextLocals.get? "to" = some (.address recipient))
+    (hamount0 : nextLocals.get? "amount0" = some (uniswapUint256Value amount0))
+    (hamount1 : nextLocals.get? "amount1" = some (uniswapUint256Value amount1))
+    (hbalance0 : nextLocals.get? "balance0" = some (uniswapUint256Value balance0))
+    (hbalance1 : nextLocals.get? "balance1" = some (uniswapUint256Value balance1))
+    (hfeeOn : nextLocals.get? "feeOn" = some (.bool true))
+    (hreserve0 :
+      nextLocals.get? "_reserve0" =
+        some (.int (Int.ofNat (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat)))
+    (hreserve1 :
+      nextLocals.get? "_reserve1" =
+        some (.int (Int.ofNat (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat)))
+    (hreserve0Base : nextLocals.get? "reserve0" = none)
+    (hreserve1Base : nextLocals.get? "reserve1" = none)
+    (hkLastBase : nextLocals.get? "kLast" = none)
+    (hunlockedBase : nextLocals.get? "unlocked" = none)
+    (htotalNonzero : mintFunctionTotalSupplyWord evmAfter ≠ ⟨0⟩)
+    (hfit0 : mintAmountProductNat amount0 (mintFunctionTotalSupplyWord evmAfter) < UInt256.size)
+    (hfit1 : mintAmountProductNat amount1 (mintFunctionTotalSupplyWord evmAfter) < UInt256.size)
+    (hreserve0Nonzero : uniswapReserve0Word (uniswapLockEnteredState evm) ≠ ⟨0⟩)
+    (hreserve1Nonzero : uniswapReserve1Word (uniswapLockEnteredState evm) ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord
+          (mintProportionalLiquidityWord amount0 (mintFunctionTotalSupplyWord evmAfter)
+            (uniswapReserve0Word (uniswapLockEnteredState evm)))
+          (mintProportionalLiquidityWord amount1 (mintFunctionTotalSupplyWord evmAfter)
+            (uniswapReserve1Word (uniswapLockEnteredState evm))))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hfitSupply : mintFunctionTotalSupplyNewNat evmAfter liquidity < UInt256.size)
+    (hfitBalance : mintFunctionToBalanceNewNat evmAfter recipient liquidity < UInt256.size)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (helapsed : 0 < syncTimeElapsedInt (mintFunctionPostState evmAfter recipient liquidity))
+    (hreserve0Post :
+      Int.ofNat (uniswapReserve0Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
+        0)
+    (hreserve1Post :
+      Int.ofNat (uniswapReserve1Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
+        0)
+    (hfitKLast :
+      mintFeeReserveProductNat
+          (uniswapReserve0Word
+            (syncUpdateCumulativePackedReserveState
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
+          (uniswapReserve1Word
+            (syncUpdateCumulativePackedReserveState
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)) <
+        UInt256.size) :
+    let totalSupply := mintFunctionTotalSupplyWord evmAfter
+    let reserve0 := uniswapReserve0Word (uniswapLockEnteredState evm)
+    let reserve1 := uniswapReserve1Word (uniswapLockEnteredState evm)
+    let afterTotalSupplyLocals :=
+      nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)
+    let liquidity0 := mintProportionalLiquidityWord amount0 totalSupply reserve0
+    let liquidity1 := mintProportionalLiquidityWord amount1 totalSupply reserve1
+    let afterBranch :=
+      resumeAfterInternalCall
+        { contract := contract,
+          locals :=
+            (afterTotalSupplyLocals.insert "liquidity0"
+              (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
+                "liquidity1"
+                (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
+        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+    let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
+    let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
+    ExecBlock config { contract := contract, locals := mintStore I } evm
+      mintTransition.body
+      (.returned afterUpdate
+        (uniswapLockExitedState
+          (mintKLastUpdatedState
+            (syncUpdateCumulativePackedReserveState
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)))
+        (some (uniswapUint256Value liquidity))) := by
+  intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
+    afterMint afterUpdate
+  have hprefix :=
+    uniswapMintAfterMintFeeTotalSupplyPrefix_of_call evm evm0 evm1 evmAfter I nextLocals
+      hwv hunlocked hguard0 hguard1 hcall0 hdec0 hcall1 hdec1 henough0 henough1 hfee
+      htotalBase
+  have hto' :
+      afterTotalSupplyLocals.get? "to" = some (.address recipient) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get? "to" =
+      some (.address recipient)
+    rw [store_get_ne _ _ (by decide), hto]
+  have htotal' :
+      afterTotalSupplyLocals.get? "_totalSupply" =
+        some (uniswapUint256Value totalSupply) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_totalSupply" = some (uniswapUint256Value totalSupply)
+    rw [store_get_self]
+  have hamount0' :
+      afterTotalSupplyLocals.get? "amount0" = some (uniswapUint256Value amount0) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "amount0" = some (uniswapUint256Value amount0)
+    rw [store_get_ne _ _ (by decide), hamount0]
+  have hamount1' :
+      afterTotalSupplyLocals.get? "amount1" = some (uniswapUint256Value amount1) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "amount1" = some (uniswapUint256Value amount1)
+    rw [store_get_ne _ _ (by decide), hamount1]
+  have hbalance0' :
+      afterTotalSupplyLocals.get? "balance0" = some (uniswapUint256Value balance0) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "balance0" = some (uniswapUint256Value balance0)
+    rw [store_get_ne _ _ (by decide), hbalance0]
+  have hbalance1' :
+      afterTotalSupplyLocals.get? "balance1" = some (uniswapUint256Value balance1) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "balance1" = some (uniswapUint256Value balance1)
+    rw [store_get_ne _ _ (by decide), hbalance1]
+  have hfeeOn' :
+      afterTotalSupplyLocals.get? "feeOn" = some (.bool true) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get? "feeOn" =
+      some (.bool true)
+    rw [store_get_ne _ _ (by decide), hfeeOn]
+  have hreserve0' :
+      afterTotalSupplyLocals.get? "_reserve0" =
+        some (.int (Int.ofNat reserve0.toNat)) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_reserve0" = some (.int (Int.ofNat reserve0.toNat))
+    rw [store_get_ne _ _ (by decide)]
+    simpa [reserve0] using hreserve0
+  have hreserve1' :
+      afterTotalSupplyLocals.get? "_reserve1" =
+        some (.int (Int.ofNat reserve1.toNat)) := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "_reserve1" = some (.int (Int.ofNat reserve1.toNat))
+    rw [store_get_ne _ _ (by decide)]
+    simpa [reserve1] using hreserve1
+  have hreserve0Base' :
+      afterTotalSupplyLocals.get? "reserve0" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "reserve0" = none
+    rw [store_get_ne _ _ (by decide), hreserve0Base]
+  have hreserve1Base' :
+      afterTotalSupplyLocals.get? "reserve1" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "reserve1" = none
+    rw [store_get_ne _ _ (by decide), hreserve1Base]
+  have hkLastBase' :
+      afterTotalSupplyLocals.get? "kLast" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "kLast" = none
+    rw [store_get_ne _ _ (by decide), hkLastBase]
+  have hunlockedBase' :
+      afterTotalSupplyLocals.get? "unlocked" = none := by
+    change (nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)).get?
+      "unlocked" = none
+    rw [store_get_ne _ _ (by decide), hunlockedBase]
+  have htail :
+      ExecBlock config { contract := contract, locals := afterTotalSupplyLocals } evmAfter
+        ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts)
+        (.returned afterUpdate
+          (uniswapLockExitedState
+            (mintKLastUpdatedState
+              (syncUpdateCumulativePackedReserveState
+                (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)))
+          (some (uniswapUint256Value liquidity))) := by
+    simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
+      afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
+      uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
+        (locals := afterTotalSupplyLocals) evmAfter recipient amount0 amount1 totalSupply
+        reserve0 reserve1 balance0 balance1 liquidity hto' htotal'
+        (by simpa [totalSupply] using htotalNonzero) hamount0' hamount1' hbalance0'
+        hbalance1' hfeeOn' hreserve0' hreserve1' hreserve0Base' hreserve1Base'
+        hkLastBase' hunlockedBase' (by simpa [totalSupply] using hfit0)
+        (by simpa [totalSupply] using hfit1)
+        (by simpa [reserve0] using hreserve0Nonzero)
+        (by simpa [reserve1] using hreserve1Nonzero)
+        (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
+        hfitSupply hfitBalance hbound0 hbound1 helapsed hreserve0Post hreserve1Post
+        hfitKLast
   have hthrough := execBlock_append hprefix htail
   simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,

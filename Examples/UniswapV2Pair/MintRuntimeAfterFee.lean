@@ -198,6 +198,43 @@ theorem RD.uniswapSwap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 set_option maxHeartbeats 1000000 in
+/- Runtime-only initial-liquidity branch from the checked `root - 1000` subtraction to the
+internal `_mint(address(0), 1000)` entry. -/
+theorem uniswapMintRuntimeInitialMinimumMintEntry
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ}
+    {root feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
+      UInt256}
+    (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      [root, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
+        reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+    (hliquidity : liquidity = UInt256.sub root ⟨1000⟩)
+    (hrootGeMin : (⟨1000⟩ : UInt256).toNat ≤ root.toNat) :
+    ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8128⟩
+      [⟨1000⟩, ⟨0⟩, ⟨3757⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
+        reserve1, reserve0, liquidity, toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k' C' := by
+  have rd6879pre := evm_run rd2531 with [
+    jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
+  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
+    at rd6879pre
+  have rd6879 := rd6879pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd3742⟩ :=
+    RD.uniswapSafeMathSubSuccess rd6879 hrootGeMin (by jump_dest)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd3743 := evm_run rd3742 with [jumpdest]
+  have rd3744 := RD.uniswapSwap9 rd3743 (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd8128pre := evm_run rd3744 with [
+    pop, push2 ⟨3757⟩, push1 ⟨0⟩, push2 ⟨1000⟩,
+    push2 ⟨8128⟩, jump (by jump_dest)]
+  exact ⟨_, _, by simpa [hliquidity] using rd8128pre⟩
+
+set_option maxHeartbeats 1000000 in
 /- Runtime-only initial-liquidity branch after `sqrt` has returned: subtract
 `MINIMUM_LIQUIDITY`, mint that minimum amount to the zero address, and rejoin the shared
 `liquidity > 0` check. -/
@@ -258,26 +295,8 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootEntry
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
           (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-  have rd6879pre := evm_run rd2531 with [
-    jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
-  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
-    at rd6879pre
-  have rd6879 := rd6879pre.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd3742⟩ :=
-    RD.uniswapSafeMathSubSuccess rd6879 hrootGeMin (by jump_dest)
-      (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3743 := evm_run rd3742 with [jumpdest]
-  have rd3744 := RD.uniswapSwap9 rd3743 (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd8128pre := evm_run rd3744 with [
-    pop, push2 ⟨3757⟩, push1 ⟨0⟩, push2 ⟨1000⟩,
-    push2 ⟨8128⟩, jump (by jump_dest)]
-  obtain ⟨_, _, rd8128⟩ : ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8128⟩
-      [⟨1000⟩, ⟨0⟩, ⟨3757⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
-        reserve1, reserve0, liquidity, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k' C' :=
-    ⟨_, _, by simpa [hliquidity] using rd8128pre⟩
+  obtain ⟨_, _, rd8128⟩ :=
+    uniswapMintRuntimeInitialMinimumMintEntry rd2531 hliquidity hrootGeMin
   obtain ⟨_, _, rd3757⟩ :=
     uniswapInternalMintRuntimeSuccess rd8128 hperm htotalFitMin hbalanceFitMin
       (uniswapInternalMintDoubleBalanceHashMem_mload64_of_ge160 ⟨0⟩

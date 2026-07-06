@@ -410,6 +410,14 @@ def mintFeeReserveProductWord (reserve0 reserve1 : UInt256) : UInt256 :=
 abbrev mintFeeReserveProductValue (reserve0 reserve1 : UInt256) : Value :=
   uniswapUint256Value (mintFeeReserveProductWord reserve0 reserve1)
 
+theorem mintFeeReserveProductWord_eq_mul
+    (reserve0 reserve1 : UInt256)
+    (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
+    mintFeeReserveProductWord reserve0 reserve1 = UInt256.mul reserve0 reserve1 := by
+  apply u256_inj
+  rw [mintFeeReserveProductWord, UInt256.toNat_ofNat_of_lt hfit, u256_mul_toNat]
+  exact (Nat.mod_eq_of_lt hfit).symm
+
 theorem mintFeeAfterKLastStore_reserve0
     (reserve0 reserve1 : UInt256) (feeTo : AccountAddress) (feeOn : Bool)
     (kLast : UInt256) :

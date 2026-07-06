@@ -505,11 +505,14 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
         ⟨0⟩ := by
     have hsame :=
       uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
+    have hcodeS :
+        uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask factoryWordS) ≠ ⟨0⟩ := by
+      simpa [factoryWordS, mintFeeFactoryWord] using hfactoryCode
     intro hzero
-    apply hfactoryCode
-    rw [← hsame]
-    rw [hslot]
-    simpa [factoryWordS, mintFeeFactoryWord] using hzero
+    apply hcodeS
+    rw [← hslot] at hzero
+    rw [← hsame] at hzero
+    exact hzero
   have hstorage :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm (.storage factoryRef) =
         .ok (.address (uniswapAddressAtSlot evm ⟨5⟩)) := by
@@ -532,18 +535,148 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
           ((evm.lookupAccount (uniswapAddressAtSlot evm ⟨5⟩)).option 0
             (fun acc => acc.code.size)) ≠
         ⟨0⟩ := by
-    intro hzero
-    apply hcodeSource
     cases hacc : evm.lookupAccount (uniswapAddressAtSlot evm ⟨5⟩) with
     | none =>
-        exact UInt256_ofNat_0
+        exact False.elim (hcodeSource (by simp [hacc, Option.option]))
     | some acc =>
-        simpa [hacc, Option.option] using hzero
+        simpa [hacc, Option.option] using hcodeSource
+  have hpositive :
+      0 <
+        (EVM.Word.ofNat
+          ((evm.lookupAccount (uniswapAddressAtSlot evm ⟨5⟩)).option 0
+            (fun acc => acc.code.size))).toNat := by
+    exact Nat.pos_of_ne_zero (by
+      intro hzeroNat
+      apply hcodeSourceWord
+      apply u256_inj
+      simpa using hzeroNat)
   change
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
         .ok (.bool true)
-  simp [evalExpr?, hstorage, EvalResult.bind, bind, pure, evalBinaryOp?, hcodeSourceWord]
+  simp [evalExpr?, hstorage, EvalResult.bind, bind, pure, evalBinaryOp?]
+  exact hpositive
+
+-- GENERALIZES Examples.UniswapV2Pair.Permit.permitDecodeReturnValue_legacyAddress_none_short:
+-- move to a shared ABI helper once the oversized Permit file is split.
+theorem uniswapFeeToDecode_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    config.externalABI.decode? "feeTo" returndata = none := by
+  change uniswapExternalABI.decode? "feeTo" returndata = none
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake0n : ¬ ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  unfold uniswapExternalABI ExternalCallABI.decode?
+  simp only [↓reduceIte]
+  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [addr].length)
+    (by decide) (by simp)]
+  simp [addr, decodeScalarWordsWithMode?]
+  rw [decodeScalarWord_legacyAddress_none_short
+    (bytes := returndata.toList) (start := 0) (by simpa [List.drop_zero] using htake0n)]
+  rfl
+
+-- GENERALIZES Examples.UniswapV2Pair.Permit.permitDecodeReturnValue_legacyAddress_ok:
+-- move to a shared ABI helper once the oversized Permit file is split.
+theorem uniswapFeeToDecode_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) :
+    config.externalABI.decode? "feeTo" returndata =
+      some (.address (AccountAddress.ofNat
+        (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
+  change uniswapExternalABI.decode? "feeTo" returndata = _
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
+    rw [List.drop_zero, List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  unfold uniswapExternalABI ExternalCallABI.decode?
+  simp only [↓reduceIte]
+  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
+    (total := 32 * [addr].length)
+    (by decide) (by simp)]
+  simp [addr, decodeScalarWordsWithMode?]
+  rw [decodeScalarWord_legacyAddress_ok
+    (bytes := returndata.toList) (start := 0) (by simpa [List.drop_zero] using htake0)]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+theorem accountAddress_ofNat_eq_zero_of_land_solcAddrMask_eq_zero {n : Nat}
+    (hn : n < UInt256.size)
+    (hmask : UInt256.land (UInt256.ofNat n) solcAddrMask = ⟨0⟩) :
+    AccountAddress.ofNat n = AccountAddress.ofNat 0 := by
+  have hmaskNat :
+      Nat.land n (2 ^ 160 - 1) = 0 := by
+    have htoNat := congrArg UInt256.toNat hmask
+    rw [u256_land_toNat, UInt256.toNat_ofNat_of_lt hn,
+      show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide] at htoNat
+    have hlandLt : Nat.land n (2 ^ 160 - 1) < UInt256.size := by
+      exact lt_of_le_of_lt (nat_land_le_right n (2 ^ 160 - 1))
+        (by native_decide : 2 ^ 160 - 1 < UInt256.size)
+    have hlandLt' :
+        Nat.land n 1461501637330902918203684832716283019655932542975 < UInt256.size := by
+      simpa using hlandLt
+    simpa [Nat.mod_eq_of_lt hlandLt'] using htoNat
+  apply Fin.ext
+  unfold AccountAddress.ofNat
+  simp only [Fin.val_ofNat]
+  rw [show AccountAddress.size = 2 ^ 160 by rfl]
+  rw [← nat_land_mask_eq_mod n 160, hmaskNat]
+  rfl
+
+theorem accountAddress_ofNat_ne_zero_of_land_solcAddrMask_ne_zero {n : Nat}
+    (hn : n < UInt256.size)
+    (hmask : UInt256.land (UInt256.ofNat n) solcAddrMask ≠ ⟨0⟩) :
+    AccountAddress.ofNat n ≠ AccountAddress.ofNat 0 := by
+  intro haddr
+  apply hmask
+  apply u256_inj
+  rw [u256_land_toNat, UInt256.toNat_ofNat_of_lt hn,
+    show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide]
+  have hmod : n % 2 ^ 160 = 0 := by
+    have hval := congrArg Fin.val haddr
+    unfold AccountAddress.ofNat at hval
+    simpa [AccountAddress.size] using hval
+  rw [nat_land_mask_eq_mod, hmod]
+  rfl
+
+theorem mintFeeKLastWord_eq_slot_of_accountMapEquiv
+    {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
+    (hPost : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    mintFeeKLastWord evm = mintFeeKLastSlotWord σ I := by
+  have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨11⟩ ⟨0⟩
+  simpa [mintFeeKLastWord, mintFeeKLastSlotWord, uniswapSlotWord, Solm.EVM.storageLoad,
+    State.lookupAccount, Account.lookupStorage, henv] using hword.symm
+
+theorem mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv
+    {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
+    (hPost : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    mintFunctionTotalSupplyWord evm = uniswapSlotWord ⟨0⟩ σ I := by
+  have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨0⟩ ⟨0⟩
+  simpa [mintFunctionTotalSupplyWord, uniswapSlotWord, Solm.EVM.storageLoad,
+    State.lookupAccount, Account.lookupStorage, henv] using hword.symm
+
+-- LIBRARY CANDIDATE: general UInt256 fitted addition bridge.
+theorem u256_ofNat_toNat_add_eq_add_of_lt (a b : UInt256)
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    UInt256.ofNat (a.toNat + b.toNat) = a + b := by
+  apply u256_inj
+  rw [UInt256.toNat_ofNat_of_lt hfit]
+  change a.toNat + b.toNat = (UInt256.add a b).toNat
+  unfold UInt256.add UInt256.toNat
+  rw [Fin.val_add]
+  exact (Nat.mod_eq_of_lt hfit).symm
 
 theorem u256_div_one (w : UInt256) :
     UInt256.div w ⟨1⟩ = w := by
