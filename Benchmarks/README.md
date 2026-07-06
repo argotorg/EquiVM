@@ -20,6 +20,19 @@ the checked-in `.abi.json` files.
 | `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
+| `Dss/LinearDecrease` | 1128 | 1217 | 6 fn + ctor | Ready for proof | Yes |
+| `Dss/StairstepExponentialDecrease` | 1433 | 1522 | 7 fn + ctor | Ready for proof | Yes |
+| `Dss/ExponentialDecrease` | 1321 | 1410 | 6 fn + ctor | Ready for proof | Yes |
+| `Dss/GemJoin` | 2022 | 2326 | 11 fn + ctor | Ready for proof | Yes |
+| `Dss/DaiJoin` | 1733 | 1876 | 9 fn + ctor | Ready for proof | Yes |
+| `Dss/Cat` | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
+| `Dss/Clipper` | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
+| `Dss/Cure` | 3875 | 3971 | 20 fn + ctor | Scaffolded | No |
+| `Dss/Dog` | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
+| `Dss/End` | 10265 | 10359 | 32 fn + ctor | Scaffolded | No |
+| `Dss/Flapper` | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
+| `Dss/Flipper` | 6386 | 6596 | 19 fn + ctor | Scaffolded | No |
+| `Dss/Flopper` | 4780 | 5000 | 20 fn + ctor | Scaffolded | No |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
 | `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
 | `ERC721` | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
@@ -31,6 +44,7 @@ the checked-in `.abi.json` files.
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
 | `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
 | `Auction` | 6150 | 6179 | 20 fn + empty ctor | Handed off | Yes |
+| `Klima` | 6975 | 7732 | 30 fn + ctor | Ready for proof | Yes |
 
 ## Completed / ready for proof / handed off
 
@@ -67,6 +81,29 @@ the checked-in `.abi.json` files.
   `PipLike.peek` and `VatLike.file`. The `Poke` event is omitted consistently with the framework's
   substate/log abstraction. No semantic blocker is currently known; expected proof work is oracle
   return decoding, conditional arithmetic, and `bytes32` to `uint256` casting.
+
+- `Dss/LinearDecrease`, `Dss/StairstepExponentialDecrease`, and `Dss/ExponentialDecrease`: ready
+  for proof, not yet handed off. Target theorems:
+  `Benchmarks.Dss.LinearDecrease.linearDecreaseContractCorrect`,
+  `Benchmarks.Dss.StairstepExponentialDecrease.stairstepExponentialDecreaseContractCorrect`, and
+  `Benchmarks.Dss.ExponentialDecrease.exponentialDecreaseContractCorrect`. Fresh solc output is
+  checked in for all three deployable contracts from `src/abaci.sol`; the specs model auth,
+  storage layout, `file`, public getters, checked arithmetic, and the source-level price functions
+  including the `rpow` loop for the exponential variants.
+
+- `Dss/GemJoin` and `Dss/DaiJoin`: ready for proof, not yet handed off. Target theorems:
+  `Benchmarks.Dss.GemJoin.gemJoinContractCorrect` and
+  `Benchmarks.Dss.DaiJoin.daiJoinContractCorrect`. Fresh solc output is checked in for both
+  deployable contracts from `src/join.sol`; the specs model auth, constructor initialization,
+  public getters, cage, join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed
+  external ABI hooks for `VatLike`, `GemLike`, and `DSTokenLike`.
+
+- `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/End`, `Dss/Flapper`, `Dss/Flipper`, and
+  `Dss/Flopper`: scaffolded, not ready for proof. Fresh upstream sources, ABI/AST/storage-layout
+  artifacts, optimized creation/runtime bytecode, Lean `ByteArray`s, verified `JUMPDEST` sets, and
+  top-level theorem targets are checked in and compile. Their current `Spec.lean` files are
+  intentionally minimal entrypoints; they still need full source-body transcription before they
+  should be handed to a proof agent.
 
 - `WETH9`: completed. Target theorem:
   `Benchmarks.WETH9.weth9ContractCorrect`. Fresh solc output exactly matches the checked-in Lean
@@ -162,6 +199,21 @@ the checked-in `.abi.json` files.
   `Benchmarks.UniswapV3Pool.uniswapV3PoolContractCorrect`. Large stress benchmark with
   constructor-set immutables and complex pool paths; proof work should expect substantial selector,
   immutable-code, external-call, and body-trace engineering.
+
+- `Klima`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.Klima.klimaContractCorrect`. Fresh solc 0.7.5 output with optimizer runs 200 and
+  `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte arrays, and the
+  solc storage layout matches the spec. There are no immutables, so the creation bytecode returns the
+  runtime verbatim (byte offset 757). The KlimaDAO `KlimaToken` is the full inherited ERC20 +
+  EIP-2612 permit + `Ownable`/`VaultOwned` + `TWAPOracleUpdater` contract. The spec models the
+  compact-string `_name`/`_symbol` storage (pre-0.8 total decode), the `EnumerableSet.AddressSet`
+  `_values`/`_indexes` slots with `push`/swap-and-pop `remove`, `SafeMath` checked arithmetic, the
+  `_beforeTokenTransfer` hook's `EXTCODESIZE`-guarded `twapOracle.updateTWAP` external call on every
+  balance-moving path, and the `ecrecover`/EIP-712 `permit`. Events are omitted consistently with the
+  framework's log abstraction. No benchmark-local semantic blocker is currently known; expected proof
+  work is binary-search dispatcher routing, mapping/dynamic-array slot lemmas, compact-string layout,
+  `SafeMath` checked arithmetic, the guarded external call on transfer/mint/burn, and the
+  precompile/ABI `permit` lemmas.
 
 ## Scaffolded, not yet handed off
 
