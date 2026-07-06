@@ -60,9 +60,10 @@ Scaffold notes:
 - Selector bytes, if needed in downstream proofs, should follow the `Examples/*/Trusted.lean`
   convention: trust only opaque Keccak selector byte computations, then prove dispatch facts from
   those axioms.
-- `CometRewards` has been semantically audited for the current equivalence relation. Its 0.8.15
-  via-IR artifacts match the Lean byte arrays, its packed storage layout matches the spec, and its
-  no-return `accrueAccount` calls include the solc `EXTCODESIZE` guards in the spec.
+- `CometRewards` has been handed off for proof and semantically audited for the current equivalence
+  relation. Its 0.8.15 via-IR artifacts match the Lean byte arrays, its packed storage layout
+  matches the spec, and its no-return `accrueAccount` calls include the solc `EXTCODESIZE` guards
+  in the spec.
 - The Comet runtime artifact is solc's unpatched `--bin-runtime` template. Its immutable template
   values are explicit in `Comet/Immutables.lean`, and its payable fallback is modeled in
   `Comet/Spec.lean`.

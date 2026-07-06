@@ -1340,21 +1340,6 @@ theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Iden
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
           abiTupleHeadSize?, solcMaxLen, hreadOff, hoffMax, hreadLen, hlenMax, hpayloadRead]
 
-axiom decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
-    (hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hlenMax : ¬ solcMaxU64 <
-      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
-    (hpayload :
-      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
-    decodeCalldata [x] [ABIType.string] cd =
-      some ((∅ : Solm.Store).insert x (.bytes (ByteArray.mk
-        (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-          (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray)))
-
 /-! ## Fixed-bytes calldata convenience lemmas -/
 
 abbrev calldataBytes4Arg (cd : ByteArray) : List UInt8 :=

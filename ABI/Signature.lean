@@ -21,7 +21,7 @@ def elemToSigStr : ElemType → String
   | .int i => intTypeToSigStr i
   | .bool => "bool"
   | .address => "address"
-  | .bytes n => "bytes" ++ reprStr (n+1)
+  | .bytes n => "bytes" ++ reprStr (n.val + 1)
   | .fixed f => fixedTypeToSigStr f
   | .function => "function"
 

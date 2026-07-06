@@ -497,6 +497,10 @@ When a step fails, re-check it against the disassembly first.
 
 - Do not make changes outside of your working directory.
 
+- Do not build examples and benchmarks that are not your own. 
+  **This is extremely important**. Builds are extremely expensive and time-consuming.
+  Only build your own working directory. 
+
 - If you find misspecifications, mismatches, or unprovable
   obligations, stop and report them immediately. Do not continue until
   they are resolved.
