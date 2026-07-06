@@ -17,7 +17,7 @@ the checked-in `.abi.json` files.
 | `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
 | `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Handed off | Yes |
-| `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
+| `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
@@ -25,7 +25,7 @@ the checked-in `.abi.json` files.
 | `ERC721` | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
 | `OpenZeppelinBench/VestingWallet` | 2277 | 2485 | 14 fn + ctor + receive | Ready for proof | Yes |
 | `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
-| `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
+| `Safe` | 11874 | 11907 | 31 fn + ctor + fallback/receive | Handed off | Yes |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
 | `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
@@ -46,13 +46,12 @@ the checked-in `.abi.json` files.
   `EXTCODESIZE` guards to model. No semantic blocker is currently known; expected proof work is
   arithmetic helper lemmas, storage-mapping layout lemmas, and the large state-update bodies.
 
-- `Dss/Pot`: ready for proof, not yet handed off. Target theorem:
+- `Dss/Pot`: completed. Target theorem:
   `Benchmarks.Dss.Pot.potContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   optimized external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   all three source-level `VatLike` calls (`drip`, `join`, `exit`, with `join`/`exit` sharing a
-  bytecode call path). No semantic blocker is currently known; expected proof work is `_rpow`,
-  checked arithmetic, and typed external-call reasoning.
+  bytecode call path). Proof work has been marked done.
 
 - `Dss/Jug`: completed. Target theorem:
   `Benchmarks.Dss.Jug.jugContractCorrect`. Fresh solc output exactly matches the checked-in Lean
@@ -117,6 +116,19 @@ the checked-in `.abi.json` files.
   via-IR dispatch, packed storage writes, dynamic calldata arrays, `pow10`/overflow paths, and typed
   external-call return decoding.
 
+- `Safe`: handed off. Target theorem:
+  `Benchmarks.Safe.safeContractCorrect`. Fresh solc 0.8.35 output with optimizer runs 200,
+  Shanghai EVM, and `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte
+  arrays. The solc storage layout matches the spec, including the singleton, owners/modules
+  mappings, nonce/threshold counters, approved-hash mappings, and fixed assembly slots for fallback
+  handler, guard, and module guard. The spec models receive/fallback behavior, modern ABI decoding,
+  checked arithmetic, high-level-call `EXTCODESIZE` guards where solc emits them, ecrecover's
+  zero-address empty-return behavior, module/guard calls, and Safe's storage-access helper via raw
+  EVM slots. Events and revert payloads are omitted consistently with the framework's current
+  abstraction. No benchmark-local semantic blocker is currently known; expected proof work is
+  dispatcher routing, storage-layout/raw-slot lemmas, signature-check paths, module/guard external
+  calls, checked arithmetic, and low-level call reasoning.
+
 - `Auction`: handed off. Target theorem:
   `auctionContractCorrect`. Fresh solc 0.8.23 output with optimizer runs 200, Shanghai EVM, and
   `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte arrays. The
@@ -140,9 +152,6 @@ the checked-in `.abi.json` files.
 - None currently.
 
 ## Needs prep before handoff
-
-- `Safe`: not ready for unsupervised handoff. The Solidity runtime has receive/fallback behavior
-  that is not fully represented by the current `ContractDecl` fallback dispatch.
 
 - `UniswapV2Router02`: not ready for unsupervised handoff. Large scaffold with immutables, payable
   receive, dynamic arrays, loops, `CREATE2` address derivation, raw TransferHelper calls, and many
