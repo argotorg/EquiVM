@@ -29,7 +29,7 @@ the checked-in `.abi.json` files.
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
 | `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
-| `Auction` | 6150 | 6179 | 20 fn + empty ctor | Ready for proof | Yes |
+| `Auction` | 6150 | 6179 | 20 fn + empty ctor | Handed off | Yes |
 
 ## Completed / ready for proof / handed off
 
@@ -117,7 +117,7 @@ the checked-in `.abi.json` files.
   via-IR dispatch, packed storage writes, dynamic calldata arrays, `pow10`/overflow paths, and typed
   external-call return decoding.
 
-- `Auction`: ready for proof, not yet handed off. Target theorem:
+- `Auction`: handed off. Target theorem:
   `auctionContractCorrect`. Fresh solc 0.8.23 output with optimizer runs 200, Shanghai EVM, and
   `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte arrays. The
   benchmark-local source closure contains the Nouns interfaces, OpenZeppelin upgradeable v4.4.0

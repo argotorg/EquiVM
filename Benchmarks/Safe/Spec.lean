@@ -249,8 +249,10 @@ def checkAfterExecutionSelector : ByteArray := selectorBytes 0x93 0x27 0x13 0x68
 def checkModuleTransactionSelector : ByteArray := selectorBytes 0x72 0x8c 0x29 0x72
 def checkAfterModuleExecutionSelector : ByteArray := selectorBytes 0x2a 0xcc 0x37 0xaa
 
+def safeDecodeMode : DecodeMode := DecodeMode.legacySolc05
+
 def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
-  (ABI.decodeReturnValueWithMode? DecodeMode.modern ty out).map (fun v => [v])
+  (ABI.decodeReturnValueWithMode? safeDecodeMode ty out).map (fun v => [v])
 
 def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
   some []
@@ -1219,6 +1221,7 @@ def contract : ContractDecl :=
 def config : Config :=
   { storage := storageLayout
     externalABI := safeExternalABI
+    abiDecodeMode := safeDecodeMode
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Benchmarks.Safe

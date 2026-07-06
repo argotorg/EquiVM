@@ -25,4 +25,5 @@ Artifacts:
 
 Main source sha256: `9f91d9250e18bb0710b7b1f10dcbe2417e9ef8d22eeee98dba2ef48661a060fa`.
 
-Note: The receive/fallback path is present in the Solidity runtime but not represented by `ContractDecl` fallback dispatch yet. Events are omitted, as in the other benchmarks.
+Note: The receive/fallback path is present in the Solidity runtime and modeled explicitly in
+`Spec.lean`. Events and revert payloads are omitted, as in the other benchmarks.
