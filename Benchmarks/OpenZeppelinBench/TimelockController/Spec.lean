@@ -552,7 +552,10 @@ def constructorDecl : ConstructorDecl :=
   { params := []
     body :=
       grantRoleIfMissing defaultAdminRole thisAddr ++
-      grantRoleIfMissing defaultAdminRole sender ++
+      -- optional admin: `if (admin != address(0))`, with `admin = msg.sender`
+      [ .ite (.binary .ne sender zeroAddr)
+          (grantRoleIfMissing defaultAdminRole sender)
+          [] ] ++
       grantRoleIfMissing proposerRole sender ++
       grantRoleIfMissing cancellerRole sender ++
       grantRoleIfMissing executorRole zeroAddr ++
