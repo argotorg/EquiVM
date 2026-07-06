@@ -17,19 +17,20 @@ the checked-in `.abi.json` files.
 | `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
 | `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
 | `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Handed off | Yes |
-| `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Ready for proof | Yes |
+| `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
 | `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
 | `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
 | `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
 | `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
 | `ERC721` | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
 | `OpenZeppelinBench/VestingWallet` | 2277 | 2485 | 14 fn + ctor + receive | Ready for proof | Yes |
+| `OpenZeppelinBench/TimelockController` | 6509 | 7161 | 28 fn + ctor + receive | Handed off | Yes |
 | `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
-| `Safe` | 12547 | 12584 | 31 fn + ctor + fallback/receive | Prep needed | No |
+| `Safe` | 11874 | 11907 | 31 fn + ctor + fallback/receive | Handed off | Yes |
 | `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
 | `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
 | `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
-| `Auction` | 6150 | 6179 | 20 fn + empty ctor | Ready for proof | Yes |
+| `Auction` | 6150 | 6179 | 20 fn + empty ctor | Handed off | Yes |
 
 ## Completed / ready for proof / handed off
 
@@ -46,13 +47,12 @@ the checked-in `.abi.json` files.
   `EXTCODESIZE` guards to model. No semantic blocker is currently known; expected proof work is
   arithmetic helper lemmas, storage-mapping layout lemmas, and the large state-update bodies.
 
-- `Dss/Pot`: ready for proof, not yet handed off. Target theorem:
+- `Dss/Pot`: completed. Target theorem:
   `Benchmarks.Dss.Pot.potContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   optimized external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   all three source-level `VatLike` calls (`drip`, `join`, `exit`, with `join`/`exit` sharing a
-  bytecode call path). No semantic blocker is currently known; expected proof work is `_rpow`,
-  checked arithmetic, and typed external-call reasoning.
+  bytecode call path). Proof work has been marked done.
 
 - `Dss/Jug`: completed. Target theorem:
   `Benchmarks.Dss.Jug.jugContractCorrect`. Fresh solc output exactly matches the checked-in Lean
@@ -106,6 +106,21 @@ the checked-in `.abi.json` files.
   blocker is currently known; expected proof work is overloaded ABI dispatch, immutable creation
   patching, checked arithmetic paths, receive/fallback routing, and external-call reasoning.
 
+- `OpenZeppelinBench/TimelockController`: handed off. Target theorem:
+  `OpenZeppelinBench.TimelockController.timelockControllerBenchContractCorrect`. Fresh solc 0.8.35
+  output with optimizer runs 200, Shanghai EVM, and `--metadata-hash none` is checked in with the
+  emitted ABI and storage layout. A benchmark-local OpenZeppelin source closure is checked in with
+  the 14 files needed by `TimelockControllerBench.sol`. The spec models the constructor's concrete
+  role grants (`msg.sender` admin/proposer/canceller and `address(0)` executor), `_roles`,
+  `_timestamps`, `_minDelay`, operation-state predicates, standard `abi.encode(...)` operation-id
+  hashing through a benchmark-local ABI hook, batch length checks, payable execution/receive,
+  low-level target calls, the reentrancy-sensitive `_afterCall` readiness check, and ERC721/ERC1155
+  receiver hooks. Events, custom-error payloads, and bubbled revert bytes are omitted consistently
+  with the framework's current log/revert-data abstraction; the event-only loop in `scheduleBatch`
+  is omitted for that reason. No benchmark-local semantic blocker is currently known; expected
+  proof work is dispatcher routing, nested-role mapping layout, dynamic ABI encoding for
+  operation ids, checked timestamp arithmetic, batch call loops, and low-level call reasoning.
+
 - `CompoundIII/CometRewards`: handed off. Target theorem:
   `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`. Fresh solc 0.8.15 via-IR
   output exactly matches the checked-in Lean creation/runtime byte arrays and ABI; the solc storage
@@ -117,7 +132,20 @@ the checked-in `.abi.json` files.
   via-IR dispatch, packed storage writes, dynamic calldata arrays, `pow10`/overflow paths, and typed
   external-call return decoding.
 
-- `Auction`: ready for proof, not yet handed off. Target theorem:
+- `Safe`: handed off. Target theorem:
+  `Benchmarks.Safe.safeContractCorrect`. Fresh solc 0.8.35 output with optimizer runs 200,
+  Shanghai EVM, and `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte
+  arrays. The solc storage layout matches the spec, including the singleton, owners/modules
+  mappings, nonce/threshold counters, approved-hash mappings, and fixed assembly slots for fallback
+  handler, guard, and module guard. The spec models receive/fallback behavior, modern ABI decoding,
+  checked arithmetic, high-level-call `EXTCODESIZE` guards where solc emits them, ecrecover's
+  zero-address empty-return behavior, module/guard calls, and Safe's storage-access helper via raw
+  EVM slots. Events and revert payloads are omitted consistently with the framework's current
+  abstraction. No benchmark-local semantic blocker is currently known; expected proof work is
+  dispatcher routing, storage-layout/raw-slot lemmas, signature-check paths, module/guard external
+  calls, checked arithmetic, and low-level call reasoning.
+
+- `Auction`: handed off. Target theorem:
   `auctionContractCorrect`. Fresh solc 0.8.23 output with optimizer runs 200, Shanghai EVM, and
   `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte arrays. The
   benchmark-local source closure contains the Nouns interfaces, OpenZeppelin upgradeable v4.4.0
@@ -140,9 +168,6 @@ the checked-in `.abi.json` files.
 - None currently.
 
 ## Needs prep before handoff
-
-- `Safe`: not ready for unsupervised handoff. The Solidity runtime has receive/fallback behavior
-  that is not fully represented by the current `ContractDecl` fallback dispatch.
 
 - `UniswapV2Router02`: not ready for unsupervised handoff. Large scaffold with immutables, payable
   receive, dynamic arrays, loops, `CREATE2` address derivation, raw TransferHelper calls, and many

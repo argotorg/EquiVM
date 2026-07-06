@@ -28,6 +28,9 @@ def storageDeclsSyntax : List StorageDecl :=
 def constructorDeclSyntax : ConstructorDecl :=
   { params := []
     body :=
+      sBlock% {
+        require msg.value == 0
+      } ++
       [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
         .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
         .assign .storage decimalsRef (.intLit 18) ] }

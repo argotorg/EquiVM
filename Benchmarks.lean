@@ -14,3 +14,4 @@ import Benchmarks.EAS.Attester.Correct
 import Benchmarks.ERC721.Correct
 import Benchmarks.Auction.Correct
 import Benchmarks.OpenZeppelinBench.VestingWallet.Correct
+import Benchmarks.OpenZeppelinBench.TimelockController.Correct
