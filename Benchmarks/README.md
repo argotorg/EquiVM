@@ -29,7 +29,7 @@ the checked-in `.abi.json` files.
 | `Dss/Clipper` | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
 | `Dss/Cure` | 3875 | 3971 | 20 fn + ctor | Scaffolded | No |
 | `Dss/Dog` | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
-| `Dss/End` | 10265 | 10359 | 32 fn + ctor | Scaffolded | No |
+| `Dss/End` | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
 | `Dss/Flapper` | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
 | `Dss/Flipper` | 6386 | 6596 | 19 fn + ctor | Scaffolded | No |
 | `Dss/Flopper` | 4780 | 5000 | 20 fn + ctor | Scaffolded | No |
@@ -98,7 +98,22 @@ the checked-in `.abi.json` files.
   public getters, cage, join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed
   external ABI hooks for `VatLike`, `GemLike`, and `DSTokenLike`.
 
-- `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/End`, `Dss/Flapper`, `Dss/Flipper`, and
+- `Dss/End`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.Dss.End.endContractCorrect`. The former `Spec.lean` scaffold is now a full faithful
+  transcription of `src/end.sol` (global settlement engine); it compiles against the checked-in
+  bytecode artifacts, and the solc storage layout matches the spec's 18 slots (0–17, including the
+  nested `out[ilk][usr]` mapping). The spec models auth, the constructor, all 18 public getters,
+  both `file` overloads, the seven-way `cage()` teardown, `cage(ilk)`, the auction cancels
+  `snip`/`skip`, `skim`/`free`, and `thaw`/`flow`/`pack`/`cash`, with typed external ABI hooks for
+  `VatLike`/`CatLike`/`DogLike`/`SpotLike`/`CureLike`/`FlipLike`/`ClipLike`/`PipLike` (the four
+  `ilks(bytes32)` callees share one selector with distinct return decodes) and high-level-call
+  `EXTCODESIZE` guards on every external call. `view` callees are modeled as `perm := false` static
+  calls, and the `int256(x) >= 0` overflow guards as `x < 2^255`. Events are omitted consistently
+  with the framework's log abstraction. No semantic blocker is currently known; expected proof work
+  is dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the many typed
+  external-call return decodings.
+
+- `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/Flapper`, `Dss/Flipper`, and
   `Dss/Flopper`: scaffolded, not ready for proof. Fresh upstream sources, ABI/AST/storage-layout
   artifacts, optimized creation/runtime bytecode, Lean `ByteArray`s, verified `JUMPDEST` sets, and
   top-level theorem targets are checked in and compile. Their current `Spec.lean` files are
