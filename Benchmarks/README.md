@@ -99,19 +99,21 @@ the checked-in `.abi.json` files.
   external ABI hooks for `VatLike`, `GemLike`, and `DSTokenLike`.
 
 - `Dss/End`: ready for proof, not yet handed off. Target theorem:
-  `Benchmarks.Dss.End.endContractCorrect`. The former `Spec.lean` scaffold is now a full faithful
-  transcription of `src/end.sol` (global settlement engine); it compiles against the checked-in
-  bytecode artifacts, and the solc storage layout matches the spec's 18 slots (0–17, including the
-  nested `out[ilk][usr]` mapping). The spec models auth, the constructor, all 18 public getters,
-  both `file` overloads, the seven-way `cage()` teardown, `cage(ilk)`, the auction cancels
-  `snip`/`skip`, `skim`/`free`, and `thaw`/`flow`/`pack`/`cash`, with typed external ABI hooks for
-  `VatLike`/`CatLike`/`DogLike`/`SpotLike`/`CureLike`/`FlipLike`/`ClipLike`/`PipLike` (the four
-  `ilks(bytes32)` callees share one selector with distinct return decodes) and high-level-call
-  `EXTCODESIZE` guards on every external call. `view` callees are modeled as `perm := false` static
-  calls, and the `int256(x) >= 0` overflow guards as `x < 2^255`. Events are omitted consistently
-  with the framework's log abstraction. No semantic blocker is currently known; expected proof work
-  is dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the many typed
-  external-call return decodings.
+  `Benchmarks.Dss.End.endContractCorrect`. The solc storage layout matches the spec's 18 slots
+  (0–17, including the nested `out[ilk][usr]` mapping). A bytecode-level audit of the checked-in
+  10265-byte runtime finds 36 high-level external-call sites — 29 `CALL` and 7 `STATICCALL` — each
+  preceded by an `EXTCODESIZE` guard (36 guards), with no delegatecall, contract creation, or
+  selfdestruct, and a binary-search dispatcher over exactly the 32 ABI selectors. The spec models
+  all 36 calls with code-size guards, the 7 `view` callees (`dai`, `par`, `spot.ilks`, `tell`,
+  `bids`, `sales`, `read`) as `perm := false` static calls and the 29 state-changing calls as
+  `perm := true`, all 32 dispatched functions (18 getters + 14 externals), the constructor, and the
+  settlement flow (`cage`/`cage(ilk)`/`snip`/`skip`/`skim`/`free`/`thaw`/`flow`/`pack`/`cash`), with
+  typed ABI hooks for `VatLike`/`CatLike`/`DogLike`/`SpotLike`/`CureLike`/`FlipLike`/`ClipLike`/
+  `PipLike` (the four `ilks(bytes32)` callees share one selector with distinct return decodes). The
+  `int256(x) >= 0` overflow guards are modeled as `x < 2^255`. Events are omitted consistently with
+  the framework's log abstraction. No semantic blocker is currently known; expected proof work is
+  binary-search dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the
+  typed external-call return decodings.
 
 - `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/Flapper`, `Dss/Flipper`, and
   `Dss/Flopper`: scaffolded, not ready for proof. Fresh upstream sources, ABI/AST/storage-layout

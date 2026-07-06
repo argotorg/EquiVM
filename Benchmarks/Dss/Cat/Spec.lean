@@ -368,12 +368,14 @@ def biteTransition : TransitionDecl :=
     returnType := [uint256]
     body :=
       nonpayable ++
-      checkedExternalCallStmts (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk" ++
+      -- VatLike.ilks/urns are `view` in cat.sol → STATICCALL (perm := false)
+      checkedExternalCallStmts (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk"
+        (perm := false) ++
       [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
         .letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2),
         .letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4) ] ++
       checkedExternalCallStmts (.storage vatRef) "urns" (.intLit 0)
-        [.var "ilk", .var "urn"] "vatUrn" ++
+        [.var "ilk", .var "urn"] "vatUrn" (perm := false) ++
       [ .letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0),
         .letDecl "art" (some uint256) (.tupleGet (.var "vatUrn") 1),
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ] ++

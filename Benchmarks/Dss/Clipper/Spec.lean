@@ -295,6 +295,11 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
       (.binary .or
         (.binary .eq y (.intLit 0))
         (.binary .eq (.binary .div (.var name) y) x)) ]
+-- Built-in wrapping `+`/`-` (bare solc `ADD`/`SUB`), unlike the reverting DSMath `add`/`sub` above.
+def wrappingSubInto (name : Ident) (x y : Expr) : List Stmt :=
+  [ .letDecl name (some uint256) (wrap256 (.binary .sub x y)) ]
+def wrappingAddInto (name : Ident) (x y : Expr) : List Stmt :=
+  [ .letDecl name (some uint256) (wrap256 (.binary .add x y)) ]
 
 /-! ## Constructor and internal functions -/
 
@@ -366,11 +371,14 @@ def statusFunction : FunctionDecl :=
       checkedExternalCallStmts (.storage calcRef) "price" (.intLit 0)
         [.var "top", .var "ageForPrice"] "price" (perm := false) ++
       [ .internalCall "sub" [.env .timestamp, .var "tic"] "ageForDone",
-        .internalCall "rdiv" [.var "price", .var "top"] "ratio",
-        .letDecl "done" (some boolTy)
-          (.binary .or
-            (.binary .gt (.var "ageForDone") (.storage tailRef))
-            (.binary .lt (.var "ratio") (.storage cuspRef))),
+        -- `done = age > tail || rdiv(price, top) < cusp`, short-circuited: `rdiv` (which can revert
+        -- on `top == 0` or `price * RAY` overflow) is only evaluated when `age > tail` is false.
+        .letDecl "done" (some boolTy) (.boolLit false),
+        .ite (.binary .gt (.var "ageForDone") (.storage tailRef))
+          [ .assign .localVar (varRef "done") (.boolLit true) ]
+          ([ .internalCall "rdiv" [.var "price", .var "top"] "ratio",
+             .assign .localVar (varRef "done")
+               (.binary .lt (.var "ratio") (.storage cuspRef)) ]),
         .return [.var "done", .var "price"] ] }
 
 def removeFunction : FunctionDecl :=
@@ -495,7 +503,7 @@ def kickTransition (v : ClipperImmutables) : TransitionDecl :=
         .assign .storage kicksRef (.var "id"),
         .require (.binary .gt (.var "id") (.intLit 0)),
         .push activeRef (some (.var "id")) ] ++
-      checkedSubUintInto "activePos" (.arrayLength .storage activeRef) (.intLit 1) ++
+      wrappingSubInto "activePos" (.arrayLength .storage activeRef) (.intLit 1) ++
       [ .assign .storage (salesF (.var "id") "pos") (.var "activePos"),
         .assign .storage (salesF (.var "id") "tab") (.var "tab"),
         .assign .storage (salesF (.var "id") "lot") (.var "lot"),
@@ -541,17 +549,20 @@ def redoTransition (v : ClipperImmutables) : TransitionDecl :=
         .letDecl "_chip" (some uint256) (.storage chipRef),
         .ite
           (.binary .or (.binary .gt (.var "_tip") (.intLit 0)) (.binary .gt (.var "_chip") (.intLit 0)))
-          ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
-            checkedMulUintInto "lotFeed" (.var "lot") (.var "feedPrice") ++
-            [ .ite
-                (.binary .and
-                  (.binary .ge (.var "tab") (.var "_chost"))
-                  (.binary .ge (.var "lotFeed") (.var "_chost")))
-                ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
-                  checkedAddUintInto "coin" (.var "_tip") (.var "chipCoin") ++
-                  checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
-                    [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
-                [] ])
+          -- `tab >= _chost && mul(lot, feedPrice) >= _chost`, short-circuited: `mul` (which can
+          -- revert on overflow) is only evaluated when `tab >= _chost`.
+          [ .letDecl "_chost" (some uint256) (.storage chostRef),
+            .ite
+              (.binary .ge (.var "tab") (.var "_chost"))
+              (checkedMulUintInto "lotFeed" (.var "lot") (.var "feedPrice") ++
+                [ .ite
+                    (.binary .ge (.var "lotFeed") (.var "_chost"))
+                    ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
+                      checkedAddUintInto "coin" (.var "_tip") (.var "chipCoin") ++
+                      checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+                        [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
+                    [] ])
+              [] ]
           [],
         .assign .storage lockedRef (.intLit 0) ] }
 
@@ -583,17 +594,17 @@ def takeTransition (v : ClipperImmutables) : TransitionDecl :=
           [ .ite
               (.binary .and (.binary .lt (.var "owe") (.var "tab")) (.binary .lt (.var "slice") (.var "lot")))
               ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
-                checkedSubUintInto "remainingTab" (.var "tab") (.var "owe") ++
+                wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
                 [ .ite
                     (.binary .lt (.var "remainingTab") (.var "_chost"))
                     ( [ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
-                      checkedSubUintInto "oweAdjusted" (.var "tab") (.var "_chost") ++
+                      wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                       [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                         .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ])
                     [] ])
               [] ] ] ++
-      checkedSubUintInto "tabNew" (.var "tab") (.var "owe") ++
-      checkedSubUintInto "lotNew" (.var "lot") (.var "slice") ++
+      wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
+      wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
       [ .assign .localVar (varRef "tab") (.var "tabNew"),
         .assign .localVar (varRef "lot") (.var "lotNew") ] ++
       checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
@@ -612,7 +623,7 @@ def takeTransition (v : ClipperImmutables) : TransitionDecl :=
         [sender, .storage vowRef, .var "owe"] "_moveRet" ++
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
-          ([ .internalCall "add" [.var "tab", .var "owe"] "digsAmt" ] ++
+          (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
             checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
               [ilkExpr v, .var "digsAmt"] "_digsRet")
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)

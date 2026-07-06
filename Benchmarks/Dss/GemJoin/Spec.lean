@@ -221,7 +221,8 @@ def joinTransition : TransitionDecl :=
     body :=
       nonpayable ++
       [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
-        .require (.binary .ge (asInt256 (.var "wad")) (.intLit 0)) ] ++
+        -- `int(wad) >= 0` ⟺ `wad < 2^255` (asInt256 is identity, so `asInt256 wad >= 0` would be a no-op)
+        .require (.binary .lt (.var "wad") (.intLit intLimit)) ] ++
       checkedExternalCallStmts (.storage vatRef) "slip" (.intLit 0)
         [.storage ilkRef, .var "usr", asInt256 (.var "wad")] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transferFrom" (.intLit 0)
