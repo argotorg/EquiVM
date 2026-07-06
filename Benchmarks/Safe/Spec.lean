@@ -5,7 +5,7 @@ import Solm.SolidityLayout
 # Safe benchmark spec
 
 Source-shaped Solm spec for upstream `safe-global/safe-smart-account`
-`Benchmarks/Safe/contracts/Safe.sol`, compiled with solc 0.7.6.
+`Benchmarks/Safe/contracts/Safe.sol`, compiled with solc 0.8.35.
 
 Events and revert strings are intentionally omitted, since the benchmark equivalence relation
 observes successful return values, storage/world effects, and revert-vs-success behavior, but not
@@ -46,7 +46,6 @@ def bytes32St : StorageType := .elem (.bytes bytes32Width)
 def addrArrayTy : ABIType := .dynamicArray addr
 
 def maxUint256 : Int := 2 ^ 256 - 1
-def uint256Modulus : Int := 2 ^ 256
 
 def sender : Expr := .env .caller
 def origin : Expr := .env .origin
@@ -58,6 +57,7 @@ def zeroAddr : Expr := .cast (.intLit 0) addrSt
 def sentinelAddr : Expr := .cast (.intLit 1) addrSt
 def ecrecoverPrecompile : Expr := .cast (.intLit 1) addrSt
 def p256Precompile : Expr := .cast (.intLit 256) addrSt
+def maxUint256Expr : Expr := .intLit maxUint256
 
 def eqE (x y : Expr) : Expr := .binary .eq x y
 def neE (x y : Expr) : Expr := .binary .ne x y
@@ -75,12 +75,13 @@ def divE (x y : Expr) : Expr := .binary .div x y
 def shlE (x y : Expr) : Expr := .binary .shl x y
 def minE (x y : Expr) : Expr := .ite (ltE x y) x y
 def maxE (x y : Expr) : Expr := .ite (gtE x y) x y
-def wrap256 (x : Expr) : Expr := .binary .mod x (.intLit uint256Modulus)
 def u8 (x : Expr) : Expr := .inRange uint8Int x
 def u256 (x : Expr) : Expr := .inRange uint256Int x
 def add256 (x y : Expr) : Expr := u256 (addE x y)
 def sub256 (x y : Expr) : Expr := u256 (subE x y)
 def mul256 (x y : Expr) : Expr := u256 (mulE x y)
+def inc256 (x : Expr) : Expr := add256 x (.intLit 1)
+def dec256 (x : Expr) : Expr := sub256 x (.intLit 1)
 
 def varRef (name : Ident) : StorageRef := { base := name }
 def localIndex (name : Ident) (idx : Expr) : StorageRef :=
@@ -249,7 +250,7 @@ def checkAfterExecutionSelector : ByteArray := selectorBytes 0x93 0x27 0x13 0x68
 def checkModuleTransactionSelector : ByteArray := selectorBytes 0x72 0x8c 0x29 0x72
 def checkAfterModuleExecutionSelector : ByteArray := selectorBytes 0x2a 0xcc 0x37 0xaa
 
-def safeDecodeMode : DecodeMode := DecodeMode.legacySolc05
+def safeDecodeMode : DecodeMode := DecodeMode.modern
 
 def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
   (ABI.decodeReturnValueWithMode? safeDecodeMode ty out).map (fun v => [v])
@@ -312,6 +313,10 @@ def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
   [ .require (gtE (.extCodeSize receiver) (.intLit 0)),
     .externalCall receiver name eth args retVar (perm := perm) ]
 
+def externalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .externalCall receiver name eth args retVar (perm := perm) ]
+
 def isThisDelegatedAccountExpr : Expr :=
   eqE (.extCodePrefix this (.intLit 3)) (.bytesLit ⟨#[0xef, 0x01, 0x00]⟩)
 
@@ -358,6 +363,12 @@ def transactionHashExpr (nonceExpr : Expr) : Expr :=
         (bytes32, domainSeparatorExpr),
         (bytes32, transactionStructHashExpr nonceExpr) ])
 
+def requiredTransactionGasExpr : Expr :=
+  add256
+    (maxE (divE (shlE (.var "safeTxGas") (.intLit 6)) (.intLit 63))
+      (add256 (.var "safeTxGas") (.intLit 2500)))
+    (.intLit 500)
+
 def signatureOffsetExpr : Expr :=
   mulE (.intLit 65) (.var "i")
 
@@ -383,36 +394,26 @@ def addFunction : FunctionDecl :=
   { name := "_add"
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
-    body :=
-      [ .letDecl "z" (some uint256) (add256 (.var "x") (.var "y")),
-        .require (geE (.var "z") (.var "x")),
-        .return [.var "z"] ] }
+    body := [ .return [add256 (.var "x") (.var "y")] ] }
 
 def subFunction : FunctionDecl :=
   { name := "_sub"
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
-    body :=
-      [ .letDecl "z" (some uint256) (sub256 (.var "x") (.var "y")),
-        .require (leE (.var "z") (.var "x")),
-        .return [.var "z"] ] }
+    body := [ .return [sub256 (.var "x") (.var "y")] ] }
 
 def mulFunction : FunctionDecl :=
   { name := "_mul"
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
-    body :=
-      [ .letDecl "z" (some uint256) (mul256 (.var "x") (.var "y")),
-        .require
-          (orE (eqE (.var "y") (.intLit 0))
-            (eqE (divE (.var "z") (.var "y")) (.var "x"))),
-        .return [.var "z"] ] }
+    body := [ .return [mul256 (.var "x") (.var "y")] ] }
 
 def executeFunction : FunctionDecl :=
   { name := "execute"
     params :=
       [ { name := "to", ty := addr }, { name := "value", ty := uint256 },
-        { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
+        { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 },
+        { name := "txGas", ty := uint256 } ]
     returnType := [boolTy]
     body :=
       [ .ite (eqE (.var "operation") (.intLit 1))
@@ -504,7 +505,7 @@ def setupOwnersFunction : FunctionDecl :=
             .internalCall "requireCanAddOwner" [.var "owner"] "_ok",
             .assign .storage (ownersRef (.var "currentOwner")) (.var "owner"),
             .assign .localVar (varRef "currentOwner") (.var "owner"),
-            .assign .localVar (varRef "i") (wrap256 (addE (.var "i") (.intLit 1))) ],
+            .assign .localVar (varRef "i") (inc256 (.var "i")) ],
         .assign .storage (ownersRef (.var "currentOwner")) sentinelAddr,
         .assign .storage ownerCountRef (.var "ownersLength"),
         .assign .storage thresholdRef (.var "_threshold") ] }
@@ -527,7 +528,7 @@ def setupModulesFunction : FunctionDecl :=
         .ite (neE (.var "to") zeroAddr)
           [ .require (gtE (.extCodeSize (.var "to")) (.intLit 0)),
             .internalCall "execute"
-              [.var "to", .intLit 0, .var "data", .intLit 1] "setupSuccess",
+              [.var "to", .intLit 0, .var "data", .intLit 1, maxUint256Expr] "setupSuccess",
             .require (.var "setupSuccess") ]
           [] ] }
 
@@ -538,12 +539,11 @@ def preModuleExecutionFunction : FunctionDecl :=
         { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
     returnType := [addr, bytes32]
     body :=
-      [ .require validOperation,
-        .letDecl "guard" (some addr) (.storage moduleGuardRef),
+      [ .letDecl "guard" (some addr) (.storage moduleGuardRef),
         .letDecl "guardHash" (some bytes32) zeroBytes32,
         .require (andE (neE sender sentinelAddr) (neE (.storage (modulesRef sender)) zeroAddr)),
         .ite (neE (.var "guard") zeroAddr)
-          (checkedExternalCallStmts (.var "guard") "checkModuleTransaction" (.intLit 0)
+          (externalCallStmts (.var "guard") "checkModuleTransaction" (.intLit 0)
             [.var "to", .var "value", .var "data", .var "operation", sender]
             "guardHashCall" ++
             [ .assign .localVar (varRef "guardHash") (.var "guardHashCall") ])
@@ -625,7 +625,10 @@ def ecrecoverAddressFunction : FunctionDecl :=
       [ .lowLevelCall ecrecoverPrecompile (.intLit 0) ecrecoverCalldataExpr
           "ecrecoverSuccess" "ecrecoverData" false,
         .require (.var "ecrecoverSuccess"),
-        .return [.abiDecode addr (.var "ecrecoverData")] ] }
+        .return
+          [ .ite (eqE (localLength "ecrecoverData") (.intLit 0))
+              zeroAddr
+              (.abiDecode addr (.var "ecrecoverData")) ] ] }
 
 def checkNSignaturesImplFunction : FunctionDecl :=
   { name := "checkNSignaturesImpl"
@@ -707,7 +710,7 @@ def checkNSignaturesImplFunction : FunctionDecl :=
                 (andE (neE (.storage (ownersRef (.var "currentOwner"))) zeroAddr)
                   (neE (.var "currentOwner") sentinelAddr))),
             .assign .localVar (varRef "lastOwner") (.var "currentOwner"),
-            .assign .localVar (varRef "i") (wrap256 (addE (.var "i") (.intLit 1))) ] ] }
+            .assign .localVar (varRef "i") (inc256 (.var "i")) ] ] }
 
 def checkSignaturesImplFunction : FunctionDecl :=
   { name := "checkSignaturesImpl"
@@ -788,7 +791,7 @@ def addownerwiththresholdTransition : TransitionDecl :=
       [ .internalCall "requireCanAddOwner" [.var "owner"] "_ok",
         .assign .storage (ownersRef (.var "owner")) (.storage (ownersRef sentinelAddr)),
         .assign .storage (ownersRef sentinelAddr) (.var "owner"),
-        .assign .storage ownerCountRef (wrap256 (addE (.storage ownerCountRef) (.intLit 1))),
+        .assign .storage ownerCountRef (inc256 (.storage ownerCountRef)),
         .ite (neE (.storage thresholdRef) (.var "_threshold"))
           [ .internalCall "changeThresholdBody" [.var "_threshold"] "_thresholdChanged" ]
           [] ] }
@@ -901,7 +904,7 @@ def exectransactionTransition : TransitionDecl :=
       [ .require validOperation,
         .letDecl "nonceBefore" (some uint256) (.storage nonceRef),
         .letDecl "txHash" (some bytes32) (transactionHashExpr (.var "nonceBefore")),
-        .assign .storage nonceRef (wrap256 (addE (.var "nonceBefore") (.intLit 1))),
+        .assign .storage nonceRef (inc256 (.var "nonceBefore")),
         .internalCall "checkSignaturesImpl" [sender, .var "txHash", .var "signatures"] "_sigOk",
         .letDecl "guard" (some addr) (.storage guardRef),
         .ite (neE (.var "guard") zeroAddr)
@@ -912,15 +915,14 @@ def exectransactionTransition : TransitionDecl :=
             "_guardChecked")
           [],
         .letGas "gasForCheck",
-        .require
-          (geE (.var "gasForCheck")
-            (addE
-              (maxE (divE (shlE (.var "safeTxGas") (.intLit 6)) (.intLit 63))
-                (addE (.var "safeTxGas") (.intLit 2500)))
-              (.intLit 500))),
+        .require (geE (.var "gasForCheck") requiredTransactionGasExpr),
         .letGas "gasBefore",
+        .letGas "txGasLeft",
         .internalCall "execute"
-          [.var "to", .var "value", .var "data", .var "operation"] "success",
+          [ .var "to", .var "value", .var "data", .var "operation",
+            .ite (eqE (.var "gasPrice") (.intLit 0))
+              (sub256 (.var "txGasLeft") (.intLit 2500))
+              (.var "safeTxGas") ] "success",
         .letGas "gasAfter",
         .internalCall "_sub" [.var "gasBefore", .var "gasAfter"] "gasUsed",
         .require
@@ -950,8 +952,8 @@ def exectransactionfrommoduleTransition : TransitionDecl :=
       [ .require validOperation,
         .internalCall "preModuleExecution"
           [.var "to", .var "value", .var "data", .var "operation"] "pre",
-        .internalCall "execute" [.var "to", .var "value", .var "data", .var "operation"]
-          "success",
+        .internalCall "execute"
+          [.var "to", .var "value", .var "data", .var "operation", maxUint256Expr] "success",
         .internalCall "postModuleExecution" [tuple0 (.var "pre"), tuple1 (.var "pre"), .var "success"]
           "_post",
         .return [.var "success"] ] }
@@ -991,7 +993,7 @@ def getmodulespaginatedTransition : TransitionDecl :=
           [ .assign .localVar (varRef "last") (.var "next"),
             .assign .localVar (varRef "next") (.storage (modulesRef (.var "next"))),
             .assign .localVar (varRef "moduleCount")
-              (wrap256 (addE (.var "moduleCount") (.intLit 1))) ],
+              (inc256 (.var "moduleCount")) ],
         .ite (neE (.var "next") sentinelAddr)
           [ .require (gtE (.var "moduleCount") (.intLit 0)),
             .assign .localVar (varRef "next") (.var "last") ]
@@ -1002,7 +1004,7 @@ def getmodulespaginatedTransition : TransitionDecl :=
         .while (ltE (.var "fill") (.var "moduleCount"))
           [ arrSet "array" (.var "fill") (.var "current"),
             .assign .localVar (varRef "current") (.storage (modulesRef (.var "current"))),
-            .assign .localVar (varRef "fill") (wrap256 (addE (.var "fill") (.intLit 1))) ],
+            .assign .localVar (varRef "fill") (inc256 (.var "fill")) ],
         .return [.var "array", .var "next"] ] }
 
 def getownersTransition : TransitionDecl :=
@@ -1018,7 +1020,7 @@ def getownersTransition : TransitionDecl :=
           [ arrSet "array" (.var "index") (.var "currentOwner"),
             .assign .localVar (varRef "currentOwner")
               (.storage (ownersRef (.var "currentOwner"))),
-            .assign .localVar (varRef "index") (wrap256 (addE (.var "index") (.intLit 1))) ],
+            .assign .localVar (varRef "index") (inc256 (.var "index")) ],
         .return [.var "array"] ] }
 
 def getstorageatTransition : TransitionDecl :=
@@ -1034,7 +1036,7 @@ def getstorageatTransition : TransitionDecl :=
               (.abiEncodePacked
                 [ (bytesTy, .var "result"),
                   (uint256, .storage (rawStorageRef (addE (.var "offset") (.var "index")))) ]),
-            .assign .localVar (varRef "index") (wrap256 (addE (.var "index") (.intLit 1))) ],
+            .assign .localVar (varRef "index") (inc256 (.var "index")) ],
         .return [.var "result"] ] }
 
 def getthresholdTransition : TransitionDecl :=
@@ -1080,7 +1082,7 @@ def removeownerTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++ authorized ++
-      [ .assign .storage ownerCountRef (wrap256 (subE (.storage ownerCountRef) (.intLit 1))),
+      [ .assign .storage ownerCountRef (dec256 (.storage ownerCountRef)),
         .require (geE (.storage ownerCountRef) (.var "_threshold")),
         .internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "owner"] "_ok",
         .assign .storage (ownersRef (.var "prevOwner")) (.storage (ownersRef (.var "owner"))),
@@ -1104,7 +1106,7 @@ def setguardTransition : TransitionDecl :=
     body :=
       nonpayable ++ authorized ++
       [ .ite (neE (.var "guard") zeroAddr)
-          (checkedExternalCallStmts (.var "guard") "supportsInterface" (.intLit 0)
+          (externalCallStmts (.var "guard") "supportsInterface" (.intLit 0)
             [transactionGuardInterfaceId] "supported" (perm := false) ++
             [ .require (.var "supported") ])
           [],
@@ -1117,7 +1119,7 @@ def setmoduleguardTransition : TransitionDecl :=
     body :=
       nonpayable ++ authorized ++
       [ .ite (neE (.var "moduleGuard") zeroAddr)
-          (checkedExternalCallStmts (.var "moduleGuard") "supportsInterface" (.intLit 0)
+          (externalCallStmts (.var "moduleGuard") "supportsInterface" (.intLit 0)
             [moduleGuardInterfaceId] "supported" (perm := false) ++
             [ .require (.var "supported") ])
           [],
