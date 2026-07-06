@@ -46,7 +46,7 @@ theorem potDripX_rpowSetup {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel 
 
 /-- `_mul @2300`: entry stack `[x, y, ret, R]`, returns `[y*x, R]` at `ret` when the product
 doesn't overflow. Handles both `x = 0` (short-circuit) and `x ≠ 0` (division guard). -/
-theorem RD.potMulReturns {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+theorem RD.potMulReturnsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -131,7 +131,7 @@ theorem RD.potMulReturns {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     exact ⟨_, _, by simpa using rd2300ret.jump (by native_decide) hret (by evm_ov)⟩
 
 /-- `_mul @2300` overflow: entry `[x, y, ret, R]` with `size ≤ x*y` reverts (empty revert). -/
-theorem RD.potMulReverts {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+theorem RD.potMulRevertsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -214,7 +214,7 @@ theorem potDripX_rmulReturns {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {se
     raw dup5 (by native_decide) (by evm_ov),
     raw push2 ⟨2300⟩ (by native_decide) (by evm_ov)]
   have rd2300 := rd2566.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2567⟩ := RD.potMulReturns (x := chi) (y := pow) (ret := ⟨2567⟩)
+  obtain ⟨_, _, rd2567⟩ := RD.potMulReturnsDrip (x := chi) (y := pow) (ret := ⟨2567⟩)
     (R := [potRay, ⟨0⟩, chi, pow, ⟨1934⟩, ⟨0⟩, ⟨341⟩, sel]) rfl
     (by rw [Nat.mul_comm]; exact hfit) (by jump_dest) (by simp) rd2300
   have rd2569 := evm_run rd2567 with [
@@ -260,7 +260,7 @@ theorem potDripX_rmulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {se
     raw dup5 (by native_decide) (by evm_ov),
     raw push2 ⟨2300⟩ (by native_decide) (by evm_ov)]
   have rd2300 := rd2566.jump (by native_decide) (by jump_dest) (by evm_ov)
-  exact RD.potMulReverts (x := chi) (y := pow) (ret := ⟨2567⟩)
+  exact RD.potMulRevertsDrip (x := chi) (y := pow) (ret := ⟨2567⟩)
     (R := [potRay, ⟨0⟩, chi, pow, ⟨1934⟩, ⟨0⟩, ⟨341⟩, sel]) rfl
     (by rw [Nat.mul_comm]; exact hover) (by simp) rd2300
 

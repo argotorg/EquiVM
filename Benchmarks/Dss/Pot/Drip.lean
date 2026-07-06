@@ -61,7 +61,7 @@ theorem potDripX_mulReady {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
     raw push2 ⟨2300⟩ (by native_decide) (by evm_ov)]
   have rd2300 := rd2001.jump (by native_decide) (by jump_dest) (by evm_ov)
   rw [hvatEq, hvowEq] at rd2300
-  obtain ⟨_, _, rd2005⟩ := RD.potMulReturns (x := chi_) (y := solcSlotWord σ'' I ⟨2⟩)
+  obtain ⟨_, _, rd2005⟩ := RD.potMulReturnsDrip (x := chi_) (y := solcSlotWord σ'' I ⟨2⟩)
     (ret := ⟨2005⟩)
     (R := [dripThisWord I, dripVowTargetWord σ'' I, potSuckSelectorWord,
       dripVatTargetWord σ'' I, chi_, tmp, ⟨341⟩, sel]) rfl
@@ -372,7 +372,7 @@ theorem potDripX_mulReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {s
     raw push2 ⟨2300⟩ (by native_decide) (by evm_ov)]
   have rd2300 := rd2001.jump (by native_decide) (by jump_dest) (by evm_ov)
   rw [hvatEq, hvowEq] at rd2300
-  exact RD.potMulReverts (x := chi_) (y := solcSlotWord σ'' I ⟨2⟩) (ret := ⟨2005⟩)
+  exact RD.potMulRevertsDrip (x := chi_) (y := solcSlotWord σ'' I ⟨2⟩) (ret := ⟨2005⟩)
     (R := [dripThisWord I, dripVowTargetWord σ'' I, potSuckSelectorWord,
       dripVatTargetWord σ'' I, chi_, tmp, ⟨341⟩, sel]) rfl
     (by simpa [dripPieWord, potSlotWord] using hover)
@@ -1204,21 +1204,21 @@ theorem storageStore_genesisBlockHeader (evm : EVM.State) (a : AccountAddress) (
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
-theorem storageStore_blocks (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
+theorem storageStore_blocks_drip (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).blocks = evm.blocks := by
   simp only [EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
-theorem storageStore_σ₀ (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
+theorem storageStore_σ₀_drip (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   simp only [EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
-theorem storageStore_substate (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
+theorem storageStore_substate_drip (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).substate = evm.substate := by
   simp only [EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? a with
@@ -1240,15 +1240,15 @@ theorem dripEvmRho_genesisBlockHeader {cA gh bl σ σ₀ A I} {g tmp now : UInt2
 
 theorem dripEvmRho_blocks {cA gh bl σ σ₀ A I} {g tmp now : UInt256} :
     (dripEvmRho (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tmp now).blocks = bl := by
-  simp only [dripEvmRho, dripEvmChi, storageStore_blocks, initState]
+  simp only [dripEvmRho, dripEvmChi, storageStore_blocks_drip, initState]
 
 theorem dripEvmRho_σ₀ {cA gh bl σ σ₀ A I} {g tmp now : UInt256} :
     (dripEvmRho (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tmp now).σ₀ = σ₀ := by
-  simp only [dripEvmRho, dripEvmChi, storageStore_σ₀, initState]
+  simp only [dripEvmRho, dripEvmChi, storageStore_σ₀_drip, initState]
 
 theorem dripEvmRho_substate {cA gh bl σ σ₀ A I} {g tmp now : UInt256} :
     (dripEvmRho (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tmp now).substate = A := by
-  simp only [dripEvmRho, dripEvmChi, storageStore_substate, initState]
+  simp only [dripEvmRho, dripEvmChi, storageStore_substate_drip, initState]
 
 theorem dripEvmRho_accountMap {cA gh bl σ σ₀ A I} {g tmp now : UInt256} :
     (dripEvmRho (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tmp now).accountMap =
