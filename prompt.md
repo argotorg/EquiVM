@@ -220,6 +220,9 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 
 - **Hard rule:** do not let files grow past 2000 lines. If this
   happens you should split them into smaller files by concern.
+  This is important for build speed. 
+  You can exceptionally create files larger that 2000 lines 
+  ONLY IF ABSOLUTELY NECESSARY AND UNAVOIDABLE.
 
 ---
 
@@ -494,8 +497,9 @@ When a step fails, re-check it against the disassembly first.
 
 - Do not make changes outside of your working directory.
 
-- Do not build examples and benchmarks that are not your own. This is extremely
-  important as builds are extremely expensive and time-consuming.
+- Do not build examples and benchmarks that are not your own. 
+  **This is extremely important**. Builds are extremely expensive and time-consuming.
+  Only build your own working directory. 
 
 - If you find misspecifications, mismatches, or unprovable
   obligations, stop and report them immediately. Do not continue until
