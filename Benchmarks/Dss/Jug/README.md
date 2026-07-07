@@ -35,9 +35,8 @@ Generated artifacts and scaffold files:
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold with storage layout and full public ABI surface.
 - `SpecSyntax.lean`: Solm notation presentation for representative fragments, checked by `rfl`.
-- `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
-- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper,
-  intentionally `sorry` at the runtime target.
+- `Constructor.lean`: top-level constructor-equivalence theorem.
+- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper.
 
 Source and artifact hashes:
 
@@ -51,12 +50,16 @@ jug.sol.ast.json  sha256 9ef821916e6994153589a0de782fb1f00dc43e518d1f1bd4691ea35
 
 Scaffold notes:
 
+- Readiness: ready for proof as of 2026-07-03. Fresh solc output exactly matches the checked-in
+  Lean creation/runtime byte arrays, and the solc storage layout matches `Spec.lean`.
 - The named ABI surface includes public storage getters, auth, three overloaded `file` functions,
   `init`, and `drip`.
 - Storage layout is transcribed from solc's `--storage-layout`: `wards` slot 0, `ilks` slot 1,
   `vat` slot 2, `vow` slot 3, and `base` slot 4.
 - `VatLike.ilks(bytes32)` and `VatLike.fold(bytes32,address,int256)` are represented with a custom
   external ABI, including a two-word decode for `ilks`.
+- The runtime has two `CALL` sites and two matching `EXTCODESIZE` guards. The spec models solc's
+  guard on both high-level `VatLike` calls in `drip`.
 - The assembly `_rpow` helper is modeled structurally as a Solm loop with the same checked multiply,
   rounding-add, division, and odd-exponent update shape. Reusable proof work should isolate `_rpow`,
   `_rmul`, `_diff`, and typed external-call return decoding lemmas.

@@ -37,7 +37,11 @@ def u256 (e : Expr) : Expr := .inRange uint256Int e
 def s256 (e : Expr) : Expr := .inRange int256Int e
 
 def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def checkedSub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def sub256 (x y : Expr) : Expr :=
+  .ite (.binary .le y x)
+    (checkedSub256 x y)
+    (u256 (.binary .sub (.binary .add (.intLit (Int.ofNat Ethereum.UInt256.size)) x) y))
 def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
 
 def dutyParamLit : Expr :=
@@ -144,6 +148,11 @@ def nonpayable : List Stmt :=
 
 def auth : List Stmt :=
   [ .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+
+def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
+    (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
+    .externalCall receiver name eth args retVar (perm := perm) ]
 
 def checkedAddUintInto (name : Ident) (x y : Expr) : List Stmt :=
   [ .letDecl name (some uint256) (add256 x y),
@@ -331,9 +340,9 @@ def dripTransition : TransitionDecl :=
     returnType := [uint256]
     body :=
       nonpayable ++
-      [ .require (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))),
-        .externalCall (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk",
-        .letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1),
+      [ .require (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) ] ++
+      checkedExternalCallStmts (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk" ++
+      [ .letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1),
         .internalCall "_add"
           [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] "fee",
         .internalCall "_rpow"
@@ -341,9 +350,10 @@ def dripTransition : TransitionDecl :=
             sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
             .intLit one ] "pow",
         .internalCall "_rmul" [.var "pow", .var "prev"] "rate",
-        .internalCall "_diff" [.var "rate", .var "prev"] "delta",
-        .externalCall (.storage vatRef) "fold" (.intLit 0)
-          [.var "ilk", .storage vowRef, .var "delta"] "_foldRet",
+        .internalCall "_diff" [.var "rate", .var "prev"] "delta" ] ++
+      checkedExternalCallStmts (.storage vatRef) "fold" (.intLit 0)
+        [.var "ilk", .storage vowRef, .var "delta"] "_foldRet" ++
+      [
         .assign .storage (ilksF (.var "ilk") "rho") (.env .timestamp),
         .return [.var "rate"] ] }
 

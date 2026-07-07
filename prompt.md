@@ -106,6 +106,13 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
 4. The skeleton of the proof should now route every function and the
    constructor correctly through the main top-level dispatch.
 
+*Hard rule*: You should set up the dispatch skeleton and the per ABI 
+function theorems (initially with `sorry`) in their own files before 
+proving any of the functions. 
+
+It is likely that some of the `Examples/` proof templates will be useful 
+for this phase. You can use them as a reference for the ABI dispatch skeleton.
+
 ### Phase 2: Prove each function
 
 Finish each function's `…BodyCore` lemma in its own `<Fn>.lean`
@@ -146,10 +153,13 @@ The proof of each function follows, roughly, four phases:
    decode fact, and the EVM `RDret`/`RDrev` into
    `runtimeEquivalenceFor`.
 
+---
 
 ### Phase 3: Prove the constructor
 
 In a similar manner, prove correct the constructor body.
+
+---
 
 ### Phase 4: Finish the proof
 
@@ -213,7 +223,6 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
   This is important for build speed. 
   You can exceptionally create files larger that 2000 lines 
   ONLY IF ABSOLUTELY NECESSARY AND UNAVOIDABLE.
-
 
 ---
 
@@ -322,6 +331,9 @@ How to use the library:
 The `Examples/` directory contains a set of template proofs. You can
 use them as a reference for your own proof.
 
+Look at the examples to find known patterns and proof templates for 
+your proof.
+
 Note that not all examples are derived with the same compiler,
 version, and optimization settings. Always check the source and
 bytecode for your contract.
@@ -337,6 +349,11 @@ lists (`returnType := [T]` / `.return [e]`, multi-value
 
 - For an example of binary search dispatch, see `Examples/Ballot`. 
 - For an example of linear dispatch, see `Examples/ERC20`.
+
+
+*Hard rule:* do not import code directly from `Examples/` into your proof. 
+If you find yourself needed the same lemma, prove it in your own working 
+directory and flag it for promotion to the library if it is general enough.
 
 ---
 
@@ -479,6 +496,10 @@ When a step fails, re-check it against the disassembly first.
 ## 9. Hard rules
 
 - Do not make changes outside of your working directory.
+
+- Do not build examples and benchmarks that are not your own. 
+  **This is extremely important**. Builds are extremely expensive and time-consuming.
+  Only build your own working directory. 
 
 - If you find misspecifications, mismatches, or unprovable
   obligations, stop and report them immediately. Do not continue until

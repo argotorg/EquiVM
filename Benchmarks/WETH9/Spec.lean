@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Benchmarks.WETH9.StringLayout
 
 /-!
 # WETH9 benchmark spec
@@ -84,8 +85,10 @@ def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
       some (wordLoc (allowanceSlot owner spender))
   | _, _ => none
 
+-- solc 0.5.16 compact-string semantics (total header decode + unconditional data-word clear on
+-- write) differ from the shared ≥0.8-faithful `solidityStorageLayout` defaults; see StringLayout.lean.
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  weth9StorageLayout storageLayoutRaw
 
 /-! ## Shared expressions and source bodies -/
 
@@ -95,9 +98,11 @@ def nonpayable : List Stmt :=
 def emptyBytes : Expr :=
   .newBytes (.intLit 0)
 
+-- WETH9.sol has no explicit constructor, so solc 0.5.16 emits a non-payable implicit one: the
+-- creation bytecode reverts on nonzero `msg.value` (creation.hex pc 105–115) before the field inits.
 def constructorDecl : ConstructorDecl :=
   { params := []
-    body :=
+    body := nonpayable ++
       [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
         .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
         .assign .storage decimalsRef (.intLit 18) ] }

@@ -19,12 +19,20 @@ def constructorDeclSyntax : ConstructorDecl := Benchmarks.Safe.constructorDecl
 
 def transitionsSyntax : List TransitionDecl := Benchmarks.Safe.transitions
 
+def functionsSyntax : List FunctionDecl := Benchmarks.Safe.internalFunctions
+
+def receiveSyntax : TransitionDecl := Benchmarks.Safe.receiveTransition
+
+def fallbackSyntax : TransitionDecl := Benchmarks.Safe.fallbackTransition
+
 def contractSyntax : ContractDecl :=
   { name := "Safe"
     storage := storageDeclsSyntax
     ctor := constructorDeclSyntax
-    functions := []
-    transitions := transitionsSyntax }
+    functions := functionsSyntax
+    transitions := transitionsSyntax
+    receive := some receiveSyntax
+    fallback := some fallbackSyntax }
 
 theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.Safe.storageDecls := by
   rfl
