@@ -12,8 +12,12 @@ open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Dss.End
 
-theorem endConstructorCorrect :
+theorem endConstructorBodyCore :
     constructorEquivalence config endCreationBytecode contract endBytecode := by
   sorry
+
+theorem endConstructorCorrect :
+    constructorEquivalence config endCreationBytecode contract endBytecode := by
+  exact endConstructorBodyCore
 
 end Benchmarks.Dss.End

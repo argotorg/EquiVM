@@ -4,6 +4,8 @@
 
 # lean-lsp MCP scratch snippets
 _mcp_snippet_*.lean
+.uv-cache/
+.uv-tools/
 
 CLAUDE.md
 .claude
