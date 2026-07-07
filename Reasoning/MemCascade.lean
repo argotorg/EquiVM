@@ -69,7 +69,7 @@ theorem writeWord_size (mem : ByteArray) (off : Nat) (word : UInt256)
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
     rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+      toByteArray_size]
     omega
 
 theorem writeCascade_size (mem : ByteArray) (writes : List (Nat × UInt256))

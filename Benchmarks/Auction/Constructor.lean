@@ -4,9 +4,9 @@ import Solm.Equiv
 /-!
 # Auction constructor correctness stub
 
-The optimized creation bytecode, deployed runtime bytecode, and empty Solm constructor
-specification are present. The constructor-equivalence proof is intentionally left as the
-benchmark target.
+The optimized creation bytecode, deployed runtime bytecode, and Solm constructor specification
+with solc's nonpayable deployment-value guard are present. The constructor-equivalence proof is
+intentionally left as the benchmark target.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM
