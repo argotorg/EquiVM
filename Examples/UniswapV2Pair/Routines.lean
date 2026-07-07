@@ -1094,9 +1094,7 @@ theorem uniswapTransferLogMem_size (src toWord value : UInt256) :
       (by rw [uniswapTransferCreditHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)), toByteArray_size]
 
 theorem uniswapTransferLogMem_read64 (src toWord value : UInt256) :
     (uniswapTransferLogMem src toWord value).readWithPadding 64 32 =
@@ -1106,15 +1104,11 @@ theorem uniswapTransferLogMem_read64 (src toWord value : UInt256) :
       (by rw [uniswapTransferCreditHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
-      norm_num)]
+        ByteArray_zeroes_size, toByteArray_size]
+      native_decide)]
   rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
+      rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [uniswapTransferCreditHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [uniswapTransferCreditHashMem_size]),
@@ -1139,21 +1133,17 @@ theorem uniswapTransferLogMem_read128 (src toWord value : UInt256) :
       (by rw [uniswapTransferCreditHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size])]
   rw [extract_append_right_window
       (uniswapTransferCreditHashMem src toWord ++
         ffi.ByteArray.zeroes
           (USize.ofNat (128 - (uniswapTransferCreditHashMem src toWord).size)))
-      (UInt256.toByteArray value) 128 160 (by
-        rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
-  rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      (UInt256.toByteArray value) 128 (128 + 32) (by
+        rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+  rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
   norm_num
   apply ByteArray.ext
   rw [ByteArray.data_extract]
@@ -1367,9 +1357,7 @@ theorem uniswapApproveLogMem_size (owner spender value : UInt256) :
       (by rw [uniswapApproveHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)), toByteArray_size]
 
 theorem uniswapApproveLogMem_read64 (owner spender value : UInt256) :
     (uniswapApproveLogMem owner spender value).readWithPadding 64 32 =
@@ -1379,15 +1367,11 @@ theorem uniswapApproveLogMem_read64 (owner spender value : UInt256) :
       (by rw [uniswapApproveHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
-      norm_num)]
+        ByteArray_zeroes_size, toByteArray_size]
+      native_decide)]
   rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]
+      rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [uniswapApproveHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [uniswapApproveHashMem_size]),
@@ -1412,21 +1396,16 @@ theorem uniswapApproveLogMem_read128 (owner spender value : UInt256) :
       (by rw [uniswapApproveHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size])]
   rw [extract_append_right_window
       (uniswapApproveHashMem owner spender ++
-        ffi.ByteArray.zeroes
-          (USize.ofNat (128 - (uniswapApproveHashMem owner spender).size)))
-      (UInt256.toByteArray value) 128 160 (by
-        rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
-  rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        ffi.ByteArray.zeroes (USize.ofNat (128 - (uniswapApproveHashMem owner spender).size)))
+      (UInt256.toByteArray value) 128 (128 + 32) (by
+        rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+  rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
   norm_num
   apply ByteArray.ext
   rw [ByteArray.data_extract]

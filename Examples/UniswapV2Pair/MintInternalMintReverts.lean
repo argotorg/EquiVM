@@ -6,6 +6,10 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
+def mintSafeMathAddOverflowStringWord : UInt256 :=
+  UInt256.shiftLeft
+    (⟨573467620053399432670716995166075968196518375287⟩ : UInt256) ⟨96⟩
+
 theorem evalExpr_mintFunction_totalSupply_add_revert
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
     (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value) :
@@ -392,7 +396,7 @@ theorem RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
     (code := uniswapV2PairBytecode) (pc := ⟨8515⟩) (okPc := ⟨2911⟩)
     (len := ⟨20⟩)
     (rawWord := (⟨573467620053399432670716995166075968196518375287⟩ : UInt256))
-    (shift := ⟨96⟩) (word := uniswapSafeMathAddOverflowStringWord)
+    (shift := ⟨96⟩) (word := mintSafeMathAddOverflowStringWord)
     (op := .PUSH20) (width := 20) (a := a) (b := b) (ret := ret)
     (R := R) (mem := mem) h
     (by

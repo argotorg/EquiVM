@@ -28,13 +28,14 @@ theorem uniswapMintAfterLiquidityMintTotalSupplyOverflowReverts
   change ExecBlock config { contract := contract, locals := locals } evm
     (.require (.binary .gt (.var "liquidity") (.intLit 0)) ::
       ([ .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
-        updateReservesStmts (.var "balance0") (.var "balance1") ++
+        updateReservesStmtsWith (.var "balance0") (.var "balance1")
+          (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
                 (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
-        [ .return (.var "liquidity") ]))
+        [ .return [(.var "liquidity")] ]))
     .reverted
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.consRevert
@@ -67,13 +68,14 @@ theorem uniswapMintAfterLiquidityMintBalanceOverflowReverts
   change ExecBlock config { contract := contract, locals := locals } evm
     (.require (.binary .gt (.var "liquidity") (.intLit 0)) ::
       ([ .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
-        updateReservesStmts (.var "balance0") (.var "balance1") ++
+        updateReservesStmtsWith (.var "balance0") (.var "balance1")
+          (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
                 (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
-        [ .return (.var "liquidity") ]))
+        [ .return [(.var "liquidity")] ]))
     .reverted
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.consRevert
@@ -135,12 +137,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -179,7 +181,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
               locals :=
                 nextLocals.insert "_totalSupply"
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
@@ -233,7 +235,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
     nextLocals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
-  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity))
+  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity])
   let afterLiquidity : Frame :=
     { contract := contract,
       locals := afterRoot.locals.insert "liquidity" (uniswapUint256Value liquidity) }
@@ -396,12 +398,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -440,7 +442,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
               locals :=
                 nextLocals.insert "_totalSupply"
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
@@ -519,7 +521,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
     nextLocals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
-  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity))
+  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity])
   let afterLiquidity : Frame :=
     { contract := contract,
       locals := afterRoot.locals.insert "liquidity" (uniswapUint256Value liquidity) }

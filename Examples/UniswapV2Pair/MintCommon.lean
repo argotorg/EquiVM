@@ -9,6 +9,7 @@ import Examples.UniswapV2Pair.Routines
 import Examples.UniswapV2Pair.Sync
 import Examples.UniswapV2Pair.SyncRuntime
 import Examples.UniswapV2Pair.UpdateRoutines
+import Reasoning.ExternalCall
 import Reasoning.Refinement
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
@@ -205,7 +206,11 @@ theorem uniswapMintFeeToTypedCall_source
     change AccountAddress.ofUInt256 factoryClean =
       EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)
     rw [haddr]
-    exact (uniswapAddress_self (uniswapAddressAtSlot evm1S ⟨5⟩)).symm
+    symm
+    change EVM.uintN 160 (uniswapAddressAtSlot evm1S ⟨5⟩).val =
+      uniswapAddressAtSlot evm1S ⟨5⟩
+    ext
+    simp [EVM.uintN, EVM.twoPow, AccountAddress.size]
   let evmE : EVM.State :=
     { evm1S with
       accountMap := σ1
@@ -588,8 +593,8 @@ theorem uniswapFeeToDecode_none_short {returndata : ByteArray}
 theorem uniswapFeeToDecode_ok {returndata : ByteArray}
     (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "feeTo" returndata =
-      some (.address (AccountAddress.ofNat
-        (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
+      some [.address (AccountAddress.ofNat
+        (fromByteArrayBigEndian (returndata.extract 0 32)))] := by
   change uniswapExternalABI.decode? "feeTo" returndata = _
   have hlen : returndata.toList.length = returndata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -870,19 +875,72 @@ theorem mintToken0GuardTrue_initState_of_code
         (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
       .ok (.bool true) := by
-  have hguard := syncToken0GuardTrue_initState_of_code
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hAccounts htoken0Code
-  let evmL := uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)
-  have hresolve :
-      resolveStorageRef? config
-          { contract := contract, locals := mintReserveStore evmL I } evmL token0Ref =
-        resolveStorageRef? config { contract := contract, locals := ∅ } evmL token0Ref := by
-    simp [resolveStorageRef?, evalStorageRef, mintReserveStore, mintStore, token0Ref]
-  unfold syncToken0GuardTrue at hguard
-  simp only [evalExpr?, EvalResult.bind, bind, pure] at hguard ⊢
-  rw [hresolve]
-  exact hguard
+  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
+  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
+  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
+  let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
+  have hLockAccounts : accountMapEquiv σLockE σLockS := by
+    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
+  have hslot : token0WordE = token0WordS := by
+    simpa [σLockE, σLockS, token0WordE, token0WordS] using
+      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
+  have hcodeSolm :
+      uniswapExtCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
+    intro hzero
+    have hsame :=
+      uniswapExtCodeSizeWord_accountMapEquiv hLockAccounts
+        (UInt256.land solcAddrMask token0WordE)
+    rw [← hslot] at hzero
+    rw [← hsame] at hzero
+    exact htoken0Code (by simpa [σLockE, token0WordE] using hzero)
+  let evmS := initState cA gh bl σ_solm σ₀ g A I
+  let evmL := uniswapLockEnteredState evmS
+  have hstorage :
+      evalExpr? config { contract := contract, locals := mintReserveStore evmL I } evmL
+        (.storage token0Ref) = .ok (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+    exact evalExpr_uniswap_storage_address evmL (mintReserveStore evmL I)
+      (er := { base := "token0", steps := [] }) (slot := ⟨6⟩)
+      (by simp [mintReserveStore, mintStore, token0Ref])
+      (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
+      (by decide) (by rfl)
+  have hcodeSource :
+      (evmL.lookupAccount (uniswapAddressAtSlot evmL ⟨6⟩)).option (⟨0⟩ : UInt256)
+          (fun acc => EVM.Word.ofNat acc.code.size) ≠
+        ⟨0⟩ := by
+    have hcodeSolmRight :
+        uniswapExtCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) ≠ ⟨0⟩ := by
+      simpa [u256_land_comm] using hcodeSolm
+    intro hzero
+    apply hcodeSolmRight
+    simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
+      storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
+      Account.lookupStorage, uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, σLockS,
+      token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
+  have hcodeSourceWord :
+      EVM.Word.ofNat
+          ((evmL.lookupAccount (uniswapAddressAtSlot evmL ⟨6⟩)).option 0
+            (fun acc => acc.code.size)) ≠
+        ⟨0⟩ := by
+    intro hzero
+    apply hcodeSource
+    cases hacc : evmL.lookupAccount (uniswapAddressAtSlot evmL ⟨6⟩) with
+    | none =>
+        simp [Option.option]
+    | some acc =>
+        simpa [hacc, Option.option] using hzero
+  have hcodeSourceWordPos :
+      0 <
+        (EVM.Word.ofNat
+          ((evmL.lookupAccount (uniswapAddressAtSlot evmL ⟨6⟩)).option 0
+            (fun acc => acc.code.size))).toNat := by
+    exact Nat.pos_of_ne_zero (by
+      intro hzero
+      exact hcodeSourceWord (uint256_toNat_eq_zero hzero))
+  change
+    evalExpr? config { contract := contract, locals := mintReserveStore evmL I } evmL
+      (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
+        .ok (.bool true)
+  simp [evalExpr?, hstorage, EvalResult.bind, bind, pure, evalBinaryOp?, hcodeSourceWordPos]
 
 theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
     {evm0 reserveEvm : EVM.State} {I : ExecutionEnv} {balance0 : Value}
@@ -958,22 +1016,70 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
       { contract := contract, locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 }
       evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
         .ok (.bool true) := by
-  have hguard :=
-    syncToken1GuardTrue_of_code
-      (balance0 := balance0) hPost henv htoken1Code
-  have hresolve :
-      resolveStorageRef? config
-          { contract := contract,
-            locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 } evm0
-          token1Ref =
-        resolveStorageRef? config
-          { contract := contract, locals := (∅ : Store).insert "balance0" balance0 } evm0
-          token1Ref := by
-    simp [resolveStorageRef?, evalStorageRef, mintReserveStore, mintStore, token1Ref]
-  unfold syncToken1GuardTrue at hguard
-  simp only [evalExpr?, EvalResult.bind, bind, pure] at hguard ⊢
-  rw [hresolve]
-  exact hguard
+  let token1WordS := uniswapSlotWord ⟨7⟩ σ I
+  let token1WordE := uniswapSlotWord ⟨7⟩ evm0.accountMap evm0.executionEnv
+  have hslot : token1WordS = token1WordE := by
+    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
+    simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
+  have hcodeEvm :
+      uniswapExtCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
+        ⟨0⟩ := by
+    intro hzero
+    have hsame :=
+      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
+    rw [← hslot] at hzero
+    rw [← hsame] at hzero
+    exact htoken1Code (by simpa [token1WordS] using hzero)
+  have hstorage :
+      evalExpr? config
+        { contract := contract,
+          locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 }
+        evm0 (.storage token1Ref) = .ok (.address (uniswapAddressAtSlot evm0 ⟨7⟩)) := by
+    exact evalExpr_uniswap_storage_address evm0
+      ((mintReserveStore reserveEvm I).insert "balance0" balance0)
+      (er := { base := "token1", steps := [] }) (slot := ⟨7⟩)
+      (by simp [mintReserveStore, mintStore, token1Ref])
+      (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
+      (by decide) (by rfl)
+  have hcodeSource :
+      (evm0.lookupAccount (uniswapAddressAtSlot evm0 ⟨7⟩)).option (⟨0⟩ : UInt256)
+          (fun acc => EVM.Word.ofNat acc.code.size) ≠
+        ⟨0⟩ := by
+    have hcodeEvmRight :
+        uniswapExtCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) ≠
+          ⟨0⟩ := by
+      simpa [u256_land_comm] using hcodeEvm
+    intro hzero
+    apply hcodeEvmRight
+    simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
+      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, token1WordE,
+      accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
+  have hcodeSourceWord :
+      EVM.Word.ofNat
+          ((evm0.lookupAccount (uniswapAddressAtSlot evm0 ⟨7⟩)).option 0
+            (fun acc => acc.code.size)) ≠
+        ⟨0⟩ := by
+    intro hzero
+    apply hcodeSource
+    cases hacc : evm0.lookupAccount (uniswapAddressAtSlot evm0 ⟨7⟩) with
+    | none =>
+        simp [Option.option]
+    | some acc =>
+        simpa [hacc, Option.option] using hzero
+  have hcodeSourceWordPos :
+      0 <
+        (EVM.Word.ofNat
+          ((evm0.lookupAccount (uniswapAddressAtSlot evm0 ⟨7⟩)).option 0
+            (fun acc => acc.code.size))).toNat := by
+    exact Nat.pos_of_ne_zero (by
+      intro hzero
+      exact hcodeSourceWord (uint256_toNat_eq_zero hzero))
+  change
+    evalExpr? config
+      { contract := contract, locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 }
+      evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
+        .ok (.bool true)
+  simp [evalExpr?, hstorage, EvalResult.bind, bind, pure, evalBinaryOp?, hcodeSourceWordPos]
 
 theorem mintReserve0Word_initState_eq_evm
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
@@ -1243,7 +1349,7 @@ theorem mintAfterMintFeeCallStore_amount0
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "amount0" =
+      "feeOn" (some [.bool feeOn])).locals.get? "amount0" =
         some (mintAmount0Value evm balance0) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_amount0]
@@ -1252,7 +1358,7 @@ theorem mintAfterMintFeeCallStore_amount1
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "amount1" =
+      "feeOn" (some [.bool feeOn])).locals.get? "amount1" =
         some (mintAmount1Value evm balance1) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_amount1]
@@ -1261,7 +1367,7 @@ theorem mintAfterMintFeeCallStore_to
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "to" = some (mintToValue I) := by
+      "feeOn" (some [.bool feeOn])).locals.get? "to" = some (mintToValue I) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_to]
 
@@ -1269,7 +1375,7 @@ theorem mintAfterMintFeeCallStore_balance0
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "balance0" =
+      "feeOn" (some [.bool feeOn])).locals.get? "balance0" =
         some (uniswapUint256Value balance0) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_balance0]
@@ -1278,7 +1384,7 @@ theorem mintAfterMintFeeCallStore_balance1
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "balance1" =
+      "feeOn" (some [.bool feeOn])).locals.get? "balance1" =
         some (uniswapUint256Value balance1) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_balance1]
@@ -1287,14 +1393,14 @@ theorem mintAfterMintFeeCallStore_feeOn
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "feeOn" = some (.bool feeOn) := by
-  simp [resumeAfterInternalCall]
+      "feeOn" (some [.bool feeOn])).locals.get? "feeOn" = some (.bool feeOn) := by
+  simp [resumeAfterInternalCall, collapseReturns]
 
 theorem mintAfterMintFeeCallStore_reserve0
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "_reserve0" =
+      "feeOn" (some [.bool feeOn])).locals.get? "_reserve0" =
         some (.int (Int.ofNat (uniswapReserve0Word evm).toNat)) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_reserve0]
@@ -1303,7 +1409,7 @@ theorem mintAfterMintFeeCallStore_reserve1
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "_reserve1" =
+      "feeOn" (some [.bool feeOn])).locals.get? "_reserve1" =
         some (.int (Int.ofNat (uniswapReserve1Word evm).toNat)) := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_reserve1]
@@ -1312,7 +1418,7 @@ theorem mintAfterMintFeeCallStore_totalSupply
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "totalSupply" = none := by
+      "feeOn" (some [.bool feeOn])).locals.get? "totalSupply" = none := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_totalSupply]
 
@@ -1320,7 +1426,7 @@ theorem mintAfterMintFeeCallStore_reserve0_base
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "reserve0" = none := by
+      "feeOn" (some [.bool feeOn])).locals.get? "reserve0" = none := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_reserve0_base]
 
@@ -1328,7 +1434,7 @@ theorem mintAfterMintFeeCallStore_reserve1_base
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "reserve1" = none := by
+      "feeOn" (some [.bool feeOn])).locals.get? "reserve1" = none := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_reserve1_base]
 
@@ -1336,7 +1442,7 @@ theorem mintAfterMintFeeCallStore_kLast
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "kLast" = none := by
+      "feeOn" (some [.bool feeOn])).locals.get? "kLast" = none := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_kLast]
 
@@ -1344,7 +1450,7 @@ theorem mintAfterMintFeeCallStore_unlocked
     (evm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) (feeOn : Bool) :
     (resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evm I balance0 balance1 }
-      "feeOn" (some (.bool feeOn))).locals.get? "unlocked" = none := by
+      "feeOn" (some [.bool feeOn])).locals.get? "unlocked" = none := by
   simp only [resumeAfterInternalCall]
   rw [store_get_ne _ _ (by decide), mintAmountStore_unlocked]
 
@@ -1554,12 +1660,13 @@ abbrev mintLiquidityBranchStmt : Stmt :=
 abbrev mintAfterLiquidityTailStmts : List Stmt :=
   [ .require (.binary .gt (.var "liquidity") (.intLit 0)),
     .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
-  updateReservesStmts (.var "balance0") (.var "balance1") ++
+  updateReservesStmtsWith (.var "balance0") (.var "balance1")
+    (.var "_reserve0") (.var "_reserve1") ++
   [ .ite (.var "feeOn")
       [ .assign .storage kLastRef
           (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
       [] ] ++
   lockExit ++
-  [ .return (.var "liquidity") ]
+  [ .return [(.var "liquidity")] ]
 
 end UniswapV2Pair

@@ -303,8 +303,6 @@ theorem skimSafeTransferCallMem0_size
         exact lt_usize 0 (by norm_num)),
     ByteArray.size_append, ByteArray.size_append,
     skimSafeTransferMem7_size self toWord value ho32 hoSize, ByteArray_zeroes_size,
-    show (USize.ofNat (292 - 292)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem skimSafeTransferCallMem1_size
@@ -320,8 +318,6 @@ theorem skimSafeTransferCallMem1_size
         exact lt_usize 0 (by norm_num)),
     ByteArray.size_append, ByteArray.size_append,
     skimSafeTransferCallMem0_size self toWord value ho32 hoSize, ByteArray_zeroes_size,
-    show (USize.ofNat (324 - 324)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem skimSafeTransferCallMem2_size
@@ -337,8 +333,6 @@ theorem skimSafeTransferCallMem2_size
         exact lt_usize 0 (by norm_num)),
     ByteArray.size_append, ByteArray.size_append,
     skimSafeTransferCallMem1_size self toWord value ho32 hoSize, ByteArray_zeroes_size,
-    show (USize.ofNat (356 - 356)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem skimSafeTransferCallMem0_read96_zero

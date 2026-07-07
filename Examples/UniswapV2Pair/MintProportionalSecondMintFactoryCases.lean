@@ -7,7 +7,7 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 def mintProportionalSecondMintOverflowCase
-    (feeToWord totalSupply totalSupplyCleared amount0 amount1 reserve0 reserve1
+    (feeToWord totalSupply totalSupplyCleared amount0 amount1 balance0 balance1 reserve0 reserve1
       liquidity liquidityCleared : UInt256)
     (σFee σCleared : AccountMap) (evmFeeS : EVM.State) (I : ExecutionEnv)
     (toWord : UInt256) (memFee : ByteArray) : Prop :=
@@ -40,6 +40,26 @@ def mintProportionalSecondMintOverflowCase
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
           (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidity.toNat) ∨
+  (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
+    mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
+    totalSupply ≠ ⟨0⟩ ∧
+    amount0.toNat * totalSupply.toNat < UInt256.size ∧
+    amount1.toNat * totalSupply.toNat < UInt256.size ∧
+    reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
+    liquidity = minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
+      ((amount1.mul totalSupply).div reserve1) ∧
+    liquidity ≠ ⟨0⟩ ∧
+    mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
+    mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat (mintToWord I).toNat)
+      liquidity < UInt256.size ∧
+    (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+    (uniswapCodeOwnerStorageWord I
+      (sstoreAccountMap I.codeOwner σFee ⟨0⟩
+        (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+      (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidity.toNat <
+        UInt256.size ∧
+    (reserve112Mask.toNat < balance0.toNat ∨
+      balance0.toNat ≤ reserve112Mask.toNat ∧ reserve112Mask.toNat < balance1.toNat)) ∨
   (UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
     totalSupply ≠ ⟨0⟩ ∧
@@ -100,6 +120,28 @@ def mintProportionalSecondMintOverflowCase
         (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
           (uniswapSlotWord ⟨0⟩ σCleared I + liquidityCleared))
         (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidityCleared.toNat)
+    ∨
+  (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
+    mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
+    totalSupplyCleared ≠ ⟨0⟩ ∧
+    amount0.toNat * totalSupplyCleared.toNat < UInt256.size ∧
+    amount1.toNat * totalSupplyCleared.toNat < UInt256.size ∧
+    reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
+    liquidityCleared = minFunctionResultWord ((amount0.mul totalSupplyCleared).div reserve0)
+      ((amount1.mul totalSupplyCleared).div reserve1) ∧
+    liquidityCleared ≠ ⟨0⟩ ∧
+    mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS) liquidityCleared <
+      UInt256.size ∧
+    mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
+      (AccountAddress.ofNat (mintToWord I).toNat) liquidityCleared < UInt256.size ∧
+    (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
+    (uniswapCodeOwnerStorageWord I
+      (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
+        (uniswapSlotWord ⟨0⟩ σCleared I + liquidityCleared))
+      (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidityCleared.toNat <
+        UInt256.size ∧
+    (reserve112Mask.toNat < balance0.toNat ∨
+      balance0.toNat ≤ reserve112Mask.toNat ∧ reserve112Mask.toNat < balance1.toNat))
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
@@ -155,12 +197,12 @@ theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -185,7 +227,7 @@ theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
     (hfeeCall : typedCallViaEVM config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hfeeToEq : feeTo = AccountAddress.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
@@ -238,127 +280,15 @@ theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hcase :
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask =
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        totalSupply ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupply.toNat < UInt256.size ∧
-        amount1.toNat * totalSupply.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidity =
-          minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
-            ((amount1.mul totalSupply).div reserve1) ∧
-        liquidity ≠ ⟨0⟩ ∧
-        UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-        UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask =
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        totalSupply ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupply.toNat < UInt256.size ∧
-        amount1.toNat * totalSupply.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidity =
-          minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
-            ((amount1.mul totalSupply).div reserve1) ∧
-        liquidity ≠ ⟨0⟩ ∧
-        mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
-        UInt256.size ≤
-          mintFunctionToBalanceNewNat evmFeeS
-            (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
-        UInt256.size ≤
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord
-              (feeToStaticcallMem
-                (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
-                outFee))).toNat + liquidity.toNat) ∨
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask ≠
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        totalSupply ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupply.toNat < UInt256.size ∧
-        amount1.toNat * totalSupply.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidity =
-          minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
-            ((amount1.mul totalSupply).div reserve1) ∧
-        liquidity ≠ ⟨0⟩ ∧
-        UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-        UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask ≠
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        totalSupply ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupply.toNat < UInt256.size ∧
-        amount1.toNat * totalSupply.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidity =
-          minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
-            ((amount1.mul totalSupply).div reserve1) ∧
-        liquidity ≠ ⟨0⟩ ∧
-        mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
-        UInt256.size ≤
-          mintFunctionToBalanceNewNat evmFeeS
-            (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
-        UInt256.size ≤
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord
-              (feeToStaticcallMem
-                (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
-                outFee))).toNat + liquidity.toNat) ∨
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask =
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
-        totalSupplyCleared ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupplyCleared.toNat < UInt256.size ∧
-        amount1.toNat * totalSupplyCleared.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidityCleared =
-          minFunctionResultWord ((amount0.mul totalSupplyCleared).div reserve0)
-            ((amount1.mul totalSupplyCleared).div reserve1) ∧
-        liquidityCleared ≠ ⟨0⟩ ∧
-        UInt256.size ≤ mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS)
-          liquidityCleared ∧
-        UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σCleared I).toNat +
-          liquidityCleared.toNat) ∨
-      (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
-            solcAddrMask =
-          ⟨0⟩ ∧
-        mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
-        totalSupplyCleared ≠ ⟨0⟩ ∧
-        amount0.toNat * totalSupplyCleared.toNat < UInt256.size ∧
-        amount1.toNat * totalSupplyCleared.toNat < UInt256.size ∧
-        reserve0 ≠ ⟨0⟩ ∧ reserve1 ≠ ⟨0⟩ ∧
-        liquidityCleared =
-          minFunctionResultWord ((amount0.mul totalSupplyCleared).div reserve0)
-            ((amount1.mul totalSupplyCleared).div reserve1) ∧
-        liquidityCleared ≠ ⟨0⟩ ∧
-        mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS) liquidityCleared <
-          UInt256.size ∧
-        UInt256.size ≤
-          mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
-            (AccountAddress.ofNat (mintToWord I).toNat) liquidityCleared ∧
-        (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
-        UInt256.size ≤
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σCleared I + liquidityCleared))
-            (uniswapInternalMintBalanceHashSlot toWord
-              (feeToStaticcallMem
-                (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
-                outFee))).toNat + liquidityCleared.toNat)) :
+      mintProportionalSecondMintOverflowCase
+        (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
+        totalSupply totalSupplyCleared amount0 amount1 balance0 balance1 reserve0 reserve1
+        liquidity liquidityCleared σFee σCleared evmFeeS I toWord
+        (feeToStaticcallMem
+          (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
+          outFee)) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  unfold mintProportionalSecondMintOverflowCase at hcase
   rcases hcase with hfeeOffTotal | hrest
   · exact uniswapMintProportionalFeeOffKLastZeroSecondMintTotalSupplyOverflowFromFactoryCase
       feeTo hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0
@@ -373,36 +303,52 @@ theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
         ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalEq
         htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
         hamount1Eq hfeeOffBalance
-    · rcases hrest with hfeeOnTotal | hrest
-      · exact uniswapMintProportionalFeeOnKLastZeroSecondMintTotalSupplyOverflowFromFactoryCase
-          feeTo hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0
-          hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec hfeeToEq
-          rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq
-          htotalEq htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq
-          hamount0Eq hamount1Eq hfeeOnTotal
-      · rcases hrest with hfeeOnBalance | hrest
-        · exact uniswapMintProportionalFeeOnKLastZeroSecondMintBalanceOverflowFromFactoryCase
-            feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1 hcall0
-            hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec
-            hfeeToEq rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32
-            hkLastEq htotalEq htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq
-            hreserve1Eq hamount0Eq hamount1Eq hfeeOnBalance
-        · rcases hrest with hfeeOffClearedTotal | hfeeOffClearedBalance
-          · exact
-              uniswapMintProportionalFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFromFactoryCase
-                feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1
-                hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
-                hfeeDec hfeeToEq hPostAccountsFee henvFeeI hcleared rd7781 ho32 hoSize
-                ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalClearedSlot
-                hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
-                hamount1Eq hfeeOffClearedTotal
-          · exact
-              uniswapMintProportionalFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactoryCase
-                feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1
-                hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
-                hfeeDec hfeeToEq hPostAccountsFee henvFeeI hcleared rd7781 ho32 hoSize
-                ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalClearedSlot
-                hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
-                hamount1Eq hfeeOffClearedBalance
+    · rcases hrest with hfeeOffUpdate | hrest
+      · exact uniswapMintProportionalFeeOffKLastZeroUpdateBoundFromFactoryCases
+          feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1 hcall0
+          hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec
+          hfeeToEq rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32
+          hkLastEq htotalEq htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq
+          hreserve1Eq hamount0Eq hamount1Eq hfeeOffUpdate
+      · rcases hrest with hfeeOnTotal | hrest
+        · exact uniswapMintProportionalFeeOnKLastZeroSecondMintTotalSupplyOverflowFromFactoryCase
+            feeTo hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0
+            hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec hfeeToEq
+            rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq
+            htotalEq htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq
+            hamount0Eq hamount1Eq hfeeOnTotal
+        · rcases hrest with hfeeOnBalance | hrest
+          · exact uniswapMintProportionalFeeOnKLastZeroSecondMintBalanceOverflowFromFactoryCase
+              feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1 hcall0
+              hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall hfeeDec
+              hfeeToEq rd7781 ho32 hoSize ho132 ho1Size houtFeeSize hzFeeTrue houtFee32
+              hkLastEq htotalEq htotalSlot hruntimeReserve0 hruntimeReserve1 hreserve0Eq
+              hreserve1Eq hamount0Eq hamount1Eq hfeeOnBalance
+          · rcases hrest with hfeeOffClearedTotal | hrest
+            · exact
+                uniswapMintProportionalFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFromFactoryCase
+                  feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1
+                  hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
+                  hfeeDec hfeeToEq hPostAccountsFee henvFeeI hcleared rd7781 ho32 hoSize
+                  ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalClearedSlot
+                  hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
+                  hamount1Eq hfeeOffClearedTotal
+            · rcases hrest with hfeeOffClearedBalance | hfeeOffClearedUpdate
+              · exact
+                  uniswapMintProportionalFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactoryCase
+                    feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1
+                    hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
+                    hfeeDec hfeeToEq hPostAccountsFee henvFeeI hcleared rd7781 ho32 hoSize
+                    ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalClearedSlot
+                    hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
+                    hamount1Eq hfeeOffClearedBalance
+              · exact
+                  uniswapMintProportionalFeeOffKLastNonzeroUpdateBoundFromFactoryCases
+                    feeTo hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1
+                    hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source hfeeGuard hfeeCall
+                    hfeeDec hfeeToEq hPostAccountsFee henvFeeI hcleared rd7781 ho32 hoSize
+                    ho132 ho1Size houtFeeSize hzFeeTrue houtFee32 hkLastEq htotalClearedSlot
+                    hruntimeReserve0 hruntimeReserve1 hreserve0Eq hreserve1Eq hamount0Eq
+                    hamount1Eq hfeeOffClearedUpdate
 
 end UniswapV2Pair

@@ -10,6 +10,111 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 set_option maxHeartbeats 1000000 in
+theorem uniswapMintFinishProportionalUpdateFirstBoundReverts
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {evmFeeS : EVM.State} {mem outFee : ByteArray} {k C : ℕ}
+    {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 totalSupply liquidity toWord sel :
+      UInt256}
+    (hcode : I.code = uniswapV2PairBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some mintTransition)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (mintStore I) mintTransition.body .reverted)
+    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
+        toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+    (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalNonzero : totalSupply ≠ ⟨0⟩)
+    (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
+    (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
+    (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
+    (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
+    (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
+    (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord (UInt256.div (UInt256.mul amount0 totalSupply) reserve0)
+          (UInt256.div (UInt256.mul amount1 totalSupply) reserve1))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (hbalanceFit :
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
+          UInt256.size)
+    (hfail0 : reserve112Mask.toNat < balance0.toNat)
+    (hmem : mem.size = 164)
+    (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have rdRev :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+    uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
+      (liquidity := liquidity) rd3701 htotal htotalNonzero hclean0 hclean1
+      hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero hperm
+      htotalFit hbalanceFit hfail0 hmem hmem64
+  exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody
+
+set_option maxHeartbeats 1000000 in
+theorem uniswapMintFinishProportionalUpdateSecondBoundReverts
+    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {evmFeeS : EVM.State} {mem outFee : ByteArray} {k C : ℕ}
+    {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 totalSupply liquidity toWord sel :
+      UInt256}
+    (hcode : I.code = uniswapV2PairBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some mintTransition)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (mintStore I) mintTransition.body .reverted)
+    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
+        toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+    (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalNonzero : totalSupply ≠ ⟨0⟩)
+    (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
+    (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
+    (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
+    (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
+    (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
+    (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord (UInt256.div (UInt256.mul amount0 totalSupply) reserve0)
+          (UInt256.div (UInt256.mul amount1 totalSupply) reserve1))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (hbalanceFit :
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
+          UInt256.size)
+    (hfit0 : balance0.toNat ≤ reserve112Mask.toNat)
+    (hfail1 : reserve112Mask.toNat < balance1.toNat)
+    (hmem : mem.size = 164)
+    (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have rdRev :
+      RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+    uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
+      (liquidity := liquidity) rd3701 htotal htotalNonzero hclean0 hclean1
+      hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero hperm
+      htotalFit hbalanceFit hfit0 hfail1 hmem hmem64
+  exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody
+
+set_option maxHeartbeats 1000000 in
 theorem uniswapMintFinishProportionalFeeOffCumulative
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
@@ -26,11 +131,11 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
         (mintStore I) mintTransition.body
         (.returned frame
           (uniswapLockExitedState
-            (syncUpdateCumulativePackedReserveState
+            (syncUpdateCumulativePackedReserveStateWith
               (mintFunctionPostState evmFeeS
                 (AccountAddress.ofNat (mintToWord I).toNat) liquidity)
-              balance0 balance1))
-          (some (uniswapUint256Value liquidity))))
+              balance0 balance1 reserve0 reserve1))
+          (some [uniswapUint256Value liquidity])))
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
@@ -80,30 +185,6 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
-            (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
-      reserve0 = uniswapUpdateReserve0Word σAfterMint I)
-    (hreserve1Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
-            (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
-      reserve1 = uniswapUpdateReserve1Word σAfterMint I)
     (hfeeOff : feeOn = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -133,29 +214,39 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
     have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
     simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvMint] using hword.symm
+  have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
+    rw [← hclean0]
+    simpa [u256_land_comm] using uniswapUint112Masked_lt reserve0
+  have hreserve1Lt : reserve1.toNat < 2 ^ 112 := by
+    rw [← hclean1]
+    simpa [u256_land_comm] using uniswapUint112Masked_lt reserve1
   have hAccountsRet :
-      accountMapEquiv (uniswapUpdateCumulativeReturnMap σAfterMint I balance0 balance1)
+      accountMapEquiv
+        (uniswapUpdateCumulativeReturnMapWith σAfterMint I balance0 balance1 reserve0 reserve1)
         (uniswapLockExitedState
-          (syncUpdateCumulativePackedReserveState postMint balance0 balance1)).accountMap :=
-    accountMapEquiv_syncUpdateCumulativeReturnMap hMintAccounts henvMint hslot8
+          (syncUpdateCumulativePackedReserveStateWith
+            postMint balance0 balance1 reserve0 reserve1)).accountMap :=
+    accountMapEquiv_syncUpdateCumulativeReturnMapWith hMintAccounts henvMint hslot8
+      hreserve0Lt hreserve1Lt
   have hCreatedRet :
       cAFee =
         (uniswapLockExitedState
-          (syncUpdateCumulativePackedReserveState postMint balance0 balance1)).createdAccounts := by
-    simp [uniswapLockExitedState, uniswapUnlockedState, syncUpdateCumulativePackedReserveState,
+          (syncUpdateCumulativePackedReserveStateWith
+            postMint balance0 balance1 reserve0 reserve1)).createdAccounts := by
+    simp [uniswapLockExitedState, uniswapUnlockedState, syncUpdateCumulativePackedReserveStateWith,
       postMint, syncUpdatePackedReserveState, mintFunctionPostState,
       mintFunctionAfterTotalSupplyState, storageStore_createdAccounts, hcreatedFee]
   have rdRet :
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, uniswapUpdateCumulativeReturnMap σAfterMint I balance0 balance1)
+        (cAFee,
+          uniswapUpdateCumulativeReturnMapWith σAfterMint I balance0 balance1 reserve0 reserve1)
         (UInt256.toByteArray liquidity) := by
     simpa [σAfterMint, htotal] using
       uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
         (liquidity := liquidity) rd3701 htotal htotalNonzero hclean0 hclean1
         hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero
-        hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe hreserve0Slot
-        hreserve1Slot hfeeOff hmem hmem64
+        hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe hfeeOff hmem hmem64
   exact rdRet.reEquivExecutionGenAccountMapEquiv
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hCreatedRet hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
@@ -178,11 +269,11 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         (.returned frame
           (uniswapLockExitedState
             (mintKLastUpdatedState
-              (syncUpdateCumulativePackedReserveState
+              (syncUpdateCumulativePackedReserveStateWith
                 (mintFunctionPostState evmFeeS
                   (AccountAddress.ofNat (mintToWord I).toNat) liquidity)
-                balance0 balance1)))
-          (some (uniswapUint256Value liquidity))))
+                balance0 balance1 reserve0 reserve1)))
+          (some [uniswapUint256Value liquidity])))
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
@@ -232,30 +323,6 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
-            (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
-      reserve0 = uniswapUpdateReserve0Word σAfterMint I)
-    (hreserve1Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
-            (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
-      reserve1 = uniswapUpdateReserve1Word σAfterMint I)
     (hfitKLast :
       let σAfterMint :=
         sstoreAccountMap I.codeOwner
@@ -269,12 +336,14 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
       (UInt256.land
             (uniswapSlotWord ⟨8⟩
-              (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+              (uniswapUpdateCumulativePackedMapWith
+                σAfterMint I balance0 balance1 reserve0 reserve1) I)
             reserve112Mask).toNat *
           (UInt256.land
             (UInt256.div
               (uniswapSlotWord ⟨8⟩
-                (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+                (uniswapUpdateCumulativePackedMapWith
+                  σAfterMint I balance0 balance1 reserve0 reserve1) I)
               reserve112Shift)
             reserve112Mask).toNat <
         UInt256.size)
@@ -292,8 +361,10 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
           (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
-  let σCumulative := uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1
-  let syncState := syncUpdateCumulativePackedReserveState postMint balance0 balance1
+  let σCumulative :=
+    uniswapUpdateCumulativePackedMapWith σAfterMint I balance0 balance1 reserve0 reserve1
+  let syncState :=
+    syncUpdateCumulativePackedReserveStateWith postMint balance0 balance1 reserve0 reserve1
   let kLastWord :=
     UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σCumulative I) reserve112Mask)
       (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σCumulative I) reserve112Shift)
@@ -312,18 +383,25 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
     have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
     simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvMint] using hword.symm
+  have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
+    rw [← hclean0]
+    simpa [u256_land_comm] using uniswapUint112Masked_lt reserve0
+  have hreserve1Lt : reserve1.toNat < 2 ^ 112 := by
+    rw [← hclean1]
+    simpa [u256_land_comm] using uniswapUint112Masked_lt reserve1
   let evmP0 :=
     Solm.EVM.storageStore postMint I.codeOwner ⟨9⟩
-      (EVM.wordOfInt (syncPrice0CumulativeIntAt postMint postMint))
+      (EVM.wordOfInt (syncPrice0CumulativeIntAtWith postMint postMint reserve0 reserve1))
   let evmP1 :=
     Solm.EVM.storageStore evmP0 I.codeOwner ⟨10⟩
-      (EVM.wordOfInt (syncPrice1CumulativeIntAt evmP0 postMint))
-  let σP1 : AccountMap := uniswapUpdatePrice1CumulativeMap σAfterMint I
+      (EVM.wordOfInt (syncPrice1CumulativeIntAtWith evmP0 postMint reserve0 reserve1))
+  let σP1 : AccountMap := uniswapUpdatePrice1CumulativeMapWith σAfterMint I reserve0 reserve1
   let packedCumulative : UInt256 :=
-    uniswapUpdateCumulativePackedWord σAfterMint I balance0 balance1
+    uniswapUpdateCumulativePackedWordWith σAfterMint I balance0 balance1 reserve0 reserve1
   have hP1Accounts : accountMapEquiv σP1 evmP1.accountMap := by
     simpa [σP1, evmP0, evmP1] using
-      accountMapEquiv_uniswapUpdatePrice1CumulativeMap hMintAccounts henvMint hslot8
+      accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith hMintAccounts henvMint hslot8
+        hreserve0Lt hreserve1Lt
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henvMint]
   have henvP1 : evmP1.executionEnv = I := by
@@ -340,14 +418,14 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
         (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
     accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1 hslot8P1
-      (by simp [packedCumulative, uniswapUpdateCumulativePackedWord, σP1])
+      (by simp [packedCumulative, uniswapUpdateCumulativePackedWordWith, σP1])
   have hPackedAccounts : accountMapEquiv σCumulative syncState.accountMap := by
-    simpa [σCumulative, syncState, uniswapUpdateCumulativePackedMap,
-      uniswapUpdateCumulativePackedWord, syncUpdateCumulativePackedReserveState,
+    simpa [σCumulative, syncState, uniswapUpdateCumulativePackedMapWith,
+      uniswapUpdateCumulativePackedWordWith, syncUpdateCumulativePackedReserveStateWith,
       syncUpdatePackedReserveState, evmP0, evmP1, σP1, packedCumulative,
       storageStore_executionEnv, henvMint, henvP0] using hPackedAccountsStep
   have henvSync : syncState.executionEnv = I := by
-    simp [syncState, syncUpdateCumulativePackedReserveState, syncUpdatePackedReserveState,
+    simp [syncState, syncUpdateCumulativePackedReserveStateWith, syncUpdatePackedReserveState,
       postMint, henvMint, storageStore_executionEnv]
   have hslot8Sync :
       Solm.EVM.storageLoad syncState syncState.executionEnv.codeOwner ⟨8⟩ =
@@ -390,7 +468,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
   have hCreatedRet :
       cAFee = (uniswapLockExitedState (mintKLastUpdatedState syncState)).createdAccounts := by
     simp [uniswapLockExitedState, uniswapUnlockedState, mintKLastUpdatedState, syncState,
-      postMint, syncUpdateCumulativePackedReserveState, syncUpdatePackedReserveState,
+      postMint, syncUpdateCumulativePackedReserveStateWith, syncUpdatePackedReserveState,
       mintFunctionPostState, mintFunctionAfterTotalSupplyState, storageStore_createdAccounts,
       hcreatedFee]
   have rdRet :
@@ -404,8 +482,8 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
       uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
         (liquidity := liquidity) rd3701 htotal htotalNonzero hclean0 hclean1
         hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero
-        hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe hreserve0Slot
-        hreserve1Slot (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hfitKLast hmem hmem64
+        hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe
+        (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hfitKLast hmem hmem64
   exact rdRet.reEquivExecutionGenAccountMapEquiv
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hCreatedRet hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
@@ -431,7 +509,7 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
                 (mintFunctionPostState evmFeeS
                   (AccountAddress.ofNat (mintToWord I).toNat) liquidity)
                 balance0 balance1)))
-          (some (uniswapUint256Value liquidity))))
+          (some [uniswapUint256Value liquidity])))
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
@@ -656,11 +734,11 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintCase
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" o = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -685,7 +763,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintCase
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hcreatedFee : evmFeeS.createdAccounts = cAFee)
@@ -960,11 +1038,11 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityCase
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" o = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -989,7 +1067,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityCase
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hcreatedFee : evmFeeS.createdAccounts = cAFee)
@@ -1291,11 +1369,11 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" o = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -1320,7 +1398,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hcreatedFee : evmFeeS.createdAccounts = cAFee)
@@ -1655,11 +1733,11 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintCase
         (uniswapLockEnteredState
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, o) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" o = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -1684,7 +1762,7 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintCase
     (hfeeCall : typedCallViaEVM config evm1S
       (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)) "feeTo" 0 []
       (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hcreatedFee : evmFeeS.createdAccounts = cAFee)

@@ -187,12 +187,12 @@ theorem uniswapMintBalanceCallsPrefix
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1)) :
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1]) :
     ExecBlock config { contract := contract, locals := mintStore I } evm
       (lockEnter ++
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
@@ -305,7 +305,7 @@ theorem uniswapMintBodyReverts_secondNoCode (evm evm0 : EVM.State) (I : Executio
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -343,7 +343,7 @@ theorem uniswapMintBodyReverts_secondCallFailure
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -387,7 +387,7 @@ theorem uniswapMintBodyReverts_secondCallDecode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -438,12 +438,12 @@ theorem uniswapMintBodyReverts_amount0Underflow
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hlt0 : balance0.toNat < (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat) :
     ExecTransitionBody config contract evm (mintStore I) mintTransition.body .reverted := by
   let evmL := uniswapLockEnteredState evm
@@ -486,12 +486,12 @@ theorem uniswapMintBodyReverts_amount1Underflow
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (hlt1 : balance1.toNat < (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat) :
     ExecTransitionBody config contract evm (mintStore I) mintTransition.body .reverted := by
@@ -550,12 +550,12 @@ theorem uniswapMintAmountsPrefix
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat) :
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -626,12 +626,12 @@ theorem uniswapMintBodyReverts_mintFeeNoCode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -679,12 +679,12 @@ theorem uniswapMintBodyReverts_mintFeeCallFailure
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -734,12 +734,12 @@ theorem uniswapMintBodyReverts_mintFeeDecode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -790,12 +790,12 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -806,7 +806,7 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
           .ok (.bool true))
     (hfeeCall : typedCallViaEVM config evm1 (EVM.address (uniswapAddressAtSlot evm1 ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hfeeTo : feeTo = AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat = 0) :
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -823,7 +823,7 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
         (resumeAfterInternalCall
           { contract := contract,
             locals := mintAmountStore (uniswapLockEnteredState evm) I balance0 balance1 }
-          "feeOn" (some (.bool false)))
+          "feeOn" (some [.bool false]))
         evmFee) := by
   let evmL := uniswapLockEnteredState evm
   have hprefix :=
@@ -836,7 +836,7 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
         (.ok
           (resumeAfterInternalCall
             { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-            "feeOn" (some (.bool false)))
+            "feeOn" (some [.bool false]))
           evmFee) := by
     exact ExecBlock.consNormal
       (uniswapMintFeeCallFromMint_feeOff_kLastZero evmL evm1 evmFee I balance0 balance1 feeTo
@@ -865,12 +865,12 @@ theorem uniswapMintAfterMintFeePrefix_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -923,12 +923,12 @@ theorem uniswapMintAfterMintFeeTotalSupplyPrefix_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -983,12 +983,12 @@ theorem uniswapMintAfterMintFeeInitialSmallRootReverts_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1044,6 +1044,7 @@ theorem uniswapMintAfterMintFeeInitialSmallRootReverts_of_call
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals] using hfull
 
+set_option maxHeartbeats 1000000 in
 theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
     (evm evm0 evm1 evmAfter : EVM.State) (I : ExecutionEnv) (nextLocals : Store)
     {out0 out1 : ByteArray} {balance0 balance1 amount0 amount1 liquidity : UInt256}
@@ -1066,12 +1067,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1129,7 +1130,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
               (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
                 "liquidity1"
                 (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
-        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+        "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -1138,7 +1139,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
         (uniswapLockExitedState
           (syncUpdatePackedReserveState (mintFunctionPostState evmAfter recipient liquidity)
             balance0 balance1))
-        (some (uniswapUint256Value liquidity))) := by
+        (some [uniswapUint256Value liquidity])) := by
   intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
     afterMint afterUpdate
   have hprefix :=
@@ -1217,8 +1218,8 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
           (uniswapLockExitedState
             (syncUpdatePackedReserveState (mintFunctionPostState evmAfter recipient liquidity)
               balance0 balance1))
-          (some (uniswapUint256Value liquidity))) := by
-    simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
+          (some [uniswapUint256Value liquidity])) := by
+    simpa only [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
       afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
       uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
         (locals := afterTotalSupplyLocals) evmAfter recipient amount0 amount1 totalSupply
@@ -1232,7 +1233,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
         hfitSupply hfitBalance hbound0 hbound1 helapsed
   have hthrough := execBlock_append hprefix htail
-  simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
+  simpa only [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
 
@@ -1258,12 +1259,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1305,13 +1306,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
     (hfitBalance : mintFunctionToBalanceNewNat evmAfter recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
-    (helapsed : 0 < syncTimeElapsedInt (mintFunctionPostState evmAfter recipient liquidity))
-    (hreserve0Post :
-      Int.ofNat (uniswapReserve0Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
-        0)
-    (hreserve1Post :
-      Int.ofNat (uniswapReserve1Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
-        0) :
+    (helapsed : 0 < syncTimeElapsedInt (mintFunctionPostState evmAfter recipient liquidity)) :
     let totalSupply := mintFunctionTotalSupplyWord evmAfter
     let reserve0 := uniswapReserve0Word (uniswapLockEnteredState evm)
     let reserve1 := uniswapReserve1Word (uniswapLockEnteredState evm)
@@ -1327,16 +1322,17 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
               (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
                 "liquidity1"
                 (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
-        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+        "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
     ExecBlock config { contract := contract, locals := mintStore I } evm
       mintTransition.body
       (.returned afterUpdate
         (uniswapLockExitedState
-          (syncUpdateCumulativePackedReserveState
-            (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
-        (some (uniswapUint256Value liquidity))) := by
+          (syncUpdateCumulativePackedReserveStateWith
+            (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+            reserve0 reserve1))
+        (some [uniswapUint256Value liquidity])) := by
   intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
     afterMint afterUpdate
   have hprefix :=
@@ -1413,10 +1409,11 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts)
         (.returned afterUpdate
           (uniswapLockExitedState
-            (syncUpdateCumulativePackedReserveState
-              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
-          (some (uniswapUint256Value liquidity))) := by
-    simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
+            (syncUpdateCumulativePackedReserveStateWith
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+              reserve0 reserve1))
+          (some [uniswapUint256Value liquidity])) := by
+    simpa only [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
       afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
       uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
         (locals := afterTotalSupplyLocals) evmAfter recipient amount0 amount1 totalSupply
@@ -1428,12 +1425,17 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed hreserve0Post hreserve1Post
+        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve0
+          (by simpa [reserve0] using hreserve0Nonzero))
+        (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve1
+          (by simpa [reserve1] using hreserve1Nonzero))
   have hthrough := execBlock_append hprefix htail
-  simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
+  simpa only [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
 
+set_option maxHeartbeats 1000000 in
 theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
     (evm evm0 evm1 evmAfter : EVM.State) (I : ExecutionEnv) (nextLocals : Store)
     {out0 out1 : ByteArray} {balance0 balance1 amount0 amount1 liquidity : UInt256}
@@ -1456,12 +1458,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1528,7 +1530,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
               (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
                 "liquidity1"
                 (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
-        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+        "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -1538,7 +1540,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
           (mintKLastUpdatedState
             (syncUpdatePackedReserveState (mintFunctionPostState evmAfter recipient liquidity)
               balance0 balance1)))
-        (some (uniswapUint256Value liquidity))) := by
+        (some [uniswapUint256Value liquidity])) := by
   intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
     afterMint afterUpdate
   have hprefix :=
@@ -1623,8 +1625,8 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
             (mintKLastUpdatedState
               (syncUpdatePackedReserveState (mintFunctionPostState evmAfter recipient liquidity)
                 balance0 balance1)))
-          (some (uniswapUint256Value liquidity))) := by
-    simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
+          (some [uniswapUint256Value liquidity])) := by
+    simpa only [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
       afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
       uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
         (locals := afterTotalSupplyLocals) evmAfter recipient amount0 amount1 totalSupply
@@ -1636,9 +1638,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed hfitKLast
+        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitKLast
   have hthrough := execBlock_append hprefix htail
-  simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
+  simpa only [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
 
@@ -1664,12 +1667,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1713,20 +1716,18 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (helapsed : 0 < syncTimeElapsedInt (mintFunctionPostState evmAfter recipient liquidity))
-    (hreserve0Post :
-      Int.ofNat (uniswapReserve0Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
-        0)
-    (hreserve1Post :
-      Int.ofNat (uniswapReserve1Word (mintFunctionPostState evmAfter recipient liquidity)).toNat ≠
-        0)
     (hfitKLast :
       mintFeeReserveProductNat
           (uniswapReserve0Word
-            (syncUpdateCumulativePackedReserveState
-              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1))
+            (syncUpdateCumulativePackedReserveStateWith
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+              (uniswapReserve0Word (uniswapLockEnteredState evm))
+              (uniswapReserve1Word (uniswapLockEnteredState evm))))
           (uniswapReserve1Word
-            (syncUpdateCumulativePackedReserveState
-              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)) <
+            (syncUpdateCumulativePackedReserveStateWith
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+              (uniswapReserve0Word (uniswapLockEnteredState evm))
+              (uniswapReserve1Word (uniswapLockEnteredState evm)))) <
         UInt256.size) :
     let totalSupply := mintFunctionTotalSupplyWord evmAfter
     let reserve0 := uniswapReserve0Word (uniswapLockEnteredState evm)
@@ -1743,7 +1744,7 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
               (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
                 "liquidity1"
                 (mintProportionalLiquidityValue amount1 totalSupply reserve1) }
-        "liquidity" (some (minFunctionResultValue liquidity0 liquidity1))
+        "liquidity" (some [minFunctionResultValue liquidity0 liquidity1])
     let afterMint := resumeAfterInternalCall afterBranch "_mintResult" none
     let afterUpdate := resumeAfterInternalCall afterMint "_updateResult" none
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -1751,9 +1752,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
       (.returned afterUpdate
         (uniswapLockExitedState
           (mintKLastUpdatedState
-            (syncUpdateCumulativePackedReserveState
-              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)))
-        (some (uniswapUint256Value liquidity))) := by
+            (syncUpdateCumulativePackedReserveStateWith
+              (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+              reserve0 reserve1)))
+        (some [uniswapUint256Value liquidity])) := by
   intro totalSupply reserve0 reserve1 afterTotalSupplyLocals liquidity0 liquidity1 afterBranch
     afterMint afterUpdate
   have hprefix :=
@@ -1836,9 +1838,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
         (.returned afterUpdate
           (uniswapLockExitedState
             (mintKLastUpdatedState
-              (syncUpdateCumulativePackedReserveState
-                (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1)))
-          (some (uniswapUint256Value liquidity))) := by
+              (syncUpdateCumulativePackedReserveStateWith
+                (mintFunctionPostState evmAfter recipient liquidity) balance0 balance1
+                reserve0 reserve1)))
+          (some [uniswapUint256Value liquidity])) := by
     simpa [afterTotalSupplyLocals, totalSupply, reserve0, reserve1, liquidity0, liquidity1,
       afterBranch, afterMint, afterUpdate, mintAfterLiquidityTailStmts, List.append_assoc] using
       uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
@@ -1851,12 +1854,15 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed hreserve0Post hreserve1Post
+        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve0
+          (by simpa [reserve0] using hreserve0Nonzero))
+        (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve1
+          (by simpa [reserve1] using hreserve1Nonzero))
         hfitKLast
   have hthrough := execBlock_append hprefix htail
   simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
     afterTotalSupplyLocals, totalSupply, reserve0, reserve1] using hthrough
-
 
 end UniswapV2Pair

@@ -263,7 +263,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
-    (hdec : config.externalABI.decode? "feeTo" out = some (.address feeTo))
+    (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hrootBlock :
@@ -293,7 +293,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .assign .storage kLastRef (.intLit 0) ]
                 [] ],
-          .return (.var "feeOn") ]
+          .return [(.var "feeOn")] ]
         .reverted := by
     refine ExecBlock.consNormal
       (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo))
@@ -352,7 +352,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
           .ok (.bool true))
     (hcall : typedCallViaEVM config callEvm (EVM.address (uniswapAddressAtSlot callEvm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
-    (hdec : config.externalABI.decode? "feeTo" out = some (.address feeTo))
+    (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo])
     (hfeeTo : feeTo ≠ AccountAddress.ofNat 0)
     (hkLast : (mintFeeKLastWord evmFee).toNat ≠ 0)
     (hrootBlock :
@@ -411,12 +411,12 @@ theorem uniswapMintAfterMintFeeReverts_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -681,11 +681,11 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" o = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" o = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, o1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" o1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -710,7 +710,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState

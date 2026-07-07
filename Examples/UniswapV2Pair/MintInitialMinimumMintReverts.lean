@@ -71,7 +71,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintTotalSupplyOverflowRever
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evm))
     (hge : minimumLiquidity ≤ rootLiquidity)
     (hfit : rootLiquidity - minimumLiquidity < (2 : Int) ^ 256)
@@ -80,14 +80,14 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintTotalSupplyOverflowRever
     ExecStmt config { contract := contract, locals := locals } evm mintLiquidityBranchStmt
       .reverted := by
   let caller : Frame := { contract := contract, locals := locals }
-  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity))
+  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity])
   let afterLiquidity : Frame :=
     { contract := contract,
       locals := afterRoot.locals.insert "liquidity" (uniswapUint256Value liquidity) }
   have hcond := evalExpr_mint_totalSupply_eq_zero_true evm htotal
   have hroot :
       afterRoot.locals.get? "rootLiquidity" = some (.int rootLiquidity) := by
-    simp [afterRoot, caller, resumeAfterInternalCall]
+    simp [afterRoot, caller, resumeAfterInternalCall, collapseReturns]
   have hliqEval :
       evalExpr? config afterRoot evm
         (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
@@ -119,7 +119,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintBalanceOverflowReverts
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evm))
     (hge : minimumLiquidity ≤ rootLiquidity)
     (hfit : rootLiquidity - minimumLiquidity < (2 : Int) ^ 256)
@@ -131,14 +131,14 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintBalanceOverflowReverts
     ExecStmt config { contract := contract, locals := locals } evm mintLiquidityBranchStmt
       .reverted := by
   let caller : Frame := { contract := contract, locals := locals }
-  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity))
+  let afterRoot := resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity])
   let afterLiquidity : Frame :=
     { contract := contract,
       locals := afterRoot.locals.insert "liquidity" (uniswapUint256Value liquidity) }
   have hcond := evalExpr_mint_totalSupply_eq_zero_true evm htotal
   have hroot :
       afterRoot.locals.get? "rootLiquidity" = some (.int rootLiquidity) := by
-    simp [afterRoot, caller, resumeAfterInternalCall]
+    simp [afterRoot, caller, resumeAfterInternalCall, collapseReturns]
   have hliqEval :
       evalExpr? config afterRoot evm
         (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
@@ -207,12 +207,12 @@ theorem uniswapMintAfterMintFeeInitialBranchStmtReverts_of_call
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -313,12 +313,12 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintTotalSupplyOverflowRevertCase
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -356,7 +356,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintTotalSupplyOverflowRevertCase
               locals :=
                 nextLocals.insert "_totalSupply"
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
@@ -471,12 +471,12 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintBalanceOverflowRevertCase
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -514,7 +514,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintBalanceOverflowRevertCase
               locals :=
                 nextLocals.insert "_totalSupply"
                   (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
-            "rootLiquidity" (some (.int rootLiquidity)))
+            "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩

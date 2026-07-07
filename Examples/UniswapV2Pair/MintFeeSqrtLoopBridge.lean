@@ -356,7 +356,7 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
     ∃ locals' result k' C',
       ExecFuncBody config { contract := contract, locals := sqrtFunctionCallStore y } evm
         sqrtFunction.body
-        (.returned { contract := contract, locals := locals' } evm (some (.int result))) ∧
+        (.returned { contract := contract, locals := locals' } evm (some [.int result])) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧
       result.toNat ≤ y.toNat ∧
       RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
@@ -416,11 +416,11 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
                 (.binary .div
                   (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
                   (.intLit 2)) ],
-          .return (.var "z") ]
+          .return [(.var "z")] ]
         [ .ite (.binary .ne (.var "y") (.intLit 0))
-            [ .return (.intLit 1) ]
-            [ .return (.intLit 0) ] ] ]
-    (.returned { contract := contract, locals := locals' } evm (some (.int result)))
+            [ .return [(.intLit 1)] ]
+            [ .return [(.intLit 0)] ] ] ]
+    (.returned { contract := contract, locals := locals' } evm (some [.int result]))
   refine ExecBlock.consReturn (ExecStmt.iteTrue
     (evalExpr_sqrtFunction_outer_true evm y hlarge) ?_)
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)) ?_
@@ -431,15 +431,15 @@ theorem uniswapSqrtFunctionBodyRuntime_gt3
         (.ok ({ contract := contract, locals := locals' } : Frame) evm) := by
     simpa using hwhile
   change ExecBlock config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
-    evm [ .while sqrtLoopCond sqrtLoopBody, .return (.var "z") ]
-    (.returned { contract := contract, locals := locals' } evm (some (.int result)))
+    evm [ .while sqrtLoopCond sqrtLoopBody, .return [(.var "z")] ]
+    (.returned { contract := contract, locals := locals' } evm (some [.int result]))
   refine ExecBlock.consNormal hwhile' ?_
   have hretEval :
       evalExpr? config { contract := contract, locals := locals' } evm (.var "z") =
         .ok (.int result) := by
     simp only [evalExpr?, EvalResult.ofOption]
     rw [hzFinal]
-  exact ExecBlock.consReturn (ExecStmt.return hretEval)
+  exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hretEval))
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
@@ -455,7 +455,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
     (hov : R.length + 10 ≤ 1024) :
     ∃ result k' C',
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-        (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) ∧
+        (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧
       RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
         mem aw rdata acc k' C' := by
@@ -465,7 +465,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
     by_cases hyZero : y = ⟨0⟩
     · have hstmt :
           ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-            (.ok (resumeAfterInternalCall caller retVar (some (.int 0))) evm) := by
+            (.ok (resumeAfterInternalCall caller retVar (some [.int 0])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyZero] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
@@ -479,7 +479,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
         exact hyZero (uint256_toNat_eq_zero hnat)
       have hstmt :
           ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-            (.ok (resumeAfterInternalCall caller retVar (some (.int 1))) evm) := by
+            (.ok (resumeAfterInternalCall caller retVar (some [.int 1])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyNatNe] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
@@ -494,14 +494,14 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
       uniswapSqrtFunctionBodyRuntime_gt3 evm rd8046 hlarge hret hov
     have hstmt :
         ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-          (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) := by
+          (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) := by
       exact internalCallFunctionReturn
         (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
         (name := "sqrt") (retVar := retVar) (args := args)
         (argVals := [sqrtFunctionYValue y])
         (callee := sqrtFunction) (locals := sqrtFunctionCallStore y)
         (calleeSolm := { contract := contract, locals := locals' })
-        (value := some (.int result))
+        (value := some [.int result])
         hargs
         (by simpa [hcontract] using uniswapLookupSqrtFunction)
         (bindParams_sqrtFunction_call y)
@@ -522,7 +522,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
     (hov : R.length + 10 ≤ 1024) :
     ∃ result k' C',
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-        (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) ∧
+        (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
       0 ≤ result ∧ result.toNat < UInt256.size ∧ result.toNat ≤ y.toNat ∧
       RD uniswapV2PairBytecode ee g s0 ret (UInt256.ofNat result.toNat :: R)
         mem aw rdata acc k' C' := by
@@ -532,7 +532,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
     by_cases hyZero : y = ⟨0⟩
     · have hstmt :
           ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-            (.ok (resumeAfterInternalCall caller retVar (some (.int 0))) evm) := by
+            (.ok (resumeAfterInternalCall caller retVar (some [.int 0])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyZero] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
@@ -548,7 +548,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
         exact hyZero (uint256_toNat_eq_zero hnat)
       have hstmt :
           ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-            (.ok (resumeAfterInternalCall caller retVar (some (.int 1))) evm) := by
+            (.ok (resumeAfterInternalCall caller retVar (some [.int 1])) evm) := by
         simpa [sqrtFunctionSmallResultValue, hyNatNe] using
           uniswapSqrtFunctionCallSuccess_le3 hcontract hsmall hargs
       have rdRet :
@@ -564,14 +564,14 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
       uniswapSqrtFunctionBodyRuntime_gt3 evm rd8046 hlarge hret hov
     have hstmt :
         ExecStmt config caller evm (.internalCall "sqrt" args retVar)
-          (.ok (resumeAfterInternalCall caller retVar (some (.int result))) evm) := by
+          (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) := by
       exact internalCallFunctionReturn
         (cfg := config) (caller := caller) (evm := evm) (calleeEvm := evm)
         (name := "sqrt") (retVar := retVar) (args := args)
         (argVals := [sqrtFunctionYValue y])
         (callee := sqrtFunction) (locals := sqrtFunctionCallStore y)
         (calleeSolm := { contract := contract, locals := locals' })
-        (value := some (.int result))
+        (value := some [.int result])
         hargs
         (by simpa [hcontract] using uniswapLookupSqrtFunction)
         (bindParams_sqrtFunction_call y)

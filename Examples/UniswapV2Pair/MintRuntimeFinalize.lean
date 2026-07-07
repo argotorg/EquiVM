@@ -289,8 +289,6 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
     (helapsedNe :
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot : reserve0 = uniswapUpdateReserve0Word σMint I)
-    (hreserve1Slot : reserve1 = uniswapUpdateReserve1Word σMint I)
     (hreserve0Nonzero : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
     (hreserve1Nonzero : UInt256.land reserve1 reserve112Mask ≠ ⟨0⟩)
     (hfeeOff : feeOn = ⟨0⟩)
@@ -300,7 +298,7 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
     (hperm : I.perm = true) :
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, uniswapUpdateCumulativeReturnMap σMint I balance0 balance1)
+      (cAFee, uniswapUpdateCumulativeReturnMapWith σMint I balance0 balance1 reserve0 reserve1)
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd6959⟩ := uniswapMintRuntimeUpdateEntry rd3914
   obtain ⟨_, _, rd7060⟩ := RD.uniswapUpdateOverflowGuardOk rd6959 hfit0 hfit1
@@ -319,11 +317,10 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
   obtain ⟨_, _, rd7339⟩ :=
     RD.uniswapUpdateStorePackedReserves
       (by
-        simpa [uniswapUpdateReserve0Word, uniswapUpdateReserve1Word,
-          uniswapUpdatePrice0CumulativeMap, uniswapUpdatePrice1CumulativeMap,
-          uniswapUpdateCumulativePackedWord, uniswapUpdateCumulativePackedMap,
+        simpa [uniswapUpdatePrice0CumulativeMapWith, uniswapUpdatePrice1CumulativeMapWith,
+          uniswapUpdateCumulativePackedWordWith, uniswapUpdateCumulativePackedMapWith,
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
-          uniswapUpdateTimestampWord, uniswapSlotWord, hreserve0Slot, hreserve1Slot] using
+          uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7241)
       hperm
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -336,22 +333,22 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
     mloadFreePtrValue (by omega) (by native_decide) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
-      (packed := uniswapUpdateCumulativePackedWord σMint I balance0 balance1)
+      (packed :=
+        uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
       (elapsed := uniswapUpdateElapsedFromStorage σMint I)
       (timestamp := uniswapUpdateTimestampWord I)
-      (reserve1 := uniswapUpdateReserve1Word σMint I)
-      (reserve0 := uniswapUpdateReserve0Word σMint I)
+      (reserve1 := reserve1)
+      (reserve0 := reserve0)
       (balance1 := balance1) (balance0 := balance0) (mem := mem)
       (aw := feeToStaticcallActiveWords)
       (awLoad := feeToStaticcallActiveWords) (awLog := feeToStaticcallActiveWords)
       (mcostLoad := 0) (mcostStore0 := 0) (mcostStore1 := 0)
       (mcostLoadLog := 0) (mcostLog := 0)
       (by
-        simpa [uniswapUpdateReserve0Word, uniswapUpdateReserve1Word,
-          uniswapUpdatePrice0CumulativeMap, uniswapUpdatePrice1CumulativeMap,
-          uniswapUpdateCumulativePackedWord, uniswapUpdateCumulativePackedMap,
+        simpa [uniswapUpdatePrice0CumulativeMapWith, uniswapUpdatePrice1CumulativeMapWith,
+          uniswapUpdateCumulativePackedWordWith, uniswapUpdateCumulativePackedMapWith,
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
-          uniswapUpdateTimestampWord, uniswapSlotWord, hreserve0Slot, hreserve1Slot] using
+          uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7339)
       (by
         intro s haw hstk
@@ -374,19 +371,22 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
         native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmemHi hmem64)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmemHi hmem64)
       (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
         native_decide)
       (by native_decide) hperm
-  simpa [uniswapUpdateCumulativeReturnMap] using
+  simpa [uniswapUpdateCumulativeReturnMapWith] using
     uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hfeeOff
       (uniswapMintSyncLogMem_size_192_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmemHi)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmemHi)
       (uniswapMintSyncLogMem_read64_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmem64)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmem64)
       hperm
 
 set_option maxHeartbeats 1000000 in
@@ -408,18 +408,17 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
     (helapsedNe :
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot : reserve0 = uniswapUpdateReserve0Word σMint I)
-    (hreserve1Slot : reserve1 = uniswapUpdateReserve1Word σMint I)
     (hreserve0Nonzero : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
     (hreserve1Nonzero : UInt256.land reserve1 reserve112Mask ≠ ⟨0⟩)
     (hfeeOn : feeOn ≠ ⟨0⟩)
     (hfitKLast :
       (UInt256.land (uniswapSlotWord ⟨8⟩
-          (uniswapUpdateCumulativePackedMap σMint I balance0 balance1) I)
+          (uniswapUpdateCumulativePackedMapWith σMint I balance0 balance1 reserve0 reserve1) I)
           reserve112Mask).toNat *
           (UInt256.land
             (UInt256.div (uniswapSlotWord ⟨8⟩
-              (uniswapUpdateCumulativePackedMap σMint I balance0 balance1) I)
+              (uniswapUpdateCumulativePackedMapWith
+                σMint I balance0 balance1 reserve0 reserve1) I)
               reserve112Shift) reserve112Mask).toNat <
         UInt256.size)
     (hmemLo : 128 ≤ mem.size)
@@ -430,16 +429,19 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
       (cAFee, sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
-          (uniswapUpdateCumulativePackedMap σMint I balance0 balance1) ⟨11⟩
+          (uniswapUpdateCumulativePackedMapWith σMint I balance0 balance1 reserve0 reserve1)
+          ⟨11⟩
           (UInt256.mul
             (UInt256.land
               (uniswapSlotWord ⟨8⟩
-                (uniswapUpdateCumulativePackedMap σMint I balance0 balance1) I)
+                (uniswapUpdateCumulativePackedMapWith
+                  σMint I balance0 balance1 reserve0 reserve1) I)
               reserve112Mask)
             (UInt256.land
               (UInt256.div
                 (uniswapSlotWord ⟨8⟩
-                  (uniswapUpdateCumulativePackedMap σMint I balance0 balance1) I)
+                  (uniswapUpdateCumulativePackedMapWith
+                    σMint I balance0 balance1 reserve0 reserve1) I)
                 reserve112Shift)
               reserve112Mask))) ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
@@ -460,11 +462,10 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
   obtain ⟨_, _, rd7339⟩ :=
     RD.uniswapUpdateStorePackedReserves
       (by
-        simpa [uniswapUpdateReserve0Word, uniswapUpdateReserve1Word,
-          uniswapUpdatePrice0CumulativeMap, uniswapUpdatePrice1CumulativeMap,
-          uniswapUpdateCumulativePackedWord, uniswapUpdateCumulativePackedMap,
+        simpa [uniswapUpdatePrice0CumulativeMapWith, uniswapUpdatePrice1CumulativeMapWith,
+          uniswapUpdateCumulativePackedWordWith, uniswapUpdateCumulativePackedMapWith,
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
-          uniswapUpdateTimestampWord, uniswapSlotWord, hreserve0Slot, hreserve1Slot] using
+          uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7241)
       hperm
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -477,22 +478,22 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
     mloadFreePtrValue (by omega) (by native_decide) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
-      (packed := uniswapUpdateCumulativePackedWord σMint I balance0 balance1)
+      (packed :=
+        uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
       (elapsed := uniswapUpdateElapsedFromStorage σMint I)
       (timestamp := uniswapUpdateTimestampWord I)
-      (reserve1 := uniswapUpdateReserve1Word σMint I)
-      (reserve0 := uniswapUpdateReserve0Word σMint I)
+      (reserve1 := reserve1)
+      (reserve0 := reserve0)
       (balance1 := balance1) (balance0 := balance0) (mem := mem)
       (aw := feeToStaticcallActiveWords)
       (awLoad := feeToStaticcallActiveWords) (awLog := feeToStaticcallActiveWords)
       (mcostLoad := 0) (mcostStore0 := 0) (mcostStore1 := 0)
       (mcostLoadLog := 0) (mcostLog := 0)
       (by
-        simpa [uniswapUpdateReserve0Word, uniswapUpdateReserve1Word,
-          uniswapUpdatePrice0CumulativeMap, uniswapUpdatePrice1CumulativeMap,
-          uniswapUpdateCumulativePackedWord, uniswapUpdateCumulativePackedMap,
+        simpa [uniswapUpdatePrice0CumulativeMapWith, uniswapUpdatePrice1CumulativeMapWith,
+          uniswapUpdateCumulativePackedWordWith, uniswapUpdateCumulativePackedMapWith,
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
-          uniswapUpdateTimestampWord, uniswapSlotWord, hreserve0Slot, hreserve1Slot] using
+          uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7339)
       (by
         intro s haw hstk
@@ -515,22 +516,26 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
         native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmemHi hmem64)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmemHi hmem64)
       (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
         native_decide)
       (by native_decide) hperm
-  simpa [uniswapUpdateCumulativePackedMap, uniswapUpdateCumulativePackedWord] using
+  simpa [uniswapUpdateCumulativePackedMapWith, uniswapUpdateCumulativePackedWordWith] using
     uniswapMintRuntimeAfterUpdateFeeOnReturns rd3926 hfeeOn
       (by
-        simpa [uniswapUpdateCumulativePackedMap, uniswapUpdateCumulativePackedWord] using
+        simpa [uniswapUpdateCumulativePackedMapWith,
+          uniswapUpdateCumulativePackedWordWith] using
           hfitKLast)
       (uniswapMintSyncLogMem_size_192_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmemHi)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmemHi)
       (uniswapMintSyncLogMem_read64_of_size_le
-        (uniswapUpdateCumulativePackedWord σMint I balance0 balance1) hmemLo hmem64)
+        (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
+        hmemLo hmem64)
       hperm
 
 set_option maxHeartbeats 1000000 in
@@ -1556,6 +1561,143 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
     hfitKLast hmem hmem64
 
 set_option maxHeartbeats 1000000 in
+theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ}
+    {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
+      UInt256}
+    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
+        toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+    (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalNonzero : totalSupply ≠ ⟨0⟩)
+    (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
+    (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
+    (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
+    (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
+    (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
+    (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord (UInt256.div (UInt256.mul amount0 totalSupply) reserve0)
+          (UInt256.div (UInt256.mul amount1 totalSupply) reserve1))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (hbalanceFit :
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
+          UInt256.size)
+    (hfail0 : reserve112Mask.toNat < balance0.toNat)
+    (hmem : mem.size = 164)
+    (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  obtain ⟨_, _, rd3762⟩ :=
+    uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
+  obtain ⟨_, _, rd3841⟩ :=
+    uniswapMintRuntimeProportionalLiquidityEntry rd3762 hclean0 hclean1 hmulFit0
+      hmulFit1 hreserve0Nonzero hreserve1Nonzero
+  let mintMem := uniswapInternalMintLogMem liquidity
+    (uniswapInternalMintBalanceHashMem toWord
+      (uniswapInternalMintBalanceHashMem toWord mem))
+  obtain ⟨_, _, rd3914⟩ :=
+    uniswapMintRuntimeLiquidityMintReturn
+      (by simpa [hliquidity] using rd3841)
+      hliqNonzero hperm htotalFit hbalanceFit
+      (uniswapInternalMintDoubleBalanceHashMem_mload64_of_ge160 toWord
+        (by rw [hmem]; omega) hmem64)
+      (uniswapInternalMintSuccessMem_mload64_of_ge160 toWord liquidity
+        (by rw [hmem]; omega) hmem64)
+  have hmintMemSize : mintMem.size = 164 := by
+    simpa [mintMem, hmem] using
+      uniswapInternalMintSuccessMem_size_of_ge160 toWord liquidity
+        (mem := mem) (by rw [hmem]; omega)
+  have hmintMem64 : mintMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    simpa [mintMem] using
+      uniswapInternalMintSuccessMem_read64_of_ge160 toWord liquidity
+        (mem := mem) (by rw [hmem]; omega) hmem64
+  obtain ⟨_, _, rd6959⟩ := uniswapMintRuntimeUpdateEntry
+    (by simpa [mintMem] using rd3914)
+  exact RD.uniswapUpdateOverflowGuardFirstReverts
+    (by simpa [feeToStaticcallActiveWords] using rd6959)
+    hfail0 hmintMemSize hmintMem64
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
+theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ}
+    {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
+      UInt256}
+    (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
+        toWord, ⟨861⟩, sel]
+      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+    (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalNonzero : totalSupply ≠ ⟨0⟩)
+    (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
+    (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
+    (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
+    (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
+    (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
+    (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hliquidity :
+      liquidity =
+        minFunctionResultWord (UInt256.div (UInt256.mul amount0 totalSupply) reserve0)
+          (UInt256.div (UInt256.mul amount1 totalSupply) reserve1))
+    (hliqNonzero : liquidity ≠ ⟨0⟩)
+    (hperm : I.perm = true)
+    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (hbalanceFit :
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
+          UInt256.size)
+    (hfit0 : balance0.toNat ≤ reserve112Mask.toNat)
+    (hfail1 : reserve112Mask.toNat < balance1.toNat)
+    (hmem : mem.size = 164)
+    (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  obtain ⟨_, _, rd3762⟩ :=
+    uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
+  obtain ⟨_, _, rd3841⟩ :=
+    uniswapMintRuntimeProportionalLiquidityEntry rd3762 hclean0 hclean1 hmulFit0
+      hmulFit1 hreserve0Nonzero hreserve1Nonzero
+  let mintMem := uniswapInternalMintLogMem liquidity
+    (uniswapInternalMintBalanceHashMem toWord
+      (uniswapInternalMintBalanceHashMem toWord mem))
+  obtain ⟨_, _, rd3914⟩ :=
+    uniswapMintRuntimeLiquidityMintReturn
+      (by simpa [hliquidity] using rd3841)
+      hliqNonzero hperm htotalFit hbalanceFit
+      (uniswapInternalMintDoubleBalanceHashMem_mload64_of_ge160 toWord
+        (by rw [hmem]; omega) hmem64)
+      (uniswapInternalMintSuccessMem_mload64_of_ge160 toWord liquidity
+        (by rw [hmem]; omega) hmem64)
+  have hmintMemSize : mintMem.size = 164 := by
+    simpa [mintMem, hmem] using
+      uniswapInternalMintSuccessMem_size_of_ge160 toWord liquidity
+        (mem := mem) (by rw [hmem]; omega)
+  have hmintMem64 : mintMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    simpa [mintMem] using
+      uniswapInternalMintSuccessMem_read64_of_ge160 toWord liquidity
+        (mem := mem) (by rw [hmem]; omega) hmem64
+  obtain ⟨_, _, rd6959⟩ := uniswapMintRuntimeUpdateEntry
+    (by simpa [mintMem] using rd3914)
+  exact RD.uniswapUpdateOverflowGuardSecondReverts
+    (by simpa [feeToStaticcallActiveWords] using rd6959)
+    hfit0 hfail1 hmintMemSize hmintMem64
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` proportional-liquidity path through the fee-off final return. -/
 theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOffReturns
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -1679,30 +1821,6 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
             (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot toWord
-            (uniswapInternalMintBalanceHashMem toWord mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-      reserve0 = uniswapUpdateReserve0Word σAfterMint I)
-    (hreserve1Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot toWord
-            (uniswapInternalMintBalanceHashMem toWord mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-      reserve1 = uniswapUpdateReserve1Word σAfterMint I)
     (hfeeOff : feeOn = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -1718,7 +1836,8 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
           (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, uniswapUpdateCumulativeReturnMap σAfterMint I balance0 balance1)
+      (cAFee, uniswapUpdateCumulativeReturnMapWith
+        σAfterMint I balance0 balance1 reserve0 reserve1)
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
@@ -1758,8 +1877,6 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
     (by simpa [σAfterMint, mintMem] using rd3914)
     hfit0 hfit1
     (by simpa [σAfterMint] using helapsedNe)
-    (by simpa [σAfterMint] using hreserve0Slot)
-    (by simpa [σAfterMint] using hreserve1Slot)
     (by rwa [hclean0])
     (by rwa [hclean1])
     hfeeOff
@@ -1816,30 +1933,6 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
             (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
         reserve32Mask ≠ ⟨0⟩)
-    (hreserve0Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot toWord
-            (uniswapInternalMintBalanceHashMem toWord mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-      reserve0 = uniswapUpdateReserve0Word σAfterMint I)
-    (hreserve1Slot :
-      let σAfterMint :=
-        sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-          (uniswapInternalMintBalanceHashSlot toWord
-            (uniswapInternalMintBalanceHashMem toWord mem))
-          (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
-            (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
-      reserve1 = uniswapUpdateReserve1Word σAfterMint I)
     (hfeeOn : feeOn ≠ ⟨0⟩)
     (hfitKLast :
       let σAfterMint :=
@@ -1854,12 +1947,14 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
             (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
       (UInt256.land
             (uniswapSlotWord ⟨8⟩
-              (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+              (uniswapUpdateCumulativePackedMapWith
+                σAfterMint I balance0 balance1 reserve0 reserve1) I)
             reserve112Mask).toNat *
           (UInt256.land
             (UInt256.div
               (uniswapSlotWord ⟨8⟩
-                (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+                (uniswapUpdateCumulativePackedMapWith
+                  σAfterMint I balance0 balance1 reserve0 reserve1) I)
               reserve112Shift)
             reserve112Mask).toNat <
         UInt256.size)
@@ -1879,16 +1974,19 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
       (cAFee, sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
-          (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) ⟨11⟩
+          (uniswapUpdateCumulativePackedMapWith
+            σAfterMint I balance0 balance1 reserve0 reserve1) ⟨11⟩
           (UInt256.mul
             (UInt256.land
               (uniswapSlotWord ⟨8⟩
-                (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+                (uniswapUpdateCumulativePackedMapWith
+                  σAfterMint I balance0 balance1 reserve0 reserve1) I)
               reserve112Mask)
             (UInt256.land
               (UInt256.div
                 (uniswapSlotWord ⟨8⟩
-                  (uniswapUpdateCumulativePackedMap σAfterMint I balance0 balance1) I)
+                  (uniswapUpdateCumulativePackedMapWith
+                    σAfterMint I balance0 balance1 reserve0 reserve1) I)
                 reserve112Shift)
               reserve112Mask))) ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
@@ -1930,8 +2028,6 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
     (by simpa [σAfterMint, mintMem] using rd3914)
     hfit0 hfit1
     (by simpa [σAfterMint] using helapsedNe)
-    (by simpa [σAfterMint] using hreserve0Slot)
-    (by simpa [σAfterMint] using hreserve1Slot)
     (by rwa [hclean0])
     (by rwa [hclean1])
     hfeeOn

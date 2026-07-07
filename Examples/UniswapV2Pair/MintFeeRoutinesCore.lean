@@ -269,7 +269,7 @@ theorem uniswapMintFeeCheckedCallSuccess
         (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) = .ok (.bool true))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm ⟨5⟩))
       "feeTo" 0 [] (true, evmFee, out) false)
-    (hdec : config.externalABI.decode? "feeTo" out = some (.address feeTo)) :
+    (hdec : config.externalABI.decode? "feeTo" out = some [.address feeTo]) :
     ExecBlock config (mintFeeCallFrame reserve0 reserve1) evm
       (checkedExternalCallStmts (.storage factoryRef) "feeTo" (.intLit 0) [] "feeTo"
         (perm := false))
@@ -280,7 +280,7 @@ theorem uniswapMintFeeCheckedCallSuccess
       (locals := mintFeeCallStore reserve0 reserve1)
       (receiver := .storage factoryRef) (name := "feeTo") (sendVal := 0)
       (args := []) (retVar := "feeTo") (perm := false)
-      (target := uniswapAddressAtSlot evm ⟨5⟩) (out := out) (value := .address feeTo)
+      (target := uniswapAddressAtSlot evm ⟨5⟩) (out := out) (value := [.address feeTo])
       hguard
       (evalExpr_mintFee_factory evm reserve0 reserve1)
       (by rfl)

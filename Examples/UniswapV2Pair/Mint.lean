@@ -1,4 +1,5 @@
 import Examples.UniswapV2Pair.MintBodyPrelude
+import Examples.UniswapV2Pair.BalanceCallSource
 import Examples.UniswapV2Pair.MintFeeSqrtLoopBridge
 import Examples.UniswapV2Pair.MintInitialFactoryCases
 import Examples.UniswapV2Pair.MintInitialProductOverflow
@@ -71,7 +72,7 @@ theorem uniswapMintBody
               (g := g) hdepth hlockEntered htoken0NoCode
           obtain ⟨evm0S, hcallAll, hPostAccounts0, hcreated0, hσ0, hgenesis0, hblocks0,
               henv0⟩ :=
-            uniswapSkimFirstBalanceTypedCall_source
+            uniswapFirstBalanceTypedCall_source
               (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
               (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (cA' := cA') (σ' := σ') (z := z) (o := o)
@@ -127,9 +128,9 @@ theorem uniswapMintBody
                 simpa [evmS, hzTrue] using hcallAll
               have hdec0 :
                   config.externalABI.decode? "balanceOf" o =
-                    some (uniswapUint256Value balance0) := by
-                simpa [balance0, skimBalanceValue, uniswapUint256Value] using
-                  uniswapSkimBalanceOfDecode_ok (returndata := o) ho32
+                    some [uniswapUint256Value balance0] := by
+                simpa [balance0] using
+                  uniswapBalanceOfDecode_ok (returndata := o) ho32
               obtain ⟨_, _, rd3505⟩ := hcont hzTrue ho32
               obtain ⟨_, _, rd3573⟩ :=
                 uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst rd3505 ho32 hoSize
@@ -209,9 +210,9 @@ theorem uniswapMintBody
                       simpa [hz1True] using hcall1All
                     have hdec1 :
                         config.externalABI.decode? "balanceOf" o1 =
-                          some (uniswapUint256Value balance1) := by
-                      simpa [balance1, skimBalanceValue, uniswapUint256Value] using
-                        uniswapSkimBalanceOfDecode_ok (returndata := o1) ho132
+                          some [uniswapUint256Value balance1] := by
+                      simpa [balance1] using
+                        uniswapBalanceOfDecode_ok (returndata := o1) ho132
                     obtain ⟨_, _, rd3630⟩ := hcont1 hz1True ho132
                     have hreserve0Eq :
                         uniswapReserve0Word (uniswapLockEnteredState evmS) =
@@ -399,7 +400,7 @@ theorem uniswapMintBody
                                 simpa [hzFeeTrue] using hfeeCallAll
                               have hfeeDec :
                                   config.externalABI.decode? "feeTo" outFee =
-                                    some (.address feeTo) := by
+                                    some [.address feeTo] := by
                                 simpa [feeTo] using uniswapFeeToDecode_ok houtFee32
                               have henvFeeI : evmFeeS.executionEnv = I := henvFee.trans henv1I
                               have hkLastEq :
@@ -699,11 +700,11 @@ theorem uniswapMintBody
                                                let reserve0 := uniswapReserve0Word evmL
                                                let reserve1 := uniswapReserve1Word evmL
                                                let nextFrame :=
-                                                resumeAfterInternalCall
+                                               resumeAfterInternalCall
                                                   { contract := contract,
                                                     locals :=
                                                       mintAmountStore evmL I balance0 balance1 }
-                                                  "feeOn" (some (.bool false))
+                                                  "feeOn" (some [.bool false])
                                                let afterTotalSupplyLocals :=
                                                 nextFrame.locals.insert "_totalSupply"
                                                   (uniswapUint256Value totalSupply)
@@ -725,7 +726,7 @@ theorem uniswapMintBody
                                                             totalSupply reserve1) }
                                                   "liquidity"
                                                   (some
-                                                    (minFunctionResultValue liquidity0 liquidity1))
+                                                    [minFunctionResultValue liquidity0 liquidity1])
                                                let afterMint :=
                                                 resumeAfterInternalCall afterBranch "_mintResult"
                                                   none
@@ -737,7 +738,7 @@ theorem uniswapMintBody
                                                     (AccountAddress.ofNat (mintToWord I).toNat)
                                                     liquidity)
                                                   balance0 balance1))
-                                              (some (uniswapUint256Value liquidity))) := by
+                                              (some [uniswapUint256Value liquidity])) := by
                                         exact ExecFuncBody.execBlockRet
                                           (uniswapMintProportionalFeeOffReturn_kLastZero
                                             evmS evm0S evm1S evmFeeS I feeTo
@@ -1018,62 +1019,6 @@ theorem uniswapMintBody
                                             simpa [hmask] using hbound1
                                           norm_num [maxUint112]
                                           exact_mod_cast hnat
-                                        have hreserve0Slot :
-                                            reserve0 =
-                                              uniswapUpdateReserve0Word σAfterMint I := by
-                                          simp [reserve0, σAfterMint, reserve0Word,
-                                            uniswapUpdateReserve0Word, uniswapSlotWord]
-                                        have hreserve1Slot :
-                                            reserve1 =
-                                              uniswapUpdateReserve1Word σAfterMint I := by
-                                          simp [reserve1, σAfterMint, reserve1Word,
-                                            uniswapUpdateReserve1Word, uniswapSlotWord]
-                                        let postMint :=
-                                          mintFunctionPostState evmFeeS
-                                            (AccountAddress.ofNat (mintToWord I).toNat)
-                                            liquidity
-                                        have hMintAccounts :
-                                            accountMapEquiv σAfterMint postMint.accountMap := by
-                                          exact
-                                            accountMapEquiv_mintFunctionPostState_of_runtimeMint
-                                              hPostAccountsFee henvFeeI
-                                              (by dsimp [memFee]; rw [hmem]; omega)
-                                              hfitSupplySource hbalanceFitSource
-                                        have henvMint : postMint.executionEnv = I := by
-                                          simp [postMint, mintFunctionPostState,
-                                            mintFunctionAfterTotalSupplyState, henvFeeI,
-                                            storageStore_executionEnv]
-                                        have hslot8 :
-                                            Solm.EVM.storageLoad postMint
-                                                postMint.executionEnv.codeOwner ⟨8⟩ =
-                                              uniswapSlotWord ⟨8⟩ σAfterMint I := by
-                                          have hword := accountMapEquiv_storage_findD
-                                            hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-                                          simpa [postMint, uniswapSlotWord,
-                                            Solm.EVM.storageLoad, State.lookupAccount,
-                                            Account.lookupStorage, henvMint] using hword.symm
-                                        have hreserve0PostWord :
-                                            uniswapReserve0Word postMint = reserve0 := by
-                                          simpa [postMint, uniswapReserve0Word,
-                                            uniswapUpdateReserve0Word, hslot8] using
-                                            hreserve0Slot.symm
-                                        have hreserve1PostWord :
-                                            uniswapReserve1Word postMint = reserve1 := by
-                                          simpa [postMint, uniswapReserve1Word,
-                                            uniswapUpdateReserve1Word, hslot8] using
-                                            hreserve1Slot.symm
-                                        have hreserve0Post :
-                                            Int.ofNat (uniswapReserve0Word postMint).toNat ≠ 0 := by
-                                          intro hz
-                                          apply hreserve0Nonzero
-                                          rw [← hreserve0PostWord]
-                                          exact uint256_toNat_eq_zero (by omega)
-                                        have hreserve1Post :
-                                            Int.ofNat (uniswapReserve1Word postMint).toNat ≠ 0 := by
-                                          intro hz
-                                          apply hreserve1Nonzero
-                                          rw [← hreserve1PostWord]
-                                          exact uint256_toNat_eq_zero (by omega)
                                         have hbody :=
                                           ExecFuncBody.execBlockRet
                                             (uniswapMintProportionalFeeOffCumulativeReturn_kLastZero
@@ -1085,9 +1030,7 @@ theorem uniswapMintBody
                                               htotalSourceNonzero hfitSource0 hfitSource1
                                               hreserve0Source hreserve1Source hliquiditySource
                                               hliqNonzero hfitSupplySource hbalanceFitSource
-                                              hbound0Source hbound1Source helapsedSource
-                                              (by simpa [postMint] using hreserve0Post)
-                                              (by simpa [postMint] using hreserve1Post))
+                                              hbound0Source hbound1Source helapsedSource)
                                         exact
                                           uniswapMintFinishProportionalFeeOffCumulative
                                             hcode hdispatch hsz36 hbody rd3701
@@ -1096,7 +1039,7 @@ theorem uniswapMintBody
                                             hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
                                             hperm htotalFit hbalanceFit hfitSupplySource
                                             hbalanceFitSource hbound0 hbound1 helapsedNe
-                                            hreserve0Slot hreserve1Slot rfl hmem hmem64
+                                            rfl hmem hmem64
                                       · let packed :=
                                         uniswapUpdatePackedReserveWord
                                           (uniswapSlotWord ⟨8⟩ σAfterMint I)
@@ -1116,6 +1059,12 @@ theorem uniswapMintBody
                                             (AccountAddress.ofNat (mintToWord I).toNat)
                                             liquidity
                                         let syncState := syncUpdatePackedReserveState postMint balance0 balance1
+                                        let σCumulativeWith :=
+                                          uniswapUpdateCumulativePackedMapWith σAfterMint I balance0
+                                            balance1 reserve0 reserve1
+                                        let syncCumulativeStateWith :=
+                                          syncUpdateCumulativePackedReserveStateWith postMint balance0
+                                            balance1 reserve0 reserve1
                                         by_cases hproportionalFeeOnKLastZero :
                                             UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
                                               mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
@@ -1458,24 +1407,20 @@ theorem uniswapMintBody
                                                     liquidity) ∧
                                               (UInt256.land
                                                     (uniswapSlotWord ⟨8⟩
-                                                      (uniswapUpdateCumulativePackedMap
-                                                        σAfterMint I balance0 balance1) I)
+                                                      σCumulativeWith I)
                                                     reserve112Mask).toNat *
                                                   (UInt256.land
                                                     (UInt256.div
                                                       (uniswapSlotWord ⟨8⟩
-                                                        (uniswapUpdateCumulativePackedMap
-                                                          σAfterMint I balance0 balance1) I)
+                                                        σCumulativeWith I)
                                                       reserve112Shift)
                                                     reserve112Mask).toNat <
                                                 UInt256.size ∧
                                               mintFeeReserveProductNat
                                                   (uniswapReserve0Word
-                                                    (syncUpdateCumulativePackedReserveState
-                                                      postMint balance0 balance1))
+                                                    syncCumulativeStateWith)
                                                   (uniswapReserve1Word
-                                                    (syncUpdateCumulativePackedReserveState
-                                                      postMint balance0 balance1)) <
+                                                    syncCumulativeStateWith) <
                                                 UInt256.size
                                           · rcases hproportionalFeeOnKLastZeroCumulative with
                                             ⟨hfeeToNonzero, hkLastZero, htotalNonzero,
@@ -1619,60 +1564,6 @@ theorem uniswapMintBody
                                                 simpa [hmask] using hbound1
                                               norm_num [maxUint112]
                                               exact_mod_cast hnat
-                                            have hreserve0Slot :
-                                                reserve0 =
-                                                  uniswapUpdateReserve0Word σAfterMint I := by
-                                              simp [reserve0, σAfterMint, reserve0Word,
-                                                uniswapUpdateReserve0Word, uniswapSlotWord]
-                                            have hreserve1Slot :
-                                                reserve1 =
-                                                  uniswapUpdateReserve1Word σAfterMint I := by
-                                              simp [reserve1, σAfterMint, reserve1Word,
-                                                uniswapUpdateReserve1Word, uniswapSlotWord]
-                                            have hMintAccounts :
-                                                accountMapEquiv σAfterMint postMint.accountMap := by
-                                              exact
-                                                accountMapEquiv_mintFunctionPostState_of_runtimeMint
-                                                  hPostAccountsFee henvFeeI
-                                                  (by dsimp [memFee]; rw [hmem]; omega)
-                                                  hfitSupplySource hbalanceFitSource
-                                            have henvMint : postMint.executionEnv = I := by
-                                              simp [postMint, mintFunctionPostState,
-                                                mintFunctionAfterTotalSupplyState, henvFeeI,
-                                                storageStore_executionEnv]
-                                            have hslot8 :
-                                                Solm.EVM.storageLoad postMint
-                                                    postMint.executionEnv.codeOwner ⟨8⟩ =
-                                                  uniswapSlotWord ⟨8⟩ σAfterMint I := by
-                                              have hword := accountMapEquiv_storage_findD
-                                                hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-                                              simpa [postMint, uniswapSlotWord,
-                                                Solm.EVM.storageLoad, State.lookupAccount,
-                                                Account.lookupStorage, henvMint] using hword.symm
-                                            have hreserve0PostWord :
-                                                uniswapReserve0Word postMint = reserve0 := by
-                                              simpa [postMint, uniswapReserve0Word,
-                                                uniswapUpdateReserve0Word, hslot8] using
-                                                hreserve0Slot.symm
-                                            have hreserve1PostWord :
-                                                uniswapReserve1Word postMint = reserve1 := by
-                                              simpa [postMint, uniswapReserve1Word,
-                                                uniswapUpdateReserve1Word, hslot8] using
-                                                hreserve1Slot.symm
-                                            have hreserve0Post :
-                                                Int.ofNat (uniswapReserve0Word postMint).toNat ≠
-                                                  0 := by
-                                              intro hz
-                                              apply hreserve0Nonzero
-                                              rw [← hreserve0PostWord]
-                                              exact uint256_toNat_eq_zero (by omega)
-                                            have hreserve1Post :
-                                                Int.ofNat (uniswapReserve1Word postMint).toNat ≠
-                                                  0 := by
-                                              intro hz
-                                              apply hreserve1Nonzero
-                                              rw [← hreserve1PostWord]
-                                              exact uint256_toNat_eq_zero (by omega)
                                             have hbody :=
                                               ExecFuncBody.execBlockRet
                                                 (uniswapMintProportionalFeeOnCumulativeReturn_kLastZero
@@ -1685,10 +1576,7 @@ theorem uniswapMintBody
                                                   hreserve0Source hreserve1Source hliquiditySource
                                                   hliqNonzero hfitSupplySource hbalanceFitSource
                                                   hbound0Source hbound1Source
-                                                  (by simpa [postMint] using helapsedSource)
-                                                  (by simpa [postMint] using hreserve0Post)
-                                                  (by simpa [postMint] using hreserve1Post)
-                                                  (by simpa [postMint] using hfitKLastSource))
+                                                  helapsedSource hfitKLastSource)
                                             exact
                                               uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
                                                 hcode hdispatch hsz36 hbody rd3701
@@ -1697,8 +1585,7 @@ theorem uniswapMintBody
                                                 hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
                                                 hperm htotalFit hbalanceFit hfitSupplySource
                                                 hbalanceFitSource hbound0 hbound1 helapsedNe
-                                                hreserve0Slot hreserve1Slot hfitKLastRuntime
-                                                hmem hmem64
+                                                hfitKLastRuntime hmem hmem64
                                           · let σCleared :=
                                             sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩
                                             let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -2236,69 +2123,6 @@ theorem uniswapMintBody
                                                     simpa [hmask] using hbound1
                                                   norm_num [maxUint112]
                                                   exact_mod_cast hnat
-                                                have hreserve0Slot :
-                                                    reserve0 =
-                                                      uniswapUpdateReserve0Word
-                                                        σAfterMintCleared I := by
-                                                  simp [reserve0, σAfterMintCleared, reserve0Word,
-                                                    uniswapUpdateReserve0Word, uniswapSlotWord]
-                                                have hreserve1Slot :
-                                                    reserve1 =
-                                                      uniswapUpdateReserve1Word
-                                                        σAfterMintCleared I := by
-                                                  simp [reserve1, σAfterMintCleared, reserve1Word,
-                                                    uniswapUpdateReserve1Word, uniswapSlotWord]
-                                                let postMintCleared :=
-                                                  mintFunctionPostState evmAfterFee
-                                                    (AccountAddress.ofNat (mintToWord I).toNat)
-                                                    liquidityCleared
-                                                have hMintAccounts :
-                                                    accountMapEquiv σAfterMintCleared
-                                                      postMintCleared.accountMap := by
-                                                  exact
-                                                    accountMapEquiv_mintFunctionPostState_of_runtimeMint
-                                                      hPostCleared henvCleared
-                                                      (by dsimp [memFee]; rw [hmem]; omega)
-                                                      hfitSupplySource hbalanceFitSource
-                                                have henvMint : postMintCleared.executionEnv = I := by
-                                                  simp [postMintCleared, mintFunctionPostState,
-                                                    mintFunctionAfterTotalSupplyState, henvCleared,
-                                                    storageStore_executionEnv]
-                                                have hslot8 :
-                                                    Solm.EVM.storageLoad postMintCleared
-                                                        postMintCleared.executionEnv.codeOwner ⟨8⟩ =
-                                                      uniswapSlotWord ⟨8⟩ σAfterMintCleared I := by
-                                                  have hword := accountMapEquiv_storage_findD
-                                                    hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-                                                  simpa [postMintCleared, uniswapSlotWord,
-                                                    Solm.EVM.storageLoad, State.lookupAccount,
-                                                    Account.lookupStorage, henvMint] using hword.symm
-                                                have hreserve0PostWord :
-                                                    uniswapReserve0Word postMintCleared = reserve0 := by
-                                                  simpa [postMintCleared, uniswapReserve0Word,
-                                                    uniswapUpdateReserve0Word, hslot8] using
-                                                    hreserve0Slot.symm
-                                                have hreserve1PostWord :
-                                                    uniswapReserve1Word postMintCleared = reserve1 := by
-                                                  simpa [postMintCleared, uniswapReserve1Word,
-                                                    uniswapUpdateReserve1Word, hslot8] using
-                                                    hreserve1Slot.symm
-                                                have hreserve0Post :
-                                                    Int.ofNat
-                                                        (uniswapReserve0Word postMintCleared).toNat ≠
-                                                      0 := by
-                                                  intro hz
-                                                  apply hreserve0Nonzero
-                                                  rw [← hreserve0PostWord]
-                                                  exact uint256_toNat_eq_zero (by omega)
-                                                have hreserve1Post :
-                                                    Int.ofNat
-                                                        (uniswapReserve1Word postMintCleared).toNat ≠
-                                                      0 := by
-                                                  intro hz
-                                                  apply hreserve1Nonzero
-                                                  rw [← hreserve1PostWord]
-                                                  exact uint256_toNat_eq_zero (by omega)
                                                 have hbody :=
                                                   ExecFuncBody.execBlockRet
                                                     (uniswapMintProportionalFeeOffCumulativeReturn_kLastNonzero
@@ -2311,10 +2135,7 @@ theorem uniswapMintBody
                                                       hfitSource0 hfitSource1 hreserve0Source
                                                       hreserve1Source hliquiditySource hliqNonzero
                                                       hfitSupplySource hbalanceFitSource hbound0Source
-                                                      hbound1Source
-                                                      (by simpa [postMintCleared] using helapsedSource)
-                                                      (by simpa [postMintCleared] using hreserve0Post)
-                                                      (by simpa [postMintCleared] using hreserve1Post))
+                                                      hbound1Source helapsedSource)
                                                 exact
                                                   uniswapMintFinishProportionalFeeOffCumulative
                                                     hcode hdispatch hsz36 hbody rd3701
@@ -2323,7 +2144,7 @@ theorem uniswapMintBody
                                                     hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
                                                     hperm htotalFit hbalanceFit hfitSupplySource
                                                     hbalanceFitSource hbound0 hbound1 helapsedNe
-                                                    hreserve0Slot hreserve1Slot rfl hmem hmem64
+                                                    rfl hmem hmem64
                                               · by_cases hsmallNoMint :
                                                 UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
                                                   mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
@@ -2677,7 +2498,7 @@ theorem uniswapMintBody
                                                               · by_cases hsecondMintOverflow :
                                                                 mintProportionalSecondMintOverflowCase
                                                                   feeToWord totalSupply totalSupplyCleared
-                                                                  amount0 amount1 reserve0 reserve1
+                                                                  amount0 amount1 balance0 balance1 reserve0 reserve1
                                                                   liquidity liquidityCleared σFee
                                                                   σCleared evmFeeS I (mintToMaskedWord I)
                                                                   memFee
@@ -2709,8 +2530,9 @@ theorem uniswapMintBody
                                                                           [mintProportionalSecondMintOverflowCase,
                                                                             feeToWord, totalSupply,
                                                                             totalSupplyCleared, amount0,
-                                                                            amount1, reserve0, reserve1,
-                                                                            σCleared, memFee]
+                                                                            amount1, balance0, balance1,
+                                                                            reserve0, reserve1, σCleared,
+                                                                            memFee]
                                                                         using hsecondMintOverflow)
                                                                 · by_cases hfeeOnKLastNonzeroSuccess :
                                                                     mintFeeOnKLastNonzeroSuccessFromFactoryCasesData
@@ -2785,7 +2607,6 @@ theorem uniswapMintBody
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
                                                                             · exact False.elim (hfeeOnKLastNonzeroInitial (by
-                                                                                clear hcode hsize hperm hwv hsel hdispatch hAccounts hlocked hunlocked hsz4 hreach hdecoded hlockEntered hunlockedSolm htoken0NoCode hdepth hΘ hrev hrevShort hcont hoSize hcallAll hPostAccounts0 hcreated0 hσ0 hgenesis0 hblocks0 henv0 hguard0 hz hshort hzTrue ho32 henv0I hcall0 hdec0 rd3505 rd3573 htoken1NoCode hguard1 hΘ1 hrev1 hrevShort1 hcont1 ho1Size hcall1All hPostAccounts1 hcreated1 hσ01 hgenesis1 hblocks1 henv1 hz1 hshort1 hz1True ho132 hcall1 hdec1 rd3630 hreserve0Eq hreserve1Eq hlt0 hle0 hle0Source rd3661 hlt1 hle1Source rd3690 rd7696 rd7765 henv1I hfactoryNoCode hΘFee rd7781 houtFeeSize hfeeCallAll hPostAccountsFee hcreatedFee hσ0Fee hgenesisFee hblocksFee henvFee hfeeGuard hFeeRev hFeeRevShort hFeeCont hzFee houtFeeShort hzFeeTrue houtFee32 hfeeCall hfeeDec henvFeeI hkLastEq
                                                                                 unfold mintFeeOnKLastNonzeroInitialOverflowFromFactoryCasesData
                                                                                   mintFeeOnKLastNonzeroInitialFromFactoryCasesData
                                                                                   mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
@@ -2810,7 +2631,6 @@ theorem uniswapMintBody
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
                                                                             · exact False.elim (hfeeOnKLastNonzeroSuccess (by
-                                                                                clear hcode hsize hperm hwv hsel hdispatch hAccounts hlocked hunlocked hsz4 hreach hdecoded hlockEntered hunlockedSolm htoken0NoCode hdepth hΘ hrev hrevShort hcont hoSize hcallAll hPostAccounts0 hcreated0 hσ0 hgenesis0 hblocks0 henv0 hguard0 hz hshort hzTrue ho32 henv0I hcall0 hdec0 rd3505 rd3573 htoken1NoCode hguard1 hΘ1 hrev1 hrevShort1 hcont1 ho1Size hcall1All hPostAccounts1 hcreated1 hσ01 hgenesis1 hblocks1 henv1 hz1 hshort1 hz1True ho132 hcall1 hdec1 rd3630 hreserve0Eq hreserve1Eq hlt0 hle0 hle0Source rd3661 hlt1 hle1Source rd3690 rd7696 rd7765 henv1I hfactoryNoCode hΘFee rd7781 houtFeeSize hfeeCallAll hPostAccountsFee hcreatedFee hσ0Fee hgenesisFee hblocksFee henvFee hfeeGuard hFeeRev hFeeRevShort hFeeCont hzFee houtFeeShort hzFeeTrue houtFee32 hfeeCall hfeeDec henvFeeI hkLastEq
                                                                                 unfold mintFeeOnKLastNonzeroSuccessFromFactoryCasesData
                                                                                   mintFeeOnKLastNonzeroNoMintFromFactoryCaseData
                                                                                 unfold mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData at hrootArithmetic

@@ -201,9 +201,13 @@ def lockEnter : List Stmt :=
 def lockExit : List Stmt :=
   [ .assign .storage unlockedRef (.intLit 1) ]
 
-def updateReservesStmts (balance0 balance1 : Expr) : List Stmt :=
-  [ .internalCall "_update" [balance0, balance1, .storage reserve0Ref, .storage reserve1Ref]
+def updateReservesStmtsWith
+    (balance0 balance1 reserve0 reserve1 : Expr) : List Stmt :=
+  [ .internalCall "_update" [balance0, balance1, reserve0, reserve1]
       "_updateResult" ]
+
+def updateReservesStmts (balance0 balance1 : Expr) : List Stmt :=
+  updateReservesStmtsWith balance0 balance1 (.storage reserve0Ref) (.storage reserve1Ref)
 
 def safeTransferStmts (token recipient value : Expr) (okVar _dataVar : Ident) : List Stmt :=
   [ .internalCall "_safeTransfer" [token, recipient, value] okVar ]
@@ -613,7 +617,8 @@ def mintTransition : TransitionDecl :=
               .internalCall "min" [.var "liquidity0", .var "liquidity1"] "liquidity" ],
           .require (.binary .gt (.var "liquidity") (.intLit 0)),
           .internalCall "_mint" [.var "to", .var "liquidity"] "_mintResult" ] ++
-      updateReservesStmts (.var "balance0") (.var "balance1") ++
+      updateReservesStmtsWith (.var "balance0") (.var "balance1")
+        (.var "_reserve0") (.var "_reserve1") ++
       [ .ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]

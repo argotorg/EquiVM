@@ -30,7 +30,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFactoryCaseData
   let nextFrame :=
     resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-      "feeOn" (some (.bool true))
+      "feeOn" (some [.bool true])
   let afterTotalSupplyLocals :=
     nextFrame.locals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS))
@@ -43,7 +43,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFactoryCaseData
       ExecStmt config caller evmFeeS
           (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
-          (.ok (resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity)))
+          (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
       0 ≤ rootLiquidity → rootLiquidity.toNat < UInt256.size →
       let liquidity := UInt256.ofNat (rootLiquidity - minimumLiquidity).toNat
@@ -85,7 +85,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryCaseData
   let nextFrame :=
     resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-      "feeOn" (some (.bool true))
+      "feeOn" (some [.bool true])
   let afterTotalSupplyLocals :=
     nextFrame.locals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS))
@@ -98,7 +98,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryCaseData
       ExecStmt config caller evmFeeS
           (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
-          (.ok (resumeAfterInternalCall caller "rootLiquidity" (some (.int rootLiquidity)))
+          (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
       0 ≤ rootLiquidity → rootLiquidity.toNat < UInt256.size →
       let liquidity := UInt256.ofNat (rootLiquidity - minimumLiquidity).toNat
@@ -213,11 +213,11 @@ theorem uniswapMintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCase
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -242,7 +242,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCase
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hreserve0Eq :
@@ -304,7 +304,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCase
   let nextFrame :=
     resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-      "feeOn" (some (.bool true))
+      "feeOn" (some [.bool true])
   rcases hcase with ⟨hprefixCase, htotalZero, hfit, hbalanceOverflow⟩
   obtain ⟨k3701, C3701, hfee, rd3701, hmem, hmem64⟩ :=
     uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory feeTo hfeeGuard hfeeCall
@@ -382,11 +382,11 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFact
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -411,7 +411,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFact
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -474,7 +474,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFact
   let nextFrame :=
     resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-      "feeOn" (some (.bool true))
+      "feeOn" (some [.bool true])
   let afterTotalSupplyLocals :=
     nextFrame.locals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS))
@@ -598,11 +598,11 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryC
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -627,7 +627,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryC
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -690,7 +690,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryC
   let nextFrame :=
     resumeAfterInternalCall
       { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
-      "feeOn" (some (.bool true))
+      "feeOn" (some [.bool true])
   let afterTotalSupplyLocals :=
     nextFrame.locals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS))
@@ -830,11 +830,11 @@ theorem uniswapMintFeeOnKLastNonzeroInitialOverflowFromFactoryCases
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
-    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some (uniswapUint256Value balance0))
+    (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
       typedCallViaEVM config evm0S (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩))
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
-    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some (uniswapUint256Value balance1))
+    (hdec1 : config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
@@ -859,7 +859,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialOverflowFromFactoryCases
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
-    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some (.address feeTo))
+    (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
     (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
     (hcreatedFee : evmFeeS.createdAccounts = cAFee)
