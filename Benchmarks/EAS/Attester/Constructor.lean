@@ -262,9 +262,9 @@ noncomputable def attesterCtorFreePtrMem : ByteArray :=
 
 theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hge : base.size ≤ destAddr)
-    (hgap : destAddr - base.size < USize.size) :
+    (_hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size)) ++
+      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.write
@@ -272,21 +272,20 @@ theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
   have hcopy : min len (src.size - srcAddr) = len := by omega
   have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract, show (⟨↑(destAddr - base.size)⟩ : USize) =
-      USize.ofNat (destAddr - base.size) from rfl]
-  have hpz : (ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size))).data.size =
+    ByteArray.data_extract]
+  have hpz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size))).data.size =
-          (ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size))).size from rfl,
-      ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+      ByteArray_zeroes_size]
   have hDsz :
       (base.data ++
-        (ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size))).data).size =
+        (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes (⟨↑(0 : Nat)⟩ : USize)).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := (⟨↑(0 : Nat)⟩ : USize)) (by rfl)]
+  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+    rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
   rw [show min len (src.data.size - srcAddr) = len by
@@ -294,7 +293,7 @@ theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
   rw [show (base.data ++
-        (ffi.ByteArray.zeroes (USize.ofNat (destAddr - base.size))).data).extract
+        (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr + len) = (#[] : Array UInt8) from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
@@ -341,7 +340,7 @@ theorem attesterCtorCode_runtime_window (eas : EVM.Address) :
   exact attesterCtorCreation_runtime_window
 
 noncomputable def attesterCtorArgMem (eas : EVM.Address) : ByteArray :=
-  attesterCtorFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 64) ++ attesterCtorTail eas
+  attesterCtorFreePtrMem ++ ffi.ByteArray.zeroes 64 ++ attesterCtorTail eas
 
 noncomputable def attesterCtorArgFreeMem (eas : EVM.Address) : ByteArray :=
   writeWord (attesterCtorArgMem eas) 64 (⟨192⟩ : UInt256)
@@ -356,8 +355,7 @@ theorem attesterCtorArgMem_size (eas : EVM.Address) :
     (attesterCtorArgMem eas).size = 192 := by
   unfold attesterCtorArgMem
   rw [ByteArray.size_append, ByteArray.size_append, attesterCtorFreePtrMem_size,
-    ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (by exact lt_usize _ (by norm_num)),
-    attesterCtorTail_size]
+    ByteArray_zeroes_size, attesterCtorTail_size]
 
 theorem attesterCtorArgFreeMem_size (eas : EVM.Address) :
     (attesterCtorArgFreeMem eas).size = 192 := by
@@ -405,11 +403,10 @@ theorem attesterCtorArgMem_read160 (eas : EVM.Address) :
   rw [readWithPadding_eq_extract' _ 160 32 (by norm_num) (by norm_num)
     (by rw [attesterCtorArgMem_size])]
   unfold attesterCtorArgMem attesterCtorTail
-  set preBuf := attesterCtorFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 64)
+  set preBuf := attesterCtorFreePtrMem ++ ffi.ByteArray.zeroes 64
   have hpreBuf : preBuf.size = 160 := by
     unfold preBuf
-    rw [ByteArray.size_append, attesterCtorFreePtrMem_size, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' (by exact lt_usize _ (by norm_num))]
+    rw [ByteArray.size_append, attesterCtorFreePtrMem_size, ByteArray_zeroes_size]
   rw [extract_append_right_window preBuf
     (EVM.Word.toBytesBE (EVM.Word.ofNat eas.toNat)).toByteArray 160 (160 + 32)
     (by rw [hpreBuf]), hpreBuf]

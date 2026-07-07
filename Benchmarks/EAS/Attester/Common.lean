@@ -361,6 +361,46 @@ axiom attesterGuardJumpdest (v : AttesterImmutables) :
 axiom attesterDispatchRevertJumpdest (v : AttesterImmutables) :
     (D_J (patchedRuntime v) 0).contains (⟨74⟩ : UInt256) = true
 
+/-- Trusted jump-destination fact for the `multiRevoke(bytes32[],bytes32[][])` wrapper entry. -/
+axiom attesterMultiRevokeWrapperJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨78⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the post-decode `multiRevoke(bytes32[],bytes32[][])` wrapper block. -/
+axiom attesterMultiRevokeDecodedJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨92⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the `multiRevoke(bytes32[],bytes32[][])` function body entry. -/
+axiom attesterMultiRevokeBodyJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨192⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the `multiAttest(bytes32[],uint256[][])` wrapper entry. -/
+axiom attesterMultiAttestWrapperJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨99⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the post-decode `multiAttest(bytes32[],uint256[][])` wrapper block. -/
+axiom attesterMultiAttestDecodedJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨113⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the `multiAttest(bytes32[],uint256[][])` function body entry. -/
+axiom attesterMultiAttestBodyJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨828⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the shared two-dynamic-argument ABI decoder. -/
+axiom attesterDynamic2DecoderJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2109⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the successful first length check in the shared dynamic decoder. -/
+axiom attesterDynamic2DecodeHeadOkJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2128⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the successful first offset check in the shared dynamic decoder. -/
+axiom attesterDynamic2FirstOffsetOkJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2149⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the shared dynamic-array decoder routine. -/
+axiom attesterDynamicArrayDecoderJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2038⟩ : UInt256) = true
+
 /-- Trusted jump-destination fact for the `attest(bytes32,uint256)` wrapper entry. -/
 axiom attesterAttestWrapperJumpdest (v : AttesterImmutables) :
     (D_J (patchedRuntime v) 0).contains (⟨140⟩ : UInt256) = true
@@ -424,6 +464,30 @@ axiom attesterAttestPublicReturnJumpdest (v : AttesterImmutables) :
 /-- Trusted jump-destination fact for the final `RETURN` block of the public wrapper. -/
 axiom attesterAttestFinalReturnJumpdest (v : AttesterImmutables) :
     (D_J (patchedRuntime v) 0).contains (⟨131⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the `revoke(bytes32,bytes32)` wrapper entry. -/
+axiom attesterRevokeWrapperJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨173⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the post-decode `revoke(bytes32,bytes32)` wrapper block. -/
+axiom attesterRevokeDecodedJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨187⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the `revoke(bytes32,bytes32)` function body entry. -/
+axiom attesterRevokeBodyJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨1863⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the successful external-code-size check in `revoke`. -/
+axiom attesterRevokeExtcodesizeOkJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2012⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for the successful external `revoke` call branch. -/
+axiom attesterRevokeCallOkJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨2030⟩ : UInt256) = true
+
+/-- Trusted jump-destination fact for public wrappers that finish without return data. -/
+axiom attesterNoReturnDoneJumpdest (v : AttesterImmutables) :
+    (D_J (patchedRuntime v) 0).contains (⟨97⟩ : UInt256) = true
 
 theorem writeWord_size_of_inside (mem : ByteArray) (off : Nat) (word : UInt256)
     (hinside : off + 32 ≤ mem.size) :
@@ -885,6 +949,18 @@ theorem attesterMultiRevokeEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.siz
       (0x13 : UInt8) (0xfd : UInt8) (0xe5 : UInt8) (0x50 : UInt8)
       (⟨0x13fde550⟩ : UInt256) (by native_decide))
 
+theorem attesterMultiRevokeEqNonzero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    UInt256.eq (⟨0x13fde550⟩ : UInt256) (solcSelectorWord I) ≠ ⟨0⟩ := by
+  have h :
+      UInt256.eq (⟨0x13fde550⟩ : UInt256) (solcSelectorWord I) = ⟨1⟩ := by
+    simpa [solcSelectorWord, attesterMultiRevokeSelBytes, hmultiRevoke] using
+      (evmSelectorDecode (cd := I.calldata) hsz
+        (0x13 : UInt8) (0xfd : UInt8) (0xe5 : UInt8) (0x50 : UInt8)
+        (⟨0x13fde550⟩ : UInt256) (by native_decide))
+  rw [h]
+  decide
+
 theorem attesterMultiAttestEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = false) :
     UInt256.eq (⟨0x54e1db35⟩ : UInt256) (solcSelectorWord I) = ⟨0⟩ := by
@@ -892,6 +968,18 @@ theorem attesterMultiAttestEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.siz
     (evmSelectorDecode (cd := I.calldata) hsz
       (0x54 : UInt8) (0xe1 : UInt8) (0xdb : UInt8) (0x35 : UInt8)
       (⟨0x54e1db35⟩ : UInt256) (by native_decide))
+
+theorem attesterMultiAttestEqNonzero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
+    UInt256.eq (⟨0x54e1db35⟩ : UInt256) (solcSelectorWord I) ≠ ⟨0⟩ := by
+  have h :
+      UInt256.eq (⟨0x54e1db35⟩ : UInt256) (solcSelectorWord I) = ⟨1⟩ := by
+    simpa [solcSelectorWord, attesterMultiAttestSelBytes, hmultiAttest] using
+      (evmSelectorDecode (cd := I.calldata) hsz
+        (0x54 : UInt8) (0xe1 : UInt8) (0xdb : UInt8) (0x35 : UInt8)
+        (⟨0x54e1db35⟩ : UInt256) (by native_decide))
+  rw [h]
+  decide
 
 theorem attesterAttestEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (hattest : (attesterAttestSelBytes == I.calldata.extract 0 4) = false) :
@@ -920,6 +1008,18 @@ theorem attesterRevokeEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (evmSelectorDecode (cd := I.calldata) hsz
       (0xc2 : UInt8) (0x66 : UInt8) (0x46 : UInt8) (0x10 : UInt8)
       (⟨0xc2664610⟩ : UInt256) (by native_decide))
+
+theorem attesterRevokeEqNonzero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
+    (hrevoke : (attesterRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    UInt256.eq (⟨0xc2664610⟩ : UInt256) (solcSelectorWord I) ≠ ⟨0⟩ := by
+  have h :
+      UInt256.eq (⟨0xc2664610⟩ : UInt256) (solcSelectorWord I) = ⟨1⟩ := by
+    simpa [solcSelectorWord, attesterRevokeSelBytes, hrevoke] using
+      (evmSelectorDecode (cd := I.calldata) hsz
+        (0xc2 : UInt8) (0x66 : UInt8) (0x46 : UInt8) (0x10 : UInt8)
+        (⟨0xc2664610⟩ : UInt256) (by native_decide))
+  rw [h]
+  decide
 
 theorem attesterX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
@@ -1023,6 +1123,658 @@ theorem attesterX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact h74.push0 (by attester_decode) (by simp)
     |>.dup1 (by attester_decode) (by simp)
     |>.rev 0 (by attester_decode) (fun s _ hstks => memExpRevert0 s hstks) (by simp)
+
+theorem attesterX_multiRevokeWrapper {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨78⟩ : UInt256)
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) k C := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
+    (by attester_decode) (by attester_decode) (by attester_decode)
+    (by attester_decode) (by attester_decode) (by attester_decode)
+  obtain ⟨_, _, h17⟩ := solcGuardCallvalueZero
+    (ctgt := (⟨15⟩ : UInt256)) (opC := .PUSH2) (wC := 2)
+    h0 hwv (by decide) (by attester_decode)
+    (by attester_decode) (by attester_decode)
+    (by attester_decode) (attesterGuardJumpdest v)
+  obtain ⟨k25, C25, h25raw⟩ := solcCalldataOk
+    (bodyPc := (⟨17⟩ : UInt256)) (selLoadTgt := attesterDispatchRevertPc)
+    (opR := .PUSH2) (wR := 2)
+    h17 hsz hsize (by attester_decode) (by attester_decode) (by attester_decode)
+    (by decide) (by attester_decode) (by attester_decode)
+  have h25 :
+      RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨25⟩ : UInt256)
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k25 C25 := by
+    simpa using h25raw
+  obtain ⟨k30, C30, h30raw⟩ := solcSelectorLoad h25
+    (by attester_decode) (by attester_decode) (by attester_decode) (by attester_decode) (by simp)
+  have h30 :
+      RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) attesterFirstArmPc
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k30 C30 := by
+    simpa [attesterFirstArmPc, solcSelectorWord] using h30raw
+  have heqMultiRevoke := attesterMultiRevokeEqNonzero I hsz hmultiRevoke
+  exact ⟨_, _, h30
+    |>.selectorArmTaken (selNat := (⟨0x13fde550⟩ : UInt256))
+      (tgt := (⟨78⟩ : UInt256)) (width := 2) (op := .PUSH2)
+      (by attester_decode) (by attester_decode) (by attester_decode)
+      (by decide) (by attester_decode) (by attester_decode) heqMultiRevoke
+      (attesterMultiRevokeWrapperJumpdest v) (by simp)⟩
+
+theorem attesterX_multiAttestWrapper {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = false)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨99⟩ : UInt256)
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+        (cA, σ) k C := by
+  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
+    (by attester_decode) (by attester_decode) (by attester_decode)
+    (by attester_decode) (by attester_decode) (by attester_decode)
+  obtain ⟨_, _, h17⟩ := solcGuardCallvalueZero
+    (ctgt := (⟨15⟩ : UInt256)) (opC := .PUSH2) (wC := 2)
+    h0 hwv (by decide) (by attester_decode)
+    (by attester_decode) (by attester_decode)
+    (by attester_decode) (attesterGuardJumpdest v)
+  obtain ⟨k25, C25, h25raw⟩ := solcCalldataOk
+    (bodyPc := (⟨17⟩ : UInt256)) (selLoadTgt := attesterDispatchRevertPc)
+    (opR := .PUSH2) (wR := 2)
+    h17 hsz hsize (by attester_decode) (by attester_decode) (by attester_decode)
+    (by decide) (by attester_decode) (by attester_decode)
+  have h25 :
+      RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨25⟩ : UInt256)
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k25 C25 := by
+    simpa using h25raw
+  obtain ⟨k30, C30, h30raw⟩ := solcSelectorLoad h25
+    (by attester_decode) (by attester_decode) (by attester_decode) (by attester_decode) (by simp)
+  have h30 :
+      RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) attesterFirstArmPc
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k30 C30 := by
+    simpa [attesterFirstArmPc, solcSelectorWord] using h30raw
+  have heqMultiRevoke := attesterMultiRevokeEqZero I hsz hmultiRevoke
+  have heqMultiAttest := attesterMultiAttestEqNonzero I hsz hmultiAttest
+  exact ⟨_, _, h30
+    |>.selectorArmNotTaken (selNat := (⟨0x13fde550⟩ : UInt256))
+      (tgt := (⟨78⟩ : UInt256)) (width := 2) (op := .PUSH2)
+      (by attester_decode) (by attester_decode) (by attester_decode)
+      (by decide) (by attester_decode) (by attester_decode) heqMultiRevoke (by simp)
+    |>.selectorArmTaken (selNat := (⟨0x54e1db35⟩ : UInt256))
+      (tgt := (⟨99⟩ : UInt256)) (width := 2) (op := .PUSH2)
+      (by attester_decode) (by attester_decode) (by attester_decode)
+      (by decide) (by attester_decode) (by attester_decode) heqMultiAttest
+      (attesterMultiAttestWrapperJumpdest v) (by simp)⟩
+
+theorem attesterX_multiRevokeToDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨78⟩ : UInt256)
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C) :
+    ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2109⟩ : UInt256)
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨92⟩, ⟨97⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd78⟩ := hreach
+  exact ⟨_, _, evm_run rd78 with [
+    raw jumpdest (by attester_decode_at v, ⟨78⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw push2 ⟨97⟩ (by attester_decode_at v, ⟨79⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw push2 ⟨92⟩ (by attester_decode_at v, ⟨82⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw calldatasize (by attester_decode_at v, ⟨85⟩, 0x36, .CALLDATASIZE) (by evm_ov),
+    raw push1 ⟨4⟩ (by attester_decode_at v, ⟨86⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push2 ⟨2109⟩ (by attester_decode_at v, ⟨88⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw jump (by attester_decode_at v, ⟨91⟩, 0x56, .JUMP)
+      (attesterDynamic2DecoderJumpdest v) (by evm_ov)]⟩
+
+theorem attesterX_multiAttestToDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨99⟩ : UInt256)
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C) :
+    ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2109⟩ : UInt256)
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨113⟩, ⟨118⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd99⟩ := hreach
+  exact ⟨_, _, evm_run rd99 with [
+    raw jumpdest (by attester_decode_at v, ⟨99⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw push2 ⟨118⟩ (by attester_decode_at v, ⟨100⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw push2 ⟨113⟩ (by attester_decode_at v, ⟨103⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw calldatasize (by attester_decode_at v, ⟨106⟩, 0x36, .CALLDATASIZE) (by evm_ov),
+    raw push1 ⟨4⟩ (by attester_decode_at v, ⟨107⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push2 ⟨2109⟩ (by attester_decode_at v, ⟨109⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw jump (by attester_decode_at v, ⟨112⟩, 0x56, .JUMP)
+      (attesterDynamic2DecoderJumpdest v) (by evm_ov)]⟩
+
+theorem attesterX_dynamic2DecodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2109⟩ : UInt256)
+      [⟨4⟩, UInt256.ofNat I.calldata.size, decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd2109⟩ := hreach
+  exact evm_run rd2109 with [
+    raw jumpdest (by attester_decode_at v, ⟨2109⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2110⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2111⟩, 0x80, .DUP1) (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2112⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2113⟩, 0x80, .DUP1) (by evm_ov),
+    raw push1 ⟨64⟩ (by attester_decode_at v, ⟨2114⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw dup6 (by attester_decode_at v, ⟨2116⟩, 0x85, .DUP6) (by evm_ov),
+    raw dup8 (by attester_decode_at v, ⟨2117⟩, 0x87, .DUP8) (by evm_ov),
+    raw sub (by attester_decode_at v, ⟨2118⟩, 0x03, .SUB) (by evm_ov),
+    raw slt (by attester_decode_at v, ⟨2119⟩, 0x12, .SLT) (by evm_ov),
+    raw iszero (by attester_decode_at v, ⟨2120⟩, 0x15, .ISZERO) (by evm_ov),
+    raw push2 ⟨2128⟩ (by attester_decode_at v, ⟨2121⟩, 0x61, (.Push .PUSH2))
+      (by evm_ov),
+    raw jumpiNT (by attester_decode_at v, ⟨2124⟩, 0x57, .JUMPI) (by rw [hslt]; decide)
+      (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2125⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2126⟩, 0x80, .DUP1) (by evm_ov),
+    raw rev 0 (by attester_decode_at v, ⟨2127⟩, 0xfd, .REVERT)
+      (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov)]
+
+theorem attesterX_dynamic2DecodeHeadOk {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2109⟩ : UInt256)
+      [⟨4⟩, UInt256.ofNat I.calldata.size, decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2128⟩ : UInt256)
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd2109⟩ := hreach
+  exact ⟨_, _, evm_run rd2109 with [
+    raw jumpdest (by attester_decode_at v, ⟨2109⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2110⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2111⟩, 0x80, .DUP1) (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2112⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2113⟩, 0x80, .DUP1) (by evm_ov),
+    raw push1 ⟨64⟩ (by attester_decode_at v, ⟨2114⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw dup6 (by attester_decode_at v, ⟨2116⟩, 0x85, .DUP6) (by evm_ov),
+    raw dup8 (by attester_decode_at v, ⟨2117⟩, 0x87, .DUP8) (by evm_ov),
+    raw sub (by attester_decode_at v, ⟨2118⟩, 0x03, .SUB) (by evm_ov),
+    raw slt (by attester_decode_at v, ⟨2119⟩, 0x12, .SLT) (by evm_ov),
+    raw iszero (by attester_decode_at v, ⟨2120⟩, 0x15, .ISZERO) (by evm_ov),
+    raw push2 ⟨2128⟩ (by attester_decode_at v, ⟨2121⟩, 0x61, (.Push .PUSH2))
+      (by evm_ov),
+    raw jumpiT (by attester_decode_at v, ⟨2124⟩, 0x57, .JUMPI)
+      (by rw [hslt]; decide) (attesterDynamic2DecodeHeadOkJumpdest v) (by evm_ov)]⟩
+
+theorem attesterX_dynamic2FirstOffsetOk {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hoffMax : ¬ solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2128⟩ : UInt256)
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2149⟩ : UInt256)
+      [calldataWord I.calldata 4, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
+        UInt256.ofNat I.calldata.size, decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd2128⟩ := hreach
+  have hgt :
+      UInt256.gt (calldataWord I.calldata 4)
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩) = ⟨0⟩ := by
+    apply ugt_zero
+    have hmaxToNat :
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩).toNat =
+          solcMaxU64 := by
+      native_decide
+    rw [hmaxToNat]
+    exact Nat.le_of_not_gt hoffMax
+  exact ⟨_, _, evm_run rd2128 with [
+    raw jumpdest (by attester_decode_at v, ⟨2128⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw dup5 (by attester_decode_at v, ⟨2129⟩, 0x84, .DUP5) (by evm_ov),
+    raw calldataload (by attester_decode_at v, ⟨2130⟩, 0x35, .CALLDATALOAD) (by evm_ov),
+    raw push1 ⟨1⟩ (by attester_decode_at v, ⟨2131⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push1 ⟨1⟩ (by attester_decode_at v, ⟨2133⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push1 ⟨64⟩ (by attester_decode_at v, ⟨2135⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw shl (by attester_decode_at v, ⟨2137⟩, 0x1b, .SHL) (by evm_ov),
+    raw sub (by attester_decode_at v, ⟨2138⟩, 0x03, .SUB) (by evm_ov),
+    raw dup2 (by attester_decode_at v, ⟨2139⟩, 0x81, .DUP2) (by evm_ov),
+    raw gt (by attester_decode_at v, ⟨2140⟩, 0x11, .GT) (by evm_ov),
+    raw iszero (by attester_decode_at v, ⟨2141⟩, 0x15, .ISZERO) (by evm_ov),
+    raw push2 ⟨2149⟩ (by attester_decode_at v, ⟨2142⟩, 0x61, (.Push .PUSH2))
+      (by evm_ov),
+    raw jumpiT (by attester_decode_at v, ⟨2145⟩, 0x57, .JUMPI)
+      (by
+        change UInt256.isZero
+            (UInt256.gt (calldataWord I.calldata 4)
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩)) ≠ ⟨0⟩
+        rw [hgt]
+        decide)
+      (attesterDynamic2FirstOffsetOkJumpdest v) (by evm_ov)]⟩
+
+theorem attesterX_dynamic2FirstOffsetHugeReverts {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hoff : solcMaxU64 < (calldataWord I.calldata 4).toNat)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2128⟩ : UInt256)
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd2128⟩ := hreach
+  have hgt :
+      UInt256.gt (calldataWord I.calldata 4)
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩) = ⟨1⟩ := by
+    apply ugt_one
+    have hmaxToNat :
+        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩).toNat =
+          solcMaxU64 := by
+      native_decide
+    rw [hmaxToNat]
+    exact hoff
+  exact evm_run rd2128 with [
+    raw jumpdest (by attester_decode_at v, ⟨2128⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw dup5 (by attester_decode_at v, ⟨2129⟩, 0x84, .DUP5) (by evm_ov),
+    raw calldataload (by attester_decode_at v, ⟨2130⟩, 0x35, .CALLDATALOAD) (by evm_ov),
+    raw push1 ⟨1⟩ (by attester_decode_at v, ⟨2131⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push1 ⟨1⟩ (by attester_decode_at v, ⟨2133⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw push1 ⟨64⟩ (by attester_decode_at v, ⟨2135⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
+    raw shl (by attester_decode_at v, ⟨2137⟩, 0x1b, .SHL) (by evm_ov),
+    raw sub (by attester_decode_at v, ⟨2138⟩, 0x03, .SUB) (by evm_ov),
+    raw dup2 (by attester_decode_at v, ⟨2139⟩, 0x81, .DUP2) (by evm_ov),
+    raw gt (by attester_decode_at v, ⟨2140⟩, 0x11, .GT) (by evm_ov),
+    raw iszero (by attester_decode_at v, ⟨2141⟩, 0x15, .ISZERO) (by evm_ov),
+    raw push2 ⟨2149⟩ (by attester_decode_at v, ⟨2142⟩, 0x61, (.Push .PUSH2))
+      (by evm_ov),
+    raw jumpiNT (by attester_decode_at v, ⟨2145⟩, 0x57, .JUMPI)
+      (by
+        change UInt256.isZero
+            (UInt256.gt (calldataWord I.calldata 4)
+              (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩) ⟨1⟩)) = ⟨0⟩
+        rw [hgt]
+        decide)
+      (by evm_ov),
+    raw push0 (by attester_decode_at v, ⟨2146⟩, 0x5f, .PUSH0) (by evm_ov),
+    raw dup1 (by attester_decode_at v, ⟨2147⟩, 0x80, .DUP1) (by evm_ov),
+    raw rev 0 (by attester_decode_at v, ⟨2148⟩, 0xfd, .REVERT)
+      (fun s _ hstks => memExpRevert0 s hstks) (by evm_ov)]
+
+theorem attesterX_dynamic2FirstArrayDecoderEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hreach : ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2149⟩ : UInt256)
+      [calldataWord I.calldata 4, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
+        UInt256.ofNat I.calldata.size, decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD (patchedRuntime v) I g
+      (initState cA gh bl σ σ₀ g A I) (⟨2038⟩ : UInt256)
+      [UInt256.add ⟨4⟩ (calldataWord I.calldata 4), UInt256.ofNat I.calldata.size,
+        ⟨2161⟩, calldataWord I.calldata 4, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
+        UInt256.ofNat I.calldata.size, decodeOk, retPc, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd2149⟩ := hreach
+  exact ⟨_, _, evm_run rd2149 with [
+    raw jumpdest (by attester_decode_at v, ⟨2149⟩, 0x5b, .JUMPDEST) (by evm_ov),
+    raw push2 ⟨2161⟩ (by attester_decode_at v, ⟨2150⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw dup8 (by attester_decode_at v, ⟨2153⟩, 0x87, .DUP8) (by evm_ov),
+    raw dup3 (by attester_decode_at v, ⟨2154⟩, 0x82, .DUP3) (by evm_ov),
+    raw dup9 (by attester_decode_at v, ⟨2155⟩, 0x88, .DUP9) (by evm_ov),
+    raw add (by attester_decode_at v, ⟨2156⟩, 0x01, .ADD) (by evm_ov),
+    raw push2 ⟨2038⟩ (by attester_decode_at v, ⟨2157⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
+    raw jump (by attester_decode_at v, ⟨2160⟩, 0x56, .JUMP)
+      (attesterDynamicArrayDecoderJumpdest v) (by evm_ov)]⟩
+
+theorem attesterX_multiRevokeDecodeShort {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 68)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
+  exact attesterX_dynamic2DecodeRevert (v := v) hslt
+    (attesterX_multiRevokeToDecoder (v := v)
+      (attesterX_multiRevokeWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke))
+
+theorem attesterX_multiRevokeDecodeHeadOk {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz68 : 68 ≤ I.calldata.size) (hsmall : I.calldata.size < 2 ^ 255 + 4)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨2128⟩ : UInt256)
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        ⟨92⟩, ⟨97⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_64 hsz68 hsmall hsize
+  exact attesterX_dynamic2DecodeHeadOk (v := v) hslt
+    (attesterX_multiRevokeToDecoder (v := v)
+      (attesterX_multiRevokeWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke))
+
+theorem attesterX_multiRevokeDecodeHuge {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = true) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckHuge_4_64 hbig hsize
+  exact attesterX_dynamic2DecodeRevert (v := v) hslt
+    (attesterX_multiRevokeToDecoder (v := v)
+      (attesterX_multiRevokeWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke))
+
+theorem attesterX_multiAttestDecodeShort {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 68)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = false)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
+  exact attesterX_dynamic2DecodeRevert (v := v) hslt
+    (attesterX_multiAttestToDecoder (v := v)
+      (attesterX_multiAttestWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke
+        hmultiAttest))
+
+theorem attesterX_multiAttestDecodeHeadOk {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz68 : 68 ≤ I.calldata.size) (hsmall : I.calldata.size < 2 ^ 255 + 4)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = false)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
+    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) (⟨2128⟩ : UInt256)
+      [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
+        ⟨113⟩, ⟨118⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_64 hsz68 hsmall hsize
+  exact attesterX_dynamic2DecodeHeadOk (v := v) hslt
+    (attesterX_multiAttestToDecoder (v := v)
+      (attesterX_multiAttestWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke
+        hmultiAttest))
+
+theorem attesterX_multiAttestDecodeHuge {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = false)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = true) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
+      ⟨1⟩ :=
+    solcDecodeLenCheckHuge_4_64 hbig hsize
+  exact attesterX_dynamic2DecodeRevert (v := v) hslt
+    (attesterX_multiAttestToDecoder (v := v)
+      (attesterX_multiAttestWrapper (g := g) v hcode hwv hsz4 hsize hmultiRevoke
+        hmultiAttest))
+
+private theorem decodeABIValues_twoDynamicArrays_shape {elem0 elem1 : ABIType}
+    {bytes : List UInt8} {values : List Value} {endOffset : Nat}
+    (hvals :
+      decodeABIValues? [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+        bytes 0 0 64 64 = some (values, endOffset)) :
+    ∃ xs ys : List Value, values = [.array xs, .array ys] := by
+  rw [decodeABIValues?] at hvals
+  simp [isDynamicABIType, bind, Option.bind] at hvals
+  cases hread0 : readNat? bytes 0 with
+  | none => simp [hread0] at hvals
+  | some off0 =>
+      by_cases hmax0 : solcMaxLen DecodeMode.modern < off0
+      · simp [hread0] at hvals
+        have hle : off0 ≤ solcMaxU64 := hvals.1
+        simp [solcMaxLen] at hmax0
+        omega
+      · simp [hread0] at hvals
+        cases hv0 : decodeABIValue? (.dynamicArray elem0) bytes off0 with
+        | none => simp [hv0] at hvals
+        | some p0 =>
+            rcases p0 with ⟨v0, end0⟩
+            obtain ⟨xs, hv0arr⟩ := decodeABIValue_dynamicArray_is_array hv0
+            simp [hv0] at hvals
+            cases hrest :
+                decodeABIValues? [.dynamicArray (.dynamicArray elem1)]
+                  bytes 0 32 64 (max 64 end0) with
+            | none => simp [hrest] at hvals
+            | some prest =>
+                rcases prest with ⟨valuesRest, endRest⟩
+                simp [hrest] at hvals
+                rw [decodeABIValues?] at hrest
+                simp [isDynamicABIType, bind, Option.bind] at hrest
+                cases hread1 : readNat? bytes 32 with
+                | none => simp [hread1] at hrest
+                | some off1 =>
+                    by_cases hmax1 : solcMaxLen DecodeMode.modern < off1
+                    · simp [hread1] at hrest
+                      have hle : off1 ≤ solcMaxU64 := hrest.1
+                      simp [solcMaxLen] at hmax1
+                      omega
+                    · simp [hread1] at hrest
+                      cases hv1 :
+                          decodeABIValue? (.dynamicArray (.dynamicArray elem1)) bytes off1 with
+                      | none => simp [hv1] at hrest
+                      | some p1 =>
+                          rcases p1 with ⟨v1, end1⟩
+                          obtain ⟨ys, hv1arr⟩ := decodeABIValue_dynamicArray_is_array hv1
+                          simp [hv1] at hrest
+                          rcases hrest with ⟨_hoff1le, hrestEq⟩
+                          simp [decodeABIValues?] at hrestEq
+                          rcases hrestEq with ⟨hvaluesRestEq, _hendRestEq⟩
+                          rcases hvals with ⟨_hoff0le, hvalsEq⟩
+                          rcases hvalsEq with ⟨hvaluesEq, _hendEq⟩
+                          cases hvaluesRestEq
+                          refine ⟨xs, ys, ?_⟩
+                          rw [← hvaluesEq, hv0arr, hv1arr]
+
+theorem attesterDecodeCalldata_twoDynamicArrays_none_firstOffsetHuge {cd : ByteArray}
+    {name0 name1 : Ident} {elem0 elem1 : ABIType}
+    (hsz68 : 68 ≤ cd.size)
+    (hoff : solcMaxU64 < (calldataWord cd 4).toNat) :
+    decodeCalldata [name0, name1] [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+        cd = none := by
+  unfold decodeCalldata
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  by_cases hdyn :
+      ([ABIType.dynamicArray elem0, ABIType.dynamicArray (ABIType.dynamicArray elem1)].any
+          isDynamicABIType = true ∧
+        2 ^ 255 ≤ cd.toList.length)
+  · rw [if_pos hdyn]
+  · rw [if_neg hdyn]
+    by_cases hargsHuge :
+        [ABIType.dynamicArray elem0, ABIType.dynamicArray (ABIType.dynamicArray elem1)].isEmpty =
+            false ∧
+          2 ^ 255 ≤ (cd.toList.drop 4).length
+    · rw [if_pos hargsHuge]
+    · rw [if_neg hargsHuge]
+      have hread := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
+      simp [decodeCalldata.decodeArgs, decodeABIValues?, isDynamicABIType,
+        abiTupleHeadSize?, bind, Option.bind, solcMaxLen, hread, hoff]
+
+theorem attesterDecodeCalldata_twoDynamicArrays_firstOffsetMax {cd : ByteArray}
+    {callargs : Store} {name0 name1 : Ident} {elem0 elem1 : ABIType}
+    (hsz68 : 68 ≤ cd.size)
+    (hdec : decodeCalldata [name0, name1] [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+        cd = some callargs) :
+    ¬ solcMaxU64 < (calldataWord cd 4).toNat := by
+  unfold decodeCalldata at hdec
+  simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, isDynamicABIType,
+    bind, Option.bind] at hdec
+  rcases hdec with ⟨_hlen4, _hhuge, _hargHuge, _htotalHuge, hdec⟩
+  by_cases hshort : cd.toList.length - 4 < 64
+  · simp [hshort] at hdec
+  · simp [hshort] at hdec
+    cases hvals :
+        decodeABIValues? [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+          (List.drop 4 cd.toList) 0 0 64 64 with
+    | none =>
+        simp [hvals] at hdec
+    | some p =>
+        simp [hvals] at hdec
+        rw [decodeABIValues?] at hvals
+        simp [isDynamicABIType, bind, Option.bind] at hvals
+        cases hread0 : readNat? (List.drop 4 cd.toList) 0 with
+        | none => simp [hread0] at hvals
+        | some off0 =>
+            by_cases hmax0 : solcMaxLen DecodeMode.modern < off0
+            · simp [hread0] at hvals
+              have hle : off0 ≤ solcMaxU64 := hvals.1
+              simp [solcMaxLen] at hmax0
+              omega
+            · have hreadWord := readNat_drop4_zero_eq_calldataWord (cd := cd)
+                (by omega : 36 ≤ cd.size)
+              rw [hread0] at hreadWord
+              cases hreadWord
+              simpa [solcMaxLen] using hmax0
+
+theorem attesterDecodeCalldata_twoDynamicArrays_shape {cd : ByteArray} {callargs : Store}
+    {name0 name1 : Ident} {elem0 elem1 : ABIType}
+    (hne : (name1 == name0) = false)
+    (hdec : decodeCalldata [name0, name1] [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+        cd = some callargs) :
+    ∃ xs ys : List Value,
+      callargs.get? name0 = some (.array xs) ∧
+      callargs.get? name1 = some (.array ys) := by
+  unfold decodeCalldata at hdec
+  simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, isDynamicABIType,
+    bind, Option.bind] at hdec
+  rcases hdec with ⟨_hlen4, _hhuge, _hargHuge, _htotalHuge, hdec⟩
+  by_cases hshort : cd.toList.length - 4 < 64
+  · simp [hshort] at hdec
+  · simp [hshort] at hdec
+    cases hvals :
+        decodeABIValues? [.dynamicArray elem0, .dynamicArray (.dynamicArray elem1)]
+          (List.drop 4 cd.toList) 0 0 64 64 with
+    | none =>
+        simp [hvals] at hdec
+    | some p =>
+        rcases p with ⟨values, endOffset⟩
+        simp [hvals] at hdec
+        obtain ⟨xs, ys, hshape⟩ := decodeABIValues_twoDynamicArrays_shape hvals
+        cases hshape
+        simp [decodeCalldata.insertValues] at hdec
+        cases hdec
+        refine ⟨xs, ys, ?_, ?_⟩
+        · simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem_insert, hne]
+        · simp [Std.HashMap.get?_eq_getElem?]
+
+private theorem evalAnd_false_left {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr}
+    (hleft : evalExpr? cfg solm evm lhs = .ok (.bool false)) :
+    evalExpr? cfg solm evm (.binary .and lhs rhs) = .ok (.bool false) := by
+  simp [evalExpr?, hleft, EvalResult.bind, bind, pure]
+
+private theorem evalAnd_true_right_false {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr}
+    (hleft : evalExpr? cfg solm evm lhs = .ok (.bool true))
+    (hright : evalExpr? cfg solm evm rhs = .ok (.bool false)) :
+    evalExpr? cfg solm evm (.binary .and lhs rhs) = .ok (.bool false) := by
+  simp [evalExpr?, hleft, hright, EvalResult.bind, bind, pure]
+
+private theorem evalBinaryEq_of {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} {v₁ v₂ value : Value}
+    (hleft : evalExpr? cfg solm evm lhs = .ok v₁)
+    (hright : evalExpr? cfg solm evm rhs = .ok v₂)
+    (hop : evalBinaryOp? .eq v₁ v₂ = .ok value) :
+    evalExpr? cfg solm evm (.binary .eq lhs rhs) = .ok value := by
+  simp [evalExpr?, hleft, hright, hop, EvalResult.bind, bind]
+
+theorem attesterEvalMultiLengthGuardFalse (v : AttesterImmutables)
+    (evm : EVM.State) (locals : Store) {secondName : Ident}
+    {schemas second : List Value}
+    (hSecond :
+      (locals.insert "schemaLength" (.int (Int.ofNat schemas.length)))[secondName]? =
+        some (.array second))
+    (hbad : schemas.length = 0 ∨ schemas.length ≠ second.length) :
+    evalExpr? (config v)
+      { contract := contract v,
+        locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+      (.binary .and
+        (.binary .ne (.var "schemaLength") (.intLit 0))
+        (.binary .eq (.var "schemaLength") (lenLocal secondName))) =
+      .ok (.bool false) := by
+  rcases hbad with hzero | hne
+  · have hleft :
+        evalExpr? (config v)
+          { contract := contract v,
+            locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+          (.binary .ne (.var "schemaLength") (.intLit 0)) =
+        .ok (.bool false) := by
+      simp [evalExpr?, evalBinaryOp?, hzero,
+        EvalResult.bind, EvalResult.ofOption, bind, pure]
+    exact evalAnd_false_left hleft
+  · by_cases hzero : schemas.length = 0
+    · have hleft :
+          evalExpr? (config v)
+            { contract := contract v,
+              locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+            (.binary .ne (.var "schemaLength") (.intLit 0)) =
+          .ok (.bool false) := by
+        simp [evalExpr?, evalBinaryOp?, hzero,
+          EvalResult.bind, EvalResult.ofOption, bind, pure]
+      exact evalAnd_false_left hleft
+    · have hleft :
+          evalExpr? (config v)
+            { contract := contract v,
+              locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+            (.binary .ne (.var "schemaLength") (.intLit 0)) =
+          .ok (.bool true) := by
+        simp [evalExpr?, evalBinaryOp?, hzero,
+          EvalResult.bind, EvalResult.ofOption, bind, pure]
+      have hright :
+          evalExpr? (config v)
+            { contract := contract v,
+              locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+            (.binary .eq (.var "schemaLength") (lenLocal secondName)) =
+          .ok (.bool false) := by
+        have hvar :
+            evalExpr? (config v)
+              { contract := contract v,
+                locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+              (.var "schemaLength") =
+            .ok (.int (Int.ofNat schemas.length)) := by
+          simp [evalExpr?, EvalResult.ofOption]
+        have hlen :
+            evalExpr? (config v)
+              { contract := contract v,
+                locals := locals.insert "schemaLength" (.int (Int.ofNat schemas.length)) } evm
+              (lenLocal secondName) =
+            .ok (.int (Int.ofNat second.length)) := by
+          simp [evalExpr?, lenLocal, localRef, readLocalPath?,
+            EvalResult.bind, bind, pure]
+          have hSecond' :
+              (Std.HashMap.insert locals "schemaLength" (Value.int ↑schemas.length))[secondName]? =
+                some (.array second) := by
+            simpa using hSecond
+          rw [hSecond']
+        have hop :
+            evalBinaryOp? .eq (.int (Int.ofNat schemas.length))
+              (.int (Int.ofNat second.length)) = .ok (.bool false) := by
+          simpa [evalBinaryOp?] using hne
+        exact evalBinaryEq_of hvar hlen hop
+      exact evalAnd_true_right_false hleft hright
 
 theorem attesterBodyReverts_nonPayable (v : AttesterImmutables) (t : TransitionDecl)
     (ht : t ∈ (contract v).transitions) (evm : EVM.State) (callargs : Store)

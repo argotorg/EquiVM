@@ -321,6 +321,93 @@ private theorem attesterWriteWord_read_back (mem : ByteArray) (off : Nat) (w : U
     (attesterWriteWord mem off w).readWithPadding off 32 = UInt256.toByteArray w := by
   exact toByteArray_write_read_back_of_gap w mem off hgap
 
+private theorem attesterToByteArray_write_eq_nat (v : UInt256) (mem : ByteArray) (off : ℕ)
+    (hoff : mem.size ≤ off) :
+    (UInt256.toByteArray v).write 0 mem off 32 =
+      mem ++ ffi.ByteArray.zeroes (off - mem.size) ++ UInt256.toByteArray v := by
+  have hsz : (UInt256.toByteArray v).data.size = 32 := UInt256.toByteArrayWithSizeProof v |>.2
+  have hpz : (ffi.ByteArray.zeroes (off - mem.size)).data.size = off - mem.size := by
+    rw [show (ffi.ByteArray.zeroes (off - mem.size)).data.size =
+        (ffi.ByteArray.zeroes (off - mem.size)).size from rfl, ByteArray_zeroes_size]
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg (by decide : ¬ ((32 : ℕ) = 0)),
+    if_neg (show ¬ (0 ≥ (UInt256.toByteArray v).size) from by
+      rw [show (UInt256.toByteArray v).size = 32 from hsz]; omega)]
+  simp only [ByteArray.data_copySlice, ByteArray.data_append]
+  have hv : v.toByteArray.size = 32 := hsz
+  have hDsz : (mem.data ++ (ffi.ByteArray.zeroes (off - mem.size)).data).size = off := by
+    rw [Array.size_append, hpz]
+    show mem.size + (off - mem.size) = off
+    omega
+  rw [hv, show (min 32 (32 - 0) : ℕ) = 32 from rfl,
+    show min mem.size (off + 32) - (off + 32) = 0 from by omega,
+    show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+      rw [zeroes_zero (n := 0) (by rfl)]
+      rfl]
+  rw [Array.append_empty]
+  rw [Array.extract_eq_self_of_le (by rw [hDsz]),
+    Array.extract_eq_self_of_le (show v.toByteArray.data.size ≤ 0 + (32 + 0) from by rw [hsz]),
+    Array.extract_eq_empty_of_le (by rw [hDsz]; omega),
+    Array.append_empty]
+
+private theorem attesterWriteWord_size_eq_max_nat (mem : ByteArray) (off : Nat) (w : UInt256) :
+    (attesterWriteWord mem off w).size = max mem.size (off + 32) := by
+  unfold attesterWriteWord
+  by_cases hoff : off ≤ mem.size
+  · rw [toByteArray_write32_size_of_le mem w off mem.size (max mem.size (off + 32)) rfl
+      hoff rfl]
+  · have hge : mem.size ≤ off := by omega
+    rw [attesterToByteArray_write_eq_nat w mem off hge]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+    rw [max_eq_right (by omega)]
+    omega
+
+private theorem attesterWriteWord_read_back_nat (mem : ByteArray) (off : Nat) (w : UInt256) :
+    (attesterWriteWord mem off w).readWithPadding off 32 = UInt256.toByteArray w := by
+  unfold attesterWriteWord
+  by_cases hle : off ≤ mem.size
+  · rw [write32_read_back _ _ off (by rw [toByteArray_size]) hle]
+    rw [show 32 = (UInt256.toByteArray w).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _
+  · have hge : mem.size ≤ off := by omega
+    rw [attesterToByteArray_write_eq_nat w mem off hge]
+    rw [readWithPadding_eq_extract _ off (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega)]
+    rw [extract_append_right_window
+      (mem ++ ffi.ByteArray.zeroes (off - mem.size))
+      (UInt256.toByteArray w) off (off + 32) (by
+        rw [ByteArray.size_append, ByteArray_zeroes_size]
+        omega)]
+    rw [ByteArray.size_append, ByteArray_zeroes_size]
+    rw [show off - (mem.size + (off - mem.size)) = 0 by omega,
+      show off + 32 - (mem.size + (off - mem.size)) = 32 by omega]
+    rw [show (UInt256.toByteArray w).extract 0 32 = UInt256.toByteArray w from by
+      rw [show 32 = (UInt256.toByteArray w).size by rw [toByteArray_size]]
+      exact byteArray_extract_self _]
+
+private theorem attesterWriteWord_read_below_len_nat (mem : ByteArray) (off : Nat)
+    (w : UInt256) (read len : Nat)
+    (hread : read + len ≤ mem.size) (hbelow : read + len ≤ off)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (attesterWriteWord mem off w).readWithPadding read len =
+      mem.readWithPadding read len := by
+  unfold attesterWriteWord
+  by_cases hle : off ≤ mem.size
+  · exact write32_read_below_len _ _ off read len (by rw [toByteArray_size]) hle
+      hbelow hread hpos hlen64
+  · have hge : mem.size ≤ off := by omega
+    rw [attesterToByteArray_write_eq_nat w mem off hge]
+    rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ hread]
+    exact (readWithPadding_eq_extract' _ read len hpos hlen64 hread).symm
+
 private theorem write_read_below_end_from_len (src base : ByteArray)
     (srcAddr writeLen read len : Nat)
     (hwrite : writeLen ≠ 0) (hsrc : srcAddr + writeLen ≤ src.size)
@@ -1262,6 +1349,31 @@ theorem attesterAttestReturnWrite_read64_of_len (I : ExecutionEnv) (o : ByteArra
       hlen hlenSrc (by rw [attesterAttestCallMem_size]; omega) (by norm_num)]
     exact attesterAttestCallMem_read64 I
 
+theorem attesterAttestReturnWrite_size_of_len (I : ExecutionEnv) (o : ByteArray)
+    {len : ℕ} (hlenSrc : len ≤ o.size) (hlenMax : len ≤ 32) :
+    (o.write 0 (attesterAttestCallMem I) 448 len).size = 836 := by
+  by_cases hlen : len = 0
+  · subst len
+    rw [byteArray_write_len_zero, attesterAttestCallMem_size]
+  · rw [write_eq_gen o (attesterAttestCallMem I) 448 len hlen hlenSrc
+      (by rw [attesterAttestCallMem_size]; omega)]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, attesterAttestCallMem_size]
+    omega
+
+theorem attesterAttestReturnWrite_mload64_of_len (I : ExecutionEnv) (o : ByteArray)
+    {len : ℕ} (hlenSrc : len ≤ o.size) (hlenMax : len ≤ 32) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (attesterAttestCallMem I) 448 len).size ∨
+        (⟨64⟩ : UInt256) ≥ ⟨27⟩ * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((o.write 0 (attesterAttestCallMem I) 448 len).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) = ⟨448⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (by rw [attesterAttestReturnWrite_size_of_len I o hlenSrc hlenMax]; decide)
+    (by decide)
+    (by simpa using attesterAttestReturnWrite_read64_of_len I o hlenSrc hlenMax)
+
 theorem attesterAttestReturnWrite_read448_word (I : ExecutionEnv) (o : ByteArray)
     (ho32 : 32 ≤ o.size) :
     (o.write 0 (attesterAttestCallMem I) 448 32).readWithPadding 448 32 =
@@ -1310,6 +1422,85 @@ theorem attesterAttestReturnDecodeMem_read448_word (I : ExecutionEnv) (o : ByteA
     (by norm_num)
     (by rw [attesterAttestReturnWrite_size I o ho32]; norm_num)]
   exact attesterAttestReturnWrite_read448_word I o ho32
+
+private theorem attesterAttestReturnDecodeRounded_le (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩) (UInt256.lnot ⟨31⟩)).toNat
+      ≤ o.size + 31 := by
+  have hosz : (UInt256.ofNat o.size).toNat = o.size :=
+    ulit_toNat' o.size (lt_size_of_lt_sign ho255)
+  have hadd :
+      (UInt256.add (UInt256.ofNat o.size) (⟨31⟩ : UInt256)).toNat = o.size + 31 := by
+    change (((UInt256.ofNat o.size) + (⟨31⟩ : UInt256)).toNat = o.size + 31)
+    rw [uadd_toNat, hosz, show (⟨31⟩ : UInt256).toNat = 31 by decide]
+    rw [Nat.mod_eq_of_lt]
+    have hcap : 2 ^ 255 + 31 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  rw [uland_toNat, hadd]
+  exact Nat.and_le_left
+
+theorem attesterAttestReturnDecodeFreePtr_toNat (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestReturnDecodeFreePtr o).toNat =
+      448 +
+        (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+          (UInt256.lnot ⟨31⟩)).toNat := by
+  unfold attesterAttestReturnDecodeFreePtr
+  change (((⟨448⟩ : UInt256) +
+      UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+        (UInt256.lnot ⟨31⟩)).toNat =
+    448 +
+      (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+        (UInt256.lnot ⟨31⟩)).toNat)
+  rw [uadd_toNat, show (⟨448⟩ : UInt256).toNat = 448 by decide]
+  rw [Nat.mod_eq_of_lt]
+  have hround := attesterAttestReturnDecodeRounded_le o ho255
+  have hcap : 448 + (o.size + 31) < UInt256.size := by
+    have hsign : 2 ^ 255 + 479 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  omega
+
+theorem attesterAttestReturnDecodeFreePtr_ge448 (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    448 ≤ (attesterAttestReturnDecodeFreePtr o).toNat := by
+  rw [attesterAttestReturnDecodeFreePtr_toNat o ho255]
+  omega
+
+theorem attesterAttestReturnDecodeFreePtr_add32_lt (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestReturnDecodeFreePtr o).toNat + 32 < UInt256.size := by
+  rw [attesterAttestReturnDecodeFreePtr_toNat o ho255]
+  have hround := attesterAttestReturnDecodeRounded_le o ho255
+  have hcap : 448 + (o.size + 31) + 32 < UInt256.size := by
+    have hsign : 2 ^ 255 + 511 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  omega
+
+theorem attesterAttestReturnDecodeFreePtr_add63_lt (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestReturnDecodeFreePtr o).toNat + 63 < UInt256.size := by
+  rw [attesterAttestReturnDecodeFreePtr_toNat o ho255]
+  have hround := attesterAttestReturnDecodeRounded_le o ho255
+  have hcap : 448 + (o.size + 31) + 63 < UInt256.size := by
+    have hsign : 2 ^ 255 + 542 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  omega
+
+theorem attesterAttestReturnDecodeFreePtr_add32_sub (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    UInt256.sub (UInt256.add ⟨32⟩ (attesterAttestReturnDecodeFreePtr o))
+        (attesterAttestReturnDecodeFreePtr o) = ⟨32⟩ := by
+  let fp := attesterAttestReturnDecodeFreePtr o
+  have hfit : fp.toNat + 32 < UInt256.size :=
+    attesterAttestReturnDecodeFreePtr_add32_lt o ho255
+  apply u256_inj
+  change (UInt256.sub ((⟨32⟩ : UInt256) + fp) fp).toNat = (⟨32⟩ : UInt256).toNat
+  rw [usub_toNat]
+  · rw [uadd_lit32_toNat fp hfit]
+    rw [show (⟨32⟩ : UInt256).toNat = 32 by decide]
+    omega
+  · rw [uadd_lit32_toNat fp hfit]
+    omega
 
 theorem solcDecodeEndLenCheckOk_448_32 {len : ℕ}
     (hlen : 32 ≤ len) (hhi : len < 2 ^ 255) :
@@ -3074,6 +3265,27 @@ theorem attesterX_attestPostRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by simp only [List.length_cons]; omega)
 
+theorem attesterX_attestCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : AttesterImmutables)
+    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz68 : 68 ≤ I.calldata.size) (hsmall : I.calldata.size < 2 ^ 255 + 4)
+    (hmultiRevoke : (attesterMultiRevokeSelBytes == I.calldata.extract 0 4) = false)
+    (hmultiAttest : (attesterMultiAttestSelBytes == I.calldata.extract 0 4) = false)
+    (hattest : (attesterAttestSelBytes == I.calldata.extract 0 4) = true)
+    (hdepth : I.depth = 1024) :
+    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+  obtain ⟨_, _, rd1804⟩ :=
+    attesterX_attestToExternalCall (v := v) hsz68 hsize hsmall
+      (attesterX_attestWrapper (g := g) v hcode hwv hsz4 hsize
+        hmultiRevoke hmultiAttest hattest)
+  obtain ⟨_, rd1805⟩ :=
+    rd1804.gas (by attester_decode_at v, ⟨1804⟩, 0x5a, .GAS) (by evm_ov)
+  obtain ⟨_, _, rd1806⟩ :=
+    rd1805.callDepthLimit (by attester_decode_at v, ⟨1805⟩, 0xf1, .CALL)
+      hdepth (by evm_ov)
+  exact attesterX_attestPostRevert (v := v) rd1806 (by simp)
+
 theorem attesterX_attestCallSuccessToReturnDecodeMem {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -3283,6 +3495,118 @@ def attesterAttestPublicReturnAwAfterMload (o : ByteArray) : UInt256 :=
   UInt256.ofNat (MachineState.M (attesterAttestPublicReturnAw o).toNat
     (⟨64⟩ : UInt256).toNat 32)
 
+theorem attesterAttestPublicReturnMem_size (I : ExecutionEnv) (o : ByteArray)
+    (uid : UInt256) (ho32 : 32 ≤ o.size) :
+    (attesterAttestPublicReturnMem I o uid).size =
+      max 836 ((attesterAttestReturnDecodeFreePtr o).toNat + 32) := by
+  unfold attesterAttestPublicReturnMem
+  rw [attesterWriteWord_size_eq_max_nat, attesterAttestReturnDecodeMem_size I o ho32]
+
+theorem attesterAttestPublicReturnMem_read64 (I : ExecutionEnv) (o : ByteArray)
+    (uid : UInt256) (ho32 : 32 ≤ o.size) (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestPublicReturnMem I o uid).readWithPadding 64 32 =
+      UInt256.toByteArray (attesterAttestReturnDecodeFreePtr o) := by
+  unfold attesterAttestPublicReturnMem
+  rw [attesterWriteWord_read_below_len_nat]
+  · exact attesterAttestReturnDecodeMem_read64 I o ho32
+  · rw [attesterAttestReturnDecodeMem_size I o ho32]
+    norm_num
+  · exact le_trans (by norm_num : 64 + 32 ≤ 448)
+      (attesterAttestReturnDecodeFreePtr_ge448 o ho255)
+  · norm_num
+  · norm_num
+
+theorem attesterAttestPublicReturnMem_readUid (I : ExecutionEnv) (o : ByteArray)
+    (uid : UInt256) :
+    (attesterAttestPublicReturnMem I o uid).readWithPadding
+        (attesterAttestReturnDecodeFreePtr o).toNat 32 =
+      UInt256.toByteArray uid := by
+  unfold attesterAttestPublicReturnMem
+  exact attesterWriteWord_read_back_nat _ _ _
+
+theorem attesterAttestReturnDecodeMem_mload64 (I : ExecutionEnv) (o : ByteArray)
+    (ho32 : 32 ≤ o.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (attesterAttestReturnDecodeMem I o).size ∨
+        (⟨64⟩ : UInt256) ≥ ⟨27⟩ * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((attesterAttestReturnDecodeMem I o).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      attesterAttestReturnDecodeFreePtr o := by
+  exact mloadWordValue_of_readWithPadding
+    (by rw [attesterAttestReturnDecodeMem_size I o ho32]; decide)
+    (by decide)
+    (by simpa using attesterAttestReturnDecodeMem_read64 I o ho32)
+
+private theorem attesterAttestPublicReturnAw_toNat (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestPublicReturnAw o).toNat =
+      MachineState.M 27 (attesterAttestReturnDecodeFreePtr o).toNat 32 := by
+  unfold attesterAttestPublicReturnAw
+  exact ulit_toNat' _ (by
+    simp [MachineState.M]
+    have hfp := attesterAttestReturnDecodeFreePtr_add63_lt o ho255
+    have hdivle :
+        ((attesterAttestReturnDecodeFreePtr o).toNat + 32 + 31) / 32
+          ≤ (attesterAttestReturnDecodeFreePtr o).toNat + 32 + 31 :=
+      Nat.div_le_self _ _
+    constructor
+    · rw [show (⟨27⟩ : UInt256).toNat = 27 by decide]
+      norm_num [UInt256.size]
+    · omega)
+
+private theorem attesterAttestPublicReturnAw_ge27 (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    27 ≤ (attesterAttestPublicReturnAw o).toNat := by
+  rw [attesterAttestPublicReturnAw_toNat o ho255]
+  simp [MachineState.M]
+
+private theorem attesterAttestPublicReturnAw_mul32_toNat (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    (attesterAttestPublicReturnAw o * (⟨32⟩ : UInt256)).toNat =
+      (attesterAttestPublicReturnAw o).toNat * 32 := by
+  apply umul_toNat
+  rw [show (⟨32⟩ : UInt256).toNat = 32 by decide]
+  rw [attesterAttestPublicReturnAw_toNat o ho255]
+  simp [MachineState.M]
+  have hfp := attesterAttestReturnDecodeFreePtr_add63_lt o ho255
+  have hdiv : ((attesterAttestReturnDecodeFreePtr o).toNat + 32 + 31) / 32 * 32
+      ≤ (attesterAttestReturnDecodeFreePtr o).toNat + 32 + 31 :=
+    Nat.div_mul_le_self _ _
+  by_cases hle : 27 ≤ ((attesterAttestReturnDecodeFreePtr o).toNat + 32 + 31) / 32
+  · rw [max_eq_right hle]
+    omega
+  · rw [max_eq_left (by omega)]
+    norm_num [UInt256.size]
+
+private theorem attesterAttestPublicReturnAw_mload64 (o : ByteArray)
+    (ho255 : o.size < 2 ^ 255) :
+    ¬ (⟨64⟩ : UInt256) ≥ attesterAttestPublicReturnAw o * ⟨32⟩ := by
+  intro h
+  have hle : (attesterAttestPublicReturnAw o * (⟨32⟩ : UInt256)).toNat ≤ 64 := by
+    exact h
+  rw [attesterAttestPublicReturnAw_mul32_toNat o ho255] at hle
+  have hge := attesterAttestPublicReturnAw_ge27 o ho255
+  omega
+
+theorem attesterAttestPublicReturnMem_mload64 (I : ExecutionEnv) (o : ByteArray)
+    (uid : UInt256) (ho32 : 32 ≤ o.size) (ho255 : o.size < 2 ^ 255) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (attesterAttestPublicReturnMem I o uid).size ∨
+        (⟨64⟩ : UInt256) ≥ attesterAttestPublicReturnAw o * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((attesterAttestPublicReturnMem I o uid).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      attesterAttestReturnDecodeFreePtr o := by
+  exact mloadWordValue_of_readWithPadding
+    (by
+      rw [attesterAttestPublicReturnMem_size I o uid ho32]
+      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide]
+      exact lt_of_lt_of_le (by norm_num : 64 < 836)
+        (le_max_left _ _))
+    (attesterAttestPublicReturnAw_mload64 o ho255)
+    (by simpa using attesterAttestPublicReturnMem_read64 I o uid ho32 ho255)
+
 theorem attesterX_attestPublicReturnWith {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -3413,7 +3737,138 @@ theorem attesterAttestBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hd := attesterDispatch_attest v hattest
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hsmall : I.calldata.size < 2 ^ 255 + 4
-    · sorry
+    · let gS : Sat256 := Sat256.ofUInt256 g
+      let evmEvm : EVM.State := initState cA gh bl σ_evm σ₀ gS A I
+      let evmSolm : EVM.State := initState cA gh bl σ_solm σ₀ gS A I
+      have hdec := attesterDecode_attest_ok v hsz68 hsmall
+      have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
+        simp [evmSolm, initState, hwv]
+      have hargsSolm :
+          evalExprs? (config v)
+              { contract := contract v, locals := attesterAttestStore I } evmSolm
+              [attestationRequest (.var "schema") (.var "input")] =
+            .ok (attesterAttestArgVals I) :=
+        attesterEvalAttestArgs v evmSolm I
+      by_cases hdepth : I.depth.val < 1024
+      · have hreach :=
+          attesterX_attestWrapper (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+            (σ₀ := σ₀) (A := A) (I := I) (g := gS) v hIcode hwv hsz4 hsize
+            hmultiRevoke hmultiAttest hattest
+        obtain ⟨cA', σ', z, o, A', k', C', rd1806, hcallEvm, hosize⟩ :=
+          attesterX_attestPostCall (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+            (σ₀ := σ₀) (A := A) (I := I) (g := gS) v hsz68 hsize hsmall hreach
+            hperm hdepth
+        let evmPostEvm : EVM.State :=
+          { evmEvm with accountMap := σ', substate := A', createdAccounts := cA' }
+        have hcallEvm' :
+            typedCallViaEVM (config v) evmEvm (EVM.address v.eas) "attest" 0
+              (attesterAttestArgVals I) (z, evmPostEvm, o) true := by
+          simpa [evmEvm, evmPostEvm] using hcallEvm
+        obtain ⟨σSolmPost, ASolmPost, hcallSolm, hStateCall⟩ :=
+          typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm')
+            (by simp [evmEvm, evmSolm, evmPostEvm, initState]) hAccounts
+        let evmPostSolm : EVM.State :=
+          { evmSolm with accountMap := σSolmPost, substate := ASolmPost, createdAccounts := cA' }
+        have hcallSolm' :
+            typedCallViaEVM (config v) evmSolm (EVM.address v.eas) "attest" 0
+              (attesterAttestArgVals I) (z, evmPostSolm, o) true := by
+          simpa [evmPostSolm] using hcallSolm
+        have hStateCall' : EVMStateEquiv evmPostEvm evmPostSolm := by
+          simpa [evmPostSolm] using hStateCall
+        cases z
+        · simp only [Bool.false_eq_true, if_false] at rd1806 hcallSolm'
+          have hrdrev := attesterX_attestPostRevert (v := v) rd1806 (by simp)
+          have hbody :=
+            attesterAttestBodyCallFailure v evmSolm evmPostSolm
+              (attesterAttestStore I) hwvSolm hargsSolm hcallSolm'
+          exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
+        · simp only [Bool.true_eq_false, if_true] at rd1806 hcallSolm'
+          by_cases ho255 : o.size < 2 ^ 255
+          · by_cases ho32 : 32 ≤ o.size
+            · rw [attesterAttestMin32_toNat_of_ge ho32 hosize] at rd1806
+              obtain ⟨_, _, rd3150⟩ :=
+                attesterX_attestCallSuccessToReturnDecode (v := v) rd1806 ho32
+              obtain ⟨_, _, rd1856⟩ :=
+                attesterX_attestReturnDecodeOk (v := v) rd3150 ho32 ho255
+              have hrdret :=
+                attesterX_attestPublicReturnWith (v := v) rd1856
+                  (attesterAttestReturnDecodeMem_mload64 I o ho32)
+                  (attesterAttestPublicReturnMem_mload64 I o
+                    (uInt256OfByteArray (o.extract 0 32)) ho32 ho255)
+                  (attesterAttestReturnDecodeFreePtr_add32_sub o ho255)
+                  (attesterAttestPublicReturnMem_readUid I o
+                    (uInt256OfByteArray (o.extract 0 32)))
+              have hretdec := attesterDecode_attest_return_ok v ho32 ho255
+              have hbody :=
+                attesterAttestBodySuccess v evmSolm evmPostSolm
+                  (attesterAttestStore I) hwvSolm hargsSolm hcallSolm' hretdec
+              have henc :
+                  returnEquiv
+                    (UInt256.toByteArray (uInt256OfByteArray (o.extract 0 32)))
+                    (some [.fixedBytes bytes32Width
+                      (EVM.Word.toBytesBE (uInt256OfByteArray (o.extract 0 32)))])
+                    (attestTransition v).returnType := by
+                simpa [attestTransition, bytes32, bytes32Width] using
+                  returnEquiv_of_encode
+                    (bytes32ReturnEncoding (uInt256OfByteArray (o.extract 0 32)))
+              exact hrdret.reEquivExecutionGenEVMStateEquiv hIcode hd hdec hbody
+                rfl (accountMapEquiv.refl σ') hStateCall' henc
+            · have ho32lt : o.size < 32 := by omega
+              rw [attesterAttestMin32_toNat_of_lt ho32lt] at rd1806
+              have hfp :=
+                attesterAttestReturnWrite_mload64_of_len I o
+                  (by omega : o.size ≤ o.size)
+                  (by omega : o.size ≤ 32)
+              obtain ⟨_, _, rd3150⟩ :=
+                attesterX_attestCallSuccessToReturnDecodeMem (v := v) rd1806 hfp
+              have hrdrev :=
+                attesterX_attestReturnDecodeShortReverts (v := v) rd3150 ho32lt
+              have hretdec := attesterDecode_attest_return_none_short v ho32lt
+              have hbody :=
+                attesterAttestBodyDecodeRevert v evmSolm evmPostSolm
+                  (attesterAttestStore I) hwvSolm hargsSolm hcallSolm' hretdec
+              exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
+          · have hhi : 2 ^ 255 ≤ o.size := by omega
+            have ho32 : 32 ≤ o.size := by omega
+            rw [attesterAttestMin32_toNat_of_ge ho32 hosize] at rd1806
+            obtain ⟨_, _, rd3150⟩ :=
+              attesterX_attestCallSuccessToReturnDecode (v := v) rd1806 ho32
+            have hrdrev :=
+              attesterX_attestReturnDecodeHugeReverts (v := v) rd3150 hhi hosize
+            have hretdec := attesterDecode_attest_return_none_huge v hhi
+            have hbody :=
+              attesterAttestBodyDecodeRevert v evmSolm evmPostSolm
+                (attesterAttestStore I) hwvSolm hargsSolm hcallSolm' hretdec
+            exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
+      · have hdepth1024 : I.depth = 1024 := by
+          apply Fin.ext
+          have hlt := I.depth.isLt
+          rw [not_lt] at hdepth
+          omega
+        have hrdrev :=
+          attesterX_attestCallDepthLimit (cA := cA) (gh := gh) (bl := bl)
+            (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := gS) v hIcode hwv
+            hsz4 hsize hsz68 hsmall hmultiRevoke hmultiAttest hattest hdepth1024
+        have hdepthInit : evmSolm.executionEnv.depth = 1024 := by
+          simpa [evmSolm, initState] using hdepth1024
+        have hcallSolm :
+            typedCallViaEVM (config v) evmSolm (EVM.address v.eas) "attest" 0
+              (attesterAttestArgVals I)
+              (false,
+                { evmSolm with
+                  substate := (evmSolm.addAccessedAccount (EVM.address v.eas)).substate },
+                ByteArray.empty)
+              true :=
+          callNotMade_depthLimit
+            (cfg := config v) (evm := evmSolm) (tgt := EVM.address v.eas)
+            (name := "attest") (args := attesterAttestArgVals I) (callPerm := true)
+            (attesterEncodeAttest_eq v hsz68) hdepthInit
+        have hbody :=
+          attesterAttestBodyCallFailure v evmSolm
+            ({ evmSolm with
+              substate := (evmSolm.addAccessedAccount (EVM.address v.eas)).substate })
+            (attesterAttestStore I) hwvSolm hargsSolm hcallSolm
+        exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
     · have hbig : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
       have hdec := attesterDecode_attest_none_huge v hbig
       exact (attesterX_attestDecodeHuge (g := Sat256.ofUInt256 g) v hIcode hwv hsz4 hsize hbig
