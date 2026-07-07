@@ -165,7 +165,9 @@ def constructorDecl : ConstructorDecl :=
         .assign .storage vatRef (.var "vat_"),
         .assign .storage ilkRef (.var "ilk_"),
         .assign .storage gemRef (.var "gem_") ] ++
-      checkedExternalCallStmts (.var "gem_") "decimals" (.intLit 0) [] "decimalsRet" ++
+      -- GemLike.decimals() is `view` → STATICCALL (perm := false)
+      checkedExternalCallStmts (.var "gem_") "decimals" (.intLit 0) [] "decimalsRet"
+        (perm := false) ++
       [ .assign .storage decRef (.var "decimalsRet") ] }
 
 def functions : List FunctionDecl := []
