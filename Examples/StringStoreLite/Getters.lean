@@ -1707,7 +1707,7 @@ theorem currentLengthZeroAllocMem_read64 :
 
 theorem currentLengthZeroMem_eq :
     currentLengthZeroMem =
-      (currentLengthZeroAllocMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++
+      (currentLengthZeroAllocMem ++ ffi.ByteArray.zeroes 32) ++
         UInt256.toByteArray ⟨0⟩ := by
   rw [currentLengthZeroMem,
     toByteArray_write_eq _ _ _ (by rw [currentLengthZeroAllocMem_size]; decide)
@@ -1772,7 +1772,7 @@ theorem currentLengthZeroMem_mload64 :
 
 theorem currentLengthZeroReturnMem_eq :
     currentLengthZeroReturnMem =
-      (currentLengthZeroMem ++ ffi.ByteArray.zeroes (USize.ofNat 0)) ++
+      (currentLengthZeroMem ++ ffi.ByteArray.zeroes 0) ++
         UInt256.toByteArray ⟨0⟩ := by
   rw [currentLengthZeroReturnMem,
     toByteArray_write_eq _ _ _ (by rw [currentLengthZeroMem_size])

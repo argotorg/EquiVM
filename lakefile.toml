@@ -38,4 +38,4 @@ globs = ["Benchmarks.+"]
 [[require]]
 name = "evmlean"
 git = "https://github.com/lefterislazar/EVMLean.git"
-rev = "step_semantics"
+rev = "read-bytearray-bound"

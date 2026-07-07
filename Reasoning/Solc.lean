@@ -6806,7 +6806,8 @@ theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
@@ -6831,7 +6832,8 @@ theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (by
+              exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.STATICCALL with hmc
       set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
@@ -6941,7 +6943,9 @@ theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
           (s.executionEnv.depth + 1) s.executionEnv.header false
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len
+              s.machineState.memory inOffset.toNat inSize)
 
 -- Generic `STATICCALL` depth-limit `RD` combinator.
 theorem RD.uniswapStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}

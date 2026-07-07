@@ -279,6 +279,23 @@ theorem byteArray_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :
   · simp [h]
     exact zeroes_zero (n := (OfNat.ofNat 0 )) (by rfl)
 
+/-- A `readWithPadding` whose requested length comes from a `UInt256` is small enough to be passed
+    back into EVM return-data interfaces.  This replaces the old unconditional evmlean fact that
+    followed from `readWithPadding`'s former `2^64` cap. -/
+theorem readWithPadding_size_lt_uint256_of_u256_len
+    (mem : ByteArray) (addr : ℕ) (len : UInt256) :
+    (mem.readWithPadding addr len.toNat).size < UInt256.size := by
+  unfold ByteArray.readWithPadding
+  rw [ByteArray.size_append, ByteArray_zeroes_size]
+  have hread : (mem.readWithoutPadding addr len.toNat).size ≤ len.toNat := by
+    unfold ByteArray.readWithoutPadding
+    split
+    · simp
+    · rw [ByteArray.size_extract]
+      omega
+  rw [Nat.add_sub_of_le hread]
+  exact len.val.isLt
+
 theorem empty_readWithPadding_word_zero :
     uInt256OfByteArray (ByteArray.empty.readWithPadding 0 32) = (⟨0⟩ : UInt256) := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
@@ -449,7 +466,7 @@ theorem readWithPadding_eq_extract (source : ByteArray) (addr : ℕ)
   have hsz : (source.extract addr (addr + 32)).size = 32 := by
     rw [ByteArray.size_extract]; omega
   unfold ByteArray.readWithPadding
-  rw [if_neg (by norm_num : ¬ ((32:ℕ) ≥ 2 ^ 64)), readWithoutPadding_eq_extract source addr h]
+  rw [readWithoutPadding_eq_extract source addr h]
   simp only []
   rw [hsz]
   rw [zeroes_zero (n := 32 - 32) (by rfl)]
@@ -464,14 +481,17 @@ theorem readWithoutPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
   simp only [show min len source.size = len from by omega]
 
 /-- **In-bounds read of an arbitrary-length window.**  When `[addr, addr+len)` lies inside
-    `source` (and `len < 2⁶⁴`), `readWithPadding addr len` is exactly that slice (no trailing pad). -/
+    `source`, `readWithPadding addr len` is exactly that slice (no trailing pad).
+
+    The `len < 2^64` hypothesis is retained for compatibility with existing case studies; current
+    evmlean `readWithPadding` no longer branches on this bound. -/
 theorem readWithPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
-    (hpos : 0 < len) (hlen : len < 2 ^ 64) (h : addr + len ≤ source.size) :
+    (hpos : 0 < len) (_hlen : len < 2 ^ 64) (h : addr + len ≤ source.size) :
     source.readWithPadding addr len = source.extract addr (addr + len) := by
   have hsz : (source.extract addr (addr + len)).size = len := by
     rw [ByteArray.size_extract]; omega
   unfold ByteArray.readWithPadding
-  rw [if_neg (by omega : ¬ ((len:ℕ) ≥ 2 ^ 64)), readWithoutPadding_eq_extract' source addr len hpos h]
+  rw [readWithoutPadding_eq_extract' source addr len hpos h]
   simp only []
   rw [hsz]
   rw [zeroes_zero (n := len - len) (by omega)]
@@ -615,11 +635,10 @@ theorem write0_data_from (src base : ByteArray) (srcAddr len : ℕ)
 
 /-- Read back a write at destination offset `0`, even when the write extends the destination. -/
 theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
-    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hlen64 : len < 2 ^ 64) :
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (_hlen64 : len < 2 ^ 64) :
     (src.write 0 base 0 len).readWithPadding 0 len = src.extract 0 len := by
   apply ByteArray.ext
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
   have hdata := write0_data src base len hlen hsrc
   have hsize : (src.write 0 base 0 len).size ≥ len := by
     show (src.write 0 base 0 len).data.size ≥ len
@@ -654,11 +673,10 @@ theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
 /-- Read back a destination-0 write from an arbitrary source offset, even when the write extends
     the destination. -/
 theorem write0_read_back_from_gen (src base : ByteArray) (srcAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hlen64 : len < 2 ^ 64) :
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (_hlen64 : len < 2 ^ 64) :
     (src.write srcAddr base 0 len).readWithPadding 0 len = src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
   have hdata := write0_data_from src base srcAddr len hlen hsrc
   have hsize : (src.write srcAddr base 0 len).size ≥ len := by
     show (src.write srcAddr base 0 len).data.size ≥ len
@@ -1285,7 +1303,6 @@ theorem readWithPadding_zero_toList_of_size_lt32 (b : ByteArray)
     (b.readWithPadding 0 32).toList =
       b.toList ++ List.replicate (32 - b.size) 0 := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64))]
   rw [if_neg (by omega : ¬ (0 : Nat) ≥ b.size)]
   change
     (b.extract 0 (0 + min 32 b.size) ++

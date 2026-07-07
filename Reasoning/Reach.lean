@@ -2345,7 +2345,8 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
   · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
     have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
@@ -2374,7 +2375,8 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (by
+              exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
     · -- success: SUCC is concrete in hXP.  Emit `Or.inr ⟨SUCC, …⟩` with field projections,
       -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
       rename_i hP
@@ -2489,7 +2491,9 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len
+              s.machineState.memory inOffset.toNat inSize)
 
 /-- `RD.call` specialized to Solidity's empty-call-data / no-return-copy pattern.
 
@@ -2584,7 +2588,8 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hperm' : s.executionEnv.perm = true := by rw [hee]; exact hperm
@@ -2635,7 +2640,8 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (by
+              exact readWithPadding_size_lt_uint256_of_u256_len mem inOffset.toNat inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.CALL with hmc
       set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
@@ -2733,7 +2739,9 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.perm
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (by
+            exact readWithPadding_size_lt_uint256_of_u256_len
+              s.machineState.memory inOffset.toNat inSize)
 
 /-- `RD.callValueMade` specialized to Solidity's empty-call-data / no-return-copy pattern. -/
 theorem RD.callValueMadeEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}

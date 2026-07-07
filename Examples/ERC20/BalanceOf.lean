@@ -216,8 +216,6 @@ theorem balanceOfReturnMem_size (owner val : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [balanceOfHashMem_size]; omega)
       (by rw [balanceOfHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem balanceOfReturnMem_read64 (owner val : UInt256) :
@@ -227,15 +225,10 @@ theorem balanceOfReturnMem_read64 (owner val : UInt256) :
       (by rw [balanceOfHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, balanceOfHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
+        ByteArray_zeroes_size, toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [balanceOfHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [balanceOfHashMem_size]),
@@ -258,27 +251,16 @@ theorem balanceOfReturnMem_read128 (owner val : UInt256) :
       (by rw [balanceOfHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, balanceOfHashMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-        toByteArray_size]
+        ByteArray_zeroes_size, toByteArray_size]
       )]
   rw [extract_append_right_window
-      (balanceOfHashMem owner ++ ffi.ByteArray.zeroes (USize.ofNat (128 - (balanceOfHashMem owner).size)))
+      (balanceOfHashMem owner ++ ffi.ByteArray.zeroes (128 - (balanceOfHashMem owner).size))
       (UInt256.toByteArray val) 128 160 (by
-        rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size]
         )]
-  rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size]
   norm_num
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray val).size ≤ 32
-    rw [toByteArray_size])
+  exact toByteArray_extract_all val
 
 /-! ## EVM trace for `balanceOf(address)` -/
 

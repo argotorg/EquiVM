@@ -1693,12 +1693,11 @@ theorem readWithPadding_tail32_toList (b : ByteArray) {addr : Nat}
     (b.readWithPadding addr 32).toList =
       b.toList.drop addr ++ List.replicate (32 - (b.toList.drop addr).length) 0 := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64))]
   rw [if_neg (by omega : ¬ addr ≥ b.size)]
   rw [show min 32 b.size = 32 by omega]
   change
     (b.extract addr (addr + 32) ++
-        ffi.ByteArray.zeroes { toBitVec := ↑32 - ↑(b.extract addr (addr + 32)).size }).toList =
+        ffi.ByteArray.zeroes (32 - (b.extract addr (addr + 32)).size)).toList =
       b.toList.drop addr ++ List.replicate (32 - (b.toList.drop addr).length) 0
   rw [byteArray_toList_eq (_ ++ _), ByteArray.data_append, Array.toList_append]
   rw [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop]
@@ -1714,7 +1713,6 @@ theorem readWithPadding_tail32_toList (b : ByteArray) {addr : Nat}
     rw [ByteArray.size_extract]
     omega
   rw [hreadSize, byteArray_zeroes_toList]
-  rw [pad_toNat (b.size - addr) (by omega)]
   rw [hdropLen]
 
 theorem setDecodedValueBytes_readWithPadding_tail_word
@@ -2427,9 +2425,6 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_read_payload_tail_toList
       (cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).toList.length =
         len.toNat := by
     simpa [payload] using hpayloadLen
-  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by
-    have hdiv := Nat.div_add_mod len.toNat 32
-    omega))]
   congr 1
   rw [List.length_drop]
   rw [hpayloadLen']
