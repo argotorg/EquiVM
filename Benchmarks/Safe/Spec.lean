@@ -144,6 +144,7 @@ def moduleGuardInterfaceId : Expr :=
 
 def singletonRef : StorageRef := { base := "singleton" }
 def modulesRef (module : Expr) : StorageRef := { base := "modules", steps := [.mindex module] }
+def modulesSentinelRef : StorageRef := { base := "_modulesSentinel" }
 def ownersRef (owner : Expr) : StorageRef := { base := "owners", steps := [.mindex owner] }
 def ownerCountRef : StorageRef := { base := "ownerCount" }
 def thresholdRef : StorageRef := { base := "threshold" }
@@ -165,6 +166,7 @@ def rawStorageRef (slot : Expr) : StorageRef :=
 def storageDecls : List StorageDecl :=
   [ { name := "singleton", ty := addrSt },
     { name := "modules", ty := .mapping .address addrSt },
+    { name := "_modulesSentinel", ty := addrSt },
     { name := "owners", ty := .mapping .address addrSt },
     { name := "ownerCount", ty := uint256St },
     { name := "threshold", ty := uint256St },
@@ -184,6 +186,9 @@ def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
 def modulesSlot (module : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord module) ⟨1⟩
 
+def modulesSentinelSlot : Ethereum.UInt256 :=
+  ⟨0xcc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f⟩
+
 def ownersSlot (owner : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord owner) ⟨2⟩
 
@@ -198,6 +203,9 @@ def approvedHashesSlot (owner messageHash : KeyValue) : Ethereum.UInt256 :=
 
 def fallbackHandlerSlot : Ethereum.UInt256 :=
   ⟨0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5⟩
+
+def fallbackHandlerRawRef : StorageRef :=
+  rawStorageRef (.intLit (Int.ofNat fallbackHandlerSlot.toNat))
 
 def guardSlot : Ethereum.UInt256 :=
   ⟨0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8⟩
@@ -215,8 +223,12 @@ def wordLoc (slot : Ethereum.UInt256) (ty : ElemType) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   loc slot ⟨0, by decide⟩ ⟨20, by decide⟩ (by decide) .address
 
+def fullAddrLoc (slot : Ethereum.UInt256) : StorageLoc :=
+  loc slot ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) .address
+
 def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
   | { base := "singleton", steps := [] }, _ => some (addrLoc ⟨0⟩)
+  | { base := "_modulesSentinel", steps := [] }, _ => some (addrLoc modulesSentinelSlot)
   | { base := "modules", steps := [.mindex module] }, _ => some (addrLoc (modulesSlot module))
   | { base := "owners", steps := [.mindex owner] }, _ => some (addrLoc (ownersSlot owner))
   | { base := "ownerCount", steps := [] }, _ => some (wordLoc ⟨3⟩ (.int uint256Int))
@@ -228,9 +240,9 @@ def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
       some (wordLoc (signedMessagesSlot messageHash) (.int uint256Int))
   | { base := "approvedHashes", steps := [.mindex owner, .mindex messageHash] }, _ =>
       some (wordLoc (approvedHashesSlot owner messageHash) (.int uint256Int))
-  | { base := "_fallbackHandler", steps := [] }, _ => some (addrLoc fallbackHandlerSlot)
-  | { base := "_guard", steps := [] }, _ => some (addrLoc guardSlot)
-  | { base := "_moduleGuard", steps := [] }, _ => some (addrLoc moduleGuardSlot)
+  | { base := "_fallbackHandler", steps := [] }, _ => some (fullAddrLoc fallbackHandlerSlot)
+  | { base := "_guard", steps := [] }, _ => some (fullAddrLoc guardSlot)
+  | { base := "_moduleGuard", steps := [] }, _ => some (fullAddrLoc moduleGuardSlot)
   | { base := "_rawStorage", steps := [.mindex slot] }, _ =>
       some (wordLoc (keyValueToWord slot) (.int uint256Int))
   | _, _ => none
@@ -523,8 +535,8 @@ def setupModulesFunction : FunctionDecl :=
     params := [{ name := "to", ty := addr }, { name := "data", ty := bytesTy }]
     returnType := []
     body :=
-      [ .require (eqE (.storage (modulesRef sentinelAddr)) zeroAddr),
-        .assign .storage (modulesRef sentinelAddr) sentinelAddr,
+      [ .require (eqE (.storage modulesSentinelRef) zeroAddr),
+        .assign .storage modulesSentinelRef sentinelAddr,
         .ite (neE (.var "to") zeroAddr)
           [ .require (gtE (.extCodeSize (.var "to")) (.intLit 0)),
             .internalCall "execute"
@@ -765,8 +777,9 @@ def fallbackTransition : TransitionDecl :=
     returnType := [bytesTy]
     body :=
       nonpayable ++
-      [ .letDecl "handler" (some addr) (.storage fallbackHandlerRef),
-        .ite (eqE (.var "handler") zeroAddr)
+      [ .letDecl "handlerWord" (some uint256) (.storage fallbackHandlerRawRef),
+        .letDecl "handler" (some addr) (.cast (.var "handlerWord") addrSt),
+        .ite (eqE (.var "handlerWord") (.intLit 0))
           [ .return [emptyBytes] ]
           [ .lowLevelCall (.var "handler") (.intLit 0)
               (.abiEncodePacked [(bytesTy, .var "calldata"), (addr, sender)])
@@ -888,8 +901,8 @@ def enablemoduleTransition : TransitionDecl :=
       nonpayable ++ authorized ++
       [ .require (andE (neE (.var "module") zeroAddr) (neE (.var "module") sentinelAddr)),
         .require (eqE (.storage (modulesRef (.var "module"))) zeroAddr),
-        .assign .storage (modulesRef (.var "module")) (.storage (modulesRef sentinelAddr)),
-        .assign .storage (modulesRef sentinelAddr) (.var "module") ] }
+        .assign .storage (modulesRef (.var "module")) (.storage modulesSentinelRef),
+        .assign .storage modulesSentinelRef (.var "module") ] }
 
 def exectransactionTransition : TransitionDecl :=
   { name := "execTransaction"

@@ -28,8 +28,8 @@ Artifacts:
 - `Spec.lean`: Solm AST scaffold with ABI surface, solc 0.8.35 ABI coder mode, and solc storage layout
 - `SpecSyntax.lean`: syntax-side wrapper checked definitionally against the AST scaffold
 - `Bytecode.lean`: optimized bytecode embedded as `ByteArray`, with `valid_jumps` facts
-- `Constructor.lean`: constructor equivalence target, currently `sorry`
-- `Correct.lean`: runtime and top-level contract equivalence targets, currently `sorry`
+- `Constructor.lean`: constructor equivalence proof for the storage-initializing initcode
+- `Correct.lean`: runtime dispatch routing and top-level contract equivalence target
 
 Main source sha256: `9f91d9250e18bb0710b7b1f10dcbe2417e9ef8d22eeee98dba2ef48661a060fa`.
 
