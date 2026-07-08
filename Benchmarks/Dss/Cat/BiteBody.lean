@@ -170,6 +170,97 @@ theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (catBiteSourceIlksFailRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm)
 
 set_option maxHeartbeats 4000000 in
+/-- **`grab` CALL reach EXPOSING the grown active-words** `awF = catBiteAwStepL aw (p+⟨164⟩)`.
+Wraps the cached `catBiteTraceGrabBuildAw` with the guard + void `RD.call` + `callCoincides`; the
+post-call active words collapse back to `awF` (the void CALL's `M (M awF p 196) p 0 = awF`, via
+`catBiteAwStepL_callCollapse`) — so the aw is exposed for the downstream `fess` reach. -/
+theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {dink dart q art ink iDust iSpot iRate urn p : UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
+      (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
+        biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      mem aw o (cA', σ') k C)
+    (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat ≤ mem.size)
+    (hawcov : p.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hpsz : p.toNat + 256 < UInt256.size)
+    (hthisCanon : (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus)
+    (hdink : dink.toNat ≤ 2 ^ 255) (hdart : dart.toNat ≤ 2 ^ 255)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord) ≠ ⟨0⟩)
+    (hdepth : I.depth.val < 1024) :
+    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+      (o' : ByteArray) (A'' : Substate) (k' C' : ℕ),
+      RD catBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: (p + ⟨196⟩) :: ⟨2074820416⟩ ::
+          UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
+          dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
+          biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+        (catBiteGrabCalldataMemP p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
+          (solcSlotWord σ' I ⟨4⟩) dink dart mem)
+        (catBiteAwStepL aw (p + ⟨164⟩).toNat) o' (cA'', σ'') k' C'
+    ∧ typedCallViaEVM config
+        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord))
+        "grab" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (biteIlkWord I)),
+         .address (AccountAddress.ofNat (UInt256.land biteAddrMaskWord urn).toNat),
+         .address (AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat),
+         .address (AccountAddress.ofNat
+           (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)).toNat),
+         .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
+        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') I.perm
+    ∧ o'.size < UInt256.size := by
+  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
+  have e164 : (p + ⟨164⟩).toNat = p.toNat + 164 := by
+    rw [uadd_toNat, show (⟨164⟩ : UInt256).toNat = 164 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have hM7lt : MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 < UInt256.size :=
+    catBiteMltL aw (p + ⟨164⟩).toNat (by omega)
+  have haw7val :
+      (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat = MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 :=
+    catBiteAwStepL_toNat aw (p + ⟨164⟩).toNat hM7lt
+  have hcov : p.toNat + 196 ≤ (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat * 32 := by
+    rw [haw7val, e164]; simp only [MachineState.M]; omega
+  obtain ⟨_, _, rd2177⟩ := catBiteTraceGrabBuildAw rd hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
+  have hencode := catBiteGrabEncode_eq p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
+    (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega) hthisCanon hdink hdart
+  obtain ⟨gasWord, _, _, rd2192⟩ :=
+    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
+      (by native_decide) (by native_decide) (by simp)
+  obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2193raw, hosz⟩ :=
+    RD.call rd2192 (by native_decide) hdepth (by simp)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by native_decide
+  rw [hpc] at rd2193raw
+  have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
+    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by
+      show (0 : Nat) ≤ (UInt256.ofNat o'.size).val.val
+      exact Nat.zero_le _
+    simp [min, hle]
+  rw [hz, byteArray_write_len_zero] at rd2193raw
+  simp only [show (⟨196⟩ : UInt256).toNat = 196 from by decide,
+      show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+      catBiteAwStepL_callCollapse aw p (p + ⟨164⟩).toNat hcov] at rd2193raw
+  refine ⟨cA'', σ'', z, o', A', k', C', rd2193raw, ?_, hosz⟩
+  refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
+    (callPerm := I.perm)
+    (targetWord := UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord)
+    (mem := catBiteGrabCalldataMemP p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
+      (solcSlotWord σ' I ⟨4⟩) dink dart mem)
+    (inOff := p) (inSize := ⟨196⟩)
+    (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+    rfl hencode ?_
+  simpa [initState] using hΘ
+
+set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
