@@ -574,4 +574,91 @@ theorem catBiteSourceUrnsDecodeRevert
 
 end UrnsRevert
 
+/-! ## `kick` CALL return-decode-short divergence (pc 2532 guard / 2557→2570 decode guard) -/
+
+/-- **kick return decode short** — from the `CALL` success guard (pc `2532`, `status ≠ 0`), clear the
+guard, drop the three scratch frame words, reload the free pointer, and fall through the
+`returndatasize < 32` (one word) length guard (pcs 2557→2570) into the revert. Kick analogue of
+`RD.catBiteUrnsReturnDecodeShortReverts`; the front (guard-clear + scratch pops + free-ptr `MLOAD` +
+`RETURNDATASIZE`) mirrors `catBiteKickSeg8b1P`, the `< 32` short branch + revert tail mirrors the
+urns combinator. -/
+theorem RD.catBiteKickReturnDecodeShortReverts
+    {cA gh bl σ σ₀ A I} {g status fp : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem o : ByteArray} {aw : UInt256} {d0 d1 d2 : UInt256} {R : List UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+      (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size)
+    (hMloadFreeValue :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = fp)
+    (hMloadFreeCost : ∀ s : State, s.machineState.activeWords = aw →
+        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
+    (hov : R.length + 6 ≤ 1024) :
+    RDrev catBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  obtain ⟨_, _, rd2550⟩ := RD.catBiteKickCallSucceeded rd hstatus (by evm_ov)
+  have rd2551 := rd2550.pop (by native_decide) (by evm_ov)
+  have rd2552 := rd2551.pop (by native_decide) (by evm_ov)
+  have rd2553 := rd2552.pop (by native_decide) (by evm_ov)
+  have rd2555 := rd2553.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd2556 := RD.mload 0 fp aw rd2555 (by native_decide) hMloadFreeCost hMloadFreeValue
+    hMloadFreeAw (by evm_ov)
+  have rd2557 := rd2556.returndatasize (by native_decide) (by evm_ov)
+  have rd2559 := rd2557.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd2560 := rd2559.dup2 (by native_decide) (by evm_ov)
+  have rd2561 := rd2560.lt (by native_decide) (by evm_ov)
+  have hlt : UInt256.lt (UInt256.ofNat o.size) ⟨32⟩ = ⟨1⟩ := by
+    apply Reasoning.Theory.ult_one
+    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' o.size hhi]
+    exact hshort
+  have rd2562 := rd2561.iszero (by native_decide) (by evm_ov)
+  have rd2565 := rd2562.push2 ⟨2570⟩ (by native_decide) (by evm_ov)
+  have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) ⟨32⟩) = ⟨0⟩ := by
+    rw [hlt]; decide
+  have rdFallthrough := RD.jumpiNT rd2565 (by native_decide) hcond (by evm_ov)
+  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+    (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+
+/-- **kick return-decode-short leaf.** EVM cursor at the `kick` success-guard `@2532` with a
+successful-call status (`status ≠ 0`) but a short return (`o.size < 32`), so the solc return decoder
+reverts at the `returndatasize < 32` guard. `RD.catBiteKickReturnDecodeShortReverts` produces
+`RDrev`, bridged by `RDrev.reEquivExecutionRevert`; the Solm body reverts via the (deep)
+`catBiteSourceKickDecodeRevert`. Sibling of `catBiteKickFailLeaf` (same `@2532` cursor, `status = 0`
+branch). -/
+theorem catBiteKickReturnDecodeShortLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g status fp : UInt256}
+    {mem o : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {d0 d1 d2 : UInt256} {R : List UInt256} {k C : ℕ}
+    (hcode : I.code = catBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+      (status :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size)
+    (hMloadFreeValue :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = fp)
+    (hMloadFreeCost : ∀ s : State, s.machineState.activeWords = aw →
+        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
+    (hov : R.length + 6 ≤ 1024)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+        biteTransition.body .reverted) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hrev := RD.catBiteKickReturnDecodeShortReverts rd hstatus hshort hhi hMloadFreeValue
+    hMloadFreeCost hMloadFreeAw hov
+  simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
 end Benchmarks.Dss.Cat
