@@ -87,8 +87,33 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     -- urns STATICCALL returned success = 0.
                     sorry
                 | true =>
-                    -- urns decoded OK; continue the spine (Core 3).
-                    sorry
+                    by_cases hurnslen : 64 ≤ ou.size
+                    · by_cases hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩
+                      · -- live: reach pc 1521 (Seg3 urns decode + Seg4 live guard).
+                        have hse : accountStorageStateEq σ' σu :=
+                          typedCallViaEVM_static_accountStorageStateEq hUrnsCall
+                        have hslot3 : catSlotWord ⟨3⟩ σ' I = catSlotWord ⟨3⟩ σu I := by
+                          simp only [catSlotWord, solcSlotWord]
+                          exact accountStorageStateEq_storage_findD hse I.codeOwner ⟨3⟩ ⟨0⟩
+                        rw [hslot3] at rd1399
+                        have hmemI : (196 : ℕ) ≤ (catBiteIlksPostCallMem I o').size := by
+                          have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
+                        obtain ⟨_, _, rd1521⟩ :=
+                          catBiteReach1399to1521 rd1399 (by decide)
+                            (by omega) (by rw [hawout9]; native_decide)
+                            (by sorry) -- 192 ≤ post-urns mem size (return-copy size arithmetic)
+                            hurnslen hoszu
+                            (catBiteUrnsPostCallMem_read64 I ou hmemI
+                              (catBiteIlksPostCallMem_read64 I o' hilkslen hosz) hurnslen hoszu)
+                            (catBiteUrnsPostCallMem_read128 I ou hmemI hurnslen hoszu)
+                            (catBiteUrnsPostCallMem_read160 I ou hmemI hurnslen hoszu)
+                            hlive
+                        -- frontier: Seg5 (1521 → 1620) onward (Core 3 continues).
+                        sorry
+                      · -- require(live == 1) fails → revert leaf.
+                        sorry
+                    · -- urns return decode short (`returndatasize < 64`).
+                      sorry
             · -- ilks return decode short (`returndatasize < 160`).
               sorry
       · -- ilks STATICCALL hits the call-depth limit (depth = 1024).
