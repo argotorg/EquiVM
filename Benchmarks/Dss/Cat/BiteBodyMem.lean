@@ -109,4 +109,57 @@ theorem catBiteIlksPostCallMem_read256 (I : ExecutionEnv) (o : ByteArray)
       UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o.extract 128 160))) := by
   simpa using ilks_read_word I o 256 hlo hout (by omega) (by omega)
 
+/-! ## Seam 2 — `urns` STATICCALL return copy (`catBiteReachPostUrns` output → `catBiteReach1399to1521`)
+
+The `urns` call copies its 2-word return `o` (ink@0, art@32) into memory at offset `0x80` over the
+post-ilks scratch `mem` (`196 ≤ mem.size`, free-ptr `0x80`). `catBiteReach1399to1521` needs
+`hFree64`@64, `hInk`@128, `hArt`@160. -/
+
+/-- The concrete memory `catBiteReachPostUrns` outputs at pc 1399. -/
+noncomputable def catBiteUrnsPostCallMem (I : ExecutionEnv) (mem o : ByteArray) : ByteArray :=
+  o.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem) (⟨128⟩ : UInt256).toNat
+    (min (⟨64⟩ : UInt256) (UInt256.ofNat o.size)).toNat
+
+private theorem urns_hlen (o : ByteArray) (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size) :
+    (min (⟨64⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 64 :=
+  umin_ofNat_right_toNat_of_ge (c := 64) (n := o.size) (by decide) hlo hout
+
+theorem catBiteUrnsPostCallMem_read64 (I : ExecutionEnv) {mem : ByteArray} (o : ByteArray)
+    (hmem : 196 ≤ mem.size) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteUrnsPostCallMem I mem o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold catBiteUrnsPostCallMem
+  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    write_read_below_gen_extend o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem) 128 64 64
+      (by decide) (by omega) (by rw [biteUrnsCalldataMem_size hmem]; omega) (by omega)]
+  exact biteUrnsCalldataMem_read64 hmem hread64
+
+private theorem urns_read_word (I : ExecutionEnv) {mem : ByteArray} (o : ByteArray) (readAddr : ℕ)
+    (hmem : 196 ≤ mem.size) (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size)
+    (h128 : 128 ≤ readAddr) (hhi : readAddr + 32 ≤ 192) :
+    (catBiteUrnsPostCallMem I mem o).readWithPadding readAddr 32 =
+      UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian
+        (o.extract (readAddr - 128) (readAddr - 128 + 32)))) := by
+  unfold catBiteUrnsPostCallMem
+  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    writeReturnCopy_read32 o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
+      128 64 readAddr (by omega) (by rw [biteUrnsCalldataMem_size hmem]; omega) h128 (by omega)]
+  have hw := readWithPadding_eq_toByteArray_ofNat o (readAddr - 128) (by omega)
+  rw [readWithPadding_eq_extract o (readAddr - 128) (by omega)] at hw
+  exact hw
+
+/-- `ink` = word 0 of the `urns` return (`o.extract 0 32`), read at memory `0x80`. -/
+theorem catBiteUrnsPostCallMem_read128 (I : ExecutionEnv) {mem : ByteArray} (o : ByteArray)
+    (hmem : 196 ≤ mem.size) (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteUrnsPostCallMem I mem o).readWithPadding 128 32 =
+      UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) := by
+  simpa using urns_read_word I o 128 hmem hlo hout (by omega) (by omega)
+
+/-- `art` = word 1 of the `urns` return (`o.extract 32 64`), read at memory `0xA0`. -/
+theorem catBiteUrnsPostCallMem_read160 (I : ExecutionEnv) {mem : ByteArray} (o : ByteArray)
+    (hmem : 196 ≤ mem.size) (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteUrnsPostCallMem I mem o).readWithPadding 160 32 =
+      UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o.extract 32 64))) := by
+  simpa using urns_read_word I o 160 hmem hlo hout (by omega) (by omega)
+
 end Benchmarks.Dss.Cat
