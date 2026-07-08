@@ -336,4 +336,111 @@ theorem catBiteIlksDecodeShortLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
     hMload64Cost hMload64Aw hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
+/-! ## Solm-side revert lemmas (`catBiteSource*Revert`)
+
+The shallow ilks/urns revert lemmas the bridges bridge to (`hbody`), genuinely absent from
+`BiteSource` (which only has the deep grab/fess/kick tail reverts + the `live` revert). Each threads
+the `checkedExternalCallStmts` prefix — `require(callvalue==0)`, the vat `EXTCODESIZE` guard, and (for
+`urns`) the successful `ilks` call + tuple projections — then diverges at the given call. Modeled on
+the public `catBiteSourceLiveRevert`. -/
+
+/-- The `EXTCODESIZE(vat)` guard is *false* when the vat account has empty code. Dual of
+`biteVatGuard_true`. -/
+theorem biteVatGuard_false {evm : EVM.State} {locals : Store}
+    (hbase : locals.get? "vat" = none)
+    (hcode0 :
+      (UInt256.ofNat ((evm.lookupAccount (biteVatAddr evm)).option 0
+        (fun acc => acc.code.size))).toNat = 0) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind, biteVatRead hbase, evalBinaryOp?, EVM.Word.ofNat,
+    biteVatAddr, hcode0]
+
+/-- **ilks no-code revert.** The vat `EXTCODESIZE` guard before the first STATICCALL is false. -/
+theorem catBiteSourceIlksNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hvatCode0 :
+      (UInt256.ofNat
+        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
+          (fun acc => acc.code.size))).toNat = 0) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted := by
+  set evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
+  set L0 := biteLocals I with hL0
+  have hblock :
+      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+    simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
+      checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
+    exact ExecBlock.consRevert (ExecStmt.requireFalse
+      (biteVatGuard_false (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0)))
+  simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
+
+/-- **ilks call-failed revert.** The vat guard passes but the first STATICCALL returns `success = 0`. -/
+theorem catBiteSourceIlksFailRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmIlk : EVM.State} {ilksOut : ByteArray}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hvatCode0 :
+      0 < (UInt256.ofNat
+        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hIlksFailCall :
+      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)))
+        "ilks" 0 [biteIlkVal I] (false, evmIlk, ilksOut) false) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted := by
+  set evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
+  set L0 := biteLocals I with hL0
+  have hblock :
+      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+    simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
+      checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVatGuard_true (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0))) ?_
+    exact ExecBlock.consRevert (ExecStmt.externalCallFailure
+      (biteVatRead (biteLocals_get_vat I)) (by simp [evalExpr?, pure])
+      (evalExprs_biteIlksArgs I (biteLocals_get_ilk I)) hIlksFailCall)
+  simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
+
+/-- **ilks return-decode revert.** The first STATICCALL succeeds but its return bytes do not ABI
+decode to the `(uint256,uint256,uint256,uint256,uint256)` tuple. -/
+theorem catBiteSourceIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmIlk : EVM.State} {ilksOut : ByteArray}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hvatCode0 :
+      0 < (UInt256.ofNat
+        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)))
+        "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
+    (hIlksDec : config.externalABI.decode? "ilks" ilksOut = none) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted := by
+  set evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
+  set L0 := biteLocals I with hL0
+  have hblock :
+      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+    simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
+      checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVatGuard_true (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0))) ?_
+    exact ExecBlock.consRevert (ExecStmt.externalCallReturnDecodeRevert
+      (biteVatRead (biteLocals_get_vat I)) (by simp [evalExpr?, pure])
+      (evalExprs_biteIlksArgs I (biteLocals_get_ilk I)) hIlksCall hIlksDec)
+  simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
+
 end Benchmarks.Dss.Cat
