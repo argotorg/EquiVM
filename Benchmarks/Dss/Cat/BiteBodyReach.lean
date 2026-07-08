@@ -527,4 +527,63 @@ theorem kickCalldataMemP_readBelow (p urn vow tab dink : UInt256) {mem : ByteArr
   unfold kickSelectorMemP
   rw [write32_read_below _ _ p.toNat off (by rw [toByteArray_size]) (by omega) (by omega)]
 
+/-! ## Milk-struct reads at `@64` (free ptr `= q+96 =: p`) and `@q` (flip) — for the grab/fess/kick `hFree64`/`hFlip` -/
+
+/-- The `@0x40` free pointer in the `milk` overlay reads back as `q+96` (the milk-struct MSTORE 0x40);
+this is the real free pointer `p` that grab/fess/kick build at. Discharges `catBiteReachGrabRegionC`/
+`FessRegionC`/`catBiteReachKickC`'s `hFree64`/`hread64`. -/
+theorem catBiteMilkMem_read64 (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding 64 32 =
+      UInt256.toByteArray (q + ⟨96⟩) := by
+  have hscr := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  have hq96 : q.toNat = fp.toNat + 96 := by
+    rw [hqfp, uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h1 := toByteArray_write32_size_of_le _ (q + ⟨96⟩) 64 mem.size mem.size hscr
+    (by rw [hscr]; omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ flip q.toNat mem.size (max mem.size (q.toNat + 32)) h1
+    (by rw [h1]; omega) rfl
+  have h3 := toByteArray_write32_size_of_le _ chop (q + ⟨32⟩).toNat (max mem.size (q.toNat + 32))
+    (max mem.size (q.toNat + 64)) h2 (by rw [h2, eq32]; omega) (by rw [eq32]; omega)
+  unfold catBiteMilkMem
+  rw [write32_read_below _ _ (q + ⟨64⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [h3, eq64]; omega) (by rw [eq64]; omega),
+    write32_read_below _ _ (q + ⟨32⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [h2, eq32]; omega) (by rw [eq32]; omega),
+    write32_read_below _ _ q.toNat 64 (by rw [toByteArray_size])
+      (by rw [h1]; omega) (by omega),
+    toByteArray_write32_read_back _ (q + ⟨96⟩) 64 (by rw [hscr]; omega)]
+
+/-- The `milk.flip` word at `@q` reads back through the milk overlay (`chop@(q+32)`, `dunk@(q+64)` are
+both at offset `≥ q+32`). Discharges `catBiteReachKickC`'s `hFlip` (through the grab/fess overlay). -/
+theorem catBiteMilkMem_readflip (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding q.toNat 32 =
+      UInt256.toByteArray flip := by
+  have hscr := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  have hq96 : q.toNat = fp.toNat + 96 := by
+    rw [hqfp, uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h1 := toByteArray_write32_size_of_le _ (q + ⟨96⟩) 64 mem.size mem.size hscr
+    (by rw [hscr]; omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ flip q.toNat mem.size (max mem.size (q.toNat + 32)) h1
+    (by rw [h1]; omega) rfl
+  have h3 := toByteArray_write32_size_of_le _ chop (q + ⟨32⟩).toNat (max mem.size (q.toNat + 32))
+    (max mem.size (q.toNat + 64)) h2 (by rw [h2, eq32]; omega) (by rw [eq32]; omega)
+  unfold catBiteMilkMem
+  rw [write32_read_below _ _ (q + ⟨64⟩).toNat q.toNat (by rw [toByteArray_size])
+      (by rw [h3, eq64]; omega) (by rw [eq64]; omega),
+    write32_read_below _ _ (q + ⟨32⟩).toNat q.toNat (by rw [toByteArray_size])
+      (by rw [h2, eq32]; omega) (by rw [eq32]),
+    toByteArray_write32_read_back _ flip q.toNat (by rw [h1]; omega)]
+
 end Benchmarks.Dss.Cat
