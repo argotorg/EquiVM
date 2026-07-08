@@ -264,7 +264,84 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       hdartDenomDef.symm hdartCandDef.symm hdartDef.symm hArtPos
                                       hFitInkDart hinkDartDef.symm hdinkCandDef.symm hdinkDef.symm
                                       hDartPos hDinkPos hDartLim hDinkLim
-                                  sorry -- GrabAw frontier
+                                  -- === STEP 1: grab CALL reach (pc 2073 → 2193) ===
+                                  set base := catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou
+                                  clear_value base
+                                  set flipW := biteAddrMaskWord.land
+                                    (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))
+                                  clear_value flipW
+                                  have hthisCanon :
+                                      (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus := by
+                                    have h2 : (UInt256.ofNat I.codeOwner.val).toNat
+                                        = I.codeOwner.val := by
+                                      apply UInt256.toNat_ofNat_of_lt
+                                      exact lt_of_lt_of_le I.codeOwner.isLt
+                                        (show AccountAddress.size ≤ UInt256.size from by decide)
+                                    rw [h2]; change I.codeOwner.val < AccountAddress.size
+                                    exact I.codeOwner.isLt
+                                  -- free pointer of the milk mem: mem[0x40] = q + 96 (q = 96 + 128).
+                                  have hMilkFp := catBiteMilkMem_read64 base ⟨128⟩ (biteIlkWord I)
+                                    (⟨96⟩ + ⟨128⟩) flipW milkChop milkDunk (by rw [h128]; omega) rfl
+                                    (by native_decide) (by native_decide)
+                                  have hMilkSz := catBiteMilkMem_size base ⟨128⟩ (biteIlkWord I)
+                                    (⟨96⟩ + ⟨128⟩) flipW milkChop milkDunk (by rw [h128]; omega) rfl
+                                    (by native_decide) (by native_decide)
+                                  have hpmemMilk :
+                                      ((⟨96⟩ + ⟨128⟩) + ⟨96⟩ : UInt256).toNat ≤
+                                      (catBiteMilkMem base ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩) flipW
+                                        milkChop milkDunk).size := by
+                                    rw [hMilkSz,
+                                      show ((⟨96⟩ + ⟨128⟩) + ⟨96⟩ : UInt256).toNat = 320 from by
+                                        native_decide,
+                                      show ((⟨96⟩ + ⟨128⟩ : UInt256).toNat + 96) = 320 from by
+                                        native_decide]
+                                    exact le_max_right _ _
+                                  by_cases hGrabCode :
+                                      Reasoning.Theory.uniswapExtCodeSizeWord σu
+                                        (UInt256.land (solcSlotWord σu I ⟨3⟩) biteAddrMaskWord) = ⟨0⟩
+                                  · sorry -- grab vat has no code → divergence leaf
+                                  · obtain ⟨cAg, σg, zg, og, Ag, kg, Cg, rd2193, hGrabCall, hoszg⟩ :=
+                                      catBiteReachGrabAw rd2073 hMilkFp (by native_decide) hpmemMilk
+                                        (by native_decide) (by native_decide) (by native_decide)
+                                        hthisCanon (hDinkLim.trans_eq (by native_decide))
+                                        (hDartLim.trans_eq (by native_decide)) hGrabCode hdepth
+                                    cases zg with
+                                    | false => sorry -- grab CALL failed (success = 0) → divergence
+                                    | true =>
+                                      -- === STEP 2: fess CALL reach (pc 2193 → 2300) ===
+                                      by_cases hRateFit :
+                                          iRate.toNat * dart.toNat < UInt256.size
+                                      swap
+                                      · sorry -- iRate*dart checkedMul overflow → divergence
+                                      -- `with_reducible` freezes `MachineState.M` (reducible in this
+                                      -- file, unlike BiteBody's section) so the `catBiteAwStepL_toNat`
+                                      -- defeq does not unfold M+`UInt256.size` and blow up heartbeats.
+                                      have hawF := by
+                                        with_reducible
+                                          exact catBiteAwStepL_toNat ⟨10⟩
+                                            (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat
+                                            (catBiteMltL ⟨10⟩
+                                              (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat
+                                              (by native_decide))
+                                      have hGrabSz := catBiteGrabCalldataMemP_size
+                                        (⟨96⟩ + ⟨128⟩ + ⟨96⟩) (biteIlkWord I)
+                                        (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                        (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                        hpmemMilk (by native_decide)
+                                      by_cases hFessCode :
+                                          Reasoning.Theory.uniswapExtCodeSizeWord σg
+                                            (UInt256.land biteAddrMaskWord (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩
+                                      · sorry -- fess vow has no code → divergence leaf
+                                      · obtain ⟨cAf, σf, zf, ofb, Af, kf, Cf, rd2300, hFessCall, hoszf⟩ :=
+                                          catBiteReachFessAw rd2193 (by decide) hRateFit rfl
+                                            (by rw [catBiteGrabCalldataMemP_read64 (⟨96⟩ + ⟨128⟩ + ⟨96⟩)
+                                                  _ _ _ _ _ _ (by native_decide) hpmemMilk
+                                                  (by native_decide)]
+                                                exact hMilkFp)
+                                            (by native_decide) (le_trans (by native_decide) hGrabSz)
+                                            (by rw [hawF]; native_decide) (by rw [hawF]; native_decide)
+                                            (by native_decide) hFessCode hdepth
+                                        sorry -- 2300to2383 frontier
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
