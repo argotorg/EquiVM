@@ -223,4 +223,308 @@ theorem catBiteReachFessRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl hencode ?_
   simpa [initState] using hΘ
 
+/-! ## `p`-parametric `kick` calldata memory (free pointer `p` abstract, not hardcoded `128`)
+
+Generic-offset clones of the frozen `kickSelectorMem`/`kickCalldataMem` couplings
+(`BiteCallKick.lean`): the `milkFlip.kick(urn, vow, tab, dink, 0)` scratch layout laid at an
+abstract free pointer `p` instead of the concrete `128`.  Selector at `p`, the five argument words
+at `p+4, p+36, p+68, p+100, p+132`; the 164-byte calldata slice reads back at `[p, p+164)`. -/
+
+/-- Selector word `0x351de600` written at the abstract scratch offset `p`. -/
+noncomputable def kickSelectorMemP (p : UInt256) (mem : ByteArray) : ByteArray :=
+  kickSelectorShifted.toByteArray.write 0 mem p.toNat 32
+
+/-- The full 164-byte `kick` calldata laid at the free pointer `p` over base memory `mem`. -/
+noncomputable def kickCalldataMemP (p urn vow tab dink : UInt256) (mem : ByteArray) : ByteArray :=
+  (⟨0⟩ : UInt256).toByteArray.write 0
+    (dink.toByteArray.write 0
+      (tab.toByteArray.write 0
+        (vow.toByteArray.write 0
+          (urn.toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32)
+          (p + ⟨36⟩).toNat 32)
+        (p + ⟨68⟩).toNat 32)
+      (p + ⟨100⟩).toNat 32)
+    (p + ⟨132⟩).toNat 32
+
+theorem kickSelectorMemP_size (p : UInt256) {mem : ByteArray}
+    (hpmem : p.toNat + 164 ≤ mem.size) :
+    (kickSelectorMemP p mem).size = mem.size := by
+  unfold kickSelectorMemP
+  exact toByteArray_write32_size_of_le mem kickSelectorShifted p.toNat mem.size mem.size rfl
+    (by omega) (by omega)
+
+theorem kickCalldataMemP_size_aux1 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (urn.toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32).size = mem.size := by
+  have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h0 := kickSelectorMemP_size p hpmem
+  rw [e4]
+  exact toByteArray_write32_size_of_le _ urn (p.toNat + 4) mem.size mem.size h0
+    (by rw [h0]; omega) (by omega)
+
+theorem kickCalldataMemP_size_aux2 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (vow.toByteArray.write 0 (urn.toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32)
+      (p + ⟨36⟩).toNat 32).size = mem.size := by
+  have e36 : (p + ⟨36⟩).toNat = p.toNat + 36 := by
+    rw [uadd_toNat, show (⟨36⟩ : UInt256).toNat = 36 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have s1 := kickCalldataMemP_size_aux1 p urn vow tab dink hp96 hpmem hpsz
+  rw [e36]
+  exact toByteArray_write32_size_of_le _ vow (p.toNat + 36) mem.size mem.size s1
+    (by rw [s1]; omega) (by omega)
+
+theorem kickCalldataMemP_size_aux3 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (tab.toByteArray.write 0 (vow.toByteArray.write 0
+      (urn.toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32) (p + ⟨36⟩).toNat 32)
+      (p + ⟨68⟩).toNat 32).size = mem.size := by
+  have e68 : (p + ⟨68⟩).toNat = p.toNat + 68 := by
+    rw [uadd_toNat, show (⟨68⟩ : UInt256).toNat = 68 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have s2 := kickCalldataMemP_size_aux2 p urn vow tab dink hp96 hpmem hpsz
+  rw [e68]
+  exact toByteArray_write32_size_of_le _ tab (p.toNat + 68) mem.size mem.size s2
+    (by rw [s2]; omega) (by omega)
+
+theorem kickCalldataMemP_size_aux4 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (dink.toByteArray.write 0 (tab.toByteArray.write 0 (vow.toByteArray.write 0
+      (urn.toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32) (p + ⟨36⟩).toNat 32)
+      (p + ⟨68⟩).toNat 32) (p + ⟨100⟩).toNat 32).size = mem.size := by
+  have e100 : (p + ⟨100⟩).toNat = p.toNat + 100 := by
+    rw [uadd_toNat, show (⟨100⟩ : UInt256).toNat = 100 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have s3 := kickCalldataMemP_size_aux3 p urn vow tab dink hp96 hpmem hpsz
+  rw [e100]
+  exact toByteArray_write32_size_of_le _ dink (p.toNat + 100) mem.size mem.size s3
+    (by rw [s3]; omega) (by omega)
+
+theorem kickCalldataMemP_size (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (kickCalldataMemP p urn vow tab dink mem).size = mem.size := by
+  have e132 : (p + ⟨132⟩).toNat = p.toNat + 132 := by
+    rw [uadd_toNat, show (⟨132⟩ : UInt256).toNat = 132 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have s4 := kickCalldataMemP_size_aux4 p urn vow tab dink hp96 hpmem hpsz
+  unfold kickCalldataMemP
+  rw [e132]
+  exact toByteArray_write32_size_of_le _ ⟨0⟩ (p.toNat + 132) mem.size mem.size s4
+    (by rw [s4]; omega) (by omega)
+
+/-- The free-pointer word read `@64` survives the selector write (`96 ≤ p`). -/
+theorem kickSelectorMemP_read64 (p : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size)
+    (hpval : mem.readWithPadding 64 32 = UInt256.toByteArray p) :
+    (kickSelectorMemP p mem).readWithPadding 64 32 = UInt256.toByteArray p := by
+  unfold kickSelectorMemP
+  rw [write32_read_below _ _ p.toNat 64 (by rw [toByteArray_size]) (by omega) (by omega), hpval]
+
+theorem kickCalldataMemP_read64 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size)
+    (hpval : mem.readWithPadding 64 32 = UInt256.toByteArray p) :
+    (kickCalldataMemP p urn vow tab dink mem).readWithPadding 64 32 = UInt256.toByteArray p := by
+  have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e36 : (p + ⟨36⟩).toNat = p.toNat + 36 := by
+    rw [uadd_toNat, show (⟨36⟩ : UInt256).toNat = 36 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e68 : (p + ⟨68⟩).toNat = p.toNat + 68 := by
+    rw [uadd_toNat, show (⟨68⟩ : UInt256).toNat = 68 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e100 : (p + ⟨100⟩).toNat = p.toNat + 100 := by
+    rw [uadd_toNat, show (⟨100⟩ : UInt256).toNat = 100 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e132 : (p + ⟨132⟩).toNat = p.toNat + 132 := by
+    rw [uadd_toNat, show (⟨132⟩ : UInt256).toNat = 132 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h0 := kickSelectorMemP_size p hpmem
+  have s1 := kickCalldataMemP_size_aux1 p urn vow tab dink hp96 hpmem hpsz
+  have s2 := kickCalldataMemP_size_aux2 p urn vow tab dink hp96 hpmem hpsz
+  have s3 := kickCalldataMemP_size_aux3 p urn vow tab dink hp96 hpmem hpsz
+  have s4 := kickCalldataMemP_size_aux4 p urn vow tab dink hp96 hpmem hpsz
+  have h0r := kickSelectorMemP_read64 p hp96 hpmem hpsz hpval
+  unfold kickCalldataMemP
+  rw [write32_read_below _ _ (p + ⟨132⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [s4]; omega) (by omega),
+    write32_read_below _ _ (p + ⟨100⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [s3]; omega) (by omega),
+    write32_read_below _ _ (p + ⟨68⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [s2]; omega) (by omega),
+    write32_read_below _ _ (p + ⟨36⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [s1]; omega) (by omega),
+    write32_read_below _ _ (p + ⟨4⟩).toNat 64 (by rw [toByteArray_size])
+      (by rw [h0]; omega) (by omega),
+    h0r]
+
+/-- The `kick` selector word occupies the first four bytes at the scratch offset `p`. -/
+theorem kickSelectorMemP_selector (p : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (kickSelectorMemP p mem).extract p.toNat (p.toNat + 4) = kickerKickSelector := by
+  have hread : (kickSelectorMemP p mem).readWithPadding p.toNat 4 = kickerKickSelector := by
+    unfold kickSelectorMemP
+    rw [write32_read_prefix_len _ _ p.toNat 4 (by rw [toByteArray_size]) (by omega)
+      (by omega) (by omega) (by norm_num)]
+    unfold kickSelectorShifted kickerKickSelector selectorBytes
+    native_decide
+  rw [readWithPadding_eq_extract' _ p.toNat 4 (by norm_num) (by norm_num)
+      (by rw [kickSelectorMemP_size p hpmem]; omega)] at hread
+  simpa using hread
+
+theorem kickCalldataMemP_read128_164 (p urn vow tab dink : UInt256) {mem : ByteArray}
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size) :
+    (kickCalldataMemP p urn vow tab dink mem).readWithPadding p.toNat 164 =
+      kickerKickSelector ++ urn.toByteArray ++ vow.toByteArray ++ tab.toByteArray ++
+        dink.toByteArray ++ (⟨0⟩ : UInt256).toByteArray := by
+  have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e36 : (p + ⟨36⟩).toNat = p.toNat + 36 := by
+    rw [uadd_toNat, show (⟨36⟩ : UInt256).toNat = 36 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e68 : (p + ⟨68⟩).toNat = p.toNat + 68 := by
+    rw [uadd_toNat, show (⟨68⟩ : UInt256).toNat = 68 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e100 : (p + ⟨100⟩).toNat = p.toNat + 100 := by
+    rw [uadd_toNat, show (⟨100⟩ : UInt256).toNat = 100 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e132 : (p + ⟨132⟩).toNat = p.toNat + 132 := by
+    rw [uadd_toNat, show (⟨132⟩ : UInt256).toNat = 132 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h0 := kickSelectorMemP_size p hpmem
+  have s1 := kickCalldataMemP_size_aux1 p urn vow tab dink hp96 hpmem hpsz
+  have s2 := kickCalldataMemP_size_aux2 p urn vow tab dink hp96 hpmem hpsz
+  have s3 := kickCalldataMemP_size_aux3 p urn vow tab dink hp96 hpmem hpsz
+  have s4 := kickCalldataMemP_size_aux4 p urn vow tab dink hp96 hpmem hpsz
+  set final := kickCalldataMemP p urn vow tab dink mem with hfinal
+  have hfinalSize : p.toNat + 164 ≤ final.size := by
+    have hcall := kickCalldataMemP_size p urn vow tab dink hp96 hpmem hpsz
+    rw [hfinal]; omega
+  -- selector [p, p+4)
+  have hSel : final.readWithPadding p.toNat 4 = kickerKickSelector := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [write32_read_below_len _ _ (p + ⟨132⟩).toNat p.toNat 4 (by rw [toByteArray_size])
+        (by rw [s4]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨100⟩).toNat p.toNat 4 (by rw [toByteArray_size])
+        (by rw [s3]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨68⟩).toNat p.toNat 4 (by rw [toByteArray_size])
+        (by rw [s2]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨36⟩).toNat p.toNat 4 (by rw [toByteArray_size])
+        (by rw [s1]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨4⟩).toNat p.toNat 4 (by rw [toByteArray_size])
+        (by rw [h0]; omega) (by omega) (by omega) (by omega) (by norm_num)]
+    have hsel := kickSelectorMemP_selector p hp96 hpmem hpsz
+    rw [readWithPadding_eq_extract' _ p.toNat 4 (by norm_num) (by norm_num)
+      (by rw [kickSelectorMemP_size p hpmem]; omega)]
+    simpa using hsel
+  -- urn [p+4, p+36)
+  have hUrn : final.readWithPadding (p.toNat + 4) 32 = urn.toByteArray := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [write32_read_below_len _ _ (p + ⟨132⟩).toNat (p.toNat + 4) 32 (by rw [toByteArray_size])
+        (by rw [s4]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨100⟩).toNat (p.toNat + 4) 32 (by rw [toByteArray_size])
+        (by rw [s3]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨68⟩).toNat (p.toNat + 4) 32 (by rw [toByteArray_size])
+        (by rw [s2]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨36⟩).toNat (p.toNat + 4) 32 (by rw [toByteArray_size])
+        (by rw [s1]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      e4, toByteArray_write32_read_back _ urn (p.toNat + 4) (by omega)]
+  -- vow [p+36, p+68)
+  have hVow : final.readWithPadding (p.toNat + 36) 32 = vow.toByteArray := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [write32_read_below_len _ _ (p + ⟨132⟩).toNat (p.toNat + 36) 32 (by rw [toByteArray_size])
+        (by rw [s4]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨100⟩).toNat (p.toNat + 36) 32 (by rw [toByteArray_size])
+        (by rw [s3]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨68⟩).toNat (p.toNat + 36) 32 (by rw [toByteArray_size])
+        (by rw [s2]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      e36, toByteArray_write32_read_back _ vow (p.toNat + 36) (by omega)]
+  -- tab [p+68, p+100)
+  have hTab : final.readWithPadding (p.toNat + 68) 32 = tab.toByteArray := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [write32_read_below_len _ _ (p + ⟨132⟩).toNat (p.toNat + 68) 32 (by rw [toByteArray_size])
+        (by rw [s4]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      write32_read_below_len _ _ (p + ⟨100⟩).toNat (p.toNat + 68) 32 (by rw [toByteArray_size])
+        (by rw [s3]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      e68, toByteArray_write32_read_back _ tab (p.toNat + 68) (by omega)]
+  -- dink [p+100, p+132)
+  have hDink : final.readWithPadding (p.toNat + 100) 32 = dink.toByteArray := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [write32_read_below_len _ _ (p + ⟨132⟩).toNat (p.toNat + 100) 32 (by rw [toByteArray_size])
+        (by rw [s4]; omega) (by omega) (by omega) (by omega) (by norm_num),
+      e100, toByteArray_write32_read_back _ dink (p.toNat + 100) (by omega)]
+  -- 0 [p+132, p+164)
+  have hZero : final.readWithPadding (p.toNat + 132) 32 = (⟨0⟩ : UInt256).toByteArray := by
+    rw [hfinal]
+    unfold kickCalldataMemP
+    rw [e132, toByteArray_write32_read_back _ (⟨0⟩ : UInt256) (p.toNat + 132) (by omega)]
+  -- assemble
+  rw [readWithPadding_eq_extract' final p.toNat 164 (by norm_num) (by norm_num) (by omega)]
+  have hSelExt : final.extract p.toNat (p.toNat + 4) = kickerKickSelector := by
+    rw [← readWithPadding_eq_extract' final p.toNat 4 (by norm_num) (by norm_num) (by omega)]
+    exact hSel
+  have hUrnExt : final.extract (p.toNat + 4) (p.toNat + 36) = urn.toByteArray := by
+    rw [← readWithPadding_eq_extract' final (p.toNat + 4) 32 (by norm_num) (by norm_num) (by omega)]
+    exact hUrn
+  have hVowExt : final.extract (p.toNat + 36) (p.toNat + 68) = vow.toByteArray := by
+    rw [← readWithPadding_eq_extract' final (p.toNat + 36) 32 (by norm_num) (by norm_num) (by omega)]
+    exact hVow
+  have hTabExt : final.extract (p.toNat + 68) (p.toNat + 100) = tab.toByteArray := by
+    rw [← readWithPadding_eq_extract' final (p.toNat + 68) 32 (by norm_num) (by norm_num) (by omega)]
+    exact hTab
+  have hDinkExt : final.extract (p.toNat + 100) (p.toNat + 132) = dink.toByteArray := by
+    rw [← readWithPadding_eq_extract' final (p.toNat + 100) 32 (by norm_num) (by norm_num) (by omega)]
+    exact hDink
+  have hZeroExt : final.extract (p.toNat + 132) (p.toNat + 164) = (⟨0⟩ : UInt256).toByteArray := by
+    rw [← readWithPadding_eq_extract' final (p.toNat + 132) 32 (by norm_num) (by norm_num) (by omega)]
+    exact hZero
+  have hsplit : final.extract p.toNat (p.toNat + 164) =
+      final.extract p.toNat (p.toNat + 4) ++ final.extract (p.toNat + 4) (p.toNat + 36) ++
+        final.extract (p.toNat + 36) (p.toNat + 68) ++ final.extract (p.toNat + 68) (p.toNat + 100) ++
+        final.extract (p.toNat + 100) (p.toNat + 132) ++ final.extract (p.toNat + 132) (p.toNat + 164) := by
+    rw [show final.extract p.toNat (p.toNat + 164) =
+        final.extract p.toNat (p.toNat + 4) ++ final.extract (p.toNat + 4) (p.toNat + 164) by
+      rw [ByteArray.extract_append_extract]; congr 1 <;> omega]
+    rw [show final.extract (p.toNat + 4) (p.toNat + 164) =
+        final.extract (p.toNat + 4) (p.toNat + 36) ++ final.extract (p.toNat + 36) (p.toNat + 164) by
+      rw [ByteArray.extract_append_extract]; congr 1 <;> omega]
+    rw [show final.extract (p.toNat + 36) (p.toNat + 164) =
+        final.extract (p.toNat + 36) (p.toNat + 68) ++ final.extract (p.toNat + 68) (p.toNat + 164) by
+      rw [ByteArray.extract_append_extract]; congr 1 <;> omega]
+    rw [show final.extract (p.toNat + 68) (p.toNat + 164) =
+        final.extract (p.toNat + 68) (p.toNat + 100) ++ final.extract (p.toNat + 100) (p.toNat + 164) by
+      rw [ByteArray.extract_append_extract]; congr 1 <;> omega]
+    rw [show final.extract (p.toNat + 100) (p.toNat + 164) =
+        final.extract (p.toNat + 100) (p.toNat + 132) ++ final.extract (p.toNat + 132) (p.toNat + 164) by
+      rw [ByteArray.extract_append_extract]; congr 1 <;> omega]
+    simp
+  rw [hsplit, hSelExt, hUrnExt, hVowExt, hTabExt, hDinkExt, hZeroExt]
+
+/-- Read below `p` survives the kick calldata writes (for the milk chop, but generic). -/
+theorem kickCalldataMemP_readBelow (p urn vow tab dink : UInt256) {mem : ByteArray} (off : ℕ)
+    (hoff : off + 32 ≤ p.toNat) (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size)
+    (hpsz : p.toNat + 164 < UInt256.size) :
+    (kickCalldataMemP p urn vow tab dink mem).readWithPadding off 32 = mem.readWithPadding off 32 := by
+  have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e36 : (p + ⟨36⟩).toNat = p.toNat + 36 := by
+    rw [uadd_toNat, show (⟨36⟩ : UInt256).toNat = 36 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e68 : (p + ⟨68⟩).toNat = p.toNat + 68 := by
+    rw [uadd_toNat, show (⟨68⟩ : UInt256).toNat = 68 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e100 : (p + ⟨100⟩).toNat = p.toNat + 100 := by
+    rw [uadd_toNat, show (⟨100⟩ : UInt256).toNat = 100 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e132 : (p + ⟨132⟩).toNat = p.toNat + 132 := by
+    rw [uadd_toNat, show (⟨132⟩ : UInt256).toNat = 132 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h0 := kickSelectorMemP_size p hpmem
+  have s1 := kickCalldataMemP_size_aux1 p urn vow tab dink hp96 hpmem hpsz
+  have s2 := kickCalldataMemP_size_aux2 p urn vow tab dink hp96 hpmem hpsz
+  have s3 := kickCalldataMemP_size_aux3 p urn vow tab dink hp96 hpmem hpsz
+  have s4 := kickCalldataMemP_size_aux4 p urn vow tab dink hp96 hpmem hpsz
+  unfold kickCalldataMemP
+  rw [write32_read_below _ _ (p + ⟨132⟩).toNat off (by rw [toByteArray_size]) (by rw [s4]; omega)
+      (by omega),
+    write32_read_below _ _ (p + ⟨100⟩).toNat off (by rw [toByteArray_size]) (by rw [s3]; omega)
+      (by omega),
+    write32_read_below _ _ (p + ⟨68⟩).toNat off (by rw [toByteArray_size]) (by rw [s2]; omega)
+      (by omega),
+    write32_read_below _ _ (p + ⟨36⟩).toNat off (by rw [toByteArray_size]) (by rw [s1]; omega)
+      (by omega),
+    write32_read_below _ _ (p + ⟨4⟩).toNat off (by rw [toByteArray_size]) (by rw [h0]; omega)
+      (by omega)]
+  unfold kickSelectorMemP
+  rw [write32_read_below _ _ p.toNat off (by rw [toByteArray_size]) (by omega) (by omega)]
+
 end Benchmarks.Dss.Cat
