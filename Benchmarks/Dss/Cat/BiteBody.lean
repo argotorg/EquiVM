@@ -566,6 +566,252 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd3762 := rd1707.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.catBiteCheckedSub rd3762 hle (by native_decide) (by evm_ov)
 
+/-! ## Local copies of the `catBiteAwStep` active-words machinery (private in the frozen `BiteTrace`)
+
+The `grab`/`fess`/`kick` calldata builds thread their *growing* active words through an irreducible
+`catBiteAwStep` atom (so `isDefEq` doesn't unfold `M`'s `max`/`div` on the abstract free pointer and
+blow up).  Those helpers are `private` in `BiteTrace` (file-scoped, invisible here), so we re-declare
+local copies — permitted local lemmas, no new axiom. -/
+
+private theorem catBiteMltL (a : UInt256) (o : ℕ) (ho : o + 32 < UInt256.size) :
+    MachineState.M a.toNat o 32 < UInt256.size := by
+  simp only [MachineState.M]
+  have ha : a.toNat < UInt256.size := a.val.isLt
+  omega
+
+private theorem catBiteMCollapseL (a : UInt256) (o1 o2 : ℕ) (hle : o1 ≤ o2)
+    (hb : MachineState.M a.toNat o1 32 < UInt256.size) :
+    UInt256.ofNat (MachineState.M (UInt256.ofNat (MachineState.M a.toNat o1 32)).toNat o2 32)
+      = UInt256.ofNat (MachineState.M a.toNat o2 32) := by
+  rw [UInt256.toNat_ofNat_of_lt hb]
+  congr 1
+  simp only [MachineState.M]
+  rw [Nat.max_assoc]
+  congr 1
+  exact Nat.max_eq_right (by omega)
+
+@[irreducible] private noncomputable def catBiteAwStepL (aw : UInt256) (off : ℕ) : UInt256 :=
+  UInt256.ofNat (MachineState.M aw.toNat off 32)
+
+private theorem catBiteAwStepL_collapse (aw : UInt256) (o1 o2 : ℕ) (hle : o1 ≤ o2)
+    (hb : MachineState.M aw.toNat o1 32 < UInt256.size) :
+    UInt256.ofNat (MachineState.M (catBiteAwStepL aw o1).toNat o2 32) = catBiteAwStepL aw o2 := by
+  unfold catBiteAwStepL
+  exact catBiteMCollapseL aw o1 o2 hle hb
+
+private theorem catBiteAwStepL_toNat (aw : UInt256) (off : ℕ)
+    (hb : MachineState.M aw.toNat off 32 < UInt256.size) :
+    (catBiteAwStepL aw off).toNat = MachineState.M aw.toNat off 32 := by
+  unfold catBiteAwStepL; exact UInt256.toNat_ofNat_of_lt hb
+
+private theorem catBiteMstoreCostML {aw off val : UInt256} {t : List UInt256} :
+    ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: val :: t →
+      memoryExpansionCost s .MSTORE
+        = Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
+  intro s haw hstk
+  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+
+set_option maxHeartbeats 8000000 in
+/-- **`grab` calldata build (2073→2177) EXPOSING the grown active-words** `awF = catBiteAwStepL aw
+(p+⟨164⟩)`. Verbatim re-derivation of the frozen `catBiteTraceGrabBuild` (which already grows aw
+correctly through the 7 expanding MSTOREs, dodging heartbeat blowup via the `catBiteAwStep` atom) but
+with the final `awF` EXPOSED in the conclusion instead of hidden under `∃` — so the downstream `fess`
+reach can discharge its `p2 ≤ aw·32` precondition. Uses the local `catBiteAwStepL` machinery (the
+`BiteTrace` originals are `private`). The `awF` bound is recovered via `catBiteAwStepL_toNat`
+(`aw=10, p=320 ⇒ awF.toNat=17`). -/
+theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {q art ink iDust iSpot iRate urn ilk dart dink p : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
+      (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      mem aw o (cA', σ') k C)
+    (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
+    (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat ≤ mem.size)
+    (hawcov : p.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hpsz : p.toNat + 256 < UInt256.size)
+    (hov : R.length + 22 ≤ 1024) :
+    ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
+      (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
+        UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
+        ⟨0⟩ :: p :: ⟨196⟩ :: p :: ⟨0⟩ :: (p + ⟨196⟩) :: ⟨2074820416⟩ ::
+        UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
+        dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      (catBiteGrabCalldataMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩)
+        dink dart mem)
+      (catBiteAwStepL aw (p + ⟨164⟩).toNat) o (cA', σ') k' C' := by
+  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
+  have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e36 : (p + ⟨36⟩).toNat = p.toNat + 36 := by
+    rw [uadd_toNat, show (⟨36⟩ : UInt256).toNat = 36 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e68 : (p + ⟨68⟩).toNat = p.toNat + 68 := by
+    rw [uadd_toNat, show (⟨68⟩ : UInt256).toNat = 68 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e100 : (p + ⟨100⟩).toNat = p.toNat + 100 := by
+    rw [uadd_toNat, show (⟨100⟩ : UInt256).toNat = 100 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e132 : (p + ⟨132⟩).toNat = p.toNat + 132 := by
+    rw [uadd_toNat, show (⟨132⟩ : UInt256).toNat = 132 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have e164 : (p + ⟨164⟩).toNat = p.toNat + 164 := by
+    rw [uadd_toNat, show (⟨164⟩ : UInt256).toNat = 164 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have hM64 : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw :=
+    catBiteAwMInv32 aw (by rw [h64]; omega)
+  have hstep1 : UInt256.ofNat (MachineState.M aw.toNat p.toNat 32) = catBiteAwStepL aw p.toNat := by
+    simp only [catBiteAwStepL]
+  have hM7lt : MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 < UInt256.size :=
+    catBiteMltL aw (p + ⟨164⟩).toNat (by omega)
+  have haw7val :
+      (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat = MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 :=
+    catBiteAwStepL_toNat aw (p + ⟨164⟩).toNat hM7lt
+  have haw7ge : 96 ≤ (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat * 32 := by
+    rw [haw7val, e164]; simp only [MachineState.M]; omega
+  have haw7sz : (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat * 32 < UInt256.size := by
+    rw [haw7val, e164]; simp only [MachineState.M]; omega
+  have hM7out : UInt256.ofNat
+      (MachineState.M (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat (⟨64⟩ : UInt256).toNat 32)
+      = catBiteAwStepL aw (p + ⟨164⟩).toNat :=
+    catBiteAwMInv32 (catBiteAwStepL aw (p + ⟨164⟩).toNat) (by rw [h64]; omega)
+  have hcol2 := catBiteAwStepL_collapse aw p.toNat (p + ⟨4⟩).toNat (by omega)
+    (catBiteMltL aw p.toNat (by omega))
+  have hcol3 := catBiteAwStepL_collapse aw (p + ⟨4⟩).toNat (p + ⟨36⟩).toNat (by omega)
+    (catBiteMltL aw (p + ⟨4⟩).toNat (by omega))
+  have hcol4 := catBiteAwStepL_collapse aw (p + ⟨36⟩).toNat (p + ⟨68⟩).toNat (by omega)
+    (catBiteMltL aw (p + ⟨36⟩).toNat (by omega))
+  have hcol5 := catBiteAwStepL_collapse aw (p + ⟨68⟩).toNat (p + ⟨100⟩).toNat (by omega)
+    (catBiteMltL aw (p + ⟨68⟩).toNat (by omega))
+  have hcol6 := catBiteAwStepL_collapse aw (p + ⟨100⟩).toNat (p + ⟨132⟩).toNat (by omega)
+    (catBiteMltL aw (p + ⟨100⟩).toNat (by omega))
+  have hcol7 := catBiteAwStepL_collapse aw (p + ⟨132⟩).toNat (p + ⟨164⟩).toNat (by omega)
+    (catBiteMltL aw (p + ⟨132⟩).toNat (by omega))
+  have rd2074 := rd.jumpdest (by native_decide) (by evm_ov)
+  have rd2076 := rd2074.push1 ⟨3⟩ (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd2077raw⟩ := rd2076.sload (by native_decide) (by evm_ov)
+  have rd2077 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2077⟩
+      (solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2077raw
+  have rd2079 := rd2077.push1 ⟨4⟩ (by native_decide) (by evm_ov)
+  have rd2080d := rd2079.dup1 (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd2081raw⟩ := rd2080d.sload (by native_decide) (by evm_ov)
+  have rd2081 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2081⟩
+      (solcSlotWord σ' I ⟨4⟩ :: ⟨4⟩ :: solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink ::
+        iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2081raw
+  have rd2083 := rd2081.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd2084d := rd2083.dup1 (by native_decide) (by evm_ov)
+  have rd2085 := RD.mload 0 p aw rd2084d (by native_decide) (catBiteMloadCost0 hM64)
+    (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
+      (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+            Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
+      (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
+  have rd2090 := rd2085.push4 ⟨32419069⟩ (by native_decide) (by evm_ov)
+  have rd2092 := rd2090.push1 ⟨230⟩ (by native_decide) (by evm_ov)
+  have rd2093 := rd2092.shl (by native_decide) (by evm_ov)
+  have rd2094d := rd2093.dup2 (by native_decide) (by evm_ov)
+  have rd2094 := RD.mstore _ (catBiteGrabSelMemP p mem) (catBiteAwStepL aw p.toNat) rd2094d
+    (by native_decide) catBiteMstoreCostML rfl hstep1 (by evm_ov)
+  have rd2095 := rd2094.swap3 (by native_decide) (by evm_ov)
+  have rd2096 := rd2095.dup4 (by native_decide) (by evm_ov)
+  have rd2097 := rd2096.add (by native_decide) (by evm_ov)
+  have rd2098 := RD.dup16 rd2097 (by native_decide) (by evm_ov)
+  have rd2099 := rd2098.swap1 (by native_decide) (by evm_ov)
+  have rd2100 := RD.mstore _ (catBiteGrabIlkMemP p ilk mem) (catBiteAwStepL aw (p + ⟨4⟩).toNat) rd2099
+    (by native_decide) catBiteMstoreCostML rfl hcol2 (by evm_ov)
+  have rd2101 := rd2100.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd2103 := rd2101.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd2105 := rd2103.push1 ⟨160⟩ (by native_decide) (by evm_ov)
+  have rd2107 := rd2105.shl (by native_decide) (by evm_ov)
+  have rd2108 := rd2107.sub (by native_decide) (by evm_ov)
+  have rd2109 := RD.dup15 rd2108 (by native_decide) (by evm_ov)
+  have rd2110 := rd2109.dup2 (by native_decide) (by evm_ov)
+  have rd2111 := rd2110.and (by native_decide) (by evm_ov)
+  have rd2112 := rd2111.push1 ⟨36⟩ (by native_decide) (by evm_ov)
+  have rd2114 := rd2112.dup6 (by native_decide) (by evm_ov)
+  have rd2115 := rd2114.add (by native_decide) (by evm_ov)
+  have rd2116 := RD.mstore _ (catBiteGrabUrnMemP p ilk urn mem) (catBiteAwStepL aw (p + ⟨36⟩).toNat)
+    rd2115 (by native_decide) catBiteMstoreCostML rfl hcol3 (by evm_ov)
+  have rd2117 := rd2116.uniswapAddress (by native_decide) (by evm_ov)
+  have rd2118 := rd2117.push1 ⟨68⟩ (by native_decide) (by evm_ov)
+  have rd2120 := rd2118.dup6 (by native_decide) (by evm_ov)
+  have rd2121 := rd2120.add (by native_decide) (by evm_ov)
+  have rd2122 := RD.mstore _ (catBiteGrabThisMemP p ilk urn (UInt256.ofNat I.codeOwner.val) mem)
+    (catBiteAwStepL aw (p + ⟨68⟩).toNat) rd2121 (by native_decide) catBiteMstoreCostML rfl hcol4
+    (by evm_ov)
+  have rd2123 := rd2122.swap2 (by native_decide) (by evm_ov)
+  have rd2124 := rd2123.dup3 (by native_decide) (by evm_ov)
+  have rd2125 := rd2124.and (by native_decide) (by evm_ov)
+  have rd2126 := rd2125.push1 ⟨100⟩ (by native_decide) (by evm_ov)
+  have rd2128 := rd2126.dup5 (by native_decide) (by evm_ov)
+  have rd2129 := rd2128.add (by native_decide) (by evm_ov)
+  have rd2130 := RD.mstore _
+    (catBiteGrabVowMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩) mem)
+    (catBiteAwStepL aw (p + ⟨100⟩).toNat) rd2129 (by native_decide) catBiteMstoreCostML rfl hcol5
+    (by evm_ov)
+  have rd2131 := rd2130.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd2133 := rd2131.dup6 (by native_decide) (by evm_ov)
+  have rd2134 := rd2133.dup2 (by native_decide) (by evm_ov)
+  have rd2135 := rd2134.sub (by native_decide) (by evm_ov)
+  have rd2136 := rd2135.push1 ⟨132⟩ (by native_decide) (by evm_ov)
+  have rd2138 := rd2136.dup6 (by native_decide) (by evm_ov)
+  have rd2139 := rd2138.add (by native_decide) (by evm_ov)
+  have rd2140 := RD.mstore _
+    (catBiteGrabDinkMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩) dink mem)
+    (catBiteAwStepL aw (p + ⟨132⟩).toNat) rd2139 (by native_decide) catBiteMstoreCostML rfl hcol6
+    (by evm_ov)
+  have rd2141 := rd2140.dup7 (by native_decide) (by evm_ov)
+  have rd2142 := rd2141.dup2 (by native_decide) (by evm_ov)
+  have rd2143 := rd2142.sub (by native_decide) (by evm_ov)
+  have rd2144 := rd2143.push1 ⟨164⟩ (by native_decide) (by evm_ov)
+  have rd2146 := rd2144.dup6 (by native_decide) (by evm_ov)
+  have rd2147 := rd2146.add (by native_decide) (by evm_ov)
+  have rd2148 := RD.mstore _
+    (catBiteGrabCalldataMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩)
+      dink dart mem) (catBiteAwStepL aw (p + ⟨164⟩).toNat) rd2147 (by native_decide) catBiteMstoreCostML
+    rfl hcol7 (by evm_ov)
+  have rd2149 := rd2148.swap1 (by native_decide) (by evm_ov)
+  have rd2150 := RD.mload 0 p (catBiteAwStepL aw (p + ⟨164⟩).toNat) rd2149 (by native_decide)
+    (catBiteMloadCost0 hM7out)
+    (mloadWordValue_of_readWithPadding
+      (by rw [h64]
+          have hsz := catBiteGrabCalldataMemP_size p ilk urn (UInt256.ofNat I.codeOwner.val)
+            (solcSlotWord σ' I ⟨4⟩) dink dart hpmem (by omega)
+          omega)
+      (by intro hh
+          have hle : (catBiteAwStepL aw (p + ⟨164⟩).toNat * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+            Nat.mod_eq_of_lt haw7sz, h64] at hle; omega)
+      (by rw [h64,
+            catBiteGrabCalldataMemP_read64 p ilk urn (UInt256.ofNat I.codeOwner.val)
+              (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega)]
+          exact hFree64)) hM7out (by evm_ov)
+  have rd2151 := rd2150.swap2 (by native_decide) (by evm_ov)
+  have rd2152 := rd2151.swap1 (by native_decide) (by evm_ov)
+  have rd2153 := rd2152.swap4 (by native_decide) (by evm_ov)
+  have rd2154 := rd2153.and (by native_decide) (by evm_ov)
+  have rd2155 := rd2154.swap3 (by native_decide) (by evm_ov)
+  have rd2156 := rd2155.push4 ⟨2074820416⟩ (by native_decide) (by evm_ov)
+  have rd2161 := rd2156.swap3 (by native_decide) (by evm_ov)
+  have rd2162 := rd2161.push1 ⟨196⟩ (by native_decide) (by evm_ov)
+  have rd2164 := rd2162.dup1 (by native_decide) (by evm_ov)
+  have rd2165 := rd2164.dup3 (by native_decide) (by evm_ov)
+  have rd2166 := rd2165.add (by native_decide) (by evm_ov)
+  have rd2167 := rd2166.swap4 (by native_decide) (by evm_ov)
+  have rd2168 := rd2167.swap2 (by native_decide) (by evm_ov)
+  have rd2169 := rd2168.dup3 (by native_decide) (by evm_ov)
+  have rd2170 := rd2169.swap1 (by native_decide) (by evm_ov)
+  have rd2171 := rd2170.sub (by native_decide) (by evm_ov)
+  have hpp : UInt256.sub p p = ⟨0⟩ := by
+    apply u256_inj; rw [usub_toNat (le_refl p.toNat)]; simp
+  rw [hpp] at rd2171
+  have rd2172 := rd2171.add (by native_decide) (by evm_ov)
+  rw [show (⟨0⟩ : UInt256) + ⟨196⟩ = ⟨196⟩ from by native_decide] at rd2172
+  have rd2173 := rd2172.dup2 (by native_decide) (by evm_ov)
+  have rd2174 := rd2173.dup4 (by native_decide) (by evm_ov)
+  have rd2175 := rd2174.dup8 (by native_decide) (by evm_ov)
+  exact ⟨_, _, rd2175.dup1 (by native_decide) (by evm_ov)⟩
+
 set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
