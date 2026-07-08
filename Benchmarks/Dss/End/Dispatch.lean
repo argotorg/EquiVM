@@ -514,7 +514,7 @@ theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.uniswapPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 10000000 in
 theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -706,9 +706,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       have h163 := h162.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
       by_cases h163gt :
           UInt256.gt (armSelNat endBytecode (⟨163⟩ : UInt256)) (endSelWord I) = ⟨0⟩
-      · have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨174⟩ : UInt256)
-            [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-            (cA, σ) _ _ := by
+      · have h174 := by
           simpa [selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc,
             selArmEqPc, selArmPush4Pc] using
             RD.selectorSplitNotTakenAuto h163 hsplit163 h163gt (by simp)
@@ -720,16 +718,13 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     have h272 := h271.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
     by_cases h272gt :
         UInt256.gt (armSelNat endBytecode (⟨272⟩ : UInt256)) (endSelWord I) = ⟨0⟩
-    · have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨283⟩ : UInt256)
-          [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ := by
+    · have h283 := by
         simpa [selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc,
           selArmEqPc, selArmPush4Pc] using
           RD.selectorSplitNotTakenAuto h272 hsplit272 h272gt (by simp)
       by_cases h283gt :
           UInt256.gt (armSelNat endBytecode (⟨283⟩ : UInt256)) (endSelWord I) = ⟨0⟩
-      · have h294 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨294⟩ : UInt256)
-            [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-            (cA, σ) _ _ := by
+      · have h294 := by
           simpa [selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc,
             selArmEqPc, selArmPush4Pc] using
             RD.selectorSplitNotTakenAuto h283 hsplit283 h283gt (by simp)
@@ -741,9 +736,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       have h392 := h391.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
       by_cases h392gt :
           UInt256.gt (armSelNat endBytecode (⟨392⟩ : UInt256)) (endSelWord I) = ⟨0⟩
-      · have h403 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨403⟩ : UInt256)
-            [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-            (cA, σ) _ _ := by
+      · have h403 := by
           simpa [selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc,
             selArmEqPc, selArmPush4Pc] using
             RD.selectorSplitNotTakenAuto h392 hsplit392 h392gt (by simp)

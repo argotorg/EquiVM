@@ -1,5 +1,7 @@
 import Benchmarks.Dss.End.Constructor
 import Benchmarks.Dss.End.Dispatch
+import Benchmarks.Dss.End.FileAddressTail
+import Benchmarks.Dss.End.PackBody
 import Solm.Equiv
 
 /-!
