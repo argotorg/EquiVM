@@ -57,6 +57,19 @@ theorem biteDartRateV_eq_of_equiv {I} {a b : EVM.State} (h : EVMStateEquiv a b) 
   simp only [biteDartRateV, biteDartV, biteDartCandV, biteDartDenomV, biteDunkRoomWadV,
     biteDunkRoomV, biteDunkW, biteRoomV, biteBoxW, biteLitW, biteChopW, biteSlotEqOfEquiv h]
 
+theorem biteTabV_eq_of_equiv {I} {a b : EVM.State} (h : EVMStateEquiv a b) (r art : UInt256) :
+    biteTabV I a r art = biteTabV I b r art := by
+  simp only [biteTabV, biteTabBaseV, biteDartRateV, biteDartV, biteDartCandV, biteDartDenomV,
+    biteDunkRoomWadV, biteDunkRoomV, biteDunkW, biteRoomV, biteBoxW, biteLitW, biteChopW,
+    biteSlotEqOfEquiv h]
+
+theorem biteLitterNewV_eq_of_equiv {I} {au bu af bf : EVM.State}
+    (hu : EVMStateEquiv au bu) (hf : EVMStateEquiv af bf) (r art : UInt256) :
+    biteLitterNewV I au af r art = biteLitterNewV I bu bf r art := by
+  simp only [biteLitterNewV, biteLitW, biteTabV, biteTabBaseV, biteDartRateV, biteDartV,
+    biteDartCandV, biteDartDenomV, biteDunkRoomWadV, biteDunkRoomV, biteDunkW, biteRoomV, biteBoxW,
+    biteChopW, biteSlotEqOfEquiv hu, biteSlotEqOfEquiv hf]
+
 theorem biteVatAddr_eq_of_equiv {a b : EVM.State} (h : EVMStateEquiv a b) :
     biteVatAddr a = biteVatAddr b := by simp only [biteVatAddr, biteSlotEqOfEquiv h]
 
