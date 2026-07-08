@@ -501,7 +501,237 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           swap
                                           · sorry -- kick return decode short (returndatasize < 32) → divergence
                                           have hret := hRDret hzk hk32
-                                          sorry -- catBiteSuccessBranch frontier
+                                          have hdepthNe : I.depth ≠ 1024 := by omega
+                                          obtain ⟨AU, hUrnsCall'⟩ :=
+                                            biteTypedCallZeroSetSubstate hUrnsCall
+                                              (by simpa [initState] using hdepthNe) A'
+                                          obtain ⟨AG, hGrabCall'⟩ :=
+                                            biteTypedCallZeroSetSubstate hGrabCall
+                                              (by simpa [initState] using hdepthNe) AU
+                                          obtain ⟨AF, hFessCall'⟩ :=
+                                            biteTypedCallZeroSetSubstate hFessCall
+                                              (by simpa [initState] using hdepthNe) AG
+                                          obtain ⟨AK, hKickCall'⟩ :=
+                                            biteTypedCallZeroSetSubstate hKickCall
+                                              (by simpa [initState] using hdepthNe) AF
+                                          set S := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+                                            with hS
+                                          have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
+                                              ABI.bytesToWord ((o.toList.drop k).take 32) =
+                                                UInt256.ofNat (fromByteArrayBigEndian
+                                                  (o.extract k (k + 32))) := by
+                                            intro o k h
+                                            rw [decode_word_at_eq_any o k h, uInt256OfByteArray_eq]
+                                            congr 1; unfold fromByteArrayBigEndian; congr 1
+                                            rw [byteArray_toList_eq (o.readBytes k 32),
+                                              readBytes_at_toList_any o k h,
+                                              byteArray_toList_eq (o.extract k (k + 32)),
+                                              ByteArray.data_extract, Array.toList_extract,
+                                              List.extract_eq_take_drop]
+                                            simp
+                                          have hmask : biteAddrMaskWord = solcAddrMask := by
+                                            native_decide
+                                          have uminEq : ∀ a b : UInt256,
+                                              (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
+                                            intro a b
+                                            unfold umin
+                                            by_cases h : a.toNat ≤ b.toNat
+                                            · rw [if_pos (ugt_zero h), if_pos h]
+                                            · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
+                                          have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
+                                            fun w hw => Nat.pos_of_ne_zero
+                                              (fun h => hw (uint256_toNat_eq_zero h))
+                                          have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+                                          have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat = 57896044618658097711785492504343953926634992332820282019728792003956564819968 := by native_decide
+                                          set eIlk := { S with accountMap := σ', substate := A', createdAccounts := cA' } with heIlk
+                                          set eUrn := { S with accountMap := σu, substate := AU, createdAccounts := cAu } with heUrn
+                                          set eGrab := { S with accountMap := σg, substate := AG, createdAccounts := cAg } with heGrab
+                                          set eFess := { S with accountMap := σf, substate := AF, createdAccounts := cAf } with heFess
+                                          set eKick := { S with accountMap := σk, substate := AK, createdAccounts := cAk } with heKick
+                                          have heUam : eUrn.accountMap = σu := rfl
+                                          have heUee : eUrn.executionEnv = I := rfl
+                                          have heFam : eFess.accountMap = σf := rfl
+                                          have heFee : eFess.executionEnv = I := rfl
+                                          have hboxB : biteBoxW eUrn = solcSlotWord σu I ⟨5⟩ := by
+                                            simp only [biteBoxW, catSlotWord, heUam, heUee]
+                                          have hlitB : biteLitW eUrn = solcSlotWord σu I ⟨6⟩ := by
+                                            simp only [biteLitW, catSlotWord, heUam, heUee]
+                                          have hchopB : biteChopW I eUrn = milkChop := by
+                                            rw [hmilkChopDef]
+                                            simp only [biteChopW, catSlotWord, heUam, heUee,
+                                              biteChopSlot, biteFlipSlot_eq hsz36]
+                                          have hdunkB : biteDunkW I eUrn = milkDunk := by
+                                            rw [hmilkDunkDef]
+                                            simp only [biteDunkW, catSlotWord, heUam, heUee,
+                                              biteDunkSlot, biteFlipSlot_eq hsz36]
+                                          have hroomB : biteRoomV eUrn = room := by
+                                            rw [hroomDef]
+                                            simp only [biteRoomV, biteBoxW, biteLitW, catSlotWord,
+                                              heUam, heUee]
+                                          have hdunkroomB : biteDunkRoomV I eUrn = dunkRoom := by
+                                            rw [hdunkRoomDef, uminEq milkDunk room]
+                                            simp only [biteDunkRoomV, hdunkB, hroomB]
+                                          have hdartvB : biteDartV I eUrn iRate art = dart := by
+                                            have hcand : biteDartCandV I eUrn iRate = dartCandidate := by
+                                              simp only [biteDartCandV, biteDartDenomV,
+                                                biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
+                                                hdartCandDef, hdartDenomDef, hdunkRoomWadDef]
+                                              rfl
+                                            rw [hdartDef, uminEq art dartCandidate]
+                                            simp only [biteDartV, hcand]
+                                          have hdinkvB : biteDinkV I eUrn iRate art ink = dink := by
+                                            have hcand :
+                                                biteDinkCandV I eUrn iRate art ink = dinkCandidate := by
+                                              simp only [biteDinkCandV, biteInkDartV, hdartvB,
+                                                hdinkCandDef, hinkDartDef]
+                                              rfl
+                                            rw [hdinkDef, uminEq ink dinkCandidate]
+                                            simp only [biteDinkV, hcand]
+                                          have hdartrateB : biteDartRateV I eUrn iRate art = dartRate := by
+                                            rw [hdartRateDef]
+                                            simp only [biteDartRateV, hdartvB]; rfl
+                                          have htabB : biteTabV I eUrn iRate art = tab := by
+                                            rw [htabDef, htabBaseDef]
+                                            simp only [biteTabV, biteTabBaseV, hdartrateB, hchopB, hwad]
+                                            rfl
+                                          have hlitFB : biteLitW eFess = solcSlotWord σf I ⟨6⟩ := by
+                                            simp only [biteLitW, catSlotWord, heFam, heFee]
+                                          have heIam : eIlk.accountMap = σ' := rfl
+                                          have heIee : eIlk.executionEnv = I := rfl
+                                          have heGam : eGrab.accountMap = σg := rfl
+                                          have heGee : eGrab.executionEnv = I := rfl
+                                          have addrId : ∀ a : AccountAddress, EVM.address a.val = a := by
+                                            intro a; apply Fin.ext
+                                            show a.val % EVM.addressModulus = a.val
+                                            rw [show EVM.addressModulus = AccountAddress.size from by decide]
+                                            exact Nat.mod_eq_of_lt a.isLt
+                                          have codePos : ∀ (e : EVM.State) (w : UInt256),
+                                              uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+                                              0 < (UInt256.ofNat ((e.lookupAccount
+                                                (AccountAddress.ofUInt256 w)).option 0
+                                                (fun acc => acc.code.size))).toNat := by
+                                            intro e w hw
+                                            unfold uniswapExtCodeSizeWord at hw
+                                            simp only [State.lookupAccount]
+                                            cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+                                            | none => rw [hf] at hw; simp [Option.option] at hw
+                                            | some acc =>
+                                                rw [hf] at hw
+                                                simp only [Option.option, Function.comp] at hw ⊢
+                                                exact hposNe _ hw
+                                          refine catBiteSuccessBranch
+                                            (evmIlk := eIlk) (evmUrn := eUrn) (evmGrab := eGrab)
+                                            (evmFess := eFess) (evmKick := eKick)
+                                            (ilksOut := o') (urnsOut := ou) (grabOut := og)
+                                            (fessOut := ofb) (kickOut := ok)
+                                            (iRate := iRate) (iSpot := iSpot) (iDust := iDust)
+                                            (ink := ink) (art := art)
+                                            (id := UInt256.ofNat (fromByteArrayBigEndian (ok.extract 0 32)))
+                                            (iArt := UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32)))
+                                            (iLine := UInt256.ofNat (fromByteArrayBigEndian (o'.extract 96 128)))
+                                            (acc := (cAk, σk))
+                                            (hcode := hcode) (hdispatch := hdispatch) (hdecode := hdecode)
+                                            (hAccounts := hAccounts) (hsz36 := hsz36) (hwv := hwv)
+                                            (hret := hret) (hcreated := rfl)
+                                            (hAccountsFinal := accountMapEquiv_refl σk)
+                                            (hLitStore := storageLocStore_uint256 _ ⟨6⟩ _)
+                                            (hIlksDec := by
+                                              have h := catBiteIlksDecode_ok hilkslen
+                                              rw [hbr o' 0 (by omega), hbr o' 32 (by omega),
+                                                hbr o' 64 (by omega), hbr o' 96 (by omega),
+                                                hbr o' 128 (by omega)] at h
+                                              exact h)
+                                            (hUrnsDec := by
+                                              have h := catBiteUrnsDecode_ok hurnslen
+                                              rw [hbr ou 0 (by omega), hbr ou 32 (by omega)] at h
+                                              exact h)
+                                            (hKickDec := catBiteKickDecode_ok hk32)
+                                            (hGrabDec := by simp [config, externalABI, decodeVoid?])
+                                            (hFessDec := by simp [config, externalABI, decodeVoid?])
+                                            (hfitInkSpot := hfitInkSpot) (hfitArtRate := hfitArtRate)
+                                            (hspotPos := hspotPos) (hunsafe := hunsafe)
+                                            (hratePos := hposNe iRate hRatePos)
+                                            (hartPos := hposNe art hArtPos)
+                                            (hlive := by rw [heUam, heUee]; exact hlive)
+                                            (hfitDunkRoomWad := by
+                                              rw [hdunkroomB, hwad, Nat.mul_comm]; exact hFitWad)
+                                            (hfitInkDart := by
+                                              rw [hdartvB, Nat.mul_comm]; exact hFitInkDart)
+                                            (hfitDartRate := by
+                                              rw [hdartvB, Nat.mul_comm]; exact hRateFit)
+                                            (hfitTabBase := by
+                                              rw [hdartrateB, hchopB, Nat.mul_comm]; exact hChopFit)
+                                            (hfitLitterNew := by rw [hlitFB, htabB]; exact hLitFit)
+                                            (hmilkChopPos := by rw [hchopB]; exact hposNe milkChop hChopPos)
+                                            (hlitLtBox := by rw [hlitB, hboxB]; exact hlitterbox)
+                                            (hroomGeDust := by rw [hroomB]; exact hroomdust)
+                                            (hdartPos := by rw [hdartvB]; exact hDartPos)
+                                            (hdinkPos := by rw [hdinkvB]; exact hDinkPos)
+                                            (hdartLim := by
+                                              rw [hdartvB]; simp only [int256Limit]
+                                              exact Int.ofNat_le.mpr (hDartLim.trans_eq hsl))
+                                            (hdinkLim := by
+                                              rw [hdinkvB]; simp only [int256Limit]
+                                              exact Int.ofNat_le.mpr (hDinkLim.trans_eq hsl))
+                                            (hvatCode0 :=
+                                              catBiteVatCodePos_of_uniswap (accountMapEquiv_refl σ_evm) hvatCode)
+                                            (hIlksCall := by
+                                              rw [catBiteVatEvmAddr_eq_target]; exact hIlksCall)
+                                            (hvatCodeIlk := by
+                                              have haddr : biteVatAddr eIlk =
+                                                  AccountAddress.ofUInt256 (catBiteVatTargetWord σ' I) := by
+                                                rw [accountAddress_ofUInt256_eq_ofNat_toNat]
+                                                simp only [biteVatAddr, catBiteVatTargetWord,
+                                                  catAddressReturnWord, catSlotWord, heIam, heIee]
+                                              rw [haddr]
+                                              refine codePos eIlk (catBiteVatTargetWord σ' I) ?_
+                                              have ht : catBiteVatTargetWord σ' I =
+                                                  (catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord := by
+                                                simp only [catBiteVatTargetWord, catAddressReturnWord, hmask]
+                                              rw [heIam, ht]; exact hUrnsVatCode)
+                                            (hUrnsCall := by
+                                              have haddr : EVM.address (biteVatAddr eIlk).val =
+                                                  AccountAddress.ofUInt256
+                                                    ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) := by
+                                                rw [addrId, accountAddress_ofUInt256_eq_ofNat_toNat]
+                                                simp only [biteVatAddr, catSlotWord, heIam, heIee, hmask]
+                                              rw [haddr]; exact hUrnsCall')
+                                            (hvatCodeMid := by
+                                              have haddr : biteVatAddr eUrn =
+                                                  AccountAddress.ofUInt256 (catBiteVatTargetWord σu I) := by
+                                                rw [accountAddress_ofUInt256_eq_ofNat_toNat]
+                                                simp only [biteVatAddr, catBiteVatTargetWord,
+                                                  catAddressReturnWord, catSlotWord, heUam, heUee]
+                                              rw [haddr]
+                                              refine codePos eUrn (catBiteVatTargetWord σu I) ?_
+                                              have ht : catBiteVatTargetWord σu I =
+                                                  (solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord := by
+                                                simp only [catBiteVatTargetWord, catAddressReturnWord,
+                                                  catSlotWord, hmask]
+                                              rw [heUam, ht]; exact hGrabCode)
+                                            (hGrabCall := by
+                                              sorry) -- catBiteSuccessBranch hGrabCall: grab CALL coupling;
+                                              -- needs args [biteIlkVal I, biteUrnVal I, .address codeOwner,
+                                              -- .address (biteVowAddrV eUrn), .int -dink, .int -dart] vs walk's
+                                              -- raw fixedBytes/ofNat forms. See report.
+                                            (hvowCode := by
+                                              have haddr : biteVowAddrV eGrab =
+                                                  AccountAddress.ofUInt256
+                                                    ((solcSlotWord σg I ⟨4⟩).land solcAddrMask) := by
+                                                rw [accountAddress_ofUInt256_eq_ofNat_toNat]
+                                                simp only [biteVowAddrV, catSlotWord, heGam, heGee]
+                                              rw [haddr]
+                                              refine codePos eGrab ((solcSlotWord σg I ⟨4⟩).land solcAddrMask) ?_
+                                              rw [heGam, u256_land_comm, ← hmask]; exact hFessCode)
+                                            (hFessCall := by
+                                              sorry) -- catBiteSuccessBranch hFessCall: fess CALL coupling;
+                                              -- target/arg reconciliation. See report.
+                                            (hflipCode := by
+                                              sorry) -- catBiteSuccessBranch hflipCode: flip code-size at
+                                              -- evmLit; needs biteFlipSlot_eq + land idempotent + litter. See report.
+                                            (hKickCall := by
+                                              sorry) -- catBiteSuccessBranch hKickCall: kick CALL coupling;
+                                              -- target/arg + evmLit reconciliation. See report.
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
