@@ -136,8 +136,41 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               · obtain ⟨_, _, rd1620⟩ :=
                                   catBiteTraceSeg5 rd1521 hspotPos hfitArtRate hfitInkSpot hunsafe
                                     (by simp)
-                                -- frontier: Seg6Aw (1620 → 1708) onward.
-                                sorry
+                                -- Seg6Aw (1620 → 1708): milk-struct alloc + room = box - litter.
+                                rw [hawout9] at rd1620
+                                have hmf :
+                                    (ou.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I)
+                                      (o'.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
+                                        catBiteIlksOutPtr.toNat
+                                        (catBiteIlksOutSize ⊓ UInt256.ofNat o'.size).toNat))
+                                      (⟨128⟩ : UInt256).toNat
+                                      ((⟨64⟩ : UInt256) ⊓ UInt256.ofNat ou.size).toNat)
+                                      = catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou := rfl
+                                rw [hmf] at rd1620
+                                have h64 : (⟨64⟩ : UInt256).toNat = 64 := by native_decide
+                                have h128 : (⟨128⟩ : UInt256).toNat = 128 := by native_decide
+                                by_cases hle :
+                                    (solcSlotWord σu I ⟨6⟩).toNat ≤ (solcSlotWord σu I ⟨5⟩).toNat
+                                · obtain ⟨_, _, rd1708⟩ := catBiteReachSeg6Aw (fp := ⟨128⟩) rd1620
+                                    (by native_decide)
+                                    (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
+                                      (by rw [h64]; have := hmemUsz; omega) (by native_decide)
+                                      (catBiteUrnsPostCallMem_read64 I ou hmemI
+                                        (catBiteIlksPostCallMem_read64 I o' hilkslen hosz)
+                                        hurnslen hoszu))
+                                    (catBiteScratchMem_mload64
+                                      (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+                                      ⟨128⟩ (biteIlkWord I)
+                                      (by rw [h128]; have := hmemUsz; omega) (by native_decide)
+                                      (by native_decide) (by native_decide) (by native_decide))
+                                    (catBiteScratchMem_read0_64
+                                      (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+                                      ⟨128⟩ (biteIlkWord I)
+                                      (by rw [h128]; have := hmemUsz; omega) (by native_decide))
+                                    (by native_decide) (by native_decide) (by native_decide)
+                                    hle (by simp)
+                                  sorry -- frontier: 1708to2073
+                                · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
                           · sorry -- inkSpot checkedMul overflow → revert leaf
