@@ -168,6 +168,24 @@ theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   exact catBiteIlksFailLeaf hcode hdispatch hdecode rd hosz hov
     (catBiteSourceIlksFailRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm)
 
+/-- `MachineState.M` (Nat form): a memory touch of `sz` bytes at `off` inside the active window
+(`off + sz ≤ a·32`) does not grow the active words. Needed to rewrite the *inner* `M` of a nested
+post-`CALL` active-words expression `M (M a inOff inSize) outOff outSize`. -/
+theorem catBiteMInvNat (a off sz : Nat) (h : off + sz ≤ a * 32) : MachineState.M a off sz = a := by
+  rcases sz with _ | l
+  · simp [MachineState.M]
+  · show max a ((off + (l + 1) + 31) / 32) = a
+    rw [max_eq_left]; omega
+
+/-- Generalisation of the frozen `awInv32` to an arbitrary access size (`ofNat` form): reusable for
+every call's post-`CALL` active-words invariance (`awInv32` only covers `sz = 32`; the calls copy
+`68`/`196`/… bytes). -/
+theorem catBiteAwInvGen (aw : UInt256) (off sz : Nat) (h : off + sz ≤ aw.toNat * 32) :
+    UInt256.ofNat (MachineState.M aw.toNat off sz) = aw := by
+  apply u256_inj
+  rw [catBiteMInvNat aw.toNat off sz h]
+  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
+
 /-- **ilks STATICCALL reach, exposing the concrete post-call active-words bound.** Identical
 conclusion to the frozen `catBiteReachPostIlks` but additionally supplies `288 ≤ awout·32` — the bound
 `catBiteReachPostUrns` needs and which the abstract wrapper's existential `awout` cannot provide. The
