@@ -168,6 +168,62 @@ theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   exact catBiteIlksFailLeaf hcode hdispatch hdecode rd hosz hov
     (catBiteSourceIlksFailRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm)
 
+/-- **ilks STATICCALL reach, exposing the concrete post-call active-words bound.** Identical
+conclusion to the frozen `catBiteReachPostIlks` but additionally supplies `288 ≤ awout·32` — the bound
+`catBiteReachPostUrns` needs and which the abstract wrapper's existential `awout` cannot provide. The
+active words after the ilks return-copy (`outOff = 128`, `outSize = 160`) are `M (M 6 128 36) 128 160
+= 9`, so `9·32 = 288`. Derives the call at the low level (`RD.uniswapStaticcall`) to keep `aw`
+concrete instead of chaining the aw-forgetting wrapper. -/
+theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
+    (hdepth : I.depth.val < 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
+      RD catBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: catBiteIlksEndPtr :: catBiteIlksSelectorWord ::
+          catBiteVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
+          UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
+          ⟨419⟩ :: catSelWord I :: [])
+        (o'.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
+          catBiteIlksOutPtr.toNat (min catBiteIlksOutSize (UInt256.ofNat o'.size)).toNat)
+        awout o' (cA', σ') k' C'
+    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
+        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A', createdAccounts := cA' }, o') false
+    ∧ o'.size < UInt256.size
+    ∧ 288 ≤ awout.toNat * 32 := by
+  obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel
+  obtain ⟨_, _, rd1233⟩ := RD.catBiteIlksToStaticcallGuard (hR := by simp) rd1163
+  have hbytes : biteIlkBytes I = EVM.Word.toBytesBE (biteIlkWord I) := by
+    simpa [biteIlkBytes, biteIlkWord, biteUrnsIlkBytes, biteUrnsIlkWord] using
+      biteUrnsIlkBytes_eq_toBytesBE (I := I) hsz36
+  have hencode : config.externalABI.encode? "ilks" [biteIlkVal I] =
+      some ((catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem).readWithPadding
+        catBiteIlksOutPtr.toNat catBiteIlksInSize.toNat) := by
+    simpa [biteIlkVal] using
+      catBiteIlksEncode_eq (biteIlkWord I) (biteIlkBytes I) solcFreePtrMem_size hbytes
+  obtain ⟨gasWord, _, _, rd1248⟩ := RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩)
+    rd1233 hcodeSize (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by simp)
+  obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
+    RD.uniswapStaticcall rd1248 (by native_decide) hdepth (by simp)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide⟩
+  refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
+    (callPerm := false) (targetWord := catBiteVatTargetWord σ I)
+    (mem := catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
+    (inOff := catBiteIlksOutPtr) (inSize := catBiteIlksInSize)
+    (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+    rfl hencode ?_
+  simpa [initState] using hΘ
+
 set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
