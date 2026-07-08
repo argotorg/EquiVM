@@ -242,6 +242,130 @@ theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl hencode ?_
   simpa [initState] using hΘ
 
+/-- **urns STATICCALL reach, exposing the concrete post-call active-words = input `aw`.** Same
+preamble as the frozen `catBiteReachPostUrns` (`Seg2a/2b/2c1/2c2` are `aw`-preserving), but the final
+urns call is derived at the low level so the post-call `aw = M (M aw 128 68) 128 64` is exposed;
+for `aw ≥ 9` (from `catBiteReachPostIlksAw`'s `288 ≤ aw·32`) both `M`s collapse (`catBiteMInvNat`/
+`catBiteAwInvGen`), so the output active-words are exactly the input `aw` — the bound threads through. -/
+theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {status urn iRate iSpot iDust : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+      (status :: catBiteIlksEndPtr :: catBiteIlksSelectorWord :: catBiteVatTargetWord σ I ::
+        ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      mem aw o (cA', σ') k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (haw : 288 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hmemsize : 288 ≤ mem.size)
+    (ho160 : 160 ≤ o.size) (hosz : o.size < UInt256.size)
+    (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hRate : mem.readWithPadding 160 32 = UInt256.toByteArray iRate)
+    (hSpot : mem.readWithPadding 192 32 = UInt256.toByteArray iSpot)
+    (hDust : mem.readWithPadding 256 32 = UInt256.toByteArray iDust)
+    (hurn : UInt256.land biteAddrMaskWord urn = biteUrnWord I)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) ≠ ⟨0⟩)
+    (hdepth : I.depth.val < 1024) :
+    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+      (o' : ByteArray) (A'' : Substate) (k' C' : ℕ),
+      RD catBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ ::
+          UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
+          ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
+          ⟨419⟩ :: catSelWord I :: [])
+        (o'.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
+          (⟨128⟩ : UInt256).toNat (min (⟨64⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
+        aw o' (cA'', σ'') k' C'
+    ∧ typedCallViaEVM config
+        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord))
+        "urns" 0 [biteIlkVal I, biteUrnVal I]
+        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') false
+    ∧ o'.size < UInt256.size := by
+  have hnotge : ∀ off : UInt256, off.toNat ≤ 256 → ¬ (off ≥ aw * ⟨32⟩) := by
+    intro off hoff hh
+    have hle : (aw * ⟨32⟩).toNat ≤ off.toNat := hh
+    rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      Nat.mod_eq_of_lt hawsz] at hle
+    omega
+  have h64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw := awInv32 aw (by omega)
+  have h128Aw : UInt256.ofNat (MachineState.M aw.toNat 128 32) = aw := awInv32 aw (by omega)
+  have h132Aw : UInt256.ofNat (MachineState.M aw.toNat 132 32) = aw := awInv32 aw (by omega)
+  have h160Aw : UInt256.ofNat (MachineState.M aw.toNat 160 32) = aw := awInv32 aw (by omega)
+  have h164Aw : UInt256.ofNat (MachineState.M aw.toNat 164 32) = aw := awInv32 aw (by omega)
+  have h192Aw : UInt256.ofNat (MachineState.M aw.toNat 192 32) = aw := awInv32 aw (by omega)
+  have h256Aw : UInt256.ofNat (MachineState.M aw.toNat 256 32) = aw := awInv32 aw (by omega)
+  have hV64 : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩ :=
+    mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) (by show (64 : ℕ) < mem.size; omega)
+      (hnotge ⟨64⟩ (by decide)) (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hFree64)
+  have hVRate : (if (⟨160⟩ : UInt256).toNat ≥ mem.size ∨ (⟨160⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 160 32))) = iRate :=
+    mloadWordValue_of_readWithPadding (off := ⟨160⟩) (v := iRate) (by show (160 : ℕ) < mem.size; omega)
+      (hnotge ⟨160⟩ (by decide)) (by rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]; exact hRate)
+  have hVSpot : (if (⟨192⟩ : UInt256).toNat ≥ mem.size ∨ (⟨192⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 192 32))) = iSpot :=
+    mloadWordValue_of_readWithPadding (off := ⟨192⟩) (v := iSpot) (by show (192 : ℕ) < mem.size; omega)
+      (hnotge ⟨192⟩ (by decide)) (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide]; exact hSpot)
+  have hVDust : (if (⟨256⟩ : UInt256).toNat ≥ mem.size ∨ (⟨256⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 256 32))) = iDust :=
+    mloadWordValue_of_readWithPadding (off := ⟨256⟩) (v := iDust) (by show (256 : ℕ) < mem.size; omega)
+      (hnotge ⟨256⟩ (by decide)) (by rw [show (⟨256⟩ : UInt256).toNat = 256 from by decide]; exact hDust)
+  obtain ⟨_, _, rd1289⟩ := catBiteTraceSeg2a rd hstatus ho160 hosz hV64 (mloadCost0 h64Aw) h64Aw (by simp)
+  obtain ⟨_, _, rd1306⟩ := catBiteTraceSeg2b rd1289 hVRate (mloadCost0 h160Aw) h160Aw
+    hVSpot (mloadCost0 h192Aw) h192Aw hVDust (mloadCost0 h256Aw) h256Aw (by simp)
+  obtain ⟨_, _, rd1344⟩ := catBiteTraceSeg2c1 rd1306 hV64 (mloadCost0 h64Aw) h64Aw
+    (mstoreCost0 h128Aw) h128Aw (mstoreCost0 h132Aw) h132Aw (mstoreCost0 h164Aw) h164Aw (by simp)
+  have hV64' : (if (⟨64⟩ : UInt256).toNat ≥
+        (biteUrnsCalldataMem (biteIlkWord I) (UInt256.land biteAddrMaskWord urn) mem).size
+        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian
+        ((biteUrnsCalldataMem (biteIlkWord I) (UInt256.land biteAddrMaskWord urn) mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
+    mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
+      (by rw [biteUrnsCalldataMem_size (by omega)]; show (64 : ℕ) < mem.size; omega)
+      (hnotge ⟨64⟩ (by decide))
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+        biteUrnsCalldataMem_read64 (by omega) hFree64])
+  obtain ⟨_, _, rd1383⟩ := catBiteTraceSeg2c2 rd1344 hV64' (mloadCost0 h64Aw) h64Aw (by simp)
+  rw [hurn] at rd1383
+  have hencode : config.externalABI.encode? "urns" [biteIlkVal I, biteUrnVal I] =
+      some ((biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem).readWithPadding
+        (⟨128⟩ : UInt256).toNat 68) :=
+    biteUrnsEncode_eq I (by omega) hsz36
+  -- urns STATICCALL at the low level, exposing the concrete post-call active-words.
+  obtain ⟨gasWord, _, _, rd1398⟩ :=
+    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd1383 hcodeSize
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+  obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz'⟩ :=
+    RD.uniswapStaticcall rd1398 (by native_decide) hdepth
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  have hawEq : UInt256.ofNat (MachineState.M (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat
+      (⟨68⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat) = aw := by
+    rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+      show (⟨68⟩ : UInt256).toNat = 68 from by decide,
+      show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+      catBiteMInvNat aw.toNat 128 68 (by omega)]
+    exact catBiteAwInvGen aw 128 64 (by omega)
+  rw [hawEq] at rd1399
+  refine ⟨cA'', σ'', z, o', A', k', C', rd1399, ?_, hosz'⟩
+  refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
+    (callPerm := false) (targetWord := UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord)
+    (mem := biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
+    (inOff := ⟨128⟩) (inSize := ⟨68⟩)
+    (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+    rfl hencode ?_
+  simpa [initState] using hΘ
+
 set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
