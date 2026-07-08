@@ -98,18 +98,50 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         rw [hslot3] at rd1399
                         have hmemI : (196 : ℕ) ≤ (catBiteIlksPostCallMem I o').size := by
                           have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
+                        have hmemUsz : (224 : ℕ) ≤
+                            (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
+                          have hbaseSz : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I)
+                              (catBiteIlksPostCallMem I o')).size = 288 := by
+                            rw [biteUrnsCalldataMem_size hmemI,
+                              catBiteIlksPostCallMem_size I o' hilkslen hosz]
+                          have hlen64 : ((⟨64⟩ : UInt256) ⊓ UInt256.ofNat ou.size).toNat = 64 :=
+                            umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide)
+                              hurnslen hoszu
+                          unfold catBiteUrnsPostCallMem
+                          rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+                            write_eq_gen ou _ 128 64 (by decide) (by omega)
+                              (by rw [hbaseSz]; omega),
+                            ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+                            ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
+                          omega
                         obtain ⟨_, _, rd1521⟩ :=
                           catBiteReach1399to1521 rd1399 (by decide)
                             (by omega) (by rw [hawout9]; native_decide)
-                            (by sorry) -- 192 ≤ post-urns mem size (return-copy size arithmetic)
+                            (le_trans (by norm_num) hmemUsz)
                             hurnslen hoszu
                             (catBiteUrnsPostCallMem_read64 I ou hmemI
                               (catBiteIlksPostCallMem_read64 I o' hilkslen hosz) hurnslen hoszu)
                             (catBiteUrnsPostCallMem_read128 I ou hmemI hurnslen hoszu)
                             (catBiteUrnsPostCallMem_read160 I ou hmemI hurnslen hoszu)
                             hlive
-                        -- frontier: Seg5 (1521 → 1620) onward (Core 3 continues).
-                        sorry
+                        -- Seg5 (1521 → 1620): require(spot > 0 && ink*spot < art*rate).
+                        set art := UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)) with hart
+                        set ink := UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)) with hink
+                        set iSpot := UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)) with hiSpot
+                        set iRate := UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)) with hiRate
+                        by_cases hfitArtRate : art.toNat * iRate.toNat < UInt256.size
+                        · by_cases hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size
+                          · by_cases hspotPos : 0 < iSpot.toNat
+                            · by_cases hunsafe : (ink * iSpot).toNat < (art * iRate).toNat
+                              · obtain ⟨_, _, rd1620⟩ :=
+                                  catBiteTraceSeg5 rd1521 hspotPos hfitArtRate hfitInkSpot hunsafe
+                                    (by simp)
+                                -- frontier: Seg6Aw (1620 → 1708) onward.
+                                sorry
+                              · sorry -- require(unsafe) fails → revert leaf
+                            · sorry -- spot = 0 (short-circuit) → revert leaf
+                          · sorry -- inkSpot checkedMul overflow → revert leaf
+                        · sorry -- artRate checkedMul overflow → revert leaf
                       · -- require(live == 1) fails → revert leaf.
                         sorry
                     · -- urns return decode short (`returndatasize < 64`).
