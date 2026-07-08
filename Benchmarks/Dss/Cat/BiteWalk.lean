@@ -388,7 +388,20 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       by_cases hRateFit :
                                           iRate.toNat * dart.toNat < UInt256.size
                                       swap
-                                      · sorry -- iRate*dart checkedMul overflow → divergence
+                                      · -- iRate·dart overflow unreachable: dart ≤ art ⇒ iRate·dart ≤ art·iRate < size.
+                                        have hdart_le : dart.toNat ≤ art.toNat := by
+                                          rw [hdartDef]; split
+                                          · exact le_refl _
+                                          · rename_i h
+                                            by_contra hc
+                                            exact h (ugt_zero (by omega))
+                                        exact absurd
+                                          (calc iRate.toNat * dart.toNat
+                                                ≤ iRate.toNat * art.toNat :=
+                                                  Nat.mul_le_mul (Nat.le_refl _) hdart_le
+                                              _ = art.toNat * iRate.toNat := Nat.mul_comm _ _
+                                              _ < UInt256.size := hfitArtRate)
+                                          hRateFit
                                       -- `with_reducible` freezes `MachineState.M` (reducible in this
                                       -- file, unlike BiteBody's section) so the `catBiteAwStepL_toNat`
                                       -- defeq does not unfold M+`UInt256.size` and blow up heartbeats.
