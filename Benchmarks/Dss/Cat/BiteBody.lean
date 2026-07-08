@@ -248,7 +248,7 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
   rw [hz, byteArray_write_len_zero] at rd2193raw
   simp only [show (⟨196⟩ : UInt256).toNat = 196 from by decide,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      catBiteAwStepL_callCollapse aw p (p + ⟨164⟩).toNat hcov] at rd2193raw
+      catBiteAwStepL_callCollapse aw p (p + ⟨164⟩).toNat 196 hcov] at rd2193raw
   refine ⟨cA'', σ'', z, o', A', k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := I.perm)
@@ -256,6 +256,87 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (mem := catBiteGrabCalldataMemP p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
       (solcSlotWord σ' I ⟨4⟩) dink dart mem)
     (inOff := p) (inSize := ⟨196⟩)
+    (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
+    rfl hencode ?_
+  simpa [initState] using hΘ
+
+set_option maxHeartbeats 4000000 in
+/-- **`fess` CALL reach EXPOSING the grown active-words** `awF = catBiteAwStepL aw (⟨4⟩+p2)`. Mirrors
+`catBiteReachFessRegionC` (Seg7f grab-guard/dartRate + the cached `catBiteTraceFessBuildAw` + guard +
+void `RD.call` + `callCoincides`); the post-call `M (M awF p2 36) p2 0` collapses to `awF` (inSize=36
+`callCollapse`, applied via `simp only`) — exposed for the downstream `kick` reach. -/
+theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {status d0 d1 d2 dink dart q art ink iDust iSpot iRate urn dartRate p2 : UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
+      (status :: d0 :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
+        ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      mem aw o (cA', σ') k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
+    (hDartRate : UInt256.mul dart iRate = dartRate)
+    (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p2)
+    (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
+    (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hpsz : p2.toNat + 96 < UInt256.size)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)) ≠ ⟨0⟩)
+    (hdepth : I.depth.val < 1024) :
+    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+      (o' : ByteArray) (A'' : Substate) (k' C' : ℕ),
+      RD catBytecode I (Sat256.ofUInt256 g)
+        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: (⟨32⟩ + (⟨4⟩ + p2)) :: ⟨1769929592⟩ ::
+          UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
+          dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
+          biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+        (catBiteFessCalldataMemP p2 dartRate mem)
+        (catBiteAwStepL aw (⟨4⟩ + p2).toNat) o' (cA'', σ'') k' C'
+    ∧ typedCallViaEVM config
+        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)))
+        "fess" 0 [.int (Int.ofNat dartRate.toNat)]
+        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') I.perm
+    ∧ o'.size < UInt256.size := by
+  have e4 : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,
+      Nat.mod_eq_of_lt (by omega)]
+  have hM2lt : MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 < UInt256.size :=
+    catBiteMltL aw (⟨4⟩ + p2).toNat (by omega)
+  have hawFval :
+      (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat = MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 :=
+    catBiteAwStepL_toNat aw (⟨4⟩ + p2).toNat hM2lt
+  have hcov : p2.toNat + 36 ≤ (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat * 32 := by
+    rw [hawFval, e4]; simp only [MachineState.M]; omega
+  obtain ⟨_, _, rd2242⟩ := catBiteTraceSeg7f rd hstatus hRateFit hDartRate (by simp)
+  obtain ⟨_, _, rd2284⟩ := catBiteTraceFessBuildAw rd2242 hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
+  have hencode := catBiteFessEncode_eq p2 dartRate hpmem (by omega)
+  obtain ⟨gasWord, _, _, rd2299⟩ :=
+    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
+      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
+      (by native_decide) (by native_decide) (by simp)
+  obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2300, hosz⟩ :=
+    RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by simp)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
+    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by
+      show (0 : Nat) ≤ (UInt256.ofNat o'.size).val.val
+      exact Nat.zero_le _
+    simp [min, hle]
+  rw [hz, byteArray_write_len_zero] at rd2300
+  simp only [show (⟨36⟩ : UInt256).toNat = 36 from by decide,
+      show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+      catBiteAwStepL_callCollapse aw p2 (⟨4⟩ + p2).toNat 36 hcov] at rd2300
+  refine ⟨cA'', σ'', z, o', A', k', C', rd2300, ?_, hosz⟩
+  refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
+    (callPerm := I.perm)
+    (targetWord := UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩))
+    (mem := catBiteFessCalldataMemP p2 dartRate mem) (inOff := p2) (inSize := ⟨36⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
   simpa [initState] using hΘ

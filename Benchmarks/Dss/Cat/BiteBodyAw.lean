@@ -466,16 +466,17 @@ theorem catBiteMstoreCostML {aw off val : UInt256} {t : List UInt256} :
   intro s haw hstk
   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
 
-/-- Void-`CALL` active-words collapse (`inSize=196`, `outSize=0`): the `grab` void `CALL`'s post
-active-words `M (M awF·toNat p 196) p 0` collapse back to `awF` when `awF` already covers `[p,p+196)`.
-Proven by term-mode `catBiteMInvNat` applications (never `rw`-matching `catBiteAwStepL.toNat` in a
-goal, which would unfold `M` on the abstract free pointer and blow up). -/
-theorem catBiteAwStepL_callCollapse (aw p : UInt256) (o : ℕ)
-    (hcov : p.toNat + 196 ≤ (catBiteAwStepL aw o).toNat * 32) :
-    UInt256.ofNat (MachineState.M (MachineState.M (catBiteAwStepL aw o).toNat p.toNat 196)
+/-- Void-`CALL` active-words collapse (parametric `inSize`, `outSize=0`): the `grab`/`fess`/`kick`
+void `CALL`'s post active-words `M (M awF·toNat p inSize) p 0` collapse back to `awF` when `awF`
+already covers `[p, p+inSize)`. Proven by term-mode `catBiteMInvNat` applications (never
+`rw`-matching `catBiteAwStepL.toNat` in a goal, which would unfold `M` on the abstract free pointer
+and blow up). Callers apply it via `simp only [callCollapse …]` (reducible-transparency match). -/
+theorem catBiteAwStepL_callCollapse (aw p : UInt256) (o inSize : ℕ)
+    (hcov : p.toNat + inSize ≤ (catBiteAwStepL aw o).toNat * 32) :
+    UInt256.ofNat (MachineState.M (MachineState.M (catBiteAwStepL aw o).toNat p.toNat inSize)
       p.toNat 0) = catBiteAwStepL aw o := by
-  have h1 : MachineState.M (catBiteAwStepL aw o).toNat p.toNat 196 = (catBiteAwStepL aw o).toNat :=
-    catBiteMInvNat _ p.toNat 196 hcov
+  have h1 : MachineState.M (catBiteAwStepL aw o).toNat p.toNat inSize = (catBiteAwStepL aw o).toNat :=
+    catBiteMInvNat _ p.toNat inSize hcov
   have h2 : MachineState.M (catBiteAwStepL aw o).toNat p.toNat 0 = (catBiteAwStepL aw o).toNat :=
     catBiteMInvNat _ p.toNat 0 (by omega)
   rw [h1, h2]
