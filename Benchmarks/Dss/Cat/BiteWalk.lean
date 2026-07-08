@@ -269,6 +269,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   clear_value base
                                   set flipW := biteAddrMaskWord.land
                                     (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))
+                                    with hflipWDef
                                   clear_value flipW
                                   have hthisCanon :
                                       (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus := by
@@ -619,6 +620,40 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 rw [hf] at hw
                                                 simp only [Option.option, Function.comp] at hw ⊢
                                                 exact hposNe _ hw
+                                          have hbytes :
+                                              biteIlkBytes I = EVM.Word.toBytesBE (biteIlkWord I) := by
+                                            have hlen32 : (biteIlkBytes I).length = 32 := by
+                                              simp only [biteIlkBytes, List.length_take, List.length_drop]
+                                              have htlen : I.calldata.toList.length = I.calldata.size := by
+                                                rw [byteArray_toList_eq, Array.length_toList]; rfl
+                                              rw [htlen]; omega
+                                            have hword : ABI.bytesToWord (biteIlkBytes I) = biteIlkWord I := by
+                                              simpa [biteIlkBytes, biteIlkWord] using
+                                                (decode_word_at_eq_any I.calldata 4 (by simpa using hsz36))
+                                            have hto := toBytesBE_bytesToWord_of_length
+                                              (bs := biteIlkBytes I) hlen32
+                                            rw [hword] at hto; exact hto.symm
+                                          have hAddrRT : ∀ a : AccountAddress,
+                                              AccountAddress.ofNat (UInt256.ofNat a.val).toNat = a := by
+                                            intro a
+                                            have h1 : (UInt256.ofNat a.val).toNat = a.val :=
+                                              UInt256.toNat_ofNat_of_lt (lt_of_lt_of_le a.isLt
+                                                (show AccountAddress.size ≤ UInt256.size from by decide))
+                                            rw [h1]; apply Fin.ext
+                                            simp only [AccountAddress.ofNat, Fin.ofNat]
+                                            exact Nat.mod_eq_of_lt a.isLt
+                                          have hlitternew :
+                                              biteLitterNewV I eUrn eFess iRate art = litterNew := by
+                                            rw [hlitterNewDef]
+                                            simp only [biteLitterNewV, hlitFB, htabB]
+                                          have hflipAddr : biteFlipAddrV I eUrn =
+                                              AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW) := by
+                                            rw [accountAddress_ofUInt256_eq_ofNat_toNat, hflipWDef, hmask]
+                                            simp only [biteFlipAddrV, catSlotWord, heUam, heUee,
+                                              biteFlipSlot_eq hsz36]
+                                            rw [solcAddrMask_clean_left
+                                              (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _),
+                                              u256_land_comm]
                                           refine catBiteSuccessBranch
                                             (evmIlk := eIlk) (evmUrn := eUrn) (evmGrab := eGrab)
                                             (evmFess := eFess) (evmKick := eKick)
@@ -710,10 +745,30 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   catSlotWord, hmask]
                                               rw [heUam, ht]; exact hGrabCode)
                                             (hGrabCall := by
-                                              sorry) -- catBiteSuccessBranch hGrabCall: grab CALL coupling;
-                                              -- needs args [biteIlkVal I, biteUrnVal I, .address codeOwner,
-                                              -- .address (biteVowAddrV eUrn), .int -dink, .int -dart] vs walk's
-                                              -- raw fixedBytes/ofNat forms. See report.
+                                              rw [hperm] at hGrabCall'
+                                              have ht : EVM.address (biteVatAddr eUrn).val =
+                                                  AccountAddress.ofUInt256
+                                                    ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) := by
+                                                rw [addrId, accountAddress_ofUInt256_eq_ofNat_toNat, hmask]
+                                                simp only [biteVatAddr, catSlotWord, heUam, heUee]
+                                              have h1 : biteIlkVal I =
+                                                  Value.fixedBytes bytes32Width
+                                                    (EVM.Word.toBytesBE (biteIlkWord I)) := by
+                                                simp only [biteIlkVal, hbytes]
+                                              have h2 : biteUrnVal I = Value.address (AccountAddress.ofNat
+                                                  (biteAddrMaskWord.land
+                                                    (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat) := by
+                                                rw [hurn]
+                                                simp only [biteUrnVal, biteUrnWord, biteUrnAddr, hAddrRT]
+                                              have h3 : (eUrn.executionEnv.codeOwner : AccountAddress) =
+                                                  AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat := by
+                                                rw [heUee]; exact (hAddrRT I.codeOwner).symm
+                                              have h4 : biteVowAddrV eUrn = AccountAddress.ofNat
+                                                  (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat := by
+                                                simp only [biteVowAddrV, catSlotWord, heUam, heUee, hmask]
+                                                rw [u256_land_comm]
+                                              rw [ht, h1, h2, h3, h4, hdinkvB, hdartvB]
+                                              exact hGrabCall')
                                             (hvowCode := by
                                               have haddr : biteVowAddrV eGrab =
                                                   AccountAddress.ofUInt256
@@ -724,14 +779,44 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               refine codePos eGrab ((solcSlotWord σg I ⟨4⟩).land solcAddrMask) ?_
                                               rw [heGam, u256_land_comm, ← hmask]; exact hFessCode)
                                             (hFessCall := by
-                                              sorry) -- catBiteSuccessBranch hFessCall: fess CALL coupling;
-                                              -- target/arg reconciliation. See report.
+                                              have haddr : EVM.address (biteVowAddrV eGrab).val =
+                                                  AccountAddress.ofUInt256
+                                                    (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) := by
+                                                rw [addrId, accountAddress_ofUInt256_eq_ofNat_toNat,
+                                                  hmask, u256_land_comm]
+                                                simp only [biteVowAddrV, catSlotWord, heGam, heGee]
+                                              rw [hperm] at hFessCall'
+                                              rw [haddr, show bw (biteDartRateV I eUrn iRate art) =
+                                                Value.int (Int.ofNat dartRate.toNat) from by rw [hdartrateB]]
+                                              exact hFessCall')
                                             (hflipCode := by
-                                              sorry) -- catBiteSuccessBranch hflipCode: flip code-size at
-                                              -- evmLit; needs biteFlipSlot_eq + land idempotent + litter. See report.
+                                              rw [hflipAddr]
+                                              refine codePos _ (biteAddrMaskWord.land flipW) ?_
+                                              simp only [storageStore_accountMap, heFam, heFee]
+                                              rw [hlitternew]; exact hKickCode)
                                             (hKickCall := by
-                                              sorry) -- catBiteSuccessBranch hKickCall: kick CALL coupling;
-                                              -- target/arg + evmLit reconciliation. See report.
+                                              sorry)
+                                              -- RESIDUAL. Goal: typedCallViaEVM config evmLit
+                                              --   (EVM.address ↑(biteFlipAddrV I eUrn)) "kick" 0
+                                              --   [biteUrnVal I, .address (biteVowAddrV evmLit),
+                                              --    bw (biteTabV I eUrn iRate art),
+                                              --    bw (biteDinkV I eUrn iRate art ink), .int 0]
+                                              --   (true, eKick, ok) true.
+                                              -- Have hKickCall' (source = {…σ:=sstoreAccountMap…litterNew…}
+                                              -- record, target ofUInt256 (biteAddrMaskWord.land flipW),
+                                              -- args seg8KickArgs …, perm I.perm, z = zk).
+                                              -- Bridges available: target via addrId+hflipAddr; z via hzk;
+                                              -- perm via hperm; arg1 (biteUrnVal) via hurn+hAddrRT (as
+                                              -- hGrabCall h2); arg3/arg4 via htabB/hdinkvB.
+                                              -- Blockers (each needs a few more lines): (a) SOURCE — evmLit
+                                              -- is fixed as `storageStore eFess codeOwner ⟨6⟩
+                                              -- (biteLitterNewV …)` (from hLitStore) which is NOT defeq to
+                                              -- hKickCall''s record source; needs State.ext +
+                                              -- storageStore_{accountMap,executionEnv,createdAccounts,…}
+                                              -- field lemmas + hlitternew. (b) arg2 (biteVowAddrV evmLit vs
+                                              -- seg8VowM) — needs div-by-(256^0=1) no-op + double-land
+                                              -- idempotent (solcAddrMask_clean_left) + u256_land_comm, over
+                                              -- evmLit.accountMap. No missing lemma; assembly only.
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
