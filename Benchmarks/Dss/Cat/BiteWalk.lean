@@ -84,8 +84,71 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     hurn hUrnsVatCode hdepth
                 cases zu with
                 | false =>
-                    -- urns STATICCALL returned success = 0.
-                    sorry
+                    -- urns STATICCALL returned success = 0 → revert leaf.
+                    have hdepthNe : I.depth ≠ 1024 := by omega
+                    have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+                    have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
+                      fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
+                    have addrId : ∀ a : AccountAddress, EVM.address a.val = a := by
+                      intro a; apply Fin.ext
+                      show a.val % EVM.addressModulus = a.val
+                      rw [show EVM.addressModulus = AccountAddress.size from by decide]
+                      exact Nat.mod_eq_of_lt a.isLt
+                    have codePos : ∀ (e : EVM.State) (w : UInt256),
+                        uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+                        0 < (UInt256.ofNat ((e.lookupAccount
+                          (AccountAddress.ofUInt256 w)).option 0 (fun acc => acc.code.size))).toNat := by
+                      intro e w hw
+                      unfold uniswapExtCodeSizeWord at hw
+                      simp only [State.lookupAccount]
+                      cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+                      | none => rw [hf] at hw; simp [Option.option] at hw
+                      | some acc =>
+                          rw [hf] at hw
+                          simp only [Option.option, Function.comp] at hw ⊢
+                          exact hposNe _ hw
+                    obtain ⟨σs, As, hIlksSolm, hEqIlk⟩ := catBiteMapIlksCall hAccounts hIlksCall
+                    have htw : catBiteVatTargetWord σ_evm I = catBiteVatTargetWord σ_solm I := by
+                      simp only [catBiteVatTargetWord, catAddressReturnWord, catSlotWord, solcSlotWord]
+                      rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩]
+                    have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I))
+                        = EVM.address (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) := by
+                      rw [htw]; exact catBiteVatEvmAddr_eq_target.symm
+                    rw [htgt] at hIlksSolm
+                    obtain ⟨AU, hUrnsCall'⟩ :=
+                      biteTypedCallZeroSetSubstate hUrnsCall (by simpa [initState] using hdepthNe) A'
+                    obtain ⟨σus, Aus, hUrnsSolm, hEqUrn⟩ := catBiteMapCall hEqIlk hUrnsCall' hdepthNe
+                    have hslot3 : catSlotWord ⟨3⟩ σ' I = catSlotWord ⟨3⟩ σs I := by
+                      simp only [catSlotWord, solcSlotWord]
+                      rw [accountMapEquiv_storage_findD hEqIlk.accountMap I.codeOwner ⟨3⟩ ⟨0⟩]
+                    set eI := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+                      accountMap := σs, substate := As, createdAccounts := cA' } with heIdef
+                    have heIam : eI.accountMap = σs := rfl
+                    have heIee : eI.executionEnv = I := rfl
+                    have haddr : EVM.address (biteVatAddr eI).val
+                        = AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σs I).land biteAddrMaskWord) := by
+                      rw [addrId, accountAddress_ofUInt256_eq_ofNat_toNat]
+                      simp only [biteVatAddr, catSlotWord, heIam, heIee, hmask]
+                    rw [hslot3, ← haddr] at hUrnsSolm
+                    have hvatCodeIlk : 0 < (UInt256.ofNat
+                        ((eI.lookupAccount (biteVatAddr eI)).option 0 (fun acc => acc.code.size))).toNat := by
+                      have hva : biteVatAddr eI
+                          = AccountAddress.ofUInt256 (catBiteVatTargetWord σs I) := by
+                        rw [accountAddress_ofUInt256_eq_ofNat_toNat]
+                        simp only [biteVatAddr, catBiteVatTargetWord, catAddressReturnWord,
+                          catSlotWord, heIam, heIee]
+                      rw [hva]
+                      refine codePos eI (catBiteVatTargetWord σs I) ?_
+                      rw [heIam, show catBiteVatTargetWord σs I
+                            = (catSlotWord ⟨3⟩ σs I).land biteAddrMaskWord from by
+                          simp only [catBiteVatTargetWord, catAddressReturnWord, hmask],
+                        ← hslot3, ← uniswapExtCodeSizeWord_accountMapEquiv hEqIlk.accountMap]
+                      exact hUrnsVatCode
+                    refine catBiteUrnsFailLeaf hcode hdispatch hdecode rd1399 hoszu
+                      (by simp only [List.length_cons, List.length_nil]; omega) ?_
+                    exact catBiteSourceUrnsFailRevert hwv
+                      (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm
+                      (catBiteIlksDecode_ok hilkslen) hvatCodeIlk hUrnsSolm
                 | true =>
                     by_cases hurnslen : 64 ≤ ou.size
                     · by_cases hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩
