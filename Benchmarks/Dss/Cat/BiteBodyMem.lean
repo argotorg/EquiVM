@@ -299,4 +299,255 @@ theorem catBiteKickPostCallMem_mload128 (urn vow tab dink : UInt256) {mem : Byte
     (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         exact catBiteKickPostCallMem_read128 urn vow tab dink o hmem ho32 hout)
 
+/-- The `@3818` allocator memory (`catBiteHelperMem`) preserves its base size when the free pointer
+`fp` (and its `[fp, fp+96)` zero-init) fits inside `mem`. -/
+theorem catBiteHelperMem_size (mem : ByteArray) (fp : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteHelperMem mem fp).size = mem.size := by
+  have e32 : (⟨32⟩ + fp).toNat = fp.toNat + 32 := by
+    rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide, Nat.add_comm,
+      Nat.mod_eq_of_lt (by omega)]
+  have e64 : (⟨32⟩ + (⟨32⟩ + fp)).toNat = fp.toNat + 64 := by
+    rw [uadd_toNat, e32, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have h1 := toByteArray_write32_size_of_le mem (⟨96⟩ + fp) 64 mem.size mem.size rfl
+    (by omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ ⟨0⟩ fp.toNat mem.size mem.size h1
+    (by rw [h1]; omega) (by omega)
+  have h3 := toByteArray_write32_size_of_le _ ⟨0⟩ (⟨32⟩ + fp).toNat mem.size mem.size h2
+    (by rw [h2, e32]; omega) (by rw [e32]; omega)
+  have h4 := toByteArray_write32_size_of_le _ ⟨0⟩ (⟨32⟩ + (⟨32⟩ + fp)).toNat mem.size mem.size h3
+    (by rw [h3, e64]; omega) (by rw [e64]; omega)
+  exact h4
+
+/-- The keccak-scratch memory (`catBiteScratchMem`) has the same size as its base `mem`. -/
+theorem catBiteScratchMem_size (mem : ByteArray) (fp ilk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteScratchMem mem fp ilk).size = mem.size := by
+  have hh := catBiteHelperMem_size mem fp hfp96 hfpsz
+  have h0 := toByteArray_write32_size_of_le _ ilk 0 mem.size mem.size hh (by rw [hh]; omega)
+    (by omega)
+  have h1 := toByteArray_write32_size_of_le _ ⟨1⟩ 32 mem.size mem.size h0 (by rw [h0]; omega)
+    (by omega)
+  exact h1
+
+/-! ## `@3818` allocator + `keccak(ilk‖1)` scratch reads (discharge `catBiteTraceSeg6`'s `hQ`/`hKec`) -/
+
+/-- The free pointer `mem[0x40] = q = 96+fp` survives the allocator's zero-init writes (all at
+`fp`/`fp+32`/`fp+64`, above the `[64,96)` free-pointer slot since `fp ≥ 96`). -/
+theorem catBiteHelperMem_read64 (mem : ByteArray) (fp : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfplo : 96 ≤ fp.toNat)
+    (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteHelperMem mem fp).readWithPadding 64 32 = UInt256.toByteArray (⟨96⟩ + fp) := by
+  have e32 : (⟨32⟩ + fp).toNat = fp.toNat + 32 := uadd_lit32_toNat fp (by omega)
+  have e64 : (⟨32⟩ + (⟨32⟩ + fp)).toNat = fp.toNat + 64 := by
+    rw [uadd_toNat, e32, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have h1 := toByteArray_write32_size_of_le mem (⟨96⟩ + fp) 64 mem.size mem.size rfl
+    (by omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ ⟨0⟩ fp.toNat mem.size mem.size h1
+    (by rw [h1]; omega) (by omega)
+  have h3 := toByteArray_write32_size_of_le _ ⟨0⟩ (⟨32⟩ + fp).toNat mem.size mem.size h2
+    (by rw [h2, e32]; omega) (by rw [e32]; omega)
+  unfold catBiteHelperMem
+  rw [write32_read_below _ _ (⟨32⟩ + (⟨32⟩ + fp)).toNat 64 (by rw [toByteArray_size])
+      (by rw [h3, e64]; omega) (by rw [e64]; omega),
+    write32_read_below _ _ (⟨32⟩ + fp).toNat 64 (by rw [toByteArray_size])
+      (by rw [h2, e32]; omega) (by rw [e32]; omega),
+    write32_read_below _ _ fp.toNat 64 (by rw [toByteArray_size])
+      (by rw [h1]; omega) (by omega),
+    toByteArray_write32_read_back mem (⟨96⟩ + fp) 64 (by omega)]
+
+/-- The free pointer read survives the `keccak(ilk‖1)` scratch (writes at `[0,32)`/`[32,64)`, below
+the free-pointer slot). -/
+theorem catBiteScratchMem_read64 (mem : ByteArray) (fp ilk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfplo : 96 ≤ fp.toNat)
+    (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteScratchMem mem fp ilk).readWithPadding 64 32 = UInt256.toByteArray (⟨96⟩ + fp) := by
+  have hhsz := catBiteHelperMem_size mem fp hfp96 hfpsz
+  have hi1 := toByteArray_write32_size_of_le _ ilk 0 mem.size mem.size hhsz (by rw [hhsz]; omega)
+    (by omega)
+  unfold catBiteScratchMem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by rw [hi1]; omega) (by omega)
+      (by rw [hi1]; omega),
+    write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (Nat.zero_le _) (by omega)
+      (by rw [hhsz]; omega)]
+  exact catBiteHelperMem_read64 mem fp hfp96 hfplo hfpsz
+
+/-- If-form of the free-pointer read `q := mem[0x40] = 96+fp` — discharges `catBiteTraceSeg6`'s `hQ`. -/
+theorem catBiteScratchMem_mload64 (mem : ByteArray) (fp ilk : UInt256) {aw : UInt256}
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfplo : 96 ≤ fp.toNat)
+    (hfpsz : fp.toNat + 96 < UInt256.size)
+    (haw : fp.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+        then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteScratchMem mem fp ilk).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨96⟩ + fp :=
+  mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨96⟩ + fp)
+    (by rw [catBiteScratchMem_size mem fp ilk hfp96 hfpsz]; show (64 : ℕ) < mem.size; omega)
+    (by intro hh
+        have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
+        omega)
+    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
+        exact catBiteScratchMem_read64 mem fp ilk hfp96 hfplo hfpsz)
+
+/-- `keccak` input word 0 (`scratch[0] = ilk`). -/
+private theorem catBiteScratchMem_read0 (mem : ByteArray) (fp ilk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteScratchMem mem fp ilk).readWithPadding 0 32 = UInt256.toByteArray ilk := by
+  have hhsz := catBiteHelperMem_size mem fp hfp96 hfpsz
+  have hi1 := toByteArray_write32_size_of_le _ ilk 0 mem.size mem.size hhsz (by rw [hhsz]; omega)
+    (by omega)
+  unfold catBiteScratchMem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size]) (by rw [hi1]; omega) (by omega),
+    toByteArray_write32_read_back (catBiteHelperMem mem fp) ilk 0 (Nat.zero_le _)]
+
+/-- `keccak` input word 1 (`scratch[32] = 1`). -/
+private theorem catBiteScratchMem_read32 (mem : ByteArray) (fp ilk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteScratchMem mem fp ilk).readWithPadding 32 32 = UInt256.toByteArray ⟨1⟩ := by
+  have hhsz := catBiteHelperMem_size mem fp hfp96 hfpsz
+  have hi1 := toByteArray_write32_size_of_le _ ilk 0 mem.size mem.size hhsz (by rw [hhsz]; omega)
+    (by omega)
+  unfold catBiteScratchMem
+  rw [toByteArray_write32_read_back _ ⟨1⟩ 32 (by rw [hi1]; omega)]
+
+/-- The `keccak(ilk‖1)` preimage `scratch[0,64) = ilk ‖ 1` — discharges `catBiteTraceSeg6`'s `hKec`. -/
+theorem catBiteScratchMem_read0_64 (mem : ByteArray) (fp ilk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (catBiteScratchMem mem fp ilk).readWithPadding 0 64 =
+      UInt256.toByteArray ilk ++ UInt256.toByteArray ⟨1⟩ := by
+  have hsz := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by rw [hsz]; omega)]
+  have hleft : (catBiteScratchMem mem fp ilk).extract 0 32 = UInt256.toByteArray ilk := by
+    rw [← readWithPadding_eq_extract _ 0 (by rw [hsz]; omega),
+      catBiteScratchMem_read0 mem fp ilk hfp96 hfpsz]
+  have hright : (catBiteScratchMem mem fp ilk).extract 32 64 = UInt256.toByteArray ⟨1⟩ := by
+    rw [← readWithPadding_eq_extract _ 32 (by rw [hsz]; omega),
+      catBiteScratchMem_read32 mem fp ilk hfp96 hfpsz]
+  rw [show (catBiteScratchMem mem fp ilk).extract 0 64 =
+      (catBiteScratchMem mem fp ilk).extract 0 32 ++
+        (catBiteScratchMem mem fp ilk).extract 32 64 by
+      rw [ByteArray.extract_append_extract]; norm_num]
+  rw [hleft, hright]
+
+/-! ## Final `milk` struct reads (discharge `catBiteReach1708to2073`'s `hChop`/`hDunk`) -/
+
+/-- The `milk` struct memory has size `max mem.size (q+96)` (the `[q, q+96)` fields may extend `mem`). -/
+theorem catBiteMilkMem_size (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (catBiteMilkMem mem fp ilk q flip chop dunk).size = max mem.size (q.toNat + 96) := by
+  have hscr := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  have hq96 : q.toNat = fp.toNat + 96 := by
+    rw [hqfp, uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h1 := toByteArray_write32_size_of_le _ (q + ⟨96⟩) 64 mem.size mem.size hscr
+    (by rw [hscr]; omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ flip q.toNat mem.size (max mem.size (q.toNat + 32)) h1
+    (by rw [h1]; omega) rfl
+  have h3 := toByteArray_write32_size_of_le _ chop (q + ⟨32⟩).toNat (max mem.size (q.toNat + 32))
+    (max mem.size (q.toNat + 64)) h2 (by rw [h2, eq32]; omega) (by rw [eq32]; omega)
+  have h4 := toByteArray_write32_size_of_le _ dunk (q + ⟨64⟩).toNat (max mem.size (q.toNat + 64))
+    (max mem.size (q.toNat + 96)) h3 (by rw [h3, eq64]; omega) (by rw [eq64]; omega)
+  exact h4
+
+/-- Raw read of the `milk.chop` field at `q+32`. -/
+private theorem catBiteMilkMem_readchop (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (q + ⟨32⟩).toNat 32 =
+      UInt256.toByteArray chop := by
+  have hscr := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  have hq96 : q.toNat = fp.toNat + 96 := by
+    rw [hqfp, uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h1 := toByteArray_write32_size_of_le _ (q + ⟨96⟩) 64 mem.size mem.size hscr
+    (by rw [hscr]; omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ flip q.toNat mem.size (max mem.size (q.toNat + 32)) h1
+    (by rw [h1]; omega) rfl
+  have h3 := toByteArray_write32_size_of_le _ chop (q + ⟨32⟩).toNat (max mem.size (q.toNat + 32))
+    (max mem.size (q.toNat + 64)) h2 (by rw [h2, eq32]; omega) (by rw [eq32]; omega)
+  unfold catBiteMilkMem
+  rw [write32_read_below _ _ (q + ⟨64⟩).toNat (q + ⟨32⟩).toNat (by rw [toByteArray_size])
+      (by rw [h3, eq64]; omega) (by rw [eq64, eq32]),
+    toByteArray_write32_read_back _ chop (q + ⟨32⟩).toNat (by rw [h2, eq32]; omega)]
+
+/-- Raw read of the `milk.dunk` field at `q+64`. -/
+private theorem catBiteMilkMem_readdunk (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (q + ⟨64⟩).toNat 32 =
+      UInt256.toByteArray dunk := by
+  have hscr := catBiteScratchMem_size mem fp ilk hfp96 hfpsz
+  have hq96 : q.toNat = fp.toNat + 96 := by
+    rw [hqfp, uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide,
+      Nat.mod_eq_of_lt (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have h1 := toByteArray_write32_size_of_le _ (q + ⟨96⟩) 64 mem.size mem.size hscr
+    (by rw [hscr]; omega) (by omega)
+  have h2 := toByteArray_write32_size_of_le _ flip q.toNat mem.size (max mem.size (q.toNat + 32)) h1
+    (by rw [h1]; omega) rfl
+  have h3 := toByteArray_write32_size_of_le _ chop (q + ⟨32⟩).toNat (max mem.size (q.toNat + 32))
+    (max mem.size (q.toNat + 64)) h2 (by rw [h2, eq32]; omega) (by rw [eq32]; omega)
+  unfold catBiteMilkMem
+  rw [toByteArray_write32_read_back _ dunk (q + ⟨64⟩).toNat (by rw [h3, eq64]; omega)]
+
+/-- If-form of the `milk.chop` field read — discharges `catBiteReach1708to2073`'s `hChop`. -/
+theorem catBiteMilkMem_mload_chop (mem : ByteArray) (fp ilk q flip chop dunk : UInt256) {aw : UInt256}
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size)
+    (haw : q.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
+    (if (⟨32⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size
+        ∨ (⟨32⟩ + q) ≥ aw * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (⟨32⟩ + q).toNat 32))) = chop := by
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have ez32 : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
+  have hmsz := catBiteMilkMem_size mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz
+  exact mloadWordValue_of_readWithPadding (off := ⟨32⟩ + q) (v := chop)
+    (by rw [hmsz, ez32]; omega)
+    (by intro hh
+        have hle : (aw * ⟨32⟩).toNat ≤ (⟨32⟩ + q).toNat := hh
+        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          Nat.mod_eq_of_lt hawsz, ez32] at hle
+        omega)
+    (by rw [ez32, ← eq32]
+        exact catBiteMilkMem_readchop mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz)
+
+/-- If-form of the `milk.dunk` field read — discharges `catBiteReach1708to2073`'s `hDunk`. -/
+theorem catBiteMilkMem_mload_dunk (mem : ByteArray) (fp ilk q flip chop dunk : UInt256) {aw : UInt256}
+    (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size)
+    (haw : q.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
+    (if (⟨64⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size
+        ∨ (⟨64⟩ + q) ≥ aw * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (⟨64⟩ + q).toNat 32))) = dunk := by
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  have ez64 : (⟨64⟩ + q).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+      Nat.mod_eq_of_lt (show 64 + q.toNat < UInt256.size by omega)]; omega
+  have hmsz := catBiteMilkMem_size mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz
+  exact mloadWordValue_of_readWithPadding (off := ⟨64⟩ + q) (v := dunk)
+    (by rw [hmsz, ez64]; omega)
+    (by intro hh
+        have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ + q).toNat := hh
+        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          Nat.mod_eq_of_lt hawsz, ez64] at hle
+        omega)
+    (by rw [ez64, ← eq64]
+        exact catBiteMilkMem_readdunk mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz)
+
 end Benchmarks.Dss.Cat
