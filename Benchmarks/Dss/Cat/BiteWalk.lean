@@ -169,7 +169,102 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (by rw [h128]; have := hmemUsz; omega) (by native_decide))
                                     (by native_decide) (by native_decide) (by native_decide)
                                     hle (by simp)
-                                  sorry -- frontier: 1708to2073
+                                  -- milk-struct field reads (chop@[32+q], dunk@[64+q]).
+                                  have hChop := catBiteMilkMem_mload_chop
+                                    (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+                                    ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩)
+                                    (biteAddrMaskWord.land
+                                      (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
+                                    (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
+                                    (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
+                                    (aw := ⟨10⟩)
+                                    (by rw [h128]; have := hmemUsz; omega) rfl
+                                    (by native_decide) (by native_decide)
+                                    (by native_decide) (by native_decide)
+                                  have hDunk := catBiteMilkMem_mload_dunk
+                                    (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+                                    ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩)
+                                    (biteAddrMaskWord.land
+                                      (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
+                                    (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
+                                    (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
+                                    (aw := ⟨10⟩)
+                                    (by rw [h128]; have := hmemUsz; omega) rfl
+                                    (by native_decide) (by native_decide)
+                                    (by native_decide) (by native_decide)
+                                  -- name the DSMath chain so the guards are stateable.
+                                  set room := (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩)
+                                    with hroomDef
+                                  set milkDunk :=
+                                    solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩)
+                                    with hmilkDunkDef
+                                  set milkChop :=
+                                    solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩)
+                                    with hmilkChopDef
+                                  set iDust := UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))
+                                    with hiDustDef
+                                  set dunkRoom :=
+                                    (if UInt256.gt milkDunk room = ⟨0⟩ then milkDunk else room)
+                                    with hdunkRoomDef
+                                  set dunkRoomWad := UInt256.mul dunkRoom ⟨1000000000000000000⟩
+                                    with hdunkRoomWadDef
+                                  set dartDenomRate := UInt256.div dunkRoomWad iRate with hdartDenomDef
+                                  set dartCandidate := UInt256.div dartDenomRate milkChop
+                                    with hdartCandDef
+                                  set dart :=
+                                    (if UInt256.gt art dartCandidate = ⟨0⟩ then art else dartCandidate)
+                                    with hdartDef
+                                  set inkDart := UInt256.mul ink dart with hinkDartDef
+                                  set dinkCandidate := UInt256.div inkDart art with hdinkCandDef
+                                  set dink :=
+                                    (if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
+                                    with hdinkDef
+                                  -- Take the all-guards-hold success path; defer each fail branch.
+                                  by_cases hlitterbox :
+                                      (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat
+                                  swap
+                                  · sorry -- box ≤ litter: room = 0 / room-require branch
+                                  by_cases hroomdust : iDust.toNat ≤ room.toNat
+                                  swap
+                                  · sorry -- dust > room: require(room ≥ dust) fails
+                                  by_cases hRatePos : iRate ≠ ⟨0⟩
+                                  swap
+                                  · sorry -- rate = 0: DSMath div-by-zero guard
+                                  by_cases hChopPos : milkChop ≠ ⟨0⟩
+                                  swap
+                                  · sorry -- chop = 0: DSMath div-by-zero guard
+                                  by_cases hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat *
+                                    dunkRoom.toNat < UInt256.size
+                                  swap
+                                  · sorry -- dunkRoom*WAD checkedMul overflow
+                                  by_cases hArtPos : art ≠ ⟨0⟩
+                                  swap
+                                  · sorry -- art = 0: DSMath div-by-zero guard
+                                  by_cases hFitInkDart : dart.toNat * ink.toNat < UInt256.size
+                                  swap
+                                  · sorry -- ink*dart checkedMul overflow
+                                  by_cases hDartPos : 0 < dart.toNat
+                                  swap
+                                  · sorry -- dart = 0: require(dart > 0) fails
+                                  by_cases hDinkPos : 0 < dink.toNat
+                                  swap
+                                  · sorry -- dink = 0: require(dink > 0) fails
+                                  by_cases hDartLim :
+                                      dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat
+                                  swap
+                                  · sorry -- dart > 2^255: int256 cast bound fails
+                                  by_cases hDinkLim :
+                                      dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat
+                                  swap
+                                  · sorry -- dink > 2^255: int256 cast bound fails
+                                  obtain ⟨_, _, rd2073⟩ :=
+                                    catBiteReach1708to2073 rd1708 hlitterbox hroomdust hChop hDunk
+                                      (by native_decide) (by native_decide) hRatePos hChopPos
+                                      hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+                                      hdartDenomDef.symm hdartCandDef.symm hdartDef.symm hArtPos
+                                      hFitInkDart hinkDartDef.symm hdinkCandDef.symm hdinkDef.symm
+                                      hDartPos hDinkPos hDartLim hDinkLim
+                                  sorry -- GrabAw frontier
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
