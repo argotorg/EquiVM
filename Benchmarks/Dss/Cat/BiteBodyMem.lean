@@ -209,4 +209,94 @@ theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
     RD.catBiteKickPostCall rd2531 hdepth (by simp only [List.length_cons]; omega)
   exact ⟨cA', σ', z, o', _, k', C', rd2532, hout⟩
 
+/-! ## Seam 3 — `kick` CALL return copy (`catBiteReach2383to2532` output → `catBiteReach2532toRet`)
+
+The `kick` call copies its 1-word return `o` (id@0) into memory at offset `0x80` over the kick
+calldata scratch `mem` (`292 ≤ mem.size`, free-ptr `0x80`). `catBiteReach2532toRet` needs the
+MLOAD-value if-forms `hFree8`@64 and `hId8`@128. -/
+
+/-- The concrete memory `catBiteReach2532toRet` receives at pc 2532 (`RD.catBiteKickPostCall` output). -/
+noncomputable def catBiteKickPostCallMem (urn vow tab dink : UInt256) (mem o : ByteArray) : ByteArray :=
+  o.write 0 (kickCalldataMem urn vow tab dink mem) (⟨128⟩ : UInt256).toNat
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
+
+private theorem kick_hlen (o : ByteArray) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
+  umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hout
+
+theorem catBiteKickPostCallMem_size (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
+    (hmem : 292 ≤ mem.size) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteKickPostCallMem urn vow tab dink mem o).size = mem.size := by
+  unfold catBiteKickPostCallMem
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    write32_eq o (kickCalldataMem urn vow tab dink mem) 128
+      (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+    ByteArray.size_extract, kickCalldataMem_size urn vow tab dink hmem]
+  omega
+
+theorem catBiteKickPostCallMem_read64 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
+    (hmem : 292 ≤ mem.size) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold catBiteKickPostCallMem
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    write_read_below_gen_extend o (kickCalldataMem urn vow tab dink mem) 128 32 64
+      (by decide) (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega) (by omega)]
+  exact kickCalldataMem_read64 urn vow tab dink hmem hread64
+
+theorem catBiteKickPostCallMem_read128 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
+    (hmem : 292 ≤ mem.size) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 128 32 =
+      UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) := by
+  unfold catBiteKickPostCallMem
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    writeReturnCopy_read32 o (kickCalldataMem urn vow tab dink mem) 128 32 128
+      (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega) (by omega) (by omega)]
+  have hw := readWithPadding_eq_toByteArray_ofNat o 0 (by omega)
+  rw [readWithPadding_eq_extract o 0 (by omega)] at hw
+  simpa using hw
+
+/-- The free-pointer `0x80` (if-form) survives the kick return copy — discharges `catBiteReach2532toRet`'s `hFree8`. -/
+theorem catBiteKickPostCallMem_mload64 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
+    {aw8 : UInt256} (hmem : 292 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size)
+    (haw : 288 ≤ aw8.toNat * 32) (hawsz : aw8.toNat * 32 < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size
+        ∨ (⟨64⟩ : UInt256) ≥ aw8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 64 32))) = ⟨128⟩ :=
+  mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
+    (by rw [catBiteKickPostCallMem_size urn vow tab dink o hmem ho32 hout]; show (64 : ℕ) < mem.size; omega)
+    (by intro hh
+        have hle : (aw8 * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
+        omega)
+    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
+        exact catBiteKickPostCallMem_read64 urn vow tab dink o hmem hread64 ho32 hout)
+
+/-- `id` (if-form) = the kick return word `o.extract 0 32` — discharges `catBiteReach2532toRet`'s `hId8`. -/
+theorem catBiteKickPostCallMem_mload128 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
+    {aw8 : UInt256} (hmem : 292 ≤ mem.size)
+    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size)
+    (haw : 288 ≤ aw8.toNat * 32) (hawsz : aw8.toNat * 32 < UInt256.size) :
+    (if (⟨128⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size
+        ∨ (⟨128⟩ : UInt256) ≥ aw8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 128 32))) =
+      UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :=
+  mloadWordValue_of_readWithPadding (off := ⟨128⟩)
+    (v := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
+    (by rw [catBiteKickPostCallMem_size urn vow tab dink o hmem ho32 hout]; show (128 : ℕ) < mem.size; omega)
+    (by intro hh
+        have hle : (aw8 * ⟨32⟩).toNat ≤ (⟨128⟩ : UInt256).toNat := hh
+        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          Nat.mod_eq_of_lt hawsz, show (⟨128⟩ : UInt256).toNat = 128 from by decide] at hle
+        omega)
+    (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
+        exact catBiteKickPostCallMem_read128 urn vow tab dink o hmem ho32 hout)
+
 end Benchmarks.Dss.Cat
