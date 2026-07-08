@@ -70,7 +70,8 @@ theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
         (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A', createdAccounts := cA' }, o') false
     ∧ o'.size < UInt256.size
-    ∧ 288 ≤ awout.toNat * 32 := by
+    ∧ 288 ≤ awout.toNat * 32
+    ∧ awout = ⟨9⟩ := by
   obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel
   obtain ⟨_, _, rd1233⟩ := RD.catBiteIlksToStaticcallGuard (hR := by simp) rd1163
   have hbytes : biteIlkBytes I = EVM.Word.toBytesBE (biteIlkWord I) := by
@@ -88,7 +89,7 @@ theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
     RD.uniswapStaticcall rd1248 (by native_decide) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide⟩
+  refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide, by native_decide⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := false) (targetWord := catBiteVatTargetWord σ I)
     (mem := catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
