@@ -682,4 +682,113 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2175 := rd2174.dup8 (by native_decide) (by evm_ov)
   exact ⟨_, _, rd2175.dup1 (by native_decide) (by evm_ov)⟩
 
+set_option maxHeartbeats 8000000 in
+/-- **`fess` calldata build (2242→2284) EXPOSING the grown active-words** `awF = catBiteAwStepL aw
+(⟨4⟩+p2)`. Local re-derivation of the frozen `catBiteTraceFessBuild` (2 expanding MSTOREs) exposing
+the final `awF` for the downstream reach. -/
+theorem catBiteTraceFessBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {dartRate dink dart q art ink iDust iSpot iRate urn ilk p2 : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2242⟩
+      (dartRate :: ⟨1769929592⟩ :: UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
+        dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      mem aw o (cA', σ') k C)
+    (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p2)
+    (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
+    (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hpsz : p2.toNat + 96 < UInt256.size)
+    (hov : R.length + 22 ≤ 1024) :
+    ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
+      (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
+        UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
+        ⟨0⟩ :: p2 :: ⟨36⟩ :: p2 :: ⟨0⟩ :: (⟨32⟩ + (⟨4⟩ + p2)) :: ⟨1769929592⟩ ::
+        UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
+        dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      (catBiteFessCalldataMemP p2 dartRate mem) (catBiteAwStepL aw (⟨4⟩ + p2).toNat)
+      o (cA', σ') k' C' := by
+  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
+  have e4 : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
+    rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,
+      Nat.mod_eq_of_lt (by omega)]
+  have hM64 : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw :=
+    catBiteAwMInv32 aw (by rw [h64]; omega)
+  have hstepF1 : UInt256.ofNat (MachineState.M aw.toNat p2.toNat 32) = catBiteAwStepL aw p2.toNat := by
+    simp only [catBiteAwStepL]
+  have hM2lt : MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 < UInt256.size :=
+    catBiteMltL aw (⟨4⟩ + p2).toNat (by omega)
+  have hawFval :
+      (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat = MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 :=
+    catBiteAwStepL_toNat aw (⟨4⟩ + p2).toNat hM2lt
+  have hawFge : 96 ≤ (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat * 32 := by
+    rw [hawFval, e4]; simp only [MachineState.M]; omega
+  have hawFsz : (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat * 32 < UInt256.size := by
+    rw [hawFval, e4]; simp only [MachineState.M]; omega
+  have hMFout : UInt256.ofNat
+      (MachineState.M (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat (⟨64⟩ : UInt256).toNat 32)
+      = catBiteAwStepL aw (⟨4⟩ + p2).toNat :=
+    catBiteAwMInv32 (catBiteAwStepL aw (⟨4⟩ + p2).toNat) (by rw [h64]; omega)
+  have hcolF2 := catBiteAwStepL_collapse aw p2.toNat (⟨4⟩ + p2).toNat (by omega)
+    (catBiteMltL aw p2.toNat (by omega))
+  have hsub36 : UInt256.sub (⟨32⟩ + (⟨4⟩ + p2)) p2 = ⟨36⟩ := by
+    apply u256_inj
+    have he : (⟨32⟩ + (⟨4⟩ + p2)).toNat = p2.toNat + 36 := by
+      rw [uadd_toNat, e4, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+        Nat.mod_eq_of_lt (by omega)]
+      omega
+    rw [usub_toNat (by rw [he]; omega), he, show (⟨36⟩ : UInt256).toNat = 36 from by decide]; omega
+  have rd2243 := rd.jumpdest (by native_decide) (by evm_ov)
+  have rd2245 := rd2243.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd2246 := RD.mload 0 p2 aw rd2245 (by native_decide) (catBiteMloadCost0 hM64)
+    (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
+      (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+            Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
+      (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
+  have rd2247 := rd2246.dup3 (by native_decide) (by evm_ov)
+  have rd2252 := rd2247.push4 ⟨4294967295⟩ (by native_decide) (by evm_ov)
+  have rd2253 := rd2252.and (by native_decide) (by evm_ov)
+  have rd2255 := rd2253.push1 ⟨224⟩ (by native_decide) (by evm_ov)
+  have rd2256 := rd2255.shl (by native_decide) (by evm_ov)
+  have rd2257d := rd2256.dup2 (by native_decide) (by evm_ov)
+  have rd2257 := RD.mstore _ (catBiteFessSelMemP p2 mem) (catBiteAwStepL aw p2.toNat) rd2257d
+    (by native_decide) catBiteMstoreCostML rfl hstepF1 (by evm_ov)
+  have rd2258 := rd2257.push1 ⟨4⟩ (by native_decide) (by evm_ov)
+  have rd2260 := rd2258.add (by native_decide) (by evm_ov)
+  have rd2261 := rd2260.dup1 (by native_decide) (by evm_ov)
+  have rd2262 := rd2261.dup3 (by native_decide) (by evm_ov)
+  have rd2263 := rd2262.dup2 (by native_decide) (by evm_ov)
+  have rd2264 := RD.mstore _ (catBiteFessCalldataMemP p2 dartRate mem)
+    (catBiteAwStepL aw (⟨4⟩ + p2).toNat) rd2263 (by native_decide) catBiteMstoreCostML rfl hcolF2
+    (by evm_ov)
+  have rd2265 := rd2264.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd2267 := rd2265.add (by native_decide) (by evm_ov)
+  have rd2268 := rd2267.swap2 (by native_decide) (by evm_ov)
+  have rd2269 := rd2268.pop (by native_decide) (by evm_ov)
+  have rd2270 := rd2269.pop (by native_decide) (by evm_ov)
+  have rd2271 := rd2270.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd2273 := rd2271.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd2275 := RD.mload 0 p2 (catBiteAwStepL aw (⟨4⟩ + p2).toNat) rd2273 (by native_decide)
+    (catBiteMloadCost0 hMFout)
+    (mloadWordValue_of_readWithPadding
+      (by rw [h64]
+          have hsz := catBiteFessCalldataMemP_size p2 dartRate hpmem (by omega)
+          omega)
+      (by intro hh
+          have hle : (catBiteAwStepL aw (⟨4⟩ + p2).toNat * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+            Nat.mod_eq_of_lt hawFsz, h64] at hle; omega)
+      (by rw [h64, catBiteFessCalldataMemP_read64 p2 dartRate hp96 hpmem (by omega)]
+          exact hFree64)) hMFout (by evm_ov)
+  have rd2276 := rd2275.dup1 (by native_decide) (by evm_ov)
+  have rd2277 := rd2276.dup4 (by native_decide) (by evm_ov)
+  have rd2278 := rd2277.sub (by native_decide) (by evm_ov)
+  rw [hsub36] at rd2278
+  have rd2279 := rd2278.dup2 (by native_decide) (by evm_ov)
+  have rd2280 := rd2279.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd2282 := rd2280.dup8 (by native_decide) (by evm_ov)
+  exact ⟨_, _, rd2282.dup1 (by native_decide) (by evm_ov)⟩
+
 end Benchmarks.Dss.Cat
