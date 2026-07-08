@@ -19,20 +19,20 @@ the checked-in `.abi.json` files.
 | `Dss/Vat` | 0.6.12 | 6965 | 7021 | 28 fn + ctor | Handed off | Yes |
 | `Dss/Pot` | 0.6.12 | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
 | `Dss/Jug` | 0.6.12 | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
-| `Dss/Spot` | 0.6.12 | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
+| `Dss/Spot` | 0.6.12 | 2178 | 2320 | 12 fn + ctor | Completed | Yes |
 | `Dss/LinearDecrease` | 0.6.12 | 1128 | 1217 | 6 fn + ctor | Completed | Yes |
 | `Dss/StairstepExponentialDecrease` | 0.6.12 | 1433 | 1522 | 7 fn + ctor | Completed | Yes |
 | `Dss/ExponentialDecrease` | 0.6.12 | 1321 | 1410 | 6 fn + ctor | Completed | Yes |
 | `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Ready for proof | Yes |
 | `Dss/DaiJoin` | 0.6.12 | 1733 | 1876 | 9 fn + ctor | Ready for proof | Yes |
 | `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Handed off | Yes |
-| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Spec fix needed: immutable `ilk` typing | No |
+| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Handed off | Yes |
 | `Dss/Cure` | 0.6.12 | 3875 | 3971 | 20 fn + ctor | Handed off | Yes |
-| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Ready for proof | Yes |
-| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
+| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Handed off | Yes |
+| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Handed off | Yes |
 | `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Ready for proof | Yes |
-| `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Ready for proof | Yes |
-| `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Ready for proof | Yes |
+| `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Handed off | Yes |
+| `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Handed off | Yes |
 | `WETH9` | 0.5.16 | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
 | `EAS/Attester` | 0.8.26 | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
 | `ERC721` | 0.8.35 | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
