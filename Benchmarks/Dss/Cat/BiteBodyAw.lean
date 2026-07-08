@@ -13,7 +13,7 @@ import Benchmarks.Dss.Cat.FileAddress
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
 set_option maxRecDepth 2000000
-set_option maxHeartbeats 8000000
+set_option maxHeartbeats 2000000
 
 namespace Benchmarks.Dss.Cat
 
@@ -483,7 +483,13 @@ theorem catBiteAwStepL_callCollapse (aw p : UInt256) (o inSize : ℕ)
   rw [h1, h2]
   exact u256_ofNat_toNat _
 
-set_option maxHeartbeats 8000000 in
+section CatBiteAwBuildFreeze
+-- Freeze `M` so the final `exact` — which unifies the built RD against the EXPOSED explicit
+-- `catBiteAwStepL aw …` conclusion (the frozen original hides it under an existential `awF`, making
+-- its final unify cheap) — cannot whnf-reduce the deep RD-step projection into `M`/memory arithmetic.
+attribute [local irreducible] MachineState.M
+
+set_option maxHeartbeats 2000000 in
 /-- **`grab` calldata build (2073→2177) EXPOSING the grown active-words** `awF = catBiteAwStepL aw
 (p+⟨164⟩)`. Verbatim re-derivation of the frozen `catBiteTraceGrabBuild` (which already grows aw
 correctly through the 7 expanding MSTOREs, dodging heartbeat blowup via the `catBiteAwStep` atom) but
@@ -684,7 +690,7 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2175 := rd2174.dup8 (by native_decide) (by evm_ov)
   exact ⟨_, _, rd2175.dup1 (by native_decide) (by evm_ov)⟩
 
-set_option maxHeartbeats 8000000 in
+set_option maxHeartbeats 2000000 in
 /-- **`fess` calldata build (2242→2284) EXPOSING the grown active-words** `awF = catBiteAwStepL aw
 (⟨4⟩+p2)`. Local re-derivation of the frozen `catBiteTraceFessBuild` (2 expanding MSTOREs) exposing
 the final `awF` for the downstream reach. -/
@@ -792,5 +798,7 @@ theorem catBiteTraceFessBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2280 := rd2279.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd2282 := rd2280.dup8 (by native_decide) (by evm_ov)
   exact ⟨_, _, rd2282.dup1 (by native_decide) (by evm_ov)⟩
+
+end CatBiteAwBuildFreeze
 
 end Benchmarks.Dss.Cat
