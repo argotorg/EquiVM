@@ -292,7 +292,13 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   · sorry -- dust > room: require(room ≥ dust) fails
                                   by_cases hRatePos : iRate ≠ ⟨0⟩
                                   swap
-                                  · sorry -- rate = 0: DSMath div-by-zero guard
+                                  · -- rate = 0 unreachable: hunsafe forces art·rate > 0.
+                                    exfalso
+                                    have hr0 : iRate = ⟨0⟩ := not_not.mp hRatePos
+                                    have hz : (art * iRate).toNat = 0 := by
+                                      rw [u256_mul_op_toNat, hr0,
+                                        show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.mul_zero, Nat.zero_mod]
+                                    omega
                                   by_cases hChopPos : milkChop ≠ ⟨0⟩
                                   swap
                                   · sorry -- chop = 0: DSMath div-by-zero guard
@@ -302,7 +308,13 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   · sorry -- dunkRoom*WAD checkedMul overflow
                                   by_cases hArtPos : art ≠ ⟨0⟩
                                   swap
-                                  · sorry -- art = 0: DSMath div-by-zero guard
+                                  · -- art = 0 unreachable: hunsafe forces art·rate > 0.
+                                    exfalso
+                                    have ha0 : art = ⟨0⟩ := not_not.mp hArtPos
+                                    have hz : (art * iRate).toNat = 0 := by
+                                      rw [u256_mul_op_toNat, ha0,
+                                        show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.zero_mul, Nat.zero_mod]
+                                    omega
                                   by_cases hFitInkDart : dart.toNat * ink.toNat < UInt256.size
                                   swap
                                   · sorry -- ink*dart checkedMul overflow
