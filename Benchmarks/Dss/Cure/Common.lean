@@ -128,23 +128,15 @@ the final ABI return object within the byte-addressed memory model used by `Byte
 It accounts for a 128-byte array base, 32-byte length word, 64-byte ABI prefix, and two
 `32 * len` byte spans.
 
-The `pos` invariant is the contract's one-based source-index invariant: every recorded source
-position is within the current `srcs.length`. -/
+This intentionally does not assume relationships between mapping slots and array length slots:
+aliasing storage states are handled in the per-function proofs. -/
 def cureStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
-  224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64 ∧
-    ∀ key, (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat ≤
-      (cureSlotWord ⟨2⟩ σ I).toNat
+  224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64
 
 theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
     224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64 :=
-  hwf.1
-
-theorem cureStorageWF_pos_le_len {σ : AccountMap} {I : ExecutionEnv}
-    (hwf : cureStorageWF σ I) (key : UInt256) :
-    (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat ≤
-      (cureSlotWord ⟨2⟩ σ I).toNat :=
-  hwf.2 key
+  hwf
 
 theorem cureStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) :
@@ -153,23 +145,9 @@ theorem cureStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
   constructor
   · intro h
-    refine ⟨?_, ?_⟩
-    · simpa [hword] using h.1
-    · intro key
-      have hpos :
-          solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) =
-            solcSlotWord τ I (solcMappingSlot ⟨5⟩ key) :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (solcMappingSlot ⟨5⟩ key) ⟨0⟩
-      simpa [hword, ← hpos] using h.2 key
+    simpa [cureStorageWF, ← hword] using h
   · intro h
-    refine ⟨?_, ?_⟩
-    · simpa [hword] using h.1
-    · intro key
-      have hpos :
-          solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) =
-            solcSlotWord τ I (solcMappingSlot ⟨5⟩ key) :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (solcMappingSlot ⟨5⟩ key) ⟨0⟩
-      simpa [hword, hpos] using h.2 key
+    simpa [cureStorageWF, hword] using h
 
 theorem cureStorageWF_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) (hwf : cureStorageWF σ I) :
