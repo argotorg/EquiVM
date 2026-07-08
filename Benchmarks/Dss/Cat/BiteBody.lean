@@ -169,7 +169,13 @@ theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   exact catBiteIlksFailLeaf hcode hdispatch hdecode rd hosz hov
     (catBiteSourceIlksFailRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm)
 
-set_option maxHeartbeats 4000000 in
+section CatBiteAwCollapse
+-- Freeze `M` around the two post-`CALL` active-words collapses so the targeted `rw [hawEq]` cannot
+-- `whnf`-unfold `M`'s `max`/`div` over the symbolic free pointer and drag in the giant calldata-mem
+-- term (the source of the 4M-heartbeat `whnf` blowup). `catBiteAwStepL` is already global-irreducible.
+attribute [local irreducible] MachineState.M
+
+set_option maxHeartbeats 400000 in
 /-- **`grab` CALL reach EXPOSING the grown active-words** `awF = catBiteAwStepL aw (p+⟨164⟩)`.
 Wraps the cached `catBiteTraceGrabBuildAw` with the guard + void `RD.call` + `callCoincides`; the
 post-call active words collapse back to `awF` (the void CALL's `M (M awF p 196) p 0 = awF`, via
@@ -246,9 +252,19 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
       exact Nat.zero_le _
     simp [min, hle]
   rw [hz, byteArray_write_len_zero] at rd2193raw
-  simp only [show (⟨196⟩ : UInt256).toNat = 196 from by decide,
-      show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      catBiteAwStepL_callCollapse aw p (p + ⟨164⟩).toNat 196 hcov] at rd2193raw
+  -- Collapse the void CALL's post active-words `M (M awF p 196) p 0 = awF` via a STANDALONE `have`
+  -- over `UInt256` (never mentioning the memory term); the targeted `rw` then abstracts only that
+  -- node, so `whnf` never unfolds `M` into the giant calldata-mem term.
+  have hawEq :
+      UInt256.ofNat (MachineState.M (MachineState.M (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat
+          p.toNat (⟨196⟩ : UInt256).toNat) p.toNat (⟨0⟩ : UInt256).toNat)
+        = catBiteAwStepL aw (p + ⟨164⟩).toNat := by
+    rw [show (⟨196⟩ : UInt256).toNat = 196 from by decide,
+        show (⟨0⟩ : UInt256).toNat = 0 from by decide]
+    -- `o` is left to unification (`_`): instantiating it EXPLICITLY to the compound free pointer
+    -- `(p + ⟨164⟩).toNat` is what makes `whnf` diverge; inferring it from the goal's RHS is cheap.
+    exact catBiteAwStepL_callCollapse aw p _ 196 hcov
+  rw [hawEq] at rd2193raw
   refine ⟨cA'', σ'', z, o', A', k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := I.perm)
@@ -260,7 +276,7 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl hencode ?_
   simpa [initState] using hΘ
 
-set_option maxHeartbeats 4000000 in
+set_option maxHeartbeats 400000 in
 /-- **`fess` CALL reach EXPOSING the grown active-words** `awF = catBiteAwStepL aw (⟨4⟩+p2)`. Mirrors
 `catBiteReachFessRegionC` (Seg7f grab-guard/dartRate + the cached `catBiteTraceFessBuildAw` + guard +
 void `RD.call` + `callCoincides`); the post-call `M (M awF p2 36) p2 0` collapses to `awF` (inSize=36
@@ -329,9 +345,17 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
       exact Nat.zero_le _
     simp [min, hle]
   rw [hz, byteArray_write_len_zero] at rd2300
-  simp only [show (⟨36⟩ : UInt256).toNat = 36 from by decide,
-      show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      catBiteAwStepL_callCollapse aw p2 (⟨4⟩ + p2).toNat 36 hcov] at rd2300
+  -- Collapse the void CALL's post active-words `M (M awF p2 36) p2 0 = awF` via a STANDALONE `have`
+  -- over `UInt256` (never mentioning the memory term); the targeted `rw` abstracts only that node.
+  have hawEq :
+      UInt256.ofNat (MachineState.M (MachineState.M (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat
+          p2.toNat (⟨36⟩ : UInt256).toNat) p2.toNat (⟨0⟩ : UInt256).toNat)
+        = catBiteAwStepL aw (⟨4⟩ + p2).toNat := by
+    rw [show (⟨36⟩ : UInt256).toNat = 36 from by decide,
+        show (⟨0⟩ : UInt256).toNat = 0 from by decide]
+    -- `o` left to unification (see grab): explicit `(⟨4⟩ + p2).toNat` is what makes `whnf` diverge.
+    exact catBiteAwStepL_callCollapse aw p2 _ 36 hcov
+  rw [hawEq] at rd2300
   refine ⟨cA'', σ'', z, o', A', k', C', rd2300, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := I.perm)
@@ -340,6 +364,8 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
   simpa [initState] using hΘ
+
+end CatBiteAwCollapse
 
 set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
