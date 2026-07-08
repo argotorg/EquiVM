@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Cure.Bytecode
 import Solm.Dispatch
+import Reasoning.Solc
 
 /-!
 # MakerDAO/Sky DSS Cure trusted bytecode facts
@@ -10,9 +11,34 @@ The jump-destination tables are computed from the concrete byte arrays in `Bytec
 file gives them proof-local names.
 -/
 
-open Solm Ethereum Ethereum.EVM
+open Solm Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.Dss.Cure
+
+/-! ## Trusted Keccak values -/
+
+/-- `keccak256(bytes32(2))` — the dynamic-array data base slot for storage slot 2 (`srcs`). -/
+axiom cureSrcsDataSlot_trusted :
+    (⟨29102676481673041902632991033461445430619272659676223336789171408008386403022⟩ :
+      UInt256) = srcsDataSlot
+
+/-! ## Trusted storage disjointness -/
+
+/--
+The two writes in `drop`'s swap branch, `srcs[pos - 1] = move` and `pos[move] = pos_`,
+do not alias the dynamic-array length slot `2` that is read by the following `srcs.pop()`.
+-/
+axiom cureDropSwapWritesPreserveSrcsLength_trusted
+    (evm : EVM.State) (idx moveWord pos val : UInt256) :
+    Solm.EVM.storageLoad
+        (Solm.EVM.storageStore
+          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+            (srcElemSlot (.int (Int.ofNat idx.toNat))) val)
+          evm.executionEnv.codeOwner (solcMappingSlot ⟨5⟩ moveWord) pos)
+        evm.executionEnv.codeOwner ⟨2⟩ =
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩
+
+/-! ## Trusted selector bytes -/
 
 /-- `keccak("amt(address)")[0:4] = 0x09615662`. -/
 axiom cureAmtSelectorBytes :
