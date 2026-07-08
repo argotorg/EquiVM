@@ -443,4 +443,135 @@ theorem catBiteSourceIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       (evalExprs_biteIlksArgs I (biteLocals_get_ilk I)) hIlksCall hIlksDec)
   simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
 
+section UrnsRevert
+variable {cA gh bl σ σ₀ A I} {g : UInt256}
+  {evmIlk evmUrn : EVM.State} {ilksOut urnsOut : ByteArray}
+  {iArt iRate iSpot iLine iDust : UInt256}
+  (hwv : I.weiValue = ⟨0⟩)
+  (hvatCode0 :
+    0 < (UInt256.ofNat
+      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
+        (fun acc => acc.code.size))).toNat)
+  (hIlksCall :
+    typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (EVM.address (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)))
+      "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
+  (hIlksDec :
+    config.externalABI.decode? "ilks" ilksOut =
+      some [bw iArt, bw iRate, bw iSpot, bw iLine, bw iDust])
+  (hvatCodeIlk :
+    0 < (UInt256.ofNat
+      ((evmIlk.lookupAccount (biteVatAddr evmIlk)).option 0 (fun acc => acc.code.size))).toNat)
+
+include hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
+
+/-- The public `catBiteSourceLiveRevert` prefix (nonpayable + vat guard + `ilks` STATICCALL + its
+`rate`/`spot`/`dust` projections + the `urns` vat guard), leaving the `urns` external-call statement
+as an `ExecBlock`-continuation goal. Shared by the two reachable `urns` divergences. -/
+private theorem biteUrnsRevert_afterIlks
+    (hUrnsStmtRevert :
+      ExecStmt config { contract := contract, locals := bsDust I iArt iRate iSpot iLine iDust } evmIlk
+        (.externalCall (.storage vatRef) "urns" (.intLit 0) [.var "ilk", .var "urn"] "vatUrn"
+          (perm := false)) .reverted) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted := by
+  set evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with hevm0
+  set L0 := biteLocals I with hL0
+  set Lilk := L0.insert "vatIlk" (biteIlkTuple iArt iRate iSpot iLine iDust) with hLilk
+  set Lrate := Lilk.insert "rate" (bw iRate) with hLrate
+  set Lspot := Lrate.insert "spot" (bw iSpot) with hLspot
+  set Ldust := Lspot.insert "dust" (bw iDust) with hLdust
+  have hIlksStmt :
+      ExecStmt config { contract := contract, locals := L0 } evm0
+        (.externalCall (.storage vatRef) "ilks" (.intLit 0) [.var "ilk"] "vatIlk" (perm := false))
+        (.ok { contract := contract, locals := Lilk } evmIlk) := by
+    simpa [hLilk, biteIlkTuple, collapseReturns] using
+      ExecStmt.externalCallSuccess
+        (cfg := config) (solm := { contract := contract, locals := L0 }) (evm := evm0)
+        (evm' := evmIlk)
+        (receiver := .storage vatRef) (name := "ilks") (sendVal := 0)
+        (target := biteVatAddr evm0) (args := [.var "ilk"]) (argVals := [biteIlkVal I])
+        (out := ilksOut) (perm := false)
+        (value := [bw iArt, bw iRate, bw iSpot, bw iLine, bw iDust])
+        (biteVatRead (biteLocals_get_vat I))
+        (by simp [evalExpr?, pure])
+        (evalExprs_biteIlksArgs I (biteLocals_get_ilk I))
+        hIlksCall hIlksDec
+  have hRateStmt :
+      ExecStmt config { contract := contract, locals := Lilk } evmIlk
+        (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
+        (.ok { contract := contract, locals := Lrate } evmIlk) :=
+    biteTupleLet "vatIlk" "rate" (some uint256) 1
+      (by rw [hLilk, store_get_self]) (by rfl)
+  have hSpotStmt :
+      ExecStmt config { contract := contract, locals := Lrate } evmIlk
+        (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
+        (.ok { contract := contract, locals := Lspot } evmIlk) :=
+    biteTupleLet "vatIlk" "spot" (some uint256) 2
+      (by rw [hLrate, store_get_ne _ _ (by decide), hLilk, store_get_self]) (by rfl)
+  have hDustStmt :
+      ExecStmt config { contract := contract, locals := Lspot } evmIlk
+        (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
+        (.ok { contract := contract, locals := Ldust } evmIlk) :=
+    biteTupleLet "vatIlk" "dust" (some uint256) 4
+      (by rw [hLspot, store_get_ne _ _ (by decide), hLrate, store_get_ne _ _ (by decide),
+        hLilk, store_get_self]) (by rfl)
+  have hDustVat : Ldust.get? "vat" = none := by
+    rw [hLdust, store_get_ne _ _ (by decide), hLspot, store_get_ne _ _ (by decide),
+      hLrate, store_get_ne _ _ (by decide), hLilk, store_get_ne _ _ (by decide)]
+    exact biteLocals_get_vat I
+  have hLdustEq : Ldust = bsDust I iArt iRate iSpot iLine iDust := by
+    rw [hLdust, hLspot, hLrate, hLilk, hL0]
+  have hblock :
+      ExecBlock config { contract := contract, locals := L0 } evm0 biteTransition.body .reverted := by
+    simp only [biteTransition, nonpayable, checkedExternalCallStmts, checkedMulUintInto,
+      checkedSubUintInto, checkedAddUintInto, List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalCallvalueEq_true (by simp [evm0, initState]; exact hwv))) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVatGuard_true (biteLocals_get_vat I) (by simpa [evm0] using hvatCode0))) ?_
+    refine ExecBlock.consNormal hIlksStmt ?_
+    refine ExecBlock.consNormal hRateStmt ?_
+    refine ExecBlock.consNormal hSpotStmt ?_
+    refine ExecBlock.consNormal hDustStmt ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVatGuard_true hDustVat hvatCodeIlk)) ?_
+    rw [hLdustEq]
+    exact ExecBlock.consRevert hUrnsStmtRevert
+  simpa [ExecTransitionBody, hL0] using ExecFuncBody.execBlockRevert hblock
+
+/-- **urns call-failed revert.** `ilks` succeeds; the second STATICCALL returns `success = 0`. -/
+theorem catBiteSourceUrnsFailRevert
+    (hUrnsFailCall :
+      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+        "urns" 0 [biteIlkVal I, biteUrnVal I] (false, evmUrn, urnsOut) false) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted :=
+  biteUrnsRevert_afterIlks hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
+    (ExecStmt.externalCallFailure (biteVatRead (bsDust_get_vat I _ _ _ _ _))
+      (by simp [evalExpr?, pure])
+      (evalExprs_biteUrnsArgs I (bsDust_get_ilk I _ _ _ _ _) (bsDust_get_urn I _ _ _ _ _))
+      hUrnsFailCall)
+
+/-- **urns return-decode revert.** `ilks` succeeds; the second STATICCALL succeeds but its return
+bytes do not ABI decode to the `(uint256,uint256)` tuple. -/
+theorem catBiteSourceUrnsDecodeRevert
+    (hUrnsCall :
+      typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
+        "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
+    (hUrnsDec : config.externalABI.decode? "urns" urnsOut = none) :
+    ExecTransitionBody config contract
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+      biteTransition.body .reverted :=
+  biteUrnsRevert_afterIlks hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk
+    (ExecStmt.externalCallReturnDecodeRevert (biteVatRead (bsDust_get_vat I _ _ _ _ _))
+      (by simp [evalExpr?, pure])
+      (evalExprs_biteUrnsArgs I (bsDust_get_ilk I _ _ _ _ _) (bsDust_get_urn I _ _ _ _ _))
+      hUrnsCall hUrnsDec)
+
+end UrnsRevert
+
 end Benchmarks.Dss.Cat
