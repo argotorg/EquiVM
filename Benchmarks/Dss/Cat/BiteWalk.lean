@@ -341,7 +341,167 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             (by native_decide) (le_trans (by native_decide) hGrabSz)
                                             (by rw [hawF]; native_decide) (by rw [hawF]; native_decide)
                                             (by native_decide) hFessCode hdepth
-                                        sorry -- 2300to2383 frontier
+                                        -- STEP A: fess CALL status split.
+                                        by_cases hzf : zf = true
+                                        swap
+                                        · sorry -- fess CALL failed (success = 0) → divergence
+                                        subst hzf
+                                        -- awF (the 2300 active-words) collapses to ⟨17⟩.
+                                        have hinner :
+                                            (catBiteAwStepL ⟨10⟩
+                                              (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat).toNat = 17 := by
+                                          rw [hawF]; native_decide
+                                        have hawF17 :
+                                            (catBiteAwStepL (catBiteAwStepL ⟨10⟩
+                                                (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat)
+                                              (⟨4⟩ + (⟨96⟩ + ⟨128⟩ + ⟨96⟩) : UInt256).toNat) = ⟨17⟩ := by
+                                          apply u256_inj
+                                          with_reducible
+                                            rw [catBiteAwStepL_toNat _ _ (catBiteMltL _ _ (by native_decide))]
+                                          rw [hinner]; native_decide
+                                        rw [hawF17] at rd2300
+                                        -- Memory-size facts: the fess overlay never shrinks the grab
+                                        -- calldata region, so it keeps the `[0, 484)` window the kick
+                                        -- calldata build needs (grab already wrote up to `p+164`).
+                                        have hwrite_eq : ∀ (a : ByteArray) (w : UInt256) (off : ℕ),
+                                            off ≤ a.size →
+                                            ((UInt256.toByteArray w).write 0 a off 32).size
+                                              = max a.size (off + 32) := fun a w off hoff =>
+                                          toByteArray_write32_size_of_le a w off a.size
+                                            (max a.size (off + 32)) rfl hoff rfl
+                                        have hfess_ge : ∀ (m : ByteArray) (dr : UInt256),
+                                            (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat ≤ m.size →
+                                            m.size ≤ (catBiteFessCalldataMemP (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dr m).size := by
+                                          intro m dr hm
+                                          unfold catBiteFessCalldataMemP catBiteFessSelMemP
+                                          rw [hwrite_eq _ dr (⟨4⟩ + (⟨96⟩ + ⟨128⟩ + ⟨96⟩) : UInt256).toNat
+                                              (by rw [hwrite_eq m _ (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat hm]
+                                                  exact le_trans (by native_decide) (le_max_right _ _)),
+                                            hwrite_eq m _ (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat hm]
+                                          omega
+                                        have hgrab_le :
+                                            (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat ≤ _ :=
+                                          le_trans (show (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat
+                                            ≤ (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat + 32 from by
+                                              native_decide) hGrabSz
+                                        have hfess_mono := hfess_ge _ (dart.mul iRate) hgrab_le
+                                        have hpmem_kick :
+                                            (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 ≤ _ :=
+                                          le_trans (le_trans (show (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164
+                                            ≤ (⟨96⟩ + ⟨128⟩ + ⟨96⟩ + ⟨164⟩ : UInt256).toNat + 32 from by
+                                              native_decide) hGrabSz) hfess_mono
+                                        -- STEP B: name the DSMath tab chain; split the two overflow guards.
+                                        set dartRate := UInt256.mul dart iRate with hdartRateDef
+                                        set tabBase := UInt256.mul dartRate milkChop with htabBaseDef
+                                        set tab := UInt256.div tabBase ⟨1000000000000000000⟩ with htabDef
+                                        set litterNew := solcSlotWord σf I ⟨6⟩ + tab with hlitterNewDef
+                                        by_cases hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size
+                                        swap
+                                        · sorry -- tabBase = dartRate*chop checkedMul overflow → divergence
+                                        by_cases hLitFit :
+                                            (solcSlotWord σf I ⟨6⟩).toNat + tab.toNat < UInt256.size
+                                        swap
+                                        · sorry -- litter + tab checkedAdd overflow → divergence
+                                        -- 2300 → 2383: fess-success guard + tab arithmetic + litter SSTORE.
+                                        obtain ⟨_, _, rd2383⟩ :=
+                                          catBiteReach2300to2383 (milkChop := milkChop) rd2300 (by decide)
+                                            (by
+                                              rw [if_neg (by
+                                                    refine not_or.mpr ⟨?_, ?_⟩
+                                                    · have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                        by native_decide
+                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                        by native_decide
+                                                      have := hpmem_kick; omega
+                                                    · native_decide),
+                                                catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                  (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
+                                                  hgrab_le (by native_decide),
+                                                catBiteGrabCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩)
+                                                  (biteIlkWord I) (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
+                                                  hpmemMilk (by native_decide)]
+                                              rw [if_neg (by
+                                                    refine not_or.mpr ⟨?_, ?_⟩
+                                                    · have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                        by native_decide
+                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                        by native_decide
+                                                      have := hpmemMilk; omega
+                                                    · native_decide)] at hChop
+                                              exact hChop)
+                                            (by native_decide) (by native_decide) hperm hRateFit hChopFit hLitFit
+                                            hdartRateDef.symm htabBaseDef.symm htabDef.symm hlitterNewDef.symm
+                                        -- STEP C: kick CALL reach (2383 → 2532), all at free ptr `p`.
+                                        by_cases hKickCode :
+                                            Reasoning.Theory.uniswapExtCodeSizeWord
+                                              (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+                                              (UInt256.land biteAddrMaskWord flipW) = ⟨0⟩
+                                        · sorry -- kick flip target has no code → divergence leaf
+                                        · -- flip@q and free-ptr@64 reads through the fess/grab overlay.
+                                          have hFlipRead :
+                                              (catBiteFessCalldataMemP (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                (catBiteGrabCalldataMemP (⟨96⟩ + ⟨128⟩ + ⟨96⟩) (biteIlkWord I)
+                                                  (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (catBiteMilkMem base ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩) flipW
+                                                    milkChop milkDunk))).readWithPadding
+                                                (⟨96⟩ + ⟨128⟩ : UInt256).toNat 32
+                                                = (flipW : UInt256).toByteArray := by
+                                            rw [catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                  (⟨96⟩ + ⟨128⟩ : UInt256).toNat (by native_decide) hgrab_le
+                                                  (by native_decide),
+                                                catBiteGrabCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩)
+                                                  (biteIlkWord I) (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (⟨96⟩ + ⟨128⟩ : UInt256).toNat (by native_decide) hpmemMilk
+                                                  (by native_decide),
+                                                catBiteMilkMem_readflip base ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩)
+                                                  flipW milkChop milkDunk (by rw [h128]; have := hmemUsz; omega)
+                                                  rfl (by native_decide) (by native_decide)]
+                                          have hread64F :
+                                              (catBiteFessCalldataMemP (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                (catBiteGrabCalldataMemP (⟨96⟩ + ⟨128⟩ + ⟨96⟩) (biteIlkWord I)
+                                                  (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (catBiteMilkMem base ⟨128⟩ (biteIlkWord I) (⟨96⟩ + ⟨128⟩) flipW
+                                                    milkChop milkDunk))).readWithPadding 64 32
+                                                = (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toByteArray := by
+                                            rw [catBiteFessCalldataMemP_read64 (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                  (by native_decide) hgrab_le (by native_decide),
+                                                catBiteGrabCalldataMemP_read64 (⟨96⟩ + ⟨128⟩ + ⟨96⟩) (biteIlkWord I)
+                                                  (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (by native_decide) hpmemMilk (by native_decide)]
+                                            exact hMilkFp
+                                          obtain ⟨cAk, σk, zk, ok, Ak, awk, kk, Ck, rd2532, hKickCall, hoszk,
+                                              hRDret⟩ :=
+                                            catBiteReachKickC rd2383
+                                              (mloadWordValue_of_readWithPadding
+                                                (lt_of_lt_of_le (show (⟨96⟩ + ⟨128⟩ : UInt256).toNat
+                                                  < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
+                                                    native_decide) hpmem_kick)
+                                                (by native_decide) hFlipRead)
+                                              (mloadWordValue_of_readWithPadding
+                                                (lt_of_lt_of_le (show (⟨64⟩ : UInt256).toNat
+                                                  < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
+                                                    native_decide) hpmem_kick)
+                                                (by native_decide)
+                                                (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
+                                                    exact hread64F))
+                                              hread64F (by native_decide) (by native_decide) (by native_decide)
+                                              (by native_decide) (by native_decide) hpmem_kick (by native_decide)
+                                              hperm hRateFit hKickCode hdepth
+                                          -- STEP D: take the kick-success / long-enough-return branch.
+                                          by_cases hzk : zk = true
+                                          swap
+                                          · sorry -- kick CALL failed (success = 0) → divergence
+                                          by_cases hk32 : 32 ≤ ok.size
+                                          swap
+                                          · sorry -- kick return decode short (returndatasize < 32) → divergence
+                                          have hret := hRDret hzk hk32
+                                          sorry -- catBiteSuccessBranch frontier
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
