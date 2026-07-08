@@ -795,28 +795,42 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               simp only [storageStore_accountMap, heFam, heFee]
                                               rw [hlitternew]; exact hKickCode)
                                             (hKickCall := by
-                                              sorry)
-                                              -- RESIDUAL. Goal: typedCallViaEVM config evmLit
-                                              --   (EVM.address ↑(biteFlipAddrV I eUrn)) "kick" 0
-                                              --   [biteUrnVal I, .address (biteVowAddrV evmLit),
-                                              --    bw (biteTabV I eUrn iRate art),
-                                              --    bw (biteDinkV I eUrn iRate art ink), .int 0]
-                                              --   (true, eKick, ok) true.
-                                              -- Have hKickCall' (source = {…σ:=sstoreAccountMap…litterNew…}
-                                              -- record, target ofUInt256 (biteAddrMaskWord.land flipW),
-                                              -- args seg8KickArgs …, perm I.perm, z = zk).
-                                              -- Bridges available: target via addrId+hflipAddr; z via hzk;
-                                              -- perm via hperm; arg1 (biteUrnVal) via hurn+hAddrRT (as
-                                              -- hGrabCall h2); arg3/arg4 via htabB/hdinkvB.
-                                              -- Blockers (each needs a few more lines): (a) SOURCE — evmLit
-                                              -- is fixed as `storageStore eFess codeOwner ⟨6⟩
-                                              -- (biteLitterNewV …)` (from hLitStore) which is NOT defeq to
-                                              -- hKickCall''s record source; needs State.ext +
-                                              -- storageStore_{accountMap,executionEnv,createdAccounts,…}
-                                              -- field lemmas + hlitternew. (b) arg2 (biteVowAddrV evmLit vs
-                                              -- seg8VowM) — needs div-by-(256^0=1) no-op + double-land
-                                              -- idempotent (solcAddrMask_clean_left) + u256_land_comm, over
-                                              -- evmLit.accountMap. No missing lemma; assembly only.
+                                              rw [hzk, hperm] at hKickCall'
+                                              have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress)
+                                                  (k v : UInt256), Solm.EVM.storageStore ev aa k v =
+                                                    { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
+                                                intro ev aa k v
+                                                simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
+                                                cases h : ev.accountMap.find? aa with
+                                                | none => simp [Option.option]
+                                                | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
+                                              have hdiv1 : ∀ y : UInt256, UInt256.div y ⟨1⟩ = y := fun y => by
+                                                apply u256_inj
+                                                rw [udiv_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by native_decide,
+                                                  Nat.div_one]
+                                              have hexp : UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ := by native_decide
+                                              have hvowW : ∀ σx : AccountMap,
+                                                  UInt256.land (solcSlotWord σx I ⟨4⟩) solcAddrMask = seg8VowM σx I := by
+                                                intro σx
+                                                simp only [seg8VowM, hmask, hexp, hdiv1]
+                                                rw [solcAddrMask_clean_left
+                                                  (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _),
+                                                  u256_land_comm]
+                                              have hvowArg :
+                                                  biteVowAddrV (Solm.EVM.storageStore eFess eFess.executionEnv.codeOwner
+                                                      ⟨6⟩ litterNew)
+                                                    = AccountAddress.ofNat
+                                                      (seg8VowM (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) I).toNat := by
+                                                simp only [biteVowAddrV, storageStore_accountMap,
+                                                  storageStore_executionEnv, heFam, heFee, catSlotWord]
+                                                rw [hvowW]
+                                              have h2 : biteUrnVal I = Value.address (AccountAddress.ofNat
+                                                  (biteAddrMaskWord.land
+                                                    (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat) := by
+                                                rw [hurn]
+                                                simp only [biteUrnVal, biteUrnWord, biteUrnAddr, hAddrRT]
+                                              rw [hlitternew, hvowArg, storeFlat, addrId, hflipAddr, h2, htabB, hdinkvB]
+                                              exact hKickCall')
                                 · sorry -- room underflow (box < litter)
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
