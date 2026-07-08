@@ -117,6 +117,57 @@ theorem catBiteBodyIlksNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact catBiteIlksNoCodeLeaf hcode hdispatch hdecode rd1233 hvatCode (by simp)
     (catBiteSourceIlksNoCodeRevert hwv (catBiteVatCodeZero_of_uniswap hAccounts hvatCode))
 
+/-- `EVM.address` is the identity on an `AccountAddress` (reduces mod `addressModulus`, a no-op since
+the address is already in range). Local clone of the Jug/Vow `evmAddress_accountAddress`. -/
+private theorem catEvmAddress_accountAddress (a : AccountAddress) : EVM.address a.val = a := by
+  apply Fin.ext
+  show a.val % EVM.addressModulus = a.val
+  rw [show EVM.addressModulus = AccountAddress.size from by decide]
+  exact Nat.mod_eq_of_lt a.isLt
+
+/-- Target-word ↔ vat-address reconciliation (σ-generic). The ilks/urns STATICCALL target word
+`catBiteVatTargetWord σ I` (as an `AccountAddress`) equals the Solm `biteVatAddr` under `EVM.address`. -/
+theorem catBiteVatEvmAddr_eq_target {cA gh bl σ σ₀ A I} {g : UInt256} :
+    EVM.address (biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) =
+      AccountAddress.ofUInt256 (catBiteVatTargetWord σ I) := by
+  have haddr : biteVatAddr (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      = AccountAddress.ofUInt256 (catBiteVatTargetWord σ I) := by
+    rw [accountAddress_ofUInt256_eq_ofNat_toNat]
+    simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
+  rw [haddr]; exact catEvmAddress_accountAddress _
+
+/-- **ilks call-failed core.** The ilks `STATICCALL` returned `success = 0` (cursor `@1249`, `⟨0⟩` on
+top). Map the σ_evm ilks-fail call to σ_solm, feed `catBiteSourceIlksFailRevert`, and bridge via
+`catBiteIlksFailLeaf`. -/
+theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σi : AccountMap} {cAi : Batteries.RBSet AccountAddress compare}
+    {evmIlk : EVM.State} {oi mem : ByteArray} {awi : UInt256} {ki Ci : ℕ} {R : List UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hvatCode : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) ≠ ⟨0⟩)
+    (hIlksFailCall : typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+      (false, evmIlk, oi) false)
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+      (⟨0⟩ :: R) mem awi oi (cAi, σi) ki Ci)
+    (hosz : oi.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  obtain ⟨σs, As, hIlksSolm, _hEq⟩ := catBiteMapIlksCall hAccounts hIlksFailCall
+  have htw : catBiteVatTargetWord σ_evm I = catBiteVatTargetWord σ_solm I := by
+    simp only [catBiteVatTargetWord, catAddressReturnWord, catSlotWord, solcSlotWord]
+    rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩]
+  have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I))
+      = EVM.address (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) := by
+    rw [htw]; exact (catBiteVatEvmAddr_eq_target).symm
+  rw [htgt] at hIlksSolm
+  exact catBiteIlksFailLeaf hcode hdispatch hdecode rd hosz hov
+    (catBiteSourceIlksFailRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm)
+
 set_option maxHeartbeats 4000000 in
 theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
