@@ -1,0 +1,6 @@
+274f7c5df8a13e535b496236436ebf726228fbe9285d94c542e2c9d2a78671de  Benchmarks/Dss/Dog/contracts/dog.sol
+b2c706b442f3330b3bfe74881fa2f855d681bf1184f1526cde3ec722333705a9  Benchmarks/Dss/Dog/dog.sol.ast.json
+5d2b2a541441b6fb3eb35fa5832dc3506cafd8f72e1a14dae3edd4b64b22ae18  Benchmarks/Dss/Dog/Dog.abi.json
+3a7a6289736ec45c8ac993935b4d9b4d94c4f0d6c096bbf8790e822b6264cc51  Benchmarks/Dss/Dog/Dog.storage.json
+55d20b9999033d2665bd64fe3d6fa340d5b19a57708a1f585878dc92cc0de216  Benchmarks/Dss/Dog/creation.hex
+76a2038588f1cffc3954e4d702144a75a7e9f589ba9acb4b79b387be3bae9bdd  Benchmarks/Dss/Dog/runtime.hex

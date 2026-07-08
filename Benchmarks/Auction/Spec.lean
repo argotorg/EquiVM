@@ -412,9 +412,11 @@ def auctionGetter : TransitionDecl :=
 
 /-! ## Contract and runtime ABI -/
 
+/-- Empty Solidity constructor; solc still emits the nonpayable deployment-value guard. -/
 def constructorDecl : ConstructorDecl :=
   { params := []
-    body := [] }
+    body :=
+      [ nonpayable ] }
 
 def auctionContract : ContractDecl :=
   { name := "NounsAuctionHouse"
