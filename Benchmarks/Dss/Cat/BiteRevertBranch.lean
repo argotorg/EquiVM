@@ -3904,4 +3904,281 @@ theorem catBiteRevertIlksDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       hIlksSolm (catBiteIlksDecode_none (by omega)))
 
 
+/-! ## Post-milk `require`-string revert leaves (dart/dink `> 0` / `≤ 2²⁵⁵`)
+
+These four `require`s fire after the `milk`-struct build (`aw = ⟨10⟩`, free pointer `mem[0x40] = 320`,
+`mem.size = 320`), so they route through the fp=320 `Error(string)` tail
+`RD.catBiteMilkErrorStringRevertTail` rather than the pre-milk fp=128 tail. -/
+
+/-- `catBiteUrnsPostCallMem` (the urns-output overlay over the 288-byte urns-calldata frame) writes
+64 bytes at offset 128 in bounds, so its size stays 288. -/
+theorem catBiteUrnsPostCallMem_size288 {I : ExecutionEnv} {o' ou : ByteArray}
+    (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
+    (hurnslen : 64 ≤ ou.size) (hoszu : ou.size < UInt256.size) :
+    (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size = 288 := by
+  have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
+    have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
+  have hbaseSz : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I)
+      (catBiteIlksPostCallMem I o')).size = 288 := by
+    rw [biteUrnsCalldataMem_size hmemI, catBiteIlksPostCallMem_size I o' hilkslen hosz]
+  have hlen64 : ((⟨64⟩ : UInt256) ⊓ UInt256.ofNat ou.size).toNat = 64 :=
+    umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
+  unfold catBiteUrnsPostCallMem
+  rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
+  omega
+
+/-- The post-milk memory (`catBiteMilkMem` over the 288-byte urns overlay, `q = 96+128`) has size
+`max 288 320 = 320`. Discharges the `hmem` obligation of `RD.catBiteMilkErrorStringRevertTail`. -/
+theorem catBiteMilkSize320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop dunk : UInt256}
+    (hqfp : q = ⟨96⟩ + ⟨128⟩)
+    (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
+    (hurnslen : 64 ≤ ou.size) (hoszu : ou.size < UInt256.size) :
+    (catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
+      (biteIlkWord I) q flip chop dunk).size = 320 := by
+  have hurnsSz := catBiteUrnsPostCallMem_size288 (I := I) hilkslen hosz hurnslen hoszu
+  rw [catBiteMilkMem_size (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
+      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; native_decide) hqfp (by native_decide)
+      (by rw [hqfp]; native_decide), hurnsSz, hqfp]
+  native_decide
+
+/-- The post-milk free pointer `mem[0x40] = q + 96 = 320` survives (needed as the `hread64`
+obligation of `RD.catBiteMilkErrorStringRevertTail`). -/
+theorem catBiteMilkRead64_320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop dunk : UInt256}
+    (hqfp : q = ⟨96⟩ + ⟨128⟩)
+    (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
+    (hurnslen : 64 ≤ ou.size) (hoszu : ou.size < UInt256.size) :
+    (catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
+      (biteIlkWord I) q flip chop dunk).readWithPadding 64 32 = UInt256.toByteArray ⟨320⟩ := by
+  have hurnsSz := catBiteUrnsPostCallMem_size288 (I := I) hilkslen hosz hurnslen hoszu
+  rw [catBiteMilkMem_read64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
+      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; native_decide) hqfp (by native_decide)
+      (by rw [hqfp]; native_decide), hqfp]
+  congr 1
+
+/-- **Post-milk generic `require(cond, "msg")`-false → `Error(string)` revert leaf.** fp=320 / `aw=⟨10⟩`
+analogue of `catBiteRequireStringRevertLeaf`: hand-trace `PUSH2 okPc; JUMPI`-not-taken into the milk
+`Error(string)` tail (`RD.catBiteMilkErrorStringRevertTail`) and bridge to the Solm `.reverted` body. -/
+theorem catBiteMilkRequireStringRevertLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {mem rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {cond okPc : UInt256} {R : List UInt256} {k C : ℕ}
+    {guardPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
+    (hcode : I.code = catBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) guardPc
+      (cond :: R) mem ⟨10⟩ rdata acc k C)
+    (hcond : cond = ⟨0⟩)
+    (hpush2 : decode catBytecode guardPc = some (.Push .PUSH2, some (okPc, 2)))
+    (hjumpi : decode catBytecode (guardPc + UInt256.ofNat 3) = some (.JUMPI, .none))
+    (htail : solcErrorStringRevertTailWf catBytecode (guardPc + UInt256.ofNat 3 + ⟨1⟩)
+      len rawWord shift op width)
+    (hpush : op ≠ .PUSH0) (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 320)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨320⟩)
+    (hov : R.length + 5 ≤ 1024)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+        biteTransition.body .reverted) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
+  have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
+  have hrev := RD.catBiteMilkErrorStringRevertTail rd3 htail hpush hword hmem hread64 hov
+  simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+set_option maxHeartbeats 2000000 in
+/-- **`dart = 0` require-string revert branch (extracted).** Post-milk (`aw=10`) `require(dart > 0 &&
+dink > 0, …)` fails on the first conjunct (`dart = 0`): reaches the `PUSH2 1985` guard at pc 1918
+(via `Seg7a`/`Seg7b`/`catBiteReachGuardDartPos`), fires the fp=320 milk string-revert tail +
+`catBiteSourceDartZeroRevert`. -/
+theorem catBiteRevertDartZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu : AccountMap} {A' Au : Substate}
+    {cA' cAu : Batteries.RBSet AccountAddress compare} {o' ou : ByteArray} {ku Cu : ℕ}
+    {art ink iSpot iRate iDust room milkChop milkDunk dunkRoom dunkRoomWad dartDenomRate
+      dartCandidate dart inkDart dinkCandidate dink q : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
+    (hosz : o'.size < UInt256.size) (hoszu : ou.size < UInt256.size)
+    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
+    (hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size)
+    (hmemUsz : 224 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size)
+    (hqfp : q = ⟨96⟩ + ⟨128⟩)
+    (rd1708 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        biteAddrMaskWord.land (calldataWord I.calldata 36) :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      (catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩ (biteIlkWord I) q
+        (biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))) milkChop milkDunk)
+      ⟨10⟩ ou (cAu, σu) ku Cu)
+    (hChop : (if (⟨32⟩ + q).toNat ≥
+          (catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩ (biteIlkWord I) q
+            (biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))) milkChop
+            milkDunk).size ∨ (⟨32⟩ + q) ≥ (⟨10⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian
+        ((catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩ (biteIlkWord I) q
+            (biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))) milkChop
+            milkDunk).readWithPadding (⟨32⟩ + q).toNat 32))) = milkChop)
+    (hDunk : (if (⟨64⟩ + q).toNat ≥
+          (catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩ (biteIlkWord I) q
+            (biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))) milkChop
+            milkDunk).size ∨ (⟨64⟩ + q) ≥ (⟨10⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian
+        ((catBiteMilkMem (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩ (biteIlkWord I) q
+            (biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I)))) milkChop
+            milkDunk).readWithPadding (⟨64⟩ + q).toNat 32))) = milkDunk)
+    (hlitterbox : (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)
+    (hroomdust : iDust.toNat ≤ room.toNat)
+    (hunsafe : (ink * iSpot).toNat < (art * iRate).toNat)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hspotPos : 0 < iSpot.toNat) (hRatePos : iRate ≠ ⟨0⟩) (hChopPos : milkChop ≠ ⟨0⟩)
+    (hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat * dunkRoom.toNat < UInt256.size)
+    (hArtPos : art ≠ ⟨0⟩)
+    (hFitInkDart : dart.toNat * ink.toNat < UInt256.size)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
+    (hroomDef : room = (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩))
+    (hmilkDunkDef : milkDunk = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
+    (hmilkChopDef : milkChop = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
+    (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room)
+    (hdunkRoomWadDef : dunkRoomWad = dunkRoom.mul ⟨1000000000000000000⟩)
+    (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate)
+    (hdartCandDef : dartCandidate = dartDenomRate.div milkChop)
+    (hdartDef : dart = if art.gt dartCandidate = ⟨0⟩ then art else dartCandidate)
+    (hinkDartDef : inkDart = UInt256.mul ink dart)
+    (hdinkCandDef : dinkCandidate = UInt256.div inkDart art)
+    (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
+    (hDartPos : ¬ (0 < dart.toNat)) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdepthNe : I.depth ≠ 1024 := by omega
+  have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
+    fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
+  have hqNat : q.toNat = 224 := by rw [hqfp]; native_decide
+  have hDartZero : dart = ⟨0⟩ := uint256_toNat_eq_zero (by omega)
+  obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
+    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+    hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
+  obtain ⟨_, _, rd1918⟩ := catBiteReachGuardDartPos rd1872 hArtPos hFitInkDart hinkDartDef.symm
+    hdinkCandDef.symm hdinkDef.symm hDartZero (by simp)
+  obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
+    catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
+  set eUrnS := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+    accountMap := σus, substate := Aus, createdAccounts := cAu } with heUrnSdef
+  have heUSam : eUrnS.accountMap = σus := rfl
+  have heUSee : eUrnS.executionEnv = I := rfl
+  have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
+    intro s; simp only [solcSlotWord]
+    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+  have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
+    intro a b; unfold umin
+    by_cases h : a.toNat ≤ b.toNat
+    · rw [if_pos (ugt_zero h), if_pos h]
+    · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
+  have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
+      ABI.bytesToWord ((o.toList.drop k).take 32) =
+        UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
+    intro o k h
+    rw [decode_word_at_eq_any o k h, uInt256OfByteArray_eq]
+    congr 1; unfold fromByteArrayBigEndian; congr 1
+    rw [byteArray_toList_eq (o.readBytes k 32), readBytes_at_toList_any o k h,
+      byteArray_toList_eq (o.extract k (k + 32)), ByteArray.data_extract, Array.toList_extract,
+      List.extract_eq_take_drop]
+    simp
+  have hIlksDec : config.externalABI.decode? "ilks" o' =
+      some [bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))), bw iRate, bw iSpot,
+        bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 96 128))), bw iDust] := by
+    have h := catBiteIlksDecode_ok hilkslen
+    rw [hbr o' 0 (by omega), hbr o' 32 (by omega), hbr o' 64 (by omega),
+      hbr o' 96 (by omega), hbr o' 128 (by omega)] at h
+    rw [hiRate, hiSpot, hiDust]; exact h
+  have hUrnsDec : config.externalABI.decode? "urns" ou = some [bw ink, bw art] := by
+    have h := catBiteUrnsDecode_ok hurnslen
+    rw [hbr ou 0 (by omega), hbr ou 32 (by omega)] at h
+    rw [hink, hart]; exact h
+  have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
+    rw [heUSam, heUSee]; simp only [catSlotWord]; rw [slotEqUS ⟨2⟩]
+    simpa only [catSlotWord] using hlive
+  have hratePos : 0 < iRate.toNat := by
+    by_contra hc
+    have hr0 : iRate.toNat = 0 := by omega
+    have hz : (art * iRate).toNat = 0 := by
+      rw [u256_mul_op_toNat, hr0, Nat.mul_zero, Nat.zero_mod]
+    omega
+  have hboxB : biteBoxW eUrnS = solcSlotWord σu I ⟨5⟩ := by
+    simp only [biteBoxW, catSlotWord, heUSam, heUSee]; exact slotEqUS ⟨5⟩
+  have hlitB : biteLitW eUrnS = solcSlotWord σu I ⟨6⟩ := by
+    simp only [biteLitW, catSlotWord, heUSam, heUSee]; exact slotEqUS ⟨6⟩
+  have hroomB : biteRoomV eUrnS = room := by
+    rw [hroomDef]; simp only [biteRoomV, hboxB, hlitB]
+  have hdunkB : biteDunkW I eUrnS = milkDunk := by
+    rw [hmilkDunkDef]
+    simp only [biteDunkW, catSlotWord, heUSam, heUSee, biteDunkSlot, biteFlipSlot_eq hsz36]
+    exact slotEqUS _
+  have hchopB : biteChopW I eUrnS = milkChop := by
+    rw [hmilkChopDef]
+    simp only [biteChopW, catSlotWord, heUSam, heUSee, biteChopSlot, biteFlipSlot_eq hsz36]
+    exact slotEqUS _
+  have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
+    rw [hdunkRoomDef, uminEq milkDunk room]
+    simp only [biteDunkRoomV, hdunkB, hroomB]
+  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hdartvB : biteDartV I eUrnS iRate art = dart := by
+    have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
+      simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
+        hdartCandDef, hdartDenomDef, hdunkRoomWadDef]
+      rfl
+    rw [hdartDef, uminEq art dartCandidate]
+    simp only [biteDartV, hcand]
+  have hlitLtBox : (biteLitW eUrnS).toNat < (biteBoxW eUrnS).toNat := by
+    rw [hlitB, hboxB]; exact hlitterbox
+  have hroomGeDust : iDust.toNat ≤ (biteRoomV eUrnS).toNat := by rw [hroomB]; exact hroomdust
+  have hbody := catBiteSourceDartZeroRevert hwv
+    (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
+    hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
+    hroomGeDust (by rw [hdunkroomB, hwad, Nat.mul_comm]; exact hFitWad)
+    (by rw [hchopB]; exact hposNe milkChop hChopPos)
+    (by rw [hdartvB, Nat.mul_comm]; exact hFitInkDart) (hposNe art hArtPos)
+    (by rw [hdartvB]; omega)
+  exact catBiteMilkRequireStringRevertLeaf (okPc := ⟨1985⟩) (len := ⟨16⟩)
+    (rawWord := ⟨0x21b0ba17b73ab63616b0bab1ba34b7b7⟩) (shift := ⟨129⟩) (op := .PUSH16) (width := 16)
+    hcode hdispatch hdecode rd1918 rfl (by native_decide) (by native_decide)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    (by decide) rfl (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
+    (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
+    (by simp only [List.length_cons, List.length_nil]; omega) hbody
+
 end Benchmarks.Dss.Cat
