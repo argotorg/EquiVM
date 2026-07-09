@@ -21,7 +21,7 @@ import Examples.UniswapV2Pair.Price1CumulativeLast
 import Examples.UniswapV2Pair.Skim
 import Examples.UniswapV2Pair.Swap
 import Examples.UniswapV2Pair.Symbol
-import Examples.UniswapV2Pair.Sync
+import Examples.UniswapV2Pair.SyncBody
 import Examples.UniswapV2Pair.Token0
 import Examples.UniswapV2Pair.Token1
 import Examples.UniswapV2Pair.TotalSupply

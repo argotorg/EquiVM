@@ -341,10 +341,7 @@ theorem uniswapTransferLogMemOf_size (src toWord value : UInt256) {mem : ByteArr
   rw [toByteArray_write_eq _ _ _ (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]; omega)
       (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMemOf_size src toWord hmem,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    ByteArray_zeroes_size, toByteArray_size]
 
 theorem uniswapTransferLogMemOf_read64 (src toWord value : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -357,15 +354,11 @@ theorem uniswapTransferLogMemOf_read64 (src toWord value : UInt256) {mem : ByteA
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append,
         uniswapTransferCreditHashMemOf_size src toWord hmem, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, uniswapTransferCreditHashMemOf_size src toWord hmem,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        ByteArray_zeroes_size]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]),
     ← readWithPadding_eq_extract _ 64 (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]),

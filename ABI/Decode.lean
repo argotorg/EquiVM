@@ -15,6 +15,7 @@ def solcMaxLenV1 : Nat := 4294967296  -- 2^32
 
 def solcMaxLen : DecodeMode → Nat
   | DecodeMode.modern       => solcMaxU64
+  | DecodeMode.vyper        => solcMaxU64
   | DecodeMode.legacySolc05 => solcMaxLenV1
 
 -- In `modern` the dynamic cap is exactly `solcMaxU64`, so `modern`-mode decode proofs that unfold the
@@ -27,6 +28,7 @@ def solcMaxLen : DecodeMode → Nat
 def solcRejectsDynamicArrayElementOffset (mode : DecodeMode) (relativeOffset : Nat) : Bool :=
   match mode with
   | DecodeMode.modern => false
+  | DecodeMode.vyper => false
   | DecodeMode.legacySolc05 => decide (solcMaxLen mode < relativeOffset)
 
 @[simp] theorem solcRejectsDynamicArrayElementOffset_modern (relativeOffset : Nat) :
@@ -83,6 +85,13 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
             some (.bool true)
           else
             none
+      | DecodeMode.vyper =>
+          if n = 0 then
+            some (.bool false)
+          else if n = 1 then
+            some (.bool true)
+          else
+            none
       | DecodeMode.legacySolc05 =>
           if n = 0 then
             some (.bool false)
@@ -95,11 +104,23 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
             some (.address (Ethereum.AccountAddress.ofNat n))
           else
             none
+      | DecodeMode.vyper =>
+          if n < EVM.addressModulus then
+            some (.address (Ethereum.AccountAddress.ofNat n))
+          else
+            none
       | DecodeMode.legacySolc05 =>
           some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
       match mode with
       | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else if n < EVM.twoPow bits.val then
+            some (.int (Int.ofNat n))
+          else
+            none
+      | DecodeMode.vyper =>
           if bits.val = 0 then
             none
           else if n < EVM.twoPow bits.val then
@@ -118,6 +139,18 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
   | .elem (.int (.sint bits)) =>
       match mode with
       | DecodeMode.modern =>
+          if bits.val = 0 then
+            none
+          else
+            let positiveLimit := EVM.twoPow (bits.val - 1)
+            let negativeStart := EVM.wordModulus - positiveLimit
+            if n < positiveLimit then
+              some (.int (Int.ofNat n))
+            else if negativeStart ≤ n then
+              some (.int (Int.ofNat n - Int.ofNat EVM.wordModulus))
+            else
+              none
+      | DecodeMode.vyper =>
           if bits.val = 0 then
             none
           else
@@ -154,6 +187,9 @@ mutual
             let size := n.val + 1
             match mode with
             | DecodeMode.modern => do
+                zeroPadding? wordBytes size (32 - size)
+                some (.fixedBytes n (wordBytes.take size), start + 32)
+            | DecodeMode.vyper => do
                 zeroPadding? wordBytes size (32 - size)
                 some (.fixedBytes n (wordBytes.take size), start + 32)
             | DecodeMode.legacySolc05 =>
@@ -338,11 +374,22 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     none
   else
     let argsArray := calldata.toList.drop 4
-    -- Dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
+    -- Modern dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
     -- If it is a negative signed word (`>= 2^255`), the generated decoder reverts before
-    -- accepting any dynamic tail.
+    -- accepting any dynamic tail. Legacy solc 0.5.x optimized wrappers use unsigned checks.
     if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
-      none
+      match mode with
+      | DecodeMode.modern => none
+      | DecodeMode.vyper =>
+          let decoded := decodeArgs names types argsArray ∅
+          match decoded with
+          | some (store, _) => some store
+          | none => none
+      | DecodeMode.legacySolc05 =>
+          let decoded := decodeArgs names types argsArray ∅
+          match decoded with
+          | some (store, _) => some store
+          | none => none
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,
     -- `SLT(calldatasize - 4, headSize)`, reverting when `calldatasize - 4` is a negative
@@ -359,6 +406,11 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
           match decoded with
           | some (store, _) => some store
           | none => none
+    | DecodeMode.vyper =>
+        let decoded := decodeArgs names types argsArray ∅
+        match decoded with
+        | some (store, _) => some store
+        | none => none
     | DecodeMode.legacySolc05 =>
         let decoded := decodeArgs names types argsArray ∅
         match decoded with
@@ -411,6 +463,12 @@ def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (retu
     Option (List Solm.Value) :=
   match mode with
   | DecodeMode.modern => decodeReturnValues? types returndata
+  | DecodeMode.vyper => do
+      let bytes := returndata.toList
+      let headSize <- abiTupleHeadSize? types
+      let (values, _endOffset) <-
+        decodeABIValues? types bytes 0 0 headSize headSize DecodeMode.vyper
+      some values
   | DecodeMode.legacySolc05 => do
       let bytes := returndata.toList
       let headSize <- abiTupleHeadSize? types
@@ -430,6 +488,10 @@ def decodeReturnValueWithMode? (mode : DecodeMode) (ty : ABIType) (returndata : 
     Option Solm.Value :=
   match mode with
   | DecodeMode.modern => decodeReturnValue? ty returndata
+  | DecodeMode.vyper => do
+      match decodeReturnValuesWithMode? DecodeMode.vyper [ty] returndata with
+      | some [value] => some value
+      | _ => none
   | DecodeMode.legacySolc05 => do
       match ty with
       | .elem .bool =>

@@ -54,6 +54,11 @@ def daiBurnSelector : ByteArray := selectorBytes 0x9d 0xc2 0x9f 0xac
 def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
+def decodeBoolReturn? (out : EVM.Bytes) : Option (List Value) :=
+  match ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [boolTy] out with
+  | some [value] => some [value]
+  | _ => none
+
 def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
   some []
 
@@ -75,9 +80,9 @@ def externalABI : ExternalCallABI where
     if name = "decimals" then
       decodeReturn? uint256 out
     else if name = "transfer" then
-      decodeReturn? boolTy out
+      decodeBoolReturn? out
     else if name = "transferFrom" then
-      decodeReturn? boolTy out
+      decodeBoolReturn? out
     else if name = "slip" then
       decodeVoid? out
     else

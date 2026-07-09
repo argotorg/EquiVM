@@ -16,6 +16,7 @@ namespace Benchmarks.Dss.Clipper.Immutables
 structure ClipperImmutables where
   ilk : Value
   vat : EVM.Address
+  ilk_wf : ∃ bs, ilk = .fixedBytes ⟨31, by decide⟩ bs ∧ bs.length = 32
 
 def addrLit (a : EVM.Address) : Expr :=
   .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
