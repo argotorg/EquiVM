@@ -1044,7 +1044,33 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             · -- ilks return decode short (`returndatasize < 160`).
               exact catBiteRevertIlksDecode hcode hwv hdispatch hdecode hAccounts hvatCode
                 hIlksCall rd1249 (by decide) hosz hawout9 hilkslen
-      · -- ilks STATICCALL hits the call-depth limit (depth = 1024).
-        sorry
+      · -- ilks STATICCALL hits the call-depth limit (depth = 1024): STATICCALL returns 0 without
+        -- invoking Θ, so the ilks success-guard reverts (both sides), mapped by `catBiteBodyIlksFailCore`.
+        have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
+        obtain ⟨k, C, rd1163⟩ :=
+          catReachBiteRoutine (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel
+        obtain ⟨_, _, rd1233⟩ := RD.catBiteIlksToStaticcallGuard (hR := by simp) rd1163
+        obtain ⟨gasWord, _, _, rd1248⟩ := RD.uniswapExtcodesizeGuardOkGas
+          (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd1233 hvatCode
+          (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide) (by simp)
+        obtain ⟨_, _, rd1249⟩ :=
+          RD.uniswapStaticcallDepthLimit rd1248 (by native_decide) hdepth1024 (by simp)
+        have hbytes : biteIlkBytes I = EVM.Word.toBytesBE (biteIlkWord I) := by
+          simpa [biteIlkBytes, biteIlkWord, biteUrnsIlkBytes, biteUrnsIlkWord] using
+            biteUrnsIlkBytes_eq_toBytesBE (I := I) hsz36
+        have hencode : config.externalABI.encode? "ilks" [biteIlkVal I] =
+            some ((catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem).readWithPadding
+              catBiteIlksOutPtr.toNat catBiteIlksInSize.toNat) := by
+          simpa [biteIlkVal] using
+            catBiteIlksEncode_eq (biteIlkWord I) (biteIlkBytes I) solcFreePtrMem_size hbytes
+        have hIlksFailCall :
+            typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+              (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+              (false, _, ByteArray.empty) false :=
+          callNotMade_depthLimit hencode (by simpa [initState] using hdepth1024)
+        exact catBiteBodyIlksFailCore hcode hwv hdispatch hdecode hAccounts hvatCode
+          hIlksFailCall rd1249 (by decide) (by simp)
 
 end Benchmarks.Dss.Cat
