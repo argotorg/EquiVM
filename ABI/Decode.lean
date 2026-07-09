@@ -338,11 +338,17 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     none
   else
     let argsArray := calldata.toList.drop 4
-    -- Dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
+    -- Modern dynamic solc decoders use signed comparisons against the full `CALLDATASIZE`.
     -- If it is a negative signed word (`>= 2^255`), the generated decoder reverts before
-    -- accepting any dynamic tail.
+    -- accepting any dynamic tail. Legacy solc 0.5.x optimized wrappers use unsigned checks.
     if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
-      none
+      match mode with
+      | DecodeMode.modern => none
+      | DecodeMode.legacySolc05 =>
+          let decoded := decodeArgs names types argsArray ∅
+          match decoded with
+          | some (store, _) => some store
+          | none => none
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,
     -- `SLT(calldatasize - 4, headSize)`, reverting when `calldatasize - 4` is a negative
