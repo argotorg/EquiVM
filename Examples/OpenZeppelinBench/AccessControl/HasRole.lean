@@ -386,8 +386,7 @@ theorem hasRoleReturnMem_size (role account val : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [hasRoleSlotHashMem_size]; omega)
       (by rw [hasRoleSlotHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hasRoleSlotHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem hasRoleReturnMem_read64 (role account val : UInt256) :
@@ -399,14 +398,12 @@ theorem hasRoleReturnMem_read64 (role account val : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, hasRoleSlotHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, hasRoleSlotHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        show 128 - 96 = 32 from by norm_num]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [hasRoleSlotHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [hasRoleSlotHashMem_size]),
@@ -431,19 +428,16 @@ theorem hasRoleReturnMem_read128 (role account val : UInt256) :
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, hasRoleSlotHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size])]
   rw [extract_append_right_window
       (hasRoleSlotHashMem role account ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (hasRoleSlotHashMem role account).size)))
+        ffi.ByteArray.zeroes (128 - (hasRoleSlotHashMem role account).size))
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) 128 160 (by
         rw [ByteArray.size_append, hasRoleSlotHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, hasRoleSlotHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   apply ByteArray.ext
   rw [ByteArray.data_extract]

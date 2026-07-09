@@ -755,8 +755,7 @@ theorem allowanceReturnMem_size (owner spender id val : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [allowanceIdHashMem_size]; omega)
       (by rw [allowanceIdHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, allowanceIdHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem allowanceReturnMem_read64 (owner spender id val : UInt256) :
@@ -768,14 +767,12 @@ theorem allowanceReturnMem_read64 (owner spender id val : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, allowanceIdHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, allowanceIdHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        show 128 - 96 = 32 from by norm_num]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [allowanceIdHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [allowanceIdHashMem_size]),
@@ -801,19 +798,16 @@ theorem allowanceReturnMem_read128 (owner spender id val : UInt256) :
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, allowanceIdHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size])]
   rw [extract_append_right_window
       (allowanceIdHashMem owner spender id ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (allowanceIdHashMem owner spender id).size)))
+        ffi.ByteArray.zeroes (128 - (allowanceIdHashMem owner spender id).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, allowanceIdHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, allowanceIdHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   exact toByteArray_extract0_32 val
 

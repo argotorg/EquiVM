@@ -34,8 +34,7 @@ theorem solcReturnBaseMem_size {base : ByteArray} (selector : UInt256)
   rw [toByteArray_write_eq _ _ _ (by rw [hbase]; omega)
       (by rw [hbase]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem solcReturnBaseMem_read64 {base : ByteArray} (selector : UInt256)
@@ -48,14 +47,12 @@ theorem solcReturnBaseMem_read64 {base : ByteArray} (selector : UInt256)
       (by rw [hbase]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, hbase, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        show 128 - 96 = 32 from by norm_num]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [hbase]),
     ← readWithPadding_eq_extract _ 64 (by rw [hbase])]
@@ -126,8 +123,7 @@ theorem transferInsufficientBalanceSelectorBaseMem_size {base : ByteArray}
   rw [toByteArray_write_eq _ _ _ (by rw [hbase]; omega)
       (by rw [hbase]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem transferInsufficientBalanceSenderBaseMem_size {base : ByteArray}
@@ -185,14 +181,12 @@ theorem transferInsufficientBalanceSelectorBaseMem_read64 {base : ByteArray}
       (by rw [hbase]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, hbase, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [hbase]),
     ← readWithPadding_eq_extract _ 64 (by rw [hbase])]
@@ -289,8 +283,7 @@ theorem transferFromInsufficientAllowanceSelectorBaseMem_size {base : ByteArray}
   rw [toByteArray_write_eq _ _ _ (by rw [hbase]; omega)
       (by rw [hbase]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem transferFromInsufficientAllowanceSenderBaseMem_size {base : ByteArray}
@@ -349,14 +342,12 @@ theorem transferFromInsufficientAllowanceSelectorBaseMem_read64 {base : ByteArra
       (by rw [hbase]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, hbase, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, hbase, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [hbase]),
     ← readWithPadding_eq_extract _ 64 (by rw [hbase])]

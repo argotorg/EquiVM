@@ -181,7 +181,7 @@ theorem daiCtorArgLen_eq (chainIdWord : UInt256) :
   native_decide
 
 noncomputable def daiCtorArgMem (chainIdWord : UInt256) : ByteArray :=
-  solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++ UInt256.toByteArray chainIdWord
+  solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ UInt256.toByteArray chainIdWord
 
 theorem daiCtorArg_codecopy_mem (chainIdWord : UInt256) :
     (daiCtorCode chainIdWord).write 4312 solcFreePtrMem 128 32 =
@@ -207,17 +207,17 @@ theorem daiCtorArg_codecopy_mem (chainIdWord : UInt256) :
   simp only [ByteArray.data_copySlice, ByteArray.data_append, e1, solcFreePtrMem_size,
     show (128 : Nat) - 96 = 32 from by norm_num,
     show min 96 (128 + 32) - (128 + 32) = 0 from by norm_num]
-  rw [show (ffi.ByteArray.zeroes { toBitVec := ↑(0 : Nat) }).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := { toBitVec := ↑(0 : Nat) }) (by rfl)]
+  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+    rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
-  have hz32 : (ffi.ByteArray.zeroes { toBitVec := ↑(32 : Nat) }).data.size = 32 := by
-    show (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32
+  have hz32 : (ffi.ByteArray.zeroes 32).data.size = 32 := by
+    show (ffi.ByteArray.zeroes 32).size = 32
     exact zeroes_ofNat_size 32 (by norm_num)
   simp only [Array.append_empty, Nat.add_zero]
   have ext1 :
-      (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes { toBitVec := ↑(32 : Nat) }).data).extract
+      (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data).extract
           0 128 =
-        solcFreePtrMem.data ++ (ffi.ByteArray.zeroes { toBitVec := ↑(32 : Nat) }).data :=
+        solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data :=
     Array.extract_eq_self_of_le (by rw [Array.size_append, hsfpD, hz32])
   have ext2 :
       (daiCreationBytecode.data ++ (EVM.Word.toBytesBE chainIdWord).toByteArray.data).extract
@@ -232,7 +232,6 @@ theorem daiCtorArg_codecopy_mem (chainIdWord : UInt256) :
   rw [ext1, ext2,
     Array.extract_empty_of_size_le_start (by rw [Array.size_append, hsfpD, hz32]; norm_num),
     Array.append_empty]
-  rfl
 
 theorem daiCtorArgMem_size (chainIdWord : UInt256) :
     (daiCtorArgMem chainIdWord).size = 160 := by

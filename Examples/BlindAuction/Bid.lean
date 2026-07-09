@@ -230,15 +230,14 @@ theorem bid_toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
     rw [readWithPadding_eq_extract _ off (by
-      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt' hgap, toByteArray_size]
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
       omega)]
     rw [extract_append_right_window
-      (mem ++ ffi.ByteArray.zeroes (USize.ofNat (off - mem.size)))
+      (mem ++ ffi.ByteArray.zeroes (off - mem.size))
       (UInt256.toByteArray b) off (off + 32) (by
-        rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+        rw [ByteArray.size_append, ByteArray_zeroes_size]
         omega)]
-    rw [ByteArray.size_append, ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' hgap]
+    rw [ByteArray.size_append, ByteArray_zeroes_size]
     rw [show off - (mem.size + (off - mem.size)) = 0 by omega,
       show off + 32 - (mem.size + (off - mem.size)) = 32 by omega]
     rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
@@ -271,8 +270,7 @@ theorem bidBlindedMem_size (I : ExecutionEnv) : (bidBlindedMem I).size = 160 := 
   rw [toByteArray_write_eq _ _ 128 (by rw [bidAllocMem_size]; omega)
       (by rw [bidAllocMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, bidAllocMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem bidStructMem_size (I : ExecutionEnv) : (bidStructMem I).size = 192 := by

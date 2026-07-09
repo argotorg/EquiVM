@@ -394,11 +394,8 @@ theorem scratch_revealPackedMem_readWithPadding {mem : ByteArray}
   have hmem1_size : mem1.size = fp.toNat + 64 := by
     dsimp [mem1, scratch_revealPackedValueMem]
     rw [toByteArray_write_eq _ _ base.toNat]
-    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt']
-      · rw [toByteArray_size]
-        omega
-      · simpa [hbaseNat] using hgap
+    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_value : mem2.readWithPadding base.toNat 32 = UInt256.toByteArray value := by
@@ -630,11 +627,8 @@ theorem scratch_revealPackedMem_len_read {mem : ByteArray}
   have hmem1_size : mem1.size = fp.toNat + 64 := by
     dsimp [mem1, scratch_revealPackedValueMem]
     rw [toByteArray_write_eq _ _ base.toNat]
-    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt']
-      · rw [toByteArray_size]
-        omega
-      · simpa [hbaseNat] using hgap
+    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
@@ -718,11 +712,8 @@ theorem scratch_revealPackedMem_beforeFreePtr_size {mem : ByteArray}
   have hmem1_size : mem1.size = fp.toNat + 64 := by
     dsimp [mem1, scratch_revealPackedValueMem]
     rw [toByteArray_write_eq _ _ base.toNat]
-    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt']
-      · rw [toByteArray_size]
-        omega
-      · simpa [hbaseNat] using hgap
+    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
@@ -846,11 +837,8 @@ theorem scratch_revealPackedPrefix_size {mem : ByteArray}
   have hmem1_size : mem1.size = fp.toNat + 64 := by
     dsimp [mem1, scratch_revealPackedValueMem]
     rw [toByteArray_write_eq _ _ base.toNat]
-    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt']
-      · rw [toByteArray_size]
-        omega
-      · simpa [hbaseNat] using hgap
+    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
@@ -914,11 +902,8 @@ theorem scratch_revealPackedPrefix_preserve_fp {mem : ByteArray}
   have hmem1_size : mem1.size = fp.toNat + 64 := by
     dsimp [mem1, scratch_revealPackedValueMem]
     rw [toByteArray_write_eq _ _ base.toNat]
-    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt']
-      · rw [toByteArray_size]
-        omega
-      · simpa [hbaseNat] using hgap
+    · rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+      omega
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_read : mem2.readWithPadding 64 32 = UInt256.toByteArray fp := by
