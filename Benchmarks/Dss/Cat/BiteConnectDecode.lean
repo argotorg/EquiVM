@@ -88,4 +88,16 @@ theorem catBiteKickDecode_ok {o : ByteArray} (ho32 : 32 ≤ o.size) :
   rw [hdec']
   simp [UInt256.toNat_ofNat_of_lt hlt, Int.ofNat_eq_natCast]
 
+/-- **`kick` return-decode short.** A `< 32`-byte return does not ABI-decode to the single `uint256`
+`id` — the `returndatasize < 32` guard reverts. Dual of `catBiteKickDecode_ok`. -/
+theorem catBiteKickDecode_none {o : ByteArray} (hoLt : o.size < 32) :
+    config.externalABI.decode? "kick" o = none := by
+  have hdec := decodeReturnValueWithMode_legacy_uint256_none_short (returndata := o) hoLt
+  have hdec' :
+      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 uint256 o = none := by
+    simpa [uint256, uint256Int, abiUInt256] using hdec
+  show decodeReturn? uint256 o = none
+  unfold decodeReturn?
+  rw [hdec']; rfl
+
 end Benchmarks.Dss.Cat
