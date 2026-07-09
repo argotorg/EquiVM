@@ -953,7 +953,8 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     · -- urns return decode short (`returndatasize < 64`).
                       sorry
             · -- ilks return decode short (`returndatasize < 160`).
-              sorry
+              exact catBiteRevertIlksDecode hcode hwv hdispatch hdecode hAccounts hvatCode
+                hIlksCall rd1249 (by decide) hosz hawout9 hilkslen
       · -- ilks STATICCALL hits the call-depth limit (depth = 1024).
         sorry
 
