@@ -23,8 +23,14 @@ structure PoolImmutables where
   token0 : EVM.Address
   token1 : EVM.Address
   fee : Int
+  fee_nonneg : 0 ≤ fee
+  fee_lt : fee < 2 ^ 24
   tickSpacing : Int
+  tickSpacing_ge : -(2 ^ 23) ≤ tickSpacing
+  tickSpacing_lt : tickSpacing < 2 ^ 23
   maxLiquidityPerTick : Int
+  maxLiquidityPerTick_nonneg : 0 ≤ maxLiquidityPerTick
+  maxLiquidityPerTick_lt : maxLiquidityPerTick < 2 ^ 128
   original : EVM.Address
 
 /-- solc `immutableReferences` offsets (bytes into the runtime), keyed by the `imm_<name>` local.

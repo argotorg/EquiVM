@@ -42,14 +42,32 @@ abbrev syncUpdateCallArgVals (evm : EVM.State) (balance0 balance1 : UInt256) : L
     .int (Int.ofNat (uniswapReserve0Word evm).toNat),
     .int (Int.ofNat (uniswapReserve1Word evm).toNat) ]
 
+abbrev syncUpdateCallArgValsWith
+    (balance0 balance1 reserve0 reserve1 : UInt256) : List Value :=
+  [ uniswapUint256Value balance0,
+    uniswapUint256Value balance1,
+    .int (Int.ofNat reserve0.toNat),
+    .int (Int.ofNat reserve1.toNat) ]
+
 abbrev syncUpdateCallStore (evm : EVM.State) (balance0 balance1 : UInt256) : Store :=
   ((((∅ : Store).insert "_reserve1" (.int (Int.ofNat (uniswapReserve1Word evm).toNat))).insert
       "_reserve0" (.int (Int.ofNat (uniswapReserve0Word evm).toNat))).insert
       "balance1" (uniswapUint256Value balance1)).insert
       "balance0" (uniswapUint256Value balance0)
 
+abbrev syncUpdateCallStoreWith
+    (balance0 balance1 reserve0 reserve1 : UInt256) : Store :=
+  ((((∅ : Store).insert "_reserve1" (.int (Int.ofNat reserve1.toNat))).insert
+      "_reserve0" (.int (Int.ofNat reserve0.toNat))).insert
+      "balance1" (uniswapUint256Value balance1)).insert
+      "balance0" (uniswapUint256Value balance0)
+
 abbrev syncUpdateCallFrame (evm : EVM.State) (balance0 balance1 : UInt256) : Frame :=
   { contract := contract, locals := syncUpdateCallStore evm balance0 balance1 }
+
+abbrev syncUpdateCallFrameWith
+    (balance0 balance1 reserve0 reserve1 : UInt256) : Frame :=
+  { contract := contract, locals := syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1 }
 
 theorem syncBalanceStore_balance0 (balance0 balance1 : UInt256) :
     (syncBalanceStore balance0 balance1).get? "balance0" =
@@ -84,6 +102,32 @@ theorem syncUpdateCallStore_reserve1 (evm : EVM.State) (balance0 balance1 : UInt
       some (.int (Int.ofNat (uniswapReserve1Word evm).toNat)) := by
   rw [syncUpdateCallStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
     store_get_ne _ _ (by decide), store_get_self]
+
+theorem syncUpdateCallStoreWith_balance0
+    (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1).get? "balance0" =
+      some (uniswapUint256Value balance0) := by
+  rw [syncUpdateCallStoreWith, store_get_self]
+
+theorem syncUpdateCallStoreWith_balance1
+    (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1).get? "balance1" =
+      some (uniswapUint256Value balance1) := by
+  rw [syncUpdateCallStoreWith, store_get_ne _ _ (by decide), store_get_self]
+
+theorem syncUpdateCallStoreWith_reserve0
+    (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1).get? "_reserve0" =
+      some (.int (Int.ofNat reserve0.toNat)) := by
+  rw [syncUpdateCallStoreWith, store_get_ne _ _ (by decide),
+    store_get_ne _ _ (by decide), store_get_self]
+
+theorem syncUpdateCallStoreWith_reserve1
+    (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1).get? "_reserve1" =
+      some (.int (Int.ofNat reserve1.toNat)) := by
+  rw [syncUpdateCallStoreWith, store_get_ne _ _ (by decide),
+    store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
 
 theorem evalExpr_sync_update_balance0_le_max_true (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : Int.ofNat balance0.toNat ≤ maxUint112) :
@@ -124,6 +168,22 @@ theorem evalExpr_sync_update_bounds_true (evm : EVM.State) (balance0 balance1 : 
     decide_eq_true hbound1
   simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0, hb1]
 
+theorem evalExpr_sync_update_bounds_true_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112) :
+    evalExpr? config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+      (.binary .and
+        (.binary .le (.var "balance0") (.intLit maxUint112))
+        (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool true) := by
+  simp only [evalExpr?, EvalResult.bind, bind]
+  rw [syncUpdateCallStoreWith_balance0, syncUpdateCallStoreWith_balance1]
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound0
+  have hb1 : decide (Int.ofNat balance1.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound1
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0, hb1]
+
 theorem evalExpr_sync_update_bounds_false_first (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
     evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
@@ -137,6 +197,21 @@ theorem evalExpr_sync_update_bounds_false_first (evm : EVM.State) (balance0 bala
     decide_eq_false hnot
   simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0]
 
+theorem evalExpr_sync_update_bounds_false_first_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    evalExpr? config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1)
+      evm
+      (.binary .and
+        (.binary .le (.var "balance0") (.intLit maxUint112))
+        (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
+  have hnot : ¬ Int.ofNat balance0.toNat ≤ maxUint112 := by omega
+  simp only [evalExpr?, EvalResult.bind, bind]
+  rw [syncUpdateCallStoreWith_balance0, syncUpdateCallStoreWith_balance1]
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = false :=
+    decide_eq_false hnot
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0]
+
 theorem evalExpr_sync_update_bounds_false_second (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
@@ -146,6 +221,23 @@ theorem evalExpr_sync_update_bounds_false_second (evm : EVM.State) (balance0 bal
         (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
   simp only [evalExpr?, EvalResult.bind, bind]
   rw [syncUpdateCallStore_balance0, syncUpdateCallStore_balance1]
+  have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = true :=
+    decide_eq_true hbound0
+  have hb1 : decide (Int.ofNat balance1.toNat ≤ maxUint112) = false :=
+    decide_eq_false (by omega)
+  simp only [EvalResult.ofOption, uniswapUint256Value, evalBinaryOp?, pure, hb0, hb1]
+
+theorem evalExpr_sync_update_bounds_false_second_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
+    evalExpr? config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1)
+      evm
+      (.binary .and
+        (.binary .le (.var "balance0") (.intLit maxUint112))
+        (.binary .le (.var "balance1") (.intLit maxUint112))) = .ok (.bool false) := by
+  simp only [evalExpr?, EvalResult.bind, bind]
+  rw [syncUpdateCallStoreWith_balance0, syncUpdateCallStoreWith_balance1]
   have hb0 : decide (Int.ofNat balance0.toNat ≤ maxUint112) = true :=
     decide_eq_true hbound0
   have hb1 : decide (Int.ofNat balance1.toNat ≤ maxUint112) = false :=
@@ -189,6 +281,13 @@ theorem bindParams_sync_update_call (evm : EVM.State) (balance0 balance1 : UInt2
       some (syncUpdateCallStore evm balance0 balance1) := by
   simp [bindParams?, updateFunction, syncUpdateCallArgVals, syncUpdateCallStore]
 
+theorem bindParams_sync_update_call_with
+    (balance0 balance1 reserve0 reserve1 : UInt256) :
+    bindParams? updateFunction.params
+        (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1) =
+      some (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1) := by
+  simp [bindParams?, updateFunction, syncUpdateCallArgValsWith, syncUpdateCallStoreWith]
+
 theorem uniswapUpdateFunctionReverts_firstBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
@@ -198,6 +297,17 @@ theorem uniswapUpdateFunctionReverts_firstBound
     (ExecBlock.consRevert
       (ExecStmt.requireFalse
         (evalExpr_sync_update_bounds_false_first evm balance0 balance1 hbound)))
+
+theorem uniswapUpdateFunctionReverts_firstBound_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound : maxUint112 < Int.ofNat balance0.toNat) :
+    ExecFuncBody config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+      updateFunction.body .reverted := by
+  exact ExecFuncBody.execBlockRevert
+    (ExecBlock.consRevert
+      (ExecStmt.requireFalse
+        (evalExpr_sync_update_bounds_false_first_with
+          evm balance0 balance1 reserve0 reserve1 hbound)))
 
 theorem uniswapUpdateFunctionReverts_secondBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -209,6 +319,18 @@ theorem uniswapUpdateFunctionReverts_secondBound
     (ExecBlock.consRevert
       (ExecStmt.requireFalse
         (evalExpr_sync_update_bounds_false_second evm balance0 balance1 hbound0 hbound1)))
+
+theorem uniswapUpdateFunctionReverts_secondBound_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
+    (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
+    ExecFuncBody config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+      updateFunction.body .reverted := by
+  exact ExecFuncBody.execBlockRevert
+    (ExecBlock.consRevert
+      (ExecStmt.requireFalse
+        (evalExpr_sync_update_bounds_false_second_with
+          evm balance0 balance1 reserve0 reserve1 hbound0 hbound1)))
 
 theorem uniswapSyncUpdateCallReverts_firstBound
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -250,6 +372,11 @@ abbrev syncBlockTimestampStore (evm : EVM.State) (balance0 balance1 : UInt256) :
 
 abbrev syncUpdateBlockTimestampStore (evm : EVM.State) (balance0 balance1 : UInt256) : Store :=
   (syncUpdateCallStore evm balance0 balance1).insert "blockTimestamp"
+    (syncBlockTimestampValue evm)
+
+abbrev syncUpdateBlockTimestampStoreWith
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) : Store :=
+  (syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1).insert "blockTimestamp"
     (syncBlockTimestampValue evm)
 
 abbrev syncBlockTimestampLastWord (evm : EVM.State) : UInt256 :=
@@ -299,6 +426,11 @@ abbrev syncUpdateTimeElapsedStore (evm : EVM.State) (balance0 balance1 : UInt256
   (syncUpdateBlockTimestampStore evm balance0 balance1).insert "timeElapsed"
     (syncTimeElapsedValue evm)
 
+abbrev syncUpdateTimeElapsedStoreWith
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) : Store :=
+  (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1).insert
+    "timeElapsed" (syncTimeElapsedValue evm)
+
 theorem syncBlockTimestampStore_balance0 (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncBlockTimestampStore evm balance0 balance1).get? "balance0" =
       some (uniswapUint256Value balance0) := by
@@ -332,12 +464,39 @@ theorem syncUpdateBlockTimestampStore_blockTimestamp
       some (syncBlockTimestampValue evm) := by
   rw [syncUpdateBlockTimestampStore, store_get_self]
 
+theorem syncUpdateBlockTimestampStoreWith_balance0
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "balance0" = some (uniswapUint256Value balance0) := by
+  rw [syncUpdateBlockTimestampStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateCallStoreWith_balance0]
+
+theorem syncUpdateBlockTimestampStoreWith_balance1
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "balance1" = some (uniswapUint256Value balance1) := by
+  rw [syncUpdateBlockTimestampStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateCallStoreWith_balance1]
+
+theorem syncUpdateBlockTimestampStoreWith_blockTimestamp
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "blockTimestamp" = some (syncBlockTimestampValue evm) := by
+  rw [syncUpdateBlockTimestampStoreWith, store_get_self]
+
 theorem syncUpdateBlockTimestampStore_blockTimestampLast_none
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncUpdateBlockTimestampStore evm balance0 balance1).get? "blockTimestampLast" =
       none := by
   rw [syncUpdateBlockTimestampStore, store_get_ne _ _ (by decide)]
   simp [syncUpdateCallStore]
+
+theorem syncUpdateBlockTimestampStoreWith_blockTimestampLast_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "blockTimestampLast" = none := by
+  rw [syncUpdateBlockTimestampStoreWith, store_get_ne _ _ (by decide)]
+  simp [syncUpdateCallStoreWith]
 
 theorem syncUpdateTimeElapsedStore_balance0
     (evm : EVM.State) (balance0 balance1 : UInt256) :
@@ -366,6 +525,33 @@ theorem syncUpdateTimeElapsedStore_timeElapsed
       some (syncTimeElapsedValue evm) := by
   rw [syncUpdateTimeElapsedStore, store_get_self]
 
+theorem syncUpdateTimeElapsedStoreWith_balance0
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "balance0" = some (uniswapUint256Value balance0) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith_balance0]
+
+theorem syncUpdateTimeElapsedStoreWith_balance1
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "balance1" = some (uniswapUint256Value balance1) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith_balance1]
+
+theorem syncUpdateTimeElapsedStoreWith_blockTimestamp
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "blockTimestamp" = some (syncBlockTimestampValue evm) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith_blockTimestamp]
+
+theorem syncUpdateTimeElapsedStoreWith_timeElapsed
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "timeElapsed" = some (syncTimeElapsedValue evm) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_self]
+
 theorem syncUpdateTimeElapsedStore_reserve0
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncUpdateTimeElapsedStore evm balance0 balance1).get? "_reserve0" =
@@ -380,6 +566,22 @@ theorem syncUpdateTimeElapsedStore_reserve1
   rw [syncUpdateTimeElapsedStore, store_get_ne _ _ (by decide), syncUpdateBlockTimestampStore,
     store_get_ne _ _ (by decide), syncUpdateCallStore_reserve1]
 
+theorem syncUpdateTimeElapsedStoreWith_reserve0
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "_reserve0" = some (.int (Int.ofNat reserve0.toNat)) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateCallStoreWith_reserve0]
+
+theorem syncUpdateTimeElapsedStoreWith_reserve1
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "_reserve1" = some (.int (Int.ofNat reserve1.toNat)) := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateCallStoreWith_reserve1]
+
 theorem syncUpdateTimeElapsedStore_reserve0_none
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncUpdateTimeElapsedStore evm balance0 balance1).get? "reserve0" = none := by
@@ -390,11 +592,32 @@ theorem syncUpdateTimeElapsedStore_reserve1_none
     (syncUpdateTimeElapsedStore evm balance0 balance1).get? "reserve1" = none := by
   simp [syncUpdateTimeElapsedStore, syncUpdateBlockTimestampStore, syncUpdateCallStore]
 
+theorem syncUpdateTimeElapsedStoreWith_reserve0_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get? "reserve0" =
+      none := by
+  simp [syncUpdateTimeElapsedStoreWith, syncUpdateBlockTimestampStoreWith,
+    syncUpdateCallStoreWith]
+
+theorem syncUpdateTimeElapsedStoreWith_reserve1_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get? "reserve1" =
+      none := by
+  simp [syncUpdateTimeElapsedStoreWith, syncUpdateBlockTimestampStoreWith,
+    syncUpdateCallStoreWith]
+
 theorem syncUpdateTimeElapsedStore_blockTimestampLast_none
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncUpdateTimeElapsedStore evm balance0 balance1).get? "blockTimestampLast" = none := by
   rw [syncUpdateTimeElapsedStore, store_get_ne _ _ (by decide),
     syncUpdateBlockTimestampStore_blockTimestampLast_none]
+
+theorem syncUpdateTimeElapsedStoreWith_blockTimestampLast_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "blockTimestampLast" = none := by
+  rw [syncUpdateTimeElapsedStoreWith, store_get_ne _ _ (by decide),
+    syncUpdateBlockTimestampStoreWith_blockTimestampLast_none]
 
 theorem syncUpdateTimeElapsedStore_price0CumulativeLast_none
     (evm : EVM.State) (balance0 balance1 : UInt256) :
@@ -405,6 +628,20 @@ theorem syncUpdateTimeElapsedStore_price1CumulativeLast_none
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     (syncUpdateTimeElapsedStore evm balance0 balance1).get? "price1CumulativeLast" = none := by
   simp [syncUpdateTimeElapsedStore, syncUpdateBlockTimestampStore, syncUpdateCallStore]
+
+theorem syncUpdateTimeElapsedStoreWith_price0CumulativeLast_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "price0CumulativeLast" = none := by
+  simp [syncUpdateTimeElapsedStoreWith, syncUpdateBlockTimestampStoreWith,
+    syncUpdateCallStoreWith]
+
+theorem syncUpdateTimeElapsedStoreWith_price1CumulativeLast_none
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1).get?
+        "price1CumulativeLast" = none := by
+  simp [syncUpdateTimeElapsedStoreWith, syncUpdateBlockTimestampStoreWith,
+    syncUpdateCallStoreWith]
 
 theorem uniswapStorageLocStore_word_int_some
     (evm : EVM.State) (slot : UInt256) (n : Int) :
@@ -501,6 +738,15 @@ theorem evalExpr_sync_update_blockTimestamp
     evalExpr_timestampModUint32
       (cfg := config) (solm := syncUpdateCallFrame evm balance0 balance1) evm
 
+theorem evalExpr_sync_update_blockTimestamp_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    evalExpr? config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+      (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
+  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+    evalExpr_timestampModUint32
+      (cfg := config)
+      (solm := syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
+
 theorem evalExpr_sync_blockTimestampLast (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "blockTimestampLast" = none) :
     evalExpr? config { contract := contract, locals := locals } evm
@@ -595,6 +841,44 @@ theorem evalExpr_sync_update_timeElapsed
       · exact not_lt_of_ge hnonneg hneg
       · exact not_le_of_gt hlt hge
 
+theorem evalExpr_sync_update_timeElapsed_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1 }
+      evm
+      (u32 (.binary .mod
+        (.binary .add
+          (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+          (.intLit twoPow32))
+        (.intLit twoPow32))) = .ok (syncTimeElapsedValue evm) := by
+  unfold u32 syncTimeElapsedValue syncTimeElapsedInt
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind,
+    syncUpdateBlockTimestampStoreWith_blockTimestamp,
+    evalExpr_sync_blockTimestampLast evm
+      (syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1)
+      (syncUpdateBlockTimestampStoreWith_blockTimestampLast_none evm balance0 balance1
+        reserve0 reserve1)]
+  simp [evalBinaryOp?]
+  norm_num [twoPow32, uint32Int]
+  have hnonneg :
+      0 ≤ (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat -
+          Int.ofNat (syncBlockTimestampLastWord evm).toNat) %
+        (4294967296 : Int) := by
+    exact Int.emod_nonneg _ (by norm_num)
+  have hlt :
+      (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat -
+          Int.ofNat (syncBlockTimestampLastWord evm).toNat) %
+          (4294967296 : Int) <
+        4294967296 := by
+    exact Int.emod_lt_of_pos _ (by norm_num)
+  rw [if_neg]
+  · rfl
+  · exact fun h => by
+      rcases h with hneg | hge
+      · exact not_lt_of_ge hnonneg hneg
+      · exact not_le_of_gt hlt hge
+
 theorem evalExpr_sync_update_condition_false_elapsed_zero
     (evm : EVM.State) (balance0 balance1 : UInt256)
     (helapsed : syncTimeElapsedInt evm = 0) :
@@ -609,6 +893,25 @@ theorem evalExpr_sync_update_condition_false_elapsed_zero
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
   rw [syncUpdateTimeElapsedStore_timeElapsed, syncUpdateTimeElapsedStore_reserve0,
     syncUpdateTimeElapsedStore_reserve1]
+  unfold syncTimeElapsedValue
+  rw [helapsed]
+  simp [evalBinaryOp?, pure]
+
+theorem evalExpr_sync_update_condition_false_elapsed_zero_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (helapsed : syncTimeElapsedInt evm = 0) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1 }
+      evm
+      (.binary .and
+        (.binary .gt (.var "timeElapsed") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "_reserve0") (.intLit 0))
+          (.binary .ne (.var "_reserve1") (.intLit 0)))) = .ok (.bool false) := by
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateTimeElapsedStoreWith_timeElapsed, syncUpdateTimeElapsedStoreWith_reserve0,
+    syncUpdateTimeElapsedStoreWith_reserve1]
   unfold syncTimeElapsedValue
   rw [helapsed]
   simp [evalBinaryOp?, pure]
@@ -690,6 +993,34 @@ theorem evalExpr_sync_update_condition_true
   simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hne0, hne1]
   rfl
 
+theorem evalExpr_sync_update_condition_true_with
+    (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (helapsed : 0 < syncTimeElapsedInt evm)
+    (hreserve0 : Int.ofNat reserve0.toNat ≠ 0)
+    (hreserve1 : Int.ofNat reserve1.toNat ≠ 0) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1 }
+      evm
+      (.binary .and
+        (.binary .gt (.var "timeElapsed") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "_reserve0") (.intLit 0))
+          (.binary .ne (.var "_reserve1") (.intLit 0)))) = .ok (.bool true) := by
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateTimeElapsedStoreWith_timeElapsed, syncUpdateTimeElapsedStoreWith_reserve0,
+    syncUpdateTimeElapsedStoreWith_reserve1]
+  unfold syncTimeElapsedValue
+  have htime : decide (0 < syncTimeElapsedInt evm) = true := decide_eq_true helapsed
+  have hne0 :
+      (Value.int (Int.ofNat reserve0.toNat) == Value.int 0) = false :=
+    valueInt_beq_false_of_ne hreserve0
+  have hne1 :
+      (Value.int (Int.ofNat reserve1.toNat) == Value.int 0) = false :=
+    valueInt_beq_false_of_ne hreserve1
+  simp only [evalBinaryOp?, pure, syncTimeElapsedInt, htime, hne0, hne1]
+  rfl
+
 theorem evalExpr_sync_update_price0Cumulative
     (storageEvm updateEvm : EVM.State) (balance0 balance1 : UInt256)
     (hreserve0 : Int.ofNat (uniswapReserve0Word updateEvm).toNat ≠ 0) :
@@ -758,6 +1089,29 @@ theorem evalExpr_sync_update_u112_balance0
       · rw [decide_eq_true_eq] at hge
         exact not_le_of_gt hltInt hge
 
+theorem evalExpr_sync_update_u112_balance0_with
+    (evm evalEvm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound : Int.ofNat balance0.toNat ≤ maxUint112) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1 }
+      evalEvm (u112 (.var "balance0")) = .ok (uniswapUint256Value balance0) := by
+  have hltInt : Int.ofNat balance0.toNat < Int.ofNat (2 ^ 112) := by
+    norm_num [maxUint112] at hbound ⊢
+    omega
+  unfold u112 uniswapUint256Value
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateTimeElapsedStoreWith_balance0]
+  simp only [uint112Int]
+  rw [if_neg]
+  · rfl
+  · exact fun h => by
+      rw [Bool.or_eq_true, decide_eq_true_eq] at h
+      rcases h with hneg | hge
+      · exact not_lt_of_ge (Int.natCast_nonneg balance0.toNat) hneg
+      · rw [decide_eq_true_eq] at hge
+        exact not_le_of_gt hltInt hge
+
 theorem evalExpr_sync_update_u112_balance1
     (evm evalEvm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : Int.ofNat balance1.toNat ≤ maxUint112) :
@@ -780,6 +1134,29 @@ theorem evalExpr_sync_update_u112_balance1
       · rw [decide_eq_true_eq] at hge
         exact not_le_of_gt hltInt hge
 
+theorem evalExpr_sync_update_u112_balance1_with
+    (evm evalEvm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hbound : Int.ofNat balance1.toNat ≤ maxUint112) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1 }
+      evalEvm (u112 (.var "balance1")) = .ok (uniswapUint256Value balance1) := by
+  have hltInt : Int.ofNat balance1.toNat < Int.ofNat (2 ^ 112) := by
+    norm_num [maxUint112] at hbound ⊢
+    omega
+  unfold u112 uniswapUint256Value
+  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [syncUpdateTimeElapsedStoreWith_balance1]
+  simp only [uint112Int]
+  rw [if_neg]
+  · rfl
+  · exact fun h => by
+      rw [Bool.or_eq_true, decide_eq_true_eq] at h
+      rcases h with hneg | hge
+      · exact not_lt_of_ge (Int.natCast_nonneg balance1.toNat) hneg
+      · rw [decide_eq_true_eq] at hge
+        exact not_le_of_gt hltInt hge
+
 theorem evalExpr_sync_update_blockTimestamp_var
     (evm timestampEvm : EVM.State) (balance0 balance1 : UInt256) :
     evalExpr? config
@@ -787,6 +1164,131 @@ theorem evalExpr_sync_update_blockTimestamp_var
       evm (.var "blockTimestamp") = .ok (syncBlockTimestampValue timestampEvm) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [syncUpdateTimeElapsedStore_blockTimestamp]
+
+theorem evalExpr_sync_update_blockTimestamp_var_with
+    (evm timestampEvm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
+    evalExpr? config
+      { contract := contract,
+        locals := syncUpdateTimeElapsedStoreWith timestampEvm balance0 balance1 reserve0
+          reserve1 }
+      evm (.var "blockTimestamp") = .ok (syncBlockTimestampValue timestampEvm) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [syncUpdateTimeElapsedStoreWith_blockTimestamp]
+
+theorem syncBlockTimestampValue_eq_updateTimestampWord (evm : EVM.State) :
+    syncBlockTimestampValue evm =
+      uniswapUint256Value (uniswapUpdateTimestampWord evm.executionEnv) := by
+  unfold syncBlockTimestampValue syncBlockTimestampInt uniswapUint256Value uint256Value
+  unfold uniswapUpdateTimestampWord
+  rw [u256_land_toNat]
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  rw [hmask, nat_land_comm, nat_land_mask_eq_mod]
+  have hsmall :
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat % 2 ^ 32 < UInt256.size := by
+    exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 32))
+      (by norm_num [UInt256.size])
+  rw [Nat.mod_eq_of_lt hsmall]
+  norm_num [twoPow32]
+
+theorem uint32MaskedSub_toInt (a b : UInt256)
+    (ha : a.toNat < 2 ^ 32) (hb : b.toNat < 2 ^ 32) :
+    Int.ofNat (UInt256.land (UInt256.sub a b) reserve32Mask).toNat =
+      (Int.ofNat a.toNat - Int.ofNat b.toNat + twoPow32) % twoPow32 := by
+  by_cases hle : b.toNat ≤ a.toNat
+  · rw [u256_land_toNat]
+    rw [usub_toNat hle]
+    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+    rw [hmask, nat_land_mask_eq_mod]
+    have hlt : a.toNat - b.toNat < 2 ^ 32 := by omega
+    rw [Nat.mod_eq_of_lt hlt]
+    rw [Nat.mod_eq_of_lt (by
+      norm_num [UInt256.size]
+      omega)]
+    rw [show Int.ofNat a.toNat - Int.ofNat b.toNat + twoPow32 =
+      Int.ofNat (a.toNat - b.toNat) + twoPow32 by
+        norm_num [twoPow32]
+        omega]
+    rw [Int.add_emod_right]
+    have hnonneg : (0 : Int) ≤ Int.ofNat (a.toNat - b.toNat) := Int.natCast_nonneg _
+    have hsmall : Int.ofNat (a.toNat - b.toNat) < twoPow32 := by
+      norm_num [twoPow32]
+      omega
+    exact (Int.emod_eq_of_lt hnonneg hsmall).symm
+  · have hltba : a.toNat < b.toNat := by omega
+    rw [u256_land_toNat]
+    rw [usub_toNat_underflow hltba]
+    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+    rw [hmask, nat_land_mask_eq_mod]
+    have hsplit :
+        UInt256.size + a.toNat - b.toNat =
+          (UInt256.size - 2 ^ 32) + (2 ^ 32 + a.toNat - b.toNat) := by
+      norm_num [UInt256.size]
+      omega
+    rw [hsplit]
+    have hleft : (UInt256.size - 2 ^ 32) % 2 ^ 32 = 0 := by
+      norm_num [UInt256.size]
+    have hrightLt : 2 ^ 32 + a.toNat - b.toNat < 2 ^ 32 := by omega
+    rw [Nat.add_mod, hleft, Nat.mod_eq_of_lt hrightLt]
+    simp only [zero_add]
+    rw [Nat.mod_eq_of_lt hrightLt]
+    rw [Nat.mod_eq_of_lt (by
+      norm_num [UInt256.size]
+      omega)]
+    rw [show Int.ofNat a.toNat - Int.ofNat b.toNat + twoPow32 =
+      Int.ofNat (2 ^ 32 + a.toNat - b.toNat) by
+        norm_num [twoPow32]
+        omega]
+    have hnonneg : (0 : Int) ≤ Int.ofNat (2 ^ 32 + a.toNat - b.toNat) :=
+      Int.natCast_nonneg _
+    have hsmall : Int.ofNat (2 ^ 32 + a.toNat - b.toNat) < twoPow32 := by
+      norm_num [twoPow32]
+      omega
+    exact (Int.emod_eq_of_lt hnonneg hsmall).symm
+
+theorem syncBlockTimestampInt_eq_updateTimestampWord_toNat (evm : EVM.State) :
+    syncBlockTimestampInt evm =
+      Int.ofNat (uniswapUpdateTimestampWord evm.executionEnv).toNat := by
+  have h := syncBlockTimestampValue_eq_updateTimestampWord evm
+  simpa [syncBlockTimestampValue, uniswapUint256Value, uint256Value] using h
+
+theorem syncTimeElapsedInt_eq_updateElapsedWord_toNat (evm : EVM.State) :
+    syncTimeElapsedInt evm =
+      Int.ofNat
+        (UInt256.land
+          (uniswapUpdateElapsedWord
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+            evm.executionEnv)
+          reserve32Mask).toNat := by
+  rw [syncTimeElapsedInt]
+  rw [syncBlockTimestampInt_eq_updateTimestampWord_toNat evm]
+  symm
+  have ha : (uniswapUpdateTimestampWord evm.executionEnv).toNat < 2 ^ 32 := by
+    simpa [uniswapUpdateTimestampWord, u256_land_comm] using
+      uniswapUint32Masked_lt (UInt256.ofNat evm.executionEnv.header.timestamp)
+  have hb : (syncBlockTimestampLastWord evm).toNat < 2 ^ 32 := by
+    simpa [syncBlockTimestampLastWord, u256_land_comm] using
+      uniswapUint32Masked_lt
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+          reserve224Shift)
+  have hsub :=
+    uint32MaskedSub_toInt (uniswapUpdateTimestampWord evm.executionEnv)
+      (syncBlockTimestampLastWord evm) ha hb
+  simpa [syncBlockTimestampLastWord, uniswapUpdateElapsedWord, u256_land_comm] using hsub
+
+abbrev syncUpdatePackedReserveState
+    (evm : EVM.State) (balance0 balance1 : UInt256) : EVM.State :=
+  let evm0 :=
+    Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩
+      (setUint112Offset0Word
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩) balance0)
+  let evm1 :=
+    Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨8⟩
+      (setUint112Offset14Word
+        (Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩) balance1)
+  Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner ⟨8⟩
+    (setUint32Offset28Word
+      (Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨8⟩)
+      (uniswapUpdateTimestampWord evm.executionEnv))
 
 theorem uniswapUpdateFunctionReturns_conditionFalse
     (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -1934,31 +2436,5 @@ theorem uniswapSyncBodyRevert_firstNoCode
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   exact uniswapSyncBodyCoreRevert_firstNoCode hcode hsize hperm hwv hsel
     hunlocked htoken0NoCode hdispatch hAccounts
-
-theorem uniswapSyncBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  by_cases hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
-        ⟨1⟩
-  · exact uniswapSyncBodyRevert_locked hcode hsize hwv hsel hlocked hdispatch hAccounts
-  · have hunlocked :
-        (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
-          ⟨1⟩ := by
-      exact not_not.mp hlocked
-    by_cases htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
-        (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
-        ⟨0⟩
-    · exact uniswapSyncBodyRevert_firstNoCode hcode hsize hperm hwv hsel
-        hunlocked htoken0NoCode hdispatch hAccounts
-    · sorry
 
 end UniswapV2Pair

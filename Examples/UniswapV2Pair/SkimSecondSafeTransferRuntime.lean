@@ -569,10 +569,7 @@ theorem skimSecondSafeTransferCallMem0_size
         exact lt_usize 0 (by norm_num)),
     ByteArray.size_append, ByteArray.size_append,
     skimSecondSafeTransferMem7_size self toWord prevValue value ho32 hoSize hout32 houtSize,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (456 - 456)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    ByteArray_zeroes_size, toByteArray_size]
 
 theorem skimSecondSafeTransferCallMem1_size
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
@@ -593,10 +590,7 @@ theorem skimSecondSafeTransferCallMem1_size
     ByteArray.size_append, ByteArray.size_append,
     skimSecondSafeTransferCallMem0_size self toWord prevValue value ho32 hoSize
       hout32 houtSize,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (488 - 488)).toNat = 0 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    ByteArray_zeroes_size, toByteArray_size]
 
 theorem skimSecondSafeTransferCallMem2_size
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}

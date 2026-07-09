@@ -463,8 +463,7 @@ theorem setOperatorEventMem_size (owner spender approved : UInt256) :
       (by rw [setOperatorSpenderHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, setOperatorSpenderHashMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem setOperatorEventMem_read64 (owner spender approved : UInt256) :
@@ -476,14 +475,12 @@ theorem setOperatorEventMem_read64 (owner spender approved : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, setOperatorSpenderHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, setOperatorSpenderHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        show 128 - 96 = 32 from by norm_num]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [setOperatorSpenderHashMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [setOperatorSpenderHashMem_size]),

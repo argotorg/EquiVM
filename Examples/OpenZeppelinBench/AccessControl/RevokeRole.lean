@@ -1075,12 +1075,11 @@ theorem revokeRoleUnauthorizedMem_size (account role : UInt256) :
 
 theorem revokeRoleUnauthorizedSelectorMemFrom_size {mem : ByteArray}
     (hmem : mem.size = 96) :
-    (revokeRoleUnauthorizedSelectorMemFrom mem).size = 160 := by
+  (revokeRoleUnauthorizedSelectorMemFrom mem).size = 160 := by
   unfold revokeRoleUnauthorizedSelectorMemFrom
   rw [toByteArray_write_eq revokeRoleUnauthorizedSelector mem 128
       (by rw [hmem]; omega) (by rw [hmem]; native_decide),
-    ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-    USize.toNat_ofNat_of_lt' (by rw [hmem]; native_decide), hmem, toByteArray_size]
+    ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, hmem, toByteArray_size]
 
 theorem revokeRoleUnauthorizedAccountMemFrom_size {mem : ByteArray}
     (account : UInt256) (hmem : mem.size = 96) :
@@ -1136,12 +1135,10 @@ theorem revokeRoleUnauthorizedSelectorMemFrom_read64 {mem : ByteArray}
   rw [toByteArray_write_eq revokeRoleUnauthorizedSelector mem 128
       (by rw [hmem]; omega) (by rw [hmem]; native_decide)]
   rw [readWithPadding_eq_extract _ 64 (by
-      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-        USize.toNat_ofNat_of_lt' (by rw [hmem]; native_decide), hmem, toByteArray_size]
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, hmem, toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
-    rw [ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' (by rw [hmem]; native_decide), hmem]
+    rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
     norm_num)]
   rw [extract_append_left _ _ _ _ (by rw [hmem])]
   rw [← readWithPadding_eq_extract mem 64 (by rw [hmem])]

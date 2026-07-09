@@ -31,8 +31,11 @@ Generated artifacts:
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold.
 - `SpecSyntax.lean`: Solm notation presentation, checked by `rfl` against the AST spec.
-- `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
-- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper.
+- `Constructor.lean` (+ `Constructor{Trusted,Clear,Store,Solm}.lean`): the constructor-equivalence proof.
+- `StringLayout.lean` / `StringReturn*.lean` / `StringEncode.lean`: the solc-0.5.16 compact-string
+  storage hooks and the `name`/`symbol` dynamic-string read+ABI-return machinery.
+- `Correct.lean`: top-level runtime-equivalence theorem plus the whole-contract wrapper
+  `weth9ContractCorrect` — fully proved.
 
 Source and bytecode hashes:
 

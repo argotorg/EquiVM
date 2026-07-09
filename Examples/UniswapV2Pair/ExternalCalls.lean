@@ -95,18 +95,15 @@ theorem transferCalldataMem_read128_4 (recipient value : UInt256) :
       (by rw [transferSelectorMem_size]; omega) (by omega)
       (by rw [transferSelectorMem_size]; omega)
       (by norm_num) (by norm_num)]
-  have hzero32 : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
-    rw [ByteArray_zeroes_size]
-    exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))
   rw [show transferSelectorMem = solcReturnMem transferSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
-      (UInt256.toByteArray transferSelectorShifted) 128 132 (by
-        simp [ByteArray.size_append, solcFreePtrMem_size, hzero32])]
-  rw [ByteArray.size_append, solcFreePtrMem_size, hzero32]
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+      (UInt256.toByteArray transferSelectorShifted) 128 (128 + 4) (by
+        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
+  rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
   native_decide
 
 theorem transferCalldataMem_read132_32 (recipient value : UInt256) :
@@ -198,18 +195,15 @@ theorem transferCalldataMem_encode (recipient : AccountAddress) (value : UInt256
 
 theorem balanceOfThisSelectorMem_read128_4 :
     balanceOfThisSelectorMem.readWithPadding 128 4 = balanceOfSelector := by
-  have hzero32 : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
-    rw [ByteArray_zeroes_size]
-    exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))
   rw [show balanceOfThisSelectorMem = solcReturnMem balanceOfSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
-      (UInt256.toByteArray balanceOfSelectorShifted) 128 132 (by
-        simp [ByteArray.size_append, solcFreePtrMem_size, hzero32])]
-  rw [ByteArray.size_append, solcFreePtrMem_size, hzero32]
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+      (UInt256.toByteArray balanceOfSelectorShifted) 128 (128 + 4) (by
+        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
+  rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
   native_decide
 
 theorem balanceOfThisCalldataMem_read132_32 (self : UInt256) :
@@ -398,6 +392,64 @@ theorem balanceOfThisRebuiltCalldataMem_read64_of_size_ge (self : UInt256) (o : 
       (by omega),
     balanceOfThisRebuiltSelectorMem_read64_of_size_ge self o hlo hhi]
 
+theorem balanceOfThisRebuiltSelectorMem_read128_4_of_size_ge
+    (self : UInt256) (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltSelectorMem self o).readWithPadding 128 4 =
+      balanceOfSelector := by
+  unfold balanceOfThisRebuiltSelectorMem
+  rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
+      (by rw [balanceOfThisStaticcallMem_size_of_size_ge self o hlo hhi]; omega)
+      (by norm_num) (by norm_num) (by norm_num)]
+  native_decide
+
+theorem balanceOfThisRebuiltCalldataMem_read128_4_of_size_ge
+    (self : UInt256) (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltCalldataMem self o).readWithPadding 128 4 =
+      balanceOfSelector := by
+  unfold balanceOfThisRebuiltCalldataMem
+  rw [write32_read_below_len _ _ 132 128 4 (by rw [toByteArray_size])
+      (by rw [balanceOfThisRebuiltSelectorMem_size_of_size_ge self o hlo hhi]; omega)
+      (by omega)
+      (by rw [balanceOfThisRebuiltSelectorMem_size_of_size_ge self o hlo hhi]; omega)
+      (by norm_num) (by norm_num)]
+  exact balanceOfThisRebuiltSelectorMem_read128_4_of_size_ge self o hlo hhi
+
+theorem balanceOfThisRebuiltCalldataMem_read132_32_of_size_ge
+    (self : UInt256) (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltCalldataMem self o).readWithPadding 132 32 =
+      UInt256.toByteArray self := by
+  unfold balanceOfThisRebuiltCalldataMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [balanceOfThisRebuiltSelectorMem_size_of_size_ge self o hlo hhi]; omega)]
+  rw [show (UInt256.toByteArray self).extract 0 32 = UInt256.toByteArray self by
+    rw [show 32 = (UInt256.toByteArray self).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _]
+
+theorem balanceOfThisRebuiltCalldataMem_read128_36_of_size_ge
+    (self : UInt256) (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltCalldataMem self o).readWithPadding 128 36 =
+      balanceOfSelector ++ UInt256.toByteArray self := by
+  rw [byteArray_readWithPadding_split _ 128 4 32 (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num)
+      (by rw [balanceOfThisRebuiltCalldataMem_size_of_size_ge self o hlo hhi])]
+  rw [balanceOfThisRebuiltCalldataMem_read128_4_of_size_ge self o hlo hhi,
+    balanceOfThisRebuiltCalldataMem_read132_32_of_size_ge self o hlo hhi]
+
+theorem balanceOfThisRebuiltCalldataMem_encode
+    (self : AccountAddress) (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    config.externalABI.encode? "balanceOf" [.address self] =
+      some ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat self.val) o)
+        |>.readWithPadding 128 36) := by
+  rw [balanceOfThisRebuiltCalldataMem_read128_36_of_size_ge _ _ hlo hhi]
+  have h := balanceOfThisCalldataMem_encode self
+  rw [balanceOfThisCalldataMem_read128_36] at h
+  exact h
+
 theorem balanceOfThisRebuiltCalldataMem_mload64_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltCalldataMem self o).size
@@ -459,6 +511,60 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
     (by decide)
     (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi
       hlo hhi)
+
+theorem balanceOfThisRebuiltStaticcallMem_size_of_size_lt
+    (self : UInt256) (oPrev o : ByteArray)
+    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltStaticcallMem self oPrev o).size = 164 := by
+  unfold balanceOfThisRebuiltStaticcallMem
+  rw [balanceOfThisStaticcallWriteLen_of_size_lt o hshort hhi]
+  by_cases hzero : o.size = 0
+  · rw [hzero, byteArray_write_len_zero,
+      balanceOfThisRebuiltCalldataMem_size_of_size_ge self oPrev hprevlo hprevhi]
+  · rw [write_eq_gen _ _ 128 o.size hzero le_rfl
+      (by rw [balanceOfThisRebuiltCalldataMem_size_of_size_ge self oPrev hprevlo hprevhi];
+          omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract,
+      balanceOfThisRebuiltCalldataMem_size_of_size_ge self oPrev hprevlo hprevhi]
+    omega
+
+theorem balanceOfThisRebuiltStaticcallMem_read64_of_size_lt
+    (self : UInt256) (oPrev o : ByteArray)
+    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
+    (balanceOfThisRebuiltStaticcallMem self oPrev o).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold balanceOfThisRebuiltStaticcallMem
+  rw [balanceOfThisStaticcallWriteLen_of_size_lt o hshort hhi]
+  by_cases hzero : o.size = 0
+  · rw [hzero, byteArray_write_len_zero]
+    exact balanceOfThisRebuiltCalldataMem_read64_of_size_ge self oPrev hprevlo hprevhi
+  · rw [write_read_below_gen _ _ 128 o.size 64 hzero le_rfl
+      (by rw [balanceOfThisRebuiltCalldataMem_size_of_size_ge self oPrev hprevlo hprevhi];
+          omega) (by omega)]
+    exact balanceOfThisRebuiltCalldataMem_read64_of_size_ge self oPrev hprevlo hprevhi
+
+theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt
+    (self : UInt256) (oPrev o : ByteArray)
+    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size
+        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((balanceOfThisRebuiltStaticcallMem self oPrev o).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue
+    (by
+      rw [balanceOfThisRebuiltStaticcallMem_size_of_size_lt self oPrev o hprevlo hprevhi
+        hshort hhi]
+      decide)
+    (by decide)
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_lt self oPrev o hprevlo hprevhi
+      hshort hhi)
 
 theorem balanceOfThisRebuiltStaticcallMem_read128_of_size_ge
     (self : UInt256) (oPrev o : ByteArray)
@@ -722,5 +828,85 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
     (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
+
+theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
+    {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc okPc self : UInt256} {oPrev o : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {d0 d1 d2 : UInt256} {R : List UInt256}
+    (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
+      (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
+      UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k C)
+    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size)
+    (hPop0 : decode code pc = some (.POP, .none))
+    (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
+    (hPop2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.POP, .none))
+    (hPush64 :
+      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨64⟩, 1)))
+    (hMload64 :
+      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+        some (.MLOAD, .none))
+    (hReturndatasize :
+      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
+        some (.RETURNDATASIZE, .none))
+    (hPush32 :
+      decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨32⟩, 1)))
+    (hDup2 :
+      decode code
+          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2) =
+        some (.DUP2, .none))
+    (hLt :
+      decode code
+          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩) =
+        some (.LT, .none))
+    (hIszero :
+      decode code
+          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.ISZERO, .none))
+    (hPushOk :
+      decode code
+          (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi :
+      decode code
+          ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMPI, .none))
+    (hPush0 :
+      decode code
+          (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
+            ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hDupZero :
+      decode code
+          ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+                UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
+              ⟨1⟩) + UInt256.ofNat 2) =
+        some (.DUP1, .none))
+    (hRevert :
+      decode code
+          (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
+                  UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) +
+                ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩) =
+        some (.REVERT, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    RDrev code g s0 := by
+  exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
+    (fun s haw hstk => by
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+      native_decide)
+    (by native_decide)
+    (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt self oPrev o
+      hprevlo hprevhi hshort hhi)
+    hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
+    hPushOk hJumpi hPush0 hDupZero hRevert hov
 
 end Reasoning.Reach

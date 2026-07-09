@@ -942,8 +942,7 @@ theorem voteErrorMem0_size (I : ExecutionEnv) : (voteErrorMem0 I).size = 160 := 
   rw [toByteArray_write_eq _ _ _ (by rw [voteHashMem_size]; omega)
       (by rw [voteHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, voteHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem voteErrorMem1_size (I : ExecutionEnv) : (voteErrorMem1 I).size = 164 := by
@@ -995,14 +994,12 @@ theorem voteErrorMem0_read64 (I : ExecutionEnv) :
       (by rw [voteHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, voteHashMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, voteHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [voteHashMem_size])]
   rw [← readWithPadding_eq_extract _ 64 (by rw [voteHashMem_size])]

@@ -353,7 +353,7 @@ def solcFreePtrMem : ByteArray :=
 
 theorem solcFreePtrMem_eq :
     solcFreePtrMem
-      = (ByteArray.empty ++ ffi.ByteArray.zeroes (USize.ofNat 64)) ++ UInt256.toByteArray ⟨128⟩ := by
+      = (ByteArray.empty ++ ffi.ByteArray.zeroes 64) ++ UInt256.toByteArray ⟨128⟩ := by
   rw [solcFreePtrMem, toByteArray_write_eq _ _ _ (by decide) (by exact lt_usize _ (by norm_num))]; rfl
 
 theorem solcFreePtrMem_size : solcFreePtrMem.size = 96 := by
@@ -389,7 +389,7 @@ theorem solcFreePtrMem_mload64 :
   mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
 
 theorem solcFreePtrMem_pad_size :
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
+    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
   rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
 
 /-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
@@ -398,7 +398,7 @@ def solcReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
 
 theorem solcReturnMem_eq (val : UInt256) :
-    solcReturnMem val = (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ UInt256.toByteArray val := by
+    solcReturnMem val = (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ UInt256.toByteArray val := by
   rw [solcReturnMem, toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
         (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
   norm_num [solcFreePtrMem_size]
@@ -452,8 +452,6 @@ theorem solcErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
   rw [toByteArray_write_eq _ _ _ (by rw [hmem]; omega)
       (by rw [hmem]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hmem, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from
-      USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem solcErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -829,8 +827,6 @@ theorem solcScratchReturnMem_size {scratch : ByteArray} (val : UInt256)
   rw [toByteArray_write_eq _ _ _ (by rw [hscratch]; omega)
       (by rw [hscratch]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem solcScratchReturnMem_read64 {scratch : ByteArray} (val : UInt256)
@@ -843,14 +839,10 @@ theorem solcScratchReturnMem_read64 {scratch : ByteArray} (val : UInt256)
       (by rw [hscratch]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [hscratch]),
     ← readWithPadding_eq_extract _ 64 (by rw [hscratch]), hread64]
@@ -877,18 +869,12 @@ theorem solcScratchReturnMem_read128 {scratch : ByteArray} (val : UInt256)
       (by rw [hscratch]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size])]
   rw [extract_append_right_window
-      (scratch ++ ffi.ByteArray.zeroes (USize.ofNat (128 - scratch.size)))
+      (scratch ++ ffi.ByteArray.zeroes (128 - scratch.size))
       (UInt256.toByteArray val) 128 160 (by
-        rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
-  rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size])]
+  rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size]
   norm_num
   apply ByteArray.ext
   rw [ByteArray.data_extract]
@@ -1289,10 +1275,10 @@ theorem solcBytesSetPaddedMem_size_ge160
       rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
       exact lt_usize 0 (by norm_num))]
   rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
+  rw [show ffi.ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
       ByteArray.empty by
         rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
+        exact zeroes_zero (n := 0) (by rfl),
     ByteArray.size_empty]
   omega
 
@@ -1313,10 +1299,10 @@ theorem solcBytesSetPaddedMem_size
       rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
       exact lt_usize 0 (by norm_num))]
   rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 + len.toNat - (160 + len.toNat))) =
+  rw [show ffi.ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
       ByteArray.empty by
         rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
-        exact zeroes_zero (n := USize.ofNat 0) (by rfl),
+        exact zeroes_zero (n := 0) (by rfl),
     ByteArray.size_empty]
   omega
 
@@ -1376,8 +1362,6 @@ theorem solcBytesSetPaddedMem_read160_short_toList
   rw [zero_toByteArray_eq_zeroes32]
   rw [zeroes32_extract_zeroes (32 - len.toNat) (by omega)]
   rw [byteArray_zeroes_toList]
-  congr 1
-  rw [USize.toNat_ofNat_of_lt' (lt_usize (32 - len.toNat) (by omega))]
 
 /-! ## Shared bytecode-sequence lemmas
 
