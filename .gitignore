@@ -7,6 +7,14 @@ _mcp_snippet_*.lean
 
 CLAUDE.md
 .claude
-.codex
+.codex/*
+!.codex/
+!.codex/bin/
+!.codex/bin/lean-lsp
+!.codex/mcp/
+!.codex/mcp/lean_mcp.py
+!.codex/skills/
+!.codex/skills/lean-equvm/
+!.codex/skills/lean-equvm/**
 .vscodei
 .DS_STORE

@@ -1266,7 +1266,6 @@ theorem byteArray_readWithPadding0_short_eq_extract_zero_tail (o : ByteArray)
   rw [ByteArray.data_extract, Array.toList_extract, byteArray_zeroes_toList]
   rw [List.extract_eq_take_drop, List.drop_replicate, List.take_replicate]
   congr 1
-  rw [USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))]
   rw [min_self]
 
 theorem permitRuntimeEcrecoverStaticcallMem_read450_of_size_lt {baseMem : ByteArray}

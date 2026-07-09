@@ -424,9 +424,8 @@ theorem skimSafeTransferReturnDataMem_size_le_ptr_add32
     omega
 
 private theorem byteArray_zeroes_size_le (n : Nat) :
-    (ffi.ByteArray.zeroes (OfNat.ofNat n : USize)).size ≤ n := by
+    (ffi.ByteArray.zeroes n).size ≤ n := by
   rw [ByteArray_zeroes_size]
-  simpa [USize.toNat, BitVec.toNat_ofNat] using Nat.mod_le n (2 ^ System.Platform.numBits)
 
 private theorem byteArray_copySlice_size_le
     (source destination : ByteArray) (sourceOffset destinationOffset length : Nat) :
@@ -450,7 +449,7 @@ theorem byteArray_write_size_le
     · simp [hsrc]
       have hcopy := byteArray_copySlice_size_le
         (ffi.ByteArray.zeroes
-          (OfNat.ofNat (min length (destination.size - destinationOffset)) : USize))
+          (min length (destination.size - destinationOffset)))
         destination 0 (min destinationOffset destination.size)
         (min length (destination.size - destinationOffset))
       have hbound :
@@ -463,22 +462,21 @@ theorem byteArray_write_size_le
     · simp [hsrc]
       have hpad :
           (ffi.ByteArray.zeroes
-              (OfNat.ofNat (destinationOffset - destination.size) : USize)).size ≤
+              (destinationOffset - destination.size)).size ≤
             destinationOffset - destination.size :=
         byteArray_zeroes_size_le _
       have hdest :
           (destination ++ ffi.ByteArray.zeroes
-              (OfNat.ofNat (destinationOffset - destination.size) : USize)).size ≤
+              (destinationOffset - destination.size)).size ≤
             max destination.size (destinationOffset + length) := by
         rw [ByteArray.size_append]
         omega
       have hcopy := byteArray_copySlice_size_le
         (source ++ ffi.ByteArray.zeroes
-          (OfNat.ofNat
-            (min destination.size (destinationOffset + length) -
-              (destinationOffset + min length (source.size - sourceOffset))) : USize))
+          (min destination.size (destinationOffset + length) -
+            (destinationOffset + min length (source.size - sourceOffset))))
         (destination ++ ffi.ByteArray.zeroes
-          (OfNat.ofNat (destinationOffset - destination.size) : USize))
+          (destinationOffset - destination.size))
         sourceOffset destinationOffset
         (min length (source.size - sourceOffset) +
           (min destination.size (destinationOffset + length) -

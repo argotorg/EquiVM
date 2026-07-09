@@ -95,18 +95,14 @@ theorem transferCalldataMem_read128_4 (recipient value : UInt256) :
       (by rw [transferSelectorMem_size]; omega) (by omega)
       (by rw [transferSelectorMem_size]; omega)
       (by norm_num) (by norm_num)]
-  have hzero32 : (ffi.ByteArray.zeroes 32).size = 32 := by
-    rw [ByteArray_zeroes_size]
-    native_decide
   rw [show transferSelectorMem = solcReturnMem transferSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
       (UInt256.toByteArray transferSelectorShifted) 128 (128 + 4) (by
-        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
-        native_decide)]
+        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
   native_decide
 
@@ -199,18 +195,14 @@ theorem transferCalldataMem_encode (recipient : AccountAddress) (value : UInt256
 
 theorem balanceOfThisSelectorMem_read128_4 :
     balanceOfThisSelectorMem.readWithPadding 128 4 = balanceOfSelector := by
-  have hzero32 : (ffi.ByteArray.zeroes 32).size = 32 := by
-    rw [ByteArray_zeroes_size]
-    native_decide
   rw [show balanceOfThisSelectorMem = solcReturnMem balanceOfSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
       (UInt256.toByteArray balanceOfSelectorShifted) 128 (128 + 4) (by
-        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
-        native_decide)]
+        simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
   native_decide
 
