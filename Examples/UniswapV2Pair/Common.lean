@@ -344,6 +344,413 @@ theorem uniswapStorageLocStore_uint32_offset28_int_some
     ∃ evm', storageLocStore evm (uint32Loc28 slot) (.int n) = some evm' := by
   exact storageLocStore_int_some evm (uint32Loc28 slot) n
 
+def setUint112Offset0Word (old val : UInt256) : UInt256 :=
+  UInt256.lor (UInt256.land reserve112Mask val)
+    (UInt256.land (UInt256.lnot reserve112Mask) old)
+
+def setUint112Offset14Word (old val : UInt256) : UInt256 :=
+  UInt256.lor
+    (UInt256.mul reserve112Shift (UInt256.land reserve112Mask val))
+    (UInt256.land (UInt256.lnot (UInt256.shiftLeft reserve112Mask ⟨112⟩)) old)
+
+def setUint32Offset28Word (old val : UInt256) : UInt256 :=
+  UInt256.lor
+    (UInt256.mul (UInt256.land val reserve32Mask) reserve224Shift)
+    (UInt256.land (UInt256.sub reserve224Shift ⟨1⟩) old)
+
+theorem uniswapUint112Masked_lt (w : UInt256) :
+    (UInt256.land w reserve112Mask).toNat < 2 ^ 112 := by
+  rw [u256_land_toNat]
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  rw [hmask]
+  have hle : Nat.land w.toNat (2 ^ 112 - 1) ≤ 2 ^ 112 - 1 :=
+    nat_land_le_right _ _
+  have hltSize : Nat.land w.toNat (2 ^ 112 - 1) < UInt256.size := by
+    exact lt_of_le_of_lt hle (by norm_num [UInt256.size])
+  rw [Nat.mod_eq_of_lt hltSize]
+  exact lt_of_le_of_lt hle (by norm_num)
+
+theorem uniswapUint32Masked_lt (w : UInt256) :
+    (UInt256.land w reserve32Mask).toNat < 2 ^ 32 := by
+  rw [u256_land_toNat]
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  rw [hmask]
+  have hle : Nat.land w.toNat (2 ^ 32 - 1) ≤ 2 ^ 32 - 1 :=
+    nat_land_le_right _ _
+  have hltSize : Nat.land w.toNat (2 ^ 32 - 1) < UInt256.size := by
+    exact lt_of_le_of_lt hle (by norm_num [UInt256.size])
+  rw [Nat.mod_eq_of_lt hltSize]
+  exact lt_of_le_of_lt hle (by norm_num)
+
+theorem uniswapUint112Masked_toNat (w : UInt256) :
+    (UInt256.land w reserve112Mask).toNat = w.toNat % 2 ^ 112 := by
+  rw [u256_land_toNat]
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  rw [hmask]
+  rw [nat_land_mask_eq_mod]
+  exact Nat.mod_eq_of_lt (by
+    exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 112))
+      (by norm_num [UInt256.size]))
+
+-- LIBRARY CANDIDATE: generalizes a packed storage field clear for a middle byte range.
+set_option maxHeartbeats 1000000 in
+theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
+    Nat.land n ((2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224) =
+      n % 2 ^ 112 + (n / 2 ^ 224) * 2 ^ 224 := by
+  have hlowLt : n % 2 ^ 112 < 2 ^ 224 := by
+    exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 112)) (by norm_num)
+  have hmaskLowLt : 2 ^ 112 - 1 < 2 ^ 224 := by norm_num
+  have hmaskEq :
+      Nat.lor (2 ^ 112 - 1) ((2 ^ 32 - 1) * 2 ^ 224) =
+        (2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224 := by
+    rw [nat_lor_shift_add (2 ^ 112 - 1) (2 ^ 32 - 1) 224 hmaskLowLt]
+  have hrhsEq :
+      Nat.lor (n % 2 ^ 112) ((n / 2 ^ 224) * 2 ^ 224) =
+        n % 2 ^ 112 + (n / 2 ^ 224) * 2 ^ 224 := by
+    rw [nat_lor_shift_add (n % 2 ^ 112) (n / 2 ^ 224) 224 hlowLt]
+  rw [← hmaskEq, ← hrhsEq]
+  apply Nat.eq_of_testBit_eq
+  intro i
+  change (n &&& ((2 ^ 112 - 1) ||| ((2 ^ 32 - 1) * 2 ^ 224))).testBit i =
+    ((n % 2 ^ 112) ||| (n / 2 ^ 224 * 2 ^ 224)).testBit i
+  rw [Nat.testBit_and, Nat.testBit_or, Nat.testBit_or]
+  rw [Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
+  rw [show (2 ^ 32 - 1) * 2 ^ 224 = (2 ^ 32 - 1) <<< 224 by
+    rw [Nat.shiftLeft_eq]]
+  rw [show n / 2 ^ 224 * 2 ^ 224 = (n / 2 ^ 224) <<< 224 by
+    rw [Nat.shiftLeft_eq]]
+  rw [nat_testBit_shiftLeft, nat_testBit_shiftLeft]
+  by_cases hi112 : i < 112
+  · have hi224 : i < 224 := by omega
+    simp [hi112, hi224]
+  · by_cases hi224 : i < 224
+    · simp [hi112, hi224]
+    · have h224le : 224 ≤ i := Nat.le_of_not_gt hi224
+      rw [Nat.testBit_two_pow_sub_one]
+      by_cases hi256 : i < 256
+      · have hsub32 : i - 224 < 32 := by omega
+        rw [show decide (i - 224 < 32) = true by simp [hsub32]]
+        rw [nat_div_pow_testBit n 224 i h224le]
+        simp [hi112, hi224]
+      · have hsub32 : ¬ (i - 224 < 32) := by omega
+        rw [show decide (i - 224 < 32) = false by simp [hsub32]]
+        have hnfalse : n.testBit i = false := by
+          have hpow : n < 2 ^ i :=
+            lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) (by omega))
+          exact Nat.testBit_lt_two_pow hpow
+        rw [nat_div_pow_testBit n 224 i h224le, hnfalse]
+        simp [hi112, hi224]
+
+theorem uint112Offset14MiddleClear_toNat (old : UInt256) :
+    (UInt256.land (UInt256.lnot (UInt256.shiftLeft reserve112Mask ⟨112⟩)) old).toNat =
+      (UInt256.land old reserve112Mask).toNat + (old.toNat / 2 ^ 224) * 2 ^ 224 := by
+  rw [u256_land_toNat]
+  have hmask :
+      (UInt256.lnot (UInt256.shiftLeft reserve112Mask ⟨112⟩)).toNat =
+        (2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224 := by
+    native_decide
+  rw [hmask, nat_land_comm]
+  rw [natLandClearMiddle112_224 old.toNat old.val.isLt]
+  have hlt :
+      old.toNat % 2 ^ 112 + old.toNat / 2 ^ 224 * 2 ^ 224 < UInt256.size := by
+    have hlow : old.toNat % 2 ^ 112 < 2 ^ 112 := Nat.mod_lt _ (by positivity)
+    have hq : old.toNat / 2 ^ 224 < 2 ^ 32 := by
+      apply Nat.div_lt_of_lt_mul
+      rw [show 2 ^ 224 * 2 ^ 32 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+      exact old.val.isLt
+    have hlowle : old.toNat % 2 ^ 112 ≤ 2 ^ 112 - 1 := by omega
+    have hqle : old.toNat / 2 ^ 224 ≤ 2 ^ 32 - 1 := Nat.le_pred_of_lt hq
+    have hqterm : old.toNat / 2 ^ 224 * 2 ^ 224 ≤ (2 ^ 32 - 1) * 2 ^ 224 :=
+      Nat.mul_le_mul_right _ hqle
+    have hmax : (2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224 < UInt256.size := by
+      norm_num [UInt256.size, Nat.pow_add]
+    omega
+  rw [Nat.mod_eq_of_lt hlt, uniswapUint112Masked_toNat]
+
+-- LIBRARY CANDIDATE: disjoint `lor` recomposition for low/middle/high packed fields.
+theorem natLorLowMiddleHigh112_224 (low mid high : Nat)
+    (hlow : low < 2 ^ 112) (hmid : mid < 2 ^ 112) :
+    Nat.lor (mid * 2 ^ 112) (low + high * 2 ^ 224) =
+      low + mid * 2 ^ 112 + high * 2 ^ 224 := by
+  have hlow224 : low < 2 ^ 224 := lt_trans hlow (by norm_num)
+  have hlowHigh : Nat.lor low (high * 2 ^ 224) = low + high * 2 ^ 224 := by
+    exact nat_lor_shift_add low high 224 hlow224
+  rw [← hlowHigh]
+  rw [nat_lor_comm (mid * 2 ^ 112) (Nat.lor low (high * 2 ^ 224))]
+  rw [show Nat.lor (Nat.lor low (high * 2 ^ 224)) (mid * 2 ^ 112) =
+      Nat.lor low (Nat.lor (high * 2 ^ 224) (mid * 2 ^ 112)) from
+    Nat.lor_assoc low (high * 2 ^ 224) (mid * 2 ^ 112)]
+  rw [nat_lor_comm (high * 2 ^ 224) (mid * 2 ^ 112)]
+  have hmidShift : mid * 2 ^ 112 < 2 ^ 224 := by
+    calc
+      mid * 2 ^ 112 < 2 ^ 112 * 2 ^ 112 :=
+        Nat.mul_lt_mul_of_pos_right hmid (by positivity)
+      _ = 2 ^ 224 := by rw [← Nat.pow_add]
+  rw [nat_lor_shift_add (mid * 2 ^ 112) high 224 hmidShift]
+  rw [show mid * 2 ^ 112 + high * 2 ^ 224 =
+      (mid + high * 2 ^ 112) * 2 ^ 112 by ring]
+  rw [nat_lor_shift_add low (mid + high * 2 ^ 112) 112 hlow]
+  ring
+
+theorem setUint112Offset0Word_toNat (old val : UInt256) :
+    (setUint112Offset0Word old val).toNat =
+      (UInt256.land reserve112Mask val).toNat + (old.toNat / 2 ^ 112) * 2 ^ 112 := by
+  unfold setUint112Offset0Word
+  rw [u256_lor_toNat]
+  have hhigh :
+      (UInt256.land (UInt256.lnot reserve112Mask) old).toNat =
+        (old.toNat / 2 ^ 112) * 2 ^ 112 := by
+    rw [u256_land_toNat]
+    have hlnot : (UInt256.lnot reserve112Mask).toNat = 2 ^ 256 - 2 ^ 112 := by
+      native_decide
+    rw [hlnot, nat_land_comm]
+    rw [natLandClearLow old.toNat 112 (by norm_num) old.val.isLt]
+    have hlt : old.toNat / 2 ^ 112 * 2 ^ 112 < UInt256.size :=
+      lt_of_le_of_lt (Nat.div_mul_le_self _ _) old.val.isLt
+    rw [Nat.mod_eq_of_lt hlt]
+  rw [hhigh]
+  rw [nat_lor_shift_add]
+  · have hlt :
+        (UInt256.land reserve112Mask val).toNat +
+            old.toNat / 2 ^ 112 * 2 ^ 112 < UInt256.size := by
+      have hlow : (UInt256.land reserve112Mask val).toNat < 2 ^ 112 := by
+        simpa [u256_land_comm reserve112Mask val] using uniswapUint112Masked_lt val
+      have hq : old.toNat / 2 ^ 112 < 2 ^ 144 := by
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 ^ 112 * 2 ^ 144 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+        exact old.val.isLt
+      have hlowle : (UInt256.land reserve112Mask val).toNat ≤ 2 ^ 112 - 1 := by
+        omega
+      have hqle : old.toNat / 2 ^ 112 ≤ 2 ^ 144 - 1 := Nat.le_pred_of_lt hq
+      have hqterm :
+          old.toNat / 2 ^ 112 * 2 ^ 112 ≤ (2 ^ 144 - 1) * 2 ^ 112 :=
+        Nat.mul_le_mul_right _ hqle
+      have hmax : (2 ^ 112 - 1) + (2 ^ 144 - 1) * 2 ^ 112 < UInt256.size := by
+        norm_num [UInt256.size, Nat.pow_add]
+      omega
+    rw [Nat.mod_eq_of_lt hlt]
+  · simpa [u256_land_comm reserve112Mask val] using uniswapUint112Masked_lt val
+
+set_option maxHeartbeats 1000000 in
+theorem setUint112Offset14Word_toNat (old val : UInt256) :
+    (setUint112Offset14Word old val).toNat =
+      (UInt256.land old reserve112Mask).toNat +
+        (UInt256.land reserve112Mask val).toNat * 2 ^ 112 +
+      (old.toNat / 2 ^ 224) * 2 ^ 224 := by
+  unfold setUint112Offset14Word
+  rw [u256_lor_toNat, u256_mul_toNat, uint112Offset14MiddleClear_toNat]
+  have hshift : reserve112Shift.toNat = 2 ^ 112 := by native_decide
+  rw [hshift]
+  have hmidLt : (UInt256.land reserve112Mask val).toNat < 2 ^ 112 := by
+    simpa [u256_land_comm reserve112Mask val] using uniswapUint112Masked_lt val
+  have hmulLt : 2 ^ 112 * (UInt256.land reserve112Mask val).toNat < UInt256.size := by
+    calc
+      2 ^ 112 * (UInt256.land reserve112Mask val).toNat < 2 ^ 112 * 2 ^ 112 :=
+        Nat.mul_lt_mul_of_pos_left hmidLt (by positivity)
+      _ < UInt256.size := by norm_num [UInt256.size, Nat.pow_add]
+  rw [Nat.mod_eq_of_lt hmulLt]
+  rw [show 2 ^ 112 * (UInt256.land reserve112Mask val).toNat =
+      (UInt256.land reserve112Mask val).toNat * 2 ^ 112 by ring]
+  rw [natLorLowMiddleHigh112_224]
+  · have hlt :
+        (UInt256.land old reserve112Mask).toNat +
+            (UInt256.land reserve112Mask val).toNat * 2 ^ 112 +
+          old.toNat / 2 ^ 224 * 2 ^ 224 < UInt256.size := by
+      have hlow := uniswapUint112Masked_lt old
+      have hq : old.toNat / 2 ^ 224 < 2 ^ 32 := by
+        apply Nat.div_lt_of_lt_mul
+        rw [show 2 ^ 224 * 2 ^ 32 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
+        exact old.val.isLt
+      have hlowle : (UInt256.land old reserve112Mask).toNat ≤ 2 ^ 112 - 1 := by
+        omega
+      have hmidle : (UInt256.land reserve112Mask val).toNat ≤ 2 ^ 112 - 1 := by
+        omega
+      have hqle : old.toNat / 2 ^ 224 ≤ 2 ^ 32 - 1 := Nat.le_pred_of_lt hq
+      have hmidterm :
+          (UInt256.land reserve112Mask val).toNat * 2 ^ 112 ≤ (2 ^ 112 - 1) * 2 ^ 112 :=
+        Nat.mul_le_mul_right _ hmidle
+      have hqterm :
+          old.toNat / 2 ^ 224 * 2 ^ 224 ≤ (2 ^ 32 - 1) * 2 ^ 224 :=
+        Nat.mul_le_mul_right _ hqle
+      have hmax :
+          (2 ^ 112 - 1) + (2 ^ 112 - 1) * 2 ^ 112 +
+            (2 ^ 32 - 1) * 2 ^ 224 < UInt256.size := by
+        norm_num [UInt256.size, Nat.pow_add]
+      omega
+    rw [Nat.mod_eq_of_lt hlt]
+  · exact uniswapUint112Masked_lt old
+  · exact hmidLt
+
+theorem setUint32Offset28Word_toNat (old val : UInt256) :
+    (setUint32Offset28Word old val).toNat =
+      old.toNat % 2 ^ 224 + (UInt256.land val reserve32Mask).toNat * 2 ^ 224 := by
+  unfold setUint32Offset28Word
+  rw [u256_lor_toNat, u256_mul_toNat]
+  have hshift : reserve224Shift.toNat = 2 ^ 224 := by native_decide
+  rw [hshift]
+  have hlow :
+      (UInt256.land (UInt256.sub reserve224Shift ⟨1⟩) old).toNat =
+        old.toNat % 2 ^ 224 := by
+    rw [u256_land_toNat]
+    have hmask : (UInt256.sub reserve224Shift ⟨1⟩).toNat = 2 ^ 224 - 1 := by
+      native_decide
+    rw [hmask, nat_land_comm, nat_land_mask_eq_mod]
+    exact Nat.mod_eq_of_lt (by
+      exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 224))
+        (by norm_num [UInt256.size]))
+  rw [hlow]
+  have hmulLt : (UInt256.land val reserve32Mask).toNat * 2 ^ 224 < UInt256.size := by
+    calc
+      (UInt256.land val reserve32Mask).toNat * 2 ^ 224 < 2 ^ 32 * 2 ^ 224 :=
+        Nat.mul_lt_mul_of_pos_right (uniswapUint32Masked_lt val) (by positivity)
+      _ = UInt256.size := by norm_num [UInt256.size, Nat.pow_add]
+  rw [Nat.mod_eq_of_lt hmulLt]
+  rw [nat_lor_comm]
+  rw [nat_lor_shift_add]
+  · have hlt :
+        old.toNat % 2 ^ 224 + (UInt256.land val reserve32Mask).toNat * 2 ^ 224 <
+          UInt256.size := by
+      have hlowLt : old.toNat % 2 ^ 224 < 2 ^ 224 := Nat.mod_lt _ (by positivity)
+      have hval := uniswapUint32Masked_lt val
+      have hlowle : old.toNat % 2 ^ 224 ≤ 2 ^ 224 - 1 := by omega
+      have hvalle : (UInt256.land val reserve32Mask).toNat ≤ 2 ^ 32 - 1 := by omega
+      have hvterm :
+          (UInt256.land val reserve32Mask).toNat * 2 ^ 224 ≤ (2 ^ 32 - 1) * 2 ^ 224 :=
+        Nat.mul_le_mul_right _ hvalle
+      have hmax : (2 ^ 224 - 1) + (2 ^ 32 - 1) * 2 ^ 224 < UInt256.size := by
+        norm_num [UInt256.size, Nat.pow_add]
+      omega
+    rw [Nat.mod_eq_of_lt hlt]
+  · exact Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 224)
+
+theorem uniswapStorageLocStore_uint112_offset0 (evm : EVM.State) (slot val : UInt256) :
+    storageLocStore evm (uint112Loc0 slot) (uniswapUint256Value val) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setUint112Offset0Word
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val)) := by
+  unfold storageLocStore storageLocWriteWord uint112Loc0 uniswapUint256Value uint256Value
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (14 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (14 : Fin 33).val) _) =
+      (setUint112Offset0Word
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (14 : Fin 33).val = 14 from rfl,
+    List.take_zero, List.nil_append]
+  rw [fromBytes'_append, fromBytes'_take_wordLE_land_mask val 14 (by decide),
+    fromBytes'_drop_wordLE]
+  have hlen14 : ((EVM.Word.toBytesLEWithSizeProof val).1.take 14).length = 14 := by
+    rw [List.length_take, hvlen]
+    norm_num
+  rw [hlen14]
+  rw [show 2 ^ (8 * 14) = 2 ^ 112 by norm_num]
+  rw [show 256 ^ 14 = 2 ^ 112 by norm_num]
+  rw [setUint112Offset0Word_toNat]
+  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by native_decide]
+  rw [u256_land_comm val reserve112Mask]
+  ring_nf
+
+theorem uniswapStorageLocStore_uint112_offset14 (evm : EVM.State) (slot val : UInt256) :
+    storageLocStore evm (uint112Loc14 slot) (uniswapUint256Value val) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setUint112Offset14Word
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val)) := by
+  unfold storageLocStore storageLocWriteWord uint112Loc14 uniswapUint256Value uint256Value
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (14 : Fin 32).val _ ++ List.take (14 : Fin 33).val _
+        ++ List.drop ((14 : Fin 32).val + (14 : Fin 33).val) _) =
+      (setUint112Offset14Word
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val).toNat
+  rw [show (14 : Fin 32).val = 14 from rfl, show (14 : Fin 33).val = 14 from rfl,
+    show (14 : Nat) + 14 = 28 by norm_num]
+  rw [List.append_assoc]
+  rw [fromBytes'_append
+    (List.take 14 (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)
+    (List.take 14 (EVM.Word.toBytesLEWithSizeProof val).1 ++
+      List.drop 28 (EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)]
+  rw [fromBytes'_append
+    (List.take 14 (EVM.Word.toBytesLEWithSizeProof val).1)
+    (List.drop 28 (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)]
+  rw [fromBytes'_take_wordLE_land_mask _ 14 (by decide),
+    fromBytes'_take_wordLE_land_mask val 14 (by decide),
+    fromBytes'_drop_wordLE]
+  have hlenOld14 : ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 14).length = 14 := by
+    rw [List.length_take, hslen]
+    norm_num
+  have hlenVal14 : ((EVM.Word.toBytesLEWithSizeProof val).1.take 14).length = 14 := by
+    rw [List.length_take, hvlen]
+    norm_num
+  rw [hlenOld14, hlenVal14]
+  rw [show 2 ^ (8 * 14) = 2 ^ 112 by norm_num]
+  rw [show 256 ^ 28 = 2 ^ 224 by norm_num]
+  rw [setUint112Offset14Word_toNat]
+  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by native_decide]
+  rw [u256_land_comm val reserve112Mask]
+  ring_nf
+
+theorem uniswapStorageLocStore_uint32_offset28 (evm : EVM.State) (slot val : UInt256) :
+    storageLocStore evm (uint32Loc28 slot) (uniswapUint256Value val) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setUint32Offset28Word
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val)) := by
+  unfold storageLocStore storageLocWriteWord uint32Loc28 uniswapUint256Value uint256Value
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (28 : Fin 32).val _ ++ List.take (4 : Fin 33).val _
+        ++ List.drop ((28 : Fin 32).val + (4 : Fin 33).val) _) =
+      (setUint32Offset28Word
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) val).toNat
+  rw [show (28 : Fin 32).val = 28 from rfl, show (4 : Fin 33).val = 4 from rfl,
+    show (28 : Nat) + 4 = 32 by norm_num]
+  rw [List.append_assoc]
+  rw [fromBytes'_append
+    (List.take 28 (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)
+    (List.take 4 (EVM.Word.toBytesLEWithSizeProof val).1 ++
+      List.drop 32 (EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)]
+  rw [fromBytes'_append
+    (List.take 4 (EVM.Word.toBytesLEWithSizeProof val).1)
+    (List.drop 32 (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)]
+  rw [fromBytes'_take_wordLE, fromBytes'_take_wordLE_land_mask val 4 (by decide),
+    fromBytes'_drop_wordLE]
+  have hlenOld28 : ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 28).length = 28 := by
+    rw [List.length_take, hslen]
+    norm_num
+  have hlenVal4 : ((EVM.Word.toBytesLEWithSizeProof val).1.take 4).length = 4 := by
+    rw [List.length_take, hvlen]
+    norm_num
+  rw [hlenOld28, hlenVal4]
+  rw [show 256 ^ 28 = 2 ^ 224 by norm_num]
+  rw [show 2 ^ (8 * 28) = 2 ^ 224 by norm_num]
+  rw [show 2 ^ (8 * 4) = 2 ^ 32 by norm_num]
+  rw [show 256 ^ 32 = 2 ^ 256 by norm_num]
+  rw [show (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat / 2 ^ 256 = 0 by
+    exact Nat.div_eq_of_lt (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).val.isLt]
+  rw [setUint32Offset28Word_toNat]
+  rw [show UInt256.ofNat (2 ^ 32 - 1) = reserve32Mask by native_decide]
+  ring_nf
+
 theorem uniswapAssignReserve0OfStore (evm evm' : EVM.State) (locals : Store)
     (balance0 : UInt256)
     (hbase : locals.get? "reserve0" = none)
@@ -1110,6 +1517,157 @@ macro "uniswap_lock_revert_tail_wf" : term =>
   `(by
     unfold solcErrorStringRevertTailWf solcLockEnterRevertPc
     repeat' first | apply And.intro | native_decide)
+
+/-- Bytecode shape for the lock guard after a routine-specific prelude.
+
+`mint` and `burn` enter at a `JUMPDEST` followed by a small stack setup before the standard
+storage-slot-12 lock check.  This predicate starts at the `PUSH1 12` guard instruction.
+-/
+@[reducible] def uniswapLockEnterBodyGuardWf (pc okPc : UInt256) : Prop :=
+  let p2 := pc + UInt256.ofNat 2
+  let p3 := p2 + ⟨1⟩
+  let p5 := p3 + UInt256.ofNat 2
+  let p6 := p5 + ⟨1⟩
+  let p9 := p6 + UInt256.ofNat 3
+  decode UniswapV2Pair.uniswapV2PairBytecode pc =
+      some (.Push .PUSH1, some (⟨12⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p2 = some (.SLOAD, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p3 =
+      some (.Push .PUSH1, some (⟨1⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p5 = some (.EQ, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p6 =
+      some (.Push .PUSH2, some (okPc, 2))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode p9 = some (.JUMPI, .none)
+
+@[reducible] def uniswapLockEnterBodyRevertPc (pc : UInt256) : UInt256 :=
+  let p2 := pc + UInt256.ofNat 2
+  let p3 := p2 + ⟨1⟩
+  let p5 := p3 + UInt256.ofNat 2
+  let p6 := p5 + ⟨1⟩
+  let p9 := p6 + UInt256.ofNat 3
+  p9 + ⟨1⟩
+
+macro "uniswap_lock_enter_body_guard_wf" : term =>
+  `(by
+    unfold uniswapLockEnterBodyGuardWf
+    repeat' first | apply And.intro | native_decide)
+
+macro "uniswap_lock_body_revert_tail_wf" : term =>
+  `(by
+    unfold solcErrorStringRevertTailWf uniswapLockEnterBodyRevertPc
+    repeat' first | apply And.intro | native_decide)
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {pc okPc : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hguard : uniswapLockEnterBodyGuardWf pc okPc)
+    (htail :
+      solcErrorStringRevertTailWf UniswapV2Pair.uniswapV2PairBytecode
+        (uniswapLockEnterBodyRevertPc pc) ⟨17⟩
+        (⟨7267690950230416977285330377544234619217⟩ : UInt256) ⟨122⟩
+        .PUSH17 17)
+    (hlocked :
+      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      ⟨1⟩)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  rcases hguard with ⟨hd0, hd2, hd3, hd5, hd6, hd9⟩
+  set lockedWord := solcSlotWord σ ee ⟨12⟩ with hlockedWord
+  have hlockedWord_ne : lockedWord ≠ ⟨1⟩ := by
+    simpa [solcSlotWord, hlockedWord] using hlocked
+  have heqZero : UInt256.eq ⟨1⟩ lockedWord = ⟨0⟩ := by
+    exact u256_eq_of_ne (by intro hbad; exact hlockedWord_ne hbad.symm)
+  have rd2 := h.push1 ⟨12⟩ hd0 (by omega)
+  obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
+  have rd3 := rd3₀
+  have hraw :
+      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        lockedWord := by
+    simpa [solcSlotWord] using hlockedWord.symm
+  rw [hraw] at rd3
+  have rd5 := rd3.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
+  have rd6₀ := rd5.eq hd5 (by omega)
+  have rd6 := rd6₀
+  rw [heqZero] at rd6
+  have rd9 := rd6.push2 okPc hd6 (by simp only [List.length_cons]; omega)
+  have rdRevert₀ := rd9.jumpiNT hd9 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    (by omega)
+  have rdRevert := by
+    simpa [uniswapLockEnterBodyRevertPc] using rdRevert₀
+  exact RD.solcErrorStringRevertTail rdRevert htail (by decide) (by rfl)
+    solcFreePtrMem_size solcFreePtrMem_read64 (by omega)
+
+/-- Bytecode shape for a lock guard body plus the success-side `SSTORE`. -/
+@[reducible] def uniswapLockEnterBodyOkWf (pc okPc : UInt256) : Prop :=
+  let pOk1 := okPc + ⟨1⟩
+  let pOk3 := pOk1 + UInt256.ofNat 2
+  let pOk5 := pOk3 + UInt256.ofNat 2
+  let pOk6 := pOk5 + ⟨1⟩
+  let pOk7 := pOk6 + ⟨1⟩
+  uniswapLockEnterBodyGuardWf pc okPc
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode okPc = some (.JUMPDEST, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pOk1 =
+      some (.Push .PUSH1, some (⟨0⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pOk3 =
+      some (.Push .PUSH1, some (⟨12⟩, 1))
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pOk5 = some (.DUP2, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pOk6 = some (.SWAP1, .none)
+  ∧ decode UniswapV2Pair.uniswapV2PairBytecode pOk7 = some (.SSTORE, .none)
+
+macro "uniswap_lock_enter_body_ok_wf" : term =>
+  `(by
+    unfold uniswapLockEnterBodyOkWf uniswapLockEnterBodyGuardWf
+    repeat' first | apply And.intro | native_decide)
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {pc okPc : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R
+      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    (hwf : uniswapLockEnterBodyOkWf pc okPc)
+    (hperm : ee.perm = true)
+    (hunlocked :
+      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hok : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains okPc = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 (okPc + UInt256.ofNat 8)
+      (⟨0⟩ :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
+      (cA, sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
+  rcases hwf with ⟨hguard, hdOk, hdOk1, hdOk3, hdOk5, hdOk6, hdOk7⟩
+  rcases hguard with ⟨hd0, hd2, hd3, hd5, hd6, hd9⟩
+  have rd2 := h.push1 ⟨12⟩ hd0 (by omega)
+  obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
+  have rd3 := rd3₀
+  rw [hunlocked] at rd3
+  have rd5 := rd3.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
+  have rd6₀ := rd5.eq hd5 (by omega)
+  have rd6 := rd6₀
+  rw [uInt256_eq_self] at rd6
+  have rd9 := rd6.push2 okPc hd6 (by simp only [List.length_cons]; omega)
+  have rdOk := rd9.jumpiT hd9 one_ne_zero_uint hok (by omega)
+  have rdOk1 := rdOk.jumpdest hdOk (by omega)
+  have rdOk3 := rdOk1.push1 ⟨0⟩ hdOk1 (by omega)
+  have rdOk5 := rdOk3.push1 ⟨12⟩ hdOk3 (by simp only [List.length_cons]; omega)
+  have rdOk6 := rdOk5.dup2 hdOk5 (by omega)
+  have rdOk7 := rdOk6.swap1 hdOk6 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rdAfter⟩ := rdOk7.sstore hperm hdOk7
+    (by simp only [List.length_cons]; omega)
+  have hpcOut :
+      okPc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
+        okPc + UInt256.ofNat 8 := by
+    rw [u256_add_assoc okPc ⟨1⟩ (UInt256.ofNat 2)]
+    rw [u256_add_assoc okPc (⟨1⟩ + UInt256.ofNat 2) (UInt256.ofNat 2)]
+    rw [u256_add_assoc okPc (⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) ⟨1⟩]
+    rw [u256_add_assoc okPc (⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) ⟨1⟩]
+    rw [u256_add_assoc okPc
+      (⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) ⟨1⟩]
+    congr 1
+  exact ⟨_, _, by simpa [hpcOut] using rdAfter⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}

@@ -735,8 +735,7 @@ theorem giveRightChairErrorMem0_size : giveRightChairErrorMem0.size = 160 := by
   rw [toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
       (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem giveRightChairErrorMem1_size : giveRightChairErrorMem1.size = 164 := by
@@ -783,14 +782,12 @@ theorem giveRightChairErrorMem0_read64 :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [solcFreePtrMem_size])]
   rw [← readWithPadding_eq_extract _ 64 (by rw [solcFreePtrMem_size])]
@@ -839,8 +836,7 @@ theorem giveRightVotedErrorMem0_size (voter : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [giveRightHashMem_size]; omega)
       (by rw [giveRightHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, giveRightHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem giveRightVotedErrorMem1_size (voter : UInt256) :
@@ -881,14 +877,12 @@ theorem giveRightVotedErrorMem0_read64 (voter : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, giveRightHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, giveRightHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [giveRightHashMem_size])]
   rw [← readWithPadding_eq_extract _ 64 (by rw [giveRightHashMem_size])]

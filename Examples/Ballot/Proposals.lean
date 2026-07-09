@@ -285,8 +285,7 @@ theorem proposalsReturnNameMem_size (name : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [proposalsBaseSlotMem_size]; omega)
       (by rw [proposalsBaseSlotMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, proposalsBaseSlotMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem proposalsReturnMem_size (name count : UInt256) :
@@ -296,8 +295,7 @@ theorem proposalsReturnMem_size (name count : UInt256) :
       (by rw [proposalsReturnNameMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, proposalsReturnNameMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 160 - 160 = 0 from by norm_num,
     toByteArray_size]
 
 theorem proposalsReturnNameMem_read64 (name : UInt256) :
@@ -309,12 +307,11 @@ theorem proposalsReturnNameMem_read64 (name : UInt256) :
   rw [readWithPadding_eq_extract' _ 64 32 (by norm_num) (by norm_num) (by
     rw [ByteArray.size_append, proposalsBaseSlotMem_size, ByteArray.size_append,
       ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+      show 128 - 96 = 32 from by norm_num,
       toByteArray_size]
     omega)]
   rw [extract_append_left proposalsBaseSlotMem
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - proposalsBaseSlotMem.size)) ++ UInt256.toByteArray name)
+      (ffi.ByteArray.zeroes (128 - proposalsBaseSlotMem.size) ++ UInt256.toByteArray name)
       64 96 (by rw [proposalsBaseSlotMem_size])]
   rw [← readWithPadding_eq_extract' proposalsBaseSlotMem 64 32 (by norm_num) (by norm_num)
       (by rw [proposalsBaseSlotMem_size])]
@@ -346,38 +343,32 @@ theorem proposalsReturnMem_read128_64 (name count : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [proposalsReturnNameMem_size])
       (by rw [proposalsReturnNameMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
-      (proposalsReturnNameMem name ++ ffi.ByteArray.zeroes (USize.ofNat (160 - (proposalsReturnNameMem name).size)))
+      (proposalsReturnNameMem name ++ ffi.ByteArray.zeroes (160 - (proposalsReturnNameMem name).size))
       (UInt256.toByteArray count) 128 192 (by
         rw [ByteArray.size_append, proposalsReturnNameMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 160 - 160 = 0 from by norm_num]
         omega) (by
         rw [ByteArray.size_append, proposalsReturnNameMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 160 - 160 = 0 from by norm_num]
         omega)]
   rw [ByteArray.size_append, proposalsReturnNameMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 160 - 160 = 0 from by norm_num]
   simp
   unfold proposalsReturnNameMem
   rw [toByteArray_write_eq _ _ _ (by rw [proposalsBaseSlotMem_size]; omega)
       (by rw [proposalsBaseSlotMem_size]; exact lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (128 - proposalsBaseSlotMem.size)) =
-      ffi.ByteArray.zeroes (USize.ofNat 32) by rw [proposalsBaseSlotMem_size]]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat 0) = ByteArray.empty by
-      exact zeroes_zero (n := USize.ofNat 0) (by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+  rw [show ffi.ByteArray.zeroes (128 - proposalsBaseSlotMem.size) =
+      ffi.ByteArray.zeroes 32 by rw [proposalsBaseSlotMem_size]]
+  rw [show ffi.ByteArray.zeroes 0 = ByteArray.empty by
+      exact zeroes_zero (n := 0) (by rfl)]
   rw [ByteArray.append_empty]
   rw [extract_append_right_window
-      (proposalsBaseSlotMem ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      (proposalsBaseSlotMem ++ ffi.ByteArray.zeroes 32)
       (UInt256.toByteArray name) 128 160 (by
         rw [ByteArray.size_append, proposalsBaseSlotMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat 32).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 32 = 32 from by norm_num])]
   rw [ByteArray.size_append, proposalsBaseSlotMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   have hnameFull : (UInt256.toByteArray name).extract 0 32 = UInt256.toByteArray name := by
     apply ByteArray.ext

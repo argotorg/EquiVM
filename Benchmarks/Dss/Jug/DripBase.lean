@@ -537,9 +537,9 @@ theorem dripVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
     native_decide
   rw [toByteArray_write_eq dripVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (USize.ofNat (128 - mem.size))).size = 128 := by
+      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' hgap, hmem]
+      hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     toByteArray_eq_toBytesBE]
