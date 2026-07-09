@@ -31,7 +31,7 @@ the checked-in `.abi.json` files.
 | `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Handed off | Yes |
 | `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Handed off | Yes |
 | `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Handed Off | Yes |
-| `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Handed off | Yes |
+| `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Completed | Yes |
 | `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Completed | Yes |
 | `WETH9` | 0.5.16 | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
 | `EAS/Attester` | 0.8.26 | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |

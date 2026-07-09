@@ -227,6 +227,7 @@ def constructorDecl : ConstructorDecl :=
       [ .assign .storage begRef (.intLit defaultBeg),
         .assign .storage ttlRef (.intLit defaultTtl),
         .assign .storage tauRef (.intLit defaultTau),
+        .assign .storage kicksRef (.intLit 0),
         .assign .storage vatRef (.var "vat_"),
         .assign .storage catRef (.var "cat_"),
         .assign .storage ilkRef (.var "ilk_"),
@@ -430,8 +431,8 @@ def dentTransition : TransitionDecl :=
         .require (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "bid"))),
         .require (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab"))),
         .require (.binary .lt (.var "lot") (.storage (bidsF (.var "id") "lot"))) ] ++
-      checkedMulUintInto "begLot" (.storage begRef) (.var "lot") ++
       checkedMulUintInto "lotOne" (.storage (bidsF (.var "id") "lot")) (.intLit ONE) ++
+      checkedMulUintInto "begLot" (.storage begRef) (.var "lot") ++
       [ .require (.binary .le (.var "begLot") (.var "lotOne")),
         .ite
           (.binary .ne sender (.storage (bidsF (.var "id") "guy")))

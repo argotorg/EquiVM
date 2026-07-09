@@ -2636,7 +2636,7 @@ theorem uniswapMintBody
                                                                                 unfold mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData at hrootArithmetic
                                                                                 unfold mintProportionalProductOverflowCase at hproductOverflow
                                                                                 unfold mintProportionalSecondMintOverflowCase at hsecondMintOverflow
-                                                                                aesop))
+                                                                                simp_all))
                                                                             · exfalso
                                                                               contradiction
                                                                           · exfalso
