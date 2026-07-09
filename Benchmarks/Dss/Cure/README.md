@@ -31,14 +31,16 @@ Generated artifacts and scaffold files:
 - `contracts/cure.sol`: exact fetched upstream Solidity source.
 - `cure.sol.ast.json`: Solidity AST JSON emitted by solc.
 - `Cure.storage.json`: solc storage layout for this contract.
-- `creation.hex`: optimized creation bytecode.
-- `runtime.hex`: optimized deployed runtime bytecode/template.
+- `creation.hex`: optimized creation bytecode, 3971 bytes.
+- `runtime.hex`: optimized deployed runtime bytecode, 3875 bytes.
 - `Cure.abi.json`: ABI emitted by solc.
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
-- `Spec.lean`: Solm benchmark spec entrypoint.
-- `SpecSyntax.lean`: Solm notation companion wired to the AST spec.
-- `Constructor.lean`: top-level constructor-equivalence theorem target.
-- `Correct.lean`: top-level runtime-equivalence theorem target plus whole-contract wrapper.
+- `Trusted.lean`: selector Keccak facts plus proof-local names for the verified `JUMPDEST` sets.
+- `Spec.lean`: Solm AST benchmark scaffold with storage layout and full public ABI surface.
+- `SpecSyntax.lean`: Solm notation companion wired to the AST spec, checked by `rfl`.
+- `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
+- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper,
+  intentionally `sorry` at the runtime target.
 
 Source and artifact hashes:
 
@@ -53,7 +55,23 @@ runtime.hex              sha256 199a0aa60cdd9abd96fdc3b3ee9f83136a7340521f7c4677
 
 Scaffold notes:
 
-- This file was generated as part of the DSS coverage expansion pass on 2026-07-06.
+- Readiness: ready for proof as of 2026-07-06. Fresh solc output is checked in, and the solc
+  storage layout matches `Spec.lean`.
+- The named ABI surface includes public storage getters, `tCount`, `list`, `tell`,
+  auth-gated `rely`/`deny`, `file(bytes32,uint256)`, source-list management, `cage`, and `load`.
+- Storage layout is transcribed from solc's `--storage-layout`: `wards` slot 0, `live` slot 1,
+  dynamic `srcs` slot 2, `wait` slot 3, `when` slot 4, `pos` slot 5, `amt` slot 6, `loaded` slot 7,
+  `lCount` slot 8, and `say` slot 9.
+- The runtime has one `STATICCALL` site and one matching `EXTCODESIZE` guard for
+  `SourceLike.cure()`. It has no `CALL`, `DELEGATECALL`, contract creation, or selfdestruct.
+- `SourceLike.cure()` is represented with a custom external ABI and modeled as `perm := false`,
+  matching the upstream `view` interface and runtime `STATICCALL`.
+- `Trusted.lean` records the 20 opaque Keccak selector facts needed to connect Solm dispatch to the
+  runtime dispatcher constants; the values match the selectors embedded in `runtime.hex`.
+- Checked `_add`/`_sub` use the same revert conditions as Solidity 0.6 wrapped arithmetic plus the
+  source `require`s. The `lCount++` in `load` is modeled as unchecked modulo-2^256 wrapping.
 - Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS
   benchmarks whose equivalence relation ignores logs/substate.
-- Proof status is tracked by `cureContractCorrect` in `Correct.lean`.
+- No known Solm syntax or semantics change is required to start proving this benchmark. The likely
+  proof hotspots are dispatcher routing, dynamic-array and mapping storage lemmas, checked
+  arithmetic, and static-call return decoding.

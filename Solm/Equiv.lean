@@ -228,6 +228,38 @@ inductive runtimeEquivalenceFor (cfg : Config)
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
 
+abbrev StorageWF := Ethereum.AccountMap → Ethereum.ExecutionEnv → Prop
+
+/-- Trivial storage well-formedness predicate for contracts whose correctness is unconditional. -/
+def trivialStorageWF : StorageWF := fun _ _ => True
+
+/-- Runtime equivalence under a contract-specific storage well-formedness precondition.
+
+This is the same runtime relation as `runtimeEquivalence!?!`, except the caller must additionally
+prove `wf σ_evm I` for the EVM-side initial storage and execution environment.  The old
+unconditional relation remains available as before; new contracts that need reachable-state or
+layout invariants can use this parameterized entry point. -/
+inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) : Prop where
+  | intro :
+    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+      (genesisBlockHeader : Ethereum.BlockHeader)
+      (blocks : Ethereum.ProcessedBlocks)
+      (σ_evm : Ethereum.AccountMap)
+      (σ_solm : Ethereum.AccountMap)
+      (σ₀ : Ethereum.AccountMap)
+      (g : Ethereum.UInt256)
+      (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv),
+    I.code = bytecode →
+    I.calldata.size < Ethereum.UInt256.size →
+    I.perm = true →
+    accountMapEquiv σ_evm σ_solm →
+    wf σ_evm I →
+    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    ) →
+    runtimeEquivalenceWithWF wf cfg bytecode contract
+
 -- a Solm contract corresponds to what?
 inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
   | intro :
@@ -253,6 +285,24 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
     ) →
     runtimeEquivalence!?! cfg bytecode contract
+
+theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArray}
+    {contract : ContractDecl} :
+    runtimeEquivalenceWithWF trivialStorageWF cfg bytecode contract ↔
+      runtimeEquivalence!?! cfg bytecode contract := by
+  constructor
+  · intro h
+    cases h with
+    | intro hrun =>
+        refine runtimeEquivalence!?!.intro ?_
+        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts trivial
+  · intro h
+    cases h with
+    | intro hrun =>
+        refine runtimeEquivalenceWithWF.intro ?_
+        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts _hwf
+        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
 
 inductive constructorEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
@@ -331,6 +381,13 @@ inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode
     constructorEquivalence cfg initcode contract runtimeCode →
     runtimeEquivalence!?! cfg runtimeCode contract →
     contractEquivalence cfg initcode runtimeCode contract
+
+inductive contractEquivalenceWF (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalenceWithWF wf cfg runtimeCode contract →
+    contractEquivalenceWF wf cfg initcode runtimeCode contract
 
 /-! ## Parameterized (immutable-aware) constructor equivalence
 
@@ -424,3 +481,11 @@ inductive contractEquivalenceWith (cfg : Config) (initcode : EVM.Bytes) (runtime
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
     runtimeEquivalence!?! cfg runtimeCode contract →
     contractEquivalenceWith cfg initcode runtimeCode contract runtimeCodeOf
+
+inductive contractEquivalenceWithWF (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
+    runtimeEquivalenceWithWF wf cfg runtimeCode contract →
+    contractEquivalenceWithWF wf cfg initcode runtimeCode contract runtimeCodeOf
