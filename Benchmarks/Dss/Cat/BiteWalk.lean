@@ -8,6 +8,135 @@ set_option maxHeartbeats 1000000
 
 namespace Benchmarks.Dss.Cat
 
+/-- `urns` returns `(uint256,uint256)`; `< 64` bytes cannot ABI-decode the 2-word tuple. Urns
+analogue of `catBiteIlksDecode_none`. -/
+theorem catBiteUrnsDecode_none {o : ByteArray} (hoLt : o.size < 64) :
+    config.externalABI.decode? "urns" o = none := by
+  show ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256] o = none
+  have holen : o.toList.length = o.size := by rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have hnone : decodeScalarWordsWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256]
+      o.toList 0 = none := by
+    cases h : decodeScalarWordsWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256]
+        o.toList 0 with
+    | none => rfl
+    | some vals =>
+        exfalso
+        have hlen := decodeScalarWordsWithMode?_some_length (by simp) h
+        rw [holen] at hlen
+        simp only [List.length_cons, List.length_nil] at hlen
+        omega
+  unfold ABI.decodeReturnValuesWithMode?
+  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256, abiUInt256]) (by decide)]
+  simp only [bind, Option.bind]
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
+    (types := [abiUInt256, abiUInt256]) (bytes := o.toList) (cursor := 0)
+    (total := 32 * [abiUInt256, abiUInt256].length) (by decide) (by simp), hnone]
+
+/-- The `urns` post-call scratch mem's free-pointer `MLOAD` (`mem[0x40] = 0x80`) survives the
+`< 64`-byte return copy (which lands at `0x80`, entirely above `0x40`). Urns analogue of
+`catBiteIlksPostCallMem_mload64_short`. -/
+private theorem catBiteUrnsPostCallMem_mload64_short (I : ExecutionEnv) {mem : ByteArray}
+    (o : ByteArray) {aw : UInt256} (hmem : 196 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hoLt : o.size < 64) (hout : o.size < UInt256.size)
+    (haw : 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteUrnsPostCallMem I mem o).size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+        then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((catBiteUrnsPostCallMem I mem o).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
+  have hbaseSz : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem).size = mem.size :=
+    biteUrnsCalldataMem_size hmem
+  have hbaseRead : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := biteUrnsCalldataMem_read64 hmem hread64
+  have hlen : (min (⟨64⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size :=
+    umin_ofNat_right_toNat_of_lt (c := 64) (n := o.size) (by decide) hoLt hout
+  have hread : (catBiteUrnsPostCallMem I mem o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    unfold catBiteUrnsPostCallMem
+    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
+    rcases Nat.eq_zero_or_pos o.size with h0 | h0
+    · rw [h0, byteArray_write_len_zero]; exact hbaseRead
+    · rw [write_read_below_gen_extend o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
+        128 o.size 64 (by omega) (le_refl _) (by rw [hbaseSz]; omega) (by omega)]
+      exact hbaseRead
+  have hsz : 64 < (catBiteUrnsPostCallMem I mem o).size := by
+    unfold catBiteUrnsPostCallMem
+    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
+    rcases Nat.eq_zero_or_pos o.size with h0 | h0
+    · rw [h0, byteArray_write_len_zero, hbaseSz]; omega
+    · rw [write_eq_gen o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
+          128 o.size (by omega) (le_refl _) (by rw [hbaseSz]; omega),
+        ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+        ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
+      omega
+  refine mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) ?_ ?_ ?_
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hsz
+  · intro hh
+    have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+    rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
+    omega
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hread
+
+set_option maxHeartbeats 800000 in
+/-- **urns return-decode-short branch (extracted).** `ilks` succeeds and decodes; the `urns`
+STATICCALL succeeds but returns `< 64` bytes; reach pc 1420, fire `catBiteUrnsDecodeShortLeaf` +
+`catBiteSourceUrnsDecodeRevert`. Urns analogue of `catBiteRevertIlksDecode`. -/
+theorem catBiteRevertUrnsDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu : AccountMap} {A' Au : Substate}
+    {cA' cAu : Batteries.RBSet AccountAddress compare} {o' ou : ByteArray} {ku Cu : ℕ}
+    {iDust iSpot iRate : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (hdepth : (I.depth : ℕ) < 1024)
+    (hvatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hilkslen : 160 ≤ o'.size) (hurnsShort : ou.size < 64)
+    (hosz : o'.size < UInt256.size) (hoszu : ou.size < UInt256.size)
+    (rd1399 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
+      (⟨1⟩ :: ⟨196⟩ :: ⟨606387804⟩ :: UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
+        ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
+        ⟨419⟩ :: catSelWord I :: [])
+      (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨9⟩ ou (cAu, σu) ku Cu) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdepthNe : I.depth ≠ 1024 := by omega
+  obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, _hAmEq, hvatCodeIlkS⟩ :=
+    catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
+  obtain ⟨_, _, rd1420⟩ := RD.catBiteUrnsCallSucceeded rd1399 (by decide) (by simp)
+  have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
+    have := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
+  have hread64 : (catBiteIlksPostCallMem I o').readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
+    catBiteIlksPostCallMem_read64 I o' hilkslen hosz
+  exact catBiteUrnsDecodeShortLeaf hcode hdispatch hdecode rd1420 hurnsShort hoszu
+    (catBiteUrnsPostCallMem_mload64_short (mem := catBiteIlksPostCallMem I o')
+      (aw := (⟨9⟩ : UInt256)) I ou hmemI hread64
+      hurnsShort hoszu (by native_decide) (by native_decide))
+    (catBiteMloadCost0 (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide)))
+    (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide))
+    (by simp only [List.length_cons, List.length_nil]; omega)
+    (catBiteSourceUrnsDecodeRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode)
+      hIlksSolm (catBiteIlksDecode_ok hilkslen) hvatCodeIlkS hUrnsSolm
+      (catBiteUrnsDecode_none hurnsShort))
+
 /-! # Cat `bite` — the integrator walk (`catBiteBodyImpl`)
 
 Fills the vat-has-code spine of `catBiteBody`, chaining the verified reach spine and branching at
@@ -1040,7 +1169,10 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn
                           rd1399 (by decide) haw288 (by rw [hawout9]; native_decide) rfl rfl rfl hlive
                     · -- urns return decode short (`returndatasize < 64`).
-                      sorry
+                      rw [show (if (true = true) then (⟨1⟩ : UInt256) else ⟨0⟩) = (⟨1⟩ : UInt256)
+                        from rfl, hawout9] at rd1399
+                      exact catBiteRevertUrnsDecode hcode hwv hdispatch hdecode hAccounts hdepth
+                        hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen (by omega) hosz hoszu rd1399
             · -- ilks return decode short (`returndatasize < 160`).
               exact catBiteRevertIlksDecode hcode hwv hdispatch hdecode hAccounts hvatCode
                 hIlksCall rd1249 (by decide) hosz hawout9 hilkslen
