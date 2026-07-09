@@ -165,6 +165,18 @@ def storageLayout : StorageLayout :=
 def nonpayable : List Stmt :=
   [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
 
+def calldataSizeLimit : Int := (2 : Int) ^ 255 + 4
+
+def calldataGuardRef : StorageRef := { base := "__calldata" }
+
+def calldataSizeGuard : List Stmt :=
+  [ .letDecl "__calldata" (some bytesTy) (.env .msgData),
+    .require
+      (.binary .lt (.arrayLength .localVar calldataGuardRef) (.intLit calldataSizeLimit)) ]
+
+def externalEntryGuard : List Stmt :=
+  nonpayable ++ calldataSizeGuard
+
 def checkedExternalCallStmts (receiver : Expr) (name : Ident) (eth : Expr)
     (args : List Expr) (retVar : Ident) (perm : Bool := true) : List Stmt :=
   [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
@@ -286,7 +298,7 @@ def claimTransition : TransitionDecl :=
     params := [{ name := "comet", ty := addr }, { name := "src", ty := addr }, { name := "shouldAccrue", ty := boolTy }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .internalCall "claimInternal"
           [.var "comet", .var "src", .var "src", .var "shouldAccrue"] "_claim" ] }
 
@@ -295,7 +307,7 @@ def claimToTransition : TransitionDecl :=
     params := [{ name := "comet", ty := addr }, { name := "src", ty := addr }, { name := "to", ty := addr }, { name := "shouldAccrue", ty := boolTy }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .externalCall (.var "comet") "hasPermission" (.intLit 0)
           [.var "src", sender] "permitted" false,
         .require (.var "permitted"),
@@ -307,7 +319,7 @@ def getRewardOwedTransition : TransitionDecl :=
     params := [{ name := "comet", ty := addr }, { name := "account", ty := addr }]
     returnType := [(.tuple [addr, uint256])]
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .letDecl "token" (some addr) (.storage (rewardConfigF (.var "comet") "token")),
         .letDecl "rescaleFactor" (some uint64)
           (.storage (rewardConfigF (.var "comet") "rescaleFactor")),
@@ -335,26 +347,26 @@ def governorTransition : TransitionDecl :=
   { name := "governor"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [.storage governorRef] ] }
+    body := externalEntryGuard ++ [ .return [.storage governorRef] ] }
 
 def rewardConfigTransition : TransitionDecl :=
   { name := "rewardConfig"
     params := [{ name := "arg0", ty := addr }]
     returnType := [addr, uint64, boolTy, uint256]
-    body := nonpayable ++ [ .return [.storage (rewardConfigF (.var "arg0") "token"), .storage (rewardConfigF (.var "arg0") "rescaleFactor"), .storage (rewardConfigF (.var "arg0") "shouldUpscale"), .storage (rewardConfigF (.var "arg0") "multiplier")] ] }
+    body := externalEntryGuard ++ [ .return [.storage (rewardConfigF (.var "arg0") "token"), .storage (rewardConfigF (.var "arg0") "rescaleFactor"), .storage (rewardConfigF (.var "arg0") "shouldUpscale"), .storage (rewardConfigF (.var "arg0") "multiplier")] ] }
 
 def rewardsClaimedTransition : TransitionDecl :=
   { name := "rewardsClaimed"
     params := [{ name := "arg0", ty := addr }, { name := "arg1", ty := addr }]
     returnType := [uint256]
-    body := nonpayable ++ [ .return [.storage (rewardsClaimedRef (.var "arg0") (.var "arg1"))] ] }
+    body := externalEntryGuard ++ [ .return [.storage (rewardsClaimedRef (.var "arg0") (.var "arg1"))] ] }
 
 def setRewardConfigTransition : TransitionDecl :=
   { name := "setRewardConfig"
     params := [{ name := "comet", ty := addr }, { name := "token", ty := addr }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .internalCall "setRewardConfigWithMultiplierBody"
           [.var "comet", .var "token", (.intLit factorScale)] "_set" ] }
 
@@ -363,7 +375,7 @@ def setRewardConfigWithMultiplierTransition : TransitionDecl :=
     params := [{ name := "comet", ty := addr }, { name := "token", ty := addr }, { name := "multiplier", ty := uint256 }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .internalCall "setRewardConfigWithMultiplierBody"
           [.var "comet", .var "token", .var "multiplier"] "_set" ] }
 
@@ -372,7 +384,7 @@ def setRewardsClaimedTransition : TransitionDecl :=
     params := [{ name := "comet", ty := addr }, { name := "users", ty := (.dynamicArray addr) }, { name := "claimedAmounts", ty := (.dynamicArray uint256) }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .require (.binary .eq sender (.storage governorRef)),
         .require
           (.binary .eq
@@ -399,7 +411,7 @@ def transferGovernorTransition : TransitionDecl :=
     params := [{ name := "newGovernor", ty := addr }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .require (.binary .eq sender (.storage governorRef)),
         .assign .storage governorRef (.var "newGovernor") ] }
 
@@ -408,7 +420,7 @@ def withdrawTokenTransition : TransitionDecl :=
     params := [{ name := "token", ty := addr }, { name := "to", ty := addr }, { name := "amount", ty := uint256 }]
     returnType := []
     body :=
-      nonpayable ++
+      externalEntryGuard ++
       [ .require (.binary .eq sender (.storage governorRef)),
         .internalCall "doTransferOut" [.var "token", .var "to", .var "amount"] "_sent" ] }
 

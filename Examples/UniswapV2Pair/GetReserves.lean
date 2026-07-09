@@ -194,9 +194,7 @@ theorem getReservesReturn0Mem_size (r0 : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
       (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
-    toByteArray_size]
+    USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)), toByteArray_size]
 
 theorem getReservesReturn1Mem_size (r0 r1 : UInt256) :
     (getReservesReturn1Mem r0 r1).size = 192 := by
@@ -204,9 +202,7 @@ theorem getReservesReturn1Mem_size (r0 r1 : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [getReservesReturn0Mem_size])
       (by rw [getReservesReturn0Mem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, getReservesReturn0Mem_size,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem getReservesReturnMem_size (r0 r1 ts : UInt256) :
@@ -215,9 +211,7 @@ theorem getReservesReturnMem_size (r0 r1 ts : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [getReservesReturn1Mem_size])
       (by rw [getReservesReturn1Mem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, getReservesReturn1Mem_size,
-    ByteArray_zeroes_size,
-    show (USize.ofNat (192 - 192)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
     toByteArray_size]
 
 theorem getReservesReturn0Mem_read64 (r0 : UInt256) :
@@ -227,15 +221,12 @@ theorem getReservesReturn0Mem_read64 (r0 : UInt256) :
       (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
-        ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
         toByteArray_size]
-      norm_num)]
+      native_decide)]
   rw [extract_append_left _ _ _ _ (by
-      rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
+      rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
       omega)]
   rw [extract_append_left _ _ _ _ (by rw [solcFreePtrMem_size]),
     ← readWithPadding_eq_extract _ 64 (by rw [solcFreePtrMem_size]), solcFreePtrMem_read64]
@@ -272,21 +263,18 @@ theorem getReservesReturnMem_read128_96 (r0 r1 ts : UInt256) :
   rw [extract_append_span
       (getReservesReturn1Mem r0 r1 ++
         ffi.ByteArray.zeroes (USize.ofNat (192 - (getReservesReturn1Mem r0 r1).size)))
-      (UInt256.toByteArray ts) 128 224 (by
-        rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (192 - 192)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      (UInt256.toByteArray ts) 128 (128 + 96) (by
+        rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
         omega) (by
-        rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (192 - 192)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
         omega)]
-  rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (192 - 192)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
   rw [show ffi.ByteArray.zeroes (USize.ofNat (192 - 192)) = ByteArray.empty by
       exact zeroes_zero (n := USize.ofNat 0)
-        (by exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+        (by rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
   simp
   unfold getReservesReturn1Mem
   rw [toByteArray_write_eq _ _ _ (by rw [getReservesReturn0Mem_size])
@@ -295,20 +283,17 @@ theorem getReservesReturnMem_read128_96 (r0 r1 ts : UInt256) :
       (getReservesReturn0Mem r0 ++
         ffi.ByteArray.zeroes (USize.ofNat (160 - (getReservesReturn0Mem r0).size)))
       (UInt256.toByteArray r1) 128 192 (by
-        rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
         omega) (by
-        rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
         omega)]
-  rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+  rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
   rw [show ffi.ByteArray.zeroes (USize.ofNat (160 - 160)) = ByteArray.empty by
       exact zeroes_zero (n := USize.ofNat 0)
-        (by exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+        (by rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
   simp
   unfold getReservesReturn0Mem
   rw [toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
@@ -316,12 +301,10 @@ theorem getReservesReturnMem_read128_96 (r0 r1 ts : UInt256) :
   rw [extract_append_right_window
       (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat (128 - solcFreePtrMem.size)))
       (UInt256.toByteArray r0) 128 160 (by
-        rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
-  rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+        rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
+        rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+  rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
+  rw [USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
   norm_num
   repeat'
     first

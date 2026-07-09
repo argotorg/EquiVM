@@ -12,25 +12,39 @@ the checked-in `.abi.json` files.
 
 ## Size and Readiness Table
 
-| Benchmark | Runtime bytes | Creation bytes | ABI surface | Readiness level | Ready for proof |
-| --- | ---: | ---: | --- | --- | --- |
-| `Dss/Dai` | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
-| `Dss/Vow` | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
-| `Dss/Vat` | 6965 | 7021 | 28 fn + ctor | Handed off | Yes |
-| `Dss/Pot` | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
-| `Dss/Jug` | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
-| `Dss/Spot` | 2178 | 2320 | 12 fn + ctor | Ready for proof | Yes |
-| `WETH9` | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
-| `EAS/Attester` | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
-| `ERC721` | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
-| `OpenZeppelinBench/VestingWallet` | 2277 | 2485 | 14 fn + ctor + receive | Ready for proof | Yes |
-| `OpenZeppelinBench/TimelockController` | 6509 | 7161 | 28 fn + ctor + receive | Handed off | Yes |
-| `CompoundIII/CometRewards` | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
-| `Safe` | 11874 | 11907 | 31 fn + ctor + fallback/receive | Handed off | Yes |
-| `UniswapV2Router02` | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
-| `UniswapV3Pool` | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
-| `CompoundIII/Comet` | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
-| `Auction` | 6150 | 6179 | 20 fn + empty ctor | Handed off | Yes |
+| Benchmark | solc | Runtime bytes | Creation bytes | ABI surface | Readiness level | Ready for proof |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| `Dss/Dai` | 0.6.12 | 4011 | 4312 | 22 fn + ctor | Completed | Yes |
+| `Dss/Vow` | 0.6.12 | 5150 | 5410 | 24 fn + ctor | Completed | Yes |
+| `Dss/Vat` | 0.6.12 | 6965 | 7021 | 28 fn + ctor | Handed off | Yes |
+| `Dss/Pot` | 0.6.12 | 2595 | 2746 | 17 fn + ctor | Completed | Yes |
+| `Dss/Jug` | 0.6.12 | 2440 | 2560 | 12 fn + ctor | Completed | Yes |
+| `Dss/Spot` | 0.6.12 | 2178 | 2320 | 12 fn + ctor | Completed | Yes |
+| `Dss/LinearDecrease` | 0.6.12 | 1128 | 1217 | 6 fn + ctor | Completed | Yes |
+| `Dss/StairstepExponentialDecrease` | 0.6.12 | 1433 | 1522 | 7 fn + ctor | Completed | Yes |
+| `Dss/ExponentialDecrease` | 0.6.12 | 1321 | 1410 | 6 fn + ctor | Completed | Yes |
+| `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Completed | Yes |
+| `Dss/DaiJoin` | 0.6.12 | 1733 | 1876 | 9 fn + ctor | Completed | Yes |
+| `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
+| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
+| `Dss/Cure` | 0.6.12 | 3875 | 3971 | 20 fn + ctor | Completed | Yes |
+| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
+| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
+| `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
+| `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Completed | Yes |
+| `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Completed | Yes |
+| `WETH9` | 0.5.16 | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
+| `EAS/Attester` | 0.8.26 | 3186 | 3371 | 4 fn + ctor | Handed off | Yes |
+| `ERC721` | 0.8.35 | 1482 | 1510 | 7 fn + empty ctor | Ready for proof | Yes |
+| `OpenZeppelinBench/VestingWallet` | 0.8.35 | 2277 | 2485 | 14 fn + ctor + receive | Ready for proof | Yes |
+| `OpenZeppelinBench/TimelockController` | 0.8.35 | 6509 | 7161 | 28 fn + ctor + receive | Handed off | Yes |
+| `CompoundIII/CometRewards` | 0.8.15 via-IR | 4063 | 4207 | 11 fn + ctor | Handed off | Yes |
+| `Safe` | 0.8.35 | 11874 | 11907 | 31 fn + ctor + fallback/receive | Handed off | Yes |
+| `UniswapV2Router02` | 0.6.6 | 21955 | 22346 | 24 fn + ctor + fallback/receive | Prep needed | No |
+| `UniswapV3Pool` | 0.7.6 | 22142 | 22728 | 26 fn + ctor | Handed off | Yes |
+| `CompoundIII/Comet` | 0.8.15 via-IR | 18655 | 21528 | 68 fn + ctor + fallback/receive | Prep needed | No |
+| `Auction` | 0.8.23 | 6150 | 6179 | 20 fn + empty ctor | Handed off | Yes |
+| `Klima` | 0.7.5 | 6975 | 7732 | 30 fn + ctor | Ready for proof | Yes |
 
 ## Completed / ready for proof / handed off
 
@@ -60,13 +74,74 @@ the checked-in `.abi.json` files.
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   `VatLike.ilks` and `VatLike.fold`. Proof work has been marked done.
 
-- `Dss/Spot`: ready for proof, not yet handed off. Target theorem:
+- `Dss/Spot`: completed. Target theorem:
   `Benchmarks.Dss.Spot.spotContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   `PipLike.peek` and `VatLike.file`. The `Poke` event is omitted consistently with the framework's
-  substate/log abstraction. No semantic blocker is currently known; expected proof work is oracle
-  return decoding, conditional arithmetic, and `bytes32` to `uint256` casting.
+  substate/log abstraction. Proof work has been marked done.
+
+- `Dss/LinearDecrease`, `Dss/StairstepExponentialDecrease`, and `Dss/ExponentialDecrease`:
+  completed. Target theorems:
+  `Benchmarks.Dss.LinearDecrease.linearDecreaseContractCorrect`,
+  `Benchmarks.Dss.StairstepExponentialDecrease.stairstepExponentialDecreaseContractCorrect`, and
+  `Benchmarks.Dss.ExponentialDecrease.exponentialDecreaseContractCorrect`. Fresh solc output is
+  checked in for all three deployable contracts from `src/abaci.sol`; the specs model auth,
+  storage layout, `file`, public getters, checked arithmetic, and the source-level price functions
+  including the `rpow` loop for the exponential variants. Proof work has been marked done.
+
+- `Dss/GemJoin`: completed. Target theorem:
+  `Benchmarks.Dss.GemJoin.gemJoinContractCorrect`. Fresh solc output is checked in from
+  `src/join.sol`; the spec models auth, constructor initialization, public getters, cage,
+  join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed external ABI hooks for
+  `VatLike` and `GemLike`. Proof work has been marked done.
+
+- `Dss/DaiJoin`: completed. Target theorem:
+  `Benchmarks.Dss.DaiJoin.daiJoinContractCorrect`. Fresh solc output is checked in from
+  `src/join.sol`; the spec models auth, constructor initialization, public getters, cage,
+  join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed external ABI hooks for
+  `VatLike` and `DSTokenLike`. Proof work has been marked done.
+
+- `Dss/End`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.Dss.End.endContractCorrect`. The solc storage layout matches the spec's 18 slots
+  (0–17, including the nested `out[ilk][usr]` mapping). A bytecode-level audit of the checked-in
+  10265-byte runtime finds 36 high-level external-call sites — 29 `CALL` and 7 `STATICCALL` — each
+  preceded by an `EXTCODESIZE` guard (36 guards), with no delegatecall, contract creation, or
+  selfdestruct, and a binary-search dispatcher over exactly the 32 ABI selectors. The spec models
+  all 36 calls with code-size guards, the 7 `view` callees (`dai`, `par`, `spot.ilks`, `tell`,
+  `bids`, `sales`, `read`) as `perm := false` static calls and the 29 state-changing calls as
+  `perm := true`, all 32 dispatched functions (18 getters + 14 externals), the constructor, and the
+  settlement flow (`cage`/`cage(ilk)`/`snip`/`skip`/`skim`/`free`/`thaw`/`flow`/`pack`/`cash`), with
+  typed ABI hooks for `VatLike`/`CatLike`/`DogLike`/`SpotLike`/`CureLike`/`FlipLike`/`ClipLike`/
+  `PipLike` (the four `ilks(bytes32)` callees share one selector with distinct return decodes). The
+  `int256(x) >= 0` overflow guards are modeled as `x < 2^255`. Events are omitted consistently with
+  the framework's log abstraction. No semantic blocker is currently known; expected proof work is
+  binary-search dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the
+  typed external-call return decodings.
+
+- `Dss/Cure`: completed. Target theorem:
+  `Benchmarks.Dss.Cure.cureContractCorrect`. Fresh solc output is checked in, the artifact hashes
+  match `Benchmarks/Dss/Cure/README.md`, and the solc storage layout matches the spec's 10 slots
+  (`wards`, `live`, dynamic `srcs`, `wait`, `when`, `pos`, `amt`, `loaded`, `lCount`, `say`). A
+  bytecode-level audit of the checked-in 3875-byte runtime finds one `STATICCALL` and one matching
+  `EXTCODESIZE` guard for `SourceLike.cure()`, with no `CALL`, `DELEGATECALL`, contract creation,
+  or selfdestruct. The spec models all 20 public/external functions, the constructor, auth/live
+  guards, `file("wait", data)`, source-list `lift`/`drop`, `cage`, `tell`, checked `_add`/`_sub`,
+  the unchecked `lCount++` wrap in `load`, and the guarded static `SourceLike.cure()` return
+  decoding. `Trusted.lean` records the 20 opaque Keccak selector facts needed for dispatcher proof
+  work plus proof-local names for the verified jump tables. Events are omitted consistently with the
+  framework's log abstraction. Proof work has been marked done.
+
+- `Dss/Cat`, `Dss/Clipper`, `Dss/Dog`, and `Dss/Flapper`: scaffolded, not ready for proof. Fresh
+  upstream sources, ABI/AST/storage-layout
+  artifacts, optimized creation/runtime bytecode, Lean `ByteArray`s, verified `JUMPDEST` sets, and
+  top-level theorem targets are checked in and compile. Their current `Spec.lean` files are
+  intentionally minimal entrypoints; they still need full source-body transcription before they
+  should be handed to a proof agent.
+
+- `Dss/Flipper` and `Dss/Flopper`: completed. Target theorems:
+  `Benchmarks.Dss.Flipper.flipperContractCorrect` and
+  `Benchmarks.Dss.Flopper.flopperContractCorrect`. Proof work has been marked done.
 
 - `WETH9`: completed. Target theorem:
   `Benchmarks.WETH9.weth9ContractCorrect`. Fresh solc output exactly matches the checked-in Lean
@@ -162,6 +237,21 @@ the checked-in `.abi.json` files.
   `Benchmarks.UniswapV3Pool.uniswapV3PoolContractCorrect`. Large stress benchmark with
   constructor-set immutables and complex pool paths; proof work should expect substantial selector,
   immutable-code, external-call, and body-trace engineering.
+
+- `Klima`: ready for proof, not yet handed off. Target theorem:
+  `Benchmarks.Klima.klimaContractCorrect`. Fresh solc 0.7.5 output with optimizer runs 200 and
+  `--metadata-hash none` exactly matches the checked-in Lean creation/runtime byte arrays, and the
+  solc storage layout matches the spec. There are no immutables, so the creation bytecode returns the
+  runtime verbatim (byte offset 757). The KlimaDAO `KlimaToken` is the full inherited ERC20 +
+  EIP-2612 permit + `Ownable`/`VaultOwned` + `TWAPOracleUpdater` contract. The spec models the
+  compact-string `_name`/`_symbol` storage (pre-0.8 total decode), the `EnumerableSet.AddressSet`
+  `_values`/`_indexes` slots with `push`/swap-and-pop `remove`, `SafeMath` checked arithmetic, the
+  `_beforeTokenTransfer` hook's `EXTCODESIZE`-guarded `twapOracle.updateTWAP` external call on every
+  balance-moving path, and the `ecrecover`/EIP-712 `permit`. Events are omitted consistently with the
+  framework's log abstraction. No benchmark-local semantic blocker is currently known; expected proof
+  work is binary-search dispatcher routing, mapping/dynamic-array slot lemmas, compact-string layout,
+  `SafeMath` checked arithmetic, the guarded external call on transfer/mint/burn, and the
+  precompile/ABI `permit` lemmas.
 
 ## Scaffolded, not yet handed off
 

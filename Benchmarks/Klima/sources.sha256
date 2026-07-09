@@ -1,0 +1,5 @@
+contracts/KlimaToken.sol         sha256 5dec18858b044e4e6519fbce7be8e096dec47374ef11b3fb155a9a2f76a3a00a
+creation.hex                     sha256 34c7efe30f1189c87cb77a65c4a94ad6c3ce3ae4d8062e36961c4af1a55f69f7
+runtime.hex                      sha256 a2b7602a1872e8ea6607bf46b28550117b19e8902e3e2799045eefa27b578733
+KlimaToken.abi.json              sha256 d9080193f5855d84f104b9df730f9a4fdd6202583dd8a3dc0a048a41a0725f2b
+KlimaToken.storage.json          sha256 726731d6e2ad3539b8e2a1b9aea351482945472996986409d63d6c122fbf0f44
