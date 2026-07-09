@@ -1024,7 +1024,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn hlive
                                   rd1521 haw288 (by rw [hawout9]; native_decide) hspotPos hfitArtRate hfitInkSpot
                                   hart hink hiSpot hiRate rfl hunsafe
-                            · sorry -- spot = 0 (short-circuit) → revert leaf
+                            · exact catBiteRevertSpotZero hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn hlive
+                                rd1521 haw288 (by rw [hawout9]; native_decide)
+                                (uint256_toNat_eq_zero (Nat.le_zero.mp (Nat.not_lt.mp hspotPos)))
+                                hfitArtRate hfitInkSpot hart hink hiSpot hiRate rfl
                           · exact catBiteRevertInkSpot hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
                               hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hurn hlive rd1521
                               hfitArtRate hart hink hiSpot hiRate rfl hfitInkSpot

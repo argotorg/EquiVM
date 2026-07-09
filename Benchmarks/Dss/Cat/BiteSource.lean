@@ -1824,6 +1824,33 @@ theorem catBiteSourceSpotZeroRevert
     (evalExpr_and_falseL (evalExpr_gtLit_false (evalExpr_varUInt256 (bsArtRate_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       (by rw [hspot0]; decide))))
 
+/-- **`spot = 0` revert with `rate = 0`.** Dual of `catBiteSourceSpotZeroRevert` when the
+`artRate = art*rate` `checkedMul`'s multiplier is also zero (`_yzero`). -/
+theorem catBiteSourceSpotZeroRateZeroRevert
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hrate0 : iRate.toNat = 0) (hspot0 : iSpot.toNat = 0) :
+    ExecTransitionBody config contract (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (biteLocals I) biteTransition.body .reverted := by
+  refine biteRevert_afterPre hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall hUrnsDec hlive ?_
+  simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
+    List.nil_append]
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
+      hspot0)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsArtRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
+      hrate0)) ?_
+  exact ExecBlock.consRevert (ExecStmt.requireFalse
+    (evalExpr_and_falseL (evalExpr_gtLit_false (evalExpr_varUInt256 (bsArtRate_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (by rw [hspot0]; decide))))
+
 theorem catBiteSourceInkSpotGeRevert
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)

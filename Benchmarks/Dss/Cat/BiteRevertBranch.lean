@@ -2992,6 +2992,130 @@ theorem catBiteRevertUnsafe {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 
 set_option maxHeartbeats 2000000 in
+/-- **`spot = 0` short-circuit require-string revert branch (extracted).** Pre-milk (aw=9) `Seg5`
+guard: `require(spot > 0 && …, "Cat/not-unsafe")` fails on the FIRST conjunct (`spot = 0`
+short-circuit).  Reaches the guard at pc 1555 (`catBiteReachGuardSpot`) with `cond = ⟨0⟩`, fires
+`catBiteRequireStringRevertLeaf` + `catBiteSourceSpotZeroRevert` (or its `rate=0` variant). -/
+theorem catBiteRevertSpotZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu : AccountMap} {A' Au : Substate}
+    {cA' cAu : Batteries.RBSet AccountAddress compare} {o' ou : ByteArray} {ku Cu : ℕ}
+    {aw : UInt256} {art ink iSpot iRate iDust : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
+    (hurnslen : 64 ≤ ou.size) (hoszu : ou.size < UInt256.size)
+    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
+    (rd1521 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        biteAddrMaskWord.land (calldataWord I.calldata 36) :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) aw ou (cAu, σu) ku Cu)
+    (haw : 288 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
+    (hspot0 : iSpot = ⟨0⟩)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdepthNe : I.depth ≠ 1024 := by omega
+  have hspot0N : iSpot.toNat = 0 := by rw [hspot0]; native_decide
+  have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
+    have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
+  have hbaseSz : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I)
+      (catBiteIlksPostCallMem I o')).size = 288 := by
+    rw [biteUrnsCalldataMem_size hmemI, catBiteIlksPostCallMem_size I o' hilkslen hosz]
+  have hlen64 : ((⟨64⟩ : UInt256) ⊓ UInt256.ofNat ou.size).toNat = 64 :=
+    umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
+  have hmemsz : 228 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
+    unfold catBiteUrnsPostCallMem
+    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+      write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
+    omega
+  have hFree64 : (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).readWithPadding 64 32
+      = UInt256.toByteArray ⟨128⟩ :=
+    catBiteUrnsPostCallMem_read64 I ou hmemI (catBiteIlksPostCallMem_read64 I o' hilkslen hosz)
+      hurnslen hoszu
+  obtain ⟨_, _, rd1555⟩ := catBiteReachGuardSpot rd1521 hspot0 (by simp)
+  obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
+    catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
+  set eUrnS := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+    accountMap := σus, substate := Aus, createdAccounts := cAu } with heUrnSdef
+  have heUSam : eUrnS.accountMap = σus := rfl
+  have heUSee : eUrnS.executionEnv = I := rfl
+  have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
+    intro s; simp only [solcSlotWord]
+    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+  have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
+      ABI.bytesToWord ((o.toList.drop k).take 32) =
+        UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
+    intro o k h
+    rw [decode_word_at_eq_any o k h, uInt256OfByteArray_eq]
+    congr 1; unfold fromByteArrayBigEndian; congr 1
+    rw [byteArray_toList_eq (o.readBytes k 32), readBytes_at_toList_any o k h,
+      byteArray_toList_eq (o.extract k (k + 32)), ByteArray.data_extract, Array.toList_extract,
+      List.extract_eq_take_drop]
+    simp
+  have hIlksDec : config.externalABI.decode? "ilks" o' =
+      some [bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))), bw iRate, bw iSpot,
+        bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 96 128))), bw iDust] := by
+    have h := catBiteIlksDecode_ok hilkslen
+    rw [hbr o' 0 (by omega), hbr o' 32 (by omega), hbr o' 64 (by omega),
+      hbr o' 96 (by omega), hbr o' 128 (by omega)] at h
+    rw [hiRate, hiSpot, hiDust]; exact h
+  have hUrnsDec : config.externalABI.decode? "urns" ou = some [bw ink, bw art] := by
+    have h := catBiteUrnsDecode_ok hurnslen
+    rw [hbr ou 0 (by omega), hbr ou 32 (by omega)] at h
+    rw [hink, hart]; exact h
+  have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
+    rw [heUSam, heUSee]; simp only [catSlotWord]; rw [slotEqUS ⟨2⟩]
+    simpa only [catSlotWord] using hlive
+  have hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+        biteTransition.body .reverted := by
+    by_cases hRatePos : 0 < iRate.toNat
+    · exact catBiteSourceSpotZeroRevert hwv
+        (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
+        hUrnsSolm hUrnsDec hlive' hfitInkSpot hfitArtRate hRatePos hspot0N
+    · exact catBiteSourceSpotZeroRateZeroRevert hwv
+        (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
+        hUrnsSolm hUrnsDec hlive' hfitInkSpot hfitArtRate (by omega) hspot0N
+  exact catBiteRequireStringRevertLeaf (okPc := ⟨1620⟩) (len := ⟨14⟩)
+    (rawWord := ⟨0x4361742f6e6f742d756e73616665⟩) (shift := ⟨144⟩) (op := .PUSH14) (width := 14)
+    hcode hdispatch hdecode rd1555 rfl (by native_decide) (by native_decide)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    (by decide) rfl hmemsz (by omega) hawsz hFree64
+    (by simp only [List.length_cons, List.length_nil]; omega) hbody
+
+
+set_option maxHeartbeats 2000000 in
 /-- **ink·dart checkedMul-overflow branch (extracted).** Post-milk (aw=10) guard: reaches the
 `ink * dart` `checkedMul` frame at pc 3720 (via `catBiteTraceSeg7a`/`Seg7b` + `catBiteReachGuardInkDart`),
 fires `catBiteMulOverflowRevertLeaf` + `catBiteSourceInkDartOverflowRevert`. -/
