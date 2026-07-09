@@ -302,7 +302,20 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     omega
                                   by_cases hChopPos : milkChop ≠ ⟨0⟩
                                   swap
-                                  · sorry -- chop = 0: DSMath div-by-zero guard
+                                  · -- chop = 0: milkChop div-by-zero INVALID (if dunkRoom*WAD fits) / mul-overflow.
+                                    by_cases hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat *
+                                      dunkRoom.toNat < UInt256.size
+                                    · exact catBiteRevertMilkChopZero hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                        hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hosz hoszu hurn hlive
+                                        hmemI hmemUsz (by native_decide) rd1708 hChop hDunk hlitterbox hroomdust hunsafe
+                                        hfitArtRate hfitInkSpot hspotPos hRatePos hFitWad (not_not.mp hChopPos)
+                                        hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
+                                        hdunkRoomWadDef hdartDenomDef
+                                    · exact catBiteRevertDunkRoomWad hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                        hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hosz hoszu hurn hlive
+                                        hmemI hmemUsz (by native_decide) rd1708 hChop hDunk hlitterbox hroomdust hunsafe
+                                        hfitArtRate hfitInkSpot hspotPos hRatePos hFitWad hart hink hiSpot hiRate hiDustDef
+                                        hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
                                   by_cases hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat *
                                     dunkRoom.toNat < UInt256.size
                                   swap
