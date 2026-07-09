@@ -1898,6 +1898,82 @@ theorem catBiteRevertKickDecodeW {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
     hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
 
 
+/-! ## checked-`sub` EMPTY-revert (DSMath `sub` underflow → `revert(0,0)`) -/
+
+/-- **checked-`sub` underflow → empty `revert(0,0)`.** solc 0.6.12 compiles the DSMath `sub`
+underflow guard's false branch as `PUSH1 0; DUP1; REVERT` (empty revert), NOT an error string
+(unlike `RD.solcCheckedSubStringRevertGrown`). Same success-guard prefix; the tail fires
+`RD.uniswapPush1Dup1Revert0`. -/
+theorem RD.solcCheckedSubEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc okPc : UInt256}
+    {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
+    (hsub : solcCheckedSubSuccessWf code pc okPc)
+    (hd0 : decode code (solcCheckedArithmeticRevertPc pc) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd1 : decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2) = some (.DUP1, .none))
+    (hd2 : decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2 + ⟨1⟩) =
+      some (.REVERT, .none))
+    (hlt : a.toNat < b.toNat) (hov : R.length + 9 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hsub with
+    ⟨hd0', hd1', hd2', hd3', hd4', hd5', hd6', hd7', hd8', hd11, _, _, _, _, _, _⟩
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have rd6 := evm_run h with [
+    raw jumpdest hd0' (by evm_ov),
+    raw dup1 hd1' (by evm_ov),
+    raw dup3 hd2' (by evm_ov),
+    raw sub hd3' (by evm_ov),
+    raw dup3 hd4' (by evm_ov),
+    raw dup2 hd5' (by evm_ov)]
+  have rd7₀ := evm_run rd6 with [raw gt hd6' (by evm_ov)]
+  have rd7 := rd7₀
+  rw [hgt] at rd7
+  have rd8₀ := evm_run rd7 with [raw iszero hd7' (by evm_ov)]
+  have rd8 := rd8₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
+  have rdPush := evm_run rd8 with [raw push2 okPc hd8' (by evm_ov)]
+  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
+  have rdTail := by
+    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
+  exact RD.uniswapPush1Dup1Revert0 rdTail hd0 hd1 hd2 (by simp only [List.length_cons]; omega)
+
+/-- **room-underflow (box < litter) empty-revert leaf.** `room = box - litter` underflows; the
+checked-`sub` reverts `revert(0,0)`. EVM side via `RD.solcCheckedSubEmptyRevert`, Solm side fed as
+`hbody` (`catBiteSourceRoomUnderflowRevert`). -/
+theorem catBiteRoomUnderflowEmptyRevertLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {mem rdata : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {a b ret okPc : UInt256} {R : List UInt256} {k C : ℕ}
+    (hcode : I.code = catBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (b :: a :: ret :: R) mem aw rdata acc k C)
+    (hsub : solcCheckedSubSuccessWf catBytecode ⟨3762⟩ okPc)
+    (hlt : a.toNat < b.toNat) (hov : R.length + 9 ≤ 1024)
+    (hbody :
+      ExecTransitionBody config contract
+        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+        biteTransition.body .reverted) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hrev := RD.solcCheckedSubEmptyRevert rd hsub (by native_decide) (by native_decide)
+    (by native_decide) hlt hov
+  simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+
 /-! ## `ilks` return-decode-short extraction -/
 
 /-- **`ilks` return-decode short.** A `< 160`-byte return does not ABI-decode to the 5-word
