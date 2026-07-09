@@ -1022,7 +1022,9 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     hart hink hiSpot hiRate rfl
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
-                          · sorry -- inkSpot checkedMul overflow → revert leaf
+                          · exact catBiteRevertInkSpot hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                              hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hurn hlive rd1521
+                              hfitArtRate hart hink hiSpot hiRate rfl hfitInkSpot
                         · sorry -- artRate checkedMul overflow → revert leaf
                       · -- require(live == 1) fails → revert leaf.
                         sorry

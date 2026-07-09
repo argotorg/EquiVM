@@ -2606,6 +2606,103 @@ theorem catBiteRevertMilkChopZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
 
 
 set_option maxHeartbeats 2000000 in
+/-- **inkSpot (ink·spot) checkedMul-overflow branch (extracted).** Pre-milk (aw=9) `Seg5` guard:
+`ink * spot` overflows.  `spot > 0` is forced by the overflow (`spot = 0 ⇒ ink*spot = 0 < size`), so
+reach the `ink*spot` `checkedMul` frame at pc 3720 (`catBiteReachGuardInkSpot`, past the passing
+`art*rate` mul), fires `catBiteMulOverflowRevertLeaf` + `catBiteSourceInkSpotOverflowRevert`. -/
+theorem catBiteRevertInkSpot {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu : AccountMap} {A' Au : Substate}
+    {cA' cAu : Batteries.RBSet AccountAddress compare} {o' ou : ByteArray} {ku Cu : ℕ}
+    {mem2 : ByteArray} {aw2 : UInt256}
+    {art ink iSpot iRate iDust : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
+    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
+    (rd1521 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        biteAddrMaskWord.land (calldataWord I.calldata 36) :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      mem2 aw2 ou (cAu, σu) ku Cu)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
+    (hInkSpotNofit : ¬ ink.toNat * iSpot.toNat < UInt256.size) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdepthNe : I.depth ≠ 1024 := by omega
+  have hsz_pos : 0 < UInt256.size := by rw [show UInt256.size = 2 ^ 256 from rfl]; positivity
+  have hspotPos : 0 < iSpot.toNat := by
+    by_contra hc
+    have h0 : iSpot.toNat = 0 := Nat.le_zero.mp (Nat.not_lt.mp hc)
+    exact hInkSpotNofit (by rw [h0, Nat.mul_zero]; exact hsz_pos)
+  obtain ⟨_, _, rd3720⟩ := catBiteReachGuardInkSpot rd1521 hspotPos hfitArtRate (by simp)
+  obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
+    catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
+  set eUrnS := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+    accountMap := σus, substate := Aus, createdAccounts := cAu } with heUrnSdef
+  have heUSam : eUrnS.accountMap = σus := rfl
+  have heUSee : eUrnS.executionEnv = I := rfl
+  have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
+    intro s; simp only [solcSlotWord]
+    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+  have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
+      ABI.bytesToWord ((o.toList.drop k).take 32) =
+        UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
+    intro o k h
+    rw [decode_word_at_eq_any o k h, uInt256OfByteArray_eq]
+    congr 1; unfold fromByteArrayBigEndian; congr 1
+    rw [byteArray_toList_eq (o.readBytes k 32), readBytes_at_toList_any o k h,
+      byteArray_toList_eq (o.extract k (k + 32)), ByteArray.data_extract, Array.toList_extract,
+      List.extract_eq_take_drop]
+    simp
+  have hIlksDec : config.externalABI.decode? "ilks" o' =
+      some [bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))), bw iRate, bw iSpot,
+        bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 96 128))), bw iDust] := by
+    have h := catBiteIlksDecode_ok hilkslen
+    rw [hbr o' 0 (by omega), hbr o' 32 (by omega), hbr o' 64 (by omega),
+      hbr o' 96 (by omega), hbr o' 128 (by omega)] at h
+    rw [hiRate, hiSpot, hiDust]; exact h
+  have hUrnsDec : config.externalABI.decode? "urns" ou = some [bw ink, bw art] := by
+    have h := catBiteUrnsDecode_ok hurnslen
+    rw [hbr ou 0 (by omega), hbr ou 32 (by omega)] at h
+    rw [hink, hart]; exact h
+  have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
+    rw [heUSam, heUSee]; simp only [catSlotWord]; rw [slotEqUS ⟨2⟩]
+    simpa only [catSlotWord] using hlive
+  have hbody := catBiteSourceInkSpotOverflowRevert hwv
+    (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
+    hUrnsSolm hUrnsDec hlive' (Nat.le_of_not_lt hInkSpotNofit)
+  exact catBiteMulOverflowRevertLeaf hcode hdispatch hdecode rd3720
+    (by rw [Nat.mul_comm]; exact Nat.le_of_not_lt hInkSpotNofit)
+    (by simp only [List.length_cons, List.length_nil]; omega) hbody
+
+
+set_option maxHeartbeats 2000000 in
 /-- **ink·dart checkedMul-overflow branch (extracted).** Post-milk (aw=10) guard: reaches the
 `ink * dart` `checkedMul` frame at pc 3720 (via `catBiteTraceSeg7a`/`Seg7b` + `catBiteReachGuardInkDart`),
 fires `catBiteMulOverflowRevertLeaf` + `catBiteSourceInkDartOverflowRevert`. -/
