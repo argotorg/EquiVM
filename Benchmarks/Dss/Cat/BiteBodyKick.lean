@@ -878,7 +878,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
       (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
-      (o' : ByteArray) (A' aw' : _) (k' C' : ℕ),
+      (o' : ByteArray) (A' : _) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (p + ⟨164⟩) :: ⟨891151872⟩ ::
@@ -889,7 +889,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
           (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
             (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
           p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        aw' o' (cA', σ') k' C'
+        aw o' (cA', σ') k' C'
     ∧ typedCallViaEVM config
         { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σx, createdAccounts := cAx }
@@ -947,7 +947,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       rfl henc ?_
     simpa [initState] using hΘ
-  refine ⟨cA', σ', z, o', A', aw, k', C', rd2532raw, hcall, hosz, ?_⟩
+  refine ⟨cA', σ', z, o', A', k', C', rd2532raw, hcall, hosz, ?_⟩
   -- success path: 2532 → RETURN via `catBiteKickReturnP`
   intro hz ho32
   subst hz

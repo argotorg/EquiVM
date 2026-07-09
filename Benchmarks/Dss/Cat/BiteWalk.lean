@@ -1020,7 +1020,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
                                                   (by native_decide) hpmemMilk (by native_decide)]
                                             exact hMilkFp
-                                          obtain ⟨cAk, σk, zk, ok, Ak, awk, kk, Ck, rd2532, hKickCall, hoszk,
+                                          obtain ⟨cAk, σk, zk, ok, Ak, kk, Ck, rd2532, hKickCall, hoszk,
                                               hRDret⟩ :=
                                             catBiteReachKickC rd2383
                                               (mloadWordValue_of_readWithPadding
