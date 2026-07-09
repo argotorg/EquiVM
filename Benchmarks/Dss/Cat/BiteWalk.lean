@@ -513,7 +513,43 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         set litterNew := solcSlotWord σf I ⟨6⟩ + tab with hlitterNewDef
                                         by_cases hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size
                                         swap
-                                        · sorry -- tabBase = dartRate*chop checkedMul overflow → divergence
+                                        · exact catBiteRevertTabBase hcode hdispatch hdecode hAccounts
+                                            hwv hperm hsz36 hdepth hurn hilkslen hurnslen hlive hvatCode
+                                            hUrnsVatCode hGrabCode hFessCode hIlksCall hUrnsCall hGrabCall
+                                            hFessCall rd2300 (by decide)
+                                            (by
+                                              rw [if_neg (by
+                                                    refine not_or.mpr ⟨?_, ?_⟩
+                                                    · have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                        by native_decide
+                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                        by native_decide
+                                                      have := hpmem_kick; omega
+                                                    · native_decide),
+                                                catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
+                                                  (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
+                                                  hgrab_le (by native_decide),
+                                                catBiteGrabCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩)
+                                                  (biteIlkWord I) (biteAddrMaskWord.land (calldataWord I.calldata 36))
+                                                  (UInt256.ofNat I.codeOwner.val) (solcSlotWord σu I ⟨4⟩) dink dart
+                                                  (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
+                                                  hpmemMilk (by native_decide)]
+                                              rw [if_neg (by
+                                                    refine not_or.mpr ⟨?_, ?_⟩
+                                                    · have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                        by native_decide
+                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                        by native_decide
+                                                      have := hpmemMilk; omega
+                                                    · native_decide)] at hChop
+                                              exact hChop)
+                                            (by native_decide) (by native_decide) hRateFit
+                                            hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef
+                                            hmilkChopDef hdunkRoomDef hdunkRoomWadDef hdartDenomDef
+                                            hdartCandDef hdartDef hinkDartDef hdinkCandDef hdinkDef
+                                            hdartRateDef hspotPos hfitArtRate hfitInkSpot hunsafe
+                                            hlitterbox hroomdust hRatePos hChopPos hFitWad hArtPos
+                                            hFitInkDart hDartPos hDinkPos hDartLim hDinkLim hChopFit
                                         by_cases hLitFit :
                                             (solcSlotWord σf I ⟨6⟩).toNat + tab.toNat < UInt256.size
                                         swap
