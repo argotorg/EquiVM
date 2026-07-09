@@ -116,7 +116,7 @@ theorem endCageCallCalldataMem_overwrite_auth (I : ExecutionEnv) :
   have hbaseSize : (endRelyAuthHashMem I).size = 96 := endRelyAuthHashMem_size I
   have hshape :
       endCageCallSelectorShifted.toByteArray.write 0 (endRelyAuthHashMem I) 128 32 =
-        (endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++
+        (endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 ++
           endCageCallSelectorShifted.toByteArray := by
     simpa [hbaseSize] using
       (toByteArray_write_eq endCageCallSelectorShifted (endRelyAuthHashMem I) 128
@@ -124,34 +124,34 @@ theorem endCageCallCalldataMem_overwrite_auth (I : ExecutionEnv) :
         (by rw [hbaseSize]; exact lt_usize 32 (by norm_num)))
   rw [hshape]
   rw [write32_eq endCageCallSelectorShifted.toByteArray
-      ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++
+      ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 ++
         endCageCallSelectorShifted.toByteArray) 128
       (by rw [toByteArray_size])
       (by
         rw [ByteArray.size_append, ByteArray.size_append, hbaseSize, ByteArray_zeroes_size,
-          USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num)), toByteArray_size]
+          toByteArray_size]
         omega)]
-  have hzeroSize : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
-    rw [ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))]
+  have hzeroSize : (ffi.ByteArray.zeroes 32).size = 32 := by
+    rw [ByteArray_zeroes_size]
   have hprefix :
-      (((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++
+      (((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 ++
       endCageCallSelectorShifted.toByteArray).extract 0 128) =
-        (endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) := by
+        (endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 := by
     have hprefixSize :
-        ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
+        ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32).size = 128 := by
       rw [ByteArray.size_append, hbaseSize, hzeroSize]
-    rw [extract_append_left ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+    rw [extract_append_left ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32)
       endCageCallSelectorShifted.toByteArray 0 128
       (by rw [ByteArray.size_append, hbaseSize, hzeroSize])]
     simpa [hprefixSize] using
-      byteArray_extract_self ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32))
+      byteArray_extract_self ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32)
   have hword : endCageCallSelectorShifted.toByteArray.extract 0 32 =
       endCageCallSelectorShifted.toByteArray := by
     exact toByteArray_extract_all endCageCallSelectorShifted
   have htail :
-      (((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++
+      (((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 ++
           endCageCallSelectorShifted.toByteArray).extract (128 + 32)
-        ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++
+        ((endRelyAuthHashMem I) ++ ffi.ByteArray.zeroes 32 ++
           endCageCallSelectorShifted.toByteArray).size) =
         ByteArray.empty := by
     apply endCage_byteArray_extract_empty_of_le
