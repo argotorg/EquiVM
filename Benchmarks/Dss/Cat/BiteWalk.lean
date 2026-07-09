@@ -612,7 +612,19 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
                                           by_cases hk32 : 32 ≤ ok.size
                                           swap
-                                          · sorry -- kick return decode short (returndatasize < 32) → divergence
+                                          · -- kick return decode short (returndatasize < 32): all heavy work (free-ptr
+                                            -- MLOAD facts + Solm mapping) is inside `catBiteRevertKickDecodeW` (own budget);
+                                            -- the walk supplies rd2532/reads by cheap metavar assignment.
+                                            exact catBiteRevertKickDecodeW hcode hdispatch hdecode hAccounts hwv hperm hsz36 hdepth
+                                              hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode
+                                              hIlksCall hUrnsCall hGrabCall hFessCall hKickCall rd2532 hpmem_kick hread64F
+                                              (by native_decide) (by native_decide) (by native_decide) hoszk
+                                              (by simp only [List.length_cons, List.length_nil]; omega) hzk (by rw [hzk]; decide)
+                                              (by omega) hRateFit hflipWDef hdartRateDef htabBaseDef htabDef hlitterNewDef hChopFit
+                                              hLitFit hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef hmilkChopDef
+                                              hdunkRoomDef hdunkRoomWadDef hdartDenomDef hdartCandDef hdartDef hinkDartDef
+                                              hdinkCandDef hdinkDef hspotPos hfitArtRate hfitInkSpot hunsafe hlitterbox hroomdust
+                                              hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
                                           have hret := hRDret hzk hk32
                                           have hdepthNe : I.depth ≠ 1024 := by omega
                                           obtain ⟨AU, hUrnsCall'⟩ :=

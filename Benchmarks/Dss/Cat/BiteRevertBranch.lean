@@ -1754,6 +1754,150 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       hlitFB, htabB]; exact hLitFit
 
 
+set_option maxHeartbeats 4000000 in
+/-- **kick return-decode-short branch (walk wrapper).** Same conclusion as `catBiteRevertKickDecode`
+but the three free-ptr `MLOAD` facts are built HERE (own budget) from the raw free-ptr read
+`hread64` + memory bound `hpmem`, with `baseMem`/`kvow` kept generic so the walk supplies `rd2532`
+by cheap metavar assignment (no `whnf` of the litter-SSTORE vow read / the calldata overlay). -/
+theorem catBiteRevertKickDecodeW {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu σg σf σk : AccountMap} {A' Au Ag Af Ak : Substate}
+    {cA' cAu cAg cAf cAk : Batteries.RBSet AccountAddress compare} {o' ou og ofb ok : ByteArray}
+    {baseMem : ByteArray} {p kvow : UInt256}
+    {R3 : List UInt256} {k3 C3 : ℕ} {zk : Bool}
+    {flipW dartRate tabBase tab litterNew : UInt256}
+    {art ink iSpot iRate iDust room milkDunk milkChop dunkRoom dunkRoomWad
+      dartDenomRate dartCandidate dart inkDart dinkCandidate dink : UInt256}
+    (hcode : I.code = catBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
+    (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
+    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hGrabCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+    (hFessCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+    (hKickCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+        (biteAddrMaskWord.land flipW) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hGrabCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σu, createdAccounts := cAu }
+        (AccountAddress.ofUInt256 ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord)) "grab" 0
+        [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (biteIlkWord I)),
+          Value.address (AccountAddress.ofNat
+            (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat),
+          Value.address (AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat),
+          Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
+          Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σg, substate := Ag, createdAccounts := cAg }, og) I.perm)
+    (hFessCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σg, createdAccounts := cAg }
+        (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
+        [Value.int (Int.ofNat (dart.mul iRate).toNat)]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                accountMap := σf, substate := Af, createdAccounts := cAf }, ofb) I.perm)
+    (hKickCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew, createdAccounts := cAf }
+        (AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW)) "kick" 0
+        (seg8KickArgs (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) I
+          (biteAddrMaskWord.land (calldataWord I.calldata 36)) tab dink)
+        (zk, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                accountMap := σk, substate := Ak, createdAccounts := cAk }, ok) I.perm)
+    (rd2532 :
+      RD catBytecode I (Sat256.ofUInt256 g) (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        ⟨2532⟩
+        ((if zk = true then (⟨1⟩ : UInt256) else ⟨0⟩) ::
+          (p + ⟨164⟩) :: ⟨891151872⟩ :: (biteAddrMaskWord.land flipW) :: R3)
+        (ok.write 0 (kickCalldataMemP p
+            (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))) kvow tab dink
+            baseMem)
+          p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat ok.size)).toNat)
+        ⟨17⟩ ok (cAk, σk) k3 C3)
+    (hpmem : p.toNat + 164 ≤ baseMem.size)
+    (hread64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray p)
+    (hp96 : 96 ≤ p.toNat) (hpsz : p.toNat + 164 < UInt256.size)
+    (hp160aw : p.toNat + 160 ≤ (⟨17⟩ : UInt256).toNat * 32)
+    (hoszk : ok.size < UInt256.size) (hov3 : R3.length + 6 ≤ 1024) (hzk : zk = true)
+    (hstatus : (if zk = true then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩) (hshort : ok.size < 32)
+    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
+    (hflipWDef : flipW = biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
+    (hdartRateDef : dartRate = dart.mul iRate)
+    (htabBaseDef : tabBase = dartRate.mul milkChop)
+    (htabDef : tab = tabBase.div ⟨1000000000000000000⟩)
+    (hlitterNewDef : litterNew = solcSlotWord σf I ⟨6⟩ + tab)
+    (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
+    (hLitFit : (solcSlotWord σf I ⟨6⟩).toNat + tab.toNat < UInt256.size)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDustDef : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
+    (hroomDef : room = (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩))
+    (hmilkDunkDef : milkDunk = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
+    (hmilkChopDef : milkChop = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
+    (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room)
+    (hdunkRoomWadDef : dunkRoomWad = dunkRoom.mul ⟨1000000000000000000⟩)
+    (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate)
+    (hdartCandDef : dartCandidate = dartDenomRate.div milkChop)
+    (hdartDef : dart = if art.gt dartCandidate = ⟨0⟩ then art else dartCandidate)
+    (hinkDartDef : inkDart = ink.mul dart)
+    (hdinkCandDef : dinkCandidate = inkDart.div art)
+    (hdinkDef : dink = if ink.gt dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
+    (hspotPos : 0 < iSpot.toNat) (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hunsafe : (ink * iSpot).toNat < (art * iRate).toNat)
+    (hlitterbox : (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)
+    (hroomdust : iDust.toNat ≤ room.toNat)
+    (hRatePos : iRate ≠ ⟨0⟩) (hChopPos : milkChop ≠ ⟨0⟩)
+    (hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat * dunkRoom.toNat < UInt256.size)
+    (hArtPos : art ≠ ⟨0⟩) (hFitInkDart : dart.toNat * ink.toNat < UInt256.size)
+    (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
+    (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
+    (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hMloadFreeAw : UInt256.ofNat (MachineState.M (⟨17⟩ : UInt256).toNat 64 32) = ⟨17⟩ := by
+    native_decide
+  have hMloadFreeValue := catBiteKickPostCallMemP_mload64_short p
+    (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))) kvow tab dink ok
+    (aw8 := ⟨17⟩) hp96 hpmem hpsz hshort hread64 hp160aw (by native_decide)
+  exact catBiteRevertKickDecode hcode hdispatch hdecode hAccounts hwv hperm hsz36 hdepth hurn
+    hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode hIlksCall
+    hUrnsCall hGrabCall hFessCall hKickCall rd2532 hoszk hov3 hzk hstatus hshort
+    hMloadFreeValue (catBiteMloadCost0 hMloadFreeAw) hMloadFreeAw hRateFit hflipWDef hdartRateDef
+    htabBaseDef htabDef hlitterNewDef hChopFit hLitFit hart hink hiSpot hiRate hiDustDef hroomDef
+    hmilkDunkDef hmilkChopDef hdunkRoomDef hdunkRoomWadDef hdartDenomDef hdartCandDef hdartDef
+    hinkDartDef hdinkCandDef hdinkDef hspotPos hfitArtRate hfitInkSpot hunsafe hlitterbox hroomdust
+    hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
+
+
 /-! ## `ilks` return-decode-short extraction -/
 
 /-- **`ilks` return-decode short.** A `< 160`-byte return does not ABI-decode to the 5-word
