@@ -495,15 +495,15 @@ theorem fifKeccakMem_keccak (I : ExecutionEnv) :
     (twoWordHashMem_size_96 _ _ solcFreePtrMem_size)
 
 theorem fifNopeSelMem_gapeq (I : ExecutionEnv) :
-    fifNopeSelMem I = fifKeccakMem I ++ ffi.ByteArray.zeroes (USize.ofNat 32)
+    fifNopeSelMem I = fifKeccakMem I ++ ffi.ByteArray.zeroes 32
       ++ UInt256.toByteArray fifNopeSelShifted := by
   unfold fifNopeSelMem
   rw [toByteArray_write_eq fifNopeSelShifted (fifKeccakMem I) 128
     (by rw [fifKeccakMem_size]; omega) (by rw [fifKeccakMem_size]; exact lt_usize 32 (by norm_num))]
   rw [fifKeccakMem_size]
 
-theorem fifZeroes32_size : (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32 := by
-  rw [ByteArray_zeroes_size, USize.toNat_ofNat_of_lt' (lt_usize 32 (by norm_num))]
+theorem fifZeroes32_size : (ffi.ByteArray.zeroes 32).size = 32 := by
+  rw [ByteArray_zeroes_size]
 
 theorem fifNopeSelMem_size (I : ExecutionEnv) : (fifNopeSelMem I).size = 160 := by
   rw [fifNopeSelMem_gapeq, ByteArray.size_append, ByteArray.size_append, fifKeccakMem_size,
@@ -511,7 +511,7 @@ theorem fifNopeSelMem_size (I : ExecutionEnv) : (fifNopeSelMem I).size = 160 := 
 
 theorem fifNopeSelMem_read64 (I : ExecutionEnv) :
     (fifNopeSelMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  have h2 : (64 : ℕ) + 32 ≤ (fifKeccakMem I ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size := by
+  have h2 : (64 : ℕ) + 32 ≤ (fifKeccakMem I ++ ffi.ByteArray.zeroes 32).size := by
     rw [ByteArray.size_append, fifKeccakMem_size, fifZeroes32_size]; omega
   have h3 : (64 : ℕ) + 32 ≤ (fifKeccakMem I).size := by rw [fifKeccakMem_size]
   rw [readWithPadding_eq_extract _ 64 (by rw [fifNopeSelMem_size]; omega),

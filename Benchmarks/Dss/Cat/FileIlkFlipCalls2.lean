@@ -23,7 +23,7 @@ noncomputable def fifCdMemG (base : ByteArray) (arg : UInt256) : ByteArray :=
 
 theorem fifSelMemG_gapeq (base : ByteArray) (h : base.size = 96) :
     fifSelMemG base =
-      base ++ ffi.ByteArray.zeroes (USize.ofNat 32) ++ fifNopeSelShifted.toByteArray := by
+      base ++ ffi.ByteArray.zeroes 32 ++ fifNopeSelShifted.toByteArray := by
   unfold fifSelMemG
   rw [toByteArray_write_eq fifNopeSelShifted base 128 (by rw [h]; omega)
     (by rw [h]; exact lt_usize 32 (by norm_num)), h]
@@ -35,7 +35,7 @@ theorem fifSelMemG_size (base : ByteArray) (h : base.size = 96) : (fifSelMemG ba
 theorem fifSelMemG_selector (base : ByteArray) (h : base.size = 96) :
     (fifSelMemG base).extract 128 132 = vatNopeSelector := by
   rw [fifSelMemG_gapeq base h]
-  have hABsz : (base ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
+  have hABsz : (base ++ ffi.ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, h, fifZeroes32_size]
   rw [extract_append_right_window _ _ 128 132 (by rw [hABsz]), hABsz,
     show (128 : ℕ) - 128 = 0 from rfl, show (132 : ℕ) - 128 = 4 from rfl, toByteArray_eq_toBytesBE]

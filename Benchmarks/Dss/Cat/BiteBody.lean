@@ -367,32 +367,8 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
 
 end CatBiteAwCollapse
 
-set_option maxHeartbeats 4000000 in
-theorem catBiteBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩ rfl hsel
-  by_cases hshort : I.calldata.size < 68
-  · exact catBiteShort hcode hsize hwv hsz4 hshort hsel hAccounts
-  · rw [not_lt] at hshort
-    have hsz68 : 68 ≤ I.calldata.size := hshort
-    have hsz36 : 36 ≤ I.calldata.size := by omega
-    have hdispatch : dispatchMsg contract I.calldata = some biteTransition := catDispatch_bite hsel
-    have hdecode :
-        decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
-          (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I) :=
-      biteDecode_ok hsz68
-    -- ilks vat-code guard: no code → revert leaf; has code → continue the spine walk.
-    by_cases hvatCode :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩
-    · exact catBiteBodyIlksNoCode hcode hsize hwv hsel hsz68 hAccounts hdispatch hdecode hvatCode
-    · -- vat has code. Remaining non-short spine walk: PostIlks (ilks call: depth-limit / fail /
-      -- decode-short leaves; success →) → PostUrns → 1399to1521 (live) → 1521to1708 (spot/artRate/
-      -- inkSpot/unsafe) → 1708to2073 (room/dunkRoomWad/milkChop/inkDart/dink/dartLimit) →
-      -- GrabRegionC → FessRegionC → 2300to2383 (litter) → KickC → catBiteSuccessBranch. (See report.)
-      sorry
+-- The full `catBiteBody` proof (dispatch → short / ilks-no-code leaves → vat-has-code spine walk)
+-- is `catBiteBodyImpl` in `BiteWalk.lean` (which imports this file's reach lemmas), wired to the
+-- public `catBiteBody` in `Bite.lean`.
 
 end Benchmarks.Dss.Cat
