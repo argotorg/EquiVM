@@ -25,12 +25,12 @@ the checked-in `.abi.json` files.
 | `Dss/ExponentialDecrease` | 0.6.12 | 1321 | 1410 | 6 fn + ctor | Completed | Yes |
 | `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Completed | Yes |
 | `Dss/DaiJoin` | 0.6.12 | 1733 | 1876 | 9 fn + ctor | Completed | Yes |
-| `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
-| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
+| `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Handed off | No |
+| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Handed off | No |
 | `Dss/Cure` | 0.6.12 | 3875 | 3971 | 20 fn + ctor | Completed | Yes |
-| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
-| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
-| `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
+| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Handed off | No |
+| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Handed off | Yes |
+| `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Completed | No |
 | `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Completed | Yes |
 | `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Completed | Yes |
 | `WETH9` | 0.5.16 | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
