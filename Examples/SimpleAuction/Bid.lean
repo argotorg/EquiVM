@@ -355,18 +355,16 @@ theorem bidPendingEventMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, bidPendingHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, bidPendingHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (bidPendingHashMem (bidHighestBidderWord σ I))
       (ffi.ByteArray.zeroes
-        (USize.ofNat (128 - (bidPendingHashMem (bidHighestBidderWord σ I)).size))) 64 96
+        (128 - (bidPendingHashMem (bidHighestBidderWord σ I)).size)) 64 96
       (by rw [bidPendingHashMem_size])]
   rw [← readWithPadding_eq_extract (bidPendingHashMem (bidHighestBidderWord σ I)) 64
     (by rw [bidPendingHashMem_size])]

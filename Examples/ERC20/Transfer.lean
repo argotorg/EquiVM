@@ -853,8 +853,7 @@ theorem transferInsufficientSelectorMem_size (owner : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [balanceOfHashMem_size]; omega)
       (by rw [balanceOfHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem transferInsufficientOffsetMem_size (owner : UInt256) :
@@ -896,14 +895,12 @@ theorem transferInsufficientSelectorMem_read64 (owner : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, balanceOfHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [balanceOfHashMem_size])]
   rw [← readWithPadding_eq_extract _ 64 (by rw [balanceOfHashMem_size])]

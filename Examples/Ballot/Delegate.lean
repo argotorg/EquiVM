@@ -2094,8 +2094,7 @@ theorem delegateWeightErrorMem0_size (senderWord : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [delegateHashMem_size]; omega)
       (by rw [delegateHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, delegateHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem delegateWeightErrorMem1_size (senderWord : UInt256) :
@@ -2137,14 +2136,12 @@ theorem delegateWeightErrorMem0_read64 (senderWord : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, delegateHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, delegateHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     omega)]
   rw [extract_append_left _ _ _ _ (by rw [delegateHashMem_size])]
   rw [← readWithPadding_eq_extract _ 64 (by rw [delegateHashMem_size])]
