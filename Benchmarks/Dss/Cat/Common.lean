@@ -26,6 +26,57 @@ set_option maxRecDepth 2000000
 
 namespace Benchmarks.Dss.Cat
 
+/-! ## Static-call code-preservation lift
+
+The `.code`-projection peer of `typedCallViaEVM_static_accountStorageStateEq`
+(`Reasoning/ExternalCall.lean`): a `perm = false` external call cannot create, destroy, or change
+any account's code, so `(σ.findD a default).code` is preserved.  Built on the evmlean
+`Theta_static_accountCode_eq`. -/
+
+-- LIBRARY CANDIDATE: belongs alongside `callViaEVM_static_accountStorageStateEq` in
+-- `Reasoning/ExternalCall.lean`; kept here to avoid editing `Reasoning/`.
+theorem callViaEVM_static_accountCode_eq {evm evm' : EVM.State}
+    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    accountCodeStateEq evm.accountMap evm'.accountMap := by
+  cases hcall with
+  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
+      subst hevm'
+      exact Theta_static_accountCode_eq hΘ.symm
+  | callNotMade _hsubstate hevm' _hvalue =>
+      subst hevm'
+      exact accountCodeStateEq_refl evm.accountMap
+
+-- LIBRARY CANDIDATE: mirror of `typedCallViaEVM_static_accountStorageStateEq` for `.code`.
+theorem typedCallViaEVM_static_accountCode_eq {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    accountCodeStateEq evm.accountMap evm'.accountMap := by
+  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  exact callViaEVM_static_accountCode_eq hraw
+
+/-- `uniswapExtCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
+    function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/
+theorem uniswapExtCodeSizeWord_eq_ofNat_findD (σ : AccountMap) (target : UInt256) :
+    Reasoning.Theory.uniswapExtCodeSizeWord σ target
+      = UInt256.ofNat (σ.findD (AccountAddress.ofUInt256 target) default).code.size := by
+  unfold Reasoning.Theory.uniswapExtCodeSizeWord
+  cases h : σ.find? (AccountAddress.ofUInt256 target) with
+  | none => simp [Batteries.RBMap.findD, h, Option.option]; rfl
+  | some acc => simp [Batteries.RBMap.findD, h, Option.option]
+
+/-- Code preservation transfers to `uniswapExtCodeSizeWord`: static calls leave every account's
+    `EXTCODESIZE` word unchanged. -/
+theorem uniswapExtCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target : UInt256)
+    (h : accountCodeStateEq σ σ') :
+    Reasoning.Theory.uniswapExtCodeSizeWord σ' target
+      = Reasoning.Theory.uniswapExtCodeSizeWord σ target := by
+  rw [uniswapExtCodeSizeWord_eq_ofNat_findD, uniswapExtCodeSizeWord_eq_ofNat_findD,
+    (h (AccountAddress.ofUInt256 target)).symm]
+
 /-! ## Selector helpers -/
 
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/

@@ -200,8 +200,24 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               by_cases hUrnsVatCode :
                   Reasoning.Theory.uniswapExtCodeSizeWord σ'
                     (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) = ⟨0⟩
-              · -- urns vat has no code (unreachable: same vat as ilks) — divergence leaf.
-                sorry
+              · -- urns vat has no code: unreachable. The `vat.ilks` STATICCALL (`hIlksCall`, perm
+                -- `false`) cannot change any account's code, so `vat` (read from slot 3, whose value
+                -- the static call also preserves) still has the nonzero code `hvatCode` asserts —
+                -- contradicting `hUrnsVatCode`.
+                exfalso
+                apply hvatCode
+                have hcode1 : accountCodeStateEq σ_evm σ' :=
+                  typedCallViaEVM_static_accountCode_eq hIlksCall
+                have hslot3ilks : catSlotWord ⟨3⟩ σ_evm I = catSlotWord ⟨3⟩ σ' I := by
+                  simp only [catSlotWord, solcSlotWord]
+                  exact accountStorageStateEq_storage_findD
+                    (typedCallViaEVM_static_accountStorageStateEq hIlksCall) I.codeOwner ⟨3⟩ ⟨0⟩
+                have haddr : catBiteVatTargetWord σ_evm I
+                    = (catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord := by
+                  have hmask : solcAddrMask = biteAddrMaskWord := by native_decide
+                  simp only [catBiteVatTargetWord, catAddressReturnWord, hslot3ilks, hmask]
+                rw [haddr, ← uniswapExtCodeSizeWord_eq_of_accountCodeStateEq _ hcode1]
+                exact hUrnsVatCode
               · obtain ⟨cAu, σu, zu, ou, Au, ku, Cu, rd1399, hUrnsCall, hoszu⟩ :=
                   catBiteReachPostUrnsAw rd1249 (by decide) hsz36 haw288
                     (by rw [hawout9]; native_decide)
@@ -559,7 +575,31 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   by_cases hGrabCode :
                                       Reasoning.Theory.uniswapExtCodeSizeWord σu
                                         (UInt256.land (solcSlotWord σu I ⟨3⟩) biteAddrMaskWord) = ⟨0⟩
-                                  · sorry -- grab vat has no code → divergence leaf
+                                  · -- grab vat has no code: unreachable. Both the `ilks`
+                                    -- (`hIlksCall`) and `urns` (`hUrnsCall`) STATICCALLs are perm
+                                    -- `false`, so neither changes `vat`'s code; the slot-3 vat
+                                    -- address is preserved too (`hslot3ilks`/`hslot3`). Hence `vat`
+                                    -- still has the nonzero code `hvatCode` asserts, contradicting
+                                    -- `hGrabCode`.
+                                    exfalso
+                                    apply hvatCode
+                                    have hcode1 : accountCodeStateEq σ_evm σ' :=
+                                      typedCallViaEVM_static_accountCode_eq hIlksCall
+                                    have hcode2 : accountCodeStateEq σ' σu :=
+                                      typedCallViaEVM_static_accountCode_eq hUrnsCall
+                                    have hslot3ilks : catSlotWord ⟨3⟩ σ_evm I = catSlotWord ⟨3⟩ σ' I := by
+                                      simp only [catSlotWord, solcSlotWord]
+                                      exact accountStorageStateEq_storage_findD
+                                        (typedCallViaEVM_static_accountStorageStateEq hIlksCall)
+                                        I.codeOwner ⟨3⟩ ⟨0⟩
+                                    have haddr : catBiteVatTargetWord σ_evm I
+                                        = (catSlotWord ⟨3⟩ σu I).land biteAddrMaskWord := by
+                                      have hmask : solcAddrMask = biteAddrMaskWord := by native_decide
+                                      simp only [catBiteVatTargetWord, catAddressReturnWord,
+                                        hslot3ilks, hslot3, hmask]
+                                    rw [haddr, ← uniswapExtCodeSizeWord_eq_of_accountCodeStateEq _
+                                      (accountCodeStateEq_trans hcode1 hcode2)]
+                                    exact hGrabCode
                                   · obtain ⟨cAg, σg, zg, og, Ag, kg, Cg, rd2193, hGrabCall, hoszg⟩ :=
                                       catBiteReachGrabAw rd2073 hMilkFp (by native_decide) hpmemMilk
                                         (by native_decide) (by native_decide) (by native_decide)
