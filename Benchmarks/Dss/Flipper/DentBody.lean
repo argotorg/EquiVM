@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Flipper.DentDecreaseGuard
+import Benchmarks.Dss.Flipper.DentBodyBranch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
@@ -181,7 +181,29 @@ theorem flipperDentBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (twoWordHashMem_size_96 (dentId I) ⟨1⟩
                       (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I)))
                     hlotLtEvm rd4507
-                  sorry
+                  have hmem4601Size :
+                      (twoWordHashMem (dentId I) ⟨1⟩
+                        (twoWordHashMem (dentId I) ⟨1⟩
+                          (twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem2 I)))).size = 96 :=
+                    twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                      (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I)))
+                  have hmem4601Read64 :
+                      (twoWordHashMem (dentId I) ⟨1⟩
+                        (twoWordHashMem (dentId I) ⟨1⟩
+                          (twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem2 I)))).readWithPadding
+                          64 32 =
+                        UInt256.toByteArray ⟨128⟩ :=
+                    twoWordHashMem_read64 (dentId I) ⟨1⟩
+                      (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I)))
+                      (twoWordHashMem_read64 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))
+                        (twoWordHashMem_read64 (dentId I) ⟨1⟩ (dentHashMem2_size I)
+                          (dentHashMem2_read64 I)))
+                  exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hperm hwv
+                    hAccounts hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard
+                    hmem4601Size hmem4601Read64 rd4601
                 · have hlotLeEvm :
                       (bidLotWord (dentId I) σ_evm I).toNat ≤ (dentLot I).toNat := by
                     omega
@@ -328,7 +350,36 @@ theorem flipperDentBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (twoWordHashMem_size_96 (dentId I) ⟨1⟩
                       (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))))
                   hlotLtEvm rd4507
-                sorry
+                have hmem4601Size :
+                    (twoWordHashMem (dentId I) ⟨1⟩
+                      (twoWordHashMem (dentId I) ⟨1⟩
+                        (twoWordHashMem (dentId I) ⟨1⟩
+                          (twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem2 I))))).size = 96 :=
+                  twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                    (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                      (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))))
+                have hmem4601Read64 :
+                    (twoWordHashMem (dentId I) ⟨1⟩
+                      (twoWordHashMem (dentId I) ⟨1⟩
+                        (twoWordHashMem (dentId I) ⟨1⟩
+                          (twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem2 I))))).readWithPadding
+                        64 32 =
+                      UInt256.toByteArray ⟨128⟩ :=
+                  twoWordHashMem_read64 (dentId I) ⟨1⟩
+                    (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                      (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))))
+                    (twoWordHashMem_read64 (dentId I) ⟨1⟩
+                      (twoWordHashMem_size_96 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I)))
+                      (twoWordHashMem_read64 (dentId I) ⟨1⟩
+                        (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))
+                        (twoWordHashMem_read64 (dentId I) ⟨1⟩ (dentHashMem2_size I)
+                          (dentHashMem2_read64 I))))
+                exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hperm hwv
+                  hAccounts hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard
+                  hmem4601Size hmem4601Read64 rd4601
               · have hlotLeEvm :
                     (bidLotWord (dentId I) σ_evm I).toNat ≤ (dentLot I).toNat := by
                   omega

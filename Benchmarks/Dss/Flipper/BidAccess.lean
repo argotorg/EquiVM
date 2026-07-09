@@ -426,6 +426,30 @@ theorem assign_bidBidStorage (evm : EVM.State) (id value : UInt256) {locals : St
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
   simpa [evm'] using flipperStorageLocStore_uint256 evm (bidBaseOfWord id) value
 
+theorem assign_bidLotStorage (evm : EVM.State) (id value : UInt256) {locals : Store}
+    (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))
+    (hbids : locals.get? "bids" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+      (bidSlotOfWord id ⟨1⟩) value
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (bidsF (.var "id") "lot") (.int (Int.ofNat value.toNat)) =
+        .ok ({ contract := contract, locals := locals }, evm') := by
+  intro evm'
+  apply assignStorageRef_storage_scalar
+      (ty := uint256St)
+      (er := bidEvaledRefOfWord id "lot")
+      (loc := wordLoc (bidSlotOfWord id ⟨1⟩))
+      (hbase := hbids)
+      (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
+        (id := id) (field := "lot") hid)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
+        storageDecls, BidStructTy, uint256St])
+      (hloc := by
+        funext evm
+        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+          bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
+  simpa [evm'] using flipperStorageLocStore_uint256 evm (bidSlotOfWord id ⟨1⟩) value
+
 theorem assign_bidGuyStorage (evm : EVM.State) (id : UInt256) {locals : Store}
     (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))
     (hbids : locals.get? "bids" = none) :

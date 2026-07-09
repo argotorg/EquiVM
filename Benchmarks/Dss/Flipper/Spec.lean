@@ -431,8 +431,8 @@ def dentTransition : TransitionDecl :=
         .require (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "bid"))),
         .require (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab"))),
         .require (.binary .lt (.var "lot") (.storage (bidsF (.var "id") "lot"))) ] ++
-      checkedMulUintInto "begLot" (.storage begRef) (.var "lot") ++
       checkedMulUintInto "lotOne" (.storage (bidsF (.var "id") "lot")) (.intLit ONE) ++
+      checkedMulUintInto "begLot" (.storage begRef) (.var "lot") ++
       [ .require (.binary .le (.var "begLot") (.var "lotOne")),
         .ite
           (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
