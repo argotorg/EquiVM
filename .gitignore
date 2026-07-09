@@ -10,3 +10,6 @@ CLAUDE.md
 .codex
 .vscodei
 .DS_STORE
+
+# archived Claude Code session transcripts for completed proofs
+/proof-session-logs/
