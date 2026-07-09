@@ -955,7 +955,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 simp only [biteUrnVal, biteUrnWord, biteUrnAddr, hAddrRT]
                                               rw [hlitternew, hvowArg, storeFlat, addrId, hflipAddr, h2, htabB, hdinkvB]
                                               exact hKickCall')
-                                · sorry -- room underflow (box < litter)
+                                · -- room underflow (box < litter): reach pc 3762 at grown aw=10, empty revert.
+                                  exact catBiteRevertRoomSub hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                    hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hosz hoszu hurn
+                                    hlive hmemI hmemUsz rd1620 hle hunsafe hfitArtRate hfitInkSpot hspotPos
+                                    hart hink hiSpot hiRate rfl
                               · sorry -- require(unsafe) fails → revert leaf
                             · sorry -- spot = 0 (short-circuit) → revert leaf
                           · sorry -- inkSpot checkedMul overflow → revert leaf

@@ -1898,6 +1898,204 @@ theorem catBiteRevertKickDecodeW {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
     hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
 
 
+set_option maxHeartbeats 2000000 in
+/-- **aw-correct reach 1620 → 3762** (the room-`sub(box,litter)` subroutine entry, exposing the
+grown active-words ⟨10⟩). Verbatim `catBiteReachSeg6Aw` prefix (which grows aw 9→10 at the dunk
+MSTORE @288) but STOPS at pc 3762 instead of stepping the sub-success — for the underflow
+(box < litter) divergence. -/
+theorem catBiteReachGuardRoomSubAw {cA gh bl σ σ₀ A I} {g : UInt256}
+    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {art ink iDust iSpot iRate urn ilk fp q : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem ⟨9⟩ o (cA', σ') k C)
+    (hqNat : q.toNat = 224)
+    (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ (⟨9⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = fp)
+    (hQ : (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size
+          ∨ (⟨64⟩ : UInt256) ≥ (⟨9⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian
+        ((catBiteScratchMem mem fp ilk).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = q)
+    (hKec : (catBiteScratchMem mem fp ilk).readWithPadding 0 64 =
+        UInt256.toByteArray ilk ++ UInt256.toByteArray ⟨1⟩)
+    (hawFp : fp.toNat + 96 ≤ (⟨9⟩ : UInt256).toNat * 32)
+    (hfpsz : fp.toNat + 96 < UInt256.size)
+    (hqsz : q.toNat + 96 < UInt256.size)
+    (hov : R.length + 20 ≤ 1024) :
+    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: ⟨1708⟩ ::
+        ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      (catBiteMilkMem mem fp ilk q
+        (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
+        (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
+        (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩)))
+      ⟨10⟩ o (cA', σ') k' C' := by
+  have h9 : (⟨9⟩ : UInt256).toNat = 9 := by native_decide
+  -- offset arithmetic
+  have e32fp : (⟨32⟩ + fp).toNat = fp.toNat + 32 := uadd_lit32_toNat fp (by omega)
+  have e64fp : (⟨32⟩ + (⟨32⟩ + fp)).toNat = fp.toNat + 64 := by
+    rw [uadd_lit32_toNat _ (by omega)]; omega
+  have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
+  have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
+    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
+  -- active-words invariance witnesses (all within aw=9 EXCEPT the dunk, handled by growth)
+  have hM0 : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 0 32) = ⟨9⟩ := catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hM32 : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 32 32) = ⟨9⟩ := catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hM64 : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 64 32) = ⟨9⟩ := catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hMfp : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat fp.toNat 32) = ⟨9⟩ := catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hM32fp : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat (⟨32⟩ + fp).toNat 32) = ⟨9⟩ :=
+    catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hM64fp : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat (⟨32⟩ + (⟨32⟩ + fp)).toNat 32) = ⟨9⟩ :=
+    catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hMq : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat q.toNat 32) = ⟨9⟩ := catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hMq32 : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat (q + ⟨32⟩).toNat 32) = ⟨9⟩ :=
+    catBiteAwMInv32 ⟨9⟩ (by omega)
+  have hMkec : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 0 64) = ⟨9⟩ := catBiteAwMInv64 ⟨9⟩ (by omega)
+  have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
+    by native_decide
+  have hDunkOff : (q + ⟨64⟩).toNat = 288 := by rw [eq64, hqNat]
+  -- 1620 → 3818 (call the 96-byte allocator)
+  have rd1621 := rd.jumpdest (by native_decide) (by evm_ov)
+  have rd1624 := rd1621.push2 ⟨1628⟩ (by native_decide) (by evm_ov)
+  have rd1627 := rd1624.push2 ⟨3818⟩ (by native_decide) (by evm_ov)
+  have rd3818 := rd1627.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3819 := rd3818.jumpdest (by native_decide) (by evm_ov)
+  have rd3821 := rd3819.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd3822 := RD.mload 0 fp ⟨9⟩ rd3821 (by native_decide) (catBiteMloadCost0 hM64) hFp hM64
+    (by evm_ov)
+  have rd3823 := rd3822.dup1 (by native_decide) (by evm_ov)
+  have rd3825 := rd3823.push1 ⟨96⟩ (by native_decide) (by evm_ov)
+  have rd3826 := rd3825.add (by native_decide) (by evm_ov)
+  have rd3828 := rd3826.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd3829 := RD.mstore 0 ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) ⟨9⟩ rd3828
+    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd3830 := rd3829.dup1 (by native_decide) (by evm_ov)
+  have rd3832 := rd3830.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd3834 := rd3832.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd3836 := rd3834.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd3838 := rd3836.push1 ⟨160⟩ (by native_decide) (by evm_ov)
+  have rd3839 := rd3838.shl (by native_decide) (by evm_ov)
+  have rd3840 := rd3839.sub (by native_decide) (by evm_ov)
+  have rd3841 := rd3840.and (by native_decide) (by evm_ov)
+  rw [hmask0] at rd3841
+  have rd3842 := rd3841.dup2 (by native_decide) (by evm_ov)
+  have rd3843 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
+      ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32) ⟨9⟩ rd3842
+    (by native_decide) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
+  have rd3845 := rd3843.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd3846 := rd3845.add (by native_decide) (by evm_ov)
+  have rd3848 := rd3846.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd3849 := rd3848.dup2 (by native_decide) (by evm_ov)
+  have rd3850 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
+      ((UInt256.toByteArray ⟨0⟩).write 0
+        ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32)
+      (⟨32⟩ + fp).toNat 32) ⟨9⟩ rd3849
+    (by native_decide) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
+  have rd3852 := rd3850.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd3853 := rd3852.add (by native_decide) (by evm_ov)
+  have rd3855 := rd3853.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd3856 := rd3855.dup2 (by native_decide) (by evm_ov)
+  have rd3857 := RD.mstore 0 (catBiteHelperMem mem fp) ⟨9⟩ rd3856
+    (by native_decide) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
+  have rd3858 := rd3857.pop (by native_decide) (by evm_ov)
+  have rd3859 := rd3858.swap1 (by native_decide) (by evm_ov)
+  have rd1628 := rd3859.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1629 := rd1628.jumpdest (by native_decide) (by evm_ov)
+  have rd1630 := rd1629.pop (by native_decide) (by evm_ov)
+  have rd1632 := rd1630.push1 ⟨0⟩ (by native_decide) (by evm_ov)
+  have rd1633 := rd1632.dup9 (by native_decide) (by evm_ov)
+  have rd1634 := rd1633.dup2 (by native_decide) (by evm_ov)
+  have rd1635 := RD.mstore 0 ((UInt256.toByteArray ilk).write 0 (catBiteHelperMem mem fp) 0 32)
+    ⟨9⟩ rd1634 (by native_decide) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
+  have rd1637 := rd1635.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd1639 := rd1637.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd1640 := rd1639.dup2 (by native_decide) (by evm_ov)
+  have rd1641 := rd1640.dup2 (by native_decide) (by evm_ov)
+  have rd1642 := RD.mstore 0 (catBiteScratchMem mem fp ilk) ⟨9⟩ rd1641
+    (by native_decide) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
+  have rd1644 := rd1642.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd1645 := rd1644.dup1 (by native_decide) (by evm_ov)
+  have rd1646 := rd1645.dup5 (by native_decide) (by evm_ov)
+  have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) ⟨9⟩ (by native_decide)
+    (catBiteKeccakCost0 hMkec)
+    (by simp only [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+      show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKec]; exact mappingSlot_single ilk ⟨1⟩)
+    hMkec (by evm_ov)
+  have rd1648 := rd1647.dup2 (by native_decide) (by evm_ov)
+  have rd1649 := RD.mload 0 q ⟨9⟩ rd1648 (by native_decide) (catBiteMloadCost0 hM64) hQ hM64
+    (by evm_ov)
+  have rd1651 := rd1649.push1 ⟨96⟩ (by native_decide) (by evm_ov)
+  have rd1652 := rd1651.dup2 (by native_decide) (by evm_ov)
+  have rd1653 := rd1652.add (by native_decide) (by evm_ov)
+  have rd1654 := rd1653.dup4 (by native_decide) (by evm_ov)
+  have rd1655 := RD.mstore 0 ((UInt256.toByteArray (q + ⟨96⟩)).write 0
+      (catBiteScratchMem mem fp ilk) 64 32) ⟨9⟩ rd1654
+    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd1656 := rd1655.dup2 (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1657⟩ := rd1656.sload (by native_decide) (by evm_ov)
+  have rd1659 := rd1657.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd1661 := rd1659.push1 ⟨1⟩ (by native_decide) (by evm_ov)
+  have rd1663 := rd1661.push1 ⟨160⟩ (by native_decide) (by evm_ov)
+  have rd1664 := rd1663.shl (by native_decide) (by evm_ov)
+  have rd1665 := rd1664.sub (by native_decide) (by evm_ov)
+  have rd1666 := rd1665.and (by native_decide) (by evm_ov)
+  have rd1667 := rd1666.dup2 (by native_decide) (by evm_ov)
+  have rd1668 := RD.mstore 0 ((UInt256.toByteArray
+      (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
+      ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
+    ⟨9⟩ rd1667 (by native_decide) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
+  have rd1669 := rd1668.swap4 (by native_decide) (by evm_ov)
+  have rd1670 := rd1669.dup2 (by native_decide) (by evm_ov)
+  have rd1671 := rd1670.add (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1672⟩ := rd1671.sload (by native_decide) (by evm_ov)
+  have rd1673 := rd1672.swap3 (by native_decide) (by evm_ov)
+  have rd1674 := rd1673.dup5 (by native_decide) (by evm_ov)
+  have rd1675 := rd1674.add (by native_decide) (by evm_ov)
+  have rd1676 := rd1675.swap3 (by native_decide) (by evm_ov)
+  have rd1677 := rd1676.swap1 (by native_decide) (by evm_ov)
+  have rd1678 := rd1677.swap3 (by native_decide) (by evm_ov)
+  have rd1679 := RD.mstore 0 ((UInt256.toByteArray
+      (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))).write 0
+      ((UInt256.toByteArray
+        (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
+        ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
+      (q + ⟨32⟩).toNat 32) ⟨9⟩ rd1678
+    (by native_decide) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
+  have rd1681 := rd1679.push1 ⟨2⟩ (by native_decide) (by evm_ov)
+  have rd1682 := rd1681.swap1 (by native_decide) (by evm_ov)
+  have rd1683 := rd1682.swap2 (by native_decide) (by evm_ov)
+  have rd1684 := rd1683.add (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1685⟩ := rd1684.sload (by native_decide) (by evm_ov)
+  have rd1686 := rd1685.swap1 (by native_decide) (by evm_ov)
+  have rd1687 := rd1686.dup3 (by native_decide) (by evm_ov)
+  have rd1688 := rd1687.add (by native_decide) (by evm_ov)
+  -- the `dunk` MSTORE @q+64=288 GROWS aw 9 → 10 (write [288,320) extends past aw=9's [0,288))
+  have rd1689 := RD.mstore 3 (catBiteMilkMem mem fp ilk q
+      (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
+      (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
+      (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩))) ⟨10⟩ rd1688
+    (by native_decide)
+    (fun s hs hst => mstoreCost_of_stack hs hst (by rw [hDunkOff]; native_decide))
+    (by rfl) (by rw [hDunkOff]; native_decide) (by evm_ov)
+  have rd1691 := rd1689.push1 ⟨5⟩ (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1692⟩ := rd1691.sload (by native_decide) (by evm_ov)
+  have rd1694 := rd1692.push1 ⟨6⟩ (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1695⟩ := rd1694.sload (by native_decide) (by evm_ov)
+  have rd1696 := rd1695.swap2 (by native_decide) (by evm_ov)
+  have rd1697 := rd1696.swap3 (by native_decide) (by evm_ov)
+  have rd1698 := rd1697.swap2 (by native_decide) (by evm_ov)
+  have rd1699 := rd1698.dup3 (by native_decide) (by evm_ov)
+  have rd1700 := rd1699.swap2 (by native_decide) (by evm_ov)
+  have rd1703 := rd1700.push2 ⟨1708⟩ (by native_decide) (by evm_ov)
+  have rd1704 := rd1703.swap2 (by native_decide) (by evm_ov)
+  have rd1707 := rd1704.push2 ⟨3762⟩ (by native_decide) (by evm_ov)
+  have rd3762 := rd1707.jump (by native_decide) (by jump_dest) (by evm_ov)
+  exact ⟨_, _, rd3762⟩
+
 /-! ## checked-`sub` EMPTY-revert (DSMath `sub` underflow → `revert(0,0)`) -/
 
 /-- **checked-`sub` underflow → empty `revert(0,0)`.** solc 0.6.12 compiles the DSMath `sub`
@@ -1972,6 +2170,128 @@ theorem catBiteRoomUnderflowEmptyRevertLeaf {cA gh bl σ_evm σ_solm σ₀ A I} 
   have hrev := RD.solcCheckedSubEmptyRevert rd hsub (by native_decide) (by native_decide)
     (by native_decide) hlt hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+
+set_option maxHeartbeats 2000000 in
+/-- **room-underflow (box < litter) branch (extracted).** Reaches the room-`sub` subroutine at pc
+3762 (aw grown 9→10 by the milk-struct write) via `catBiteReachGuardRoomSubAw`, maps the ilks+urns
+calls to σ_solm, and fires `catBiteRoomUnderflowEmptyRevertLeaf` (empty `revert(0,0)`) +
+`catBiteSourceRoomUnderflowRevert`. -/
+theorem catBiteRevertRoomSub {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ' σu : AccountMap} {A' Au : Substate}
+    {cA' cAu : Batteries.RBSet AccountAddress compare} {o' ou : ByteArray} {ku Cu : ℕ}
+    {art ink iSpot iRate iDust : UInt256}
+    (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A', createdAccounts := cA' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', createdAccounts := cA' }
+        (AccountAddress.ofUInt256 ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au, createdAccounts := cAu }, ou) false)
+    (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
+    (hosz : o'.size < UInt256.size) (hoszu : ou.size < UInt256.size)
+    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
+    (hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size)
+    (hmemUsz : 224 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size)
+    (rd1620 : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+        biteAddrMaskWord.land (calldataWord I.calldata 36) :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨9⟩ ou (cAu, σu) ku Cu)
+    (hle : ¬ (solcSlotWord σu I ⟨6⟩).toNat ≤ (solcSlotWord σu I ⟨5⟩).toNat)
+    (hunsafe : (ink * iSpot).toNat < (art * iRate).toNat)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hspotPos : 0 < iSpot.toNat)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
+    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+  have hdepthNe : I.depth ≠ 1024 := by omega
+  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by native_decide
+  have h128 : (⟨128⟩ : UInt256).toNat = 128 := by native_decide
+  -- reach the room-`sub` subroutine at pc 3762 (aw grows 9→10)
+  obtain ⟨_, _, rd3762⟩ := catBiteReachGuardRoomSubAw (fp := ⟨128⟩) rd1620
+    (by native_decide)
+    (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
+      (by rw [h64]; have := hmemUsz; omega) (by native_decide)
+      (catBiteUrnsPostCallMem_read64 I ou hmemI
+        (catBiteIlksPostCallMem_read64 I o' hilkslen hosz) hurnslen hoszu))
+    (catBiteScratchMem_mload64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by native_decide)
+      (by native_decide) (by native_decide) (by native_decide))
+    (catBiteScratchMem_read0_64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
+      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by native_decide))
+    (by native_decide) (by native_decide) (by native_decide) (by simp)
+  -- Solm-side ilks+urns calls
+  obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
+    catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
+  set eUrnS := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+    accountMap := σus, substate := Aus, createdAccounts := cAu } with heUrnSdef
+  have heUSam : eUrnS.accountMap = σus := rfl
+  have heUSee : eUrnS.executionEnv = I := rfl
+  have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
+    intro s; simp only [solcSlotWord]
+    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+  have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
+      ABI.bytesToWord ((o.toList.drop k).take 32) =
+        UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
+    intro o k h
+    rw [decode_word_at_eq_any o k h, uInt256OfByteArray_eq]
+    congr 1; unfold fromByteArrayBigEndian; congr 1
+    rw [byteArray_toList_eq (o.readBytes k 32), readBytes_at_toList_any o k h,
+      byteArray_toList_eq (o.extract k (k + 32)), ByteArray.data_extract, Array.toList_extract,
+      List.extract_eq_take_drop]
+    simp
+  have hIlksDec : config.externalABI.decode? "ilks" o' =
+      some [bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))), bw iRate, bw iSpot,
+        bw (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 96 128))), bw iDust] := by
+    have h := catBiteIlksDecode_ok hilkslen
+    rw [hbr o' 0 (by omega), hbr o' 32 (by omega), hbr o' 64 (by omega),
+      hbr o' 96 (by omega), hbr o' 128 (by omega)] at h
+    rw [hiRate, hiSpot, hiDust]; exact h
+  have hUrnsDec : config.externalABI.decode? "urns" ou = some [bw ink, bw art] := by
+    have h := catBiteUrnsDecode_ok hurnslen
+    rw [hbr ou 0 (by omega), hbr ou 32 (by omega)] at h
+    rw [hink, hart]; exact h
+  have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
+    rw [heUSam, heUSee]
+    simp only [catSlotWord]; rw [slotEqUS ⟨2⟩]
+    simpa only [catSlotWord] using hlive
+  have hratePos : 0 < iRate.toNat := by
+    by_contra hc
+    have hr0 : iRate.toNat = 0 := by omega
+    have hz : (art * iRate).toNat = 0 := by
+      rw [u256_mul_op_toNat, hr0, Nat.mul_zero, Nat.zero_mod]
+    omega
+  have hlitGtBox : (biteBoxW eUrnS).toNat < (biteLitW eUrnS).toNat := by
+    simp only [biteBoxW, biteLitW, catSlotWord, heUSam, heUSee]
+    rw [slotEqUS ⟨5⟩, slotEqUS ⟨6⟩]; omega
+  have hbody := catBiteSourceRoomUnderflowRevert hwv
+    (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
+    hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitGtBox
+  exact catBiteRoomUnderflowEmptyRevertLeaf (okPc := ⟨3756⟩) hcode hdispatch hdecode rd3762
+    (by unfold solcCheckedSubSuccessWf; repeat' first | apply And.intro | native_decide)
+    (by omega) (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
 
 /-! ## `ilks` return-decode-short extraction -/
