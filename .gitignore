@@ -8,6 +8,9 @@ _mcp_snippet_*.lean
 CLAUDE.md
 .claude
 .codex
+.lean4-skills/
+.uv-cache/
+.uv-tools/
 .vscodei
 .DS_STORE
 
