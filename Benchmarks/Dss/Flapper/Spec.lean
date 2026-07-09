@@ -225,6 +225,7 @@ def constructorDecl : ConstructorDecl :=
       [ .assign .storage begRef (.intLit defaultBeg),
         .assign .storage ttlRef (.intLit defaultTtl),
         .assign .storage tauRef (.intLit defaultTau),
+        .assign .storage kicksRef (.intLit 0),
         .assign .storage (wardsRef sender) (.intLit 1),
         .assign .storage vatRef (.var "vat_"),
         .assign .storage gemRef (.var "gem_"),
