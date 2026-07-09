@@ -23,7 +23,7 @@ the checked-in `.abi.json` files.
 | `Dss/LinearDecrease` | 0.6.12 | 1128 | 1217 | 6 fn + ctor | Completed | Yes |
 | `Dss/StairstepExponentialDecrease` | 0.6.12 | 1433 | 1522 | 7 fn + ctor | Completed | Yes |
 | `Dss/ExponentialDecrease` | 0.6.12 | 1321 | 1410 | 6 fn + ctor | Completed | Yes |
-| `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Ready for proof | Yes |
+| `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Completed | Yes |
 | `Dss/DaiJoin` | 0.6.12 | 1733 | 1876 | 9 fn + ctor | Completed | Yes |
 | `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
 | `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
@@ -90,11 +90,11 @@ the checked-in `.abi.json` files.
   storage layout, `file`, public getters, checked arithmetic, and the source-level price functions
   including the `rpow` loop for the exponential variants. Proof work has been marked done.
 
-- `Dss/GemJoin`: ready for proof, not yet handed off. Target theorem:
+- `Dss/GemJoin`: completed. Target theorem:
   `Benchmarks.Dss.GemJoin.gemJoinContractCorrect`. Fresh solc output is checked in from
   `src/join.sol`; the spec models auth, constructor initialization, public getters, cage,
   join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed external ABI hooks for
-  `VatLike` and `GemLike`.
+  `VatLike` and `GemLike`. Proof work has been marked done.
 
 - `Dss/DaiJoin`: completed. Target theorem:
   `Benchmarks.Dss.DaiJoin.daiJoinContractCorrect`. Fresh solc output is checked in from
