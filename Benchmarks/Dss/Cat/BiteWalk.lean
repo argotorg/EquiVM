@@ -306,7 +306,12 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   by_cases hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat *
                                     dunkRoom.toNat < UInt256.size
                                   swap
-                                  · sorry -- dunkRoom*WAD checkedMul overflow
+                                  · -- dunkRoom*WAD checkedMul overflow: reach pc 3720, mul-overflow revert.
+                                    exact catBiteRevertDunkRoomWad hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                      hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hosz hoszu hurn hlive
+                                      hmemI hmemUsz (by native_decide) rd1708 hChop hDunk hlitterbox hroomdust hunsafe
+                                      hfitArtRate hfitInkSpot hspotPos hRatePos hFitWad hart hink hiSpot hiRate hiDustDef
+                                      hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
                                   by_cases hArtPos : art ≠ ⟨0⟩
                                   swap
                                   · -- art = 0 unreachable: hunsafe forces art·rate > 0.
