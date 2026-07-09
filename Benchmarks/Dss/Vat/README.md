@@ -35,9 +35,9 @@ Generated artifacts and scaffold files:
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold with storage layout and full public ABI surface.
 - `SpecSyntax.lean`: Solm notation presentation for representative fragments, checked by `rfl`.
-- `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
+- `Constructor.lean`: top-level constructor-equivalence theorem, with the proof pending.
 - `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper,
-  intentionally `sorry` at the runtime target.
+  with the runtime-target proof pending.
 
 Source and artifact hashes:
 
