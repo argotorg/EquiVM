@@ -792,6 +792,53 @@ theorem catBiteKickPostCallMemP_mload64 (p kurn kvow tab dink : UInt256) {mem : 
             (by rw [kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz]; omega) (by omega)]
         exact kickCalldataMemP_read64 p kurn kvow tab dink hp96 hpmem hpsz hread64)
 
+/-- **decode-short free-ptr MLOAD.** `p`-relative `mload@64 = p` for a short (`o.size < 32`) return
+copy — the write region `[p, p+o.size)` sits above `[64,96)`, so the free pointer is untouched
+(covers the empty-return `o.size = 0` case via `byteArray_write_len_zero`). Sibling of
+`catBiteKickPostCallMemP_mload64` for the `< 32` decode-revert branch. -/
+theorem catBiteKickPostCallMemP_mload64_short (p kurn kvow tab dink : UInt256) {mem : ByteArray}
+    (o : ByteArray) {aw8 : UInt256} (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat + 164 ≤ mem.size)
+    (hpsz : p.toNat + 164 < UInt256.size) (hoLt : o.size < 32)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
+    (haw : p.toNat + 160 ≤ aw8.toNat * 32) (hawsz : aw8.toNat * 32 < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (kickCalldataMemP p kurn kvow tab dink mem) p.toNat
+          (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).size
+        ∨ (⟨64⟩ : UInt256) ≥ aw8 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat (fromByteArrayBigEndian
+       ((o.write 0 (kickCalldataMemP p kurn kvow tab dink mem) p.toNat
+          (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).readWithPadding 64 32))) = p := by
+  have hbaseSz : (kickCalldataMemP p kurn kvow tab dink mem).size = mem.size :=
+    kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz
+  have hlen : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size :=
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := o.size) (by decide) hoLt (by omega)
+  have hread : (o.write 0 (kickCalldataMemP p kurn kvow tab dink mem) p.toNat
+      (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).readWithPadding 64 32 =
+      (kickCalldataMemP p kurn kvow tab dink mem).readWithPadding 64 32 := by
+    rw [hlen]
+    rcases Nat.eq_zero_or_pos o.size with h0 | h0
+    · rw [h0, byteArray_write_len_zero]
+    · exact write_read_below_gen_extend o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat o.size 64
+        (by omega) (by omega) (by rw [hbaseSz]; omega) (by omega)
+  have hsz : 64 < (o.write 0 (kickCalldataMemP p kurn kvow tab dink mem) p.toNat
+      (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).size := by
+    rw [hlen]
+    rcases Nat.eq_zero_or_pos o.size with h0 | h0
+    · rw [h0, byteArray_write_len_zero, hbaseSz]; omega
+    · rw [write_eq_gen o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat o.size
+          (by omega) (by omega) (by rw [hbaseSz]; omega),
+        ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+        ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
+      omega
+  refine mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := p) ?_ ?_ ?_
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hsz
+  · intro hh
+    have hle : (aw8 * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
+    rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
+    omega
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hread]
+    exact kickCalldataMemP_read64 p kurn kvow tab dink hp96 hpmem hpsz hread64
+
 /-- The returned `id` (`o.extract 0 32`) sits AT `@p` (the return copy) — discharges
 `catBiteKickReturnP`'s `hId8`. -/
 theorem catBiteKickPostCallMemP_mloadP (p kurn kvow tab dink : UInt256) {mem : ByteArray}
