@@ -190,7 +190,7 @@ def fileTransition : TransitionDecl :=
       [ .ite
           (.binary .eq (.var "what") cutParamLit)
           [ .assign .storage cutRef (.var "data"),
-            .require (.binary .le (.storage cutRef) (.intLit RAY)) ]
+            .require (.binary .le (.var "data") (.intLit RAY)) ]
           [ .ite
               (.binary .eq (.var "what") stepParamLit)
               [ .assign .storage stepRef (.var "data") ]
