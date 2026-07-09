@@ -854,6 +854,8 @@ abbrev endUintBinaryLocalsZ (x y z : UInt256) : Store :=
 abbrev endUintBinaryLocalsM (x y m : UInt256) : Store :=
   (endUintBinaryLocals x y).insert "m" (.int (Int.ofNat m.toNat))
 
+abbrev endWadWord : UInt256 := ⟨1000000000000000000⟩
+
 abbrev endRayWord : UInt256 := ⟨1000000000000000000000000000⟩
 
 theorem endUintBinaryLocals_get_x (x y : UInt256) :
@@ -879,6 +881,10 @@ theorem endUintBinaryLocalsZ_get_z (x y z : UInt256) :
 theorem endUintBinaryLocalsM_get_m (x y m : UInt256) :
     (endUintBinaryLocalsM x y m).get? "m" = some (.int (Int.ofNat m.toNat)) := by
   rw [endUintBinaryLocalsM, store_get_self]
+
+theorem endUintBinaryLocalsM_get_y (x y m : UInt256) :
+    (endUintBinaryLocalsM x y m).get? "y" = some (.int (Int.ofNat y.toNat)) := by
+  rw [endUintBinaryLocalsM, store_get_ne _ _ (by decide), endUintBinaryLocals_get_y]
 
 theorem endEvalExpr_varUInt256 {evm : EVM.State} {locals : Store}
     {name : Ident} {value : UInt256}
@@ -979,6 +985,18 @@ theorem endEvalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
   have hqNat : q.toNat = a.toNat / b.toNat := by
     rw [hq, udiv_toNat]
   simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+
+theorem endEvalExpr_div_uint256_revert_zero {evm : EVM.State} {locals : Store}
+    {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? config { contract := contract, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? config { contract := contract, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hb : b = ⟨0⟩) :
+    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
+      .revert := by
+  subst b
+  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?]
 
 theorem endEvalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -1462,5 +1480,192 @@ theorem endExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
         .reverted := by
     exact ExecBlock.consRevert hmulStmt
   simpa [rmulFunction, locals] using ExecFuncBody.execBlockRevert hblock
+
+theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
+    (hprod : prod = x * endWadWord) (hfit : x.toNat * endWadWord.toNat < UInt256.size)
+    (hy : y ≠ ⟨0⟩) (hq : q = UInt256.div prod y) :
+    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+      wdivFunction.body
+      (.returned { contract := contract, locals := endUintBinaryLocalsM x y prod } evm
+        (some [.int (Int.ofNat q.toNat)])) := by
+  let locals := endUintBinaryLocals x y
+  let localsM := endUintBinaryLocalsM x y prod
+  have hx :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [locals] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "x") (value := x) (endUintBinaryLocals_get_x x y)
+  have hWad :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
+        .ok (.int (Int.ofNat endWadWord.toNat)) := by
+    have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
+      native_decide
+    simp [evalExpr?, pure, hWadEq]
+  have hargs :
+      evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] := by
+    simp [evalExprs?, hx, hWad, EvalResult.bind, bind, pure]
+  have hbind :
+      bindParams? mulFunction.params
+          [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] =
+        some (endUintBinaryLocals x endWadWord) := by
+    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hmulStmt :
+      ExecStmt config { contract := contract, locals := locals } evm
+        (.internalCall "mul" [.var "x", .intLit WAD] "m")
+        (.ok { contract := contract, locals := localsM } evm) := by
+    have hbody :=
+      endExecMulFunctionReturn (evm := evm) (x := x) (y := endWadWord) (prod := prod)
+        hprod hfit
+    have hstmt := internalCallFunctionReturn
+      (cfg := config) (caller := { contract := contract, locals := locals })
+      (evm := evm) (name := "mul") (retVar := "m")
+      (args := [.var "x", .intLit WAD])
+      (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)])
+      (callee := mulFunction) (locals := endUintBinaryLocals x endWadWord)
+      hargs (by rfl) hbind hbody
+    simpa [localsM, endUintBinaryLocalsM, resumeAfterInternalCall, collapseReturns] using hstmt
+  have hm :
+      evalExpr? config { contract := contract, locals := localsM } evm (.var "m") =
+        .ok (.int (Int.ofNat prod.toNat)) := by
+    simpa [localsM] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := localsM) (name := "m") (value := prod)
+      (endUintBinaryLocalsM_get_m x y prod)
+  have hyExpr :
+      evalExpr? config { contract := contract, locals := localsM } evm (.var "y") =
+        .ok (.int (Int.ofNat y.toNat)) := by
+    simpa [localsM] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := localsM) (name := "y") (value := y)
+      (endUintBinaryLocalsM_get_y x y prod)
+  have hDiv :
+      evalExpr? config { contract := contract, locals := localsM } evm
+        (.binary .div (.var "m") (.var "y")) =
+          .ok (.int (Int.ofNat q.toNat)) :=
+    endEvalExpr_div_uint256_ok hm hyExpr hy hq
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm
+        [ .internalCall "mul" [.var "x", .intLit WAD] "m",
+          .return [.binary .div (.var "m") (.var "y")] ]
+        (.returned { contract := contract, locals := localsM } evm
+          (some [.int (Int.ofNat q.toNat)])) := by
+    refine ExecBlock.consNormal hmulStmt ?_
+    exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hDiv))
+  simpa [wdivFunction, locals, localsM] using ExecFuncBody.execBlockRet hblock
+
+theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
+    (hover : UInt256.size ≤ x.toNat * endWadWord.toNat) :
+    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+      wdivFunction.body .reverted := by
+  let locals := endUintBinaryLocals x y
+  have hx :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [locals] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "x") (value := x) (endUintBinaryLocals_get_x x y)
+  have hWad :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
+        .ok (.int (Int.ofNat endWadWord.toNat)) := by
+    have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
+      native_decide
+    simp [evalExpr?, pure, hWadEq]
+  have hargs :
+      evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] := by
+    simp [evalExprs?, hx, hWad, EvalResult.bind, bind, pure]
+  have hbind :
+      bindParams? mulFunction.params
+          [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] =
+        some (endUintBinaryLocals x endWadWord) := by
+    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hmulStmt :
+      ExecStmt config { contract := contract, locals := locals } evm
+        (.internalCall "mul" [.var "x", .intLit WAD] "m") .reverted := by
+    have hbody :=
+      endExecMulFunctionRevert (evm := evm) (x := x) (y := endWadWord) hover
+    exact internalCallFunctionRevert
+      (cfg := config) (caller := { contract := contract, locals := locals })
+      (evm := evm) (name := "mul") (retVar := "m")
+      (args := [.var "x", .intLit WAD])
+      (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)])
+      (callee := mulFunction) (locals := endUintBinaryLocals x endWadWord)
+      hargs (by rfl) hbind hbody
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm
+        [ .internalCall "mul" [.var "x", .intLit WAD] "m",
+          .return [.binary .div (.var "m") (.var "y")] ]
+        .reverted := by
+    exact ExecBlock.consRevert hmulStmt
+  simpa [wdivFunction, locals] using ExecFuncBody.execBlockRevert hblock
+
+theorem endExecWdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
+    (hprod : prod = x * endWadWord) (hfit : x.toNat * endWadWord.toNat < UInt256.size)
+    (hy : y = ⟨0⟩) :
+    ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm
+      wdivFunction.body .reverted := by
+  let locals := endUintBinaryLocals x y
+  let localsM := endUintBinaryLocalsM x y prod
+  have hx :
+      evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
+        .ok (.int (Int.ofNat x.toNat)) := by
+    simpa [locals] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := locals) (name := "x") (value := x) (endUintBinaryLocals_get_x x y)
+  have hWad :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
+        .ok (.int (Int.ofNat endWadWord.toNat)) := by
+    have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
+      native_decide
+    simp [evalExpr?, pure, hWadEq]
+  have hargs :
+      evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] := by
+    simp [evalExprs?, hx, hWad, EvalResult.bind, bind, pure]
+  have hbind :
+      bindParams? mulFunction.params
+          [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)] =
+        some (endUintBinaryLocals x endWadWord) := by
+    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hmulStmt :
+      ExecStmt config { contract := contract, locals := locals } evm
+        (.internalCall "mul" [.var "x", .intLit WAD] "m")
+        (.ok { contract := contract, locals := localsM } evm) := by
+    have hbody :=
+      endExecMulFunctionReturn (evm := evm) (x := x) (y := endWadWord) (prod := prod)
+        hprod hfit
+    have hstmt := internalCallFunctionReturn
+      (cfg := config) (caller := { contract := contract, locals := locals })
+      (evm := evm) (name := "mul") (retVar := "m")
+      (args := [.var "x", .intLit WAD])
+      (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat endWadWord.toNat)])
+      (callee := mulFunction) (locals := endUintBinaryLocals x endWadWord)
+      hargs (by rfl) hbind hbody
+    simpa [localsM, endUintBinaryLocalsM, resumeAfterInternalCall, collapseReturns] using hstmt
+  have hm :
+      evalExpr? config { contract := contract, locals := localsM } evm (.var "m") =
+        .ok (.int (Int.ofNat prod.toNat)) := by
+    simpa [localsM] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := localsM) (name := "m") (value := prod)
+      (endUintBinaryLocalsM_get_m x y prod)
+  have hyExpr :
+      evalExpr? config { contract := contract, locals := localsM } evm (.var "y") =
+        .ok (.int (Int.ofNat y.toNat)) := by
+    simpa [localsM] using endEvalExpr_varUInt256 (evm := evm)
+      (locals := localsM) (name := "y") (value := y)
+      (endUintBinaryLocalsM_get_y x y prod)
+  have hDiv :
+      evalExpr? config { contract := contract, locals := localsM } evm
+        (.binary .div (.var "m") (.var "y")) = .revert :=
+    endEvalExpr_div_uint256_revert_zero hm hyExpr hy
+  have hReturn :
+      evalExprs? config { contract := contract, locals := localsM } evm
+        [.binary .div (.var "m") (.var "y")] = .revert := by
+    simp [evalExprs?, hDiv, EvalResult.bind, bind]
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm
+        [ .internalCall "mul" [.var "x", .intLit WAD] "m",
+          .return [.binary .div (.var "m") (.var "y")] ]
+        .reverted := by
+    refine ExecBlock.consNormal hmulStmt ?_
+    exact ExecBlock.consRevert (ExecStmt.returnRevert hReturn)
+  simpa [wdivFunction, locals, localsM] using ExecFuncBody.execBlockRevert hblock
 
 end Benchmarks.Dss.End

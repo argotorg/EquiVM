@@ -98,6 +98,14 @@ abbrev endCashEvaledBagRef (I : ExecutionEnv) : EvaledStorageRef :=
 def endCashPostState (evm : EVM.State) (I : ExecutionEnv) (outNew : UInt256) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (endCashOutSlot I) outNew
 
+def endCashPostAccountMap (σ : AccountMap) (I : ExecutionEnv) (outNew : UInt256) :
+    AccountMap :=
+  sstoreAccountMap I.codeOwner σ (endCashOutSlot I) outNew
+
+abbrev endCashPostBagWord (σ : AccountMap) (I : ExecutionEnv) (outNew : UInt256) :
+    UInt256 :=
+  endSlotWord (endCashBagSlot I) (endCashPostAccountMap σ I outNew) I
+
 noncomputable def endCashFixHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endCashIlkWord I) ⟨15⟩ solcFreePtrMem
 
@@ -136,6 +144,9 @@ abbrev endCashDecodedPc : UInt256 := ⟨1296⟩
 abbrev endCashBodyPc : UInt256 := ⟨9609⟩
 abbrev endCashFixUndefinedRawWord : UInt256 :=
   ⟨0x456e642f6669782d696c6b2d6e6f742d646566696e6564000000000000000000⟩
+
+abbrev endCashInsufficientBagRawWord : UInt256 :=
+  ⟨0x456e642f696e73756666696369656e742d6261672d62616c616e636500000000⟩
 
 theorem endCashFixSlot_eq {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     endCashFixSlot I = solcMappingSlot ⟨15⟩ (endCashIlkWord I) := by
@@ -318,6 +329,44 @@ theorem endWordAt0Mem_size_260 (word : UInt256) {mem : ByteArray}
   unfold wordAt0Mem
   exact toByteArray_write32_size_of_le mem word 0 260 260 hmem (by omega) (by omega)
 
+theorem endWordAt32Mem_size_260 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (wordAt32Mem word mem).size = 260 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 260 260 hmem (by omega) (by omega)
+
+theorem endWordAt32Mem_read64_260 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (wordAt32Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+    (by omega) (by rw [hmem]; omega)]
+  exact hread64
+
+theorem endWordAt32Mem_read0_64_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread0 : mem.readWithPadding 0 32 = UInt256.toByteArray key) :
+    (wordAt32Mem slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  have hsize : (wordAt32Mem slot mem).size = 260 :=
+    endWordAt32Mem_size_260 slot hmem
+  rw [show 64 = 32 + 32 from rfl,
+    byteArray_readWithPadding_split (wordAt32Mem slot mem) 0 32 32
+      (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize]; omega)]
+  have hleft :
+      (wordAt32Mem slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
+    unfold wordAt32Mem
+    rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega)]
+    exact hread0
+  have hright :
+      (wordAt32Mem slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
+    unfold wordAt32Mem
+    rw [write32_read_back _ _ 32 (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+    rw [toByteArray_extract_all]
+  rw [hleft, hright]
+
 theorem endTwoWordHashMem_size_260 (key slot : UInt256) {mem : ByteArray}
     (hmem : mem.size = 260) :
     (twoWordHashMem key slot mem).size = 260 := by
@@ -440,6 +489,165 @@ theorem endCashOutHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutInnerHashMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+
+noncomputable def endCashOutStoreInnerHashMem (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) : ByteArray :=
+  twoWordHashMem (endCashIlkWord I) ⟨17⟩ (endCashOutHashMem σ I amt out)
+
+noncomputable def endCashOutStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) : ByteArray :=
+  twoWordHashMem (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashOutStoreInnerHashMem σ I amt out)
+
+noncomputable def endCashBagHashMem (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) : ByteArray :=
+  wordAt32Mem ⟨16⟩ (endCashOutStoreHashMem σ I amt out)
+
+noncomputable def endCashOutHashMemAfterBag (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) : ByteArray :=
+  wordAt32Mem (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashBagHashMem σ I amt out)
+
+noncomputable def endCashLogDataMem (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) : ByteArray :=
+  (UInt256.toByteArray (endCashWadWord I)).write 0
+    (endCashOutHashMemAfterBag σ I amt out) 128 32
+
+theorem endCashOutStoreInnerHashMem_size (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutStoreInnerHashMem σ I amt out).size = 260 := by
+  unfold endCashOutStoreInnerHashMem
+  exact endTwoWordHashMem_size_260 (endCashIlkWord I) ⟨17⟩
+    (endCashOutHashMem_size σ I amt out)
+
+theorem endCashOutStoreInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutStoreInnerHashMem σ I amt out).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold endCashOutStoreInnerHashMem
+  exact endTwoWordHashMem_read64_260 (endCashIlkWord I) ⟨17⟩
+    (endCashOutHashMem_size σ I amt out)
+    (endCashOutHashMem_read64 σ I amt out)
+
+theorem endCashOutStoreInnerHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((endCashOutStoreInnerHashMem σ I amt out).readWithPadding 0 64))) =
+      solcMappingSlot ⟨17⟩ (endCashIlkWord I) := by
+  unfold endCashOutStoreInnerHashMem
+  rw [endTwoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
+    (endCashOutHashMem_size σ I amt out)]
+  unfold solcMappingSlot
+  exact mappingSlot_single (endCashIlkWord I) ⟨17⟩
+
+theorem endCashOutStoreHashMem_size (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutStoreHashMem σ I amt out).size = 260 := by
+  unfold endCashOutStoreHashMem
+  exact endTwoWordHashMem_size_260 (solcSourceWord I)
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashOutStoreInnerHashMem_size σ I amt out)
+
+theorem endCashOutStoreHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutStoreHashMem σ I amt out).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold endCashOutStoreHashMem
+  exact endTwoWordHashMem_read64_260 (solcSourceWord I)
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashOutStoreInnerHashMem_size σ I amt out)
+    (endCashOutStoreInnerHashMem_read64 σ I amt out)
+
+theorem endCashOutStoreHashMem_read0 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutStoreHashMem σ I amt out).readWithPadding 0 32 =
+      UInt256.toByteArray (solcSourceWord I) := by
+  unfold endCashOutStoreHashMem
+  exact endTwoWordHashMem_read0_260 (solcSourceWord I)
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashOutStoreInnerHashMem_size σ I amt out)
+
+theorem endCashOutStoreHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) (hsz68 : 68 ≤ I.calldata.size) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((endCashOutStoreHashMem σ I amt out).readWithPadding 0 64))) =
+      endCashOutSlot I := by
+  rw [endCashOutSlot_eq (I := I) hsz68]
+  unfold endCashOutStoreHashMem
+  rw [endTwoWordHashMem_read0_64_260 (solcSourceWord I)
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+    (endCashOutStoreInnerHashMem_size σ I amt out)]
+  unfold solcMappingSlot
+  exact mappingSlot_single (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
+
+theorem endCashBagHashMem_size (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashBagHashMem σ I amt out).size = 260 := by
+  unfold endCashBagHashMem
+  exact endWordAt32Mem_size_260 ⟨16⟩
+    (endCashOutStoreHashMem_size σ I amt out)
+
+theorem endCashBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashBagHashMem σ I amt out).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold endCashBagHashMem
+  exact endWordAt32Mem_read64_260 ⟨16⟩
+    (endCashOutStoreHashMem_size σ I amt out)
+    (endCashOutStoreHashMem_read64 σ I amt out)
+
+theorem endCashBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((endCashBagHashMem σ I amt out).readWithPadding 0 64))) =
+      endCashBagSlot I := by
+  rw [endCashBagSlot_eq]
+  unfold endCashBagHashMem
+  rw [endWordAt32Mem_read0_64_260 (solcSourceWord I) ⟨16⟩
+    (endCashOutStoreHashMem_size σ I amt out)
+    (endCashOutStoreHashMem_read0 σ I amt out)]
+  unfold solcMappingSlot
+  exact mappingSlot_single (solcSourceWord I) ⟨16⟩
+
+theorem endCashOutHashMemAfterBag_size (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutHashMemAfterBag σ I amt out).size = 260 := by
+  unfold endCashOutHashMemAfterBag
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le (endCashBagHashMem σ I amt out)
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I)) 32 260 260
+    (endCashBagHashMem_size σ I amt out)
+    (by rw [endCashBagHashMem_size σ I amt out]; omega) (by omega)
+theorem endCashOutHashMemAfterBag_read64 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashOutHashMemAfterBag σ I amt out).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold endCashOutHashMemAfterBag
+  unfold wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+    (by rw [endCashBagHashMem_size σ I amt out]; omega) (by omega)
+    (by rw [endCashBagHashMem_size σ I amt out]; omega)]
+  exact endCashBagHashMem_read64 σ I amt out
+
+theorem endCashLogDataMem_size (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashLogDataMem σ I amt out).size = 260 := by
+  unfold endCashLogDataMem
+  exact toByteArray_write32_size_of_le (endCashOutHashMemAfterBag σ I amt out)
+    (endCashWadWord I) 128 260 260
+    (endCashOutHashMemAfterBag_size σ I amt out)
+    (by rw [endCashOutHashMemAfterBag_size σ I amt out]; omega) (by omega)
+
+theorem endCashLogDataMem_read64 (σ : AccountMap) (I : ExecutionEnv)
+    (amt : UInt256) (out : ByteArray) :
+    (endCashLogDataMem σ I amt out).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold endCashLogDataMem
+  rw [toByteArray_write_read_below_of_gap (endCashWadWord I)
+    (endCashOutHashMemAfterBag σ I amt out) 128 64
+    (by rw [endCashOutHashMemAfterBag_size σ I amt out]; omega) (by omega)
+    (by rw [endCashOutHashMemAfterBag_size σ I amt out]; native_decide)]
+  exact endCashOutHashMemAfterBag_read64 σ I amt out
 
 theorem endCashFluxCalldataMem_read128_4
     (σ : AccountMap) (I : ExecutionEnv) (amt : UInt256) {mem : ByteArray}
@@ -1694,6 +1902,540 @@ theorem endCashX_outAddOverflow {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
+theorem endCashX_outAddSuccess {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
+    {out : ByteArray} {k C : ℕ}
+    (hfit : (endCashOutWord σ' I).toNat + (endCashWadWord I).toNat < UInt256.size)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨10092⟩
+      [endCashWadWord I, endCashOutWord σ' I, ⟨9911⟩, endCashWadWord I,
+        endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9911⟩
+      [endCashOutWord σ' I + endCashWadWord I, endCashWadWord I,
+        endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k' C' := by
+  let outWord := endCashOutWord σ' I
+  let wad := endCashWadWord I
+  have hfit' : wad.toNat + outWord.toNat < UInt256.size := by
+    dsimp [outWord, wad]
+    simpa [Nat.add_comm] using hfit
+  have haddNat : (wad + outWord).toNat = wad.toNat + outWord.toNat := by
+    rw [uadd_toNat, Nat.mod_eq_of_lt hfit']
+  have hlt : UInt256.lt (wad + outWord) outWord = ⟨0⟩ :=
+    ult_zero (by rw [haddNat]; omega)
+  have rd10099pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+  have rd10099' := by
+    simpa [outWord, wad] using rd10099
+  rw [hlt] at rd10099'
+  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100 := by
+    simpa using rd10100pre
+  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd10100
+  have rd10108pre := evm_run rd10100 with [
+    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov),
+    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+  have rd9911 := evm_run rd10108pre with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw swap3 (by native_decide) (by evm_ov),
+    raw swap2 (by native_decide) (by evm_ov),
+    raw pop (by native_decide) (by evm_ov),
+    raw pop (by native_decide) (by evm_ov),
+    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+  have hcomm :
+      endCashWadWord I + endCashOutWord σ' I =
+        endCashOutWord σ' I + endCashWadWord I :=
+    u256_add_comm (endCashWadWord I) (endCashOutWord σ' I)
+  exact ⟨_, _, by simpa [outWord, wad, hcomm] using rd9911⟩
+
+theorem endCashX_outStoreHash {cA cA' gh bl σ σ' σ₀ A I} {g sel outNew : UInt256}
+    {out : ByteArray} {k C : ℕ}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9911⟩
+      [outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9940⟩
+      [endCashOutSlot I, outNew, solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩,
+        ⟨32⟩, ⟨0⟩, outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k' C' := by
+  have rd9916pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rdInnerKey := rd9916pre.mstore 0
+    (wordAt0Mem (endCashIlkWord I)
+      (endCashOutHashMem σ I (endCashAmtWord σ I) out))
+    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rdInnerMemPrefix := evm_run rdInnerKey with [
+    raw push1 ⟨17⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rdInnerMem := rdInnerMemPrefix.mstore 0
+    (endCashOutStoreInnerHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
+    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rdInnerHashPrefix := evm_run rdInnerMem with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rdInnerHash := rdInnerHashPrefix.keccak256 0
+    (solcMappingSlot ⟨17⟩ (endCashIlkWord I)) (UInt256.ofNat 9)
+    (by native_decide) mem_cost
+    (endCashOutStoreInnerHashMem_slot σ I (endCashAmtWord σ I) out)
+    (by native_decide) (by evm_ov)
+  have rdOuterKeyPrefix := evm_run rdInnerHash with [
+    raw caller (by native_decide) (by evm_ov),
+    raw dup5 (by native_decide) (by evm_ov)]
+  have rdOuterKey := rdOuterKeyPrefix.mstore 0
+    (wordAt0Mem (solcSourceWord I)
+      (endCashOutStoreInnerHashMem σ I (endCashAmtWord σ I) out))
+    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rdOuterMemPrefix := evm_run rdOuterKey with [
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rdOuterMem := rdOuterMemPrefix.mstore 0
+    (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
+    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rdOutSlotPrefix := evm_run rdOuterMem with [
+    raw dup2 (by native_decide) (by evm_ov),
+    raw dup5 (by native_decide) (by evm_ov)]
+  have rdOutSlot := rdOutSlotPrefix.keccak256 0 (endCashOutSlot I) (UInt256.ofNat 9)
+    (by native_decide) mem_cost
+    (endCashOutStoreHashMem_slot σ I (endCashAmtWord σ I) out hsz68)
+    (by native_decide) (by evm_ov)
+  have rdSstoreReady := evm_run rdOutSlot with [
+    raw dup6 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rdSstoreReady⟩
+
+theorem endCashX_outStoreAtHash {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9940⟩
+      [endCashOutSlot I, outNew, solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩,
+        ⟨32⟩, ⟨0⟩, outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9941⟩
+      [solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩, ⟨32⟩, ⟨0⟩, outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  obtain ⟨_, _, rdStoredRaw⟩ := h.sstore hperm (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨_, _, by simpa [endCashPostAccountMap] using rdStoredRaw⟩
+
+theorem endCashX_bagSlotReady {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9941⟩
+      [solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩, ⟨32⟩, ⟨0⟩, outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9947⟩
+      [endCashBagSlot I, ⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I), outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  have rdBagMemPrefix := evm_run h with [
+    raw push1 ⟨16⟩ (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rdBagMem := rdBagMemPrefix.mstore 0
+    (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
+    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rdBagSlotPrefix := evm_run rdBagMem with [
+    raw swap3 (by native_decide) (by evm_ov)]
+  have rdBagSlot := rdBagSlotPrefix.keccak256 0 (endCashBagSlot I) (UInt256.ofNat 9)
+    (by native_decide) mem_cost
+    (endCashBagHashMem_slot σ I (endCashAmtWord σ I) out)
+    (by native_decide) (by evm_ov)
+  exact ⟨_, _, rdBagSlot⟩
+
+theorem endCashX_bagLoaded {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9947⟩
+      [endCashBagSlot I, ⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I), outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9948⟩
+      [solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+        ⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I), outNew, endCashWadWord I,
+        endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  obtain ⟨_, _, rdBagLoadedRaw⟩ := h.sload (by native_decide) (by evm_ov)
+  exact ⟨_, _, rdBagLoadedRaw⟩
+
+theorem endCashX_bagRestoreReady {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9948⟩
+      [solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+        ⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I), outNew, endCashWadWord I,
+        endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9950⟩
+      [⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I),
+        solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+        outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  have rdRestorePrefix := evm_run h with [
+    raw swap2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rdRestorePrefix⟩
+
+theorem endCashX_bagRestoreMem {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9950⟩
+      [⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I),
+        solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+        outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+        outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  have rdRestored := h.mstore 0
+    (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
+    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  exact ⟨_, _, rdRestored⟩
+
+theorem endCashX_bagLoadRestore {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9947⟩
+      [endCashBagSlot I, ⟨32⟩, solcMappingSlot ⟨17⟩ (endCashIlkWord I), outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
+        endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  obtain ⟨_, _, rdBagLoaded⟩ := endCashX_bagLoaded (g := g) h
+  obtain ⟨_, _, rdRestoreReady⟩ := endCashX_bagRestoreReady (g := g) rdBagLoaded
+  obtain ⟨_, _, rdRestored⟩ := endCashX_bagRestoreMem (g := g) rdRestoreReady
+  change ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+    [solcSlotWord (endCashPostAccountMap σ' I outNew) I (endCashBagSlot I),
+      outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+    (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+    (cA', endCashPostAccountMap σ' I outNew) k' C'
+  exact ⟨_, _, rdRestored⟩
+
+theorem endCashX_bagLoadGuard {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9941⟩
+      [solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩, ⟨32⟩, ⟨0⟩, outNew,
+        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
+        endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  obtain ⟨_, _, rdBagSlot⟩ := endCashX_bagSlotReady (g := g) h
+  exact endCashX_bagLoadRestore (g := g) rdBagSlot
+
+theorem endCashX_outStoreGuard {cA cA' gh bl σ σ' σ₀ A I} {g sel outNew : UInt256}
+    {out : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9911⟩
+      [outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', σ') k C) :
+    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
+        endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k' C' := by
+  obtain ⟨_, _, rdStoreHash⟩ := endCashX_outStoreHash (g := g) hsz68 h
+  obtain ⟨_, _, rdStored⟩ := endCashX_outStoreAtHash (g := g) hperm rdStoreHash
+  exact endCashX_bagLoadGuard (g := g) rdStored
+
+theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} {σ : AccountMap} {out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (hperm : I.perm = true)
+    (h : RD endBytecode I g s0 ⟨10033⟩
+      [endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      acc k C) :
+    RDret endBytecode g s0 acc ByteArray.empty := by
+  have rd10040pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
+      (mloadFreePtrValue
+        (by rw [endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out]; decide)
+        (by decide) (endCashOutHashMemAfterBag_read64 σ I (endCashAmtWord σ I) out))
+      (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rdLogMem := rd10040pre.mstore 0
+    (endCashLogDataMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
+    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd10047pre := evm_run rdLogMem with [
+    raw swap1 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
+      (mloadFreePtrValue
+        (by rw [endCashLogDataMem_size σ I (endCashAmtWord σ I) out]; decide)
+        (by decide) (endCashLogDataMem_read64 σ I (endCashAmtWord σ I) out))
+      (by native_decide) (by evm_ov),
+    raw caller (by native_decide) (by evm_ov),
+    raw swap2 (by native_decide) (by evm_ov),
+    raw dup5 (by native_decide) (by evm_ov),
+    raw swap2 (by native_decide) (by evm_ov)]
+  have rdTopic := rd10047pre.pushConst
+    (⟨0x888c7c01b06fd8004523e2bc9a274be1feaa9f03579ae5f568061dac078793c9⟩ :
+      UInt256)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+  have rd10088pre := evm_run rdTopic with [
+    raw swap2 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rdLog := RD.log3
+    (a := ⟨128⟩) (b := ⟨32⟩)
+    (c := ⟨0x888c7c01b06fd8004523e2bc9a274be1feaa9f03579ae5f568061dac078793c9⟩)
+    (d := endCashIlkWord I) (e := solcSourceWord I)
+    (t := [endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel])
+    0
+    (UInt256.ofNat
+      (MachineState.M (UInt256.ofNat 9).toNat (⟨128⟩ : UInt256).toNat
+        (⟨32⟩ : UInt256).toNat))
+    rd10088pre (by native_decide) hperm mem_cost (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rdPopWad := RD.pop (a := endCashWadWord I)
+    (t := [endCashIlkWord I, endCashReturnPc, sel]) rdLog
+    (by native_decide) (by evm_ov)
+  have rdPopIlk := RD.pop (a := endCashIlkWord I) (t := [endCashReturnPc, sel])
+    rdPopWad (by native_decide) (by evm_ov)
+  have rd562 := RD.jump (a := endCashReturnPc) (t := [sel]) rdPopIlk
+    (by native_decide) (by jump_dest) (by evm_ov)
+  have rd563 := RD.jumpdest (pc := endCashReturnPc) (stk := [sel]) rd562
+    (by native_decide) (by evm_ov)
+  exact RD.stop rd563 (by native_decide) (by evm_ov)
+
+theorem endCashX_outRequireReturns {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hle : outNew.toNat ≤ (endCashPostBagWord σ' I outNew).toNat)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
+        endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    RDret endBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (cA', endCashPostAccountMap σ' I outNew) ByteArray.empty := by
+  let bagWord := endCashPostBagWord σ' I outNew
+  have hlt : UInt256.lt bagWord outNew = ⟨0⟩ := by
+    apply ult_zero
+    dsimp [bagWord]
+    exact hle
+  have rd9952pre := evm_run h with [raw lt (by native_decide) (by evm_ov)]
+  have rd9952 := by
+    simpa [bagWord] using rd9952pre
+  rw [hlt] at rd9952
+  have rd9953pre := evm_run rd9952 with [raw iszero (by native_decide) (by evm_ov)]
+  have rd9953 := by
+    simpa using rd9953pre
+  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd9953
+  have rd10033 := evm_run rd9953 with [
+    raw push2 ⟨10033⟩ (by native_decide) (by evm_ov),
+    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+  exact endCashX_logReturn hperm rd10033
+
+theorem endCash_solcErrorStringMem0_size_260 {mem : ByteArray} (hmem : mem.size = 260) :
+    (solcErrorStringMem0 mem).size = 260 := by
+  unfold solcErrorStringMem0
+  exact toByteArray_write32_size_of_le mem solcErrorStringSelector 128 260 260
+    hmem (by omega) (by omega)
+
+theorem endCash_solcErrorStringMem1_size_260 {mem : ByteArray} (hmem : mem.size = 260) :
+    (solcErrorStringMem1 mem).size = 260 := by
+  unfold solcErrorStringMem1
+  exact toByteArray_write32_size_of_le (solcErrorStringMem0 mem) ⟨32⟩ 132 260 260
+    (endCash_solcErrorStringMem0_size_260 hmem)
+    (by rw [endCash_solcErrorStringMem0_size_260 hmem]; omega) (by omega)
+
+theorem endCash_solcErrorStringMem2_size_260 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (solcErrorStringMem2 len mem).size = 260 := by
+  unfold solcErrorStringMem2
+  exact toByteArray_write32_size_of_le (solcErrorStringMem1 mem) len 164 260 260
+    (endCash_solcErrorStringMem1_size_260 hmem)
+    (by rw [endCash_solcErrorStringMem1_size_260 hmem]; omega) (by omega)
+
+theorem endCash_solcErrorStringMem3_size_260 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (solcErrorStringMem3 len word mem).size = 260 := by
+  unfold solcErrorStringMem3
+  exact toByteArray_write32_size_of_le (solcErrorStringMem2 len mem) word 196 260 260
+    (endCash_solcErrorStringMem2_size_260 len hmem)
+    (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; omega) (by omega)
+
+theorem endCash_solcErrorStringMem3_read64_260 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [endCash_solcErrorStringMem1_size_260 hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem1_size_260 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [endCash_solcErrorStringMem0_size_260 hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem0_size_260 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD endBytecode ee g s0 ⟨9957⟩ stk mem (UInt256.ofNat 9) rdata acc k C)
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev endBytecode g s0 := by
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 9)
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 9)
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨28⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem2 ⟨28⟩ mem)
+      (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst endCashInsufficientBagRawWord
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (by simp only [List.length_cons]; omega)
+  exact evm_run rdRaw with [
+    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem3 ⟨28⟩ endCashInsufficientBagRawWord mem)
+      (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+      mem_cost
+      (mloadFreePtrValue
+        (by rw [endCash_solcErrorStringMem3_size_260 ⟨28⟩ endCashInsufficientBagRawWord hmem]; decide)
+        (by decide)
+        (endCash_solcErrorStringMem3_read64_260 ⟨28⟩ endCashInsufficientBagRawWord
+          hmem hread64))
+      (by decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
+    raw add (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+
+theorem endCashX_outRequireReverts {cA cA' gh bl σ σ' σ₀ A I}
+    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
+    (hgt : (endCashPostBagWord σ' I outNew).toNat < outNew.toNat)
+    (h : RD endBytecode I (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
+      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
+        endCashReturnPc, sel]
+      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
+      (cA', endCashPostAccountMap σ' I outNew) k C) :
+    RDrev endBytecode (Sat256.ofUInt256 g)
+      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let bagWord := endCashPostBagWord σ' I outNew
+  have hlt : UInt256.lt bagWord outNew = ⟨1⟩ := by
+    apply ult_one
+    dsimp [bagWord]
+    exact hgt
+  have rd9952pre := evm_run h with [raw lt (by native_decide) (by evm_ov)]
+  have rd9952 := by
+    simpa [bagWord] using rd9952pre
+  rw [hlt] at rd9952
+  have rd9953pre := evm_run rd9952 with [raw iszero (by native_decide) (by evm_ov)]
+  have rd9953 := by
+    simpa using rd9953pre
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd9953
+  have rd9957pre := evm_run rd9953 with [
+    raw push2 ⟨10033⟩ (by native_decide) (by evm_ov)]
+  have rd9957 := rd9957pre.jumpiNT (by native_decide) (by decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact RD.endCashInsufficientBagRevert rd9957
+    (endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out)
+    (endCashOutHashMemAfterBag_read64 σ I (endCashAmtWord σ I) out)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
 theorem evalExpr_endCash_ilk (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := endCashStore I } evm (.var "ilk") =
       .ok (.fixedBytes bytes32Width (endCashIlkBytes I)) := by
@@ -1950,7 +2692,7 @@ theorem endCashBodyReverts_fixZero {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
           .require
-            (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
@@ -2090,14 +2832,14 @@ theorem endCashBodyReverts_fluxNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
             .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
             .require
-              (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+              (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
         .reverted := by
     exact Reasoning.Refinement.execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
           .require
-            (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
       hfluxBlock (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endCashStore I } evm0
@@ -2218,14 +2960,14 @@ theorem endCashBodyReverts_fluxCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
             .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
             .require
-              (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+              (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
         .reverted := by
     exact Reasoning.Refinement.execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
           .require
-            (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
       hfluxBlock (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endCashStore I } evm0
@@ -2283,6 +3025,111 @@ theorem evalExpr_endCash_out (evm : EVM.State) (I : ExecutionEnv)
     (hloc := by rfl)
     (hload := endStorageLocLoad_uint256 evm (endCashOutSlot I))
 
+theorem evalStorageRef_endCash_out_of_get {locals : Store} (evm : EVM.State)
+    (I : ExecutionEnv)
+    (hget : locals.get? "ilk" = some (.fixedBytes bytes32Width (endCashIlkBytes I)))
+    (hsrc : evm.executionEnv.source = I.source)
+    (hsz68 : 68 ≤ I.calldata.size) :
+    evalStorageRef config { contract := contract, locals := locals } evm
+      (outRef (.var "ilk") sender) = .ok (endCashEvaledOutRef I) := by
+  have hlen : (endCashIlkBytes I).length = bytes32Width.val + 1 := by
+    simpa [endCashIlkBytes] using endBytes32ArgBytes_len (I := I) (by omega)
+  have hmin : min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
+    simpa [endCashIlkBytes, List.length_take, List.length_drop] using hlen
+  simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, outRef, sender,
+    envValue, endCashEvaledOutRef, endCashIlkKey, endCashOutKey, hsrc, valueToKey?,
+    EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?,
+    ← Std.HashMap.get?_eq_getElem?, hget, hmin]
+
+theorem evalExpr_endCash_out_of_get {locals : Store} (evm : EVM.State)
+    (I : ExecutionEnv)
+    (hbase : locals.get? "out" = none)
+    (hget : locals.get? "ilk" = some (.fixedBytes bytes32Width (endCashIlkBytes I)))
+    (hsrc : evm.executionEnv.source = I.source)
+    (hsz68 : 68 ≤ I.calldata.size) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.storage (outRef (.var "ilk") sender)) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat)) := by
+  exact evalExpr_storage_scalar_value
+    (cfg := config)
+    (solm := { contract := contract, locals := locals })
+    (slot := outRef (.var "ilk") sender)
+    (er := endCashEvaledOutRef I)
+    (t := .int uint256Int)
+    (loc := wordLoc (endCashOutSlot I))
+    (hbase := hbase)
+    (her := evalStorageRef_endCash_out_of_get evm I hget hsrc hsz68)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by rfl)
+    (hload := endStorageLocLoad_uint256 evm (endCashOutSlot I))
+
+theorem evalStorageRef_endCash_bag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (_hbase : locals.get? "bag" = none)
+    (hsrc : evm.executionEnv.source = I.source) :
+    evalStorageRef config { contract := contract, locals := locals } evm
+      (bagRef sender) = .ok (endCashEvaledBagRef I) := by
+  simp [evalStorageRef, evalStorageRefStep, bagRef, sender, envValue, endCashEvaledBagRef,
+    endCashBagKey, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure,
+    evalExpr?]
+
+theorem evalExpr_endCash_bag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (hbase : locals.get? "bag" = none)
+    (hsrc : evm.executionEnv.source = I.source) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage (bagRef sender)) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashBagSlot I)).toNat)) := by
+  exact evalExpr_storage_scalar_value
+    (cfg := config)
+    (solm := { contract := contract, locals := locals })
+    (slot := bagRef sender)
+    (er := endCashEvaledBagRef I)
+    (t := .int uint256Int)
+    (loc := wordLoc (endCashBagSlot I))
+    (hbase := hbase)
+    (her := evalStorageRef_endCash_bag evm I hbase hsrc)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by rfl)
+    (hload := endStorageLocLoad_uint256 evm (endCashBagSlot I))
+
+theorem endCashAssignOut {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (outNew : UInt256)
+    (hbase : locals.get? "out" = none)
+    (hget : locals.get? "ilk" = some (.fixedBytes bytes32Width (endCashIlkBytes I)))
+    (hsrc : evm.executionEnv.source = I.source)
+    (hsz68 : 68 ≤ I.calldata.size) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (outRef (.var "ilk") sender) (.int (Int.ofNat outNew.toNat)) =
+        .ok ({ contract := contract, locals := locals }, endCashPostState evm I outNew) := by
+  apply assignStorageRef_storage_scalar
+      (ty := uint256St)
+      (loc := wordLoc (endCashOutSlot I))
+      (hbase := hbase)
+      (her := evalStorageRef_endCash_out_of_get evm I hget hsrc hsz68)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+      (hloc := by rfl)
+  simpa [endCashPostState] using
+    endStorageLocStore_uint256 evm (endCashOutSlot I) outNew
+
+theorem endCashEvalExpr_le_int_true {evm : EVM.State} {locals : Store}
+    {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs = .ok (.int a))
+    (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
+    (hle : a ≤ b) :
+    evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
+      .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, hle]
+
+theorem endCashEvalExpr_le_int_false {evm : EVM.State} {locals : Store}
+    {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs = .ok (.int a))
+    (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
+    (hlt : b < a) :
+    evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
+      .ok (.bool false) := by
+  have hnot : ¬ a ≤ b := by omega
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, hnot]
+
 theorem endCashTailReverts_outAddOverflow (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -2295,7 +3142,7 @@ theorem endCashTailReverts_outAddOverflow (evm : EVM.State) (I : ExecutionEnv)
       [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
         .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
         .require
-          (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ]
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
       .reverted := by
   let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
   have hout :
@@ -2340,6 +3187,214 @@ theorem endCashTailReverts_outAddOverflow (evm : EVM.State) (I : ExecutionEnv)
       (callee := addFunction) (locals := endUintBinaryLocals outWord (endCashWadWord I))
       hargs (by rfl) hbind hbody
   exact ExecBlock.consRevert haddStmt
+
+theorem endCashTailPrefixOutAssigned (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hfit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat +
+          (endCashWadWord I).toNat <
+        UInt256.size) :
+    let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
+    let outNew := outWord + endCashWadWord I
+    ExecBlock config { contract := contract, locals := endCashStoreFlux σ I } evm
+      [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
+        .assign .storage (outRef (.var "ilk") sender) (.var "outNew") ]
+      (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew }
+        (endCashPostState evm I outNew)) := by
+  intro outWord outNew
+  have hout :
+      evalExpr? config { contract := contract, locals := endCashStoreFlux σ I } evm
+        (.storage (outRef (.var "ilk") sender)) = .ok (.int (Int.ofNat outWord.toNat)) := by
+    simpa [outWord] using evalExpr_endCash_out evm I σ hsrc hsz68
+  have hwad :
+      evalExpr? config { contract := contract, locals := endCashStoreFlux σ I } evm
+        (.var "wad") = .ok (.int (Int.ofNat (endCashWadWord I).toNat)) := by
+    simpa [endCashStoreFlux, endCashStoreAmt, endCashStore] using
+      endEvalExpr_varUInt256 (evm := evm) (locals := endCashStoreFlux σ I)
+        (name := "wad") (value := endCashWadWord I)
+        (by
+          rw [endCashStoreFlux, endCashStoreAmt, endCashStore,
+            store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+            store_get_self])
+  have hargs :
+      evalExprs? config { contract := contract, locals := endCashStoreFlux σ I } evm
+        [.storage (outRef (.var "ilk") sender), .var "wad"] =
+          .ok [.int (Int.ofNat outWord.toNat),
+            .int (Int.ofNat (endCashWadWord I).toNat)] := by
+    simp [evalExprs?, hout, hwad, EvalResult.bind, bind, pure]
+  have hbind :
+      bindParams? addFunction.params
+          [.int (Int.ofNat outWord.toNat),
+            .int (Int.ofNat (endCashWadWord I).toNat)] =
+        some (endUintBinaryLocals outWord (endCashWadWord I)) := by
+    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have haddStmt :
+      ExecStmt config { contract := contract, locals := endCashStoreFlux σ I } evm
+        (.internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew")
+        (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew } evm) := by
+    have hbody :=
+      endExecAddFunctionReturn (evm := evm) (x := outWord) (y := endCashWadWord I)
+        (sum := outNew) rfl hfit
+    have hstmt := internalCallFunctionReturn
+      (cfg := config) (caller := { contract := contract, locals := endCashStoreFlux σ I })
+      (evm := evm) (name := "add") (retVar := "outNew")
+      (args := [.storage (outRef (.var "ilk") sender), .var "wad"])
+      (argVals :=
+        [.int (Int.ofNat outWord.toNat), .int (Int.ofNat (endCashWadWord I).toNat)])
+      (callee := addFunction) (locals := endUintBinaryLocals outWord (endCashWadWord I))
+      hargs (by rfl) hbind hbody
+    simpa [endCashStoreOutNew, resumeAfterInternalCall, collapseReturns, outNew] using hstmt
+  have houtNew :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evm
+        (.var "outNew") = .ok (.int (Int.ofNat outNew.toNat)) := by
+    simpa [endCashStoreOutNew] using
+      endEvalExpr_varUInt256 (evm := evm) (locals := endCashStoreOutNew σ I outNew)
+        (name := "outNew") (value := outNew) (by simp [endCashStoreOutNew])
+  have hassign :
+      assignStorageRef? config { contract := contract, locals := endCashStoreOutNew σ I outNew }
+        evm .storage (outRef (.var "ilk") sender) (.int (Int.ofNat outNew.toNat)) =
+          .ok ({ contract := contract, locals := endCashStoreOutNew σ I outNew },
+            endCashPostState evm I outNew) := by
+    exact endCashAssignOut evm I outNew
+      (by simp [endCashStoreOutNew, endCashStoreFlux, endCashStoreAmt, endCashStore])
+      (by
+        rw [endCashStoreOutNew, store_get_ne _ _ (by native_decide),
+          endCashStoreFlux, store_get_ne _ _ (by native_decide),
+          endCashStoreAmt, store_get_ne _ _ (by native_decide), endCashStore_get_ilk])
+      hsrc hsz68
+  refine ExecBlock.consNormal haddStmt ?_
+  exact ExecBlock.consNormal (ExecStmt.assign houtNew hassign) ExecBlock.nil
+
+theorem endCashTailReverts_outExceedsBag (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hfit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat +
+          (endCashWadWord I).toNat <
+        UInt256.size)
+    (hgt :
+      let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
+      let outNew := outWord + endCashWadWord I
+      let evmPost := endCashPostState evm I outNew
+      (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat <
+        outNew.toNat) :
+    let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
+    let outNew := outWord + endCashWadWord I
+    ExecBlock config { contract := contract, locals := endCashStoreFlux σ I } evm
+      [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
+        .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
+        .require
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
+      .reverted := by
+  intro outWord outNew
+  let evmPost := endCashPostState evm I outNew
+  have hprefix := endCashTailPrefixOutAssigned evm I σ hsz68 hsrc hfit
+  dsimp [outWord, outNew] at hprefix
+  have henvPost : evmPost.executionEnv = evm.executionEnv := by
+    simpa [evmPost, endCashPostState] using
+      storageStore_executionEnv evm evm.executionEnv.codeOwner (endCashOutSlot I) outNew
+  have hsrcPost : evmPost.executionEnv.source = I.source := by
+    rw [henvPost]
+    exact hsrc
+  have houtNew :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.var "outNew") = .ok (.int (Int.ofNat outNew.toNat)) := by
+    simpa [endCashStoreOutNew] using
+      endEvalExpr_varUInt256 (evm := evmPost) (locals := endCashStoreOutNew σ I outNew)
+        (name := "outNew") (value := outNew) (by simp [endCashStoreOutNew])
+  have hbag :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.storage (bagRef sender)) =
+        .ok (.int (Int.ofNat
+          (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat)) := by
+    exact evalExpr_endCash_bag evmPost I
+      (by simp [endCashStoreOutNew, endCashStoreFlux, endCashStoreAmt, endCashStore])
+      hsrcPost
+  have hreq :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.binary .le (.var "outNew") (.storage (bagRef sender))) =
+          .ok (.bool false) := by
+    apply endCashEvalExpr_le_int_false houtNew hbag
+    exact Int.ofNat_lt.mpr (by simpa [evmPost, outWord, outNew] using hgt)
+  have htail :
+      ExecBlock config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        [ .require
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
+        .reverted :=
+    ExecBlock.consRevert (ExecStmt.requireFalse hreq)
+  have happ := Reasoning.Refinement.execBlock_append
+    (s2 := [ .require
+      (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
+    hprefix htail
+  simpa [evmPost] using happ
+
+theorem endCashTailReturns (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hfit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat +
+          (endCashWadWord I).toNat <
+        UInt256.size)
+    (hle :
+      let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
+      let outNew := outWord + endCashWadWord I
+      let evmPost := endCashPostState evm I outNew
+      outNew.toNat ≤
+        (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat) :
+    let outWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)
+    let outNew := outWord + endCashWadWord I
+    ExecBlock config { contract := contract, locals := endCashStoreFlux σ I } evm
+      [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
+        .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
+        .require
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
+      (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew }
+        (endCashPostState evm I outNew)) := by
+  intro outWord outNew
+  let evmPost := endCashPostState evm I outNew
+  have hprefix := endCashTailPrefixOutAssigned evm I σ hsz68 hsrc hfit
+  dsimp [outWord, outNew] at hprefix
+  have henvPost : evmPost.executionEnv = evm.executionEnv := by
+    simpa [evmPost, endCashPostState] using
+      storageStore_executionEnv evm evm.executionEnv.codeOwner (endCashOutSlot I) outNew
+  have hsrcPost : evmPost.executionEnv.source = I.source := by
+    rw [henvPost]
+    exact hsrc
+  have houtNew :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.var "outNew") = .ok (.int (Int.ofNat outNew.toNat)) := by
+    simpa [endCashStoreOutNew] using
+      endEvalExpr_varUInt256 (evm := evmPost) (locals := endCashStoreOutNew σ I outNew)
+        (name := "outNew") (value := outNew) (by simp [endCashStoreOutNew])
+  have hbag :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.storage (bagRef sender)) =
+        .ok (.int (Int.ofNat
+          (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat)) := by
+    exact evalExpr_endCash_bag evmPost I
+      (by simp [endCashStoreOutNew, endCashStoreFlux, endCashStoreAmt, endCashStore])
+      hsrcPost
+  have hreq :
+      evalExpr? config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        (.binary .le (.var "outNew") (.storage (bagRef sender))) =
+          .ok (.bool true) := by
+    apply endCashEvalExpr_le_int_true houtNew hbag
+    exact Int.ofNat_le.mpr (by simpa [evmPost, outWord, outNew] using hle)
+  have htail :
+      ExecBlock config { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost
+        [ .require
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
+        (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost) :=
+    ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil
+  have happ := Reasoning.Refinement.execBlock_append
+    (s2 := [ .require
+      (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
+    hprefix htail
+  simpa [evmPost] using happ
 
 theorem endCashPrefixFluxSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmFlux : EVM.State} {out : ByteArray}
@@ -2510,10 +3565,124 @@ theorem endCashBodyReverts_outAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
           .require
-            (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ])
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
       hprefix htail
     simpa [cashTransition, List.append_assoc] using happ
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
+
+theorem endCashBodyReverts_outExceedsBag {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmFlux : EVM.State} {out : ByteArray}
+    (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
+    (hfix : endCashFixWord σ I ≠ ⟨0⟩)
+    (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (endCashVatAddr σ I)) "flux" 0
+        [.fixedBytes bytes32Width (endCashIlkBytes I), .address I.codeOwner,
+          .address I.source, .int (Int.ofNat (endCashAmtWord σ I).toNat)]
+        (true, evmFlux, out) true)
+    (hsrcFlux : evmFlux.executionEnv.source = I.source)
+    (hfitAdd :
+      (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner (endCashOutSlot I)).toNat +
+          (endCashWadWord I).toNat <
+        UInt256.size)
+    (hgt :
+      let outWord := Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner (endCashOutSlot I)
+      let outNew := outWord + endCashWadWord I
+      let evmPost := endCashPostState evmFlux I outNew
+      (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat <
+        outNew.toNat) :
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (endCashStore I) cashTransition.body .reverted := by
+  intro evm0
+  have hprefix :
+      ExecBlock config { contract := contract, locals := endCashStore I } evm0
+        (nonpayable ++
+          [ .require (.binary .ne (.storage (fixRef (.var "ilk"))) (.intLit 0)),
+            .internalCall "rmul" [.var "wad", .storage (fixRef (.var "ilk"))] "amt" ] ++
+          checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
+            [.var "ilk", thisAddr, sender, .var "amt"] "_flux")
+        (.ok { contract := contract, locals := endCashStoreFlux σ I } evmFlux) := by
+    simpa [evm0] using
+      endCashPrefixFluxSuccess
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := g) (evmFlux := evmFlux) (out := out)
+        hwv hsz68 hfix hfit hcodeSize hcall
+  have htail := endCashTailReverts_outExceedsBag evmFlux I σ hsz68 hsrcFlux hfitAdd hgt
+  have hblock :
+      ExecBlock config { contract := contract, locals := endCashStore I } evm0
+        cashTransition.body .reverted := by
+    have happ := Reasoning.Refinement.execBlock_append
+      (s2 :=
+        [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
+          .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
+          .require
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
+      hprefix htail
+    simpa [cashTransition, List.append_assoc] using happ
+  simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
+
+theorem endCashBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmFlux : EVM.State} {out : ByteArray}
+    (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
+    (hfix : endCashFixWord σ I ≠ ⟨0⟩)
+    (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (endCashVatAddr σ I)) "flux" 0
+        [.fixedBytes bytes32Width (endCashIlkBytes I), .address I.codeOwner,
+          .address I.source, .int (Int.ofNat (endCashAmtWord σ I).toNat)]
+        (true, evmFlux, out) true)
+    (hsrcFlux : evmFlux.executionEnv.source = I.source)
+    (hfitAdd :
+      (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner (endCashOutSlot I)).toNat +
+          (endCashWadWord I).toNat <
+        UInt256.size)
+    (hle :
+      let outWord := Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner (endCashOutSlot I)
+      let outNew := outWord + endCashWadWord I
+      let evmPost := endCashPostState evmFlux I outNew
+      outNew.toNat ≤
+        (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner (endCashBagSlot I)).toNat) :
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let outWord := Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner (endCashOutSlot I)
+    let outNew := outWord + endCashWadWord I
+    ExecTransitionBody config contract evm0 (endCashStore I) cashTransition.body
+      (.returned { contract := contract, locals := endCashStoreOutNew σ I outNew }
+        (endCashPostState evmFlux I outNew) none) := by
+  intro evm0 outWord outNew
+  have hprefix :
+      ExecBlock config { contract := contract, locals := endCashStore I } evm0
+        (nonpayable ++
+          [ .require (.binary .ne (.storage (fixRef (.var "ilk"))) (.intLit 0)),
+            .internalCall "rmul" [.var "wad", .storage (fixRef (.var "ilk"))] "amt" ] ++
+          checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
+            [.var "ilk", thisAddr, sender, .var "amt"] "_flux")
+        (.ok { contract := contract, locals := endCashStoreFlux σ I } evmFlux) := by
+    simpa [evm0] using
+      endCashPrefixFluxSuccess
+        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := g) (evmFlux := evmFlux) (out := out)
+        hwv hsz68 hfix hfit hcodeSize hcall
+  have htail := endCashTailReturns evmFlux I σ hsz68 hsrcFlux hfitAdd hle
+  have hblock :
+      ExecBlock config { contract := contract, locals := endCashStore I } evm0
+        cashTransition.body
+        (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew }
+          (endCashPostState evmFlux I outNew)) := by
+    have happ := Reasoning.Refinement.execBlock_append
+      (s2 :=
+        [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
+          .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
+          .require
+            (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
+      hprefix htail
+    simpa [cashTransition, List.append_assoc, outWord, outNew] using happ
+  simpa [ExecTransitionBody, evm0, outWord, outNew] using ExecFuncBody.execBlockOK hblock
 
 theorem endCashX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2778,7 +3947,123 @@ theorem endCashBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       hsrcFlux hoverSolm
                 exact (endCashX_outAddOverflow hoverAdd rdAddEntry)
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-              · sorry
+              · let outNew := endCashOutWord σ' I + endCashWadWord I
+                let outWordSolm :=
+                  Solm.EVM.storageLoad evmFluxSolm evmFluxSolm.executionEnv.codeOwner
+                    (endCashOutSlot I)
+                let outNewSolm := outWordSolm + endCashWadWord I
+                have hfitAdd :
+                    (endCashOutWord σ' I).toNat + (endCashWadWord I).toNat <
+                      UInt256.size :=
+                  by omega
+                have hfitAddSolm :
+                    (Solm.EVM.storageLoad evmFluxSolm evmFluxSolm.executionEnv.codeOwner
+                          (endCashOutSlot I)).toNat +
+                        (endCashWadWord I).toNat <
+                      UInt256.size := by
+                  rw [← houtCouple]
+                  exact hfitAdd
+                obtain ⟨_, _, rdAddReturn⟩ := endCashX_outAddSuccess hfitAdd rdAddEntry
+                have rdAddReturn' := by
+                  simpa [outNew] using rdAddReturn
+                obtain ⟨_, _, rdGuard⟩ :=
+                  endCashX_outStoreGuard (g := g) (outNew := outNew)
+                    hperm hsz68 rdAddReturn'
+                have houtNewCouple : outNew = outNewSolm := by
+                  simp [outNew, outNewSolm, outWordSolm, houtCouple]
+                have hStatePost :
+                    EVMStateEquiv (endCashPostState evmFluxEvm I outNew)
+                      (endCashPostState evmFluxSolm I outNewSolm) := by
+                  simpa [evmFluxEvm, evmFluxSolm, endCashPostState, houtNewCouple] using
+                    hStateCall.storageStore_codeOwner (endCashOutSlot I) (val₁ := outNew)
+                      (val₂ := outNewSolm) houtNewCouple
+                have hbagPostEvm :
+                    Solm.EVM.storageLoad (endCashPostState evmFluxEvm I outNew)
+                      (endCashPostState evmFluxEvm I outNew).executionEnv.codeOwner
+                      (endCashBagSlot I) =
+                        endCashPostBagWord σ' I outNew := by
+                    simp [evmFluxEvm, endCashPostState, endCashPostBagWord,
+                      endCashPostAccountMap, initState, storageStore_accountMap,
+                      storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount,
+                      Account.lookupStorage, endSlotWord, solcSlotWord]
+                have hbagPostSolm :
+                    Solm.EVM.storageLoad (endCashPostState evmFluxSolm I outNewSolm)
+                      (endCashPostState evmFluxSolm I outNewSolm).executionEnv.codeOwner
+                      (endCashBagSlot I) =
+                        endCashPostBagWord σ' I outNew := by
+                  rw [← hStatePost.storageLoad_codeOwner (endCashBagSlot I)]
+                  exact hbagPostEvm
+                by_cases hgt : (endCashPostBagWord σ' I outNew).toNat < outNew.toNat
+                · have hgtSolm :
+                      let outWord :=
+                        Solm.EVM.storageLoad evmFluxSolm
+                          evmFluxSolm.executionEnv.codeOwner (endCashOutSlot I)
+                      let outNew := outWord + endCashWadWord I
+                      let evmPost := endCashPostState evmFluxSolm I outNew
+                      (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner
+                          (endCashBagSlot I)).toNat <
+                        outNew.toNat := by
+                    simpa [outWordSolm, outNewSolm, hbagPostSolm, houtNewCouple] using hgt
+                  have hbody :
+                      ExecTransitionBody config contract evmSolm (endCashStore I)
+                        cashTransition.body .reverted := by
+                    simpa [evmFluxSolm, evmSolm, outWordSolm, outNewSolm] using
+                      endCashBodyReverts_outExceedsBag
+                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                        (A := A) (I := I) (g := g)
+                        (evmFlux := evmFluxSolm) (out := out)
+                        hwv hsz68 hfixSolm hfitSolm hvatCodeSolmNE
+                        (by simpa [evmFluxSolm, evmSolm] using hcallSolm)
+                        hsrcFlux hfitAddSolm hgtSolm
+                  exact (endCashX_outRequireReverts (outNew := outNew) hgt rdGuard)
+                    |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+                · have hle :
+                      outNew.toNat ≤ (endCashPostBagWord σ' I outNew).toNat :=
+                    Nat.le_of_not_gt hgt
+                  have hleSolm :
+                      let outWord :=
+                        Solm.EVM.storageLoad evmFluxSolm
+                          evmFluxSolm.executionEnv.codeOwner (endCashOutSlot I)
+                      let outNew := outWord + endCashWadWord I
+                      let evmPost := endCashPostState evmFluxSolm I outNew
+                      outNew.toNat ≤
+                        (Solm.EVM.storageLoad evmPost evmPost.executionEnv.codeOwner
+                          (endCashBagSlot I)).toNat := by
+                    simpa [outWordSolm, outNewSolm, hbagPostSolm, houtNewCouple] using hle
+                  have hret := endCashX_outRequireReturns
+                    (outNew := outNew) hperm hle rdGuard
+                  have hbody :
+                      ExecTransitionBody config contract evmSolm (endCashStore I)
+                        cashTransition.body
+                        (.returned
+                          { contract := contract,
+                            locals := endCashStoreOutNew σ_solm I outNewSolm }
+                          (endCashPostState evmFluxSolm I outNewSolm) none) := by
+                    simpa [evmFluxSolm, evmSolm, outWordSolm, outNewSolm] using
+                      endCashBodyReturns
+                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                        (A := A) (I := I) (g := g)
+                        (evmFlux := evmFluxSolm) (out := out)
+                        hwv hsz68 hfixSolm hfitSolm hvatCodeSolmNE
+                        (by simpa [evmFluxSolm, evmSolm] using hcallSolm)
+                        hsrcFlux hfitAddSolm hleSolm
+                  exact hret.reEquivExecutionGenEVMStateEquiv
+                    (evm'_evm := endCashPostState evmFluxEvm I outNew)
+                    (evm'_solm := endCashPostState evmFluxSolm I outNewSolm)
+                    hcode hdispatch hdecode hbody
+                    (by
+                      simp [evmFluxEvm, endCashPostState, initState,
+                        storageStore_createdAccounts])
+                    (by
+                      simpa [evmFluxEvm, endCashPostState, initState,
+                        storageStore_accountMap, endCashPostAccountMap] using
+                          accountMapEquiv.refl (endCashPostAccountMap σ' I outNew))
+                    hStatePost
+                    (by
+                      simpa [cashTransition] using
+                        (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
+                          (t := []) (dvs := []) rfl (by native_decide)
+                          (by native_decide)))
           · rw [not_lt] at hdepthLt
             have hdepthEq : I.depth = 1024 :=
               Fin.ext (by have := I.depth.isLt; omega)
