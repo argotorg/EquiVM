@@ -1855,6 +1855,40 @@ theorem catBiteSourceInkSpotGeRevert
       (evalExpr_lt_uint256_false (evalExpr_varUInt256 (bsArtRate_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (bsArtRate_get_artRateUnsafe I evmUrn iArt iRate iSpot iLine iDust ink art)) hge)))
 
+/-- **`ink*spot ≥ art*rate` revert with `rate = 0`.** Dual of `catBiteSourceInkSpotGeRevert` when the
+`artRate = art*rate` `checkedMul`'s multiplier is zero (its overflow check passes trivially via
+`_yzero`).  Reachable at the `unsafe` guard because `rate = 0 ⇒ art*rate = 0 ≥ ink*spot` fails the
+`ink*spot < art*rate` conjunct. -/
+theorem catBiteSourceInkSpotGeRateZeroRevert
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hspotPos : 0 < iSpot.toNat) (hrate0 : iRate.toNat = 0)
+    (hge : (art * iRate).toNat ≤ (ink * iSpot).toNat) :
+    ExecTransitionBody config contract (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (biteLocals I) biteTransition.body .reverted := by
+  refine biteRevert_afterPre hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall hUrnsDec hlive ?_
+  simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
+    List.nil_append]
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (bsInkSpot_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitInkSpot hspotPos)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsArtRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
+      hrate0)) ?_
+  exact ExecBlock.consRevert (ExecStmt.requireFalse
+    (evalExpr_and_falseR
+      (evalExpr_gtLit_true (evalExpr_varUInt256 (bsArtRate_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (by simpa using hspotPos))
+      (evalExpr_lt_uint256_false (evalExpr_varUInt256 (bsArtRate_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (bsArtRate_get_artRateUnsafe I evmUrn iArt iRate iSpot iLine iDust ink art)) hge)))
+
 /-- The passing arith₁ prefix through `milkDunk` (before the `room` subtraction). -/
 private theorem biteArith1ToMilk (hsz36 : 36 ≤ I.calldata.size)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
