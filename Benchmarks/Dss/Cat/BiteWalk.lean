@@ -1027,7 +1027,9 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               hfitArtRate hart hink hiSpot hiRate rfl hfitInkSpot
                         · sorry -- artRate checkedMul overflow → revert leaf
                       · -- require(live == 1) fails → revert leaf.
-                        sorry
+                        exact catBiteRevertLive hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                          hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn
+                          rd1399 (by decide) haw288 (by rw [hawout9]; native_decide) rfl rfl rfl hlive
                     · -- urns return decode short (`returndatasize < 64`).
                       sorry
             · -- ilks return decode short (`returndatasize < 160`).
