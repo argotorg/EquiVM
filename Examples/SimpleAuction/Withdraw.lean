@@ -244,17 +244,15 @@ theorem withdrawBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, withdrawPendingHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, withdrawPendingHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawPendingHashMem I)
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawPendingHashMem I).size))) 64 96
+      (ffi.ByteArray.zeroes (128 - (withdrawPendingHashMem I).size)) 64 96
       (by rw [withdrawPendingHashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawPendingHashMem I) 64
     (by rw [withdrawPendingHashMem_size])]
@@ -280,14 +278,12 @@ theorem withdrawBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawPendingHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawPendingHashMem I ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawPendingHashMem I).size)))
+        ffi.ByteArray.zeroes (128 - (withdrawPendingHashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawPendingHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, withdrawPendingHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   apply ByteArray.ext
   rw [ByteArray.data_extract]
@@ -445,17 +441,15 @@ theorem withdrawReturnDataSizeMem_read64 (I : ExecutionEnv) (o : ByteArray) :
   rw [readWithPadding_eq_extract _ 64 (by
     rw [ByteArray.size_append, ByteArray.size_append, withdrawReturnDataPtrMem_size,
       ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+      show 128 - 96 = 32 from by norm_num,
       toByteArray_size]
     norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, withdrawReturnDataPtrMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawReturnDataPtrMem I o)
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawReturnDataPtrMem I o).size))) 64 96
+      (ffi.ByteArray.zeroes (128 - (withdrawReturnDataPtrMem I o).size)) 64 96
       (by rw [withdrawReturnDataPtrMem_size])]
   rw [← readWithPadding_eq_extract (withdrawReturnDataPtrMem I o) 64
     (by rw [withdrawReturnDataPtrMem_size])]
@@ -766,8 +760,7 @@ theorem withdrawReturnDataBoolMem_size_gt64 (I : ExecutionEnv) (o : ByteArray)
   · have hge : (withdrawReturnDataMem I o).size ≤ (withdrawReturnDataPtr o).toNat := by
       omega
     rw [toByteArray_write_eq _ _ _ hge (withdrawReturnDataPtr_gap I o ho0 hosz)]
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' (withdrawReturnDataPtr_gap I o ho0 hosz), toByteArray_size]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
     have hbase := withdrawReturnDataMem_size I o ho0
     have hptr := withdrawReturnDataPtr_toNat_ge o hosz
     omega
@@ -1075,9 +1068,7 @@ theorem withdrawReturnDataRestoreBoolMem_size_gt64 (I : ExecutionEnv) (o : ByteA
         (withdrawReturnDataPtr o).toNat := by
       omega
     rw [toByteArray_write_eq _ _ _ hge (withdrawReturnDataRestorePtr_gap I o ho0 hosz)]
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
-      USize.toNat_ofNat_of_lt' (withdrawReturnDataRestorePtr_gap I o ho0 hosz),
-      toByteArray_size]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
     have hbase := withdrawReturnDataRestoreHashMem_size I o ho0
     have hptr := withdrawReturnDataPtr_toNat_ge o hosz
     omega
@@ -1120,17 +1111,15 @@ theorem withdrawRehashBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, withdrawRehashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, withdrawRehashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawRehashMem I)
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawRehashMem I).size))) 64 96
+      (ffi.ByteArray.zeroes (128 - (withdrawRehashMem I).size)) 64 96
       (by rw [withdrawRehashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawRehashMem I) 64
     (by rw [withdrawRehashMem_size])]
@@ -1156,14 +1145,12 @@ theorem withdrawRehashBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawRehashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawRehashMem I ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawRehashMem I).size)))
+        ffi.ByteArray.zeroes (128 - (withdrawRehashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawRehashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, withdrawRehashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
     rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
@@ -1280,17 +1267,15 @@ theorem withdrawRestoreBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, withdrawRestoreHashMem_size,
         ByteArray_zeroes_size,
-        show (USize.ofNat (128 - 96)).toNat = 32 from by
-          exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+        show 128 - 96 = 32 from by norm_num,
         toByteArray_size]
       norm_num)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, withdrawRestoreHashMem_size, ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+      show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawRestoreHashMem I)
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawRestoreHashMem I).size))) 64 96
+      (ffi.ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size)) 64 96
       (by rw [withdrawRestoreHashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawRestoreHashMem I) 64
     (by rw [withdrawRestoreHashMem_size])]
@@ -1316,14 +1301,12 @@ theorem withdrawRestoreBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawRestoreHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawRestoreHashMem I ++
-        ffi.ByteArray.zeroes (USize.ofNat (128 - (withdrawRestoreHashMem I).size)))
+        ffi.ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawRestoreHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, withdrawRestoreHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
     rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
