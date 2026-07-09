@@ -969,6 +969,15 @@ theorem RD.lor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.lor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => or_xstep hc hp hdec hs hov)
 
+theorem RD.xor {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.XOR, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.xor a b :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => xor_xstep hc hp hdec hs hov)
+
 theorem RD.shl {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -986,6 +995,32 @@ theorem RD.add {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hdec : decode code pc = some (.ADD, .none)) (hov : t.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) ((a + b) :: t) mem aw rdata acc (k + 1) (C + 3) :=
   h.stepBinop (fun _ hc hp hs => add_xstep hc hp hdec hs hov)
+
+theorem RD.mod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MOD, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.mod a b :: t) mem aw rdata acc (k + 1) (C + 5) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := mod_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 5
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stMul s (UInt256.mod a b) t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stMul]; exact hcode
+      · simp only [stMul]; rw [hpc]
+      · rfl
+      · simp only [stMul]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stMul]; exact hmem
+      · simp only [stMul]; exact haw
+      · simp only [stMul]; exact hrdata
+      · simp only [stMul]; exact hacc
+      · exact hee
+      · exact hworld
 
 /-- `MUL` is cost 5 (`stMul`), so it does not share the `stBinop` helper. -/
 theorem RD.mul {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}

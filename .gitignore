@@ -4,6 +4,8 @@
 
 # lean-lsp MCP scratch snippets
 _mcp_snippet_*.lean
+.mcp/uv-cache/
+.mcp/uv-tools/
 
 CLAUDE.md
 .claude
@@ -16,5 +18,12 @@ CLAUDE.md
 !.codex/skills/
 !.codex/skills/lean-equvm/
 !.codex/skills/lean-equvm/**
+.codex
+.lean4-skills/
+.uv-cache/
+.uv-tools/
 .vscodei
 .DS_STORE
+
+# archived Claude Code session transcripts for completed proofs
+/proof-session-logs/

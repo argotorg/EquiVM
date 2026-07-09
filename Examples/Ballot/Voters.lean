@@ -321,8 +321,7 @@ theorem votersReturnWeightMem_size (scratch weight : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [votersHashMem_size]; omega)
       (by rw [votersHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, votersHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 128 - 96 = 32 from by norm_num,
     toByteArray_size]
 
 theorem votersReturnWeightMem_read64 (scratch weight : UInt256) :
@@ -334,12 +333,11 @@ theorem votersReturnWeightMem_read64 (scratch weight : UInt256) :
   rw [readWithPadding_eq_extract' _ 64 32 (by norm_num) (by norm_num) (by
     rw [ByteArray.size_append, votersHashMem_size, ByteArray.size_append,
       ByteArray_zeroes_size,
-      show (USize.ofNat (128 - 96)).toNat = 32 from by
-        exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+      show 128 - 96 = 32 from by norm_num,
       toByteArray_size]
     omega)]
   rw [extract_append_left (votersHashMem scratch)
-      (ffi.ByteArray.zeroes (USize.ofNat (128 - (votersHashMem scratch).size)) ++
+      (ffi.ByteArray.zeroes (128 - (votersHashMem scratch).size) ++
         UInt256.toByteArray weight)
       64 96 (by rw [votersHashMem_size])]
   rw [← readWithPadding_eq_extract' (votersHashMem scratch) 64 32
@@ -352,8 +350,7 @@ theorem votersReturnVotedMem_size (scratch weight voted : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [votersReturnWeightMem_size])
       (by rw [votersReturnWeightMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 160 - 160 = 0 from by norm_num,
     toByteArray_size]
 
 theorem votersReturnDelegateMem_size (scratch weight voted delegate : UInt256) :
@@ -363,8 +360,7 @@ theorem votersReturnDelegateMem_size (scratch weight voted delegate : UInt256) :
       (by rw [votersReturnVotedMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, votersReturnVotedMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (192 - 192)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 192 - 192 = 0 from by norm_num,
     toByteArray_size]
 
 theorem votersReturnMem_size (scratch weight voted delegate vote : UInt256) :
@@ -374,8 +370,7 @@ theorem votersReturnMem_size (scratch weight voted delegate vote : UInt256) :
       (by rw [votersReturnDelegateMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, votersReturnDelegateMem_size,
     ByteArray_zeroes_size,
-    show (USize.ofNat (224 - 224)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)),
+    show 224 - 224 = 0 from by norm_num,
     toByteArray_size]
 
 theorem votersReturnMem_read64 (scratch weight voted delegate vote : UInt256) :
@@ -415,23 +410,19 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
   rw [extract_append_span
       (votersReturnDelegateMem scratch weight voted delegate ++
         ffi.ByteArray.zeroes
-          (USize.ofNat (224 - (votersReturnDelegateMem scratch weight voted delegate).size)))
+          (224 - (votersReturnDelegateMem scratch weight voted delegate).size))
       (UInt256.toByteArray vote) 128 256 (by
         rw [ByteArray.size_append, votersReturnDelegateMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (224 - 224)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 224 - 224 = 0 from by norm_num]
         omega) (by
         rw [ByteArray.size_append, votersReturnDelegateMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (224 - 224)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 224 - 224 = 0 from by norm_num]
         omega)]
   rw [ByteArray.size_append, votersReturnDelegateMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (224 - 224)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (224 - 224)) =
+    show 224 - 224 = 0 from by norm_num]
+  rw [show ffi.ByteArray.zeroes (224 - 224) =
       ByteArray.empty by
-        exact zeroes_zero (n := USize.ofNat 0)
-          (by exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+        exact zeroes_zero (n := 0) (by rfl)]
   simp
   unfold votersReturnDelegateMem
   rw [toByteArray_write_eq _ _ _ (by rw [votersReturnVotedMem_size])
@@ -439,59 +430,49 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
   rw [extract_append_span
       (votersReturnVotedMem scratch weight voted ++
         ffi.ByteArray.zeroes
-          (USize.ofNat (192 - (votersReturnVotedMem scratch weight voted).size)))
+          (192 - (votersReturnVotedMem scratch weight voted).size))
       (UInt256.toByteArray delegate) 128 224 (by
         rw [ByteArray.size_append, votersReturnVotedMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (192 - 192)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 192 - 192 = 0 from by norm_num]
         omega) (by
         rw [ByteArray.size_append, votersReturnVotedMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (192 - 192)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 192 - 192 = 0 from by norm_num]
         omega)]
   rw [ByteArray.size_append, votersReturnVotedMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (192 - 192)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (192 - 192)) =
+    show 192 - 192 = 0 from by norm_num]
+  rw [show ffi.ByteArray.zeroes (192 - 192) =
       ByteArray.empty by
-        exact zeroes_zero (n := USize.ofNat 0)
-          (by exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+        exact zeroes_zero (n := 0) (by rfl)]
   simp
   unfold votersReturnVotedMem
   rw [toByteArray_write_eq _ _ _ (by rw [votersReturnWeightMem_size])
       (by rw [votersReturnWeightMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (votersReturnWeightMem scratch weight ++
-        ffi.ByteArray.zeroes (USize.ofNat (160 - (votersReturnWeightMem scratch weight).size)))
+        ffi.ByteArray.zeroes (160 - (votersReturnWeightMem scratch weight).size))
       (UInt256.toByteArray voted) 128 192 (by
         rw [ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 160 - 160 = 0 from by norm_num]
         omega) (by
         rw [ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (160 - 160)).toNat = 0 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+          show 160 - 160 = 0 from by norm_num]
         omega)]
   rw [ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (160 - 160)).toNat = 0 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (USize.ofNat (160 - 160)) =
+    show 160 - 160 = 0 from by norm_num]
+  rw [show ffi.ByteArray.zeroes (160 - 160) =
       ByteArray.empty by
-        exact zeroes_zero (n := USize.ofNat 0)
-          (by exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num)))]
+        exact zeroes_zero (n := 0) (by rfl)]
   simp
   unfold votersReturnWeightMem
   rw [toByteArray_write_eq _ _ _ (by rw [votersHashMem_size]; omega)
       (by rw [votersHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
-      (votersHashMem scratch ++ ffi.ByteArray.zeroes (USize.ofNat (128 - (votersHashMem scratch).size)))
+      (votersHashMem scratch ++ ffi.ByteArray.zeroes (128 - (votersHashMem scratch).size))
       (UInt256.toByteArray weight) 128 160 (by
         rw [ByteArray.size_append, votersHashMem_size, ByteArray_zeroes_size,
-          show (USize.ofNat (128 - 96)).toNat = 32 from by
-            exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))])]
+          show 128 - 96 = 32 from by norm_num])]
   rw [ByteArray.size_append, votersHashMem_size, ByteArray_zeroes_size,
-    show (USize.ofNat (128 - 96)).toNat = 32 from by
-      exact USize.toNat_ofNat_of_lt' (lt_usize _ (by norm_num))]
+    show 128 - 96 = 32 from by norm_num]
   norm_num
   repeat'
     first
