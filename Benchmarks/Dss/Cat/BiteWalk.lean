@@ -323,7 +323,13 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     omega
                                   by_cases hFitInkDart : dart.toNat * ink.toNat < UInt256.size
                                   swap
-                                  · sorry -- ink*dart checkedMul overflow
+                                  · -- ink*dart checkedMul overflow: reach pc 3720, mul-overflow revert.
+                                    exact catBiteRevertInkDart hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                                      hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hosz hoszu hurn hlive
+                                      hmemI hmemUsz (by native_decide) rd1708 hChop hDunk hlitterbox hroomdust hunsafe
+                                      hfitArtRate hfitInkSpot hspotPos hRatePos hChopPos hFitWad hArtPos hFitInkDart
+                                      hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
+                                      hdunkRoomWadDef hdartDenomDef hdartCandDef hdartDef
                                   by_cases hDartPos : 0 < dart.toNat
                                   swap
                                   · sorry -- dart = 0: require(dart > 0) fails
