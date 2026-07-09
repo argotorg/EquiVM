@@ -23,14 +23,14 @@ the checked-in `.abi.json` files.
 | `Dss/LinearDecrease` | 0.6.12 | 1128 | 1217 | 6 fn + ctor | Completed | Yes |
 | `Dss/StairstepExponentialDecrease` | 0.6.12 | 1433 | 1522 | 7 fn + ctor | Completed | Yes |
 | `Dss/ExponentialDecrease` | 0.6.12 | 1321 | 1410 | 6 fn + ctor | Completed | Yes |
-| `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Handed pff | Yes |
+| `Dss/GemJoin` | 0.6.12 | 2022 | 2326 | 11 fn + ctor | Completed | Yes |
 | `Dss/DaiJoin` | 0.6.12 | 1733 | 1876 | 9 fn + ctor | Completed | Yes |
-| `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Handed off | Yes |
-| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Handed off | Yes |
-| `Dss/Cure` | 0.6.12 | 3875 | 3971 | 20 fn + ctor | Completed (*) | Yes |
-| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Handed off | Yes |
-| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Handed off | Yes |
-| `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Handed Off | Yes |
+| `Dss/Cat` | 0.6.12 | 3873 | 3999 | 16 fn + ctor | Scaffolded | No |
+| `Dss/Clipper` | 0.6.12 | 9360 | 9707 | 29 fn + ctor | Scaffolded | No |
+| `Dss/Cure` | 0.6.12 | 3875 | 3971 | 20 fn + ctor | Completed | Yes |
+| `Dss/Dog` | 0.6.12 | 4745 | 4927 | 17 fn + ctor | Scaffolded | No |
+| `Dss/End` | 0.6.12 | 10265 | 10359 | 32 fn + ctor | Ready for proof | Yes |
+| `Dss/Flapper` | 0.6.12 | 5008 | 5216 | 20 fn + ctor | Scaffolded | No |
 | `Dss/Flipper` | 0.6.12 | 6386 | 6596 | 19 fn + ctor | Completed | Yes |
 | `Dss/Flopper` | 0.6.12 | 4780 | 5000 | 20 fn + ctor | Completed | Yes |
 | `WETH9` | 0.5.16 | 1763 | 2055 | 11 fn + fallback/receive | Completed | Yes |
@@ -74,29 +74,33 @@ the checked-in `.abi.json` files.
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   `VatLike.ilks` and `VatLike.fold`. Proof work has been marked done.
 
-- `Dss/Spot`: ready for proof, not yet handed off. Target theorem:
+- `Dss/Spot`: completed. Target theorem:
   `Benchmarks.Dss.Spot.spotContractCorrect`. Fresh solc output exactly matches the checked-in Lean
   creation/runtime byte arrays, and the solc storage layout matches the spec. The runtime has two
   external-call sites with two `EXTCODESIZE` guards; the spec now models those guards on
   `PipLike.peek` and `VatLike.file`. The `Poke` event is omitted consistently with the framework's
-  substate/log abstraction. No semantic blocker is currently known; expected proof work is oracle
-  return decoding, conditional arithmetic, and `bytes32` to `uint256` casting.
+  substate/log abstraction. Proof work has been marked done.
 
-- `Dss/LinearDecrease`, `Dss/StairstepExponentialDecrease`, and `Dss/ExponentialDecrease`: ready
-  for proof, not yet handed off. Target theorems:
+- `Dss/LinearDecrease`, `Dss/StairstepExponentialDecrease`, and `Dss/ExponentialDecrease`:
+  completed. Target theorems:
   `Benchmarks.Dss.LinearDecrease.linearDecreaseContractCorrect`,
   `Benchmarks.Dss.StairstepExponentialDecrease.stairstepExponentialDecreaseContractCorrect`, and
   `Benchmarks.Dss.ExponentialDecrease.exponentialDecreaseContractCorrect`. Fresh solc output is
   checked in for all three deployable contracts from `src/abaci.sol`; the specs model auth,
   storage layout, `file`, public getters, checked arithmetic, and the source-level price functions
-  including the `rpow` loop for the exponential variants.
+  including the `rpow` loop for the exponential variants. Proof work has been marked done.
 
-- `Dss/GemJoin` and `Dss/DaiJoin`: ready for proof, not yet handed off. Target theorems:
-  `Benchmarks.Dss.GemJoin.gemJoinContractCorrect` and
-  `Benchmarks.Dss.DaiJoin.daiJoinContractCorrect`. Fresh solc output is checked in for both
-  deployable contracts from `src/join.sol`; the specs model auth, constructor initialization,
-  public getters, cage, join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed
-  external ABI hooks for `VatLike`, `GemLike`, and `DSTokenLike`.
+- `Dss/GemJoin`: completed. Target theorem:
+  `Benchmarks.Dss.GemJoin.gemJoinContractCorrect`. Fresh solc output is checked in from
+  `src/join.sol`; the spec models auth, constructor initialization, public getters, cage,
+  join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed external ABI hooks for
+  `VatLike` and `GemLike`. Proof work has been marked done.
+
+- `Dss/DaiJoin`: completed. Target theorem:
+  `Benchmarks.Dss.DaiJoin.daiJoinContractCorrect`. Fresh solc output is checked in from
+  `src/join.sol`; the spec models auth, constructor initialization, public getters, cage,
+  join/exit flows, high-level external-call `EXTCODESIZE` guards, and typed external ABI hooks for
+  `VatLike` and `DSTokenLike`. Proof work has been marked done.
 
 - `Dss/End`: ready for proof, not yet handed off. Target theorem:
   `Benchmarks.Dss.End.endContractCorrect`. The solc storage layout matches the spec's 18 slots
@@ -115,12 +119,29 @@ the checked-in `.abi.json` files.
   binary-search dispatcher routing, mapping/nested-mapping slot lemmas, checked arithmetic, and the
   typed external-call return decodings.
 
-- `Dss/Cat`, `Dss/Clipper`, `Dss/Cure`, `Dss/Dog`, `Dss/Flapper`, `Dss/Flipper`, and
-  `Dss/Flopper`: scaffolded, not ready for proof. Fresh upstream sources, ABI/AST/storage-layout
+- `Dss/Cure`: completed. Target theorem:
+  `Benchmarks.Dss.Cure.cureContractCorrect`. Fresh solc output is checked in, the artifact hashes
+  match `Benchmarks/Dss/Cure/README.md`, and the solc storage layout matches the spec's 10 slots
+  (`wards`, `live`, dynamic `srcs`, `wait`, `when`, `pos`, `amt`, `loaded`, `lCount`, `say`). A
+  bytecode-level audit of the checked-in 3875-byte runtime finds one `STATICCALL` and one matching
+  `EXTCODESIZE` guard for `SourceLike.cure()`, with no `CALL`, `DELEGATECALL`, contract creation,
+  or selfdestruct. The spec models all 20 public/external functions, the constructor, auth/live
+  guards, `file("wait", data)`, source-list `lift`/`drop`, `cage`, `tell`, checked `_add`/`_sub`,
+  the unchecked `lCount++` wrap in `load`, and the guarded static `SourceLike.cure()` return
+  decoding. `Trusted.lean` records the 20 opaque Keccak selector facts needed for dispatcher proof
+  work plus proof-local names for the verified jump tables. Events are omitted consistently with the
+  framework's log abstraction. Proof work has been marked done.
+
+- `Dss/Cat`, `Dss/Clipper`, `Dss/Dog`, and `Dss/Flapper`: scaffolded, not ready for proof. Fresh
+  upstream sources, ABI/AST/storage-layout
   artifacts, optimized creation/runtime bytecode, Lean `ByteArray`s, verified `JUMPDEST` sets, and
   top-level theorem targets are checked in and compile. Their current `Spec.lean` files are
   intentionally minimal entrypoints; they still need full source-body transcription before they
   should be handed to a proof agent.
+
+- `Dss/Flipper` and `Dss/Flopper`: completed. Target theorems:
+  `Benchmarks.Dss.Flipper.flipperContractCorrect` and
+  `Benchmarks.Dss.Flopper.flopperContractCorrect`. Proof work has been marked done.
 
 - `WETH9`: completed. Target theorem:
   `Benchmarks.WETH9.weth9ContractCorrect`. Fresh solc output exactly matches the checked-in Lean
