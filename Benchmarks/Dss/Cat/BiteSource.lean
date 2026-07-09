@@ -1798,6 +1798,27 @@ theorem catBiteSourceArtRateOverflowRevert
     (evalExpr_mul256_revert (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) hover))
 
+/-- **`artRate = art*rate` overflow revert with `spot = 0`.** Dual of `catBiteSourceArtRateOverflowRevert`
+when `spot = 0` (the `inkSpot` `checkedMul` check passes via `_yzero`); the EVM short-circuits at the
+`spot > 0` conjunct but Solm evaluates `art*rate` first and reverts on its overflow. -/
+theorem catBiteSourceArtRateOverflowSpotZeroRevert
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size) (hspot0 : iSpot.toNat = 0)
+    (hover : UInt256.size ≤ art.toNat * iRate.toNat) :
+    ExecTransitionBody config contract (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (biteLocals I) biteTransition.body .reverted := by
+  refine biteRevert_afterPre hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall hUrnsDec hlive ?_
+  simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
+    List.nil_append]
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
+      hspot0)) ?_
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert
+    (evalExpr_mul256_revert (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+      (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) hover))
+
 theorem catBiteSourceSpotZeroRevert
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)

@@ -1032,7 +1032,9 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           · exact catBiteRevertInkSpot hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
                               hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hurnslen hurn hlive rd1521
                               hfitArtRate hart hink hiSpot hiRate rfl hfitInkSpot
-                        · sorry -- artRate checkedMul overflow → revert leaf
+                        · exact catBiteRevertArtRate hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
+                            hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn hlive
+                            rd1521 haw288 (by rw [hawout9]; native_decide) hart hink hiSpot hiRate rfl hfitArtRate
                       · -- require(live == 1) fails → revert leaf.
                         exact catBiteRevertLive hcode hwv hdispatch hdecode hAccounts hsz36 hdepth
                           hvatCode hUrnsVatCode hIlksCall hUrnsCall hilkslen hosz hurnslen hoszu hurn
