@@ -646,7 +646,7 @@ def cashTransition : TransitionDecl :=
       [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
         .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
         .require
-          (.binary .le (.storage (outRef (.var "ilk") sender)) (.storage (bagRef sender))) ] }
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ] }
 
 def transitions : List TransitionDecl :=
   [ wardsTransition, vatTransition, catTransition, dogTransition, vowTransition, potTransition,
