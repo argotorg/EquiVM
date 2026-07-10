@@ -1,6 +1,7 @@
 import Benchmarks.Dss.Cat.Trusted
 import Reasoning.ABI
 import Reasoning.Dispatch
+import Reasoning.ExternalCall
 import Reasoning.Memory
 import Reasoning.Refinement
 import Reasoning.Reach
@@ -28,35 +29,9 @@ namespace Benchmarks.Dss.Cat
 
 /-! ## Static-call code-preservation lift
 
-The `.code`-projection peer of `typedCallViaEVM_static_accountStorageStateEq`
-(`Reasoning/ExternalCall.lean`): a `perm = false` external call cannot create, destroy, or change
-any account's code, so `(σ.findD a default).code` is preserved.  Built on the evmlean
-`Theta_static_accountCode_eq`. -/
-
--- LIBRARY CANDIDATE: belongs alongside `callViaEVM_static_accountStorageStateEq` in
--- `Reasoning/ExternalCall.lean`; kept here to avoid editing `Reasoning/`.
-theorem callViaEVM_static_accountCode_eq {evm evm' : EVM.State}
-    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
-    {z : Bool} {out : ByteArray}
-    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
-    accountCodeStateEq evm.accountMap evm'.accountMap := by
-  cases hcall with
-  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
-      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
-      subst hevm'
-      exact Theta_static_accountCode_eq hΘ.symm
-  | callNotMade _hsubstate hevm' _hvalue =>
-      subst hevm'
-      exact accountCodeStateEq_refl evm.accountMap
-
--- LIBRARY CANDIDATE: mirror of `typedCallViaEVM_static_accountStorageStateEq` for `.code`.
-theorem typedCallViaEVM_static_accountCode_eq {cfg : Config} {evm evm' : EVM.State}
-    {target : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray}
-    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
-    accountCodeStateEq evm.accountMap evm'.accountMap := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
-  exact callViaEVM_static_accountCode_eq hraw
+`Reasoning.StaticCode` provides the `EXTCODESIZE`-relevant static-call preservation theorem used
+below; the local facts here only translate that account-address relation to the Uniswap code-size
+word helper used by the solc reach rules. -/
 
 /-- `uniswapExtCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
     function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/
