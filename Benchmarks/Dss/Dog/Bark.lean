@@ -10,6 +10,25 @@ set_option maxHeartbeats 0
 
 namespace Reasoning.Theory
 
+private theorem dogStorageStore_sigma0
+    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+
+private theorem dogStorageStore_genesisBlockHeader
+    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
+      evm.genesisBlockHeader := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+
+private theorem dogStorageStore_blocks
+    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+
 theorem dup12_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -57,6 +76,31 @@ theorem dup16_xstep {s : State} {code : ByteArray}
     simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
+theorem swap13_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP13, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
+    (hov : t.length + 14 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
+         else .ok
+          (stSwap s
+            (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
+              a :: t),
+            .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP13, .none) := by
+    rw [hcode, hpc]
+    exact hdec
+  rw [← hcode, step_swap13 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
+          nn :: t).length - 14 + 14 > 1024) := by
+    simp only [List.length_cons]
+    omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
@@ -90,11 +134,27 @@ theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => Reasoning.Theory.dup16_xstep hc hp hdec hs hov)
 
+theorem RD.swap13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP13, .none)) (hov : t.length + 14 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩)
+      (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.swap13_xstep hc hp hdec hs hov)
+
 end Reasoning.Reach
 
 namespace Benchmarks.Dss.Dog
 
 /-! ## `bark(bytes32,address,address)` -/
+
+abbrev dogBarkLogTopic : UInt256 :=
+  ⟨60223955615635091052364944308915575907717781736950231047312829807587324278156⟩
 
 abbrev barkIlkBytes (I : ExecutionEnv) : List UInt8 :=
   (I.calldata.toList.drop 4).take 32
@@ -379,6 +439,36 @@ abbrev barkSourceRoomWord (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) : UIn
   else
     barkSourceIlkRoomWord evmUrns I
 
+abbrev dogWadWord : UInt256 :=
+  ⟨1000000000000000000⟩
+
+abbrev barkSourceRoomWadWord (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) :
+    UInt256 :=
+  barkSourceRoomWord evmUrns evmIlks I * dogWadWord
+
+abbrev barkSourceDartByRateWord
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (outIlks : ByteArray) :
+    UInt256 :=
+  UInt256.div (barkSourceRoomWadWord evmUrns evmIlks I) (barkVatIlksRateWord outIlks)
+
+abbrev barkSourceMilkChopWord (evmUrns : EVM.State) (I : ExecutionEnv) : UInt256 :=
+  dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+
+abbrev barkSourceDartCandidateWord
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (outIlks : ByteArray) :
+    UInt256 :=
+  UInt256.div (barkSourceDartByRateWord evmUrns evmIlks I outIlks)
+    (barkSourceMilkChopWord evmUrns I)
+
+abbrev barkSourceDartWord
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    UInt256 :=
+  let dartCandidate := barkSourceDartCandidateWord evmUrns evmIlks I outIlks
+  if (barkVatUrnsArtWord out).toNat ≤ dartCandidate.toNat then
+    barkVatUrnsArtWord out
+  else
+    dartCandidate
+
 abbrev barkLocalsGlobalRoom
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     Store :=
@@ -397,12 +487,109 @@ abbrev barkLocalsRoom
   (barkLocalsIlkRoom evmUrns evmIlks I out outIlks).insert "room"
     (.int (Int.ofNat (barkSourceRoomWord evmUrns evmIlks I).toNat))
 
+abbrev barkLocalsRoomWad
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsRoom evmUrns evmIlks I out outIlks).insert "roomWad"
+    (.int (Int.ofNat (barkSourceRoomWadWord evmUrns evmIlks I).toNat))
+
+abbrev barkLocalsDartByRate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsRoomWad evmUrns evmIlks I out outIlks).insert "dartByRate"
+    (.int (Int.ofNat (barkSourceDartByRateWord evmUrns evmIlks I outIlks).toNat))
+
+abbrev barkLocalsDartCandidate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsDartByRate evmUrns evmIlks I out outIlks).insert "dartCandidate"
+    (.int (Int.ofNat (barkSourceDartCandidateWord evmUrns evmIlks I outIlks).toNat))
+
+abbrev barkLocalsDart
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsDartCandidate evmUrns evmIlks I out outIlks).insert "dart"
+    (.int (Int.ofNat (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat))
+
+abbrev barkLocalsLeftoverArt
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsDart evmUrns evmIlks I out outIlks).insert "leftoverArt"
+    (.int (Int.ofNat
+      (UInt256.sub (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat))
+
+abbrev barkLocalsLeftoverDue
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsLeftoverArt evmUrns evmIlks I out outIlks).insert "leftoverDue"
+    (.int (Int.ofNat
+      ((UInt256.sub (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)) *
+        barkVatIlksRateWord outIlks).toNat))
+
+abbrev barkLocalsDustyDart
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).insert "dart"
+    (.int (Int.ofNat (barkVatUrnsArtWord out).toNat))
+
+abbrev barkLocalsPartialDue
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    Store :=
+  (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).insert "partialDue"
+    (.int (Int.ofNat
+      ((barkSourceDartWord evmUrns evmIlks I out outIlks) *
+        barkVatIlksRateWord outIlks).toNat))
+
+abbrev barkLocalsInkDart (locals : Store) (inkDart : UInt256) : Store :=
+  locals.insert "inkDart" (.int (Int.ofNat inkDart.toNat))
+
+abbrev barkLocalsDink (locals : Store) (dink : UInt256) : Store :=
+  locals.insert "dink" (.int (Int.ofNat dink.toNat))
+
+abbrev barkLocalsGrabRet (locals : Store) : Store :=
+  locals.insert "_grabRet" .unit
+
+abbrev barkDueWord (dart rate : UInt256) : UInt256 :=
+  dart * rate
+
+abbrev barkLocalsDue (locals : Store) (due : UInt256) : Store :=
+  locals.insert "due" (.int (Int.ofNat due.toNat))
+
+abbrev barkLocalsFessRet (locals : Store) : Store :=
+  locals.insert "_fessRet" .unit
+
+abbrev barkTabBaseWord (due milkChop : UInt256) : UInt256 :=
+  due * milkChop
+
+abbrev barkLocalsTabBase (locals : Store) (tabBase : UInt256) : Store :=
+  locals.insert "tabBase" (.int (Int.ofNat tabBase.toNat))
+
+abbrev barkTabWord (tabBase : UInt256) : UInt256 :=
+  UInt256.div tabBase dogWadWord
+
+abbrev barkLocalsTab (locals : Store) (tab : UInt256) : Store :=
+  locals.insert "tab" (.int (Int.ofNat tab.toNat))
+
+abbrev barkDirtNewWord (dirt tab : UInt256) : UInt256 :=
+  dirt + tab
+
+abbrev barkLocalsDirtNew (locals : Store) (dirtNew : UInt256) : Store :=
+  locals.insert "DirtNew" (.int (Int.ofNat dirtNew.toNat))
+
+abbrev barkIlkDirtNewWord (milkDirt tab : UInt256) : UInt256 :=
+  milkDirt + tab
+
+abbrev barkLocalsIlkDirtNew (locals : Store) (ilkDirtNew : UInt256) : Store :=
+  locals.insert "ilkDirtNew" (.int (Int.ofNat ilkDirtNew.toNat))
+
+abbrev barkLocalsId (locals : Store) (id : UInt256) : Store :=
+  locals.insert "id" (.int (Int.ofNat id.toNat))
+
 abbrev barkBinaryLocals (x y : UInt256) : Store :=
   (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
     (.int (Int.ofNat x.toNat)))
-
-abbrev dogWadWord : UInt256 :=
-  ⟨1000000000000000000⟩
 
 abbrev dogInt256LimitWord : UInt256 :=
   UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩
@@ -462,6 +649,77 @@ noncomputable abbrev barkVatGrabPostCallMem
   out.write 0 (barkVatGrabCallMem σ σMem I mem dink dart) barkVatGrabOutPtr.toNat
     (min barkVatGrabOutSize (UInt256.ofNat out.size)).toNat
 
+abbrev barkVowFessSelectorWord : UInt256 :=
+  ⟨0x697efb78⟩
+
+abbrev barkVowFessSelectorShifted : UInt256 :=
+  UInt256.shiftLeft ⟨0x0d2fdf6f⟩ ⟨227⟩
+
+abbrev barkVowFessOutPtr : UInt256 :=
+  ⟨384⟩
+
+abbrev barkVowFessInSize : UInt256 :=
+  ⟨36⟩
+
+abbrev barkVowFessOutSize : UInt256 :=
+  ⟨0⟩
+
+abbrev barkVowFessEndPtr : UInt256 :=
+  ⟨420⟩
+
+noncomputable abbrev barkVowFessSelectorMem (mem : ByteArray) : ByteArray :=
+  Reasoning.Theory.writeWord mem 384 barkVowFessSelectorShifted
+
+noncomputable abbrev barkVowFessDueMem (mem : ByteArray) (due : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord (barkVowFessSelectorMem mem) 388 due
+
+noncomputable abbrev barkVowFessPostCallMem
+    (mem out : ByteArray) (due : UInt256) : ByteArray :=
+  out.write 0 (barkVowFessDueMem mem due) barkVowFessOutPtr.toNat
+    (min barkVowFessOutSize (UInt256.ofNat out.size)).toNat
+
+abbrev barkKickSelectorWord : UInt256 :=
+  ⟨0x898eb267⟩
+
+abbrev barkKickSelectorShifted : UInt256 :=
+  UInt256.shiftLeft barkKickSelectorWord ⟨224⟩
+
+abbrev barkKickOutPtr : UInt256 :=
+  ⟨384⟩
+
+abbrev barkKickInSize : UInt256 :=
+  ⟨132⟩
+
+abbrev barkKickOutSize : UInt256 :=
+  ⟨32⟩
+
+abbrev barkKickEndPtr : UInt256 :=
+  ⟨516⟩
+
+noncomputable abbrev barkKickSelectorMem (mem : ByteArray) : ByteArray :=
+  Reasoning.Theory.writeWord mem 384 barkKickSelectorShifted
+
+noncomputable abbrev barkKickTabMem (mem : ByteArray) (tab : UInt256) : ByteArray :=
+  Reasoning.Theory.writeWord (barkKickSelectorMem mem) 388 tab
+
+noncomputable abbrev barkKickDinkMem (mem : ByteArray) (tab dink : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord (barkKickTabMem mem tab) 420 dink
+
+noncomputable abbrev barkKickUrnMem (I : ExecutionEnv) (mem : ByteArray)
+    (tab dink : UInt256) : ByteArray :=
+  Reasoning.Theory.writeWord (barkKickDinkMem mem tab dink) 452 (barkUrnKey I)
+
+noncomputable abbrev barkKickCalldataMem (I : ExecutionEnv) (mem : ByteArray)
+    (tab dink : UInt256) : ByteArray :=
+  Reasoning.Theory.writeWord (barkKickUrnMem I mem tab dink) 484 (barkKprKey I)
+
+noncomputable abbrev barkKickPostCallMem (I : ExecutionEnv) (mem out : ByteArray)
+    (tab dink : UInt256) : ByteArray :=
+  out.write 0 (barkKickCalldataMem I mem tab dink) barkKickOutPtr.toNat
+    (min barkKickOutSize (UInt256.ofNat out.size)).toNat
+
 abbrev barkRoomWadWord (σ σMem : AccountMap) (I : ExecutionEnv) : UInt256 :=
   if (barkGlobalRoomWord σ I).toNat ≤ (barkIlkRoomWord σMem I).toNat then
     barkGlobalRoomWord σ I * dogWadWord
@@ -496,6 +754,38 @@ abbrev barkLeftoverDueWord (art dart rate : UInt256) : UInt256 :=
 abbrev barkPartialDueWord (dart rate : UInt256) : UInt256 :=
   dart * rate
 
+theorem barkDartWord_toNat_le_art
+    (σ σMem : AccountMap) (I : ExecutionEnv) (art rate chop : UInt256) :
+    (barkDartWord σ σMem I art rate chop).toNat ≤ art.toNat := by
+  change
+    (if art.toNat ≤ (barkDartCandidateWord σ σMem I rate chop).toNat then
+        art
+      else
+        barkDartCandidateWord σ σMem I rate chop).toNat ≤ art.toNat
+  split_ifs with hle
+  · exact Nat.le_refl _
+  · exact Nat.le_of_lt (not_le.mp hle)
+
+theorem barkLeftoverArtWord_toNat_le_art {art dart : UInt256}
+    (hdartLe : dart.toNat ≤ art.toNat) :
+    (barkLeftoverArtWord art dart).toNat ≤ art.toNat := by
+  rw [barkLeftoverArtWord, usub_toNat hdartLe]
+  omega
+
+theorem barkLeftoverDue_fit_of_art_fit {art dart rate : UInt256}
+    (hdartLe : dart.toNat ≤ art.toNat)
+    (hfitArt : art.toNat * rate.toNat < UInt256.size) :
+    (barkLeftoverArtWord art dart).toNat * rate.toNat < UInt256.size := by
+  exact lt_of_le_of_lt
+    (Nat.mul_le_mul_right rate.toNat (barkLeftoverArtWord_toNat_le_art hdartLe))
+    hfitArt
+
+theorem barkPartialDue_fit_of_dart_le_art {art dart rate : UInt256}
+    (hdartLe : dart.toNat ≤ art.toNat)
+    (hfitArt : art.toNat * rate.toNat < UInt256.size) :
+    dart.toNat * rate.toNat < UInt256.size := by
+  exact lt_of_le_of_lt (Nat.mul_le_mul_right rate.toNat hdartLe) hfitArt
+
 abbrev dogNotLiveRawWord : UInt256 :=
   ⟨21179658712531102354511591013⟩
 
@@ -504,6 +794,12 @@ abbrev dogNotUnsafeRawWord : UInt256 :=
 
 abbrev dogLiquidationLimitHitRawWord : UInt256 :=
   ⟨429574513270148286153109682416655011243695164593862324283764⟩
+
+abbrev dogNullAuctionRawWord : UInt256 :=
+  ⟨45482970755384883464522350792499574711⟩
+
+abbrev dogOverflowRawWord : UInt256 :=
+  ⟨21179658712605114076964351863⟩
 
 theorem barkLocals_get_live (I : ExecutionEnv) :
     (barkLocals I).get? "live" = none := by
@@ -520,6 +816,10 @@ theorem barkLocals_get_ilk (I : ExecutionEnv) :
 theorem barkLocals_get_urn (I : ExecutionEnv) :
     (barkLocals I).get? "urn" = some (.address (barkUrn I)) := by
   rw [barkLocals, store_get_ne _ _ (by decide), store_get_self]
+
+theorem barkLocals_get_kpr (I : ExecutionEnv) :
+    (barkLocals I).get? "kpr" = some (.address (barkKpr I)) := by
+  rw [barkLocals, store_get_self]
 
 theorem barkLocals_get_ilks (I : ExecutionEnv) :
     (barkLocals I).get? "ilks" = none := by
@@ -570,6 +870,14 @@ theorem barkLocalsMilkClip_get_ilks
     (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     (barkLocalsMilkClip evm I out).get? "ilks" = none := by
   rw [barkLocalsMilkClip, store_get_ne _ _ (by decide), barkLocalsArt_get_ilks]
+
+theorem barkLocalsMilkClip_get_milkClip
+    (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
+    (barkLocalsMilkClip evm I out).get? "milkClip" =
+      some (.address (AccountAddress.ofNat
+        (dogAddressReturnWord (barkIlksClipSlotFor I) evm.accountMap
+          evm.executionEnv).toNat)) := by
+  rw [barkLocalsMilkClip, store_get_self]
 
 theorem barkLocalsMilkChop_get_ilk
     (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
@@ -850,6 +1158,453 @@ theorem barkLocalsRoom_get_room
     (barkLocalsRoom evmUrns evmIlks I out outIlks).get? "room" =
       some (.int (Int.ofNat (barkSourceRoomWord evmUrns evmIlks I).toNat)) := by
   rw [barkLocalsRoom, store_get_self]
+
+theorem barkLocalsRoom_get_rate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsRoom evmUrns evmIlks I out outIlks).get? "rate" =
+      some (.int (Int.ofNat (barkVatIlksRateWord outIlks).toNat)) := by
+  rw [barkLocalsRoom, store_get_ne _ _ (by decide), barkLocalsIlkRoom,
+    store_get_ne _ _ (by decide), barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
+    barkLocalsArtRateUnsafe, store_get_ne _ _ (by decide), barkLocalsInkSpot,
+    store_get_ne _ _ (by decide), barkLocalsDust, store_get_ne _ _ (by decide),
+    barkLocalsSpot, store_get_ne _ _ (by decide), barkLocalsRate, store_get_self]
+
+theorem barkLocalsRoom_get_milkChop
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsRoom evmUrns evmIlks I out outIlks).get? "milkChop" =
+      some (.int (Int.ofNat
+        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+          evmUrns.executionEnv).toNat)) := by
+  rw [barkLocalsRoom, store_get_ne _ _ (by decide), barkLocalsIlkRoom,
+    store_get_ne _ _ (by decide), barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
+    barkLocalsArtRateUnsafe, store_get_ne _ _ (by decide), barkLocalsInkSpot,
+    store_get_ne _ _ (by decide), barkLocalsDust, store_get_ne _ _ (by decide),
+    barkLocalsSpot, store_get_ne _ _ (by decide), barkLocalsRate,
+    store_get_ne _ _ (by decide), barkLocalsVatIlk, store_get_ne _ _ (by decide),
+    barkLocalsMilkDirt, store_get_ne _ _ (by decide), barkLocalsMilkHole,
+    store_get_ne _ _ (by decide), barkLocalsMilkChop, store_get_self]
+
+theorem barkLocalsRoomWad_get_roomWad
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsRoomWad evmUrns evmIlks I out outIlks).get? "roomWad" =
+      some (.int (Int.ofNat (barkSourceRoomWadWord evmUrns evmIlks I).toNat)) := by
+  rw [barkLocalsRoomWad, store_get_self]
+
+theorem barkLocalsRoomWad_get_rate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsRoomWad evmUrns evmIlks I out outIlks).get? "rate" =
+      some (.int (Int.ofNat (barkVatIlksRateWord outIlks).toNat)) := by
+  rw [barkLocalsRoomWad, store_get_ne _ _ (by decide),
+    barkLocalsRoom_get_rate]
+
+theorem barkLocalsDartByRate_get_dartByRate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "dartByRate" =
+      some (.int (Int.ofNat
+        (barkSourceDartByRateWord evmUrns evmIlks I outIlks).toNat)) := by
+  rw [barkLocalsDartByRate, store_get_self]
+
+theorem barkLocalsDartByRate_get_milkChop
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "milkChop" =
+      some (.int (Int.ofNat
+        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+          evmUrns.executionEnv).toNat)) := by
+  rw [barkLocalsDartByRate, store_get_ne _ _ (by decide), barkLocalsRoomWad,
+    store_get_ne _ _ (by decide), barkLocalsRoom_get_milkChop]
+
+theorem barkLocalsDartByRate_get_art
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "art" =
+      some (.int (Int.ofNat (barkVatUrnsArtWord out).toNat)) := by
+  rw [barkLocalsDartByRate, store_get_ne _ _ (by decide), barkLocalsRoomWad,
+    store_get_ne _ _ (by decide), barkLocalsRoom, store_get_ne _ _ (by decide),
+    barkLocalsIlkRoom, store_get_ne _ _ (by decide), barkLocalsGlobalRoom,
+    store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe_get_art]
+
+theorem barkLocalsDartByRate_get_ink
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "ink" =
+      some (.int (Int.ofNat (barkVatUrnsInkWord out).toNat)) := by
+  rw [barkLocalsDartByRate, store_get_ne _ _ (by decide), barkLocalsRoomWad,
+    store_get_ne _ _ (by decide), barkLocalsRoom, store_get_ne _ _ (by decide),
+    barkLocalsIlkRoom, store_get_ne _ _ (by decide), barkLocalsGlobalRoom,
+    store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot_get_ink]
+
+theorem barkLocalsDartByRate_get_dust
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "dust" =
+      some (.int (Int.ofNat (barkVatIlksDustWord outIlks).toNat)) := by
+  rw [barkLocalsDartByRate, store_get_ne _ _ (by decide), barkLocalsRoomWad,
+    store_get_ne _ _ (by decide), barkLocalsRoom, store_get_ne _ _ (by decide),
+    barkLocalsIlkRoom, store_get_ne _ _ (by decide), barkLocalsGlobalRoom,
+    store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe, store_get_ne _ _ (by decide),
+    barkLocalsInkSpot, store_get_ne _ _ (by decide), barkLocalsDust_get_dust]
+
+theorem barkLocalsDartCandidate_get_dartCandidate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartCandidate evmUrns evmIlks I out outIlks).get? "dartCandidate" =
+      some (.int (Int.ofNat
+        (barkSourceDartCandidateWord evmUrns evmIlks I outIlks).toNat)) := by
+  rw [barkLocalsDartCandidate, store_get_self]
+
+theorem barkLocalsDartCandidate_get_art
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDartCandidate evmUrns evmIlks I out outIlks).get? "art" =
+      some (.int (Int.ofNat (barkVatUrnsArtWord out).toNat)) := by
+  rw [barkLocalsDartCandidate, store_get_ne _ _ (by decide),
+    barkLocalsDartByRate_get_art]
+
+theorem barkLocalsDart_get_dart
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "dart" =
+      some (.int (Int.ofNat (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat)) := by
+  rw [barkLocalsDart, store_get_self]
+
+theorem barkLocalsDart_get_art
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "art" =
+      some (.int (Int.ofNat (barkVatUrnsArtWord out).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate_get_art]
+
+theorem barkLocalsDart_get_ink
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "ink" =
+      some (.int (Int.ofNat (barkVatUrnsInkWord out).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate_get_ink]
+
+theorem barkLocalsDart_get_rate
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "rate" =
+      some (.int (Int.ofNat (barkVatIlksRateWord outIlks).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad_get_rate]
+
+theorem barkLocalsDart_get_dust
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "dust" =
+      some (.int (Int.ofNat (barkVatIlksDustWord outIlks).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate_get_dust]
+
+theorem barkLocalsDart_get_milkClip
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkClip" =
+      some (.address (AccountAddress.ofNat
+        (dogAddressReturnWord (barkIlksClipSlotFor I) evmUrns.accountMap
+          evmUrns.executionEnv).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk, store_get_ne _ _ (by decide), barkLocalsMilkDirt,
+    store_get_ne _ _ (by decide), barkLocalsMilkHole, store_get_ne _ _ (by decide),
+    barkLocalsMilkChop, store_get_ne _ _ (by decide),
+    barkLocalsMilkClip_get_milkClip]
+
+theorem barkLocalsDart_get_milkChop
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkChop" =
+      some (.int (Int.ofNat
+        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+          evmUrns.executionEnv).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate_get_milkChop]
+
+theorem barkLocalsDart_get_ilk
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "ilk" =
+      some (.fixedBytes bytes32Width (barkIlkBytes I)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk_get_ilk]
+
+theorem barkLocalsDart_get_urn
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "urn" =
+      some (.address (barkUrn I)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk, store_get_ne _ _ (by decide), barkLocalsMilkDirt,
+    store_get_ne _ _ (by decide), barkLocalsMilkHole, store_get_ne _ _ (by decide),
+    barkLocalsMilkChop, store_get_ne _ _ (by decide), barkLocalsMilkClip,
+    store_get_ne _ _ (by decide), barkLocalsArt, store_get_ne _ _ (by decide),
+    barkLocalsInk, store_get_ne _ _ (by decide), barkLocalsVatUrn,
+    store_get_ne _ _ (by decide), barkLocals_get_urn]
+
+theorem barkLocalsDart_get_kpr
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "kpr" =
+      some (.address (barkKpr I)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk, store_get_ne _ _ (by decide), barkLocalsMilkDirt,
+    store_get_ne _ _ (by decide), barkLocalsMilkHole, store_get_ne _ _ (by decide),
+    barkLocalsMilkChop, store_get_ne _ _ (by decide), barkLocalsMilkClip,
+    store_get_ne _ _ (by decide), barkLocalsArt, store_get_ne _ _ (by decide),
+    barkLocalsInk, store_get_ne _ _ (by decide), barkLocalsVatUrn,
+    store_get_ne _ _ (by decide), barkLocals_get_kpr]
+
+theorem barkLocalsDart_get_milkDirt
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkDirt" =
+      some (.int (Int.ofNat
+        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+          evmUrns.executionEnv).toNat)) := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
+    barkLocalsArtRateUnsafe_get_milkDirt]
+
+theorem barkLocalsDart_get_Dirt
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "Dirt" = none := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe_get_Dirt]
+
+theorem barkLocalsDart_get_ilks
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "ilks" = none := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk, store_get_ne _ _ (by decide), barkLocalsMilkDirt,
+    store_get_ne _ _ (by decide), barkLocalsMilkHole, store_get_ne _ _ (by decide),
+    barkLocalsMilkChop, store_get_ne _ _ (by decide), barkLocalsMilkClip_get_ilks]
+
+theorem barkLocalsDart_get_vow
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDart evmUrns evmIlks I out outIlks).get? "vow" = none := by
+  rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
+    store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
+    barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom,
+    store_get_ne _ _ (by decide), barkLocalsIlkRoom, store_get_ne _ _ (by decide),
+    barkLocalsGlobalRoom, store_get_ne _ _ (by decide), barkLocalsArtRateUnsafe,
+    store_get_ne _ _ (by decide), barkLocalsInkSpot, store_get_ne _ _ (by decide),
+    barkLocalsDust, store_get_ne _ _ (by decide), barkLocalsSpot,
+    store_get_ne _ _ (by decide), barkLocalsRate, store_get_ne _ _ (by decide),
+    barkLocalsVatIlk, store_get_ne _ _ (by decide), barkLocalsMilkDirt,
+    store_get_ne _ _ (by decide), barkLocalsMilkHole, store_get_ne _ _ (by decide),
+    barkLocalsMilkChop, store_get_ne _ _ (by decide), barkLocalsMilkClip,
+    store_get_ne _ _ (by decide), barkLocalsArt, store_get_ne _ _ (by decide),
+    barkLocalsInk, store_get_ne _ _ (by decide), barkLocalsVatUrn,
+    store_get_ne _ _ (by decide), barkLocals, store_get_ne _ _ (by decide),
+    store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+  simp
+
+theorem barkLocalsLeftoverArt_get_leftoverArt
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsLeftoverArt evmUrns evmIlks I out outIlks).get? "leftoverArt" =
+      some (.int (Int.ofNat
+        (UInt256.sub (barkVatUrnsArtWord out)
+          (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat)) := by
+  rw [barkLocalsLeftoverArt, store_get_self]
+
+theorem barkLocalsLeftoverDue_get_leftoverDue
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).get? "leftoverDue" =
+      some (.int (Int.ofNat
+        ((UInt256.sub (barkVatUrnsArtWord out)
+          (barkSourceDartWord evmUrns evmIlks I out outIlks)) *
+          barkVatIlksRateWord outIlks).toNat)) := by
+  rw [barkLocalsLeftoverDue, store_get_self]
+
+theorem barkLocalsLeftoverArt_get_preserved
+    {evmUrns evmIlks : EVM.State} {I : ExecutionEnv} {out outIlks : ByteArray}
+    {name : Ident} {value : Value} (hname : ("leftoverArt" == name) = false)
+    (hget : (barkLocalsDart evmUrns evmIlks I out outIlks).get? name = some value) :
+    (barkLocalsLeftoverArt evmUrns evmIlks I out outIlks).get? name = some value := by
+  rw [barkLocalsLeftoverArt, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsLeftoverDue_get_preserved
+    {evmUrns evmIlks : EVM.State} {I : ExecutionEnv} {out outIlks : ByteArray}
+    {name : Ident} {value : Value} (hname : ("leftoverDue" == name) = false)
+    (hget : (barkLocalsLeftoverArt evmUrns evmIlks I out outIlks).get? name = some value) :
+    (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).get? name = some value := by
+  rw [barkLocalsLeftoverDue, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsDustyDart_get_dart
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsDustyDart evmUrns evmIlks I out outIlks).get? "dart" =
+      some (.int (Int.ofNat (barkVatUrnsArtWord out).toNat)) := by
+  rw [barkLocalsDustyDart, store_get_self]
+
+theorem barkLocalsDustyDart_get_preserved
+    {evmUrns evmIlks : EVM.State} {I : ExecutionEnv} {out outIlks : ByteArray}
+    {name : Ident} {value : Value} (hname : ("dart" == name) = false)
+    (hget : (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).get? name = some value) :
+    (barkLocalsDustyDart evmUrns evmIlks I out outIlks).get? name = some value := by
+  rw [barkLocalsDustyDart, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsPartialDue_get_partialDue
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    (barkLocalsPartialDue evmUrns evmIlks I out outIlks).get? "partialDue" =
+      some (.int (Int.ofNat
+        ((barkSourceDartWord evmUrns evmIlks I out outIlks) *
+          barkVatIlksRateWord outIlks).toNat)) := by
+  rw [barkLocalsPartialDue, store_get_self]
+
+theorem barkLocalsPartialDue_get_preserved
+    {evmUrns evmIlks : EVM.State} {I : ExecutionEnv} {out outIlks : ByteArray}
+    {name : Ident} {value : Value} (hname : ("partialDue" == name) = false)
+    (hget : (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).get? name = some value) :
+    (barkLocalsPartialDue evmUrns evmIlks I out outIlks).get? name = some value := by
+  rw [barkLocalsPartialDue, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsInkDart_get_inkDart (locals : Store) (inkDart : UInt256) :
+    (barkLocalsInkDart locals inkDart).get? "inkDart" =
+      some (.int (Int.ofNat inkDart.toNat)) := by
+  rw [barkLocalsInkDart, store_get_self]
+
+theorem barkLocalsDink_get_dink (locals : Store) (dink : UInt256) :
+    (barkLocalsDink locals dink).get? "dink" =
+      some (.int (Int.ofNat dink.toNat)) := by
+  rw [barkLocalsDink, store_get_self]
+
+theorem barkLocalsGrabRet_get_grabRet (locals : Store) :
+    (barkLocalsGrabRet locals).get? "_grabRet" = some .unit := by
+  rw [barkLocalsGrabRet, store_get_self]
+
+theorem barkLocalsDue_get_due (locals : Store) (due : UInt256) :
+    (barkLocalsDue locals due).get? "due" =
+      some (.int (Int.ofNat due.toNat)) := by
+  rw [barkLocalsDue, store_get_self]
+
+theorem barkLocalsFessRet_get_fessRet (locals : Store) :
+    (barkLocalsFessRet locals).get? "_fessRet" = some .unit := by
+  rw [barkLocalsFessRet, store_get_self]
+
+theorem barkLocalsTabBase_get_tabBase (locals : Store) (tabBase : UInt256) :
+    (barkLocalsTabBase locals tabBase).get? "tabBase" =
+      some (.int (Int.ofNat tabBase.toNat)) := by
+  rw [barkLocalsTabBase, store_get_self]
+
+theorem barkLocalsTab_get_tab (locals : Store) (tab : UInt256) :
+    (barkLocalsTab locals tab).get? "tab" =
+      some (.int (Int.ofNat tab.toNat)) := by
+  rw [barkLocalsTab, store_get_self]
+
+theorem barkLocalsDirtNew_get_DirtNew (locals : Store) (dirtNew : UInt256) :
+    (barkLocalsDirtNew locals dirtNew).get? "DirtNew" =
+      some (.int (Int.ofNat dirtNew.toNat)) := by
+  rw [barkLocalsDirtNew, store_get_self]
+
+theorem barkLocalsIlkDirtNew_get_ilkDirtNew (locals : Store) (ilkDirtNew : UInt256) :
+    (barkLocalsIlkDirtNew locals ilkDirtNew).get? "ilkDirtNew" =
+      some (.int (Int.ofNat ilkDirtNew.toNat)) := by
+  rw [barkLocalsIlkDirtNew, store_get_self]
+
+theorem barkLocalsId_get_id (locals : Store) (id : UInt256) :
+    (barkLocalsId locals id).get? "id" =
+      some (.int (Int.ofNat id.toNat)) := by
+  rw [barkLocalsId, store_get_self]
+
+theorem barkLocalsInkDart_get_preserved {locals : Store} {inkDart : UInt256}
+    {name : Ident} {value : Value} (hname : ("inkDart" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsInkDart locals inkDart).get? name = some value := by
+  rw [barkLocalsInkDart, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsDink_get_preserved {locals : Store} {dink : UInt256}
+    {name : Ident} {value : Value} (hname : ("dink" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsDink locals dink).get? name = some value := by
+  rw [barkLocalsDink, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsGrabRet_get_preserved {locals : Store} {name : Ident} {value : Value}
+    (hname : ("_grabRet" == name) = false) (hget : locals.get? name = some value) :
+    (barkLocalsGrabRet locals).get? name = some value := by
+  rw [barkLocalsGrabRet, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsDue_get_preserved {locals : Store} {due : UInt256}
+    {name : Ident} {value : Value} (hname : ("due" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsDue locals due).get? name = some value := by
+  rw [barkLocalsDue, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsFessRet_get_preserved {locals : Store} {name : Ident} {value : Value}
+    (hname : ("_fessRet" == name) = false) (hget : locals.get? name = some value) :
+    (barkLocalsFessRet locals).get? name = some value := by
+  rw [barkLocalsFessRet, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsTabBase_get_preserved {locals : Store} {tabBase : UInt256}
+    {name : Ident} {value : Value} (hname : ("tabBase" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsTabBase locals tabBase).get? name = some value := by
+  rw [barkLocalsTabBase, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsTab_get_preserved {locals : Store} {tab : UInt256}
+    {name : Ident} {value : Value} (hname : ("tab" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsTab locals tab).get? name = some value := by
+  rw [barkLocalsTab, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsDirtNew_get_preserved {locals : Store} {dirtNew : UInt256}
+    {name : Ident} {value : Value} (hname : ("DirtNew" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsDirtNew locals dirtNew).get? name = some value := by
+  rw [barkLocalsDirtNew, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsIlkDirtNew_get_preserved {locals : Store} {ilkDirtNew : UInt256}
+    {name : Ident} {value : Value} (hname : ("ilkDirtNew" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsIlkDirtNew locals ilkDirtNew).get? name = some value := by
+  rw [barkLocalsIlkDirtNew, store_get_ne _ _ hname]
+  exact hget
+
+theorem barkLocalsId_get_preserved {locals : Store} {id : UInt256}
+    {name : Ident} {value : Value} (hname : ("id" == name) = false)
+    (hget : locals.get? name = some value) :
+    (barkLocalsId locals id).get? name = some value := by
+  rw [barkLocalsId, store_get_ne _ _ hname]
+  exact hget
 
 theorem barkBinaryLocals_get_x (x y : UInt256) :
     (barkBinaryLocals x y).get? "x" = some (.int (Int.ofNat x.toNat)) := by
@@ -1275,6 +2030,17 @@ theorem barkIlksDirtSlotFor_eq {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.s
     barkIlksDirtSlotFor I = solcMappingSlot ⟨1⟩ (barkIlkWord I) + ⟨3⟩ := by
   simp [barkIlksDirtSlotFor, barkIlksClipSlotFor_eq hsz100]
 
+theorem barkIlksClipWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size) :
+    barkIlksClipWord σ I = dogAddressReturnWord (barkIlksClipSlotFor I) σ I := by
+  simp [barkIlksClipWord, dogAddressReturnWord, dogSlotWord, barkIlksSlot,
+    barkIlksClipSlotFor_eq hsz100, u256_land_comm]
+
+theorem barkIlksChopWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size) :
+    barkIlksChopWord σ I = dogSlotWord (barkIlksChopSlotFor I) σ I := by
+  simp [barkIlksChopWord, dogSlotWord, barkIlksSlot, barkIlksChopSlotFor_eq hsz100]
+
 theorem barkIlksHoleWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
     barkIlksHoleWord σ I = dogSlotWord (barkIlksHoleSlotFor I) σ I := by
@@ -1291,6 +2057,12 @@ theorem barkUrn_value_masked (I : ExecutionEnv) :
       .address (AccountAddress.ofNat (barkUrnKey I).toNat) := by
   simpa [barkUrn, barkUrnKey, barkUrnWord] using
     (solcAddressValue_masked (calldataWord I.calldata 36))
+
+theorem barkKpr_value_masked (I : ExecutionEnv) :
+    (.address (barkKpr I) : Value) =
+      .address (AccountAddress.ofNat (barkKprKey I).toNat) := by
+  simpa [barkKpr, barkKprKey, barkKprWord] using
+    (solcAddressValue_masked (calldataWord I.calldata 68))
 
 theorem barkVatUrnsSelectorWord_extract :
     (UInt256.toByteArray barkVatUrnsSelectorWord).extract 0 4 = vatUrnsSelector := by
@@ -1584,6 +2356,133 @@ theorem twoWordHashMem_solcMappingSlot_256 (baseSlot key : UInt256) {mem : ByteA
   rw [twoWordHashMem_read0_64_256 key baseSlot hmem]
   unfold solcMappingSlot
   exact mappingSlot_single key baseSlot
+
+theorem wordAt0Mem_size_580 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 580) :
+    (wordAt0Mem word mem).size = 580 := by
+  unfold wordAt0Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem wordAt32Mem_size_580 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 580) :
+    (wordAt32Mem word mem).size = 580 := by
+  unfold wordAt32Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem twoWordHashMem_size_580 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 580) :
+    (twoWordHashMem key slot mem).size = 580 := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_size_580 slot (wordAt0Mem_size_580 key hmem)
+
+theorem twoWordHashMem_read0_580 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 580) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)]
+  unfold wordAt0Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray key).size ≤ 32
+    rw [toByteArray_size])
+
+theorem twoWordHashMem_read32_580 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 580) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray slot).size ≤ 32
+    rw [toByteArray_size])
+
+theorem twoWordHashMem_read0_64_580 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 580) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [twoWordHashMem_size_580 key slot hmem]; omega)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [twoWordHashMem_size_580 key slot hmem]; omega),
+      twoWordHashMem_read0_580 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [twoWordHashMem_size_580 key slot hmem]; omega),
+      twoWordHashMem_read32_580 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      simp]
+  rw [hleft, hright]
+
+theorem twoWordHashMem_solcMappingSlot_580 (baseSlot key : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 580) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+      solcMappingSlot baseSlot key := by
+  rw [twoWordHashMem_read0_64_580 key baseSlot hmem]
+  unfold solcMappingSlot
+  exact mappingSlot_single key baseSlot
+
+theorem twoWordHashMem_read64_580 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; omega)]
+  exact hread64
+
+theorem twoWordHashMem_read256_580 {mem : ByteArray} (key slot word : UInt256)
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (twoWordHashMem key slot mem).readWithPadding 256 32 =
+      UInt256.toByteArray word := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 256 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 256 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; omega)]
+  exact hread256
+
+theorem twoWordHashMem_mload256_580 {mem : ByteArray} (key slot word : UInt256)
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (if (⟨256⟩ : UInt256).toNat ≥ (twoWordHashMem key slot mem).size
+        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((twoWordHashMem key slot mem).readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
+      word := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := word)
+    (by rw [twoWordHashMem_size_580 key slot hmem]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+        twoWordHashMem_read256_580 key slot word hmem hread256)
 
 theorem barkIlksHashMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2543,6 +3442,1463 @@ theorem barkVatGrabCallMem_mload64 {σ σMem : AccountMap} {I : ExecutionEnv}
         (mem := mem) (dink := dink) (dart := dart) hmem hread64
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
 
+theorem barkVatGrabCallMem_read256 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart word : UInt256}
+    (hmem : mem.size = 544)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 256 32 =
+      UInt256.toByteArray word := by
+  rw [barkVatGrabCallMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
+      548 256 (UInt256.sub ⟨0⟩ dart)
+      (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
+  rw [barkVatGrabDinkMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 256
+      (UInt256.sub ⟨0⟩ dink)
+      (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
+  rw [barkVatGrabVowMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 256
+      (barkVowWord σ I)
+      (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
+  rw [barkVatGrabClipMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 256
+      (barkIlksClipWord σMem I)
+      (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
+  rw [barkVatGrabUrnMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 256
+      (barkUrnKey I)
+      (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
+  rw [barkVatGrabIlkMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 256
+      (barkIlkWord I)
+      (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
+  rw [barkVatGrabSelectorMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 256 barkVatGrabSelectorShifted
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread256
+
+theorem barkVatGrabCallMem_mload288 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart milkChop : UInt256}
+    (hmem : mem.size = 544)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop) :
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size
+        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
+          (⟨288⟩ : UInt256).toNat 32))) =
+      milkChop := by
+  have hread :
+      (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 288 32 =
+        mem.readWithPadding 288 32 := by
+    rw [barkVatGrabCallMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
+        548 288 (UInt256.sub ⟨0⟩ dart)
+        (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
+    rw [barkVatGrabDinkMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 288
+        (UInt256.sub ⟨0⟩ dink)
+        (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
+    rw [barkVatGrabVowMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 288
+        (barkVowWord σ I)
+        (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
+    rw [barkVatGrabClipMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 288
+        (barkIlksClipWord σMem I)
+        (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
+    rw [barkVatGrabUrnMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 288
+        (barkUrnKey I)
+        (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
+    rw [barkVatGrabIlkMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 288
+        (barkIlkWord I)
+        (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
+    rw [barkVatGrabSelectorMem,
+      Reasoning.Theory.writeWord_read_preserved mem 384 288 barkVatGrabSelectorShifted
+        (by rw [hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  simpa [barkVatGrabCallMem_size hmem, hmem,
+    show (⟨288⟩ : UInt256).toNat = 288 by native_decide, hread] using hmload288
+
+theorem barkVatGrabPostCallMem_eq {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart : UInt256} :
+    barkVatGrabPostCallMem σ σMem I mem out dink dart =
+      barkVatGrabCallMem σ σMem I mem dink dart := by
+  unfold barkVatGrabPostCallMem barkVatGrabOutSize
+  change out.write 0 (barkVatGrabCallMem σ σMem I mem dink dart) 384 0 =
+    barkVatGrabCallMem σ σMem I mem dink dart
+  rw [byteArray_write_len_zero]
+
+theorem barkVatGrabPostCallMem_size {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabPostCallMem σ σMem I mem out dink dart).size = 580 := by
+  rw [barkVatGrabPostCallMem_eq, barkVatGrabCallMem_size hmem]
+
+theorem barkVatGrabPostCallMem_read64 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart : UInt256}
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  rw [barkVatGrabPostCallMem_eq]
+  exact barkVatGrabCallMem_read64 hmem hread64
+
+theorem barkVatGrabPostCallMem_read256 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart word : UInt256}
+    (hmem : mem.size = 544)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding 256 32 =
+      UInt256.toByteArray word := by
+  rw [barkVatGrabPostCallMem_eq]
+  exact barkVatGrabCallMem_read256 hmem hread256
+
+theorem barkVatGrabPostCallMem_mload288 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart milkChop : UInt256}
+    (hmem : mem.size = 544)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop) :
+    (if (⟨288⟩ : UInt256).toNat ≥
+          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size
+        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding
+          (⟨288⟩ : UInt256).toNat 32))) =
+      milkChop := by
+  simpa [barkVatGrabPostCallMem_eq] using
+    (barkVatGrabCallMem_mload288 (σ := σ) (σMem := σMem) (I := I)
+      (mem := mem) (dink := dink) (dart := dart) hmem hmload288)
+
+theorem barkVatGrabCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart word : UInt256}
+    (hmem : mem.size = 544)
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        word) :
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size
+        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
+          (⟨352⟩ : UInt256).toNat 32))) =
+      word := by
+  have hread :
+      (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 352 32 =
+        mem.readWithPadding 352 32 := by
+    rw [barkVatGrabCallMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
+        548 352 (UInt256.sub ⟨0⟩ dart)
+        (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
+    rw [barkVatGrabDinkMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 352
+        (UInt256.sub ⟨0⟩ dink)
+        (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
+    rw [barkVatGrabVowMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 352
+        (barkVowWord σ I)
+        (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
+    rw [barkVatGrabClipMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 352
+        (barkIlksClipWord σMem I)
+        (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
+    rw [barkVatGrabUrnMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 352
+        (barkUrnKey I)
+        (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
+    rw [barkVatGrabIlkMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 352
+        (barkIlkWord I)
+        (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
+    rw [barkVatGrabSelectorMem,
+      Reasoning.Theory.writeWord_read_preserved mem 384 352 barkVatGrabSelectorShifted
+        (by rw [hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  simpa [barkVatGrabCallMem_size hmem, hmem,
+    show (⟨352⟩ : UInt256).toNat = 352 by native_decide, hread] using hmload352
+
+theorem barkVatGrabPostCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem out : ByteArray} {dink dart word : UInt256}
+    (hmem : mem.size = 544)
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        word) :
+    (if (⟨352⟩ : UInt256).toNat ≥
+          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size
+        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding
+          (⟨352⟩ : UInt256).toNat 32))) =
+      word := by
+  simpa [barkVatGrabPostCallMem_eq] using
+    (barkVatGrabCallMem_mload352 (σ := σ) (σMem := σMem) (I := I)
+      (mem := mem) (dink := dink) (dart := dart) hmem hmload352)
+
+theorem barkVatGrabSelectorShifted_extract :
+    (UInt256.toByteArray barkVatGrabSelectorShifted).extract 0 4 = vatGrabSelector := by
+  native_decide
+
+theorem barkVatGrabCallMem_read384_4 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 384 4 =
+      vatGrabSelector := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 384 4
+      (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516 384 4
+      (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+  unfold barkVatGrabVowMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
+      (barkVatGrabClipMem σMem I mem) 484 384 4
+      (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+  unfold barkVatGrabClipMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
+      (barkVatGrabUrnMem I mem) 452 384 4
+      (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+  unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
+      (barkVatGrabIlkMem I mem) 420 384 4
+      (by rw [barkVatGrabIlkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+  unfold barkVatGrabIlkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkIlkWord I)
+      (barkVatGrabSelectorMem mem) 388 384 4
+      (by rw [barkVatGrabSelectorMem_size hmem]; omega) (by native_decide)
+      (by omega) (by omega) (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)]
+  unfold barkVatGrabSelectorMem Reasoning.Theory.writeWord
+  change (barkVatGrabSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
+      384 4 = vatGrabSelector
+  rw [toByteArray_write_read_window_of_gap barkVatGrabSelectorShifted mem 384 0 4
+      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+  exact barkVatGrabSelectorShifted_extract
+
+theorem barkVatGrabCallMem_read388_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 388 32 =
+      (barkIlkWord I).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 388 32
+      (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516 388 32
+      (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+  unfold barkVatGrabVowMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
+      (barkVatGrabClipMem σMem I mem) 484 388 32
+      (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+  unfold barkVatGrabClipMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
+      (barkVatGrabUrnMem I mem) 452 388 32
+      (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+  unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
+      (barkVatGrabIlkMem I mem) 420 388 32
+      (by rw [barkVatGrabIlkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+  unfold barkVatGrabIlkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkIlkWord I) (barkVatGrabSelectorMem mem)
+      388 (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read420_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 420 32 =
+      (barkUrnKey I).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 420 32
+      (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516 420 32
+      (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+  unfold barkVatGrabVowMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
+      (barkVatGrabClipMem σMem I mem) 484 420 32
+      (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+  unfold barkVatGrabClipMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
+      (barkVatGrabUrnMem I mem) 452 420 32
+      (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+  unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkUrnKey I) (barkVatGrabIlkMem I mem)
+      420 (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read452_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 452 32 =
+      (barkIlksClipWord σMem I).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 452 32
+      (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516 452 32
+      (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+  unfold barkVatGrabVowMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
+      (barkVatGrabClipMem σMem I mem) 484 452 32
+      (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+  unfold barkVatGrabClipMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkIlksClipWord σMem I)
+      (barkVatGrabUrnMem I mem) 452
+      (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read484_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 484 32 =
+      (barkVowWord σ I).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 484 32
+      (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516 484 32
+      (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+  unfold barkVatGrabVowMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkVowWord σ I)
+      (barkVatGrabClipMem σMem I mem) 484
+      (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read516_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 516 32 =
+      (UInt256.sub ⟨0⟩ dink).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548 516 32
+      (by rw [barkVatGrabDinkMem_size hmem]) (by omega) (by omega)
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+  unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (UInt256.sub ⟨0⟩ dink)
+      (barkVatGrabVowMem σ σMem I mem) 516
+      (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read548_32 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 548 32 =
+      (UInt256.sub ⟨0⟩ dart).toByteArray := by
+  unfold barkVatGrabCallMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (UInt256.sub ⟨0⟩ dart)
+      (barkVatGrabDinkMem σ σMem I mem dink) 548
+      (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+
+theorem barkVatGrabCallMem_read384_196 {σ σMem : AccountMap} {I : ExecutionEnv}
+    {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
+    (barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 384 196 =
+      vatGrabSelector ++ (barkIlkWord I).toByteArray ++ (barkUrnKey I).toByteArray ++
+        (barkIlksClipWord σMem I).toByteArray ++ (barkVowWord σ I).toByteArray ++
+        (UInt256.sub ⟨0⟩ dink).toByteArray ++ (UInt256.sub ⟨0⟩ dart).toByteArray := by
+  have hsize : (barkVatGrabCallMem σ σMem I mem dink dart).size = 580 :=
+    barkVatGrabCallMem_size hmem
+  rw [show 196 = 4 + 192 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      384 4 192 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [show 192 = 32 + 160 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      388 32 160 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [show 160 = 32 + 128 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      420 32 128 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [show 128 = 32 + 96 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      452 32 96 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [show 96 = 32 + 64 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      484 32 64 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [show 64 = 32 + 32 from rfl,
+    byteArray_readWithPadding_split (barkVatGrabCallMem σ σMem I mem dink dart)
+      516 32 32 (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize])]
+  rw [barkVatGrabCallMem_read384_4 hmem, barkVatGrabCallMem_read388_32 hmem,
+    barkVatGrabCallMem_read420_32 hmem, barkVatGrabCallMem_read452_32 hmem,
+    barkVatGrabCallMem_read484_32 hmem, barkVatGrabCallMem_read516_32 hmem,
+    barkVatGrabCallMem_read548_32 hmem]
+  apply ByteArray.ext
+  simp [ByteArray.data_append, Array.append_assoc]
+
+theorem barkVatGrabEncodeWords {v : DogImmutables} {σ σMem : AccountMap}
+    {I : ExecutionEnv} {dink dart : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat) :
+    (config v).externalABI.encode? "grab"
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat),
+          .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))] =
+      some (vatGrabSelector ++ (barkIlkWord I).toByteArray ++
+        (barkUrnKey I).toByteArray ++ (barkIlksClipWord σMem I).toByteArray ++
+        (barkVowWord σ I).toByteArray ++ (UInt256.sub ⟨0⟩ dink).toByteArray ++
+        (UInt256.sub ⟨0⟩ dart).toByteArray) := by
+  have hIlk : ABI.encodeABIValue? bytes32 (.fixedBytes bytes32Width (barkIlkBytes I)) =
+      some (EVM.Word.toBytesBE (barkIlkWord I)) := by
+    have hbytes := barkIlkBytes_eq_toBytesBE (I := I) hsz100
+    have hlen : (EVM.Word.toBytesBE (barkIlkWord I)).length = 32 := by
+      simpa using word_toBytesBE_toByteArray_size (barkIlkWord I)
+    simp [ABI.encodeABIValue?, hlen, zeroBytes, bytes32, bytes32Width, hbytes]
+  have hIlk' :
+      ABI.encodeABIValue? (.elem (.bytes bytes32Width))
+        (.fixedBytes bytes32Width (barkIlkBytes I)) =
+          some (EVM.Word.toBytesBE (barkIlkWord I)) := by
+    simpa [bytes32] using hIlk
+  have hurnCanon : (barkUrnKey I).toNat < EVM.addressModulus := by
+    simpa [barkUrnKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkUrnWord I)
+  have hurn : ABI.encodeABIValue? (.elem .address) (.address (barkUrn I)) =
+      some (EVM.Word.toBytesBE (barkUrnKey I)) := by
+    rw [barkUrn_value_masked I]
+    simpa [← accountAddress_ofUInt256_eq_ofNat_toNat] using
+      barkAddressArgEncodingMasked (barkUrnKey I) hurnCanon
+  have hclipCanon : (barkIlksClipWord σMem I).toNat < EVM.addressModulus := by
+    simpa [barkIlksClipWord, u256_land_comm] using
+      solcAddrMask_result_canonical (solcSlotWord σMem I (barkIlksSlot I))
+  have hclip : ABI.encodeABIValue? (.elem .address)
+      (.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat)) =
+        some (EVM.Word.toBytesBE (barkIlksClipWord σMem I)) := by
+    simpa [← accountAddress_ofUInt256_eq_ofNat_toNat] using
+      barkAddressArgEncodingMasked (barkIlksClipWord σMem I) hclipCanon
+  have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
+    simpa [barkVowWord, u256_land_comm] using
+      solcAddrMask_result_canonical (dogSlotWord ⟨2⟩ σ I)
+  have hvow : ABI.encodeABIValue? (.elem .address)
+      (.address (AccountAddress.ofNat (barkVowWord σ I).toNat)) =
+        some (EVM.Word.toBytesBE (barkVowWord σ I)) := by
+    simpa [← accountAddress_ofUInt256_eq_ofNat_toNat] using
+      barkAddressArgEncodingMasked (barkVowWord σ I) hvowCanon
+  have hdink :
+      ABI.encodeABIValue? (.elem (.int int256Int)) (.int (-(↑dink.toNat : Int))) =
+        some (EVM.Word.toBytesBE (UInt256.sub ⟨0⟩ dink)) := by
+    simpa using barkInt256NegArgEncoding dink hdinkBound
+  have hdart :
+      ABI.encodeABIValue? (.elem (.int int256Int)) (.int (-(↑dart.toNat : Int))) =
+        some (EVM.Word.toBytesBE (UInt256.sub ⟨0⟩ dart)) := by
+    simpa using barkInt256NegArgEncoding dart hdartBound
+  simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
+    ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
+    ABI.encodeABIValuesFrom?, hIlk', hurn, hclip, hvow, addr, bytes32, int256]
+  rw [hdink, hdart]
+  simp
+  apply ByteArray.ext
+  simp [ByteArray.data_append, Array.append_assoc, word_toBytesBE_toByteArray_eq_toByteArray]
+
+theorem barkVatGrabEncode_eq {v : DogImmutables} {σ σMem : AccountMap}
+    {I : ExecutionEnv} {mem : ByteArray} {dink dart : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hmem : mem.size = 544)
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat) :
+    (config v).externalABI.encode? "grab"
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat),
+          .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))] =
+      some ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding 384 196) := by
+  rw [barkVatGrabCallMem_read384_196 hmem]
+  exact barkVatGrabEncodeWords (v := v) (σ := σ) (σMem := σMem) (I := I)
+    (dink := dink) (dart := dart) hsz100 hdinkBound hdartBound
+
+theorem barkVowFessSelectorMem_size {mem : ByteArray} (hmem : mem.size = 580) :
+    (barkVowFessSelectorMem mem).size = 580 := by
+  rw [barkVowFessSelectorMem,
+    Reasoning.Theory.writeWord_size mem 384 barkVowFessSelectorShifted
+      (by rw [hmem]; native_decide),
+    hmem]
+  native_decide
+
+theorem barkVowFessDueMem_size {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkVowFessDueMem mem due).size = 580 := by
+  rw [barkVowFessDueMem,
+    Reasoning.Theory.writeWord_size (barkVowFessSelectorMem mem) 388 due
+      (by rw [barkVowFessSelectorMem_size hmem]; native_decide),
+    barkVowFessSelectorMem_size hmem]
+  native_decide
+
+theorem barkVowFessDueMem_read64 {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkVowFessDueMem mem due).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  rw [barkVowFessDueMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 64 due
+      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
+  rw [barkVowFessSelectorMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 64 barkVowFessSelectorShifted
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread64
+
+theorem barkVowFessDueMem_mload64 {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkVowFessDueMem mem due).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkVowFessDueMem_size hmem]; decide)
+    (by native_decide)
+    (by
+      have hread := barkVowFessDueMem_read64 (mem := mem) (due := due) hmem hread64
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
+
+theorem barkVowFessDueMem_read256 {mem : ByteArray} {due word : UInt256}
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (barkVowFessDueMem mem due).readWithPadding 256 32 =
+      UInt256.toByteArray word := by
+  rw [barkVowFessDueMem,
+    Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 256 due
+      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
+  rw [barkVowFessSelectorMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 256 barkVowFessSelectorShifted
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread256
+
+theorem barkVowFessDueMem_mload288 {mem : ByteArray} {due milkChop : UInt256}
+    (hmem : mem.size = 580)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop) :
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
+        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVowFessDueMem mem due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+      milkChop := by
+  have hread :
+      (barkVowFessDueMem mem due).readWithPadding 288 32 =
+        mem.readWithPadding 288 32 := by
+    rw [barkVowFessDueMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 288 due
+        (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
+    rw [barkVowFessSelectorMem,
+      Reasoning.Theory.writeWord_read_preserved mem 384 288 barkVowFessSelectorShifted
+        (by rw [hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  simpa [barkVowFessDueMem_size hmem, hmem,
+    show (⟨288⟩ : UInt256).toNat = 288 by native_decide, hread] using hmload288
+
+theorem barkVowFessPostCallMem_eq {mem out : ByteArray} {due : UInt256} :
+    barkVowFessPostCallMem mem out due = barkVowFessDueMem mem due := by
+  unfold barkVowFessPostCallMem barkVowFessOutSize
+  change out.write 0 (barkVowFessDueMem mem due) barkVowFessOutPtr.toNat 0 =
+    barkVowFessDueMem mem due
+  rw [byteArray_write_len_zero]
+
+theorem barkVowFessPostCallMem_size {mem out : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkVowFessPostCallMem mem out due).size = 580 := by
+  rw [barkVowFessPostCallMem_eq, barkVowFessDueMem_size hmem]
+
+theorem barkVowFessPostCallMem_read64 {mem out : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkVowFessPostCallMem mem out due).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  rw [barkVowFessPostCallMem_eq]
+  exact barkVowFessDueMem_read64 hmem hread64
+
+theorem barkVowFessPostCallMem_read256 {mem out : ByteArray} {due word : UInt256}
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
+    (barkVowFessPostCallMem mem out due).readWithPadding 256 32 =
+      UInt256.toByteArray word := by
+  rw [barkVowFessPostCallMem_eq]
+  exact barkVowFessDueMem_read256 hmem hread256
+
+theorem barkVowFessPostCallMem_mload288 {mem out : ByteArray} {due milkChop : UInt256}
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          ((barkVowFessDueMem mem due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop) :
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size
+        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVowFessPostCallMem mem out due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+      milkChop := by
+  simpa [barkVowFessPostCallMem_eq] using hmload288
+
+theorem barkVowFessDueMem_mload352 {mem : ByteArray} {due word : UInt256}
+    (hmem : mem.size = 580)
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        word) :
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
+        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVowFessDueMem mem due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+      word := by
+  have hread :
+      (barkVowFessDueMem mem due).readWithPadding 352 32 =
+        mem.readWithPadding 352 32 := by
+    rw [barkVowFessDueMem,
+      Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 352 due
+        (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
+    rw [barkVowFessSelectorMem,
+      Reasoning.Theory.writeWord_read_preserved mem 384 352 barkVowFessSelectorShifted
+        (by rw [hmem]; native_decide)
+        (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  simpa [barkVowFessDueMem_size hmem, hmem,
+    show (⟨352⟩ : UInt256).toNat = 352 by native_decide, hread] using hmload352
+
+theorem barkVowFessPostCallMem_mload352 {mem out : ByteArray} {due word : UInt256}
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          ((barkVowFessDueMem mem due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        word) :
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size
+        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkVowFessPostCallMem mem out due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+      word := by
+  simpa [barkVowFessPostCallMem_eq] using hmload352
+
+theorem barkVowFessSelectorShifted_extract :
+    (UInt256.toByteArray barkVowFessSelectorShifted).extract 0 4 = vowFessSelector := by
+  native_decide
+
+theorem barkVowFessDueMem_read384_4 {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkVowFessDueMem mem due).readWithPadding 384 4 =
+      vowFessSelector := by
+  unfold barkVowFessDueMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap due
+      (barkVowFessSelectorMem mem) 388 384 4
+      (by rw [barkVowFessSelectorMem_size hmem]; omega) (by native_decide)
+      (by omega) (by omega) (by rw [barkVowFessSelectorMem_size hmem]; native_decide)]
+  unfold barkVowFessSelectorMem Reasoning.Theory.writeWord
+  change (barkVowFessSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
+      384 4 = vowFessSelector
+  rw [toByteArray_write_read_window_of_gap barkVowFessSelectorShifted mem 384 0 4
+      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+  exact barkVowFessSelectorShifted_extract
+
+theorem barkVowFessDueMem_read388_32 {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkVowFessDueMem mem due).readWithPadding 388 32 =
+      due.toByteArray := by
+  unfold barkVowFessDueMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap due (barkVowFessSelectorMem mem) 388
+      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)]
+
+theorem barkVowFessDueMem_read384_36 {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkVowFessDueMem mem due).readWithPadding 384 36 =
+      vowFessSelector ++ due.toByteArray := by
+  have hsize : (barkVowFessDueMem mem due).size = 580 :=
+    barkVowFessDueMem_size hmem
+  rw [show 36 = 4 + 32 from rfl,
+    byteArray_readWithPadding_split (barkVowFessDueMem mem due)
+      384 4 32 (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide) (by rw [hsize]; native_decide)]
+  rw [barkVowFessDueMem_read384_4 hmem, barkVowFessDueMem_read388_32 hmem]
+
+theorem barkVowFessEncodeWords {v : DogImmutables} {due : UInt256} :
+    (config v).externalABI.encode? "fess" [.int (Int.ofNat due.toNat)] =
+      some (vowFessSelector ++ due.toByteArray) := by
+  have hdue :
+      ABI.encodeABIValue? (.elem (.int uint256Int)) (.int (↑due.toNat : Int)) =
+        some (EVM.Word.toBytesBE due) := by
+    have hword : EVM.word due.toNat = due := by
+      show UInt256.ofNat due.toNat = due
+      exact u256_ofNat_toNat due
+    have hltNat : due.toNat < EVM.twoPow 256 := by
+      change due.val.val < EVM.twoPow 256
+      exact due.val.isLt
+    simp [uint256Int, ABI.encodeABIValue?, ABI.encodeABIWord?, hword, hltNat]
+  simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
+    ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
+    ABI.encodeABIValuesFrom?, uint256]
+  rw [hdue]
+  simp [word_toBytesBE_toByteArray_eq_toByteArray]
+
+theorem barkVowFessEncode_eq {v : DogImmutables} {mem : ByteArray} {due : UInt256}
+    (hmem : mem.size = 580) :
+    (config v).externalABI.encode? "fess" [.int (Int.ofNat due.toNat)] =
+      some ((barkVowFessDueMem mem due).readWithPadding 384 36) := by
+  rw [barkVowFessDueMem_read384_36 hmem]
+  exact barkVowFessEncodeWords (v := v) (due := due)
+
+theorem barkKickSelectorMem_size {mem : ByteArray} (hmem : mem.size = 580) :
+    (barkKickSelectorMem mem).size = 580 := by
+  rw [barkKickSelectorMem,
+    Reasoning.Theory.writeWord_size mem 384 barkKickSelectorShifted
+      (by rw [hmem]; native_decide),
+    hmem]
+  native_decide
+
+theorem barkKickTabMem_size {mem : ByteArray} {tab : UInt256}
+    (hmem : mem.size = 580) :
+    (barkKickTabMem mem tab).size = 580 := by
+  rw [barkKickTabMem,
+    Reasoning.Theory.writeWord_size (barkKickSelectorMem mem) 388 tab
+      (by rw [barkKickSelectorMem_size hmem]; native_decide),
+    barkKickSelectorMem_size hmem]
+  native_decide
+
+theorem barkKickDinkMem_size {mem : ByteArray} {tab dink : UInt256}
+    (hmem : mem.size = 580) :
+    (barkKickDinkMem mem tab dink).size = 580 := by
+  rw [barkKickDinkMem,
+    Reasoning.Theory.writeWord_size (barkKickTabMem mem tab) 420 dink
+      (by rw [barkKickTabMem_size hmem]; native_decide),
+    barkKickTabMem_size hmem]
+  native_decide
+
+theorem barkKickUrnMem_size {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickUrnMem I mem tab dink).size = 580 := by
+  rw [barkKickUrnMem,
+    Reasoning.Theory.writeWord_size (barkKickDinkMem mem tab dink) 452 (barkUrnKey I)
+      (by rw [barkKickDinkMem_size hmem]; native_decide),
+    barkKickDinkMem_size hmem]
+  native_decide
+
+theorem barkKickCalldataMem_size {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).size = 580 := by
+  rw [barkKickCalldataMem,
+    Reasoning.Theory.writeWord_size (barkKickUrnMem I mem tab dink) 484 (barkKprKey I)
+      (by rw [barkKickUrnMem_size hmem]; native_decide),
+    barkKickUrnMem_size hmem]
+  native_decide
+
+theorem barkKickCalldataMem_read64 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  rw [barkKickCalldataMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickUrnMem I mem tab dink) 484 64
+      (barkKprKey I)
+      (by rw [barkKickUrnMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickUrnMem_size hmem]; decide⟩)]
+  rw [barkKickUrnMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickDinkMem mem tab dink) 452 64
+      (barkUrnKey I)
+      (by rw [barkKickDinkMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickDinkMem_size hmem]; decide⟩)]
+  rw [barkKickDinkMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickTabMem mem tab) 420 64 dink
+      (by rw [barkKickTabMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickTabMem_size hmem]; decide⟩)]
+  rw [barkKickTabMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickSelectorMem mem) 388 64 tab
+      (by rw [barkKickSelectorMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickSelectorMem_size hmem]; decide⟩)]
+  rw [barkKickSelectorMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 64 barkKickSelectorShifted
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread64
+
+theorem barkKickCalldataMem_mload64 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickCalldataMem I mem tab dink).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkKickCalldataMem I mem tab dink).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkKickCalldataMem_size hmem]; decide)
+    (by native_decide)
+    (by
+      have hread := barkKickCalldataMem_read64 (I := I) (mem := mem)
+        (tab := tab) (dink := dink) hmem hread64
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
+
+theorem barkKickCalldataMem_read256 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink clip : UInt256} (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 256 32 =
+      UInt256.toByteArray clip := by
+  rw [barkKickCalldataMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickUrnMem I mem tab dink) 484 256
+      (barkKprKey I)
+      (by rw [barkKickUrnMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickUrnMem_size hmem]; decide⟩)]
+  rw [barkKickUrnMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickDinkMem mem tab dink) 452 256
+      (barkUrnKey I)
+      (by rw [barkKickDinkMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickDinkMem_size hmem]; decide⟩)]
+  rw [barkKickDinkMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickTabMem mem tab) 420 256 dink
+      (by rw [barkKickTabMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickTabMem_size hmem]; decide⟩)]
+  rw [barkKickTabMem,
+    Reasoning.Theory.writeWord_read_preserved (barkKickSelectorMem mem) 388 256 tab
+      (by rw [barkKickSelectorMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkKickSelectorMem_size hmem]; decide⟩)]
+  rw [barkKickSelectorMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 256 barkKickSelectorShifted
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread256
+
+theorem barkKickSelectorShifted_extract :
+    (UInt256.toByteArray barkKickSelectorShifted).extract 0 4 =
+      clipperKickSelector := by
+  native_decide
+
+theorem barkKickCalldataMem_read384_4 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 384 4 =
+      clipperKickSelector := by
+  have hUrnSize := barkKickUrnMem_size (I := I) (mem := mem) (tab := tab)
+    (dink := dink) hmem
+  have hDinkSize := barkKickDinkMem_size (mem := mem) (tab := tab) (dink := dink) hmem
+  have hTabSize := barkKickTabMem_size (mem := mem) (tab := tab) hmem
+  have hSelectorSize := barkKickSelectorMem_size (mem := mem) hmem
+  unfold barkKickCalldataMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
+      (barkKickUrnMem I mem tab dink) 484 384 4
+      (by rw [hUrnSize]; omega) (by native_decide) (by omega) (by omega)
+      (by rw [hUrnSize]; native_decide)]
+  unfold barkKickUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
+      (barkKickDinkMem mem tab dink) 452 384 4
+      (by rw [hDinkSize]; omega) (by native_decide) (by omega) (by omega)
+      (by rw [hDinkSize]; native_decide)]
+  unfold barkKickDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap dink (barkKickTabMem mem tab) 420 384 4
+      (by rw [hTabSize]; omega) (by native_decide) (by omega) (by omega)
+      (by rw [hTabSize]; native_decide)]
+  unfold barkKickTabMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap tab (barkKickSelectorMem mem) 388 384 4
+      (by rw [hSelectorSize]; omega) (by native_decide) (by omega) (by omega)
+      (by rw [hSelectorSize]; native_decide)]
+  unfold barkKickSelectorMem Reasoning.Theory.writeWord
+  change (barkKickSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
+      384 4 = clipperKickSelector
+  rw [toByteArray_write_read_window_of_gap barkKickSelectorShifted mem 384 0 4
+      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+  exact barkKickSelectorShifted_extract
+
+theorem barkKickCalldataMem_read388_32 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 388 32 =
+      tab.toByteArray := by
+  have hUrnSize := barkKickUrnMem_size (I := I) (mem := mem) (tab := tab)
+    (dink := dink) hmem
+  have hDinkSize := barkKickDinkMem_size (mem := mem) (tab := tab) (dink := dink) hmem
+  have hTabSize := barkKickTabMem_size (mem := mem) (tab := tab) hmem
+  unfold barkKickCalldataMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
+      (barkKickUrnMem I mem tab dink) 484 388 32
+      (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hUrnSize]; native_decide)]
+  unfold barkKickUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
+      (barkKickDinkMem mem tab dink) 452 388 32
+      (by rw [hDinkSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hDinkSize]; native_decide)]
+  unfold barkKickDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap dink (barkKickTabMem mem tab) 420 388 32
+      (by rw [hTabSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hTabSize]; native_decide)]
+  unfold barkKickTabMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap tab (barkKickSelectorMem mem) 388
+      (by rw [barkKickSelectorMem_size hmem]; native_decide)]
+
+theorem barkKickCalldataMem_read420_32 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 420 32 =
+      dink.toByteArray := by
+  have hUrnSize := barkKickUrnMem_size (I := I) (mem := mem) (tab := tab)
+    (dink := dink) hmem
+  have hDinkSize := barkKickDinkMem_size (mem := mem) (tab := tab) (dink := dink) hmem
+  unfold barkKickCalldataMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
+      (barkKickUrnMem I mem tab dink) 484 420 32
+      (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hUrnSize]; native_decide)]
+  unfold barkKickUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
+      (barkKickDinkMem mem tab dink) 452 420 32
+      (by rw [hDinkSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hDinkSize]; native_decide)]
+  unfold barkKickDinkMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap dink (barkKickTabMem mem tab) 420
+      (by rw [barkKickTabMem_size hmem]; native_decide)]
+
+theorem barkKickCalldataMem_read452_32 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 452 32 =
+      (barkUrnKey I).toByteArray := by
+  have hUrnSize := barkKickUrnMem_size (I := I) (mem := mem) (tab := tab)
+    (dink := dink) hmem
+  unfold barkKickCalldataMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
+      (barkKickUrnMem I mem tab dink) 484 452 32
+      (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
+      (by rw [hUrnSize]; native_decide)]
+  unfold barkKickUrnMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkUrnKey I) (barkKickDinkMem mem tab dink)
+      452 (by rw [barkKickDinkMem_size hmem]; native_decide)]
+
+theorem barkKickCalldataMem_read484_32 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 484 32 =
+      (barkKprKey I).toByteArray := by
+  unfold barkKickCalldataMem Reasoning.Theory.writeWord
+  rw [toByteArray_write_read_back_of_gap (barkKprKey I)
+      (barkKickUrnMem I mem tab dink) 484
+      (by rw [barkKickUrnMem_size hmem]; native_decide)]
+
+theorem barkKickCalldataMem_read384_132 {I : ExecutionEnv} {mem : ByteArray}
+    {tab dink : UInt256} (hmem : mem.size = 580) :
+    (barkKickCalldataMem I mem tab dink).readWithPadding 384 132 =
+      clipperKickSelector ++ tab.toByteArray ++ dink.toByteArray ++
+        (barkUrnKey I).toByteArray ++ (barkKprKey I).toByteArray := by
+  have hsize : (barkKickCalldataMem I mem tab dink).size = 580 :=
+    barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab) (dink := dink) hmem
+  rw [show 132 = 4 + 128 from rfl,
+    byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
+      384 4 128 (by omega) (by omega) (by omega) (by omega) (by omega)
+      (by rw [hsize]; native_decide)]
+  rw [show 128 = 32 + 96 from rfl,
+    byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
+      388 32 96 (by omega) (by omega) (by omega) (by omega) (by omega)
+      (by rw [hsize]; native_decide)]
+  rw [show 96 = 32 + 64 from rfl,
+    byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
+      420 32 64 (by omega) (by omega) (by omega) (by omega) (by omega)
+      (by rw [hsize]; native_decide)]
+  rw [show 64 = 32 + 32 from rfl,
+    byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
+      452 32 32 (by omega) (by omega) (by omega) (by omega) (by omega)
+      (by rw [hsize]; native_decide)]
+  rw [barkKickCalldataMem_read384_4 hmem, barkKickCalldataMem_read388_32 hmem,
+    barkKickCalldataMem_read420_32 hmem, barkKickCalldataMem_read452_32 hmem,
+    barkKickCalldataMem_read484_32 hmem]
+  apply ByteArray.ext
+  simp [ByteArray.data_append, Array.append_assoc]
+
+theorem barkKickEncodeWords {v : DogImmutables} {I : ExecutionEnv}
+    {tab dink : UInt256} :
+    (config v).externalABI.encode? "kick"
+      [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+       .address (barkUrn I), .address (barkKpr I)] =
+    some (clipperKickSelector ++ tab.toByteArray ++ dink.toByteArray ++
+      (barkUrnKey I).toByteArray ++ (barkKprKey I).toByteArray) := by
+  have htab :
+      ABI.encodeABIValue? (.elem (.int uint256Int)) (.int (↑tab.toNat : Int)) =
+        some (EVM.Word.toBytesBE tab) := by
+    have hword : EVM.word tab.toNat = tab := by
+      show UInt256.ofNat tab.toNat = tab
+      exact u256_ofNat_toNat tab
+    have hltNat : tab.toNat < EVM.twoPow 256 := by
+      change tab.val.val < EVM.twoPow 256
+      exact tab.val.isLt
+    simp [uint256Int, ABI.encodeABIValue?, ABI.encodeABIWord?, hword, hltNat]
+  have hdink :
+      ABI.encodeABIValue? (.elem (.int uint256Int)) (.int (↑dink.toNat : Int)) =
+        some (EVM.Word.toBytesBE dink) := by
+    have hword : EVM.word dink.toNat = dink := by
+      show UInt256.ofNat dink.toNat = dink
+      exact u256_ofNat_toNat dink
+    have hltNat : dink.toNat < EVM.twoPow 256 := by
+      change dink.val.val < EVM.twoPow 256
+      exact dink.val.isLt
+    simp [uint256Int, ABI.encodeABIValue?, ABI.encodeABIWord?, hword, hltNat]
+  have hurnCanon : (barkUrnKey I).toNat < EVM.addressModulus := by
+    simpa [barkUrnKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkUrnWord I)
+  have hurn : ABI.encodeABIValue? (.elem .address) (.address (barkUrn I)) =
+      some (EVM.Word.toBytesBE (barkUrnKey I)) := by
+    rw [barkUrn_value_masked I]
+    simpa [← accountAddress_ofUInt256_eq_ofNat_toNat] using
+      barkAddressArgEncodingMasked (barkUrnKey I) hurnCanon
+  have hkprCanon : (barkKprKey I).toNat < EVM.addressModulus := by
+    simpa [barkKprKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkKprWord I)
+  have hkpr : ABI.encodeABIValue? (.elem .address) (.address (barkKpr I)) =
+      some (EVM.Word.toBytesBE (barkKprKey I)) := by
+    rw [barkKpr_value_masked I]
+    simpa [← accountAddress_ofUInt256_eq_ofNat_toNat] using
+      barkAddressArgEncodingMasked (barkKprKey I) hkprCanon
+  simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
+    ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
+    ABI.encodeABIValuesFrom?, htab, hdink, hurn, hkpr, addr, uint256]
+  apply ByteArray.ext
+  simp [ByteArray.data_append, Array.append_assoc, word_toBytesBE_toByteArray_eq_toByteArray]
+
+theorem barkKickEncode_eq {v : DogImmutables} {I : ExecutionEnv}
+    {mem : ByteArray} {tab dink : UInt256} (hmem : mem.size = 580) :
+    (config v).externalABI.encode? "kick"
+      [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+       .address (barkUrn I), .address (barkKpr I)] =
+    some ((barkKickCalldataMem I mem tab dink).readWithPadding 384 132) := by
+  rw [barkKickCalldataMem_read384_132 hmem]
+  exact barkKickEncodeWords (v := v) (I := I) (tab := tab) (dink := dink)
+
+theorem barkKickPostCallWrite_size {I : ExecutionEnv} {tab dink : UInt256}
+    {mem : ByteArray} (out : ByteArray) (L : ℕ)
+    (hmem : mem.size = 580) (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size = 580 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+      (dink := dink) hmem
+  · rw [write_eq_gen out (barkKickCalldataMem I mem tab dink) 384 L
+      (by omega) hLo
+      (by rw [barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract,
+      barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem]
+    omega
+
+theorem barkKickPostCallWrite_read64 {I : ExecutionEnv} {tab dink : UInt256}
+    {mem : ByteArray} (out : ByteArray) (L : ℕ)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
+      64 32 = UInt256.toByteArray ⟨384⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact barkKickCalldataMem_read64 (I := I) (mem := mem) (tab := tab)
+      (dink := dink) hmem hread64
+  · rw [write_read_below_gen out (barkKickCalldataMem I mem tab dink) 384 L 64
+      (by omega) hLo
+      (by rw [barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem]; omega) (by omega),
+      barkKickCalldataMem_read64 (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem hread64]
+
+theorem barkKickPostCallWrite_read256 {I : ExecutionEnv} {tab dink clip : UInt256}
+    {mem : ByteArray} (out : ByteArray) (L : ℕ)
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
+      256 32 = UInt256.toByteArray clip := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact barkKickCalldataMem_read256 (I := I) (mem := mem) (tab := tab)
+      (dink := dink) hmem hread256
+  · rw [write_read_below_gen out (barkKickCalldataMem I mem tab dink) 384 L 256
+      (by omega) hLo
+      (by rw [barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem]; omega) (by omega),
+      barkKickCalldataMem_read256 (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem hread256]
+
+theorem barkKickPostCallWrite_read384_32 {I : ExecutionEnv} {tab dink : UInt256}
+    {mem : ByteArray} (out : ByteArray)
+    (hmem : mem.size = 580) (ho32 : 32 ≤ out.size) :
+    (out.write 0 (barkKickCalldataMem I mem tab dink) 384 32).readWithPadding
+      384 32 = out.extract 0 32 :=
+  write32_read_back out (barkKickCalldataMem I mem tab dink) 384 ho32
+    (by rw [barkKickCalldataMem_size (I := I) (mem := mem) (tab := tab)
+      (dink := dink) hmem]; omega)
+
+theorem barkKickPostCallWrite_mload64 {I : ExecutionEnv} {tab dink : UInt256}
+    {mem : ByteArray} {out : ByteArray} {L : ℕ}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥
+          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
+      (out := out) (L := L) hmem hL hLo]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+        barkKickPostCallWrite_read64 (I := I) (tab := tab) (dink := dink)
+          (out := out) (L := L) hmem hread64 hL hLo)
+
+theorem barkKickPostCallWrite_mload256 {I : ExecutionEnv} {tab dink clip : UInt256}
+    {mem : ByteArray} {out : ByteArray} {L : ℕ}
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (if (⟨256⟩ : UInt256).toNat ≥
+          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size
+        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
+          (⟨256⟩ : UInt256).toNat 32))) =
+      clip := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
+    (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
+      (out := out) (L := L) hmem hL hLo]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+        barkKickPostCallWrite_read256 (I := I) (tab := tab) (dink := dink)
+          (out := out) (L := L) hmem hread256 hL hLo)
+
+theorem barkKickPostCallMem_size_long {I : ExecutionEnv} {tab dink : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580) (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (barkKickPostCallMem I mem out tab dink).size = 580 := by
+  have hmin :
+      (min barkKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
+    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size)
+      (by decide) hlong hout
+  unfold barkKickPostCallMem
+  rw [hmin]
+  exact barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
+    (out := out) (L := 32) hmem (by decide) hlong
+
+theorem barkKickPostCallMem_read64_long {I : ExecutionEnv} {tab dink : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (barkKickPostCallMem I mem out tab dink).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  have hmin :
+      (min barkKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
+    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size)
+      (by decide) hlong hout
+  unfold barkKickPostCallMem
+  rw [hmin]
+  exact barkKickPostCallWrite_read64 (I := I) (tab := tab) (dink := dink)
+    (out := out) (L := 32) hmem hread64 (by decide) hlong
+
+theorem barkKickPostCallMem_mload64_long {I : ExecutionEnv} {tab dink : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkKickPostCallMem I mem out tab dink).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+        barkKickPostCallMem_read64_long (I := I) (tab := tab) (dink := dink)
+          hmem hread64 hlong hout)
+
+theorem barkKickPostCallMem_read256_long {I : ExecutionEnv} {tab dink clip : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
+    (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (barkKickPostCallMem I mem out tab dink).readWithPadding 256 32 =
+      UInt256.toByteArray clip := by
+  have hmin :
+      (min barkKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
+    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size)
+      (by decide) hlong hout
+  unfold barkKickPostCallMem
+  rw [hmin]
+  exact barkKickPostCallWrite_read256 (I := I) (tab := tab) (dink := dink)
+    (out := out) (L := 32) hmem hread256 (by decide) hlong
+
+theorem barkKickPostCallMem_mload256_long {I : ExecutionEnv} {tab dink clip : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580)
+    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
+    (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (if (⟨256⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
+        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkKickPostCallMem I mem out tab dink).readWithPadding
+          (⟨256⟩ : UInt256).toNat 32))) =
+      clip := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
+    (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+        barkKickPostCallMem_read256_long (I := I) (tab := tab) (dink := dink)
+          hmem hread256 hlong hout)
+
+theorem barkKickPostCallMem_read384_long {I : ExecutionEnv} {tab dink : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580) (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (barkKickPostCallMem I mem out tab dink).readWithPadding 384 32 =
+      out.extract 0 32 := by
+  have hmin :
+      (min barkKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
+    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size)
+      (by decide) hlong hout
+  unfold barkKickPostCallMem
+  rw [hmin]
+  exact barkKickPostCallWrite_read384_32 (I := I) (tab := tab) (dink := dink)
+    (out := out) hmem hlong
+
+theorem barkKickPostCallMem_mload384_long {I : ExecutionEnv} {tab dink : UInt256}
+    {mem out : ByteArray}
+    (hmem : mem.size = 580) (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
+    (if (⟨384⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
+        ∨ (⟨384⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkKickPostCallMem I mem out tab dink).readWithPadding
+          (⟨384⟩ : UInt256).toNat 32))) =
+      UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) := by
+  rw [if_neg]
+  · change UInt256.ofNat
+      (fromByteArrayBigEndian
+        ((barkKickPostCallMem I mem out tab dink).readWithPadding 384 32)) =
+        UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
+    rw [barkKickPostCallMem_read384_long hmem hlong hout]
+  · exact not_or.mpr
+      ⟨by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide,
+        by native_decide⟩
+
+noncomputable abbrev barkBarkLogDinkMem (mem : ByteArray) (dink : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord mem 384 dink
+
+noncomputable abbrev barkBarkLogDartMem (mem : ByteArray) (dink dart : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord (barkBarkLogDinkMem mem dink) 416 dart
+
+noncomputable abbrev barkBarkLogDueMem (mem : ByteArray) (dink dart due : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord (barkBarkLogDartMem mem dink dart) 448 due
+
+noncomputable abbrev barkBarkLogMem (mem : ByteArray) (dink dart due clip : UInt256) :
+    ByteArray :=
+  Reasoning.Theory.writeWord (barkBarkLogDueMem mem dink dart due) 480 clip
+
+noncomputable abbrev barkReturnIdMem (mem : ByteArray) (id : UInt256) : ByteArray :=
+  (UInt256.toByteArray id).write 0 mem 384 32
+
+theorem barkBarkLogDinkMem_size {mem : ByteArray} {dink : UInt256}
+    (hmem : mem.size = 580) :
+    (barkBarkLogDinkMem mem dink).size = 580 := by
+  rw [barkBarkLogDinkMem,
+    Reasoning.Theory.writeWord_size mem 384 dink (by rw [hmem]; native_decide),
+    hmem]
+  native_decide
+
+theorem barkBarkLogDartMem_size {mem : ByteArray} {dink dart : UInt256}
+    (hmem : mem.size = 580) :
+    (barkBarkLogDartMem mem dink dart).size = 580 := by
+  rw [barkBarkLogDartMem,
+    Reasoning.Theory.writeWord_size (barkBarkLogDinkMem mem dink) 416 dart
+      (by rw [barkBarkLogDinkMem_size hmem]; native_decide),
+    barkBarkLogDinkMem_size hmem]
+  native_decide
+
+theorem barkBarkLogDueMem_size {mem : ByteArray} {dink dart due : UInt256}
+    (hmem : mem.size = 580) :
+    (barkBarkLogDueMem mem dink dart due).size = 580 := by
+  rw [barkBarkLogDueMem,
+    Reasoning.Theory.writeWord_size (barkBarkLogDartMem mem dink dart) 448 due
+      (by rw [barkBarkLogDartMem_size hmem]; native_decide),
+    barkBarkLogDartMem_size hmem]
+  native_decide
+
+theorem barkBarkLogMem_size {mem : ByteArray} {dink dart due clip : UInt256}
+    (hmem : mem.size = 580) :
+    (barkBarkLogMem mem dink dart due clip).size = 580 := by
+  rw [barkBarkLogMem,
+    Reasoning.Theory.writeWord_size (barkBarkLogDueMem mem dink dart due) 480 clip
+      (by rw [barkBarkLogDueMem_size hmem]; native_decide),
+    barkBarkLogDueMem_size hmem]
+  native_decide
+
+theorem barkBarkLogMem_read64 {mem : ByteArray} {dink dart due clip : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkBarkLogMem mem dink dart due clip).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  rw [barkBarkLogMem,
+    Reasoning.Theory.writeWord_read_preserved (barkBarkLogDueMem mem dink dart due)
+      480 64 clip
+      (by rw [barkBarkLogDueMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkBarkLogDueMem_size hmem]; decide⟩)]
+  rw [barkBarkLogDueMem,
+    Reasoning.Theory.writeWord_read_preserved (barkBarkLogDartMem mem dink dart)
+      448 64 due
+      (by rw [barkBarkLogDartMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkBarkLogDartMem_size hmem]; decide⟩)]
+  rw [barkBarkLogDartMem,
+    Reasoning.Theory.writeWord_read_preserved (barkBarkLogDinkMem mem dink)
+      416 64 dart
+      (by rw [barkBarkLogDinkMem_size hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [barkBarkLogDinkMem_size hmem]; decide⟩)]
+  rw [barkBarkLogDinkMem,
+    Reasoning.Theory.writeWord_read_preserved mem 384 64 dink
+      (by rw [hmem]; native_decide)
+      (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
+  exact hread64
+
+theorem barkBarkLogMem_mload64 {mem : ByteArray} {dink dart due clip : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkBarkLogMem mem dink dart due clip).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkBarkLogMem mem dink dart due clip).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkBarkLogMem_size hmem]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+        barkBarkLogMem_read64 hmem hread64)
+
+theorem barkReturnIdMem_size {mem : ByteArray} {id : UInt256}
+    (hmem : mem.size = 580) :
+    (barkReturnIdMem mem id).size = 580 := by
+  unfold barkReturnIdMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem barkReturnIdMem_read64 {mem : ByteArray} {id : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkReturnIdMem mem id).readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩ := by
+  unfold barkReturnIdMem
+  rw [write_read_below_gen (UInt256.toByteArray id) mem 384 32 64
+    (by decide) (by rw [toByteArray_size]) (by rw [hmem]; omega) (by omega)]
+  exact hread64
+
+theorem barkReturnIdMem_mload64 {mem : ByteArray} {id : UInt256}
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkReturnIdMem mem id).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkReturnIdMem mem id).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (by rw [barkReturnIdMem_size hmem]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+        barkReturnIdMem_read64 hmem hread64)
+
+theorem barkReturnIdMem_read384 {mem : ByteArray} {id : UInt256}
+    (hmem : mem.size = 580) :
+    (barkReturnIdMem mem id).readWithPadding 384 32 = UInt256.toByteArray id := by
+  unfold barkReturnIdMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+  rw [toByteArray_extract_all]
+
 noncomputable abbrev barkPostIlksErrorStringMem0 (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 384 solcErrorStringSelector
 
@@ -2581,6 +4937,26 @@ theorem barkPostIlksErrorStringMem2_size (len : UInt256) {mem : ByteArray}
     (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)]
   rw [barkPostIlksErrorStringMem1_size hmem]
   norm_num
+
+theorem barkPostIlksErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
+    (barkPostIlksErrorStringMem2 len mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  unfold barkPostIlksErrorStringMem2
+  rw [Reasoning.Theory.writeWord_read_preserved
+    (barkPostIlksErrorStringMem1 mem) 420 64 len
+    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)
+    (by left; rw [barkPostIlksErrorStringMem1_size hmem]; omega)]
+  unfold barkPostIlksErrorStringMem1
+  rw [Reasoning.Theory.writeWord_read_preserved
+    (barkPostIlksErrorStringMem0 mem) 388 64 (⟨32⟩ : UInt256)
+    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)
+    (by left; rw [barkPostIlksErrorStringMem0_size hmem]; omega)]
+  unfold barkPostIlksErrorStringMem0
+  rw [Reasoning.Theory.writeWord_read_preserved mem 384 64 solcErrorStringSelector
+    (by rw [hmem]; native_decide) (by left; rw [hmem]; omega)]
+  exact hread64
 
 theorem barkPostIlksErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 544) :
@@ -2633,6 +5009,69 @@ theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArra
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkPostIlksErrorStringMem3_read64 len word hmem hread64)
+
+noncomputable abbrev barkPostIlksCodecopyErrorMem
+    (code : ByteArray) (mem : ByteArray) : ByteArray :=
+  code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42
+
+theorem barkPostIlksCodecopyErrorMem_size {code mem : ByteArray}
+    (hmem : mem.size = 544) (hsrc : 4691 + 42 ≤ code.size) :
+    (barkPostIlksCodecopyErrorMem code mem).size = 544 := by
+  unfold barkPostIlksCodecopyErrorMem
+  rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+    4691 452 42 (by decide) hsrc
+    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract]
+  rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+  omega
+
+theorem barkPostIlksCodecopyErrorMem_read64 {code mem : ByteArray}
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hsrc : 4691 + 42 ≤ code.size) :
+    (barkPostIlksCodecopyErrorMem code mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨384⟩ := by
+  unfold barkPostIlksCodecopyErrorMem
+  rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+    4691 452 42 (by decide) hsrc
+    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+  rw [readWithPadding_eq_extract _ 64 (by
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract]
+    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by
+    rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
+    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by
+    rw [ByteArray.size_extract]
+    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    omega)]
+  rw [extract_prefix _ 452 64 96 (by omega)]
+  rw [← readWithPadding_eq_extract _ 64
+    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; omega)]
+  exact barkPostIlksErrorStringMem2_read64 (⟨42⟩ : UInt256) hmem hread64
+
+theorem barkPostIlksCodecopyErrorMem_mload64 {code mem : ByteArray}
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hsrc : 4691 + 42 ≤ code.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksCodecopyErrorMem code mem).size
+        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((barkPostIlksCodecopyErrorMem code mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨384⟩ := by
+  exact mloadWordValue_of_readWithPadding
+    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+    (by rw [barkPostIlksCodecopyErrorMem_size hmem hsrc]; decide)
+    (by native_decide)
+    (by
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+        barkPostIlksCodecopyErrorMem_read64 hmem hread64 hsrc)
 
 theorem barkVatIlksSelectorWord_extract :
     (UInt256.toByteArray barkVatIlksSelectorWord).extract 0 4 = vatIlksSelector := by
@@ -2837,6 +5276,32 @@ theorem evalExpr_barkVatCodeGuard_false {v : DogImmutables}
   simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat]
   simpa using hcode
 
+theorem evalExpr_barkAddressCodeGuard_true {v : DogImmutables}
+    {evm : EVM.State} {locals : Store} {receiver : Expr} {target : AccountAddress}
+    (hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm receiver =
+        .ok (.address target))
+    (hcode :
+      0 < (UInt256.ofNat
+        ((evm.lookupAccount target).option 0 (fun acc => acc.code.size))).toNat) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat]
+  simpa using hcode
+
+theorem evalExpr_barkAddressCodeGuard_false {v : DogImmutables}
+    {evm : EVM.State} {locals : Store} {receiver : Expr} {target : AccountAddress}
+    (hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm receiver =
+        .ok (.address target))
+    (hcode :
+      (UInt256.ofNat
+        ((evm.lookupAccount target).option 0 (fun acc => acc.code.size))).toNat = 0) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat]
+  simpa using hcode
+
 theorem evalExprs_barkVatUrnsArgs {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (hilk : locals.get? "ilk" = some (.fixedBytes bytes32Width (barkIlkBytes I)))
@@ -2928,6 +5393,18 @@ theorem evalExpr_bark_varUInt256 {v : DogImmutables} {evm : EVM.State} {locals :
   rw [h]
   rfl
 
+theorem evalExpr_bark_neg_asInt256_var {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {name : Ident} {value : UInt256}
+    (h : locals.get? name = some (.int (Int.ofNat value.toNat))) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.unary .neg (asInt256 (.var name))) =
+        .ok (.int (-(Int.ofNat value.toNat))) := by
+  have h' : locals[name]? = some (.int (Int.ofNat value.toNat)) := by
+    rw [← Std.HashMap.get?_eq_getElem?]
+    exact h
+  simp [evalExpr?, asInt256, int256St, castValue?, evalUnaryOp?, EvalResult.ofOption,
+    EvalResult.bind, bind, h']
+
 theorem evalExpr_bark_mul256_ok {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : UInt256}
     (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
@@ -2993,6 +5470,44 @@ theorem evalExpr_bark_sub256_ok {v : DogImmutables} {evm : EVM.State}
     · rw [hsubInt] at hbad
       exact hlt hbad
 
+theorem evalExpr_bark_add256_ok {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {x y : Expr} {a b sum : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hsum : sum = a + b) (hfit : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+      .ok (.int (Int.ofNat sum.toNat)) := by
+  have hsumNat : sum.toNat = a.toNat + b.toNat := by
+    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
+  have hlt : ¬ ((a.toNat + b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
+    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
+    uint256Int]
+  rw [if_neg]
+  · have hsumInt : (↑a.toNat + ↑b.toNat : Int) = ↑sum.toNat := by
+      exact_mod_cast hsumNat.symm
+    rw [hsumInt]
+    rfl
+  · intro hbad
+    rcases hbad with hbad | hbad
+    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
+    · exact hlt hbad
+
+theorem evalExpr_bark_add256_revert {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hover : UInt256.size ≤ a.toNat + b.toNat) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+      .revert := by
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
+  intro _
+  exact_mod_cast hover
+
 theorem evalExpr_bark_div_uint256_ok {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b q : UInt256}
     (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
@@ -3009,6 +5524,19 @@ theorem evalExpr_bark_div_uint256_ok {v : DogImmutables} {evm : EVM.State}
   have hqNat : q.toNat = a.toNat / b.toNat := by
     rw [hq, udiv_toNat]
   simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+
+theorem evalExpr_bark_div_uint256_revert {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hb : b = ⟨0⟩) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (.binary .div x y) =
+      .revert := by
+  have hbNat : b.toNat = 0 := by
+    simp [hb]
+  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat]
 
 theorem evalExpr_bark_eq_int_true {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {lhs rhs : Expr} {a b : Int}
@@ -3075,6 +5603,50 @@ theorem evalExpr_bark_gt_int_false {v : DogImmutables} {evm : EVM.State}
     (h : ¬ a > b) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.binary .gt lhs rhs) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+
+theorem evalExpr_bark_le_int_true {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? (config v) { contract := contract v, locals := locals } evm lhs =
+      .ok (.int a))
+    (hrhs : evalExpr? (config v) { contract := contract v, locals := locals } evm rhs =
+      .ok (.int b))
+    (h : a ≤ b) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .le lhs rhs) = .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+
+theorem evalExpr_bark_le_int_false {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? (config v) { contract := contract v, locals := locals } evm lhs =
+      .ok (.int a))
+    (hrhs : evalExpr? (config v) { contract := contract v, locals := locals } evm rhs =
+      .ok (.int b))
+    (h : ¬ a ≤ b) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .le lhs rhs) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+
+theorem evalExpr_bark_ge_int_true {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? (config v) { contract := contract v, locals := locals } evm lhs =
+      .ok (.int a))
+    (hrhs : evalExpr? (config v) { contract := contract v, locals := locals } evm rhs =
+      .ok (.int b))
+    (h : a ≥ b) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .ge lhs rhs) = .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+
+theorem evalExpr_bark_ge_int_false {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {lhs rhs : Expr} {a b : Int}
+    (hlhs : evalExpr? (config v) { contract := contract v, locals := locals } evm lhs =
+      .ok (.int a))
+    (hrhs : evalExpr? (config v) { contract := contract v, locals := locals } evm rhs =
+      .ok (.int b))
+    (h : ¬ a ≥ b) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .ge lhs rhs) = .ok (.bool false) := by
   simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
 
 theorem evalExpr_bark_or_true_left {v : DogImmutables} {evm : EVM.State}
@@ -3368,6 +5940,485 @@ theorem evalExpr_barkStorageDirt {v : DogImmutables} {evm : EVM.State}
     (by rfl)
     (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm ⟨5⟩)
 
+theorem evalExpr_barkStorageVow {v : DogImmutables} {evm : EVM.State}
+    {locals : Store}
+    (hvow : locals.get? "vow" = none) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm vowAddr =
+      .ok (.address (AccountAddress.ofNat (barkVowWord evm.accountMap evm.executionEnv).toNat)) := by
+  exact evalExpr_storage_scalar_value
+    (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
+    (slot := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
+    (t := .address) (loc := addrLoc ⟨2⟩)
+    (value := .address (AccountAddress.ofNat
+      (barkVowWord evm.accountMap evm.executionEnv).toNat))
+    hvow
+    (by simp [evalStorageRef, evalStorageRefSteps, vowRef, EvalResult.bind, pure, bind])
+    (by simp [storageTypeAt?, contract, storageDecls, addrSt])
+    (by rfl)
+    (by simpa [barkVowWord, dogAddressReturnWord, u256_land_comm] using
+      dogStorageLocLoad_address_offset0 evm ⟨2⟩)
+
+theorem evalExprs_barkVatGrabArgs {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {I : ExecutionEnv} {milkClip dink dart : UInt256}
+    (hilk : locals.get? "ilk" = some (.fixedBytes bytes32Width (barkIlkBytes I)))
+    (hurn : locals.get? "urn" = some (.address (barkUrn I)))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (hvow : locals.get? "vow" = none)
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat))) :
+    evalExprs? (config v) { contract := contract v, locals := locals } evm
+      [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+        .unary .neg (asInt256 (.var "dink")),
+        .unary .neg (asInt256 (.var "dart")) ] =
+      .ok
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat milkClip.toNat),
+          .address (AccountAddress.ofNat
+            (barkVowWord evm.accountMap evm.executionEnv).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))] := by
+  have hilkExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+        .ok (.fixedBytes bytes32Width (barkIlkBytes I)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "ilk") =
+      .ok (.fixedBytes bytes32Width (barkIlkBytes I))
+    rw [hilk]
+    rfl
+  have hurnExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "urn") =
+        .ok (.address (barkUrn I)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "urn") =
+      .ok (.address (barkUrn I))
+    rw [hurn]
+    rfl
+  have hmilkClipExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkClip") =
+          .ok (.address (AccountAddress.ofNat milkClip.toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "milkClip") =
+      .ok (.address (AccountAddress.ofNat milkClip.toNat))
+    rw [hmilkClip]
+    rfl
+  have hvowExpr :=
+    evalExpr_barkStorageVow (v := v) (evm := evm) (locals := locals) hvow
+  have hdinkExpr :=
+    evalExpr_bark_neg_asInt256_var (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hdartExpr :=
+    evalExpr_bark_neg_asInt256_var (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  simp [evalExprs?, hilkExpr, hurnExpr, hmilkClipExpr, hvowExpr, hdinkExpr, hdartExpr,
+    EvalResult.bind, bind, pure]
+
+theorem dogBarkVatGrabNoCodeBlock {v : DogImmutables} {evm : EVM.State}
+    {locals : Store}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool false)) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+      .reverted := by
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallNoCode
+      (cfg := config v) (C := contract v) (evm := evm) (locals := locals)
+      (receiver := vatExpr v) (name := "grab") (sendVal := 0)
+      (args :=
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ])
+      (retVar := "_grabRet") (perm := true) hguard)
+
+theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {I : ExecutionEnv} {outGrab : ByteArray}
+    {milkClip dink dart : UInt256}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool true))
+    (hilk : locals.get? "ilk" = some (.fixedBytes bytes32Width (barkIlkBytes I)))
+    (hurn : locals.get? "urn" = some (.address (barkUrn I)))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (hvow : locals.get? "vow" = none)
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat milkClip.toNat),
+          .address (AccountAddress.ofNat
+            (barkVowWord evm.accountMap evm.executionEnv).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
+        (false, evm', outGrab) true) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+      .reverted := by
+  have hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
+        .ok (.address (AccountAddress.ofNat v.vat.toNat)) :=
+    evalExpr_barkVat_state (v := v) (evm := evm) (locals := locals)
+  have hargs :=
+    evalExprs_barkVatGrabArgs (v := v) (evm := evm) (locals := locals) (I := I)
+      (milkClip := milkClip) (dink := dink) (dart := dart)
+      hilk hurn hmilkClip hvow hdink hdart
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallFailure
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := vatExpr v) (retVar := "_grabRet")
+      (name := "grab") (target := AccountAddress.ofNat v.vat.toNat) (sendVal := 0)
+      (args :=
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ])
+      (argVals :=
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat milkClip.toNat),
+          .address (AccountAddress.ofNat
+            (barkVowWord evm.accountMap evm.executionEnv).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))])
+      (out := outGrab) (perm := true) hguard hreceiver hargs hcall)
+
+theorem dogBarkVatGrabCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {I : ExecutionEnv} {outGrab : ByteArray}
+    {milkClip dink dart : UInt256}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool true))
+    (hilk : locals.get? "ilk" = some (.fixedBytes bytes32Width (barkIlkBytes I)))
+    (hurn : locals.get? "urn" = some (.address (barkUrn I)))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (hvow : locals.get? "vow" = none)
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat milkClip.toNat),
+          .address (AccountAddress.ofNat
+            (barkVowWord evm.accountMap evm.executionEnv).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
+        (true, evm', outGrab) true) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+      (.ok { contract := contract v, locals := barkLocalsGrabRet locals } evm') := by
+  have hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
+        .ok (.address (AccountAddress.ofNat v.vat.toNat)) :=
+    evalExpr_barkVat_state (v := v) (evm := evm) (locals := locals)
+  have hargs :=
+    evalExprs_barkVatGrabArgs (v := v) (evm := evm) (locals := locals) (I := I)
+      (milkClip := milkClip) (dink := dink) (dart := dart)
+      hilk hurn hmilkClip hvow hdink hdart
+  have hdec : (config v).externalABI.decode? "grab" outGrab = some ([] : List Value) := by
+    simp [config, externalABI, decodeVoid?]
+  simpa [checkedExternalCallStmts, barkLocalsGrabRet] using
+    (checkedExternalCallSuccess
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := vatExpr v) (retVar := "_grabRet")
+      (name := "grab") (target := AccountAddress.ofNat v.vat.toNat) (sendVal := 0)
+      (args :=
+        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+          .unary .neg (asInt256 (.var "dink")),
+          .unary .neg (asInt256 (.var "dart")) ])
+      (argVals :=
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+          .address (AccountAddress.ofNat milkClip.toNat),
+          .address (AccountAddress.ofNat
+            (barkVowWord evm.accountMap evm.executionEnv).toNat),
+          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))])
+      (out := outGrab) (perm := true) (value := []) hguard hreceiver hargs hcall hdec)
+
+theorem dogBarkDueCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dart rate : UInt256}
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hrate : locals.get? "rate" = some (.int (Int.ofNat rate.toNat)))
+    (hfit : dart.toNat * rate.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "due" (.var "dart") (.var "rate"))
+      (.ok { contract := contract v, locals := barkLocalsDue locals (barkDueWord dart rate) }
+        evm) := by
+  have hdartExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hrateExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "rate") =
+        .ok (.int (Int.ofNat rate.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "rate") (value := rate) hrate
+  let due := barkDueWord dart rate
+  let locals1 := barkLocalsDue locals due
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (mul256 (.var "dart") (.var "rate")) = .ok (.int (Int.ofNat due.toNat)) := by
+    exact evalExpr_bark_mul256_ok hdartExpr hrateExpr (by simp [due, barkDueWord]) hfit
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl "due" (some uint256) (mul256 (.var "dart") (.var "rate")))
+        (.ok { contract := contract v, locals := locals1 } evm) := by
+    simpa [locals1, due, barkLocalsDue] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := "due") (ty := some uint256)
+        (expr := mul256 (.var "dart") (.var "rate"))
+        (value := .int (Int.ofNat due.toNat)) hmul)
+  have hdueAfter :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "due") =
+        .ok (.int (Int.ofNat due.toNat)) := by
+    simpa [locals1, due] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := "due") (value := due) (barkLocalsDue_get_due locals due)
+  have hdartAfter :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+      (name := "dart") (value := dart) (barkLocalsDue_get_preserved (by decide) hdart)
+  have hrateAfter :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "rate") =
+        .ok (.int (Int.ofNat rate.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+      (name := "rate") (value := rate) (barkLocalsDue_get_preserved (by decide) hrate)
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.binary .or
+          (.binary .eq (.var "rate") (.intLit 0))
+          (.binary .eq (.binary .div (.var "due") (.var "rate")) (.var "dart"))) =
+        .ok (.bool true) := by
+    by_cases hrateZero : rate = ⟨0⟩
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.var "rate") (.intLit 0)) = .ok (.bool true) := by
+        apply evalExpr_bark_eq_int_true hrateAfter hzero
+        simp [hrateZero]
+      exact evalExpr_bark_or_true_left hleft
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.var "rate") (.intLit 0)) = .ok (.bool false) := by
+        apply evalExpr_bark_eq_int_false hrateAfter hzero
+        intro hnat
+        exact hrateZero (uint256_toNat_eq_zero (Int.ofNat.inj hnat))
+      have hdivWord : UInt256.div due rate = dart := by
+        apply u256_inj
+        rw [udiv_toNat]
+        have hprod : due.toNat = dart.toNat * rate.toNat := by
+          dsimp [due, barkDueWord]
+          exact umul_toNat dart rate hfit
+        rw [hprod]
+        rw [Nat.mul_comm dart.toNat rate.toNat]
+        exact Nat.mul_div_right dart.toNat
+          (Nat.pos_of_ne_zero (fun hzeroNat => hrateZero (uint256_toNat_eq_zero hzeroNat)))
+      have hdiv :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .div (.var "due") (.var "rate")) =
+              .ok (.int (Int.ofNat dart.toNat)) := by
+        have hraw := evalExpr_bark_div_uint256_ok
+          (v := v) (evm := evm) (locals := locals1)
+          (x := .var "due") (y := .var "rate")
+          (a := due) (b := rate) (q := UInt256.div due rate)
+          hdueAfter hrateAfter hrateZero rfl
+        simpa [hdivWord] using hraw
+      have hright :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.binary .div (.var "due") (.var "rate")) (.var "dart")) =
+              .ok (.bool true) :=
+        evalExpr_bark_eq_int_true hdiv hdartAfter rfl
+      exact evalExpr_bark_or_false_right hleft hright
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consNormal hlet
+    (ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkDueCheckedMulOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dart rate : UInt256}
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hrate : locals.get? "rate" = some (.int (Int.ofNat rate.toNat)))
+    (hover : UInt256.size ≤ dart.toNat * rate.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "due" (.var "dart") (.var "rate")) .reverted := by
+  have hdartExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hrateExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "rate") =
+        .ok (.int (Int.ofNat rate.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "rate") (value := rate) hrate
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (mul256 (.var "dart") (.var "rate")) = .revert :=
+    evalExpr_bark_mul256_revert hdartExpr hrateExpr hover
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmul)
+
+theorem evalExprs_barkVowFessArgs {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {due : UInt256}
+    (hdue : locals.get? "due" = some (.int (Int.ofNat due.toNat))) :
+    evalExprs? (config v) { contract := contract v, locals := locals } evm [.var "due"] =
+      .ok [.int (Int.ofNat due.toNat)] := by
+  have hdueExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "due") =
+        .ok (.int (Int.ofNat due.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "due") (value := due) hdue
+  simp [evalExprs?, hdueExpr, EvalResult.bind, bind, pure]
+
+theorem dogBarkVowFessNoCodeBlock {v : DogImmutables} {evm : EVM.State}
+    {locals : Store}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize vowAddr) (.intLit 0)) = .ok (.bool false)) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet")
+      .reverted := by
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallNoCode
+      (cfg := config v) (C := contract v) (evm := evm) (locals := locals)
+      (receiver := vowAddr) (name := "fess") (sendVal := 0)
+      (args := [.var "due"]) (retVar := "_fessRet") (perm := true) hguard)
+
+theorem dogBarkVowFessCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {outFess : ByteArray} {due : UInt256}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize vowAddr) (.intLit 0)) = .ok (.bool true))
+    (hvow : locals.get? "vow" = none)
+    (hdue : locals.get? "due" = some (.int (Int.ofNat due.toNat)))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat
+          (barkVowWord evm.accountMap evm.executionEnv).toNat)) "fess" 0
+        [.int (Int.ofNat due.toNat)] (false, evm', outFess) true) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet")
+      .reverted := by
+  have hreceiver :=
+    evalExpr_barkStorageVow (v := v) (evm := evm) (locals := locals) hvow
+  have hargs :=
+    evalExprs_barkVowFessArgs (v := v) (evm := evm) (locals := locals) hdue
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallFailure
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := vowAddr) (retVar := "_fessRet")
+      (name := "fess")
+      (target := AccountAddress.ofNat
+        (barkVowWord evm.accountMap evm.executionEnv).toNat)
+      (sendVal := 0) (args := [.var "due"])
+      (argVals := [.int (Int.ofNat due.toNat)]) (out := outFess) (perm := true)
+      hguard hreceiver hargs hcall)
+
+theorem dogBarkVowFessCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {outFess : ByteArray} {due : UInt256}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize vowAddr) (.intLit 0)) = .ok (.bool true))
+    (hvow : locals.get? "vow" = none)
+    (hdue : locals.get? "due" = some (.int (Int.ofNat due.toNat)))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat
+          (barkVowWord evm.accountMap evm.executionEnv).toNat)) "fess" 0
+        [.int (Int.ofNat due.toNat)] (true, evm', outFess) true) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet")
+      (.ok { contract := contract v, locals := barkLocalsFessRet locals } evm') := by
+  have hreceiver :=
+    evalExpr_barkStorageVow (v := v) (evm := evm) (locals := locals) hvow
+  have hargs :=
+    evalExprs_barkVowFessArgs (v := v) (evm := evm) (locals := locals) hdue
+  have hdec : (config v).externalABI.decode? "fess" outFess = some ([] : List Value) := by
+    simp [config, externalABI, decodeVoid?]
+  simpa [checkedExternalCallStmts, barkLocalsFessRet] using
+    (checkedExternalCallSuccess
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := vowAddr) (retVar := "_fessRet")
+      (name := "fess")
+      (target := AccountAddress.ofNat
+        (barkVowWord evm.accountMap evm.executionEnv).toNat)
+      (sendVal := 0) (args := [.var "due"])
+      (argVals := [.int (Int.ofNat due.toNat)]) (out := outFess) (perm := true)
+      (value := []) hguard hreceiver hargs hcall hdec)
+
+theorem assign_barkDirtStorage {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} (dirtNew : UInt256) (hbase : locals.get? "Dirt" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ dirtNew
+    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+      .storage DirtRef (.int (Int.ofNat dirtNew.toNat)) =
+        .ok ({ contract := contract v, locals := locals }, evm') := by
+  intro evm'
+  have hstore :
+      storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat dirtNew.toNat)) =
+        some evm' := by
+    simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ dirtNew
+  exact assignStorageRef_storage_scalar
+    (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+    (hbase := hbase)
+    (her := by simp [DirtRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
+    (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+    (hloc := by rfl)
+    (hstore := hstore)
+
+theorem assign_barkIlkDirtStorage {v : DogImmutables} (evm : EVM.State)
+    {I : ExecutionEnv} {locals : Store} (hsz100 : 100 ≤ I.calldata.size)
+    (ilkDirtNew : UInt256)
+    (hbase : locals.get? "ilks" = none)
+    (hilk : locals.get? "ilk" = some (barkIlkValue I)) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+      (barkIlksDirtSlotFor I) ilkDirtNew
+    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+      .storage (ilksF (.var "ilk") "dirt") (.int (Int.ofNat ilkDirtNew.toNat)) =
+        .ok ({ contract := contract v, locals := locals }, evm') := by
+  intro evm'
+  have hkeyLen : (barkIlkBytes I).length = bytes32Width.val + 1 := by
+    simpa [bytes32Width] using barkIlkBytes_len32 (I := I) hsz100
+  have hvar :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+        .ok (barkIlkValue I) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "ilk") =
+      .ok (barkIlkValue I)
+    rw [hilk]
+    rfl
+  have hstore :
+      storageLocStore evm (wordLoc (barkIlksDirtSlotFor I))
+          (.int (Int.ofNat ilkDirtNew.toNat)) = some evm' := by
+    simpa [evm'] using storageLocStore_uint256 evm (barkIlksDirtSlotFor I) ilkDirtNew
+  exact assignStorageRef_storage_scalar
+    (er := barkIlksDirtEvaledRef I)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (barkIlksDirtSlotFor I))
+    (hbase := hbase)
+    (her := by
+      simp [barkIlksDirtEvaledRef, barkIlkKey, barkIlkValue, evalStorageRef,
+        evalStorageRefSteps, evalStorageRefStep, ilksF, valueToKey?,
+        EvalResult.ofOption, EvalResult.bind, pure, bind, hkeyLen, hvar])
+    (hty := by simp [barkIlkKey, storageTypeAt?, storageTypeStep?, contract,
+      storageDecls, IlkStructTy, uint256St])
+    (hloc := by rfl)
+    (hstore := hstore)
+
 theorem barkVat_eq_vatKey (v : DogImmutables) :
     AccountAddress.ofNat v.vat.toNat = AccountAddress.ofUInt256 (barkVatWord v) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
@@ -3484,6 +6535,70 @@ theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.Stat
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+
+theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt256}
+    (hzero :
+      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap targetWord = ⟨0⟩) :
+    (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
+        (fun acc => acc.code.size))).toNat = 0 := by
+  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
+  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
+  | none =>
+      simpa [State.lookupAccount, hacc, Option.option] using
+        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+  | some acc =>
+      have hword := congrArg UInt256.toNat hzero
+      simpa [State.lookupAccount, hacc] using hword
+
+theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256}
+    (hne :
+      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap targetWord ≠ ⟨0⟩) :
+    0 < (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
+        (fun acc => acc.code.size))).toNat := by
+  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
+  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
+  | none =>
+      exfalso
+      exact hne (by simp [hacc, Option.option])
+  | some acc =>
+      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
+        intro hzero
+        exact hne (by simpa [hacc] using hzero)
+      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
+        intro hzeroNat
+        apply hwordNe
+        cases hword : UInt256.ofNat acc.code.size with
+        | mk val =>
+            cases val using Fin.cases
+            · rfl
+            · simp [UInt256.toNat, hword] at hzeroNat
+      simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+
+theorem dogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
+    (hAccounts : accountMapEquiv σ τ)
+    (hzero :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ targetWord = ⟨0⟩) :
+    Reasoning.Theory.uniswapExtCodeSizeWord τ targetWord = ⟨0⟩ := by
+  have hsame :=
+    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts targetWord
+  rw [← hsame]
+  exact hzero
+
+theorem dogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
+    (hAccounts : accountMapEquiv σ τ)
+    (hne :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ targetWord ≠ ⟨0⟩) :
+    Reasoning.Theory.uniswapExtCodeSizeWord τ targetWord ≠ ⟨0⟩ := by
+  intro hzero
+  apply hne
+  have hsame :=
+    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts targetWord
+  rw [hsame]
+  exact hzero
 
 private theorem dogAccountMapExtensionalEq_of_accountMapEquiv {σ τ : AccountMap}
     (hστ : accountMapEquiv σ τ) : accountMapExtensionalEq σ τ := by
@@ -5833,6 +8948,244 @@ theorem dogBarkRoomMinCallOk {v : DogImmutables}
       (value := some [.int (Int.ofNat (barkSourceRoomWord evmUrns evmIlks I).toNat)])
       hargs (by rfl) hbind hbody)
 
+theorem dogBarkVatIlksDustToRoomOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hfitInk :
+      (barkVatUrnsInkWord out).toNat * (barkVatIlksSpotWord outIlks).toNat <
+        UInt256.size)
+    (hfitArt :
+      (barkVatUrnsArtWord out).toNat * (barkVatIlksRateWord outIlks).toNat <
+        UInt256.size)
+    (hspotPos : 0 < (barkVatIlksSpotWord outIlks).toNat)
+    (hsafeLt :
+      (barkInkSpotWord out outIlks).toNat <
+        (barkArtRateUnsafeWord out outIlks).toNat)
+    (hlimit :
+      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat <
+          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+      evmIlks
+      (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+        checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+        [ .require
+            (.binary .and
+              (.binary .gt (.var "spot") (.intLit 0))
+              (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+        [ .require
+            (.binary .and
+              (.binary .gt (.storage HoleRef) (.storage DirtRef))
+              (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+        checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+        checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+        [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"])
+      (.ok { contract := contract v, locals := barkLocalsRoom evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  have hInkBlock :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot"))
+        (.ok { contract := contract v, locals := barkLocalsInkSpot evmUrns I out outIlks }
+          evmIlks) :=
+    dogBarkInkSpotCheckedMulOk (v := v) evmIlks evmUrns I out outIlks hfitInk
+  have hArtBlock :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsInkSpot evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate"))
+        (.ok { contract := contract v, locals := barkLocalsArtRateUnsafe evmUrns I out outIlks }
+          evmIlks) :=
+    dogBarkArtRateUnsafeCheckedMulOk (v := v) evmIlks evmUrns I out outIlks hfitArt
+  let unsafeGuard : Expr :=
+    .binary .and
+      (.binary .gt (.var "spot") (.intLit 0))
+      (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))
+  let limitGuard : Expr :=
+    .binary .and
+      (.binary .gt (.storage HoleRef) (.storage DirtRef))
+      (.binary .gt (.var "milkHole") (.var "milkDirt"))
+  let locals2 := barkLocalsArtRateUnsafe evmUrns I out outIlks
+  let spot := barkVatIlksSpotWord outIlks
+  let inkSpot := barkInkSpotWord out outIlks
+  let artRate := barkArtRateUnsafeWord out outIlks
+  let hole := dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
+  let dirt := dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
+  let milkHole :=
+    dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+  let milkDirt :=
+    dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+  have hspot :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.var "spot") = .ok (.int (Int.ofNat spot.toNat)) := by
+    simpa [locals2, spot] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
+        (name := "spot") (value := barkVatIlksSpotWord outIlks)
+        (barkLocalsArtRateUnsafe_get_spot evmUrns I out outIlks)
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hinkSpot :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.var "inkSpot") = .ok (.int (Int.ofNat inkSpot.toNat)) := by
+    simpa [locals2, inkSpot] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
+        (name := "inkSpot") (value := barkInkSpotWord out outIlks)
+        (barkLocalsArtRateUnsafe_get_inkSpot evmUrns I out outIlks)
+  have hartRate :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.var "artRateUnsafe") = .ok (.int (Int.ofNat artRate.toNat)) := by
+    simpa [locals2, artRate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
+        (name := "artRateUnsafe") (value := barkArtRateUnsafeWord out outIlks)
+        (barkLocalsArtRateUnsafe_get_artRateUnsafe evmUrns I out outIlks)
+  have hunsafeReq :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        unsafeGuard = .ok (.bool true) := by
+    have hgt :
+        evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+          (.binary .gt (.var "spot") (.intLit 0)) = .ok (.bool true) := by
+      apply evalExpr_bark_gt_int_true hspot hzero
+      exact Int.ofNat_lt.mpr (by simpa [spot] using hspotPos)
+    have hlt :
+        evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+          (.binary .lt (.var "inkSpot") (.var "artRateUnsafe")) = .ok (.bool true) := by
+      apply evalExpr_bark_lt_int_true hinkSpot hartRate
+      exact Int.ofNat_lt.mpr (by simpa [inkSpot, artRate] using hsafeLt)
+    simpa [unsafeGuard] using evalExpr_bark_and_true_right hgt hlt
+  have hHoleExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.storage HoleRef) = .ok (.int (Int.ofNat hole.toNat)) := by
+    simpa [locals2, hole] using
+      evalExpr_barkStorageHole (v := v) (evm := evmIlks) (locals := locals2)
+        (barkLocalsArtRateUnsafe_get_Hole evmUrns I out outIlks)
+  have hDirtExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
+    simpa [locals2, dirt] using
+      evalExpr_barkStorageDirt (v := v) (evm := evmIlks) (locals := locals2)
+        (barkLocalsArtRateUnsafe_get_Dirt evmUrns I out outIlks)
+  have hmilkHoleExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.var "milkHole") = .ok (.int (Int.ofNat milkHole.toNat)) := by
+    simpa [locals2, milkHole] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
+        (name := "milkHole") (value := milkHole)
+        (barkLocalsArtRateUnsafe_get_milkHole evmUrns I out outIlks)
+  have hmilkDirtExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        (.var "milkDirt") = .ok (.int (Int.ofNat milkDirt.toNat)) := by
+    simpa [locals2, milkDirt] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
+        (name := "milkDirt") (value := milkDirt)
+        (barkLocalsArtRateUnsafe_get_milkDirt evmUrns I out outIlks)
+  have hlimitReq :
+      evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+        limitGuard = .ok (.bool true) := by
+    have hgtGlobal :
+        evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+          (.binary .gt (.storage HoleRef) (.storage DirtRef)) = .ok (.bool true) := by
+      apply evalExpr_bark_gt_int_true hHoleExpr hDirtExpr
+      exact Int.ofNat_lt.mpr (by simpa [dirt, hole] using hlimit.1)
+    have hgtMilk :
+        evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
+          (.binary .gt (.var "milkHole") (.var "milkDirt")) = .ok (.bool true) := by
+      apply evalExpr_bark_gt_int_true hmilkHoleExpr hmilkDirtExpr
+      exact Int.ofNat_lt.mpr (by simpa [milkDirt, milkHole] using hlimit.2)
+    simpa [limitGuard] using evalExpr_bark_and_true_right hgtGlobal hgtMilk
+  have hchecked :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate"))
+        (.ok { contract := contract v, locals := locals2 } evmIlks) :=
+    by simpa [locals2] using execBlock_append hInkBlock hArtBlock
+  have hunsafeBlock :
+      ExecBlock (config v) { contract := contract v, locals := locals2 } evmIlks
+        [.require unsafeGuard]
+        (.ok { contract := contract v, locals := locals2 } evmIlks) :=
+    ExecBlock.consNormal (ExecStmt.requireTrue hunsafeReq) ExecBlock.nil
+  have hlimitBlock :
+      ExecBlock (config v) { contract := contract v, locals := locals2 } evmIlks
+        [.require limitGuard]
+        (.ok { contract := contract v, locals := locals2 } evmIlks) :=
+    ExecBlock.consNormal (ExecStmt.requireTrue hlimitReq) ExecBlock.nil
+  have hcheckedUnsafe :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        ((checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+            checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate")) ++
+          [.require unsafeGuard])
+        (.ok { contract := contract v, locals := locals2 } evmIlks) :=
+    execBlock_append hchecked (by simpa [locals2] using hunsafeBlock)
+  have hcheckedUnsafeLimit :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (((checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+            checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate")) ++
+          [.require unsafeGuard]) ++ [.require limitGuard])
+        (.ok { contract := contract v, locals := locals2 } evmIlks) :=
+    execBlock_append hcheckedUnsafe (by simpa [locals2] using hlimitBlock)
+  have hglobalBlock :=
+    dogBarkGlobalRoomCheckedSubOk (v := v) evmUrns evmIlks I out outIlks hlimit.1
+  have htoGlobal :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [.require unsafeGuard] ++ [.require limitGuard] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef))
+        (.ok { contract := contract v, locals := barkLocalsGlobalRoom evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hcheckedUnsafeLimit hglobalBlock
+  have hilkBlock :=
+    dogBarkIlkRoomCheckedSubOk (v := v) evmUrns evmIlks I out outIlks hlimit.2
+  have htoIlk :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [.require unsafeGuard] ++ [.require limitGuard] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt"))
+        (.ok { contract := contract v, locals := barkLocalsIlkRoom evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoGlobal hilkBlock
+  have hminStmt :=
+    dogBarkRoomMinCallOk (v := v) evmUrns evmIlks I out outIlks
+  have hminBlock :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsIlkRoom evmUrns evmIlks I out outIlks }
+        evmIlks
+        [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"]
+        (.ok { contract := contract v, locals := barkLocalsRoom evmUrns evmIlks I out outIlks }
+          evmIlks) :=
+    ExecBlock.consNormal hminStmt ExecBlock.nil
+  have htoRoom :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [.require unsafeGuard] ++ [.require limitGuard] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"])
+        (.ok { contract := contract v, locals := barkLocalsRoom evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoIlk hminBlock
+  simpa [unsafeGuard, limitGuard, List.append_assoc] using htoRoom
+
 theorem dogBarkRoomWadCheckedMulOverflow {v : DogImmutables}
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
     (hover :
@@ -5861,6 +9214,2218 @@ theorem dogBarkRoomWadCheckedMulOverflow {v : DogImmutables}
     evalExpr_bark_mul256_revert hroom hWad (by simpa [room] using hover)
   simp only [checkedMulUintInto, List.cons_append, List.nil_append]
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmul)
+
+theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hfit :
+      (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsRoom evmUrns evmIlks I out outIlks }
+      evmIlks (checkedMulUintInto "roomWad" (.var "room") (.intLit WAD))
+      (.ok { contract := contract v, locals := barkLocalsRoomWad evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsRoom evmUrns evmIlks I out outIlks
+  let locals1 := barkLocalsRoomWad evmUrns evmIlks I out outIlks
+  let room := barkSourceRoomWord evmUrns evmIlks I
+  let roomWad := barkSourceRoomWadWord evmUrns evmIlks I
+  have hroom0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "room") = .ok (.int (Int.ofNat room.toNat)) := by
+    simpa [locals0, room] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "room") (value := room)
+        (barkLocalsRoom_get_room evmUrns evmIlks I out outIlks)
+  have hWad0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
+    have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
+      native_decide
+    simp [evalExpr?, pure, WAD, hWadNat]
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (mul256 (.var "room") (.intLit WAD)) =
+          .ok (.int (Int.ofNat roomWad.toNat)) := by
+    exact evalExpr_bark_mul256_ok hroom0 hWad0
+      (by simp [roomWad, room, barkSourceRoomWadWord]) (by simpa [room] using hfit)
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.letDecl "roomWad" (some uint256) (mul256 (.var "room") (.intLit WAD)))
+        (.ok { contract := contract v, locals := locals1 } evmIlks) := by
+    simpa [locals0, locals1, roomWad, barkLocalsRoomWad] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals0 })
+        (evm := evmIlks) (name := "roomWad") (ty := some uint256)
+        (expr := mul256 (.var "room") (.intLit WAD))
+        (value := .int (Int.ofNat roomWad.toNat)) hmul)
+  have hroom1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.var "room") = .ok (.int (Int.ofNat room.toNat)) := by
+    have hgetRoom :
+        locals1.get? "room" = some (.int (Int.ofNat room.toNat)) := by
+      change (barkLocalsRoomWad evmUrns evmIlks I out outIlks).get? "room" =
+        some (.int (Int.ofNat (barkSourceRoomWord evmUrns evmIlks I).toNat))
+      rw [barkLocalsRoomWad, store_get_ne _ _ (by decide), barkLocalsRoom_get_room]
+    simpa [locals1, room] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals1)
+        (name := "room") (value := room) hgetRoom
+  have hWad1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
+    have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
+      native_decide
+    simp [evalExpr?, pure, WAD, hWadNat]
+  have hroomWad1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.var "roomWad") = .ok (.int (Int.ofNat roomWad.toNat)) := by
+    simpa [locals1, roomWad] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals1)
+        (name := "roomWad") (value := roomWad)
+        (barkLocalsRoomWad_get_roomWad evmUrns evmIlks I out outIlks)
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.binary .or
+          (.binary .eq (.intLit WAD) (.intLit 0))
+          (.binary .eq (.binary .div (.var "roomWad") (.intLit WAD)) (.var "room"))) =
+        .ok (.bool true) := by
+    have hleft :
+        evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+          (.binary .eq (.intLit WAD) (.intLit 0)) = .ok (.bool false) := by
+      apply evalExpr_bark_eq_int_false hWad1 hzero
+      native_decide
+    have hdivWord : UInt256.div roomWad dogWadWord = room := by
+      apply u256_inj
+      rw [udiv_toNat]
+      have hprod : roomWad.toNat = room.toNat * dogWadWord.toNat := by
+        change (barkSourceRoomWadWord evmUrns evmIlks I).toNat =
+          (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat
+        rw [barkSourceRoomWadWord]
+        exact umul_toNat room dogWadWord (by simpa [room] using hfit)
+      rw [hprod]
+      have hWadPos : 0 < dogWadWord.toNat := by
+        native_decide
+      rw [Nat.mul_comm]
+      exact Nat.mul_div_right room.toNat hWadPos
+    have hdiv :
+        evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+          (.binary .div (.var "roomWad") (.intLit WAD)) =
+            .ok (.int (Int.ofNat room.toNat)) := by
+      have h := evalExpr_bark_div_uint256_ok (v := v) (evm := evmIlks)
+        (locals := locals1) (x := .var "roomWad") (y := .intLit WAD)
+        (a := roomWad) (b := dogWadWord) (q := UInt256.div roomWad dogWadWord)
+        hroomWad1 hWad1 (by native_decide) rfl
+      simpa [hdivWord] using h
+    have hright :
+        evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+          (.binary .eq (.binary .div (.var "roomWad") (.intLit WAD)) (.var "room")) =
+            .ok (.bool true) :=
+      evalExpr_bark_eq_int_true hdiv hroom1 rfl
+    exact evalExpr_bark_or_false_right hleft hright
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consNormal hlet
+    (ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkDartByRateLetOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hrateNe : barkVatIlksRateWord outIlks ≠ ⟨0⟩) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsRoomWad evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .letDecl "dartByRate" (some uint256) (.binary .div (.var "roomWad") (.var "rate")) ]
+      (.ok
+        { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsRoomWad evmUrns evmIlks I out outIlks
+  let locals1 := barkLocalsDartByRate evmUrns evmIlks I out outIlks
+  let roomWad := barkSourceRoomWadWord evmUrns evmIlks I
+  let rate := barkVatIlksRateWord outIlks
+  let dartByRate := barkSourceDartByRateWord evmUrns evmIlks I outIlks
+  have hroomWad :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "roomWad") = .ok (.int (Int.ofNat roomWad.toNat)) := by
+    simpa [locals0, roomWad] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "roomWad") (value := roomWad)
+        (barkLocalsRoomWad_get_roomWad evmUrns evmIlks I out outIlks)
+  have hrate :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [locals0, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "rate") (value := rate)
+        (barkLocalsRoomWad_get_rate evmUrns evmIlks I out outIlks)
+  have hdiv :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .div (.var "roomWad") (.var "rate")) =
+          .ok (.int (Int.ofNat dartByRate.toNat)) := by
+    exact evalExpr_bark_div_uint256_ok hroomWad hrate (by simpa [rate] using hrateNe)
+      (by simp [dartByRate, roomWad, rate, barkSourceDartByRateWord])
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.letDecl "dartByRate" (some uint256) (.binary .div (.var "roomWad") (.var "rate")))
+        (.ok { contract := contract v, locals := locals1 } evmIlks) := by
+    simpa [locals0, locals1, dartByRate, barkLocalsDartByRate] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals0 })
+        (evm := evmIlks) (name := "dartByRate") (ty := some uint256)
+        (expr := .binary .div (.var "roomWad") (.var "rate"))
+        (value := .int (Int.ofNat dartByRate.toNat)) hdiv)
+  exact ExecBlock.consNormal hlet ExecBlock.nil
+
+theorem dogBarkDartCandidateLetOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hchopNe : barkSourceMilkChopWord evmUrns I ≠ ⟨0⟩) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .letDecl "dartCandidate" (some uint256)
+          (.binary .div (.var "dartByRate") (.var "milkChop")) ]
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDartByRate evmUrns evmIlks I out outIlks
+  let locals1 := barkLocalsDartCandidate evmUrns evmIlks I out outIlks
+  let dartByRate := barkSourceDartByRateWord evmUrns evmIlks I outIlks
+  let chop := barkSourceMilkChopWord evmUrns I
+  let dartCandidate := barkSourceDartCandidateWord evmUrns evmIlks I outIlks
+  have hdartByRate :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dartByRate") = .ok (.int (Int.ofNat dartByRate.toNat)) := by
+    simpa [locals0, dartByRate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dartByRate") (value := dartByRate)
+        (barkLocalsDartByRate_get_dartByRate evmUrns evmIlks I out outIlks)
+  have hchop :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "milkChop") = .ok (.int (Int.ofNat chop.toNat)) := by
+    simpa [locals0, chop, barkSourceMilkChopWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "milkChop") (value := chop)
+        (barkLocalsDartByRate_get_milkChop evmUrns evmIlks I out outIlks)
+  have hdiv :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .div (.var "dartByRate") (.var "milkChop")) =
+          .ok (.int (Int.ofNat dartCandidate.toNat)) := by
+    exact evalExpr_bark_div_uint256_ok hdartByRate hchop
+      (by simpa [chop] using hchopNe)
+      (by simp [dartCandidate, dartByRate, chop, barkSourceDartCandidateWord])
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.letDecl "dartCandidate" (some uint256)
+          (.binary .div (.var "dartByRate") (.var "milkChop")))
+        (.ok { contract := contract v, locals := locals1 } evmIlks) := by
+    simpa [locals0, locals1, dartCandidate, barkLocalsDartCandidate] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals0 })
+        (evm := evmIlks) (name := "dartCandidate") (ty := some uint256)
+        (expr := .binary .div (.var "dartByRate") (.var "milkChop"))
+        (value := .int (Int.ofNat dartCandidate.toNat)) hdiv)
+  exact ExecBlock.consNormal hlet ExecBlock.nil
+
+theorem dogBarkDartMinCallOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
+    ExecStmt (config v)
+      { contract := contract v,
+        locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
+      evmIlks (.internalCall "min" [.var "art", .var "dartCandidate"] "dart")
+      (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDartCandidate evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dartCandidate := barkSourceDartCandidateWord evmUrns evmIlks I outIlks
+  have hart :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDartCandidate_get_art evmUrns evmIlks I out outIlks)
+  have hdartCandidate :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dartCandidate") = .ok (.int (Int.ofNat dartCandidate.toNat)) := by
+    simpa [locals0, dartCandidate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dartCandidate") (value := dartCandidate)
+        (barkLocalsDartCandidate_get_dartCandidate evmUrns evmIlks I out outIlks)
+  have hargs :
+      evalExprs? (config v) { contract := contract v, locals := locals0 } evmIlks
+        [.var "art", .var "dartCandidate"] =
+          .ok [.int (Int.ofNat art.toNat), .int (Int.ofNat dartCandidate.toNat)] := by
+    simp [evalExprs?, hart, hdartCandidate, EvalResult.bind, bind, pure]
+  have hbind :
+      bindParams? minFunction.params
+          [.int (Int.ofNat art.toNat), .int (Int.ofNat dartCandidate.toNat)] =
+        some (barkBinaryLocals art dartCandidate) := by
+    simp [minFunction, uint256, bindParams?, barkBinaryLocals]
+  have hbody :
+      ExecFuncBody (config v)
+        { contract := contract v, locals := barkBinaryLocals art dartCandidate } evmIlks
+        minFunction.body
+        (.returned { contract := contract v, locals := barkBinaryLocals art dartCandidate }
+          evmIlks
+          (some [.int (Int.ofNat
+            (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat)])) := by
+    simpa [barkSourceDartWord, art, dartCandidate] using
+      execBarkMinFunctionReturn (v := v) evmIlks art dartCandidate
+  simpa [locals0, barkLocalsDart, barkSourceDartWord, art, dartCandidate,
+    resumeAfterInternalCall] using
+    (internalCallFunctionReturn
+      (cfg := config v)
+      (caller := { contract := contract v, locals := locals0 })
+      (evm := evmIlks) (calleeEvm := evmIlks) (name := "min") (retVar := "dart")
+      (args := [.var "art", .var "dartCandidate"])
+      (argVals := [.int (Int.ofNat art.toNat), .int (Int.ofNat dartCandidate.toNat)])
+      (callee := minFunction) (locals := barkBinaryLocals art dartCandidate)
+      (calleeSolm := { contract := contract v, locals := barkBinaryLocals art dartCandidate })
+      (value := some [.int (Int.ofNat
+        (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat)])
+      hargs (by rfl) hbind hbody)
+
+theorem dogBarkVatIlksDustToDartOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hfitInk :
+      (barkVatUrnsInkWord out).toNat * (barkVatIlksSpotWord outIlks).toNat <
+        UInt256.size)
+    (hfitArt :
+      (barkVatUrnsArtWord out).toNat * (barkVatIlksRateWord outIlks).toNat <
+        UInt256.size)
+    (hspotPos : 0 < (barkVatIlksSpotWord outIlks).toNat)
+    (hsafeLt :
+      (barkInkSpotWord out outIlks).toNat <
+        (barkArtRateUnsafeWord out outIlks).toNat)
+    (hlimit :
+      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat <
+          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat)
+    (hfitRoom :
+      (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
+    (hrateNe : barkVatIlksRateWord outIlks ≠ ⟨0⟩)
+    (hchopNe : barkSourceMilkChopWord evmUrns I ≠ ⟨0⟩) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+      evmIlks
+      (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+        checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+        [ .require
+            (.binary .and
+              (.binary .gt (.var "spot") (.intLit 0))
+              (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+        [ .require
+            (.binary .and
+              (.binary .gt (.storage HoleRef) (.storage DirtRef))
+              (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+        checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+        checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+        [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+        checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+        [ .letDecl "dartByRate" (some uint256)
+            (.binary .div (.var "roomWad") (.var "rate")) ] ++
+        [ .letDecl "dartCandidate" (some uint256)
+            (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+        [.internalCall "min" [.var "art", .var "dartCandidate"] "dart"])
+      (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  have htoRoom :=
+    dogBarkVatIlksDustToRoomOk (v := v) evmUrns evmIlks I out outIlks
+      hfitInk hfitArt hspotPos hsafeLt hlimit
+  have hroomWad :=
+    dogBarkRoomWadCheckedMulOk (v := v) evmUrns evmIlks I out outIlks hfitRoom
+  have htoRoomWad :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD))
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsRoomWad evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoRoom hroomWad
+  have hdartByRate :=
+    dogBarkDartByRateLetOk (v := v) evmUrns evmIlks I out outIlks hrateNe
+  have htoDartByRate :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ])
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoRoomWad hdartByRate
+  have hdartCandidate :=
+    dogBarkDartCandidateLetOk (v := v) evmUrns evmIlks I out outIlks hchopNe
+  have htoDartCandidate :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+        evmIlks
+        (checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+          [ .letDecl "dartCandidate" (some uint256)
+              (.binary .div (.var "dartByRate") (.var "milkChop")) ])
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoDartByRate hdartCandidate
+  have hdartMin :
+      ExecBlock (config v)
+        { contract := contract v,
+          locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
+        evmIlks
+        [.internalCall "min" [.var "art", .var "dartCandidate"] "dart"]
+        (.ok
+          { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+          evmIlks) :=
+    ExecBlock.consNormal (dogBarkDartMinCallOk (v := v) evmUrns evmIlks I out outIlks)
+      ExecBlock.nil
+  simpa [List.append_assoc] using execBlock_append htoDartCandidate hdartMin
+
+theorem dogBarkNoLeftoverIteOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hnoLeftover :
+      (barkVatUrnsArtWord out).toNat ≤
+        (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .ite
+          (.binary .gt (.var "art") (.var "dart"))
+          (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+            checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+            [ .ite
+                (.binary .lt (.var "leftoverDue") (.var "dust"))
+                [ .assign .localVar (varRef "dart") (.var "art") ]
+                (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                  [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+          [] ]
+      (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDart evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dart := barkSourceDartWord evmUrns evmIlks I out outIlks
+  have hart :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)
+  have hdart :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals0, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dart") (value := dart)
+        (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)
+  have hcond :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .gt (.var "art") (.var "dart")) = .ok (.bool false) := by
+    apply evalExpr_bark_gt_int_false hart hdart
+    exact not_lt.mpr (Int.ofNat_le.mpr (by simpa [art, dart] using hnoLeftover))
+  exact ExecBlock.consNormal (ExecStmt.iteFalse hcond ExecBlock.nil) ExecBlock.nil
+
+theorem dogBarkInkDartCheckedMulOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {ink dart : UInt256}
+    (hink : locals.get? "ink" = some (.int (Int.ofNat ink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hfit : ink.toNat * dart.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "inkDart" (.var "ink") (.var "dart"))
+      (.ok
+        { contract := contract v, locals := barkLocalsInkDart locals (barkInkDartWord ink dart) }
+        evm) := by
+  let inkDart := barkInkDartWord ink dart
+  let locals1 := barkLocalsInkDart locals inkDart
+  have hink0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ink") =
+        .ok (.int (Int.ofNat ink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "ink") (value := ink) hink
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (mul256 (.var "ink") (.var "dart")) =
+          .ok (.int (Int.ofNat inkDart.toNat)) := by
+    exact evalExpr_bark_mul256_ok hink0 hdart0
+      (by simp [inkDart, barkInkDartWord]) hfit
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl "inkDart" (some uint256) (mul256 (.var "ink") (.var "dart")))
+        (.ok { contract := contract v, locals := locals1 } evm) := by
+    simpa [locals1, inkDart, barkLocalsInkDart] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := "inkDart") (ty := some uint256)
+        (expr := mul256 (.var "ink") (.var "dart"))
+        (value := .int (Int.ofNat inkDart.toNat)) hmul)
+  have hink1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "ink") =
+        .ok (.int (Int.ofNat ink.toNat)) := by
+    simpa [locals1] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := "ink") (value := ink)
+        (barkLocalsInkDart_get_preserved (by decide) hink)
+  have hdart1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals1] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := "dart") (value := dart)
+        (barkLocalsInkDart_get_preserved (by decide) hdart)
+  have hinkDart1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.var "inkDart") = .ok (.int (Int.ofNat inkDart.toNat)) := by
+    simpa [locals1, inkDart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := "inkDart") (value := inkDart)
+        (barkLocalsInkDart_get_inkDart locals inkDart)
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.binary .or
+          (.binary .eq (.var "dart") (.intLit 0))
+          (.binary .eq (.binary .div (.var "inkDart") (.var "dart")) (.var "ink"))) =
+        .ok (.bool true) := by
+    by_cases hdartZero : dart = ⟨0⟩
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.var "dart") (.intLit 0)) = .ok (.bool true) := by
+        apply evalExpr_bark_eq_int_true hdart1 hzero
+        simp [hdartZero]
+      exact evalExpr_bark_or_true_left hleft
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.var "dart") (.intLit 0)) = .ok (.bool false) := by
+        apply evalExpr_bark_eq_int_false hdart1 hzero
+        intro hnat
+        apply hdartZero
+        exact uint256_toNat_eq_zero (Int.ofNat.inj hnat)
+      have hdivWord : UInt256.div inkDart dart = ink := by
+        apply u256_inj
+        rw [udiv_toNat]
+        have hprod : inkDart.toNat = ink.toNat * dart.toNat := by
+          dsimp [inkDart, barkInkDartWord]
+          exact umul_toNat ink dart hfit
+        rw [hprod]
+        rw [Nat.mul_comm ink.toNat dart.toNat]
+        exact Nat.mul_div_right ink.toNat
+          (Nat.pos_of_ne_zero (fun hzeroNat => hdartZero (uint256_toNat_eq_zero hzeroNat)))
+      have hdiv :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .div (.var "inkDart") (.var "dart")) =
+              .ok (.int (Int.ofNat ink.toNat)) := by
+        have hraw := evalExpr_bark_div_uint256_ok
+          (v := v) (evm := evm) (locals := locals1)
+          (x := .var "inkDart") (y := .var "dart")
+          (a := inkDart) (b := dart) (q := UInt256.div inkDart dart)
+          hinkDart1 hdart1 hdartZero rfl
+        simpa [hdivWord] using hraw
+      have hright :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.binary .div (.var "inkDart") (.var "dart")) (.var "ink")) =
+              .ok (.bool true) :=
+        evalExpr_bark_eq_int_true hdiv hink1 rfl
+      exact evalExpr_bark_or_false_right hleft hright
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consNormal hlet
+    (ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkInkDartCheckedMulOverflow {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {ink dart : UInt256}
+    (hink : locals.get? "ink" = some (.int (Int.ofNat ink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hover : UInt256.size ≤ ink.toNat * dart.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "inkDart" (.var "ink") (.var "dart")) .reverted := by
+  have hink0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ink") =
+        .ok (.int (Int.ofNat ink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "ink") (value := ink) hink
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "dart") =
+        .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (mul256 (.var "ink") (.var "dart")) = .revert :=
+    evalExpr_bark_mul256_revert hink0 hdart0 hover
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmul)
+
+theorem dogBarkCheckedSubOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {name : Ident} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hxAfter :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (UInt256.sub a b).toNat)) } evm x =
+        .ok (.int (Int.ofNat a.toNat)))
+    (hle : b.toNat ≤ a.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedSubUintInto name x y)
+      (.ok
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (UInt256.sub a b).toNat)) } evm) := by
+  let diff := UInt256.sub a b
+  let locals1 := locals.insert name (.int (Int.ofNat diff.toNat))
+  have hsub :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
+        .ok (.int (Int.ofNat diff.toNat)) := by
+    exact evalExpr_bark_sub256_ok hx hy (by simp [diff]) hle
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl name (some uint256) (sub256 x y))
+        (.ok { contract := contract v, locals := locals1 } evm) := by
+    simpa [locals1, diff] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := name) (ty := some uint256) (expr := sub256 x y)
+        (value := .int (Int.ofNat diff.toNat)) hsub)
+  have hname :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.var name) = .ok (.int (Int.ofNat diff.toNat)) := by
+    simpa [locals1, diff] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := name) (value := diff) (by simp [locals1])
+  have hdiffLe : diff.toNat ≤ a.toNat := by
+    simp [diff, usub_toNat hle]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.binary .le (.var name) x) = .ok (.bool true) := by
+    apply evalExpr_bark_le_int_true hname
+    simpa [locals1, diff] using hxAfter
+    exact Int.ofNat_le.mpr hdiffLe
+  simpa [checkedSubUintInto, locals1, diff] using
+    (ExecBlock.consNormal hlet <|
+      ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkCheckedAddOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {name : Ident} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hxAfter :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (a + b).toNat)) } evm x =
+        .ok (.int (Int.ofNat a.toNat)))
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto name x y)
+      (.ok
+        { contract := contract v, locals := locals.insert name (.int (Int.ofNat (a + b).toNat)) }
+        evm) := by
+  let sum := a + b
+  let locals1 := locals.insert name (.int (Int.ofNat sum.toNat))
+  have hadd :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+        .ok (.int (Int.ofNat sum.toNat)) := by
+    exact evalExpr_bark_add256_ok hx hy (by simp [sum]) hfit
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl name (some uint256) (add256 x y))
+        (.ok { contract := contract v, locals := locals1 } evm) := by
+    simpa [locals1, sum] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := name) (ty := some uint256) (expr := add256 x y)
+        (value := .int (Int.ofNat sum.toNat)) hadd)
+  have hname :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.var name) = .ok (.int (Int.ofNat sum.toNat)) := by
+    simpa [locals1, sum] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := name) (value := sum) (by simp [locals1])
+  have haLe : a.toNat ≤ sum.toNat := by
+    simp [sum, uadd_toNat, Nat.mod_eq_of_lt hfit]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.binary .ge (.var name) x) = .ok (.bool true) := by
+    apply evalExpr_bark_ge_int_true hname
+    simpa [locals1, sum] using hxAfter
+    exact Int.ofNat_le.mpr haLe
+  simpa [checkedAddUintInto, locals1, sum] using
+    (ExecBlock.consNormal hlet <|
+      ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkCheckedMulOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {name : Ident} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hxAfter :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (a * b).toNat)) } evm x =
+        .ok (.int (Int.ofNat a.toNat)))
+    (hyAfter :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (a * b).toNat)) } evm y =
+        .ok (.int (Int.ofNat b.toNat)))
+    (hfit : a.toNat * b.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto name x y)
+      (.ok
+        { contract := contract v,
+          locals := locals.insert name (.int (Int.ofNat (a * b).toNat)) } evm) := by
+  let prod := a * b
+  let locals1 := locals.insert name (.int (Int.ofNat prod.toNat))
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (mul256 x y) =
+        .ok (.int (Int.ofNat prod.toNat)) := by
+    exact evalExpr_bark_mul256_ok hx hy (by simp [prod]) hfit
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl name (some uint256) (mul256 x y))
+        (.ok { contract := contract v, locals := locals1 } evm) := by
+    simpa [locals1, prod] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := name) (ty := some uint256) (expr := mul256 x y)
+        (value := .int (Int.ofNat prod.toNat)) hmul)
+  have hname :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.var name) = .ok (.int (Int.ofNat prod.toNat)) := by
+    simpa [locals1, prod] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals1)
+        (name := name) (value := prod) (by simp [locals1])
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+        (.binary .or
+          (.binary .eq y (.intLit 0))
+          (.binary .eq (.binary .div (.var name) y) x)) =
+        .ok (.bool true) := by
+    by_cases hbZero : b = ⟨0⟩
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq y (.intLit 0)) = .ok (.bool true) := by
+        apply evalExpr_bark_eq_int_true hyAfter hzero
+        simp [hbZero]
+      exact evalExpr_bark_or_true_left hleft
+    · have hleft :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq y (.intLit 0)) = .ok (.bool false) := by
+        apply evalExpr_bark_eq_int_false hyAfter hzero
+        intro hnat
+        apply hbZero
+        exact uint256_toNat_eq_zero (Int.ofNat.inj hnat)
+      have hdivWord : UInt256.div prod b = a := by
+        apply u256_inj
+        rw [udiv_toNat]
+        have hprod : prod.toNat = a.toNat * b.toNat := by
+          dsimp [prod]
+          exact umul_toNat a b hfit
+        rw [hprod]
+        rw [Nat.mul_comm a.toNat b.toNat]
+        exact Nat.mul_div_right a.toNat
+          (Nat.pos_of_ne_zero (fun hzeroNat => hbZero (uint256_toNat_eq_zero hzeroNat)))
+      have hdiv :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .div (.var name) y) =
+              .ok (.int (Int.ofNat a.toNat)) := by
+        have hraw := evalExpr_bark_div_uint256_ok
+          (v := v) (evm := evm) (locals := locals1)
+          (x := .var name) (y := y)
+          (a := prod) (b := b) (q := UInt256.div prod b)
+          hname hyAfter hbZero rfl
+        simpa [hdivWord] using hraw
+      have hright :
+          evalExpr? (config v) { contract := contract v, locals := locals1 } evm
+            (.binary .eq (.binary .div (.var name) y) x) =
+              .ok (.bool true) :=
+        evalExpr_bark_eq_int_true hdiv hxAfter rfl
+      exact evalExpr_bark_or_false_right hleft hright
+  simpa [checkedMulUintInto, locals1, prod] using
+    (ExecBlock.consNormal hlet <|
+      ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
+
+theorem dogBarkCheckedMulOverflow {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {name : Ident} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hover : UInt256.size ≤ a.toNat * b.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto name x y) .reverted := by
+  have hmul :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (mul256 x y) =
+        .revert :=
+    evalExpr_bark_mul256_revert hx hy hover
+  simp only [checkedMulUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmul)
+
+theorem dogBarkCheckedAddOverflow {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {name : Ident} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hover : UInt256.size ≤ a.toNat + b.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto name x y) .reverted := by
+  have hadd :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+        .revert :=
+    evalExpr_bark_add256_revert hx hy hover
+  simp only [checkedAddUintInto, List.cons_append, List.nil_append]
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
+
+theorem dogBarkTabBaseCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {due milkChop : UInt256}
+    (hdue : locals.get? "due" = some (.int (Int.ofNat due.toNat)))
+    (hmilkChop : locals.get? "milkChop" = some (.int (Int.ofNat milkChop.toNat)))
+    (hfit : due.toNat * milkChop.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "tabBase" (.var "due") (.var "milkChop"))
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsTabBase locals (barkTabBaseWord due milkChop) } evm) := by
+  have hdue0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "due") =
+        .ok (.int (Int.ofNat due.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "due") (value := due) hdue
+  have hmilk0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkChop") = .ok (.int (Int.ofNat milkChop.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "milkChop") (value := milkChop) hmilkChop
+  have hdue1 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert "tabBase" (.int (Int.ofNat (due * milkChop).toNat)) }
+        evm (.var "due") = .ok (.int (Int.ofNat due.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm)
+      (locals := locals.insert "tabBase" (.int (Int.ofNat (due * milkChop).toNat)))
+      (name := "due") (value := due)
+      (by rw [store_get_ne _ _ (by decide)]; exact hdue)
+  have hmilk1 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert "tabBase" (.int (Int.ofNat (due * milkChop).toNat)) }
+        evm (.var "milkChop") = .ok (.int (Int.ofNat milkChop.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm)
+      (locals := locals.insert "tabBase" (.int (Int.ofNat (due * milkChop).toNat)))
+      (name := "milkChop") (value := milkChop)
+      (by rw [store_get_ne _ _ (by decide)]; exact hmilkChop)
+  simpa [barkLocalsTabBase, barkTabBaseWord] using
+    dogBarkCheckedMulOk (v := v) evm (name := "tabBase")
+      (x := .var "due") (y := .var "milkChop") (a := due) (b := milkChop)
+      hdue0 hmilk0 hdue1 hmilk1 hfit
+
+theorem dogBarkTabBaseCheckedMulOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {due milkChop : UInt256}
+    (hdue : locals.get? "due" = some (.int (Int.ofNat due.toNat)))
+    (hmilkChop : locals.get? "milkChop" = some (.int (Int.ofNat milkChop.toNat)))
+    (hover : UInt256.size ≤ due.toNat * milkChop.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "tabBase" (.var "due") (.var "milkChop")) .reverted := by
+  have hdue0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "due") =
+        .ok (.int (Int.ofNat due.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "due") (value := due) hdue
+  have hmilk0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkChop") = .ok (.int (Int.ofNat milkChop.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "milkChop") (value := milkChop) hmilkChop
+  exact dogBarkCheckedMulOverflow (v := v) evm
+    (name := "tabBase") (x := .var "due") (y := .var "milkChop")
+    hdue0 hmilk0 hover
+
+theorem dogBarkTabLetOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {tabBase : UInt256}
+    (htabBase : locals.get? "tabBase" = some (.int (Int.ofNat tabBase.toNat))) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ]
+      (.ok { contract := contract v, locals := barkLocalsTab locals (barkTabWord tabBase) }
+        evm) := by
+  let tab := barkTabWord tabBase
+  have htabBaseExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "tabBase") = .ok (.int (Int.ofNat tabBase.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tabBase") (value := tabBase) htabBase
+  have hWad :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
+    have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
+      native_decide
+    simp [evalExpr?, pure, WAD, hWadNat]
+  have hdiv :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .div (.var "tabBase") (.intLit WAD)) =
+          .ok (.int (Int.ofNat tab.toNat)) := by
+    exact evalExpr_bark_div_uint256_ok htabBaseExpr hWad
+      (by native_decide : dogWadWord ≠ ⟨0⟩)
+      (by simp [tab, barkTabWord])
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)))
+        (.ok { contract := contract v, locals := barkLocalsTab locals tab } evm) := by
+    simpa [tab, barkLocalsTab] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (evm := evm) (name := "tab") (ty := some uint256)
+        (expr := .binary .div (.var "tabBase") (.intLit WAD))
+        (value := .int (Int.ofNat tab.toNat)) hdiv)
+  exact ExecBlock.consNormal hlet ExecBlock.nil
+
+theorem dogBarkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {tab : UInt256}
+    (hDirt : locals.get? "Dirt" = none)
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hfit :
+      (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat <
+        UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab"))
+      (.ok
+        { contract := contract v,
+          locals :=
+            barkLocalsDirtNew locals
+              (barkDirtNewWord (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv) tab) }
+        evm) := by
+  let dirt := dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
+  have hdirt0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
+    simpa [dirt] using evalExpr_barkStorageDirt (v := v) (evm := evm)
+      (locals := locals) hDirt
+  have htab0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "tab") =
+        .ok (.int (Int.ofNat tab.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tab") (value := tab) htab
+  have hDirtAfter :
+      (locals.insert "DirtNew" (.int (Int.ofNat (dirt + tab).toNat))).get? "Dirt" =
+        none := by
+    rw [store_get_ne _ _ (by decide)]
+    exact hDirt
+  have hdirt1 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert "DirtNew" (.int (Int.ofNat (dirt + tab).toNat)) } evm
+        (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
+    exact evalExpr_barkStorageDirt (v := v) (evm := evm)
+      (locals := locals.insert "DirtNew" (.int (Int.ofNat (dirt + tab).toNat)))
+      hDirtAfter
+  simpa [barkLocalsDirtNew, barkDirtNewWord, dirt] using
+    dogBarkCheckedAddOk (v := v) evm (name := "DirtNew")
+      (x := .storage DirtRef) (y := .var "tab") (a := dirt) (b := tab)
+      hdirt0 htab0 hdirt1 (by simpa [dirt] using hfit)
+
+theorem dogBarkDirtAddOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {tab : UInt256}
+    (hDirt : locals.get? "Dirt" = none)
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hover :
+      UInt256.size ≤
+        (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab")) .reverted := by
+  let dirt := dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
+  have hdirt0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
+    simpa [dirt] using evalExpr_barkStorageDirt (v := v) (evm := evm)
+      (locals := locals) hDirt
+  have htab0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "tab") =
+        .ok (.int (Int.ofNat tab.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tab") (value := tab) htab
+  exact dogBarkCheckedAddOverflow (v := v) evm
+    (name := "DirtNew") (x := .storage DirtRef) (y := .var "tab")
+    hdirt0 htab0 (by simpa [dirt] using hover)
+
+theorem dogBarkDirtAssignOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dirtNew : UInt256}
+    (hDirt : locals.get? "Dirt" = none)
+    (hDirtNew : locals.get? "DirtNew" = some (.int (Int.ofNat dirtNew.toNat))) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .assign .storage DirtRef (.var "DirtNew") ]
+      (.ok { contract := contract v, locals := locals }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ dirtNew)) := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ dirtNew
+  have hval :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "DirtNew") = .ok (.int (Int.ofNat dirtNew.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "DirtNew") (value := dirtNew) hDirtNew
+  have hassign :
+      assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+        .storage DirtRef (.int (Int.ofNat dirtNew.toNat)) =
+        .ok ({ contract := contract v, locals := locals }, evm') := by
+    simpa [evm'] using assign_barkDirtStorage (v := v) evm dirtNew hDirt
+  exact ExecBlock.consNormal (ExecStmt.assign hval hassign) ExecBlock.nil
+
+theorem dogBarkIlkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {milkDirt tab : UInt256}
+    (hmilkDirt : locals.get? "milkDirt" = some (.int (Int.ofNat milkDirt.toNat)))
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hfit : milkDirt.toNat + tab.toNat < UInt256.size) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab"))
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsIlkDirtNew locals (barkIlkDirtNewWord milkDirt tab) } evm) := by
+  have hmilk0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkDirt") = .ok (.int (Int.ofNat milkDirt.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "milkDirt") (value := milkDirt) hmilkDirt
+  have htab0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "tab") =
+        .ok (.int (Int.ofNat tab.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tab") (value := tab) htab
+  have hmilk1 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals.insert "ilkDirtNew" (.int (Int.ofNat (milkDirt + tab).toNat)) }
+        evm (.var "milkDirt") = .ok (.int (Int.ofNat milkDirt.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm)
+      (locals := locals.insert "ilkDirtNew" (.int (Int.ofNat (milkDirt + tab).toNat)))
+      (name := "milkDirt") (value := milkDirt)
+      (by rw [store_get_ne _ _ (by decide)]; exact hmilkDirt)
+  simpa [barkLocalsIlkDirtNew, barkIlkDirtNewWord] using
+    dogBarkCheckedAddOk (v := v) evm (name := "ilkDirtNew")
+      (x := .var "milkDirt") (y := .var "tab") (a := milkDirt) (b := tab)
+      hmilk0 htab0 hmilk1 hfit
+
+theorem dogBarkIlkDirtAddOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {milkDirt tab : UInt256}
+    (hmilkDirt : locals.get? "milkDirt" = some (.int (Int.ofNat milkDirt.toNat)))
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hover : UInt256.size ≤ milkDirt.toNat + tab.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab")) .reverted := by
+  have hmilk0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkDirt") = .ok (.int (Int.ofNat milkDirt.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "milkDirt") (value := milkDirt) hmilkDirt
+  have htab0 :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "tab") =
+        .ok (.int (Int.ofNat tab.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tab") (value := tab) htab
+  exact dogBarkCheckedAddOverflow (v := v) evm
+    (name := "ilkDirtNew") (x := .var "milkDirt") (y := .var "tab")
+    hmilk0 htab0 hover
+
+theorem dogBarkIlkDirtAssignOkSource {v : DogImmutables} (evm : EVM.State)
+    {I : ExecutionEnv} {locals : Store} {ilkDirtNew : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hilks : locals.get? "ilks" = none)
+    (hilk : locals.get? "ilk" = some (barkIlkValue I))
+    (hIlkDirtNew :
+      locals.get? "ilkDirtNew" = some (.int (Int.ofNat ilkDirtNew.toNat))) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ]
+      (.ok { contract := contract v, locals := locals }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (barkIlksDirtSlotFor I) ilkDirtNew)) := by
+  let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+    (barkIlksDirtSlotFor I) ilkDirtNew
+  have hval :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "ilkDirtNew") = .ok (.int (Int.ofNat ilkDirtNew.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "ilkDirtNew") (value := ilkDirtNew) hIlkDirtNew
+  have hassign :
+      assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+        .storage (ilksF (.var "ilk") "dirt") (.int (Int.ofNat ilkDirtNew.toNat)) =
+        .ok ({ contract := contract v, locals := locals }, evm') := by
+    simpa [evm'] using
+      assign_barkIlkDirtStorage (v := v) evm (I := I) hsz100 ilkDirtNew hilks hilk
+  exact ExecBlock.consNormal (ExecStmt.assign hval hassign) ExecBlock.nil
+
+theorem evalExprs_barkKickArgs {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {tab dink : UInt256} {urn kpr : AccountAddress}
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hurn : locals.get? "urn" = some (.address urn))
+    (hkpr : locals.get? "kpr" = some (.address kpr)) :
+    evalExprs? (config v) { contract := contract v, locals := locals } evm
+      [.var "tab", .var "dink", .var "urn", .var "kpr"] =
+      .ok [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+        .address urn, .address kpr] := by
+  have htabExpr :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "tab") (value := tab) htab
+  have hdinkExpr :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hurnExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "urn") = .ok (.address urn) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "urn") =
+      .ok (.address urn)
+    rw [hurn]
+    rfl
+  have hkprExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "kpr") = .ok (.address kpr) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "kpr") =
+      .ok (.address kpr)
+    rw [hkpr]
+    rfl
+  simp [evalExprs?, htabExpr, hdinkExpr, hurnExpr, hkprExpr, EvalResult.bind, bind, pure]
+
+theorem dogBarkKickNoCodeBlock {v : DogImmutables} {evm : EVM.State}
+    {locals : Store}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var "milkClip")) (.intLit 0)) = .ok (.bool false)) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+        [.var "tab", .var "dink", .var "urn", .var "kpr"] "id")
+      .reverted := by
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallNoCode
+      (cfg := config v) (C := contract v) (evm := evm) (locals := locals)
+      (receiver := .var "milkClip") (name := "kick") (sendVal := 0)
+      (args := [.var "tab", .var "dink", .var "urn", .var "kpr"])
+      (retVar := "id") (perm := true) hguard)
+
+theorem dogBarkKickCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {outKick : ByteArray} {milkClip tab dink : UInt256}
+    {urn kpr : AccountAddress}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var "milkClip")) (.intLit 0)) = .ok (.bool true))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hurn : locals.get? "urn" = some (.address urn))
+    (hkpr : locals.get? "kpr" = some (.address kpr))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat milkClip.toNat)) "kick" 0
+        [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat), .address urn,
+          .address kpr]
+        (false, evm', outKick) true) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+        [.var "tab", .var "dink", .var "urn", .var "kpr"] "id")
+      .reverted := by
+  have hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkClip") = .ok (.address (AccountAddress.ofNat milkClip.toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "milkClip") =
+      .ok (.address (AccountAddress.ofNat milkClip.toNat))
+    rw [hmilkClip]
+    rfl
+  have hargs :=
+    evalExprs_barkKickArgs (v := v) (evm := evm) (locals := locals)
+      (tab := tab) (dink := dink) (urn := urn) (kpr := kpr)
+      htab hdink hurn hkpr
+  simpa [checkedExternalCallStmts] using
+    (checkedExternalCallFailure
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := .var "milkClip") (retVar := "id")
+      (name := "kick") (target := AccountAddress.ofNat milkClip.toNat)
+      (sendVal := 0)
+      (args := [.var "tab", .var "dink", .var "urn", .var "kpr"])
+      (argVals := [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+        .address urn, .address kpr])
+      (out := outKick) (perm := true) hguard hreceiver hargs hcall)
+
+theorem dogBarkKickDecodeRevertBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {outKick : ByteArray} {milkClip tab dink : UInt256}
+    {urn kpr : AccountAddress}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var "milkClip")) (.intLit 0)) = .ok (.bool true))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hurn : locals.get? "urn" = some (.address urn))
+    (hkpr : locals.get? "kpr" = some (.address kpr))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat milkClip.toNat)) "kick" 0
+        [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat), .address urn,
+          .address kpr]
+        (true, evm', outKick) true)
+    (hdec : (config v).externalABI.decode? "kick" outKick = none) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+        [.var "tab", .var "dink", .var "urn", .var "kpr"] "id")
+      .reverted := by
+  have hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkClip") = .ok (.address (AccountAddress.ofNat milkClip.toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "milkClip") =
+      .ok (.address (AccountAddress.ofNat milkClip.toNat))
+    rw [hmilkClip]
+    rfl
+  have hargs :=
+    evalExprs_barkKickArgs (v := v) (evm := evm) (locals := locals)
+      (tab := tab) (dink := dink) (urn := urn) (kpr := kpr)
+      htab hdink hurn hkpr
+  have hstmt :
+      ExecStmt (config v) { contract := contract v, locals := locals } evm
+        (.externalCall (.var "milkClip") "kick" (.intLit 0)
+          [.var "tab", .var "dink", .var "urn", .var "kpr"] "id")
+        .reverted := by
+    exact ExecStmt.externalCallReturnDecodeRevert hreceiver (by simp [evalExpr?, pure])
+      hargs hcall hdec
+  simp only [checkedExternalCallStmts, List.cons_append, List.nil_append]
+  exact ExecBlock.consNormal (ExecStmt.requireTrue hguard)
+    (ExecBlock.consRevert hstmt)
+
+theorem dogBarkKickCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State}
+    {locals : Store} {outKick : ByteArray} {milkClip tab dink id : UInt256}
+    {urn kpr : AccountAddress}
+    (hguard :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.extCodeSize (.var "milkClip")) (.intLit 0)) = .ok (.bool true))
+    (hmilkClip :
+      locals.get? "milkClip" =
+        some (.address (AccountAddress.ofNat milkClip.toNat)))
+    (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hurn : locals.get? "urn" = some (.address urn))
+    (hkpr : locals.get? "kpr" = some (.address kpr))
+    (hcall :
+      typedCallViaEVM (config v) evm
+        (EVM.address (AccountAddress.ofNat milkClip.toNat)) "kick" 0
+        [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat), .address urn,
+          .address kpr]
+        (true, evm', outKick) true)
+    (hdec :
+      (config v).externalABI.decode? "kick" outKick =
+        some [.int (Int.ofNat id.toNat)]) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+        [.var "tab", .var "dink", .var "urn", .var "kpr"] "id")
+      (.ok { contract := contract v, locals := barkLocalsId locals id } evm') := by
+  have hreceiver :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "milkClip") = .ok (.address (AccountAddress.ofNat milkClip.toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable (locals.get? "milkClip") =
+      .ok (.address (AccountAddress.ofNat milkClip.toNat))
+    rw [hmilkClip]
+    rfl
+  have hargs :=
+    evalExprs_barkKickArgs (v := v) (evm := evm) (locals := locals)
+      (tab := tab) (dink := dink) (urn := urn) (kpr := kpr)
+      htab hdink hurn hkpr
+  simpa [checkedExternalCallStmts, barkLocalsId, collapseReturns] using
+    (checkedExternalCallSuccess
+      (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
+      (locals := locals) (receiver := .var "milkClip") (retVar := "id")
+      (name := "kick") (target := AccountAddress.ofNat milkClip.toNat)
+      (sendVal := 0)
+      (args := [.var "tab", .var "dink", .var "urn", .var "kpr"])
+      (argVals := [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+        .address urn, .address kpr])
+      (out := outKick) (perm := true) (value := [.int (Int.ofNat id.toNat)])
+      hguard hreceiver hargs hcall hdec)
+
+theorem dogBarkReturnIdBlock {v : DogImmutables} {evm : EVM.State}
+    {locals : Store} {id : UInt256}
+    (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat))) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .return [.var "id"] ]
+      (.returned { contract := contract v, locals := locals } evm
+        (some [.int (Int.ofNat id.toNat)])) := by
+  have hidExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "id") = .ok (.int (Int.ofNat id.toNat)) :=
+    evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "id") (value := id) hid
+  exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hidExpr))
+
+theorem dogAssignLocalVarBaseOk {v : DogImmutables} {evm : EVM.State} {locals : Store}
+    {name : Ident} {old value : Value}
+    (hget : locals.get? name = some old) :
+    assignStorageRef? (config v) { contract := contract v, locals := locals } evm .localVar
+        { base := name } value =
+      .ok ({ contract := contract v, locals := locals.insert name value }, evm) := by
+  simp only [assignStorageRef?, updateLocalPath?, EvalResult.bind, bind, pure]
+  change (match locals.get? name with
+    | some _ =>
+        EvalResult.ok (({ contract := contract v, locals := locals.insert name value } : Frame),
+          evm)
+    | none => EvalResult.error EvalError.unboundVariable) =
+      EvalResult.ok (({ contract := contract v, locals := locals.insert name value } : Frame),
+        evm)
+  rw [hget]
+
+theorem dogBarkLeftoverDuePrefixOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hleftover :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat <
+        (barkVatUrnsArtWord out).toNat)
+    (hfitLeftoverDue :
+      (barkLeftoverArtWord (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+        checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate"))
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDart evmUrns evmIlks I out outIlks
+  let locals1 := barkLocalsLeftoverArt evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dart := barkSourceDartWord evmUrns evmIlks I out outIlks
+  let rate := barkVatIlksRateWord outIlks
+  let leftoverArt := barkLeftoverArtWord art dart
+  have hart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals0, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dart") (value := dart)
+        (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)
+  have hart1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals1, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals1)
+        (name := "art") (value := art)
+        (barkLocalsLeftoverArt_get_preserved (by decide)
+          (barkLocalsDart_get_art evmUrns evmIlks I out outIlks))
+  have hsub :
+      ExecBlock (config v) { contract := contract v, locals := locals0 } evmIlks
+        (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart"))
+        (.ok { contract := contract v, locals := locals1 } evmIlks) := by
+    simpa [locals0, locals1, art, dart, leftoverArt, barkLeftoverArtWord] using
+      dogBarkCheckedSubOk (v := v) evmIlks (name := "leftoverArt")
+        (x := .var "art") (y := .var "dart") (a := art) (b := dart)
+        hart0 hdart0 hart1 (le_of_lt hleftover)
+  have hleftoverArt1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.var "leftoverArt") = .ok (.int (Int.ofNat leftoverArt.toNat)) := by
+    simpa [locals1, leftoverArt, art, dart, barkLeftoverArtWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals1)
+        (name := "leftoverArt") (value := leftoverArt)
+        (barkLocalsLeftoverArt_get_leftoverArt evmUrns evmIlks I out outIlks)
+  have hrate1 :
+      evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [locals1, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals1)
+        (name := "rate") (value := rate)
+        (barkLocalsLeftoverArt_get_preserved (by decide)
+          (barkLocalsDart_get_rate evmUrns evmIlks I out outIlks))
+  have hleftoverArt2 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals1.insert "leftoverDue"
+            (.int (Int.ofNat (leftoverArt * rate).toNat)) } evmIlks
+        (.var "leftoverArt") = .ok (.int (Int.ofNat leftoverArt.toNat)) := by
+    simpa [locals1, leftoverArt, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks)
+        (locals := locals1.insert "leftoverDue"
+          (.int (Int.ofNat (leftoverArt * rate).toNat)))
+        (name := "leftoverArt") (value := leftoverArt)
+        (by
+          rw [store_get_ne _ _ (by decide)]
+          simpa [locals1, leftoverArt, art, dart, barkLeftoverArtWord] using
+            barkLocalsLeftoverArt_get_leftoverArt evmUrns evmIlks I out outIlks)
+  have hrate2 :
+      evalExpr? (config v)
+        { contract := contract v,
+          locals := locals1.insert "leftoverDue"
+            (.int (Int.ofNat (leftoverArt * rate).toNat)) } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [locals1, rate, leftoverArt] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks)
+        (locals := locals1.insert "leftoverDue"
+          (.int (Int.ofNat (leftoverArt * rate).toNat)))
+        (name := "rate") (value := rate)
+        (by
+          rw [store_get_ne _ _ (by decide)]
+          exact barkLocalsLeftoverArt_get_preserved (evmUrns := evmUrns)
+            (evmIlks := evmIlks) (I := I) (out := out) (outIlks := outIlks)
+            (name := "rate") (value := .int (Int.ofNat rate.toNat)) (by decide)
+            (by simpa [rate] using
+              barkLocalsDart_get_rate evmUrns evmIlks I out outIlks))
+  have hmul :
+      ExecBlock (config v) { contract := contract v, locals := locals1 } evmIlks
+        (checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate"))
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [locals1, art, dart, rate, leftoverArt, barkLeftoverArtWord,
+      barkLocalsLeftoverDue] using
+      dogBarkCheckedMulOk (v := v) evmIlks (name := "leftoverDue")
+        (x := .var "leftoverArt") (y := .var "rate")
+        (a := leftoverArt) (b := rate)
+        hleftoverArt1 hrate1 hleftoverArt2 hrate2
+        (by simpa [art, dart, rate, leftoverArt] using hfitLeftoverDue)
+  simpa [locals0] using execBlock_append hsub hmul
+
+theorem dogBarkDustyLeftoverIteOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hleftover :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat <
+        (barkVatUrnsArtWord out).toNat)
+    (hfitLeftoverDue :
+      (barkLeftoverArtWord (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size)
+    (hdusty :
+      (barkLeftoverDueWord (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)
+        (barkVatIlksRateWord outIlks)).toNat <
+        (barkVatIlksDustWord outIlks).toNat) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .ite
+          (.binary .gt (.var "art") (.var "dart"))
+          (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+            checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+            [ .ite
+                (.binary .lt (.var "leftoverDue") (.var "dust"))
+                [ .assign .localVar (varRef "dart") (.var "art") ]
+                (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                  [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+          [] ]
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsDustyDart evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDart evmUrns evmIlks I out outIlks
+  let localsDue := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dart := barkSourceDartWord evmUrns evmIlks I out outIlks
+  let rate := barkVatIlksRateWord outIlks
+  let dust := barkVatIlksDustWord outIlks
+  let leftoverDue := barkLeftoverDueWord art dart rate
+  have hart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals0, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dart") (value := dart)
+        (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)
+  have houter :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .gt (.var "art") (.var "dart")) = .ok (.bool true) := by
+    apply evalExpr_bark_gt_int_true hart0 hdart0
+    exact Int.ofNat_lt.mpr (by simpa [art, dart] using hleftover)
+  have hprefix :=
+    dogBarkLeftoverDuePrefixOk (v := v) evmUrns evmIlks I out outIlks
+      hleftover hfitLeftoverDue
+  have hleftoverDueExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "leftoverDue") = .ok (.int (Int.ofNat leftoverDue.toNat)) := by
+    simpa [localsDue, leftoverDue, art, dart, rate, barkLeftoverDueWord,
+      barkLeftoverArtWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "leftoverDue") (value := leftoverDue)
+        (barkLocalsLeftoverDue_get_leftoverDue evmUrns evmIlks I out outIlks)
+  have hdustExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "dust") = .ok (.int (Int.ofNat dust.toNat)) := by
+    simpa [localsDue, dust] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "dust") (value := dust)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_dust evmUrns evmIlks I out outIlks)))
+  have hinnerCond :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.binary .lt (.var "leftoverDue") (.var "dust")) = .ok (.bool true) := by
+    apply evalExpr_bark_lt_int_true hleftoverDueExpr hdustExpr
+    exact Int.ofNat_lt.mpr (by simpa [leftoverDue, art, dart, rate] using hdusty)
+  have hartDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [localsDue, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "art") (value := art)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)))
+  have hdartDueGet :
+      (barkLocalsLeftoverDue evmUrns evmIlks I out outIlks).get? "dart" =
+        some (.int (Int.ofNat dart.toNat)) := by
+    simpa [dart] using
+      barkLocalsLeftoverDue_get_preserved (evmUrns := evmUrns) (evmIlks := evmIlks)
+        (I := I) (out := out) (outIlks := outIlks)
+        (name := "dart") (value := .int (Int.ofNat dart.toNat)) (by decide)
+        (barkLocalsLeftoverArt_get_preserved (evmUrns := evmUrns) (evmIlks := evmIlks)
+          (I := I) (out := out) (outIlks := outIlks)
+          (name := "dart") (value := .int (Int.ofNat dart.toNat)) (by decide)
+          (by simpa [dart] using
+            barkLocalsDart_get_dart evmUrns evmIlks I out outIlks))
+  have hassign :
+      assignStorageRef? (config v)
+        { contract := contract v, locals := localsDue } evmIlks .localVar
+        (varRef "dart") (.int (Int.ofNat art.toNat)) =
+      EvalResult.ok
+        (({ contract := contract v,
+            locals := barkLocalsDustyDart evmUrns evmIlks I out outIlks } : Frame),
+          evmIlks) := by
+    simpa [localsDue, art, barkLocalsDustyDart, varRef] using
+      dogAssignLocalVarBaseOk (v := v) (evm := evmIlks)
+        (locals := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks)
+        (name := "dart") (old := .int (Int.ofNat dart.toNat))
+        (value := .int (Int.ofNat art.toNat)) hdartDueGet
+  have hinner :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        [ .ite
+            (.binary .lt (.var "leftoverDue") (.var "dust"))
+            [ .assign .localVar (varRef "dart") (.var "art") ]
+            (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+              [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ]
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsDustyDart evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    exact ExecBlock.consNormal
+      (ExecStmt.iteTrue hinnerCond
+        (ExecBlock.consNormal (ExecStmt.assign hartDue hassign) ExecBlock.nil))
+      ExecBlock.nil
+  have hthen :
+      ExecBlock (config v) { contract := contract v, locals := locals0 } evmIlks
+        (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+          checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+          [ .ite
+              (.binary .lt (.var "leftoverDue") (.var "dust"))
+              [ .assign .localVar (varRef "dart") (.var "art") ]
+              (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+        (.ok
+          { contract := contract v,
+            locals := barkLocalsDustyDart evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hprefix hinner
+  exact ExecBlock.consNormal (ExecStmt.iteTrue houter hthen) ExecBlock.nil
+
+theorem dogBarkPartialLeftoverIteOk {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hleftover :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat <
+        (barkVatUrnsArtWord out).toNat)
+    (hfitLeftoverDue :
+      (barkLeftoverArtWord (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size)
+    (hnotDusty :
+      (barkVatIlksDustWord outIlks).toNat ≤
+        (barkLeftoverDueWord (barkVatUrnsArtWord out)
+          (barkSourceDartWord evmUrns evmIlks I out outIlks)
+          (barkVatIlksRateWord outIlks)).toNat)
+    (hfitPartialDue :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size)
+    (hpartialDueOk :
+      (barkVatIlksDustWord outIlks).toNat ≤
+        (barkPartialDueWord (barkSourceDartWord evmUrns evmIlks I out outIlks)
+          (barkVatIlksRateWord outIlks)).toNat) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .ite
+          (.binary .gt (.var "art") (.var "dart"))
+          (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+            checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+            [ .ite
+                (.binary .lt (.var "leftoverDue") (.var "dust"))
+                [ .assign .localVar (varRef "dart") (.var "art") ]
+                (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                  [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+          [] ]
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsPartialDue evmUrns evmIlks I out outIlks }
+        evmIlks) := by
+  let locals0 := barkLocalsDart evmUrns evmIlks I out outIlks
+  let localsDue := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks
+  let localsPartial := barkLocalsPartialDue evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dart := barkSourceDartWord evmUrns evmIlks I out outIlks
+  let rate := barkVatIlksRateWord outIlks
+  let dust := barkVatIlksDustWord outIlks
+  let leftoverDue := barkLeftoverDueWord art dart rate
+  let partialDue := barkPartialDueWord dart rate
+  have hart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals0, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dart") (value := dart)
+        (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)
+  have houter :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .gt (.var "art") (.var "dart")) = .ok (.bool true) := by
+    apply evalExpr_bark_gt_int_true hart0 hdart0
+    exact Int.ofNat_lt.mpr (by simpa [art, dart] using hleftover)
+  have hprefix :=
+    dogBarkLeftoverDuePrefixOk (v := v) evmUrns evmIlks I out outIlks
+      hleftover hfitLeftoverDue
+  have hleftoverDueExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "leftoverDue") = .ok (.int (Int.ofNat leftoverDue.toNat)) := by
+    simpa [localsDue, leftoverDue, art, dart, rate, barkLeftoverDueWord,
+      barkLeftoverArtWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "leftoverDue") (value := leftoverDue)
+        (barkLocalsLeftoverDue_get_leftoverDue evmUrns evmIlks I out outIlks)
+  have hdustDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "dust") = .ok (.int (Int.ofNat dust.toNat)) := by
+    simpa [localsDue, dust] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "dust") (value := dust)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_dust evmUrns evmIlks I out outIlks)))
+  have hinnerCond :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.binary .lt (.var "leftoverDue") (.var "dust")) = .ok (.bool false) := by
+    apply evalExpr_bark_lt_int_false hleftoverDueExpr hdustDue
+    exact not_lt.mpr (Int.ofNat_le.mpr (by simpa [leftoverDue, art, dart, rate] using hnotDusty))
+  have hdartDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [localsDue, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "dart") (value := dart)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)))
+  have hrateDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [localsDue, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "rate") (value := rate)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_rate evmUrns evmIlks I out outIlks)))
+  have hdartPartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [localsPartial, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "dart") (value := dart)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks))))
+  have hratePartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [localsPartial, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "rate") (value := rate)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_rate evmUrns evmIlks I out outIlks))))
+  have hmulPartial :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        (checkedMulUintInto "partialDue" (.var "dart") (.var "rate"))
+        (.ok { contract := contract v, locals := localsPartial } evmIlks) := by
+    simpa [localsDue, localsPartial, dart, rate, partialDue, barkPartialDueWord,
+      barkLocalsPartialDue] using
+      dogBarkCheckedMulOk (v := v) evmIlks (name := "partialDue")
+        (x := .var "dart") (y := .var "rate") (a := dart) (b := rate)
+        hdartDue hrateDue hdartPartial hratePartial
+        (by simpa [dart, rate] using hfitPartialDue)
+  have hpartialDueExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "partialDue") = .ok (.int (Int.ofNat partialDue.toNat)) := by
+    simpa [localsPartial, partialDue, dart, rate, barkPartialDueWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "partialDue") (value := partialDue)
+        (barkLocalsPartialDue_get_partialDue evmUrns evmIlks I out outIlks)
+  have hdustPartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "dust") = .ok (.int (Int.ofNat dust.toNat)) := by
+    simpa [localsPartial, dust] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "dust") (value := dust)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_dust evmUrns evmIlks I out outIlks))))
+  have hreqExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.binary .ge (.var "partialDue") (.var "dust")) = .ok (.bool true) := by
+    apply evalExpr_bark_ge_int_true hpartialDueExpr hdustPartial
+    exact Int.ofNat_le.mpr (by simpa [partialDue, dart, rate] using hpartialDueOk)
+  have helse :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+          [ .require (.binary .ge (.var "partialDue") (.var "dust")) ])
+        (.ok { contract := contract v, locals := localsPartial } evmIlks) := by
+    exact execBlock_append hmulPartial
+      (ExecBlock.consNormal (ExecStmt.requireTrue hreqExpr) ExecBlock.nil)
+  have hinner :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        [ .ite
+            (.binary .lt (.var "leftoverDue") (.var "dust"))
+            [ .assign .localVar (varRef "dart") (.var "art") ]
+            (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+              [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ]
+        (.ok { contract := contract v, locals := localsPartial } evmIlks) := by
+    exact ExecBlock.consNormal (ExecStmt.iteFalse hinnerCond helse) ExecBlock.nil
+  have hthen :
+      ExecBlock (config v) { contract := contract v, locals := locals0 } evmIlks
+        (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+          checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+          [ .ite
+              (.binary .lt (.var "leftoverDue") (.var "dust"))
+              [ .assign .localVar (varRef "dart") (.var "art") ]
+              (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+        (.ok { contract := contract v, locals := localsPartial } evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hprefix hinner
+  exact ExecBlock.consNormal (ExecStmt.iteTrue houter hthen) ExecBlock.nil
+
+theorem dogBarkPartialLeftoverIteRevert {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hleftover :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat <
+        (barkVatUrnsArtWord out).toNat)
+    (hfitLeftoverDue :
+      (barkLeftoverArtWord (barkVatUrnsArtWord out)
+        (barkSourceDartWord evmUrns evmIlks I out outIlks)).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size)
+    (hnotDusty :
+      (barkVatIlksDustWord outIlks).toNat ≤
+        (barkLeftoverDueWord (barkVatUrnsArtWord out)
+          (barkSourceDartWord evmUrns evmIlks I out outIlks)
+          (barkVatIlksRateWord outIlks)).toNat)
+    (hfitPartialDue :
+      (barkSourceDartWord evmUrns evmIlks I out outIlks).toNat *
+        (barkVatIlksRateWord outIlks).toNat < UInt256.size)
+    (hpartialDueBad :
+      (barkPartialDueWord (barkSourceDartWord evmUrns evmIlks I out outIlks)
+          (barkVatIlksRateWord outIlks)).toNat <
+        (barkVatIlksDustWord outIlks).toNat) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .ite
+          (.binary .gt (.var "art") (.var "dart"))
+          (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+            checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+            [ .ite
+                (.binary .lt (.var "leftoverDue") (.var "dust"))
+                [ .assign .localVar (varRef "dart") (.var "art") ]
+                (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                  [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+          [] ]
+      .reverted := by
+  let locals0 := barkLocalsDart evmUrns evmIlks I out outIlks
+  let localsDue := barkLocalsLeftoverDue evmUrns evmIlks I out outIlks
+  let localsPartial := barkLocalsPartialDue evmUrns evmIlks I out outIlks
+  let art := barkVatUrnsArtWord out
+  let dart := barkSourceDartWord evmUrns evmIlks I out outIlks
+  let rate := barkVatIlksRateWord outIlks
+  let dust := barkVatIlksDustWord outIlks
+  let leftoverDue := barkLeftoverDueWord art dart rate
+  let partialDue := barkPartialDueWord dart rate
+  have hart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0, art] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsDart_get_art evmUrns evmIlks I out outIlks)
+  have hdart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [locals0, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dart") (value := dart)
+        (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)
+  have houter :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .gt (.var "art") (.var "dart")) = .ok (.bool true) := by
+    apply evalExpr_bark_gt_int_true hart0 hdart0
+    exact Int.ofNat_lt.mpr (by simpa [art, dart] using hleftover)
+  have hprefix :=
+    dogBarkLeftoverDuePrefixOk (v := v) evmUrns evmIlks I out outIlks
+      hleftover hfitLeftoverDue
+  have hleftoverDueExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "leftoverDue") = .ok (.int (Int.ofNat leftoverDue.toNat)) := by
+    simpa [localsDue, leftoverDue, art, dart, rate, barkLeftoverDueWord,
+      barkLeftoverArtWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "leftoverDue") (value := leftoverDue)
+        (barkLocalsLeftoverDue_get_leftoverDue evmUrns evmIlks I out outIlks)
+  have hdustDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "dust") = .ok (.int (Int.ofNat dust.toNat)) := by
+    simpa [localsDue, dust] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "dust") (value := dust)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_dust evmUrns evmIlks I out outIlks)))
+  have hinnerCond :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.binary .lt (.var "leftoverDue") (.var "dust")) = .ok (.bool false) := by
+    apply evalExpr_bark_lt_int_false hleftoverDueExpr hdustDue
+    exact not_lt.mpr (Int.ofNat_le.mpr (by simpa [leftoverDue, art, dart, rate] using hnotDusty))
+  have hdartDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [localsDue, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "dart") (value := dart)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks)))
+  have hrateDue :
+      evalExpr? (config v) { contract := contract v, locals := localsDue } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [localsDue, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsDue)
+        (name := "rate") (value := rate)
+        (barkLocalsLeftoverDue_get_preserved (by decide)
+          (barkLocalsLeftoverArt_get_preserved (by decide)
+            (barkLocalsDart_get_rate evmUrns evmIlks I out outIlks)))
+  have hdartPartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    simpa [localsPartial, dart] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "dart") (value := dart)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_dart evmUrns evmIlks I out outIlks))))
+  have hratePartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "rate") = .ok (.int (Int.ofNat rate.toNat)) := by
+    simpa [localsPartial, rate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "rate") (value := rate)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_rate evmUrns evmIlks I out outIlks))))
+  have hmulPartial :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        (checkedMulUintInto "partialDue" (.var "dart") (.var "rate"))
+        (.ok { contract := contract v, locals := localsPartial } evmIlks) := by
+    simpa [localsDue, localsPartial, dart, rate, partialDue, barkPartialDueWord,
+      barkLocalsPartialDue] using
+      dogBarkCheckedMulOk (v := v) evmIlks (name := "partialDue")
+        (x := .var "dart") (y := .var "rate") (a := dart) (b := rate)
+        hdartDue hrateDue hdartPartial hratePartial
+        (by simpa [dart, rate] using hfitPartialDue)
+  have hpartialDueExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "partialDue") = .ok (.int (Int.ofNat partialDue.toNat)) := by
+    simpa [localsPartial, partialDue, dart, rate, barkPartialDueWord] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "partialDue") (value := partialDue)
+        (barkLocalsPartialDue_get_partialDue evmUrns evmIlks I out outIlks)
+  have hdustPartial :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.var "dust") = .ok (.int (Int.ofNat dust.toNat)) := by
+    simpa [localsPartial, dust] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := localsPartial)
+        (name := "dust") (value := dust)
+        (barkLocalsPartialDue_get_preserved (by decide)
+          (barkLocalsLeftoverDue_get_preserved (by decide)
+            (barkLocalsLeftoverArt_get_preserved (by decide)
+              (barkLocalsDart_get_dust evmUrns evmIlks I out outIlks))))
+  have hreqExpr :
+      evalExpr? (config v) { contract := contract v, locals := localsPartial } evmIlks
+        (.binary .ge (.var "partialDue") (.var "dust")) = .ok (.bool false) := by
+    apply evalExpr_bark_ge_int_false hpartialDueExpr hdustPartial
+    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [partialDue, dart, rate, dust] using hpartialDueBad))
+  have helse :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+          [ .require (.binary .ge (.var "partialDue") (.var "dust")) ])
+        .reverted :=
+    execBlock_append hmulPartial (ExecBlock.consRevert (ExecStmt.requireFalse hreqExpr))
+  have hinner :
+      ExecBlock (config v) { contract := contract v, locals := localsDue } evmIlks
+        [ .ite
+            (.binary .lt (.var "leftoverDue") (.var "dust"))
+            [ .assign .localVar (varRef "dart") (.var "art") ]
+            (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+              [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ]
+        .reverted :=
+    ExecBlock.consRevert (ExecStmt.iteFalse hinnerCond helse)
+  have hthen :
+      ExecBlock (config v) { contract := contract v, locals := locals0 } evmIlks
+        (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+          checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+          [ .ite
+              (.binary .lt (.var "leftoverDue") (.var "dust"))
+              [ .assign .localVar (varRef "dart") (.var "art") ]
+              (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+        .reverted := by
+    simpa [List.append_assoc] using
+      execBlock_append hprefix hinner
+  exact ExecBlock.consRevert (ExecStmt.iteTrue houter hthen)
+
+theorem dogBarkDinkLetOk {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {inkDart art : UInt256}
+    (hart : locals.get? "art" = some (.int (Int.ofNat art.toNat)))
+    (hartNe : art ≠ ⟨0⟩) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsInkDart locals inkDart } evm
+      [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+      (.ok
+        { contract := contract v,
+          locals := barkLocalsDink (barkLocalsInkDart locals inkDart)
+            (UInt256.div inkDart art) }
+        evm) := by
+  let locals0 := barkLocalsInkDart locals inkDart
+  let dink := UInt256.div inkDart art
+  have hinkDart :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evm
+        (.var "inkDart") = .ok (.int (Int.ofNat inkDart.toNat)) := by
+    simpa [locals0] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals0)
+        (name := "inkDart") (value := inkDart)
+        (barkLocalsInkDart_get_inkDart locals inkDart)
+  have hart0 :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evm
+        (.var "art") = .ok (.int (Int.ofNat art.toNat)) := by
+    simpa [locals0] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals0)
+        (name := "art") (value := art)
+        (barkLocalsInkDart_get_preserved (by decide) hart)
+  have hdiv :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evm
+        (.binary .div (.var "inkDart") (.var "art")) =
+          .ok (.int (Int.ofNat dink.toNat)) := by
+    exact evalExpr_bark_div_uint256_ok hinkDart hart0 hartNe (by simp [dink])
+  have hlet :
+      ExecStmt (config v) { contract := contract v, locals := locals0 } evm
+        (.letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")))
+        (.ok { contract := contract v, locals := barkLocalsDink locals0 dink } evm) := by
+    simpa [locals0, dink, barkLocalsDink] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := { contract := contract v, locals := locals0 })
+        (evm := evm) (name := "dink") (ty := some uint256)
+        (expr := .binary .div (.var "inkDart") (.var "art"))
+        (value := .int (Int.ofNat dink.toNat)) hdiv)
+  exact ExecBlock.consNormal hlet ExecBlock.nil
+
+theorem dogBarkDinkGuardOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dink : UInt256}
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdinkPos : 0 < dink.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .require (.binary .gt (.var "dink") (.intLit 0)) ]
+      (.ok { contract := contract v, locals := locals } evm) := by
+  have hdinkExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dink") = .ok (.int (Int.ofNat dink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.var "dink") (.intLit 0)) = .ok (.bool true) := by
+    apply evalExpr_bark_gt_int_true hdinkExpr hzero
+    exact Int.ofNat_lt.mpr hdinkPos
+  exact ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil
+
+theorem dogBarkDinkGuardRevertSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dink : UInt256}
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdinkNotPos : ¬ 0 < dink.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .require (.binary .gt (.var "dink") (.intLit 0)) ] .reverted := by
+  have hdinkExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dink") = .ok (.int (Int.ofNat dink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit 0) = .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .gt (.var "dink") (.intLit 0)) = .ok (.bool false) := by
+    apply evalExpr_bark_gt_int_false hdinkExpr hzero
+    exact not_lt.mpr (Int.ofNat_le.mpr (Nat.eq_zero_of_not_pos hdinkNotPos ▸ Nat.zero_le _))
+  exact ExecBlock.consRevert (ExecStmt.requireFalse hreq)
+
+theorem dogBarkInt256GuardOkSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dart dink : UInt256}
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .require
+          (.binary .and
+            (.binary .le (.var "dart") (.intLit int256Limit))
+            (.binary .le (.var "dink") (.intLit int256Limit))) ]
+      (.ok { contract := contract v, locals := locals } evm) := by
+  have hdartExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hdinkExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dink") = .ok (.int (Int.ofNat dink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hlimit :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
+    have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
+      native_decide
+    simpa [evalExpr?, pure, hnat]
+  have hdartLe :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .le (.var "dart") (.intLit int256Limit)) = .ok (.bool true) := by
+    apply evalExpr_bark_le_int_true hdartExpr hlimit
+    exact Int.ofNat_le.mpr hdartBound
+  have hdinkLe :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .le (.var "dink") (.intLit int256Limit)) = .ok (.bool true) := by
+    apply evalExpr_bark_le_int_true hdinkExpr hlimit
+    exact Int.ofNat_le.mpr hdinkBound
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .and
+          (.binary .le (.var "dart") (.intLit int256Limit))
+          (.binary .le (.var "dink") (.intLit int256Limit)) ) = .ok (.bool true) := by
+    simpa using evalExpr_bark_and_true_right hdartLe hdinkLe
+  exact ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil
+
+theorem dogBarkInt256GuardDartOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dart dink : UInt256}
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdartOverflow : dogInt256LimitWord.toNat < dart.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .require
+          (.binary .and
+            (.binary .le (.var "dart") (.intLit int256Limit))
+            (.binary .le (.var "dink") (.intLit int256Limit))) ]
+      .reverted := by
+  have hdartExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hlimit :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
+    have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
+      native_decide
+    simpa [evalExpr?, pure, hnat]
+  have hdartLe :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .le (.var "dart") (.intLit int256Limit)) = .ok (.bool false) := by
+    apply evalExpr_bark_le_int_false hdartExpr hlimit
+    exact not_le.mpr (Int.ofNat_lt.mpr hdartOverflow)
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .and
+          (.binary .le (.var "dart") (.intLit int256Limit))
+          (.binary .le (.var "dink") (.intLit int256Limit)) ) = .ok (.bool false) :=
+    evalExpr_bark_and_false_left hdartLe
+  exact ExecBlock.consRevert (ExecStmt.requireFalse hreq)
+
+theorem dogBarkInt256GuardDinkOverflowSource {v : DogImmutables} (evm : EVM.State)
+    {locals : Store} {dart dink : UInt256}
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
+    (hdinkOverflow : dogInt256LimitWord.toNat < dink.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      [ .require
+          (.binary .and
+            (.binary .le (.var "dart") (.intLit int256Limit))
+            (.binary .le (.var "dink") (.intLit int256Limit))) ]
+      .reverted := by
+  have hdartExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dart") = .ok (.int (Int.ofNat dart.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dart") (value := dart) hdart
+  have hdinkExpr :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.var "dink") = .ok (.int (Int.ofNat dink.toNat)) := by
+    exact evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+      (name := "dink") (value := dink) hdink
+  have hlimit :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
+    have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
+      native_decide
+    simpa [evalExpr?, pure, hnat]
+  have hdartLe :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .le (.var "dart") (.intLit int256Limit)) = .ok (.bool true) := by
+    apply evalExpr_bark_le_int_true hdartExpr hlimit
+    exact Int.ofNat_le.mpr hdartBound
+  have hdinkLe :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .le (.var "dink") (.intLit int256Limit)) = .ok (.bool false) := by
+    apply evalExpr_bark_le_int_false hdinkExpr hlimit
+    exact not_le.mpr (Int.ofNat_lt.mpr hdinkOverflow)
+  have hreq :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.binary .and
+          (.binary .le (.var "dart") (.intLit int256Limit))
+          (.binary .le (.var "dink") (.intLit int256Limit)) ) = .ok (.bool false) :=
+    evalExpr_bark_and_true_right hdartLe hdinkLe
+  exact ExecBlock.consRevert (ExecStmt.requireFalse hreq)
+
+theorem dogBarkDartCandidateDivZero {v : DogImmutables}
+    (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
+    (hchopZero :
+      dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
+      evmIlks
+      [ .letDecl "dartCandidate" (some uint256)
+          (.binary .div (.var "dartByRate") (.var "milkChop")) ]
+      .reverted := by
+  let locals0 := barkLocalsDartByRate evmUrns evmIlks I out outIlks
+  let dartByRate := barkSourceDartByRateWord evmUrns evmIlks I outIlks
+  let chop := dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+  have hdartByRate :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "dartByRate") = .ok (.int (Int.ofNat dartByRate.toNat)) := by
+    simpa [locals0, dartByRate] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "dartByRate") (value := dartByRate)
+        (barkLocalsDartByRate_get_dartByRate evmUrns evmIlks I out outIlks)
+  have hchop :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.var "milkChop") = .ok (.int (Int.ofNat chop.toNat)) := by
+    simpa [locals0, chop] using
+      evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals0)
+        (name := "milkChop") (value := chop)
+        (barkLocalsDartByRate_get_milkChop evmUrns evmIlks I out outIlks)
+  have hdiv :
+      evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
+        (.binary .div (.var "dartByRate") (.var "milkChop")) = .revert :=
+    evalExpr_bark_div_uint256_revert hdartByRate hchop (by simpa [chop] using hchopZero)
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hdiv)
 
 theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -6201,6 +11766,617 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
   simpa [ExecTransitionBody, evm0, locals, barkTransition] using
     ExecFuncBody.execBlockRevert hblock
 
+theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hcodePos :
+      0 < (UInt256.ofNat
+        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
+    (hcallUrns :
+      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
+        (true, evmUrns, out) false)
+    (hdecUrns : (config v).externalABI.decode? "urns" out =
+      some [.int (Int.ofNat (barkVatUrnsInkWord out).toNat),
+        .int (Int.ofNat (barkVatUrnsArtWord out).toNat)])
+    (hcodePosIlks :
+      0 < (UInt256.ofNat
+        ((evmUrns.lookupAccount (AccountAddress.ofNat v.vat.toNat)).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hcallIlks :
+      typedCallViaEVM (config v) evmUrns
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "ilks" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I)] (true, evmIlks, outIlks) false)
+    (hdecIlks : (config v).externalABI.decode? "ilks" outIlks =
+      some (barkVatIlksReturnValues outIlks))
+    (hfitInk :
+      (barkVatUrnsInkWord out).toNat * (barkVatIlksSpotWord outIlks).toNat <
+        UInt256.size)
+    (hfitArt :
+      (barkVatUrnsArtWord out).toNat * (barkVatIlksRateWord outIlks).toNat <
+        UInt256.size)
+    (hspotPos : 0 < (barkVatIlksSpotWord outIlks).toNat)
+    (hsafeLt :
+      (barkInkSpotWord out outIlks).toNat <
+        (barkArtRateUnsafeWord out outIlks).toNat)
+    (hlimit :
+      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat <
+          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat)
+    (hfitRoom :
+      (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
+    (hrateNe : barkVatIlksRateWord outIlks ≠ ⟨0⟩)
+    (hchopZero :
+      dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩)
+    (hsz100 : 100 ≤ I.calldata.size) :
+    let locals := barkLocals I
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
+      .reverted := by
+  intro locals evm0
+  have hprefix :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15)
+        (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+          evmIlks) := by
+    simpa [locals, evm0] using
+      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
+        (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
+        hcallIlks hdecIlks hsz100
+  have htoRoom :=
+    dogBarkVatIlksDustToRoomOk (v := v) evmUrns evmIlks I out outIlks
+      hfitInk hfitArt hspotPos hsafeLt hlimit
+  have hroomPrefix :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"])
+        (.ok { contract := contract v, locals := barkLocalsRoom evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hprefix htoRoom
+  have hroomWadBlock :=
+    dogBarkRoomWadCheckedMulOk (v := v) evmUrns evmIlks I out outIlks hfitRoom
+  have htoRoomWad :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD))
+        (.ok { contract := contract v, locals := barkLocalsRoomWad evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hroomPrefix hroomWadBlock
+  have hdartByRateBlock :=
+    dogBarkDartByRateLetOk (v := v) evmUrns evmIlks I out outIlks hrateNe
+  have htoDartByRate :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ])
+        (.ok
+          { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append htoRoomWad hdartByRateBlock
+  have hdartCandidateBlock :=
+    dogBarkDartCandidateDivZero (v := v) evmUrns evmIlks I out outIlks hchopZero
+  have htoDartCandidate :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+          [ .letDecl "dartCandidate" (some uint256)
+              (.binary .div (.var "dartByRate") (.var "milkChop")) ])
+        .reverted := by
+    simpa [List.append_assoc] using execBlock_append htoDartByRate hdartCandidateBlock
+  let afterDartCandidate : List Stmt :=
+    [ .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
+      .ite
+        (.binary .gt (.var "art") (.var "dart"))
+        (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+          checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+          [ .ite
+              (.binary .lt (.var "leftoverDue") (.var "dust"))
+              [ .assign .localVar (varRef "dart") (.var "art") ]
+              (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+        [] ] ++
+    checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+      .require (.binary .gt (.var "dink") (.intLit 0)),
+      .require
+        (.binary .and
+          (.binary .le (.var "dart") (.intLit int256Limit))
+          (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+    checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+      [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+        .unary .neg (asInt256 (.var "dink")),
+        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+    checkedMulUintInto "due" (.var "dart") (.var "rate") ++
+    checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
+    checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
+    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
+    [ .assign .storage DirtRef (.var "DirtNew") ] ++
+    checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
+    [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ] ++
+    checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+      [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
+    [ .return [.var "id"] ]
+  have htail :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+          [ .letDecl "dartCandidate" (some uint256)
+              (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+          afterDartCandidate)
+        .reverted := by
+    simpa [List.append_assoc] using
+      execBlock_append_term (s2 := afterDartCandidate) htoDartCandidate
+        (by intro f e h; cases h)
+  have hblock :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        (barkTransition v).body .reverted := by
+    simpa [afterDartCandidate, barkTransition, barkBodyRest, nonpayable,
+      checkedExternalCallStmts, checkedMulUintInto, checkedSubUintInto, List.append_assoc]
+      using htail
+  simpa [ExecTransitionBody, evm0, locals, barkTransition] using
+    ExecFuncBody.execBlockRevert hblock
+
+theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
+    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
+    {result : ExecResult}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hcodePos :
+      0 < (UInt256.ofNat
+        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
+    (hcallUrns :
+      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
+        (true, evmUrns, out) false)
+    (hdecUrns : (config v).externalABI.decode? "urns" out =
+      some [.int (Int.ofNat (barkVatUrnsInkWord out).toNat),
+        .int (Int.ofNat (barkVatUrnsArtWord out).toNat)])
+    (hcodePosIlks :
+      0 < (UInt256.ofNat
+        ((evmUrns.lookupAccount (AccountAddress.ofNat v.vat.toNat)).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hcallIlks :
+      typedCallViaEVM (config v) evmUrns
+        (EVM.address (AccountAddress.ofNat v.vat.toNat)) "ilks" 0
+        [.fixedBytes bytes32Width (barkIlkBytes I)] (true, evmIlks, outIlks) false)
+    (hdecIlks : (config v).externalABI.decode? "ilks" outIlks =
+      some (barkVatIlksReturnValues outIlks))
+    (hfitInk :
+      (barkVatUrnsInkWord out).toNat * (barkVatIlksSpotWord outIlks).toNat <
+        UInt256.size)
+    (hfitArt :
+      (barkVatUrnsArtWord out).toNat * (barkVatIlksRateWord outIlks).toNat <
+        UInt256.size)
+    (hspotPos : 0 < (barkVatIlksSpotWord outIlks).toNat)
+    (hsafeLt :
+      (barkInkSpotWord out outIlks).toNat <
+        (barkArtRateUnsafeWord out outIlks).toNat)
+    (hlimit :
+      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat <
+          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+            evmUrns.executionEnv).toNat)
+    (hfitRoom :
+      (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
+    (hrateNe : barkVatIlksRateWord outIlks ≠ ⟨0⟩)
+    (hchopNe : barkSourceMilkChopWord evmUrns I ≠ ⟨0⟩)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (htail :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+        evmIlks
+        ([ .ite
+            (.binary .gt (.var "art") (.var "dart"))
+            (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+              checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+              [ .ite
+                  (.binary .lt (.var "leftoverDue") (.var "dust"))
+                  [ .assign .localVar (varRef "dart") (.var "art") ]
+                  (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                    [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+            [] ] ++
+          checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+            .require (.binary .gt (.var "dink") (.intLit 0)),
+            .require
+              (.binary .and
+                (.binary .le (.var "dart") (.intLit int256Limit))
+                (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+          checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+            [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+              .unary .neg (asInt256 (.var "dink")),
+              .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+          checkedMulUintInto "due" (.var "dart") (.var "rate") ++
+          checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
+          checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
+          [ .letDecl "tab" (some uint256)
+              (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+          checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
+          [ .assign .storage DirtRef (.var "DirtNew") ] ++
+          checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
+          [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ] ++
+          checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+            [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
+          [ .return [.var "id"] ])
+        result) :
+    let locals := barkLocals I
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      (barkTransition v).body result := by
+  intro locals evm0
+  have hprefix :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15)
+        (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
+          evmIlks) := by
+    simpa [locals, evm0] using
+      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
+        (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
+        hcallIlks hdecIlks hsz100
+  have htoDart :=
+    dogBarkVatIlksDustToDartOk (v := v) evmUrns evmIlks I out outIlks
+      hfitInk hfitArt hspotPos hsafeLt hlimit hfitRoom hrateNe hchopNe
+  have htoTail :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((barkTransition v).body.take 15 ++
+          checkedMulUintInto "inkSpot" (.var "ink") (.var "spot") ++
+          checkedMulUintInto "artRateUnsafe" (.var "art") (.var "rate") ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.var "spot") (.intLit 0))
+                (.binary .lt (.var "inkSpot") (.var "artRateUnsafe"))) ] ++
+          [ .require
+              (.binary .and
+                (.binary .gt (.storage HoleRef) (.storage DirtRef))
+                (.binary .gt (.var "milkHole") (.var "milkDirt"))) ] ++
+          checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef) ++
+          checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
+          [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
+          checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
+          [ .letDecl "dartByRate" (some uint256)
+              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+          [ .letDecl "dartCandidate" (some uint256)
+              (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+          [.internalCall "min" [.var "art", .var "dartCandidate"] "dart"])
+        (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+          evmIlks) := by
+    simpa [List.append_assoc] using execBlock_append hprefix htoDart
+  have hcombined := execBlock_append htoTail htail
+  simpa [barkTransition, barkBodyRest, nonpayable, checkedExternalCallStmts,
+    checkedMulUintInto, checkedSubUintInto, List.append_assoc] using hcombined
+
+theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
+    {evmUrns evmIlks : EVM.State} {I : ExecutionEnv} {out outIlks : ByteArray}
+    {localsAfter : Store} {result : ExecResult}
+    (hleftover :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+        evmIlks
+        [ .ite
+            (.binary .gt (.var "art") (.var "dart"))
+            (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+              checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+              [ .ite
+                  (.binary .lt (.var "leftoverDue") (.var "dust"))
+                  [ .assign .localVar (varRef "dart") (.var "art") ]
+                  (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                    [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+            [] ]
+        (.ok { contract := contract v, locals := localsAfter } evmIlks))
+    (htail :
+      ExecBlock (config v) { contract := contract v, locals := localsAfter } evmIlks
+        (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+            .require (.binary .gt (.var "dink") (.intLit 0)),
+            .require
+              (.binary .and
+                (.binary .le (.var "dart") (.intLit int256Limit))
+                (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+          checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+            [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+              .unary .neg (asInt256 (.var "dink")),
+              .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+          checkedMulUintInto "due" (.var "dart") (.var "rate") ++
+          checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
+          checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
+          [ .letDecl "tab" (some uint256)
+              (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+          checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
+          [ .assign .storage DirtRef (.var "DirtNew") ] ++
+          checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
+          [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ] ++
+          checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+            [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
+          [ .return [.var "id"] ])
+        result) :
+    ExecBlock (config v)
+      { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
+      evmIlks
+      ([ .ite
+          (.binary .gt (.var "art") (.var "dart"))
+          (checkedSubUintInto "leftoverArt" (.var "art") (.var "dart") ++
+            checkedMulUintInto "leftoverDue" (.var "leftoverArt") (.var "rate") ++
+            [ .ite
+                (.binary .lt (.var "leftoverDue") (.var "dust"))
+                [ .assign .localVar (varRef "dart") (.var "art") ]
+                (checkedMulUintInto "partialDue" (.var "dart") (.var "rate") ++
+                  [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
+          [] ] ++
+        checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          .require (.binary .gt (.var "dink") (.intLit 0)),
+          .require
+            (.binary .and
+              (.binary .le (.var "dart") (.intLit int256Limit))
+              (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+        checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+          [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+            .unary .neg (asInt256 (.var "dink")),
+            .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        checkedMulUintInto "due" (.var "dart") (.var "rate") ++
+        checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
+        checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
+        [ .letDecl "tab" (some uint256)
+            (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+        checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
+        [ .assign .storage DirtRef (.var "DirtNew") ] ++
+        checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
+        [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ] ++
+        checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
+          [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
+        [ .return [.var "id"] ])
+      result := by
+  simpa [List.append_assoc] using execBlock_append hleftover htail
+
+theorem dogBarkPostLeftoverIntGuardOkSource {v : DogImmutables}
+    (evm : EVM.State) {locals : Store} {ink dart art : UInt256}
+    (hink : locals.get? "ink" = some (.int (Int.ofNat ink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hart : locals.get? "art" = some (.int (Int.ofNat art.toNat)))
+    (hfitInkDart : ink.toNat * dart.toNat < UInt256.size)
+    (hartNe : art ≠ ⟨0⟩)
+    (hdinkPos : 0 < (barkDinkWord ink dart art).toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
+    (hdinkBound : (barkDinkWord ink dart art).toNat ≤ dogInt256LimitWord.toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          .require (.binary .gt (.var "dink") (.intLit 0)),
+          .require
+            (.binary .and
+              (.binary .le (.var "dart") (.intLit int256Limit))
+              (.binary .le (.var "dink") (.intLit int256Limit))) ])
+      (.ok
+        { contract := contract v,
+          locals :=
+            barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+              (barkDinkWord ink dart art) }
+        evm) := by
+  have hinkDart :=
+    dogBarkInkDartCheckedMulOk (v := v) evm hink hdart hfitInkDart
+  have hdinkLet :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsInkDart locals (barkInkDartWord ink dart) }
+        evm
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+        (.ok
+          { contract := contract v,
+            locals :=
+              barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+                (barkDinkWord ink dart art) }
+          evm) := by
+    simpa [barkDinkWord] using
+      dogBarkDinkLetOk (v := v) evm (locals := locals)
+        (inkDart := barkInkDartWord ink dart) (art := art) hart hartNe
+  have htoDink :
+      ExecBlock (config v) { contract := contract v, locals := locals } evm
+        (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ])
+        (.ok
+          { contract := contract v,
+            locals :=
+              barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+                (barkDinkWord ink dart art) }
+          evm) := by
+    simpa [List.append_assoc] using execBlock_append hinkDart hdinkLet
+  let localsDink :=
+    barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+      (barkDinkWord ink dart art)
+  have hdinkGet :
+      localsDink.get? "dink" =
+        some (.int (Int.ofNat (barkDinkWord ink dart art).toNat)) := by
+    simpa [localsDink] using
+      barkLocalsDink_get_dink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+        (barkDinkWord ink dart art)
+  have hdartGet :
+      localsDink.get? "dart" = some (.int (Int.ofNat dart.toNat)) := by
+    simpa [localsDink] using
+      barkLocalsDink_get_preserved (locals := barkLocalsInkDart locals (barkInkDartWord ink dart))
+        (dink := barkDinkWord ink dart art) (name := "dart")
+        (value := .int (Int.ofNat dart.toNat)) (by decide)
+        (barkLocalsInkDart_get_preserved (locals := locals)
+          (inkDart := barkInkDartWord ink dart) (name := "dart")
+          (value := .int (Int.ofNat dart.toNat)) (by decide) hdart)
+  have hdinkGuard :
+      ExecBlock (config v) { contract := contract v, locals := localsDink } evm
+        [ .require (.binary .gt (.var "dink") (.intLit 0)) ]
+        (.ok { contract := contract v, locals := localsDink } evm) :=
+    dogBarkDinkGuardOkSource (v := v) evm hdinkGet hdinkPos
+  have hintGuard :
+      ExecBlock (config v) { contract := contract v, locals := localsDink } evm
+        [ .require
+            (.binary .and
+              (.binary .le (.var "dart") (.intLit int256Limit))
+              (.binary .le (.var "dink") (.intLit int256Limit))) ]
+        (.ok { contract := contract v, locals := localsDink } evm) :=
+    dogBarkInt256GuardOkSource (v := v) evm hdartGet hdinkGet hdartBound hdinkBound
+  have hguards :
+      ExecBlock (config v) { contract := contract v, locals := localsDink } evm
+        [ .require (.binary .gt (.var "dink") (.intLit 0)),
+          .require
+            (.binary .and
+              (.binary .le (.var "dart") (.intLit int256Limit))
+              (.binary .le (.var "dink") (.intLit int256Limit))) ]
+        (.ok { contract := contract v, locals := localsDink } evm) := by
+    simpa using execBlock_append hdinkGuard hintGuard
+  simpa [localsDink, List.append_assoc] using execBlock_append htoDink hguards
+
+theorem dogBarkPostLeftoverDinkLetOkSource {v : DogImmutables}
+    (evm : EVM.State) {locals : Store} {ink dart art : UInt256}
+    (hink : locals.get? "ink" = some (.int (Int.ofNat ink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hart : locals.get? "art" = some (.int (Int.ofNat art.toNat)))
+    (hfitInkDart : ink.toNat * dart.toNat < UInt256.size)
+    (hartNe : art ≠ ⟨0⟩) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ])
+      (.ok
+        { contract := contract v,
+          locals :=
+            barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+              (barkDinkWord ink dart art) }
+        evm) := by
+  have hinkDart :=
+    dogBarkInkDartCheckedMulOk (v := v) evm hink hdart hfitInkDart
+  have hdinkLet :
+      ExecBlock (config v)
+        { contract := contract v, locals := barkLocalsInkDart locals (barkInkDartWord ink dart) }
+        evm
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+        (.ok
+          { contract := contract v,
+            locals :=
+              barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+                (barkDinkWord ink dart art) }
+          evm) := by
+    simpa [barkDinkWord] using
+      dogBarkDinkLetOk (v := v) evm (locals := locals)
+        (inkDart := barkInkDartWord ink dart) (art := art) hart hartNe
+  simpa [List.append_assoc] using execBlock_append hinkDart hdinkLet
+
+theorem dogBarkPostLeftoverDinkGuardOkSource {v : DogImmutables}
+    (evm : EVM.State) {locals : Store} {ink dart art : UInt256}
+    (hink : locals.get? "ink" = some (.int (Int.ofNat ink.toNat)))
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hart : locals.get? "art" = some (.int (Int.ofNat art.toNat)))
+    (hfitInkDart : ink.toNat * dart.toNat < UInt256.size)
+    (hartNe : art ≠ ⟨0⟩)
+    (hdinkPos : 0 < (barkDinkWord ink dart art).toNat) :
+    ExecBlock (config v) { contract := contract v, locals := locals } evm
+      (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
+        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          .require (.binary .gt (.var "dink") (.intLit 0)) ])
+      (.ok
+        { contract := contract v,
+          locals :=
+            barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+              (barkDinkWord ink dart art) }
+        evm) := by
+  let localsDink :=
+    barkLocalsDink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+      (barkDinkWord ink dart art)
+  have hprefix :=
+    dogBarkPostLeftoverDinkLetOkSource (v := v) evm hink hdart hart hfitInkDart hartNe
+  have hdinkGet :
+      localsDink.get? "dink" =
+        some (.int (Int.ofNat (barkDinkWord ink dart art).toNat)) := by
+    simpa [localsDink] using
+      barkLocalsDink_get_dink (barkLocalsInkDart locals (barkInkDartWord ink dart))
+        (barkDinkWord ink dart art)
+  have hguard :
+      ExecBlock (config v) { contract := contract v, locals := localsDink } evm
+        [ .require (.binary .gt (.var "dink") (.intLit 0)) ]
+        (.ok { contract := contract v, locals := localsDink } evm) :=
+    dogBarkDinkGuardOkSource (v := v) evm hdinkGet hdinkPos
+  simpa [List.append_assoc, localsDink] using execBlock_append hprefix hguard
+
 theorem barkVatUrnsDecode_none_short {v : DogImmutables} {out : ByteArray}
     (hshort : out.size < 64) :
     (config v).externalABI.decode? "urns" out = none := by
@@ -6538,6 +12714,25 @@ theorem barkVatIlksDecode_ok {v : DogImmutables} {out : ByteArray}
     barkVatIlksBytesToWord64_eq out hlong, barkVatIlksBytesToWord96_eq out hlong,
     barkVatIlksBytesToWord128_eq out hlong]
   rfl
+
+theorem barkKickDecode_none_short {v : DogImmutables} {out : ByteArray}
+    (hshort : out.size < 32) :
+    (config v).externalABI.decode? "kick" out = none := by
+  have hdec :=
+    decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out) hshort
+  simpa [config, externalABI, decodeReturn?, uint256, uint256Int] using congrArg
+    (fun x => Option.map (fun v => [v]) x) hdec
+
+theorem barkKickDecode_ok {v : DogImmutables} {out : ByteArray}
+    (hlong : 32 ≤ out.size) :
+    (config v).externalABI.decode? "kick" out =
+      some [.int (Int.ofNat
+        (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))).toNat)] := by
+  have hdec := decodeReturnValueWithMode_legacy_uint256_ok (returndata := out) hlong
+  have hlt : fromByteArrayBigEndian (out.extract 0 32) < UInt256.size :=
+    fromByteArrayBigEndian_extract0_32_lt hlong
+  simpa [config, externalABI, decodeReturn?, uint256, uint256Int,
+    UInt256.toNat_ofNat_of_lt hlt] using congrArg (fun x => Option.map (fun v => [v]) x) hdec
 
 theorem dogNonpayableLivePrefixRevert {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -6977,6 +13172,30 @@ theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
     (dogPatchedJumpDest hpatch (by native_decide))
     (by simp only [List.length_singleton]; omega)
   exact ⟨k, C, by simpa using hbody⟩
+
+-- LIBRARY CANDIDATE: move to `Reasoning.Reach` beside terminal `RDret`/`RDrev` helpers.
+theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.INVALID, .none)) :
+    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
+  rcases RD.conclude h with hoog | ⟨k', C', s', hX, hcode, hpc, _hstk, _hgas, hk, hC,
+    _hmem, _haw, _hrdata, _hacc⟩
+  · exact Or.inl hoog
+  · have hdec' : decode s'.executionEnv.code s'.machineState.pc = some (.INVALID, .none) := by
+      rw [hcode, hpc]
+      exact hdec
+    have hstep : Xstep (D_J code 0) s' = .error .InvalidInstruction := by
+      have hstep' := Ethereum.EVM.step_invalid s' hdec'
+      simpa [hcode] using hstep'
+    have hfuel : g.toNat + 1 - k' = (g.toNat + 1 - (k' + 1)) + 1 := by
+      omega
+    exact Or.inr (by
+      rw [hX, hfuel]
+      exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
 theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
@@ -7537,6 +13756,123 @@ theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
       native_decide)
     heqCond (by evm_ov)
   exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
+theorem RD.dogCheckedAddReturns {v : DogImmutables} {code : ByteArray}
+    {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
+    {x y ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {aw : UInt256} {k C : ℕ}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hRlen : R.length ≤ 1015)
+    (hfit : x.toNat + y.toNat < UInt256.size)
+    (rd4625 : RD code I g s0 ⟨4625⟩ (y :: x :: ret :: R)
+      mem aw rdata acc k C)
+    (hret : (D_J code 0).contains ret = true) :
+    ∃ k' C', RD code I g s0 ret ((x + y) :: R) mem aw rdata acc k' C' := by
+  have hwf : solcCheckedAddSuccessWf code ⟨4625⟩ ⟨4558⟩ := by
+    dsimp [solcCheckedAddSuccessWf]
+    repeat' first | apply And.intro |
+      (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+       native_decide)
+  exact RD.solcCheckedAddSuccess rd4625 hwf hfit hret
+    (dogPatchedJumpDest hpatch (by native_decide)) (by omega)
+
+theorem RD.dogCheckedAddOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
+    {x y ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {aw : UInt256} {k C : ℕ}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hRlen : R.length ≤ 1015)
+    (hover : UInt256.size ≤ x.toNat + y.toNat)
+    (rd4625 : RD code I g s0 ⟨4625⟩ (y :: x :: ret :: R)
+      mem aw rdata acc k C) :
+    RDrev code g s0 := by
+  have hsumLt2 : x.toNat + y.toNat < 2 * UInt256.size := by
+    have hx : x.toNat < UInt256.size := x.val.isLt
+    have hy : y.toNat < UInt256.size := y.val.isLt
+    omega
+  have hmod : (x.toNat + y.toNat) % UInt256.size =
+      x.toNat + y.toNat - UInt256.size := by
+    rw [Nat.mod_eq_sub_mod hover]
+    exact Nat.mod_eq_of_lt (by omega)
+  have haddNat : (x + y).toNat = x.toNat + y.toNat - UInt256.size := by
+    rw [uadd_toNat, hmod]
+  have hlt : UInt256.lt (x + y) x = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hy : y.toNat < UInt256.size := y.val.isLt
+    omega
+  have rd4632pre := evm_run rd4625 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4632₀ := evm_run rd4632pre with [
+    raw lt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4632 := rd4632₀
+  rw [hlt] at rd4632
+  have rd4633₀ := evm_run rd4632 with [
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4633 := rd4633₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4633
+  have rd4636 := evm_run rd4633 with [
+    raw push2 ⟨4558⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4637 := rd4636.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    (by simp only [List.length_cons]; omega)
+  exact RD.uniswapPush1Dup1Revert0 rd4637
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -11844,6 +18180,163 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkDartWord] using rd3594⟩
 
+theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ σMem : AccountMap}
+    {spot dust rate art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hfitRoom :
+      (barkRoomWord σ σMem I).toNat * dogWadWord.toNat < UInt256.size)
+    (hrateNe : rate ≠ ⟨0⟩)
+    (hchopZero : barkIlksChopWord σMem I = ⟨0⟩)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        barkIlksChopWord σMem I)
+    (rd3543 : RD code I g s0 ⟨3543⟩
+      (barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
+        art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 32 ≤ 1024) :
+    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
+      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
+  have rd3548 := evm_run rd3543 with [
+    raw push2 ⟨3591⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd3550raw := RD.add rd3548
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by evm_ov)
+  have hadd288 : (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ := by
+    native_decide
+  have rd3551 := by
+    simpa [hadd288] using rd3550raw
+  have rd3552 := evm_run rd3551 with [
+    raw mload 0 (barkIlksChopWord σMem I) (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload288 (by decide) (by evm_ov)]
+  have rd3557 := evm_run rd3552 with [
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3570⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd3566 := rd3557.pushConst dogWadWord (width := 8) (op := .PUSH8)
+    (by decide)
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd3569 := evm_run rd3566 with [
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd3569.jump
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨_, _, rd3570raw⟩ :=
+    RD.dogCheckedMulReturns (v := v) hpatch
+      (x := barkRoomWord σ σMem I) (y := dogWadWord) (ret := ⟨3570⟩)
+      (R := rate :: barkIlksChopWord σMem I :: art :: ⟨3591⟩ ::
+        barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
+        art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega)
+      (dogPatchedJumpDest hpatch (by native_decide)) hfitRoom rd4564
+  have rd3575 := evm_run rd3570raw with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3577⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd3577 := rd3575.jumpiT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    hrateNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  have rd3579raw := evm_run rd3577 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw div
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd3579 := by
+    simpa [barkDartByRateWord] using rd3579raw
+  have rd3583 := evm_run rd3579 with [
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3585⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  rw [hchopZero] at rd3583
+  have rd3584 := rd3583.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by rfl) (by evm_ov)
+  exact RD.invalidError rd3584
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+
 theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
@@ -12379,6 +18872,461 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
     hpartialCond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
   exact ⟨_, _, rd3700⟩
 
+theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {room spot dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hleftover : dart.toNat < art.toNat)
+    (hfitLeftoverDue : (barkLeftoverArtWord art dart).toNat * rate.toNat < UInt256.size)
+    (hnotDusty : dust.toNat ≤ (barkLeftoverDueWord art dart rate).toNat)
+    (hfitPartialDue : dart.toNat * rate.toNat < UInt256.size)
+    (hpartialDueBad : (barkPartialDueWord dart rate).toNat < dust.toNat)
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (rd3594 : RD code I g s0 ⟨3594⟩
+      (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 36 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd3601 := evm_run rd3594 with [
+    raw dup5
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw gt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3700⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hgtOne : UInt256.gt art dart = ⟨1⟩ :=
+    Reasoning.Theory.ugt_one hleftover
+  have hcondNoJump : UInt256.isZero (UInt256.gt art dart) = ⟨0⟩ := by
+    rw [hgtOne]
+    decide
+  have rd3602 := rd3601.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    hcondNoJump (by evm_ov)
+  have rd3613 := evm_run rd3602 with [
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3614⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup10
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564left := rd3613.jump
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨_, _, rd3614raw⟩ :=
+    RD.dogCheckedMulReturns (v := v) hpatch
+      (x := barkLeftoverArtWord art dart) (y := rate) (ret := ⟨3614⟩)
+      (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega)
+      (dogPatchedJumpDest hpatch (by native_decide)) hfitLeftoverDue rd4564left
+  have rd3614 := by
+    simpa [barkLeftoverDueWord, barkLeftoverArtWord] using rd3614raw
+  have rd3620 := evm_run rd3614 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw lt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3628⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hltZero : UInt256.lt (barkLeftoverDueWord art dart rate) dust = ⟨0⟩ :=
+    Reasoning.Theory.ult_zero hnotDusty
+  have hcondContinue :
+      UInt256.isZero (UInt256.lt (barkLeftoverDueWord art dart rate) dust) ≠ ⟨0⟩ := by
+    rw [hltZero]
+    decide
+  have rd3628 := rd3620.jumpiT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    hcondContinue (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  have rd3638 := evm_run rd3628 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3639⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564partial := rd3638.jump
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨_, _, rd3639raw⟩ :=
+    RD.dogCheckedMulReturns (v := v) hpatch
+      (x := dart) (y := rate) (ret := ⟨3639⟩)
+      (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega)
+      (dogPatchedJumpDest hpatch (by native_decide)) hfitPartialDue rd4564partial
+  have rd3639 := by
+    simpa [barkPartialDueWord] using rd3639raw
+  have rd3645 := evm_run rd3639 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw lt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3700⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hpartialLtOne : UInt256.lt (barkPartialDueWord dart rate) dust = ⟨1⟩ :=
+    Reasoning.Theory.ult_one hpartialDueBad
+  have hpartialCond :
+      UInt256.isZero (UInt256.lt (barkPartialDueWord dart rate) dust) = ⟨0⟩ := by
+    rw [hpartialLtOne]
+    decide
+  have rdFallthrough := rd3645.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    hpartialCond (by evm_ov)
+  have hpc3646 :
+      (⟨3639⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ =
+        ⟨3646⟩ := by
+    native_decide
+  have rd3646 := rdFallthrough
+  rw [hpc3646] at rd3646
+  have hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩ :=
+    mloadWordValue_of_readWithPadding
+      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
+      (v := (⟨384⟩ : UInt256))
+      (by rw [hmem]; decide)
+      (by native_decide)
+      (by
+        simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+  have rdMload := evm_run rd3646 with [
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64 (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide)
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkPostIlksErrorStringMem0 mem) (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkPostIlksErrorStringMem1 mem) (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨42⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+      (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hcopy :
+      code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42 =
+        barkPostIlksCodecopyErrorMem code mem := by
+    rfl
+  have hsrcCopy : 4691 + 42 ≤ code.size := by
+    rw [dogPatchedSize hpatch]
+    native_decide
+  have rdCopy := evm_run rdPrefix with [
+    raw push2 ⟨4691⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by simp only [List.length_cons]; omega),
+    raw push1 ⟨42⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by simp only [List.length_cons]; omega),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by simp only [List.length_cons]; omega),
+    raw codecopy 0 (barkPostIlksCodecopyErrorMem code mem) (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (fun s haws hstks => by
+        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+          List.getElem!_cons_zero, List.getElem!_cons_succ]
+        native_decide)
+      hcopy
+      (by native_decide)
+      (by evm_ov)]
+  exact evm_run rdCopy with [
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (barkPostIlksCodecopyErrorMem_mload64 hmem hread64 hsrcCopy)
+      (by decide) (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw rev 0
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by evm_ov)]
+
 theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
@@ -12501,6 +19449,77 @@ theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkDinkWord] using rd3726⟩
 
+theorem RD.dogBarkInkDartOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {room spot dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hoverInkDart : UInt256.size ≤ ink.toNat * dart.toNat)
+    (rd3700 : RD code I g s0 ⟨3700⟩
+      (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 32 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd3714 := evm_run rd3700 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3715⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup9
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd3714.jump
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
+    (x := ink) (y := dart) (ret := ⟨3715⟩)
+    (R := art :: ⟨0⟩ :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+      ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+    (by simp only [List.length_cons]; omega) hoverInkDart rd4564
+
 theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
@@ -12550,6 +19569,66 @@ theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
   exact ⟨_, _, rd3797⟩
+
+theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {dink dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hdinkNotPos : ¬ 0 < dink.toNat)
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (rd3726 : RD code I g s0 ⟨3726⟩
+      (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 30 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd3730 := evm_run rd3726 with [
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw gt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3797⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hdinkZero : dink.toNat = 0 := Nat.eq_zero_of_not_pos hdinkNotPos
+  have hgtZero : UInt256.gt dink ⟨0⟩ = ⟨0⟩ := by
+    exact Reasoning.Theory.ugt_zero (by simpa [hdinkZero])
+  have rd3734prep := rd3730
+  rw [hgtZero] at rd3734prep
+  have rd3734 := rd3734prep.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by rfl) (by evm_ov)
+  have htail : solcErrorStringRevertTailWf code ⟨3734⟩ ⟨16⟩
+      dogNullAuctionRawWord ⟨129⟩ .PUSH16 16 := by
+    unfold solcErrorStringRevertTailWf
+    repeat' first
+      | apply And.intro
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
+          native_decide)
+  exact RD.dogBarkPostIlksErrorStringRevertTail
+    (pc := ⟨3734⟩) (len := ⟨16⟩) (rawWord := dogNullAuctionRawWord)
+    (shift := ⟨129⟩) (word := UInt256.shiftLeft dogNullAuctionRawWord ⟨129⟩)
+    (op := .PUSH16) (width := 16) rd3734 htail (by decide) rfl hmem hread64
+    (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -12693,6 +19772,268 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
   exact ⟨_, _, rd3885⟩
+
+theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {dink dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hdartOverflow : dogInt256LimitWord.toNat < dart.toNat)
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (rd3797 : RD code I g s0 ⟨3797⟩
+      (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 34 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd3808 := evm_run rd3797 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨255⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup5
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw gt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3821⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hgtDartOne :
+      UInt256.gt dart (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨1⟩ := by
+    simpa [dogInt256LimitWord] using
+      (Reasoning.Theory.ugt_one (a := dart) (b := dogInt256LimitWord) hdartOverflow)
+  have rd3821prep := rd3808
+  rw [hgtDartOne,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide,
+    show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ by decide] at rd3821prep
+  have rd3821 := rd3821prep.jumpiT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  have rd3825 := evm_run rd3821 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3885⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd3826 := rd3825.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by rfl) (by evm_ov)
+  have htail : solcErrorStringRevertTailWf code ⟨3826⟩ ⟨12⟩
+      dogOverflowRawWord ⟨160⟩ .PUSH12 12 := by
+    unfold solcErrorStringRevertTailWf
+    repeat' first
+      | apply And.intro
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
+          native_decide)
+  exact RD.dogBarkPostIlksErrorStringRevertTail
+    (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
+    (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
+    (op := .PUSH12) (width := 12) rd3826 htail (by decide) rfl hmem hread64
+    (by simp only [List.length_cons]; omega)
+
+theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {dink dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
+    (hdinkOverflow : dogInt256LimitWord.toNat < dink.toNat)
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (rd3797 : RD code I g s0 ⟨3797⟩
+      (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hov : R.length + 34 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd3808 := evm_run rd3797 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨255⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup5
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw gt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3821⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hgtDartZero :
+      UInt256.gt dart (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨0⟩ := by
+    simpa [dogInt256LimitWord] using
+      (Reasoning.Theory.ugt_zero (a := dart) (b := dogInt256LimitWord) hdartBound)
+  have rd3812prep := rd3808
+  rw [hgtDartZero,
+    show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ by decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd3812prep
+  have rd3812 := rd3812prep.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by rfl) (by evm_ov)
+  have rd3825 := evm_run rd3812 with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨255⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw gt
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw iszero
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨3885⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hgtDinkOne :
+      UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨1⟩ := by
+    simpa [dogInt256LimitWord] using
+      (Reasoning.Theory.ugt_one (a := dink) (b := dogInt256LimitWord) hdinkOverflow)
+  have rd3825prep := rd3825
+  rw [hgtDinkOne,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd3825prep
+  have rd3826 := rd3825prep.jumpiNT
+    (by
+      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+      native_decide)
+    (by rfl) (by evm_ov)
+  have htail : solcErrorStringRevertTailWf code ⟨3826⟩ ⟨12⟩
+      dogOverflowRawWord ⟨160⟩ .PUSH12 12 := by
+    unfold solcErrorStringRevertTailWf
+    repeat' first
+      | apply And.intro
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
+          native_decide)
+  exact RD.dogBarkPostIlksErrorStringRevertTail
+    (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
+    (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
+    (op := .PUSH12) (width := 12) rd3826 htail (by decide) rfl hmem hread64
+    (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -13537,6 +20878,3523 @@ theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
         (by native_decide) (by native_decide)]
       native_decide)
     hov
+
+theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {dink dust rate dart art ink : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd3885 : RD code I g s0 ⟨3885⟩
+      (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hmem : mem.size = 544)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hmload256 :
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
+        barkIlksClipWord σMem I)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+    (hevmEnv : evm.executionEnv = I)
+    (hevmCreated : evm.createdAccounts = cA)
+    (hevmMap : evm.accountMap = σ)
+    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
+    (hevmBlocks : evm.blocks = s0.blocks)
+    (hevmOrig : evm.σ₀ = s0.σ₀)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
+    (hov : R.length + 48 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      (outGrab : ByteArray) (A' : Substate) (k' C' : ℕ),
+      RD code I g s0 ⟨4039⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: barkVatGrabEndPtr ::
+          barkVatGrabSelectorWord :: barkVatWord v :: dink :: dust :: rate ::
+          dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+          barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+        (barkVatGrabPostCallMem σ σMem I mem outGrab dink dart)
+        (UInt256.ofNat 19) outGrab (cA', σ') k' C'
+      ∧ typedCallViaEVM (config v) evm
+          (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
+          [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+            .address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat),
+            .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
+            .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
+          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+            outGrab) true
+      ∧ outGrab.size < UInt256.size := by
+  obtain ⟨_, _, rd4023⟩ :=
+    RD.dogBarkVatGrabExtcodesizeGuard (v := v) (code := code) (g := g)
+      (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
+      (cA := cA) (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
+      rd3885 hov
+  obtain ⟨_, _, _, rd4038⟩ :=
+    RD.dogBarkVatGrabToCall hpatch rd4023 hcodeSize
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨cA', σ', z, outGrab, A_in, callGas, k', C', hΘpack, rd4039raw, houtsz⟩ :=
+    RD.call rd4038
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      hdepth
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  refine ⟨cA', σ', z, outGrab, A', k', C', ?_, ?_, houtsz⟩
+  · have haw :
+        UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
+          barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
+          barkVatGrabOutPtr.toNat barkVatGrabOutSize.toNat) = UInt256.ofNat 19 := by
+      unfold barkVatGrabOutPtr barkVatGrabInSize barkVatGrabOutSize
+      native_decide
+    change RD code I g s0 ⟨4039⟩
+      ((if z then ⟨1⟩ else ⟨0⟩) :: barkVatGrabEndPtr ::
+        barkVatGrabSelectorWord :: barkVatWord v :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      (outGrab.write 0 (barkVatGrabCallMem σ σMem I mem dink dart)
+        barkVatGrabOutPtr.toNat
+        (min barkVatGrabOutSize (UInt256.ofNat outGrab.size)).toNat)
+      (UInt256.ofNat 19) outGrab (cA', σ') k' C'
+    exact haw ▸ rd4039raw
+  · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
+      intro hdepthEq
+      exact absurd hdepth (by rw [← hevmEnv, hdepthEq]; decide)
+    have htargetNorm :
+        EVM.address ↑(AccountAddress.ofNat v.vat.toNat) =
+          AccountAddress.ofUInt256 (barkVatWord v) := by
+      rw [← barkVat_eq_vatKey v]
+      apply Fin.ext
+      simp [EVM.address, EVM.uintN]
+      exact Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt
+    have hΘ' :
+        (cA', σ', g'', A', z, outGrab) =
+          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
+            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+            (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
+            evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVatWord v))
+            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVatWord v)))
+            callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+            ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
+              barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
+            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+    exact Reasoning.Theory.callCoincides
+      (cfg := config v) (evm := evm) (name := "grab")
+      (args := [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
+        .address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat),
+        .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
+        .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))])
+      (tgt := EVM.address (AccountAddress.ofNat v.vat.toNat))
+      (targetWord := barkVatWord v) (cA' := cA') (σ' := σ') (A' := A')
+      (A_in := A_in) (z := z) (o := outGrab) (g'' := g'') (callGas := callGas)
+      (mem := barkVatGrabCallMem σ σMem I mem dink dart) (inOff := barkVatGrabOutPtr)
+      (inSize := barkVatGrabInSize) (callPerm := true) hdepthNe htargetNorm
+      (barkVatGrabEncode_eq (v := v) (σ := σ) (σMem := σMem) (I := I)
+        (mem := mem) (dink := dink) (dart := dart)
+        hsz100 hmem hdinkBound hdartBound)
+      hΘ'
+
+theorem RD.dogBarkDueCheckedMulOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
+    {dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hfitDue : dart.toNat * rate.toNat < UInt256.size)
+    (rd4057 : RD code I g s0 ⟨4057⟩
+      (barkVatGrabEndPtr :: barkVatGrabSelectorWord :: barkVatWord v ::
+        dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem aw rdata acc k C)
+    (hov : R.length + 32 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4071⟩
+      (barkPartialDueWord dart rate :: ⟨0⟩ :: dink :: dust :: rate :: dart ::
+        ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem aw rdata acc k' C' := by
+  have rd4069 := evm_run rd4057 with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4071⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd4069.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨k', C', rd4071⟩ :=
+    RD.dogCheckedMulReturns (v := v) hpatch
+      (x := dart) (y := rate) (ret := ⟨4071⟩)
+      (R := ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega)
+      (dogPatchedJumpDest hpatch (by native_decide)) hfitDue rd4564
+  exact ⟨k', C', by simpa [barkPartialDueWord] using rd4071⟩
+
+theorem RD.dogBarkDueCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
+    {dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hoverDue : UInt256.size ≤ dart.toNat * rate.toNat)
+    (rd4057 : RD code I g s0 ⟨4057⟩
+      (barkVatGrabEndPtr :: barkVatGrabSelectorWord :: barkVatWord v ::
+        dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem aw rdata acc k C)
+    (hov : R.length + 32 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd4069 := evm_run rd4057 with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4071⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd4069.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
+    (x := dart) (y := rate) (ret := ⟨4071⟩)
+    (R := ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+      ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+    (by simp only [List.length_cons]; omega) hoverDue rd4564
+
+theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    {due dink dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (rd4071 : RD code I g s0 ⟨4071⟩
+      (due :: ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hov : R.length + 43 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4139⟩
+      (barkVowWord σ I :: barkVowWord σ I :: ⟨0⟩ :: barkVowFessOutPtr ::
+        barkVowFessInSize :: barkVowFessOutPtr :: barkVowFessOutSize ::
+        barkVowFessEndPtr :: barkVowFessSelectorWord :: barkVowWord σ I ::
+        due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      (barkVowFessDueMem mem due) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+  have hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩ := by
+    exact mloadWordValue_of_readWithPadding
+      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (by rw [hmem]; decide)
+      (by native_decide)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+  have hmload64Call :=
+    barkVowFessDueMem_mload64 (mem := mem) (due := due) hmem hread64
+  have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
+    simpa [barkVowWord, u256_land_comm] using
+      solcAddrMask_result_canonical (dogSlotWord ⟨2⟩ σ I)
+  have hvowMask :
+      UInt256.land solcAddrMask (barkVowWord σ I) = barkVowWord σ I :=
+    solcAddrMask_clean_left hvowCanon
+  have haddrMaskWord :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hvowWordLit :
+      UInt256.land ({ val := 1461501637330902918203684832716283019655932542975 } :
+        UInt256) (dogSlotWord ⟨2⟩ σ I) = barkVowWord σ I := by
+    simp [barkVowWord, solcAddrMask]
+  have hvowWordRight :
+      UInt256.land (dogSlotWord ⟨2⟩ σ I) solcAddrMask = barkVowWord σ I := by
+    rw [u256_land_comm (dogSlotWord ⟨2⟩ σ I) solcAddrMask]
+  have rd4074 := evm_run rd4071 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨2⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  obtain ⟨k4075, C4075, rd4075raw⟩ := rd4074.sload
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4075 : RD code I g s0 ⟨4075⟩
+      (dogSlotWord ⟨2⟩ σ I :: due :: ⟨0⟩ :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k4075 C4075 := by
+    simpa [dogSlotWord] using rd4075raw
+  have rd4139 := evm_run rd4075 with [
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64 (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push4 ⟨0x0d2fdf6f⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨227⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkVowFessSelectorMem mem) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨4⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup5
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkVowFessDueMem mem due) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ({ val := 384 } + { val := 4 } : UInt256).toNat = 388
+          from by native_decide]
+        rfl)
+      (by native_decide) (by simp only [List.length_cons]; omega),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64Call (by native_decide) (by simp only [List.length_cons]; omega),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨160⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push4 barkVowFessSelectorWord
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 barkVowFessInSize
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 barkVowFessOutSize
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  exact ⟨_, _, by
+    convert rd4139 using 1 <;>
+      simp only [barkVowFessSelectorWord, barkVowFessInSize, barkVowFessOutPtr,
+        barkVowFessOutSize, barkVowFessEndPtr, haddrMaskWord, hvowMask, hvowWordLit,
+        hvowWordRight,
+        show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ + barkVowFessInSize =
+          barkVowFessInSize from by native_decide,
+        show (⟨384⟩ : UInt256) + barkVowFessInSize = barkVowFessEndPtr
+          from by native_decide] <;>
+      native_decide⟩
+
+theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) = ⟨0⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    RDrev code g s0 := by
+  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
+    rd4139 hcodeSize
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hov
+
+theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ gasWord k' C', RD code I g s0 ⟨4154⟩ (gasWord :: barkVowWord σ I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+  obtain ⟨gasWord, k', C', rd4154⟩ :=
+    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
+      rd4139 hcodeSize
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (dogPatchedJumpDest hpatch (by native_decide))
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      hov
+  exact ⟨gasWord, k', C', by simpa using rd4154⟩
+
+theorem RD.dogBarkFessCallFailure {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4155 : RD code I g s0 ⟨4155⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
+    (hrdataSize : rdata.size < UInt256.size)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
+    (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hrdataSize hov
+
+theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
+    {a b c : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4155 : RD code I g s0 ⟨4155⟩ (⟨1⟩ :: a :: b :: c :: R)
+      mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4176⟩ R mem aw rdata acc k' C' := by
+  obtain ⟨k4173, C4173, rd4173⟩ :=
+    RD.uniswapCallSuccessGuardOk (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
+      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (dogPatchedJumpDest hpatch (by native_decide))
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by simp only [List.length_cons]; omega)
+  have rd4176 := evm_run rd4173 with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  exact ⟨_, _, rd4176⟩
+
+theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {due dink dust rate dart art ink kpr urn ilk : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4071 : RD code I g s0 ⟨4071⟩
+      (due :: ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
+    (hevmEnv : evm.executionEnv = I)
+    (hevmCreated : evm.createdAccounts = cA)
+    (hevmMap : evm.accountMap = σ)
+    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
+    (hevmBlocks : evm.blocks = s0.blocks)
+    (hevmOrig : evm.σ₀ = s0.σ₀)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hov : R.length + 43 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      (outFess : ByteArray) (A' : Substate) (k' C' : ℕ),
+      RD code I g s0 ⟨4155⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: barkVowFessEndPtr ::
+          barkVowFessSelectorWord :: barkVowWord σ I :: due :: dink :: dust :: rate ::
+          dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+        (barkVowFessPostCallMem mem outFess due)
+        (UInt256.ofNat 19) outFess (cA', σ') k' C'
+      ∧ typedCallViaEVM (config v) evm
+          (EVM.address (AccountAddress.ofNat (barkVowWord σ I).toNat)) "fess" 0
+          [.int (Int.ofNat due.toNat)]
+          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+            outFess) true
+      ∧ outFess.size < UInt256.size := by
+  obtain ⟨_, _, rd4139⟩ :=
+    RD.dogBarkFessExtcodesizeGuard (v := v) (code := code) (g := g)
+      (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
+      (cA := cA) (σ := σ) hpatch hmem hread64 rd4071 hov
+  obtain ⟨_, _, _, rd4154⟩ :=
+    RD.dogBarkFessToCall hpatch rd4139 hcodeSize
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨cA', σ', z, outFess, A_in, callGas, k', C', hΘpack, rd4155raw, houtsz⟩ :=
+    RD.call rd4154
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      hdepth
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  refine ⟨cA', σ', z, outFess, A', k', C', ?_, ?_, houtsz⟩
+  · have haw :
+        UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
+          barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
+          barkVowFessOutPtr.toNat barkVowFessOutSize.toNat) = UInt256.ofNat 19 := by
+      unfold barkVowFessOutPtr barkVowFessInSize barkVowFessOutSize
+      native_decide
+    change RD code I g s0 ⟨4155⟩
+      ((if z then ⟨1⟩ else ⟨0⟩) :: barkVowFessEndPtr ::
+        barkVowFessSelectorWord :: barkVowWord σ I :: due :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (outFess.write 0 (barkVowFessDueMem mem due) barkVowFessOutPtr.toNat
+        (min barkVowFessOutSize (UInt256.ofNat outFess.size)).toNat)
+      (UInt256.ofNat 19) outFess (cA', σ') k' C'
+    exact haw ▸ rd4155raw
+  · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
+      intro hdepthEq
+      exact absurd hdepth (by rw [← hevmEnv, hdepthEq]; decide)
+    have htargetNorm :
+        EVM.address ↑(AccountAddress.ofNat (barkVowWord σ I).toNat) =
+          AccountAddress.ofUInt256 (barkVowWord σ I) := by
+      apply Fin.ext
+      simp [EVM.address, EVM.uintN, AccountAddress.ofNat, AccountAddress.ofUInt256,
+        UInt256.toNat]
+      rw [show AccountAddress.size = EVM.twoPow 160 from by decide]
+      rw [Nat.mod_mod]
+    have hΘ' :
+        (cA', σ', g'', A', z, outFess) =
+          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
+            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+            (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
+            evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVowWord σ I))
+            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVowWord σ I)))
+            callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+            ((barkVowFessDueMem mem due).readWithPadding
+              barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
+            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+    exact Reasoning.Theory.callCoincides
+      (cfg := config v) (evm := evm) (name := "fess")
+      (args := [.int (Int.ofNat due.toNat)])
+      (tgt := EVM.address (AccountAddress.ofNat (barkVowWord σ I).toNat))
+      (targetWord := barkVowWord σ I) (cA' := cA') (σ' := σ') (A' := A')
+      (A_in := A_in) (z := z) (o := outFess) (g'' := g'') (callGas := callGas)
+      (mem := barkVowFessDueMem mem due) (inOff := barkVowFessOutPtr)
+      (inSize := barkVowFessInSize) (callPerm := true) hdepthNe htargetNorm
+      (barkVowFessEncode_eq (v := v) (mem := mem) (due := due) hmem)
+      hΘ'
+
+theorem RD.dogBarkTabBaseCheckedMulOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {due dink dust rate dart art ink kpr urn ilk ret sel milkChop : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hfit : due.toNat * milkChop.toNat < UInt256.size)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop)
+    (rd4176 : RD code I g s0 ⟨4176⟩
+      (due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata acc k C)
+    (hov : R.length + 32 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4200⟩
+      (barkTabBaseWord due milkChop :: dogWadWord :: ⟨0⟩ :: due :: dink :: dust ::
+        rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret ::
+        sel :: R)
+      mem (UInt256.ofNat 19) rdata acc k' C' := by
+  have rd4178 := evm_run rd4176 with [
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4187 := rd4178.pushConst dogWadWord (width := 8) (op := .PUSH8)
+    (by decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4199 := evm_run rd4187 with [
+    raw push2 ⟨4200⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup10
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 milkChop (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by native_decide]
+          using hmload288)
+      (by native_decide) (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd4199.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨k', C', rd4200⟩ :=
+    RD.dogCheckedMulReturns (v := v) hpatch
+      (x := due) (y := milkChop) (ret := ⟨4200⟩)
+      (R := dogWadWord :: ⟨0⟩ :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
+        art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega)
+      (dogPatchedJumpDest hpatch (by native_decide)) hfit rd4564
+  exact ⟨k', C', by simpa [barkTabBaseWord] using rd4200⟩
+
+theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {due dink dust rate dart art ink kpr urn ilk ret sel milkChop : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hover : UInt256.size ≤ due.toNat * milkChop.toNat)
+    (hmload288 :
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
+        milkChop)
+    (rd4176 : RD code I g s0 ⟨4176⟩
+      (due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata acc k C)
+    (hov : R.length + 32 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd4178 := evm_run rd4176 with [
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4187 := rd4178.pushConst dogWadWord (width := 8) (op := .PUSH8)
+    (by decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4199 := evm_run rd4187 with [
+    raw push2 ⟨4200⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup10
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 milkChop (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by native_decide]
+          using hmload288)
+      (by native_decide) (by evm_ov),
+    raw push2 ⟨4564⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4564 := rd4199.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
+    (x := due) (y := milkChop) (ret := ⟨4200⟩)
+    (R := dogWadWord :: ⟨0⟩ :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
+      art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+    (by simp only [List.length_cons]; omega) hover rd4564
+
+theorem RD.dogBarkTabDivOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tabBase due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4200 : RD code I g s0 ⟨4200⟩
+      (tabBase :: dogWadWord :: ⟨0⟩ :: due :: dink :: dust :: rate :: dart ::
+        ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata acc k C)
+    (hov : R.length + 25 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4211⟩
+      (barkTabWord tabBase :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
+        art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata acc k' C' := by
+  have rd4205 := evm_run rd4200 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4207⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4207 := rd4205.jumpiT
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by native_decide : dogWadWord ≠ ⟨0⟩)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  have rd4211 := evm_run rd4207 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw div
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  exact ⟨_, _, by simpa [barkTabWord] using rd4211⟩
+
+theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hfit :
+      (dogSlotWord ⟨5⟩ σ I).toNat + tab.toNat < UInt256.size)
+    (rd4211 : RD code I g s0 ⟨4211⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hov : R.length + 31 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4222⟩
+      (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
+        dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
+        ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+  have rd4216pre := evm_run rd4211 with [
+    raw push2 ⟨4222⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨5⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  obtain ⟨k4217, C4217, rd4217raw⟩ := rd4216pre.sload
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4217 : RD code I g s0 ⟨4217⟩
+      (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k4217 C4217 := by
+    simpa [dogSlotWord, solcSlotWord] using rd4217raw
+  have rd4221 := evm_run rd4217 with [
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4625⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4625 := rd4221.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨k', C', rd4222⟩ :=
+    RD.dogCheckedAddReturns (v := v) hpatch
+      (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
+      (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega) hfit rd4625
+      (dogPatchedJumpDest hpatch (by native_decide))
+  exact ⟨k', C', by simpa [barkDirtNewWord] using rd4222⟩
+
+theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hover :
+      UInt256.size ≤ (dogSlotWord ⟨5⟩ σ I).toNat + tab.toNat)
+    (rd4211 : RD code I g s0 ⟨4211⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hov : R.length + 31 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd4216pre := evm_run rd4211 with [
+    raw push2 ⟨4222⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨5⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  obtain ⟨k4217, C4217, rd4217raw⟩ := rd4216pre.sload
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4217 : RD code I g s0 ⟨4217⟩
+      (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k4217 C4217 := by
+    simpa [dogSlotWord, solcSlotWord] using rd4217raw
+  have rd4221 := evm_run rd4217 with [
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4625⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4625 := rd4221.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  exact RD.dogCheckedAddOverflowReverts (v := v) hpatch
+    (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
+    (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+      ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+    (by simp only [List.length_cons]; omega) hover rd4625
+
+theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hperm : I.perm = true)
+    (rd4222 : RD code I g s0 ⟨4222⟩
+      (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
+        dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
+        ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hov : R.length + 17 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4226⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata
+      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩
+        (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab)) k' C' := by
+  have rd4225 := evm_run rd4222 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨5⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  obtain ⟨k', C', rd4226⟩ := rd4225.sstore hperm
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  exact ⟨k', C', rd4226⟩
+
+theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        milkDirt)
+    (hfit : milkDirt.toNat + tab.toNat < UInt256.size)
+    (rd4226 : RD code I g s0 ⟨4226⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+    (hov : R.length + 31 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4240⟩
+      (barkIlkDirtNewWord milkDirt tab :: tab :: due :: dink :: dust :: rate ::
+        dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret ::
+        sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σStore) k' C' := by
+  have rd4229pre := evm_run rd4226 with [
+    raw push1 ⟨96⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4230raw := RD.add rd4229pre
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by evm_ov)
+  have hadd352 : (⟨256⟩ : UInt256) + ⟨96⟩ = ⟨352⟩ := by
+    native_decide
+  have rd4230 := by
+    simpa [hadd352] using rd4230raw
+  have rd4231 := evm_run rd4230 with [
+    raw mload 0 milkDirt (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload352 (by decide) (by evm_ov)]
+  have rd4239 := evm_run rd4231 with [
+    raw push2 ⟨4240⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4625⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4625 := rd4239.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  obtain ⟨k', C', rd4240⟩ :=
+    RD.dogCheckedAddReturns (v := v) hpatch
+      (x := milkDirt) (y := tab) (ret := ⟨4240⟩)
+      (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      (by simp only [List.length_cons]; omega) hfit rd4625
+      (dogPatchedJumpDest hpatch (by native_decide))
+  exact ⟨k', C', by simpa [barkIlkDirtNewWord] using rd4240⟩
+
+theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hmload352 :
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
+        milkDirt)
+    (hover : UInt256.size ≤ milkDirt.toNat + tab.toNat)
+    (rd4226 : RD code I g s0 ⟨4226⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+    (hov : R.length + 31 ≤ 1024) :
+    RDrev code g s0 := by
+  have rd4229pre := evm_run rd4226 with [
+    raw push1 ⟨96⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4230raw := RD.add rd4229pre
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by evm_ov)
+  have hadd352 : (⟨256⟩ : UInt256) + ⟨96⟩ = ⟨352⟩ := by
+    native_decide
+  have rd4230 := by
+    simpa [hadd352] using rd4230raw
+  have rd4231 := evm_run rd4230 with [
+    raw mload 0 milkDirt (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload352 (by decide) (by evm_ov)]
+  have rd4239 := evm_run rd4231 with [
+    raw push2 ⟨4240⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push2 ⟨4625⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4625 := rd4239.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+  exact RD.dogCheckedAddOverflowReverts (v := v) hpatch
+    (x := milkDirt) (y := tab) (ret := ⟨4240⟩)
+    (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+      ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
+    (by simp only [List.length_cons]; omega) hover rd4625
+
+theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {ilkDirtNew tab due dink dust rate dart art ink kpr urn ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hperm : I.perm = true)
+    (hmem : mem.size = 580)
+    (rd4240 : RD code I g s0 ⟨4240⟩
+      (ilkDirtNew :: tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
+        art :: ink :: ⟨0⟩ :: kpr :: urn :: barkIlkWord I :: ret ::
+        sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+    (hov : R.length + 22 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4267⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: kpr :: urn :: barkIlkWord I :: ret :: sel :: R)
+      (twoWordHashMem (barkIlkWord I) ⟨1⟩ mem) (UInt256.ofNat 19) rdata
+      (cA, sstoreAccountMap I.codeOwner σStore (barkIlksDirtSlotFor I)
+        ilkDirtNew) k' C' := by
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((twoWordHashMem (barkIlkWord I) ⟨1⟩ mem).readWithPadding 0 64))) =
+        solcMappingSlot ⟨1⟩ (barkIlkWord I) :=
+    twoWordHashMem_solcMappingSlot_580 ⟨1⟩ (barkIlkWord I) hmem
+  have hslotDirt :
+      solcMappingSlot ⟨1⟩ (barkIlkWord I) + ⟨3⟩ =
+        barkIlksDirtSlotFor I := by
+    rw [barkIlksDirtSlotFor_eq hsz100]
+  have rd4247pre := evm_run rd4240 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup16
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4248 := rd4247pre.mstore 0 (wordAt0Mem (barkIlkWord I) mem)
+    (UInt256.ofNat 19)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd4253pre := evm_run rd4248 with [
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4254 := rd4253pre.mstore 0 (twoWordHashMem (barkIlkWord I) ⟨1⟩ mem)
+    (UInt256.ofNat 19)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd4259pre := evm_run rd4254 with [
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rd4260 := rd4259pre.keccak256 0 (solcMappingSlot ⟨1⟩ (barkIlkWord I))
+    (UInt256.ofNat 19)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    mem_cost hslot (by native_decide) (by evm_ov)
+  have rd4265preRaw := evm_run rd4260 with [
+    raw push1 ⟨3⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hpc4265 :
+      ((⟨4240⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+        ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+        ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
+        UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨4265⟩ : UInt256) := by
+    native_decide
+  rw [hpc4265] at rd4265preRaw
+  have hslotDirtLeft :
+      (⟨3⟩ : UInt256) + solcMappingSlot ⟨1⟩ (barkIlkWord I) =
+        barkIlksDirtSlotFor I := by
+    rw [u256_add_comm, hslotDirt]
+  rw [hslotDirtLeft] at rd4265preRaw
+  obtain ⟨k4266, C4266, rd4266⟩ := rd4265preRaw.sstore hperm
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4267raw := evm_run rd4266 with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have hpc4267 : (⟨4265⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = (⟨4267⟩ : UInt256) := by
+    native_decide
+  rw [hpc4267] at rd4267raw
+  exact ⟨_, _, rd4267raw⟩
+
+theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
+    {tab due dink dust rate dart art ink ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hmload256 :
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
+        barkIlksClipWord σMem I)
+    (rd4267 : RD code I g s0 ⟨4267⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hov : R.length + 49 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4370⟩
+      (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: ⟨0⟩ ::
+        barkKickOutPtr :: barkKickInSize :: barkKickOutPtr :: barkKickOutSize ::
+        barkKickEndPtr :: barkKickSelectorWord :: barkIlksClipWord σMem I ::
+        tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+  have hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩ := by
+    exact mloadWordValue_of_readWithPadding
+      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (by rw [hmem]; decide)
+      (by native_decide)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+  have hmload64Call :=
+    barkKickCalldataMem_mload64 (I := I) (mem := mem) (tab := tab) (dink := dink)
+      hmem hread64
+  have haddrMaskWord :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hclipCanon : (barkIlksClipWord σMem I).toNat < EVM.addressModulus := by
+    simpa [barkIlksClipWord, u256_land_comm] using
+      solcAddrMask_result_canonical (solcSlotWord σMem I (barkIlksSlot I))
+  have hclipCleanL :
+      UInt256.land solcAddrMask (barkIlksClipWord σMem I) = barkIlksClipWord σMem I :=
+    solcAddrMask_clean_left hclipCanon
+  have hurnCanon : (barkUrnKey I).toNat < EVM.addressModulus := by
+    simpa [barkUrnKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkUrnWord I)
+  have hurnCleanL :
+      UInt256.land solcAddrMask (barkUrnKey I) = barkUrnKey I :=
+    solcAddrMask_clean_left hurnCanon
+  have hkprCanon : (barkKprKey I).toNat < EVM.addressModulus := by
+    simpa [barkKprKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkKprWord I)
+  have hkprCleanL :
+      UInt256.land solcAddrMask (barkKprKey I) = barkKprKey I :=
+    solcAddrMask_clean_left hkprCanon
+  have rd4370 := evm_run rd4267 with [
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 (barkIlksClipWord σMem I) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by simpa using hmload256) (by native_decide)
+      (by simp only [List.length_cons]; omega),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨160⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push4 barkKickSelectorWord
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup16
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup16
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64 (by native_decide) (by simp only [List.length_cons]; omega),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push4 ⟨4294967295⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨224⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkKickSelectorMem mem) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨4⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup6
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkKickTabMem mem tab) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨4⟩ : UInt256) + ⟨384⟩).toNat = 388 by native_decide]
+        rfl)
+      (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup5
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkKickDinkMem mem tab dink) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩)).toNat = 420
+          by native_decide]
+        rfl)
+      (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨160⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkKickUrnMem I mem tab dink) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
+          ((⟨4⟩ : UInt256) + ⟨384⟩))).toNat = 452 by native_decide]
+        simp [barkKickUrnMem, Reasoning.Theory.writeWord, haddrMaskWord,
+          hurnCleanL])
+      (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨160⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
+          ((⟨4⟩ : UInt256) + ⟨384⟩)))).toNat = 484 by native_decide]
+        simp [barkKickCalldataMem, barkKickUrnMem, Reasoning.Theory.writeWord,
+          haddrMaskWord, hkprCleanL])
+      (by native_decide) (by simp only [List.length_cons]; omega),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap5
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64Call (by native_decide) (by simp only [List.length_cons]; omega),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨0⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  exact ⟨_, _, by
+    convert rd4370 using 1 <;>
+      simp only [barkKickSelectorWord, barkKickOutPtr, barkKickInSize,
+        barkKickOutSize, barkKickEndPtr, haddrMaskWord, hclipCleanL,
+        hurnCleanL, hkprCleanL,
+        show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ + barkKickInSize =
+          barkKickInSize from by native_decide,
+        show (⟨384⟩ : UInt256) + barkKickInSize = barkKickEndPtr
+          from by native_decide,
+        show UInt256.sub
+            ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
+              ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩)))))
+            ⟨384⟩ = barkKickInSize from by native_decide,
+        show UInt256.sub (⟨516⟩ : UInt256) ⟨384⟩ = barkKickInSize
+          from by native_decide,
+        show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
+              ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩))))) =
+            barkKickEndPtr
+          from by native_decide] <;>
+      native_decide⟩
+
+theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ σMem : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4370 : RD code I g s0 ⟨4370⟩
+      (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) = ⟨0⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    RDrev code g s0 := by
+  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
+    rd4370 hcodeSize
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hov
+
+theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {k C : ℕ} {R : List UInt256}
+    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {σ σMem : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4370 : RD code I g s0 ⟨4370⟩
+      (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ gasWord k' C', RD code I g s0 ⟨4385⟩
+      (gasWord :: barkIlksClipWord σMem I :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+  obtain ⟨gasWord, k', C', rd4385⟩ :=
+    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
+      rd4370 hcodeSize
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (dogPatchedJumpDest hpatch (by native_decide))
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      hov
+  exact ⟨gasWord, k', C', by simpa using rd4385⟩
+
+theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
+    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
+    {tab due dink dust rate dart art ink : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4267 : RD code I g s0 ⟨4267⟩
+      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
+        ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hmload256 :
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
+        barkIlksClipWord σMem I)
+    (hcodeSize :
+      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
+    (hevmEnv : evm.executionEnv = I)
+    (hevmCreated : evm.createdAccounts = cA)
+    (hevmMap : evm.accountMap = σ)
+    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
+    (hevmBlocks : evm.blocks = s0.blocks)
+    (hevmOrig : evm.σ₀ = s0.σ₀)
+    (hperm : I.perm = true)
+    (hdepth : I.depth.val < 1024)
+    (hov : R.length + 49 ≤ 1024) :
+    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      (outKick : ByteArray) (A' : Substate) (k' C' : ℕ),
+      RD code I g s0 ⟨4386⟩
+        ((if z then ⟨1⟩ else ⟨0⟩) :: barkKickEndPtr ::
+          barkKickSelectorWord :: barkIlksClipWord σMem I :: tab :: due ::
+          dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+          barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+        (barkKickPostCallMem I mem outKick tab dink)
+        (UInt256.ofNat 19) outKick (cA', σ') k' C'
+      ∧ typedCallViaEVM (config v) evm
+          (EVM.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat))
+          "kick" 0
+          [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+            .address (barkUrn I), .address (barkKpr I)]
+          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+            outKick) true
+      ∧ outKick.size < UInt256.size := by
+  obtain ⟨_, _, rd4370⟩ :=
+    RD.dogBarkKickExtcodesizeGuard (v := v) (code := code) (g := g)
+      (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
+      (cA := cA) (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
+      rd4267 hov
+  obtain ⟨_, _, _, rd4385⟩ :=
+    RD.dogBarkKickToCall hpatch rd4370 hcodeSize
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨cA', σ', z, outKick, A_in, callGas, k', C', hΘpack, rd4386raw,
+    houtsz⟩ :=
+    RD.call rd4385
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      hdepth
+      (by simp only [List.length_cons]; omega)
+  obtain ⟨g'', A', hΘ⟩ := hΘpack
+  refine ⟨cA', σ', z, outKick, A', k', C', ?_, ?_, houtsz⟩
+  · have haw :
+        UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
+          barkKickOutPtr.toNat barkKickInSize.toNat)
+          barkKickOutPtr.toNat barkKickOutSize.toNat) = UInt256.ofNat 19 := by
+      unfold barkKickOutPtr barkKickInSize barkKickOutSize
+      native_decide
+    change RD code I g s0 ⟨4386⟩
+      ((if z then ⟨1⟩ else ⟨0⟩) :: barkKickEndPtr ::
+        barkKickSelectorWord :: barkIlksClipWord σMem I :: tab :: due ::
+        dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
+        barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
+      (outKick.write 0 (barkKickCalldataMem I mem tab dink) barkKickOutPtr.toNat
+        (min barkKickOutSize (UInt256.ofNat outKick.size)).toNat)
+      (UInt256.ofNat 19) outKick (cA', σ') k' C'
+    exact haw ▸ rd4386raw
+  · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
+      intro hdepthEq
+      exact absurd hdepth (by rw [← hevmEnv, hdepthEq]; decide)
+    have htargetNorm :
+        EVM.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat) =
+          AccountAddress.ofUInt256 (barkIlksClipWord σMem I) := by
+      apply Fin.ext
+      simp [EVM.address, EVM.uintN, AccountAddress.ofNat, AccountAddress.ofUInt256,
+        UInt256.toNat]
+      rw [show AccountAddress.size = EVM.twoPow 160 from by decide]
+      rw [Nat.mod_mod]
+    have hΘ' :
+        (cA', σ', g'', A', z, outKick) =
+          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
+            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+            (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
+            evm.executionEnv.sender (AccountAddress.ofUInt256 (barkIlksClipWord σMem I))
+            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkIlksClipWord σMem I)))
+            callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+            ((barkKickCalldataMem I mem tab dink).readWithPadding
+              barkKickOutPtr.toNat barkKickInSize.toNat)
+            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+    exact Reasoning.Theory.callCoincides
+      (cfg := config v) (evm := evm) (name := "kick")
+      (args := [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
+        .address (barkUrn I), .address (barkKpr I)])
+      (tgt := EVM.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat))
+      (targetWord := barkIlksClipWord σMem I) (cA' := cA') (σ' := σ') (A' := A')
+      (A_in := A_in) (z := z) (o := outKick) (g'' := g'') (callGas := callGas)
+      (mem := barkKickCalldataMem I mem tab dink) (inOff := barkKickOutPtr)
+      (inSize := barkKickInSize) (callPerm := true) hdepthNe htargetNorm
+      (barkKickEncode_eq (v := v) (I := I) (mem := mem) (tab := tab)
+        (dink := dink) hmem)
+      hΘ'
+
+theorem RD.dogBarkKickCallFailure {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4386 : RD code I g s0 ⟨4386⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
+    (hrdataSize : rdata.size < UInt256.size)
+    (hov : R.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
+    (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hrdataSize hov
+
+theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
+    {d0 d1 d2 : UInt256} {R : List UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4386 : RD code I g s0 ⟨4386⟩ (⟨1⟩ :: d0 :: d1 :: d2 :: R)
+      mem aw rdata acc k C)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
+      mem aw rdata acc k' C' := by
+  exact RD.uniswapCallSuccessGuardOk (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
+    (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (dogPatchedJumpDest hpatch (by native_decide))
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simpa only [List.length_cons] using hov)
+
+theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem out : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4404 : RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
+      mem (UInt256.ofNat 19) out acc k C)
+    (hshort : out.size < 32) (hout : out.size < UInt256.size)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    RDrev code g s0 := by
+  have rdPop0 := RD.pop rd4404
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPop1 := RD.pop rdPop0
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPop2 := RD.pop rdPop1
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by omega)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by omega)
+  have rdMload64 := RD.mload 0 ⟨384⟩ (UInt256.ofNat 19) rdPush64
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    mem_cost hmload64 (by decide) (by omega)
+  have rdReturndatasize := RD.returndatasize rdMload64
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdDup2 := RD.dup2 rdPush32
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
+    apply Reasoning.Theory.ult_one
+    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' out.size hout]
+    exact hshort
+  have rdIszero := RD.iszero rdLt
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPushOk := RD.push2 rdIszero ⟨4424⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have hcond :
+      UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) = ⟨0⟩ := by
+    rw [hlt]
+    decide
+  have rdFallthrough := RD.jumpiNT rdPushOk
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hcond
+    (by simp only [List.length_cons]; omega)
+  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+
+theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem out : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4404 : RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
+      mem (UInt256.ofNat 19) out acc k C)
+    (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩)
+    (hmload384 :
+      (if (⟨384⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨384⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨384⟩ : UInt256).toNat 32))) =
+        retWord)
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', RD code I g s0 ⟨4427⟩ (retWord :: R)
+      mem (UInt256.ofNat 19) out acc k' C' := by
+  have rdPop0 := RD.pop rd4404
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPop1 := RD.pop rdPop0
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPop2 := RD.pop rdPop1
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by omega)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by omega)
+  have rdMload64 := RD.mload 0 ⟨384⟩ (UInt256.ofNat 19) rdPush64
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    mem_cost hmload64 (by decide) (by omega)
+  have rdReturndatasize := RD.returndatasize rdMload64
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdDup2 := RD.dup2 rdPush32
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
+    apply Reasoning.Theory.ult_zero
+    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' out.size hout]
+    exact hlong
+  have rdIszero := RD.iszero rdLt
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rdPushOk := RD.push2 rdIszero ⟨4424⟩
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have hcond :
+      UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) ≠ ⟨0⟩ := by
+    rw [hlt]
+    decide
+  have rd4424 := RD.jumpiT rdPushOk
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hcond (dogPatchedJumpDest hpatch (by native_decide))
+    (by simp only [List.length_cons]; omega)
+  have rd4425 := RD.jumpdest rd4424
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4426 := RD.pop rd4425
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons]; omega)
+  have rd4427 := RD.mload 0 retWord (UInt256.ofNat 19) rd4426
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+      mem_cost hmload384 (by decide) (by omega)
+  exact ⟨_, _, rd4427⟩
+
+theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem out : ByteArray} {k C : ℕ} {σMem : AccountMap}
+    {id tab due dink dust rate dart art ink ret sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd4427 : RD code I g s0 ⟨4427⟩
+      (id :: tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art ::
+        ink :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: [])
+      mem (UInt256.ofNat 19) out acc k C)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : I.perm = true)
+    (hmem : mem.size = 580)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
+    (hmload256 :
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
+        barkIlksClipWord σMem I) :
+    ∃ k' C', RD code I g s0 ret (id :: sel :: [])
+      (barkBarkLogMem mem dink dart due (barkIlksClipWord σMem I))
+      (UInt256.ofNat 19) out acc k' C' := by
+  have hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩ := by
+    exact mloadWordValue_of_readWithPadding
+      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (by rw [hmem]; decide)
+      (by native_decide)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+  have hmload64Log :=
+    barkBarkLogMem_mload64 (mem := mem) (dink := dink) (dart := dart)
+      (due := due) (clip := barkIlksClipWord σMem I) hmem hread64
+  have haddrMaskWord :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have hclipCanon : (barkIlksClipWord σMem I).toNat < EVM.addressModulus := by
+    simpa [barkIlksClipWord, u256_land_comm] using
+      solcAddrMask_result_canonical (solcSlotWord σMem I (barkIlksSlot I))
+  have hclipCleanL :
+      UInt256.land solcAddrMask (barkIlksClipWord σMem I) = barkIlksClipWord σMem I :=
+    solcAddrMask_clean_left hclipCanon
+  have hclipCleanR :
+      UInt256.land (barkIlksClipWord σMem I) solcAddrMask = barkIlksClipWord σMem I := by
+    rw [u256_land_comm]
+    exact hclipCleanL
+  have hurnCanon : (barkUrnKey I).toNat < EVM.addressModulus := by
+    simpa [barkUrnKey, u256_land_comm] using
+      solcAddrMask_result_canonical (barkUrnWord I)
+  have hurnCleanL :
+      UInt256.land solcAddrMask (barkUrnKey I) = barkUrnKey I :=
+    solcAddrMask_clean_left hurnCanon
+  have hurnCleanR :
+      UInt256.land (barkUrnKey I) solcAddrMask = barkUrnKey I := by
+    rw [u256_land_comm]
+    exact hurnCleanL
+  have rdLogMem := evm_run rd4427 with [
+    raw dup8
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 (barkIlksClipWord σMem I) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload256 (by decide) (by evm_ov),
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64 (by decide) (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkBarkLogDinkMem mem dink) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup11
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkBarkLogDartMem mem dink dart) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨384⟩ : UInt256) + ⟨32⟩).toNat = 416 by native_decide]
+        rfl)
+      (by decide) (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup7
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkBarkLogDueMem mem dink dart due) (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨64⟩ : UInt256) + ⟨384⟩).toNat = 448 by native_decide]
+        rfl)
+      (by decide) (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨1⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨160⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw shl
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨96⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 (barkBarkLogMem mem dink dart due (barkIlksClipWord σMem I))
+      (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show ((⟨384⟩ : UInt256) + ⟨96⟩).toNat = 480 by native_decide]
+        simp [barkBarkLogMem, Reasoning.Theory.writeWord, haddrMaskWord,
+          hclipCleanL, hclipCleanR])
+      (by decide) (by evm_ov)]
+  have rdLogPrep := evm_run rdLogMem with [
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64Log (by decide) (by evm_ov),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap13
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup13
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup15
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw and
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup16
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rdTopic := rdLogPrep.pushConst dogBarkLogTopic
+    (width := 32) (op := .PUSH32) (by decide)
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    (by simp only [List.length_cons, List.length_nil]; norm_num)
+  have rdLogStack := evm_run rdTopic with [
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨128⟩
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  have rdLog := RD.log4 0 (UInt256.ofNat 19) rdLogStack
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hperm mem_cost (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; norm_num)
+  have rdTail := evm_run rdLog with [
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap4
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap3
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw pop
+      (by
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+          (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov)]
+  exact ⟨_, _, rdTail.jump
+    (by
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)]
+      native_decide)
+    hret (by evm_ov)⟩
+
+theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem memout out : ByteArray} {k C : ℕ} {id sel : UInt256}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (rd448 : RD code I g s0 ⟨448⟩ (id :: sel :: [])
+      mem (UInt256.ofNat 19) out acc k C)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩)
+    (hmemout : (UInt256.toByteArray id).write 0 mem 384 32 = memout)
+    (hmemoutLoad64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨384⟩)
+    (hread384 : memout.readWithPadding 384 32 = UInt256.toByteArray id) :
+    RDret code g s0 acc (UInt256.toByteArray id) := by
+  exact evm_run rd448 with [
+    raw jumpdest
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨64⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmload64 (by decide) (by evm_ov),
+    raw swap2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup3
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw mstore 0 memout (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by rw [show (⟨384⟩ : UInt256).toNat = 384 from by decide]; exact hmemout)
+      (by decide) (by evm_ov),
+    raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost hmemoutLoad64 (by decide) (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw dup2
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw sub
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw add
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw swap1
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      (by evm_ov),
+    raw ret 0 (UInt256.toByteArray id)
+      (by
+        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+        native_decide)
+      mem_cost
+      (by
+        rw [show (⟨384⟩ : UInt256).toNat = 384 from by decide,
+          show ((⟨32⟩ : UInt256) + UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩).toNat = 32
+            from by decide]
+        exact hread384)
+      (by evm_ov)]
 
 theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -14708,7 +25566,3898 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       · exact True.intro
                                   · exact True.intro
                                 · exact True.intro
-                              sorry
+                              by_cases hfitRoom :
+                                  (barkRoomWord σ'' σ' I).toNat * dogWadWord.toNat <
+                                    UInt256.size
+                              · by_cases hchopNe : barkIlksChopWord σ' I ≠ ⟨0⟩
+                                · have hslot5 :
+                                      dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv =
+                                        dogSlotWord ⟨5⟩ σ'' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                    simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                      using h.symm
+                                  have hslot4 :
+                                      dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv =
+                                        dogSlotWord ⟨4⟩ σ'' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                    simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                      using h.symm
+                                  have hAccountsUrns :
+                                      accountMapEquiv σ' evmPostSolm.accountMap := by
+                                    simpa [evmPostEvm] using hStateCall.accountMap
+                                  have hmilkDirt :
+                                      dogSlotWord (barkIlksDirtSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksDirtWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksDirtSlotFor I)
+                                    rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hmilkHole :
+                                      dogSlotWord (barkIlksHoleSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksHoleWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksHoleSlotFor I)
+                                    rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hmilkChop :
+                                      dogSlotWord (barkIlksChopSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksChopWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksChopSlotFor I)
+                                    rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hmilkClip :
+                                      dogAddressReturnWord (barkIlksClipSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksClipWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksClipSlotFor I)
+                                    rw [barkIlksClipWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [dogAddressReturnWord, evmPostSolm, evmSolm,
+                                      initState] using
+                                      congrArg (fun word => UInt256.land word solcAddrMask)
+                                        h.symm
+                                  have hlimitSource :
+                                      (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv).toNat <
+                                        (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv).toNat ∧
+                                      (dogSlotWord (barkIlksDirtSlotFor I)
+                                          evmPostSolm.accountMap
+                                          evmPostSolm.executionEnv).toNat <
+                                        (dogSlotWord (barkIlksHoleSlotFor I)
+                                          evmPostSolm.accountMap
+                                          evmPostSolm.executionEnv).toNat := by
+                                    exact
+                                      ⟨by simpa [hslot5, hslot4] using hlimit.1,
+                                        by simpa [hmilkDirt, hmilkHole] using hlimit.2⟩
+                                  have hglobalRoom :
+                                      barkSourceGlobalRoomWord evmIlksPostSolm =
+                                        barkGlobalRoomWord σ'' I := by
+                                    simp [barkSourceGlobalRoomWord, barkGlobalRoomWord, hslot4,
+                                      hslot5]
+                                  have hilkRoom :
+                                      barkSourceIlkRoomWord evmPostSolm I =
+                                        barkIlkRoomWord σ' I := by
+                                    simp [barkSourceIlkRoomWord, barkIlkRoomWord, hmilkHole,
+                                      hmilkDirt]
+                                  have hroom :
+                                      barkSourceRoomWord evmPostSolm evmIlksPostSolm I =
+                                        barkRoomWord σ'' σ' I := by
+                                    simp [barkSourceRoomWord, barkRoomWord, hglobalRoom, hilkRoom]
+                                  have hfitRoomSource :
+                                      (barkSourceRoomWord evmPostSolm evmIlksPostSolm I).toNat *
+                                          dogWadWord.toNat <
+                                        UInt256.size := by
+                                    simpa [hroom] using hfitRoom
+                                  have hchopNeSource :
+                                      barkSourceMilkChopWord evmPostSolm I ≠ ⟨0⟩ := by
+                                    simpa [barkSourceMilkChopWord, hmilkChop] using hchopNe
+                                  obtain ⟨k3594Base, C3594Base, rd3594⟩ :=
+                                    RD.dogBarkComputeDart
+                                      (v := v) (code := code) (ret := ⟨448⟩)
+                                      (sel := solcSelectorWord I) (R := [])
+                                      (σ := σ'') (σMem := σ')
+                                      hpatch hfitRoom hrateNe hchopNe hmload288 rd3543
+                                      (by simp)
+                                  have hdartSource :
+                                      barkSourceDartWord evmPostSolm evmIlksPostSolm I out
+                                          outIlks =
+                                        barkDartWord σ'' σ' I (barkVatUrnsArtWord out)
+                                          (barkVatIlksRateWord outIlks)
+                                          (barkIlksChopWord σ' I) := by
+                                    simp [barkSourceDartWord, barkSourceDartCandidateWord,
+                                      barkSourceDartByRateWord, barkSourceRoomWadWord,
+                                      barkDartWord, barkDartCandidateWord, barkDartByRateWord,
+                                      barkRoomWadWord, hroom, barkSourceMilkChopWord,
+                                      hmilkChop]
+                                  have hbodyRevertOfTail
+                                      (htail :
+                                        ExecBlock (config v)
+                                          { contract := contract v,
+                                            locals :=
+                                              barkLocalsDart evmPostSolm evmIlksPostSolm I
+                                                out outIlks }
+                                          evmIlksPostSolm
+                                          ([ .ite
+                                              (.binary .gt (.var "art") (.var "dart"))
+                                              (checkedSubUintInto "leftoverArt" (.var "art")
+                                                  (.var "dart") ++
+                                                checkedMulUintInto "leftoverDue"
+                                                  (.var "leftoverArt") (.var "rate") ++
+                                                [ .ite
+                                                    (.binary .lt (.var "leftoverDue")
+                                                      (.var "dust"))
+                                                    [ .assign .localVar (varRef "dart")
+                                                        (.var "art") ]
+                                                    (checkedMulUintInto "partialDue"
+                                                        (.var "dart") (.var "rate") ++
+                                                      [ .require
+                                                          (.binary .ge (.var "partialDue")
+                                                            (.var "dust")) ]) ])
+                                              [] ] ++
+                                            checkedMulUintInto "inkDart" (.var "ink")
+                                              (.var "dart") ++
+                                            [ .letDecl "dink" (some uint256)
+                                                (.binary .div (.var "inkDart") (.var "art")),
+                                              .require (.binary .gt (.var "dink") (.intLit 0)),
+                                              .require
+                                                (.binary .and
+                                                  (.binary .le (.var "dart")
+                                                    (.intLit int256Limit))
+                                                  (.binary .le (.var "dink")
+                                                    (.intLit int256Limit))) ] ++
+                                            checkedExternalCallStmts (vatExpr v) "grab"
+                                              (.intLit 0)
+                                              [ .var "ilk", .var "urn", .var "milkClip",
+                                                vowAddr,
+                                                .unary .neg (asInt256 (.var "dink")),
+                                                .unary .neg (asInt256 (.var "dart")) ]
+                                              "_grabRet" ++
+                                            checkedMulUintInto "due" (.var "dart")
+                                              (.var "rate") ++
+                                            checkedExternalCallStmts vowAddr "fess"
+                                              (.intLit 0) [.var "due"] "_fessRet" ++
+                                            checkedMulUintInto "tabBase" (.var "due")
+                                              (.var "milkChop") ++
+                                            [ .letDecl "tab" (some uint256)
+                                                (.binary .div (.var "tabBase")
+                                                  (.intLit WAD)) ] ++
+                                            checkedAddUintInto "DirtNew" (.storage DirtRef)
+                                              (.var "tab") ++
+                                            [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                            checkedAddUintInto "ilkDirtNew" (.var "milkDirt")
+                                              (.var "tab") ++
+                                            [ .assign .storage (ilksF (.var "ilk") "dirt")
+                                                (.var "ilkDirtNew") ] ++
+                                            checkedExternalCallStmts (.var "milkClip") "kick"
+                                              (.intLit 0)
+                                              [.var "tab", .var "dink", .var "urn",
+                                                .var "kpr"]
+                                              "id" ++
+                                            [ .return [.var "id"] ])
+                                          .reverted) :
+                                      ExecTransitionBody (config v) (contract v) evmSolm
+                                        (barkLocals I) (barkTransition v).body .reverted := by
+                                    have hblock :=
+                                      dogBarkVatIlksDartTailSourceBlock (v := v) (cA := cA)
+                                        (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                                        (A := A) (I := I) (g := g)
+                                        (evmUrns := evmPostSolm)
+                                        (evmIlks := evmIlksPostSolm) (out := out)
+                                        (outIlks := outIlks) hwv hliveSolm hvatCode
+                                        hcallSolm hdecUrns hvatIlksCode hcallIlksSolm
+                                        hdecIlks hfitInk hfitArt hspotPos hsafeLt
+                                        hlimitSource hfitRoomSource hrateNe hchopNeSource
+                                        hsz100 htail
+                                    simpa [evmSolm] using ExecFuncBody.execBlockRevert hblock
+                                  have hbodyReturnOfTail {cs evmRet retVal}
+                                      (htail :
+                                        ExecBlock (config v)
+                                          { contract := contract v,
+                                            locals :=
+                                              barkLocalsDart evmPostSolm evmIlksPostSolm I
+                                                out outIlks }
+                                          evmIlksPostSolm
+                                          ([ .ite
+                                              (.binary .gt (.var "art") (.var "dart"))
+                                              (checkedSubUintInto "leftoverArt" (.var "art")
+                                                  (.var "dart") ++
+                                                checkedMulUintInto "leftoverDue"
+                                                  (.var "leftoverArt") (.var "rate") ++
+                                                [ .ite
+                                                    (.binary .lt (.var "leftoverDue")
+                                                      (.var "dust"))
+                                                    [ .assign .localVar (varRef "dart")
+                                                        (.var "art") ]
+                                                    (checkedMulUintInto "partialDue"
+                                                        (.var "dart") (.var "rate") ++
+                                                      [ .require
+                                                          (.binary .ge (.var "partialDue")
+                                                            (.var "dust")) ]) ])
+                                              [] ] ++
+                                            checkedMulUintInto "inkDart" (.var "ink")
+                                              (.var "dart") ++
+                                            [ .letDecl "dink" (some uint256)
+                                                (.binary .div (.var "inkDart") (.var "art")),
+                                              .require (.binary .gt (.var "dink") (.intLit 0)),
+                                              .require
+                                                (.binary .and
+                                                  (.binary .le (.var "dart")
+                                                    (.intLit int256Limit))
+                                                  (.binary .le (.var "dink")
+                                                    (.intLit int256Limit))) ] ++
+                                            checkedExternalCallStmts (vatExpr v) "grab"
+                                              (.intLit 0)
+                                              [ .var "ilk", .var "urn", .var "milkClip",
+                                                vowAddr,
+                                                .unary .neg (asInt256 (.var "dink")),
+                                                .unary .neg (asInt256 (.var "dart")) ]
+                                              "_grabRet" ++
+                                            checkedMulUintInto "due" (.var "dart")
+                                              (.var "rate") ++
+                                            checkedExternalCallStmts vowAddr "fess"
+                                              (.intLit 0) [.var "due"] "_fessRet" ++
+                                            checkedMulUintInto "tabBase" (.var "due")
+                                              (.var "milkChop") ++
+                                            [ .letDecl "tab" (some uint256)
+                                                (.binary .div (.var "tabBase")
+                                                  (.intLit WAD)) ] ++
+                                            checkedAddUintInto "DirtNew" (.storage DirtRef)
+                                              (.var "tab") ++
+                                            [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                            checkedAddUintInto "ilkDirtNew" (.var "milkDirt")
+                                              (.var "tab") ++
+                                            [ .assign .storage (ilksF (.var "ilk") "dirt")
+                                                (.var "ilkDirtNew") ] ++
+                                            checkedExternalCallStmts (.var "milkClip") "kick"
+                                              (.intLit 0)
+                                              [.var "tab", .var "dink", .var "urn",
+                                                .var "kpr"]
+                                              "id" ++
+                                            [ .return [.var "id"] ])
+                                          (.returned cs evmRet retVal)) :
+                                      ExecTransitionBody (config v) (contract v) evmSolm
+                                        (barkLocals I) (barkTransition v).body
+                                        (.returned cs evmRet retVal) := by
+                                    have hblock :=
+                                      dogBarkVatIlksDartTailSourceBlock (v := v) (cA := cA)
+                                        (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                                        (A := A) (I := I) (g := g)
+                                        (evmUrns := evmPostSolm)
+                                        (evmIlks := evmIlksPostSolm) (out := out)
+                                        (outIlks := outIlks) hwv hliveSolm hvatCode
+                                        hcallSolm hdecUrns hvatIlksCode hcallIlksSolm
+                                        hdecIlks hfitInk hfitArt hspotPos hsafeLt
+                                        hlimitSource hfitRoomSource hrateNe hchopNeSource
+                                        hsz100 htail
+                                    simpa [evmSolm] using ExecFuncBody.execBlockRet hblock
+                                  let art := barkVatUrnsArtWord out
+                                  let ink := barkVatUrnsInkWord out
+                                  let rate := barkVatIlksRateWord outIlks
+                                  let dust := barkVatIlksDustWord outIlks
+                                  let spot := barkVatIlksSpotWord outIlks
+                                  let room := barkRoomWord σ'' σ' I
+                                  let milkChop := barkIlksChopWord σ' I
+                                  let mem0 := barkVatIlksPostCallMem σ' I solcFreePtrMem out outIlks
+                                  let dart0 := barkDartWord σ'' σ' I art rate milkChop
+                                  have hrd3594Local :
+                                      ∃ k C,
+                                      RD code I (Sat256.ofUInt256 g) evmEvm ⟨3594⟩
+                                        (room :: spot :: dust :: rate :: dart0 :: ⟨256⟩ ::
+                                          art :: ink :: ⟨0⟩ :: barkKprKey I ::
+                                          barkUrnKey I :: barkIlkWord I :: ⟨448⟩ ::
+                                          solcSelectorWord I :: [])
+                                        mem0 (UInt256.ofNat 17) outIlks (cA'', σ'') k C := by
+                                    refine ⟨k3594Base, C3594Base, ?_⟩
+                                    simpa [room, spot, dust, rate, dart0, art, ink, milkChop,
+                                      mem0] using rd3594
+                                  obtain ⟨k3594, C3594, rd3594Local⟩ := hrd3594Local
+                                  have hdartSourceLocal :
+                                      barkSourceDartWord evmPostSolm evmIlksPostSolm I out
+                                          outIlks = dart0 := by
+                                    simpa [dart0, art, rate, milkChop] using hdartSource
+                                  have finishFromDartEntry (dart : UInt256)
+                                      (localsAfter : Store)
+                                      (hleftover :
+                                        ExecBlock (config v)
+                                          { contract := contract v,
+                                            locals :=
+                                              barkLocalsDart evmPostSolm evmIlksPostSolm I
+                                                out outIlks }
+                                          evmIlksPostSolm
+                                          [ .ite
+                                              (.binary .gt (.var "art") (.var "dart"))
+                                              (checkedSubUintInto "leftoverArt" (.var "art")
+                                                  (.var "dart") ++
+                                                checkedMulUintInto "leftoverDue"
+                                                  (.var "leftoverArt") (.var "rate") ++
+                                                [ .ite
+                                                    (.binary .lt (.var "leftoverDue")
+                                                      (.var "dust"))
+                                                    [ .assign .localVar (varRef "dart")
+                                                        (.var "art") ]
+                                                    (checkedMulUintInto "partialDue"
+                                                        (.var "dart") (.var "rate") ++
+                                                      [ .require
+                                                          (.binary .ge (.var "partialDue")
+                                                            (.var "dust")) ]) ])
+                                              [] ]
+                                          (.ok { contract := contract v, locals := localsAfter }
+                                            evmIlksPostSolm))
+                                      (hink :
+                                        localsAfter.get? "ink" =
+                                          some (.int (Int.ofNat ink.toNat)))
+                                      (hdart :
+                                        localsAfter.get? "dart" =
+                                          some (.int (Int.ofNat dart.toNat)))
+                                      (hart :
+                                        localsAfter.get? "art" =
+                                          some (.int (Int.ofNat art.toNat)))
+                                      (hrateAfter :
+                                        localsAfter.get? "rate" =
+                                          some (.int (Int.ofNat rate.toNat)))
+                                      (hmilkClipAfter :
+                                        localsAfter.get? "milkClip" =
+                                          some (.address (AccountAddress.ofNat
+                                            (barkIlksClipWord σ' I).toNat)))
+                                      (hmilkChopAfter :
+                                        localsAfter.get? "milkChop" =
+                                          some (.int (Int.ofNat milkChop.toNat)))
+                                      (hmilkDirtAfter :
+                                        localsAfter.get? "milkDirt" =
+                                          some (.int (Int.ofNat
+                                            (barkIlksDirtWord σ' I).toNat)))
+                                      (hilkAfter :
+                                        localsAfter.get? "ilk" =
+                                          some (.fixedBytes bytes32Width (barkIlkBytes I)))
+                                      (hurnAfter :
+                                        localsAfter.get? "urn" =
+                                          some (.address (barkUrn I)))
+                                      (hkprAfter :
+                                        localsAfter.get? "kpr" =
+                                          some (.address (barkKpr I)))
+                                      (hvowAfter : localsAfter.get? "vow" = none)
+                                      (hDirtAfter : localsAfter.get? "Dirt" = none)
+                                      (hilksAfter : localsAfter.get? "ilks" = none)
+                                      (hdartLeArt : dart.toNat ≤ art.toNat)
+                                      {k3700 C3700 : ℕ}
+                                      (rd3700 :
+                                        RD code I (Sat256.ofUInt256 g) evmEvm ⟨3700⟩
+                                          (room :: spot :: dust :: rate :: dart :: ⟨256⟩ ::
+                                            art :: ink :: ⟨0⟩ :: barkKprKey I ::
+                                            barkUrnKey I :: barkIlkWord I :: ⟨448⟩ ::
+                                          solcSelectorWord I :: [])
+                                        mem0 (UInt256.ofNat 17) outIlks (cA'', σ'')
+                                          k3700 C3700) :
+                                      runtimeEquivalenceFor (config v) (contract v) cA gh bl
+                                        σ_evm σ_solm σ₀ g A I := by
+                                    let afterIntGuard : List Stmt :=
+                                      checkedExternalCallStmts (vatExpr v) "grab"
+                                        (.intLit 0)
+                                        [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
+                                          .unary .neg (asInt256 (.var "dink")),
+                                          .unary .neg (asInt256 (.var "dart")) ]
+                                        "_grabRet" ++
+                                      checkedMulUintInto "due" (.var "dart") (.var "rate") ++
+                                      checkedExternalCallStmts vowAddr "fess" (.intLit 0)
+                                        [.var "due"] "_fessRet" ++
+                                      checkedMulUintInto "tabBase" (.var "due")
+                                        (.var "milkChop") ++
+                                      [ .letDecl "tab" (some uint256)
+                                          (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+                                      checkedAddUintInto "DirtNew" (.storage DirtRef)
+                                        (.var "tab") ++
+                                      [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                      checkedAddUintInto "ilkDirtNew" (.var "milkDirt")
+                                        (.var "tab") ++
+                                      [ .assign .storage (ilksF (.var "ilk") "dirt")
+                                          (.var "ilkDirtNew") ] ++
+                                      checkedExternalCallStmts (.var "milkClip") "kick"
+                                        (.intLit 0)
+                                        [.var "tab", .var "dink", .var "urn", .var "kpr"]
+                                        "id" ++
+                                      [ .return [.var "id"] ]
+                                    let afterDinkGuard : List Stmt :=
+                                      [ .require
+                                          (.binary .and
+                                            (.binary .le (.var "dart") (.intLit int256Limit))
+                                            (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+                                      afterIntGuard
+                                    let afterInkDart : List Stmt :=
+                                      [ .letDecl "dink" (some uint256)
+                                          (.binary .div (.var "inkDart") (.var "art")),
+                                        .require (.binary .gt (.var "dink") (.intLit 0)),
+                                        .require
+                                          (.binary .and
+                                            (.binary .le (.var "dart") (.intLit int256Limit))
+                                            (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
+                                      afterIntGuard
+                                    by_cases hfitInkDart :
+                                        ink.toNat * dart.toNat < UInt256.size
+                                    · obtain ⟨_, _, rd3726⟩ :=
+                                        RD.dogBarkComputeDink
+                                          (v := v) (code := code) (ret := ⟨448⟩)
+                                          (sel := solcSelectorWord I) (R := [])
+                                          (room := room) (spot := spot) (dust := dust)
+                                          (rate := rate) (dart := dart) (art := art)
+                                          (ink := ink) hpatch hfitInkDart hartNe rd3700
+                                          (by simp)
+                                      let dink := barkDinkWord ink dart art
+                                      let localsDink :=
+                                        barkLocalsDink
+                                          (barkLocalsInkDart localsAfter
+                                            (barkInkDartWord ink dart)) dink
+                                      have hdinkGet :
+                                          localsDink.get? "dink" =
+                                            some (.int (Int.ofNat dink.toNat)) := by
+                                        simpa [localsDink, dink] using
+                                          barkLocalsDink_get_dink
+                                            (barkLocalsInkDart localsAfter
+                                              (barkInkDartWord ink dart))
+                                            (barkDinkWord ink dart art)
+                                      have hdartDinkGet :
+                                          localsDink.get? "dart" =
+                                            some (.int (Int.ofNat dart.toNat)) := by
+                                        simpa [localsDink, dink] using
+                                          barkLocalsDink_get_preserved
+                                            (locals :=
+                                              barkLocalsInkDart localsAfter
+                                                (barkInkDartWord ink dart))
+                                            (dink := barkDinkWord ink dart art) (name := "dart")
+                                            (value := .int (Int.ofNat dart.toNat)) (by decide)
+                                            (barkLocalsInkDart_get_preserved
+                                              (locals := localsAfter)
+                                              (inkDart := barkInkDartWord ink dart)
+                                              (name := "dart")
+                                              (value := .int (Int.ofNat dart.toNat))
+                                              (by decide) hdart)
+                                      by_cases hdinkPos : 0 < dink.toNat
+                                      · obtain ⟨_, _, rd3797⟩ :=
+                                          RD.dogBarkDinkGuardOk
+                                            (v := v) (code := code) (ret := ⟨448⟩)
+                                            (sel := solcSelectorWord I) (R := [])
+                                            hpatch (by simpa [dink] using hdinkPos) rd3726
+                                            (by simp)
+                                        by_cases hdartBound :
+                                            dart.toNat ≤ dogInt256LimitWord.toNat
+                                        · by_cases hdinkBound :
+                                              dink.toNat ≤ dogInt256LimitWord.toNat
+                                          · obtain ⟨_, _, rd3885⟩ :=
+                                              RD.dogBarkInt256GuardOk
+                                                (v := v) (code := code) (ret := ⟨448⟩)
+                                                (sel := solcSelectorWord I) (R := [])
+                                                hpatch hdartBound
+                                                (by simpa [dink] using hdinkBound) rd3797
+                                                (by simp)
+                                            have hprefixOk :=
+                                              dogBarkPostLeftoverIntGuardOkSource (v := v)
+                                                evmIlksPostSolm hink hdart hart hfitInkDart
+                                                hartNe (by simpa [dink] using hdinkPos)
+                                                hdartBound (by simpa [dink] using hdinkBound)
+                                            have _hprefixFull :=
+                                              execBlock_append hleftover hprefixOk
+                                            have hpresDink {name : Ident} {value : Value}
+                                                (hdinkName : ("dink" == name) = false)
+                                                (hinkDartName : ("inkDart" == name) = false)
+                                                (hget : localsAfter.get? name = some value) :
+                                                localsDink.get? name = some value := by
+                                              simpa [localsDink, dink] using
+                                                barkLocalsDink_get_preserved
+                                                  (locals :=
+                                                    barkLocalsInkDart localsAfter
+                                                      (barkInkDartWord ink dart))
+                                                  (dink := barkDinkWord ink dart art)
+                                                  (name := name) (value := value) hdinkName
+                                                  (barkLocalsInkDart_get_preserved
+                                                    (locals := localsAfter)
+                                                    (inkDart := barkInkDartWord ink dart)
+                                                    (name := name) (value := value)
+                                                    hinkDartName hget)
+                                            have hpresDinkNone {name : Ident}
+                                                (hdinkName : ("dink" == name) = false)
+                                                (hinkDartName : ("inkDart" == name) = false)
+                                                (hget : localsAfter.get? name = none) :
+                                                localsDink.get? name = none := by
+                                              change (barkLocalsDink
+                                                (barkLocalsInkDart localsAfter
+                                                  (barkInkDartWord ink dart))
+                                                (barkDinkWord ink dart art)).get? name = none
+                                              rw [barkLocalsDink,
+                                                store_get_ne _
+                                                  (.int (Int.ofNat
+                                                    (barkDinkWord ink dart art).toNat))
+                                                  hdinkName,
+                                                barkLocalsInkDart,
+                                                store_get_ne _
+                                                  (.int (Int.ofNat
+                                                    (barkInkDartWord ink dart).toNat))
+                                                  hinkDartName]
+                                              exact hget
+                                            have hrateDink :
+                                                localsDink.get? "rate" =
+                                                  some (.int (Int.ofNat rate.toNat)) :=
+                                              hpresDink (by decide) (by decide) hrateAfter
+                                            have hmilkClipDink :
+                                                localsDink.get? "milkClip" =
+                                                  some (.address (AccountAddress.ofNat
+                                                    (barkIlksClipWord σ' I).toNat)) :=
+                                              hpresDink (by decide) (by decide) hmilkClipAfter
+                                            have hmilkChopDink :
+                                                localsDink.get? "milkChop" =
+                                                  some (.int (Int.ofNat milkChop.toNat)) :=
+                                              hpresDink (by decide) (by decide) hmilkChopAfter
+                                            have hmilkDirtDink :
+                                                localsDink.get? "milkDirt" =
+                                                  some (.int (Int.ofNat
+                                                    (barkIlksDirtWord σ' I).toNat)) :=
+                                              hpresDink (by decide) (by decide) hmilkDirtAfter
+                                            have hilkDink :
+                                                localsDink.get? "ilk" =
+                                                  some (.fixedBytes bytes32Width
+                                                    (barkIlkBytes I)) :=
+                                              hpresDink (by decide) (by decide) hilkAfter
+                                            have hurnDink :
+                                                localsDink.get? "urn" =
+                                                  some (.address (barkUrn I)) :=
+                                              hpresDink (by decide) (by decide) hurnAfter
+                                            have hkprDink :
+                                                localsDink.get? "kpr" =
+                                                  some (.address (barkKpr I)) :=
+                                              hpresDink (by decide) (by decide) hkprAfter
+                                            have hvowDink : localsDink.get? "vow" = none :=
+                                              hpresDinkNone (by decide) (by decide) hvowAfter
+                                            have hDirtDink : localsDink.get? "Dirt" = none :=
+                                              hpresDinkNone (by decide) (by decide) hDirtAfter
+                                            have hilksDink : localsDink.get? "ilks" = none :=
+                                              hpresDinkNone (by decide) (by decide) hilksAfter
+                                            let afterGrab : List Stmt :=
+                                              checkedMulUintInto "due" (.var "dart")
+                                                (.var "rate") ++
+                                              checkedExternalCallStmts vowAddr "fess"
+                                                (.intLit 0) [.var "due"] "_fessRet" ++
+                                              checkedMulUintInto "tabBase" (.var "due")
+                                                (.var "milkChop") ++
+                                              [ .letDecl "tab" (some uint256)
+                                                  (.binary .div (.var "tabBase")
+                                                    (.intLit WAD)) ] ++
+                                              checkedAddUintInto "DirtNew" (.storage DirtRef)
+                                                (.var "tab") ++
+                                              [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                              checkedAddUintInto "ilkDirtNew" (.var "milkDirt")
+                                                (.var "tab") ++
+                                              [ .assign .storage
+                                                  (ilksF (.var "ilk") "dirt")
+                                                  (.var "ilkDirtNew") ] ++
+                                              checkedExternalCallStmts (.var "milkClip") "kick"
+                                                (.intLit 0)
+                                                [.var "tab", .var "dink", .var "urn",
+                                                  .var "kpr"]
+                                                "id" ++
+                                              [ .return [.var "id"] ]
+                                            have hmload256Grab :
+                                                (if (⟨256⟩ : UInt256).toNat ≥ mem0.size ∨
+                                                    (⟨256⟩ : UInt256) ≥
+                                                      UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+                                                 else UInt256.ofNat
+                                                  (fromByteArrayBigEndian
+                                                    (mem0.readWithPadding
+                                                      (⟨256⟩ : UInt256).toNat 32))) =
+                                                  barkIlksClipWord σ' I := by
+                                              simpa [mem0] using
+                                                barkVatIlksPostCallMem_mload256_long
+                                                  (σ := σ') (I := I) solcFreePtrMem_size
+                                                  hretLong hosz hretIlksLong hoszIlks
+                                            by_cases hvatGrabCodeZero :
+                                                Reasoning.Theory.uniswapExtCodeSizeWord σ''
+                                                  (barkVatWord v) = ⟨0⟩
+                                            · obtain ⟨_, _, rd4023⟩ :=
+                                                RD.dogBarkVatGrabExtcodesizeGuard
+                                                  (v := v) (code := code) (ret := ⟨448⟩)
+                                                  (sel := solcSelectorWord I) (R := [])
+                                                  (cA := cA'') (σ := σ'') (σMem := σ')
+                                                  hpatch
+                                                  (by simpa [mem0] using hpostMemSize)
+                                                  (by simpa [mem0] using hpostMemRead64)
+                                                  hmload256Grab rd3885 (by simp)
+                                              have hvatGrabZeroSolm :
+                                                  Reasoning.Theory.uniswapExtCodeSizeWord
+                                                    evmIlksPostSolm.accountMap
+                                                    (barkVatWord v) = ⟨0⟩ :=
+                                                barkVatCodeSize_zero_accountMapEquiv
+                                                  hAccountsIlks hvatGrabCodeZero
+                                              have hvatNoCode :
+                                                  (UInt256.ofNat
+                                                    ((evmIlksPostSolm.lookupAccount
+                                                      (AccountAddress.ofNat v.vat.toNat)).option
+                                                        0 (fun acc => acc.code.size))).toNat =
+                                                    0 :=
+                                                barkVatCode_zero_of_state_codeSize_zero
+                                                  (v := v) (evm := evmIlksPostSolm)
+                                                  hvatGrabZeroSolm
+                                              have hvatExpr :
+                                                  evalExpr? (config v)
+                                                    { contract := contract v,
+                                                      locals := localsDink }
+                                                    evmIlksPostSolm (vatExpr v) =
+                                                    .ok (.address
+                                                      (AccountAddress.ofNat v.vat.toNat)) :=
+                                                evalExpr_barkVat_state (v := v)
+                                                  (evm := evmIlksPostSolm)
+                                                  (locals := localsDink)
+                                              have hguardFalse :
+                                                  evalExpr? (config v)
+                                                    { contract := contract v,
+                                                      locals := localsDink }
+                                                    evmIlksPostSolm
+                                                    (.binary .gt (.extCodeSize (vatExpr v))
+                                                      (.intLit 0)) = .ok (.bool false) :=
+                                                evalExpr_barkVatCodeGuard_false (v := v)
+                                                  (locals := localsDink) hvatExpr hvatNoCode
+                                              have hgrabRev :=
+                                                dogBarkVatGrabNoCodeBlock (v := v)
+                                                  (evm := evmIlksPostSolm)
+                                                  (locals := localsDink) hguardFalse
+                                              have htailPrefix :=
+                                                execBlock_append hprefixOk hgrabRev
+                                              have htailBody :
+                                                  ExecTransitionBody (config v) (contract v)
+                                                    evmSolm (barkLocals I)
+                                                    (barkTransition v).body .reverted := by
+                                                apply hbodyRevertOfTail
+                                                refine dogBarkDartTailFromLeftoverBlock
+                                                  hleftover ?_
+                                                simpa only [afterIntGuard, afterGrab, localsDink,
+                                                  dink, List.append_assoc] using
+                                                  execBlock_append_term (s2 := afterGrab)
+                                                    htailPrefix (by intro f e h; cases h)
+                                              have hrev :=
+                                                RD.dogBarkVatGrabNoCodeRevert
+                                                  (v := v) (code := code) hpatch rd4023
+                                                  hvatGrabCodeZero (by simp)
+                                              exact hrev.reEquivExecutionRevert hcode
+                                                hdispatch hdecode htailBody
+                                            · obtain ⟨cAGrab, σGrab, zGrab, outGrab, AGrab,
+                                                  _, _, rd4039, hcallGrabEvmRaw,
+                                                  houtGrabSize⟩ :=
+                                                RD.dogBarkVatGrabPostCall
+                                                  (v := v) (code := code) (s0 := evmEvm)
+                                                  (evm := evmIlksPostEvm) (ret := ⟨448⟩)
+                                                  (sel := solcSelectorWord I) (R := [])
+                                                  hpatch rd3885 hsz100
+                                                  (by simpa [mem0] using hpostMemSize)
+                                                  (by simpa [mem0] using hpostMemRead64)
+                                                  hmload256Grab hvatGrabCodeZero
+                                                  (by simp [evmIlksPostEvm, evmPostEvm,
+                                                    evmEvm, initState])
+                                                  (by simp [evmIlksPostEvm])
+                                                  (by simp [evmIlksPostEvm])
+                                                  (by simp [evmIlksPostEvm, evmPostEvm,
+                                                    evmEvm, initState])
+                                                  (by simp [evmIlksPostEvm, evmPostEvm,
+                                                    evmEvm, initState])
+                                                  (by simp [evmIlksPostEvm, evmPostEvm,
+                                                    evmEvm, initState])
+                                                  _hperm hdepthLt
+                                                  (by simpa [dink] using hdinkBound)
+                                                  hdartBound (by simp)
+                                              let evmGrabEvm :=
+                                                { evmIlksPostEvm with accountMap := σGrab, substate := AGrab, createdAccounts := cAGrab }
+                                              have hcallGrabEvm :
+                                                  typedCallViaEVM (config v) evmIlksPostEvm
+                                                    (EVM.address
+                                                      (AccountAddress.ofNat v.vat.toNat))
+                                                    "grab" 0
+                                                    [.fixedBytes bytes32Width (barkIlkBytes I),
+                                                      .address (barkUrn I),
+                                                      .address (AccountAddress.ofNat
+                                                        (barkIlksClipWord σ' I).toNat),
+                                                      .address (AccountAddress.ofNat
+                                                        (barkVowWord σ'' I).toNat),
+                                                      .int (-(Int.ofNat dink.toNat)),
+                                                      .int (-(Int.ofNat dart.toNat))]
+                                                    (zGrab, evmGrabEvm, outGrab) true := by
+                                                simpa [evmGrabEvm] using hcallGrabEvmRaw
+                                              have hvowWordIlks :
+                                                  barkVowWord evmIlksPostSolm.accountMap
+                                                      evmIlksPostSolm.executionEnv =
+                                                    barkVowWord σ'' I := by
+                                                have hslot :=
+                                                  dogSlotWord_eq_of_accountMapEquiv
+                                                    hAccountsIlks I ⟨2⟩
+                                                simpa [barkVowWord, evmIlksPostSolm,
+                                                  evmPostSolm, evmSolm, initState] using
+                                                  congrArg
+                                                    (fun word => UInt256.land solcAddrMask word)
+                                                    hslot.symm
+                                              obtain ⟨σGrabSolm, AGrabSolm,
+                                                  hcallGrabSolmRaw, hAccountsGrabRaw⟩ :=
+                                                dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                  (evm_solm := evmIlksPostSolm)
+                                                  hcallGrabEvm
+                                                  (by simpa [evmIlksPostEvm] using
+                                                    hAccountsIlks)
+                                                  (by simp [evmIlksPostEvm,
+                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
+                                                    evmEvm, evmSolm, initState])
+                                                  (by simp [evmIlksPostEvm,
+                                                    evmIlksPostSolm])
+                                                  (by simp [evmIlksPostEvm,
+                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
+                                                    evmEvm, evmSolm, initState])
+                                                  (by simp [evmIlksPostEvm,
+                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
+                                                    evmEvm, evmSolm, initState])
+                                                  (by simp [evmIlksPostEvm,
+                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
+                                                    evmEvm, evmSolm, initState])
+                                              let evmGrabSolm :=
+                                                { evmIlksPostSolm with
+                                                  accountMap := σGrabSolm,
+                                                  substate := AGrabSolm,
+                                                  createdAccounts := cAGrab }
+                                              have hcallGrabSolm :
+                                                  typedCallViaEVM (config v) evmIlksPostSolm
+                                                    (EVM.address
+                                                      (AccountAddress.ofNat v.vat.toNat))
+                                                    "grab" 0
+                                                    [.fixedBytes bytes32Width (barkIlkBytes I),
+                                                      .address (barkUrn I),
+                                                      .address (AccountAddress.ofNat
+                                                        (barkIlksClipWord σ' I).toNat),
+                                                      .address (AccountAddress.ofNat
+                                                        (barkVowWord evmIlksPostSolm.accountMap
+                                                          evmIlksPostSolm.executionEnv).toNat),
+                                                      .int (-(Int.ofNat dink.toNat)),
+                                                      .int (-(Int.ofNat dart.toNat))]
+                                                    (zGrab, evmGrabSolm, outGrab) true := by
+                                                simpa [evmGrabSolm, hvowWordIlks] using
+                                                  hcallGrabSolmRaw
+                                              have hvatGrabNonzeroSolm :
+                                                  Reasoning.Theory.uniswapExtCodeSizeWord
+                                                    evmIlksPostSolm.accountMap
+                                                    (barkVatWord v) ≠ ⟨0⟩ :=
+                                                barkVatCodeSize_ne_accountMapEquiv
+                                                  hAccountsIlks hvatGrabCodeZero
+                                              have hvatCodePosSolm :
+                                                  0 < (UInt256.ofNat
+                                                    ((evmIlksPostSolm.lookupAccount
+                                                      (AccountAddress.ofNat v.vat.toNat)).option
+                                                        0 (fun acc => acc.code.size))).toNat :=
+                                                barkVatCode_pos_of_state_codeSize_ne (v := v)
+                                                  (evm := evmIlksPostSolm)
+                                                  hvatGrabNonzeroSolm
+                                              have hvatExpr :
+                                                  evalExpr? (config v)
+                                                    { contract := contract v,
+                                                      locals := localsDink }
+                                                    evmIlksPostSolm (vatExpr v) =
+                                                    .ok (.address
+                                                      (AccountAddress.ofNat v.vat.toNat)) :=
+                                                evalExpr_barkVat_state (v := v)
+                                                  (evm := evmIlksPostSolm)
+                                                  (locals := localsDink)
+                                              have hguardTrue :
+                                                  evalExpr? (config v)
+                                                    { contract := contract v,
+                                                      locals := localsDink }
+                                                    evmIlksPostSolm
+                                                    (.binary .gt (.extCodeSize (vatExpr v))
+                                                      (.intLit 0)) = .ok (.bool true) :=
+                                                evalExpr_barkVatCodeGuard_true (v := v)
+                                                  (locals := localsDink) hvatExpr
+                                                  hvatCodePosSolm
+                                              cases zGrab
+                                              · simp only [Bool.false_eq_true, if_false] at rd4039 hcallGrabEvm hcallGrabSolm
+                                                have hgrabRev :=
+                                                  dogBarkVatGrabCallFailureBlock (v := v)
+                                                    (evm := evmIlksPostSolm)
+                                                    (evm' := evmGrabSolm)
+                                                    (locals := localsDink) (I := I)
+                                                    (outGrab := outGrab)
+                                                    (milkClip := barkIlksClipWord σ' I)
+                                                    (dink := dink) (dart := dart)
+                                                    hguardTrue hilkDink hurnDink
+                                                    hmilkClipDink hvowDink hdinkGet
+                                                    hdartDinkGet hcallGrabSolm
+                                                have htailPrefix :=
+                                                  execBlock_append hprefixOk hgrabRev
+                                                have htailBody :
+                                                    ExecTransitionBody (config v) (contract v)
+                                                      evmSolm (barkLocals I)
+                                                      (barkTransition v).body .reverted := by
+                                                  apply hbodyRevertOfTail
+                                                  refine dogBarkDartTailFromLeftoverBlock
+                                                    hleftover ?_
+                                                  simpa only [afterIntGuard, afterGrab, localsDink,
+                                                    dink, List.append_assoc] using
+                                                    execBlock_append_term (s2 := afterGrab)
+                                                      htailPrefix (by intro f e h; cases h)
+                                                have hrev :=
+                                                  RD.dogBarkVatGrabCallFailure hpatch rd4039
+                                                    houtGrabSize (by simp)
+                                                exact hrev.reEquivExecutionRevert hcode
+                                                  hdispatch hdecode htailBody
+                                              · simp only [Bool.true_eq_false, if_true] at rd4039 hcallGrabEvm hcallGrabSolm
+                                                obtain ⟨_, _, rd4057⟩ :=
+                                                  RD.dogBarkVatGrabCallSuccess hpatch rd4039
+                                                    (by simp)
+                                                have hgrabOk :=
+                                                  dogBarkVatGrabCallSuccessBlock (v := v)
+                                                    (evm := evmIlksPostSolm)
+                                                    (evm' := evmGrabSolm)
+                                                    (locals := localsDink) (I := I)
+                                                    (outGrab := outGrab)
+                                                    (milkClip := barkIlksClipWord σ' I)
+                                                    (dink := dink) (dart := dart)
+                                                    hguardTrue hilkDink hurnDink
+                                                    hmilkClipDink hvowDink hdinkGet
+                                                    hdartDinkGet hcallGrabSolm
+                                                have _hprefixGrab :=
+                                                  execBlock_append _hprefixFull hgrabOk
+                                                have _hprefixGrabTail :=
+                                                  execBlock_append hprefixOk hgrabOk
+                                                let localsGrab := barkLocalsGrabRet localsDink
+                                                have hpresGrab {name : Ident} {value : Value}
+                                                    (hgrabName : ("_grabRet" == name) = false)
+                                                    (hget : localsDink.get? name = some value) :
+                                                    localsGrab.get? name = some value := by
+                                                  simpa [localsGrab] using
+                                                    barkLocalsGrabRet_get_preserved
+                                                      (locals := localsDink) (name := name)
+                                                      (value := value) hgrabName hget
+                                                have hpresGrabNone {name : Ident}
+                                                    (hgrabName : ("_grabRet" == name) = false)
+                                                    (hget : localsDink.get? name = none) :
+                                                    localsGrab.get? name = none := by
+                                                  change (barkLocalsGrabRet localsDink).get? name =
+                                                    none
+                                                  rw [barkLocalsGrabRet,
+                                                    store_get_ne _ .unit hgrabName]
+                                                  exact hget
+                                                have hdartGrab :
+                                                    localsGrab.get? "dart" =
+                                                      some (.int (Int.ofNat dart.toNat)) :=
+                                                  hpresGrab (by decide) hdartDinkGet
+                                                have hrateGrab :
+                                                    localsGrab.get? "rate" =
+                                                      some (.int (Int.ofNat rate.toNat)) :=
+                                                  hpresGrab (by decide) hrateDink
+                                                have hmilkChopGrab :
+                                                    localsGrab.get? "milkChop" =
+                                                      some (.int (Int.ofNat milkChop.toNat)) :=
+                                                  hpresGrab (by decide) hmilkChopDink
+                                                have hvowGrab : localsGrab.get? "vow" = none :=
+                                                  hpresGrabNone (by decide) hvowDink
+                                                have hDirtGrab : localsGrab.get? "Dirt" = none :=
+                                                  hpresGrabNone (by decide) hDirtDink
+                                                have hfitDue :
+                                                    dart.toNat * rate.toNat < UInt256.size := by
+                                                  exact barkPartialDue_fit_of_dart_le_art
+                                                    hdartLeArt (by simpa [art, rate] using hfitArt)
+                                                obtain ⟨_, _, rd4071⟩ :=
+                                                  RD.dogBarkDueCheckedMulOk hpatch hfitDue
+                                                    rd4057 (by simp)
+                                                let due := barkDueWord dart rate
+                                                let localsDue := barkLocalsDue localsGrab due
+                                                have hdueGet :
+                                                    localsDue.get? "due" =
+                                                      some (.int (Int.ofNat due.toNat)) := by
+                                                  simpa [localsDue, due] using
+                                                    barkLocalsDue_get_due localsGrab
+                                                      (barkDueWord dart rate)
+                                                have hmilkChopDue :
+                                                    localsDue.get? "milkChop" =
+                                                      some (.int (Int.ofNat milkChop.toNat)) := by
+                                                  simpa [localsDue, due] using
+                                                    barkLocalsDue_get_preserved
+                                                      (locals := localsGrab)
+                                                      (due := barkDueWord dart rate)
+                                                      (name := "milkChop")
+                                                      (value := .int (Int.ofNat milkChop.toNat))
+                                                      (by decide) hmilkChopGrab
+                                                have hvowDue : localsDue.get? "vow" = none := by
+                                                  change (barkLocalsDue localsGrab
+                                                    (barkDueWord dart rate)).get? "vow" = none
+                                                  rw [barkLocalsDue,
+                                                    store_get_ne _
+                                                      (.int (Int.ofNat
+                                                        (barkDueWord dart rate).toNat))
+                                                      (by decide)]
+                                                  exact hvowGrab
+                                                have hDirtDue : localsDue.get? "Dirt" = none := by
+                                                  change (barkLocalsDue localsGrab
+                                                    (barkDueWord dart rate)).get? "Dirt" = none
+                                                  rw [barkLocalsDue,
+                                                    store_get_ne _
+                                                      (.int (Int.ofNat
+                                                        (barkDueWord dart rate).toNat))
+                                                      (by decide)]
+                                                  exact hDirtGrab
+                                                have hdueOk :=
+                                                  dogBarkDueCheckedMulOkSource (v := v)
+                                                    evmGrabSolm hdartGrab hrateGrab hfitDue
+                                                have hAccountsGrab :
+                                                    accountMapEquiv σGrab
+                                                      evmGrabSolm.accountMap := by
+                                                  simpa [evmGrabEvm, evmGrabSolm] using
+                                                    hAccountsGrabRaw
+                                                have hvowWordGrab :
+                                                    barkVowWord evmGrabSolm.accountMap
+                                                        evmGrabSolm.executionEnv =
+                                                      barkVowWord σGrab I := by
+                                                  have hslot :=
+                                                    dogSlotWord_eq_of_accountMapEquiv
+                                                      hAccountsGrab I ⟨2⟩
+                                                  simpa [barkVowWord, evmGrabSolm,
+                                                    evmIlksPostSolm, evmPostSolm, evmSolm,
+                                                    initState] using
+                                                    congrArg
+                                                      (fun word =>
+                                                        UInt256.land solcAddrMask word)
+                                                      hslot.symm
+                                                have hmemGrabSize :
+                                                    (barkVatGrabPostCallMem σ'' σ' I mem0
+                                                      outGrab dink dart).size = 580 := by
+                                                  exact barkVatGrabPostCallMem_size
+                                                    (σ := σ'') (σMem := σ') (I := I)
+                                                    (mem := mem0) (out := outGrab)
+                                                    (dink := dink) (dart := dart)
+                                                    (by simpa [mem0] using hpostMemSize)
+                                                have hmemGrabRead64 :
+                                                    (barkVatGrabPostCallMem σ'' σ' I mem0
+                                                      outGrab dink dart).readWithPadding 64 32 =
+                                                      UInt256.toByteArray ⟨384⟩ := by
+                                                  exact barkVatGrabPostCallMem_read64
+                                                    (σ := σ'') (σMem := σ') (I := I)
+                                                    (mem := mem0) (out := outGrab)
+                                                    (dink := dink) (dart := dart)
+                                                    (by simpa [mem0] using hpostMemSize)
+                                                    (by simpa [mem0] using hpostMemRead64)
+                                                let afterFess : List Stmt :=
+                                                  checkedMulUintInto "tabBase" (.var "due")
+                                                    (.var "milkChop") ++
+                                                  [ .letDecl "tab" (some uint256)
+                                                      (.binary .div (.var "tabBase")
+                                                        (.intLit WAD)) ] ++
+                                                  checkedAddUintInto "DirtNew"
+                                                    (.storage DirtRef) (.var "tab") ++
+                                                  [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                                  checkedAddUintInto "ilkDirtNew"
+                                                    (.var "milkDirt") (.var "tab") ++
+                                                  [ .assign .storage
+                                                      (ilksF (.var "ilk") "dirt")
+                                                      (.var "ilkDirtNew") ] ++
+                                                  checkedExternalCallStmts (.var "milkClip")
+                                                    "kick" (.intLit 0)
+                                                    [.var "tab", .var "dink", .var "urn",
+                                                      .var "kpr"]
+                                                    "id" ++
+                                                  [ .return [.var "id"] ]
+                                                by_cases hvowCodeZero :
+                                                    Reasoning.Theory.uniswapExtCodeSizeWord
+                                                      σGrab (barkVowWord σGrab I) = ⟨0⟩
+                                                · obtain ⟨_, _, rd4139⟩ :=
+                                                    RD.dogBarkFessExtcodesizeGuard
+                                                      (v := v) (code := code)
+                                                      (g := Sat256.ofUInt256 g) (s0 := evmEvm)
+                                                      (I := I) (ret := ⟨448⟩)
+                                                      (sel := solcSelectorWord I) (R := [])
+                                                      (cA := cAGrab) (σ := σGrab)
+                                                      hpatch hmemGrabSize hmemGrabRead64
+                                                      rd4071 (by simp)
+                                                  have hvowCodeZeroSolm :
+                                                      Reasoning.Theory.uniswapExtCodeSizeWord
+                                                        evmGrabSolm.accountMap
+                                                        (barkVowWord evmGrabSolm.accountMap
+                                                          evmGrabSolm.executionEnv) = ⟨0⟩ := by
+                                                    have hzero :=
+                                                      dogCodeSize_zero_accountMapEquiv
+                                                        hAccountsGrab hvowCodeZero
+                                                    simpa [hvowWordGrab] using hzero
+                                                  have hvowNoCode :
+                                                      (UInt256.ofNat
+                                                        ((evmGrabSolm.lookupAccount
+                                                          (AccountAddress.ofNat
+                                                            (barkVowWord
+                                                              evmGrabSolm.accountMap
+                                                              evmGrabSolm.executionEnv).toNat)).option
+                                                            0 (fun acc => acc.code.size))).toNat =
+                                                        0 :=
+                                                    dogCode_zero_of_state_codeSize_zero
+                                                      hvowCodeZeroSolm
+                                                  have hvowReceiver :=
+                                                    evalExpr_barkStorageVow (v := v)
+                                                      (evm := evmGrabSolm)
+                                                      (locals := localsDue) hvowDue
+                                                  have hfessGuardFalse :
+                                                      evalExpr? (config v)
+                                                        { contract := contract v,
+                                                          locals := localsDue }
+                                                        evmGrabSolm
+                                                        (.binary .gt (.extCodeSize vowAddr)
+                                                          (.intLit 0)) = .ok (.bool false) :=
+                                                    evalExpr_barkAddressCodeGuard_false
+                                                      hvowReceiver hvowNoCode
+                                                  have hfessRev :=
+                                                    dogBarkVowFessNoCodeBlock (v := v)
+                                                      (evm := evmGrabSolm)
+                                                      (locals := localsDue) hfessGuardFalse
+                                                  have htailPrefix :=
+                                                    execBlock_append
+                                                      (execBlock_append _hprefixGrabTail hdueOk)
+                                                      hfessRev
+                                                  have htailBody :
+                                                      ExecTransitionBody (config v)
+                                                        (contract v) evmSolm (barkLocals I)
+                                                        (barkTransition v).body .reverted := by
+                                                    apply hbodyRevertOfTail
+                                                    refine dogBarkDartTailFromLeftoverBlock
+                                                      hleftover ?_
+                                                    simpa only [afterIntGuard, afterGrab, afterFess,
+                                                      localsDink, localsGrab, localsDue, due,
+                                                      dink, List.append_assoc] using
+                                                      execBlock_append_term (s2 := afterFess)
+                                                        htailPrefix (by intro f e h; cases h)
+                                                  have hrev :=
+                                                    RD.dogBarkFessNoCodeRevert
+                                                      (v := v) (code := code) hpatch rd4139
+                                                      hvowCodeZero (by simp)
+                                                  exact hrev.reEquivExecutionRevert hcode
+                                                    hdispatch hdecode htailBody
+                                                · obtain ⟨cAFess, σFess, zFess, outFess,
+                                                    AFess, _, _, rd4155, hcallFessEvmRaw,
+                                                    houtFessSize⟩ :=
+                                                    RD.dogBarkFessPostCall
+                                                      (v := v) (code := code) (s0 := evmEvm)
+                                                      (evm := evmGrabEvm) (I := I)
+                                                      (ret := ⟨448⟩)
+                                                      (sel := solcSelectorWord I) (R := [])
+                                                      hpatch rd4071 hmemGrabSize
+                                                      hmemGrabRead64 hvowCodeZero
+                                                      (by simp [evmGrabEvm,
+                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
+                                                        initState])
+                                                      (by simp [evmGrabEvm])
+                                                      (by simp [evmGrabEvm])
+                                                      (by simp [evmGrabEvm,
+                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
+                                                        initState])
+                                                      (by simp [evmGrabEvm,
+                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
+                                                        initState])
+                                                      (by simp [evmGrabEvm,
+                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
+                                                        initState])
+                                                      _hperm hdepthLt (by simp)
+                                                  let evmFessEvm :=
+                                                    { evmGrabEvm with accountMap := σFess, substate := AFess, createdAccounts := cAFess }
+                                                  have hcallFessEvm :
+                                                      typedCallViaEVM (config v) evmGrabEvm
+                                                        (EVM.address
+                                                          (AccountAddress.ofNat
+                                                            (barkVowWord σGrab I).toNat))
+                                                        "fess" 0
+                                                        [.int (Int.ofNat due.toNat)]
+                                                        (zFess, evmFessEvm, outFess)
+                                                        true := by
+                                                    simpa [evmFessEvm] using hcallFessEvmRaw
+                                                  obtain ⟨σFessSolm, AFessSolm,
+                                                      hcallFessSolmRaw,
+                                                      hAccountsFessRaw⟩ :=
+                                                    dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                      (evm_solm := evmGrabSolm)
+                                                      hcallFessEvm
+                                                      (by simpa [evmGrabEvm, evmGrabSolm] using
+                                                        hAccountsGrab)
+                                                      (by simp [evmGrabEvm, evmGrabSolm,
+                                                        evmIlksPostEvm, evmIlksPostSolm,
+                                                        evmPostEvm, evmPostSolm, evmEvm,
+                                                        evmSolm, initState])
+                                                      (by simp [evmGrabEvm, evmGrabSolm])
+                                                      (by simp [evmGrabEvm, evmGrabSolm,
+                                                        evmIlksPostEvm, evmIlksPostSolm,
+                                                        evmPostEvm, evmPostSolm, evmEvm,
+                                                        evmSolm, initState])
+                                                      (by simp [evmGrabEvm, evmGrabSolm,
+                                                        evmIlksPostEvm, evmIlksPostSolm,
+                                                        evmPostEvm, evmPostSolm, evmEvm,
+                                                        evmSolm, initState])
+                                                      (by simp [evmGrabEvm, evmGrabSolm,
+                                                        evmIlksPostEvm, evmIlksPostSolm,
+                                                        evmPostEvm, evmPostSolm, evmEvm,
+                                                        evmSolm, initState])
+                                                  let evmFessSolm :=
+                                                    { evmGrabSolm with
+                                                      accountMap := σFessSolm,
+                                                      substate := AFessSolm,
+                                                      createdAccounts := cAFess }
+                                                  have hcallFessSolm :
+                                                      typedCallViaEVM (config v) evmGrabSolm
+                                                        (EVM.address
+                                                          (AccountAddress.ofNat
+                                                            (barkVowWord
+                                                              evmGrabSolm.accountMap
+                                                              evmGrabSolm.executionEnv).toNat))
+                                                        "fess" 0
+                                                        [.int (Int.ofNat due.toNat)]
+                                                        (zFess, evmFessSolm, outFess)
+                                                        true := by
+                                                    simpa [evmFessEvm, evmFessSolm,
+                                                      hvowWordGrab] using hcallFessSolmRaw
+                                                  have hAccountsFess :
+                                                      accountMapEquiv σFess
+                                                        evmFessSolm.accountMap := by
+                                                    simpa [evmFessEvm, evmFessSolm] using
+                                                      hAccountsFessRaw
+                                                  have hvowCodeNonzeroSolm :
+                                                      Reasoning.Theory.uniswapExtCodeSizeWord
+                                                        evmGrabSolm.accountMap
+                                                        (barkVowWord
+                                                          evmGrabSolm.accountMap
+                                                          evmGrabSolm.executionEnv) ≠
+                                                          ⟨0⟩ := by
+                                                    have hne :=
+                                                      dogCodeSize_ne_accountMapEquiv
+                                                        hAccountsGrab hvowCodeZero
+                                                    simpa [hvowWordGrab] using hne
+                                                  have hvowCodePosSolm :
+                                                      0 < (UInt256.ofNat
+                                                        ((evmGrabSolm.lookupAccount
+                                                          (AccountAddress.ofNat
+                                                            (barkVowWord
+                                                              evmGrabSolm.accountMap
+                                                              evmGrabSolm.executionEnv).toNat)).option
+                                                            0 (fun acc => acc.code.size))).toNat :=
+                                                    dogCode_pos_of_state_codeSize_ne
+                                                      hvowCodeNonzeroSolm
+                                                  have hvowReceiver :=
+                                                    evalExpr_barkStorageVow (v := v)
+                                                      (evm := evmGrabSolm)
+                                                      (locals := localsDue) hvowDue
+                                                  have hfessGuardTrue :
+                                                      evalExpr? (config v)
+                                                        { contract := contract v,
+                                                          locals := localsDue }
+                                                        evmGrabSolm
+                                                        (.binary .gt (.extCodeSize vowAddr)
+                                                          (.intLit 0)) = .ok (.bool true) :=
+                                                    evalExpr_barkAddressCodeGuard_true
+                                                      hvowReceiver hvowCodePosSolm
+                                                  cases zFess
+                                                  · simp only [Bool.false_eq_true, if_false] at rd4155 hcallFessEvm hcallFessSolm
+                                                    have hfessRev :=
+                                                      dogBarkVowFessCallFailureBlock (v := v)
+                                                        (evm := evmGrabSolm)
+                                                        (evm' := evmFessSolm)
+                                                        (locals := localsDue)
+                                                        (outFess := outFess)
+                                                        (due := due)
+                                                        hfessGuardTrue hvowDue hdueGet
+                                                        hcallFessSolm
+                                                    have htailPrefix :=
+                                                      execBlock_append
+                                                        (execBlock_append _hprefixGrabTail hdueOk)
+                                                        hfessRev
+                                                    have htailBody :
+                                                        ExecTransitionBody (config v)
+                                                          (contract v) evmSolm (barkLocals I)
+                                                          (barkTransition v).body .reverted := by
+                                                      apply hbodyRevertOfTail
+                                                      refine dogBarkDartTailFromLeftoverBlock
+                                                        hleftover ?_
+                                                      simpa only [afterIntGuard, afterGrab,
+                                                        afterFess, localsDink, localsGrab,
+                                                        localsDue, due, dink,
+                                                        List.append_assoc] using
+                                                        execBlock_append_term (s2 := afterFess)
+                                                          htailPrefix (by intro f e h; cases h)
+                                                    have hrev :=
+                                                      RD.dogBarkFessCallFailure hpatch rd4155
+                                                        houtFessSize (by simp)
+                                                    exact hrev.reEquivExecutionRevert hcode
+                                                      hdispatch hdecode htailBody
+                                                  · simp only [Bool.true_eq_false, if_true] at rd4155 hcallFessEvm hcallFessSolm
+                                                    obtain ⟨_, _, rd4176⟩ :=
+                                                      RD.dogBarkFessCallSuccess hpatch rd4155
+                                                        (by simp)
+                                                    have hfessOk :=
+                                                      dogBarkVowFessCallSuccessBlock (v := v)
+                                                        (evm := evmGrabSolm)
+                                                        (evm' := evmFessSolm)
+                                                        (locals := localsDue)
+                                                        (outFess := outFess)
+                                                        (due := due)
+                                                        hfessGuardTrue hvowDue hdueGet
+                                                        hcallFessSolm
+                                                    have _hprefixFess :=
+                                                      execBlock_append
+                                                        (execBlock_append _hprefixGrab hdueOk)
+                                                        hfessOk
+                                                    have _hprefixFessTail :=
+                                                      execBlock_append
+                                                        (execBlock_append _hprefixGrabTail hdueOk)
+                                                        hfessOk
+                                                    let localsFess :=
+                                                      barkLocalsFessRet localsDue
+                                                    have hpresDue {name : Ident} {value : Value}
+                                                        (hdueName : ("due" == name) = false)
+                                                        (hget :
+                                                          localsGrab.get? name = some value) :
+                                                        localsDue.get? name = some value := by
+                                                      simpa [localsDue, due] using
+                                                        barkLocalsDue_get_preserved
+                                                          (locals := localsGrab)
+                                                          (due := barkDueWord dart rate)
+                                                          (name := name) (value := value)
+                                                          hdueName hget
+                                                    have hpresDueNone {name : Ident}
+                                                        (hdueName : ("due" == name) = false)
+                                                        (hget : localsGrab.get? name = none) :
+                                                        localsDue.get? name = none := by
+                                                      change (barkLocalsDue localsGrab
+                                                        (barkDueWord dart rate)).get? name = none
+                                                      rw [barkLocalsDue,
+                                                        store_get_ne _
+                                                          (.int (Int.ofNat
+                                                            (barkDueWord dart rate).toNat))
+                                                          hdueName]
+                                                      exact hget
+                                                    have hdinkGrab :
+                                                        localsGrab.get? "dink" =
+                                                          some (.int (Int.ofNat dink.toNat)) :=
+                                                      hpresGrab (by decide) hdinkGet
+                                                    have hmilkClipGrab :
+                                                        localsGrab.get? "milkClip" =
+                                                          some (.address (AccountAddress.ofNat
+                                                            (barkIlksClipWord σ' I).toNat)) :=
+                                                      hpresGrab (by decide) hmilkClipDink
+                                                    have hmilkDirtGrab :
+                                                        localsGrab.get? "milkDirt" =
+                                                          some (.int (Int.ofNat
+                                                            (barkIlksDirtWord σ' I).toNat)) :=
+                                                      hpresGrab (by decide) hmilkDirtDink
+                                                    have hilkGrab :
+                                                        localsGrab.get? "ilk" =
+                                                          some (.fixedBytes bytes32Width
+                                                            (barkIlkBytes I)) :=
+                                                      hpresGrab (by decide) hilkDink
+                                                    have hurnGrab :
+                                                        localsGrab.get? "urn" =
+                                                          some (.address (barkUrn I)) :=
+                                                      hpresGrab (by decide) hurnDink
+                                                    have hkprGrab :
+                                                        localsGrab.get? "kpr" =
+                                                          some (.address (barkKpr I)) :=
+                                                      hpresGrab (by decide) hkprDink
+                                                    have hilksGrab :
+                                                        localsGrab.get? "ilks" = none :=
+                                                      hpresGrabNone (by decide) hilksDink
+                                                    have hdinkDue :
+                                                        localsDue.get? "dink" =
+                                                          some (.int (Int.ofNat dink.toNat)) :=
+                                                      hpresDue (by decide) hdinkGrab
+                                                    have hmilkClipDue :
+                                                        localsDue.get? "milkClip" =
+                                                          some (.address (AccountAddress.ofNat
+                                                            (barkIlksClipWord σ' I).toNat)) :=
+                                                      hpresDue (by decide) hmilkClipGrab
+                                                    have hmilkDirtDue :
+                                                        localsDue.get? "milkDirt" =
+                                                          some (.int (Int.ofNat
+                                                            (barkIlksDirtWord σ' I).toNat)) :=
+                                                      hpresDue (by decide) hmilkDirtGrab
+                                                    have hilkDue :
+                                                        localsDue.get? "ilk" =
+                                                          some (.fixedBytes bytes32Width
+                                                            (barkIlkBytes I)) :=
+                                                      hpresDue (by decide) hilkGrab
+                                                    have hurnDue :
+                                                        localsDue.get? "urn" =
+                                                          some (.address (barkUrn I)) :=
+                                                      hpresDue (by decide) hurnGrab
+                                                    have hkprDue :
+                                                        localsDue.get? "kpr" =
+                                                          some (.address (barkKpr I)) :=
+                                                      hpresDue (by decide) hkprGrab
+                                                    have hilksDue :
+                                                        localsDue.get? "ilks" = none :=
+                                                      hpresDueNone (by decide) hilksGrab
+                                                    have hpresFess {name : Ident} {value : Value}
+                                                        (hfessName :
+                                                          ("_fessRet" == name) = false)
+                                                        (hget :
+                                                          localsDue.get? name = some value) :
+                                                        localsFess.get? name = some value := by
+                                                      simpa [localsFess] using
+                                                        barkLocalsFessRet_get_preserved
+                                                          (locals := localsDue)
+                                                          (name := name) (value := value)
+                                                          hfessName hget
+                                                    have hpresFessNone {name : Ident}
+                                                        (hfessName :
+                                                          ("_fessRet" == name) = false)
+                                                        (hget : localsDue.get? name = none) :
+                                                        localsFess.get? name = none := by
+                                                      change (barkLocalsFessRet localsDue).get?
+                                                        name = none
+                                                      rw [barkLocalsFessRet,
+                                                        store_get_ne _ .unit hfessName]
+                                                      exact hget
+                                                    have hdueFess :
+                                                        localsFess.get? "due" =
+                                                          some (.int (Int.ofNat due.toNat)) :=
+                                                      hpresFess (by decide) hdueGet
+                                                    have hmilkChopFess :
+                                                        localsFess.get? "milkChop" =
+                                                          some (.int
+                                                            (Int.ofNat milkChop.toNat)) :=
+                                                      hpresFess (by decide) hmilkChopDue
+                                                    have hDirtFess :
+                                                        localsFess.get? "Dirt" = none :=
+                                                      hpresFessNone (by decide) hDirtDue
+                                                    have hmload288Grab :
+                                                        (if (⟨288⟩ : UInt256).toNat ≥
+                                                              (barkVatGrabPostCallMem σ'' σ' I
+                                                                mem0 outGrab dink dart).size
+                                                            ∨ (⟨288⟩ : UInt256) ≥
+                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                         else UInt256.ofNat
+                                                          (fromByteArrayBigEndian
+                                                            ((barkVatGrabPostCallMem σ'' σ' I
+                                                              mem0 outGrab dink dart).readWithPadding
+                                                                (⟨288⟩ : UInt256).toNat 32))) =
+                                                          milkChop := by
+                                                      exact barkVatGrabPostCallMem_mload288
+                                                        (σ := σ'') (σMem := σ') (I := I)
+                                                        (mem := mem0) (out := outGrab)
+                                                        (dink := dink) (dart := dart)
+                                                        (by simpa [mem0] using hpostMemSize)
+                                                        (by simpa [mem0, milkChop] using
+                                                          hmload288)
+                                                    have hmload288FessDue :
+                                                        (if (⟨288⟩ : UInt256).toNat ≥
+                                                              (barkVowFessDueMem
+                                                                (barkVatGrabPostCallMem σ'' σ' I
+                                                                  mem0 outGrab dink dart)
+                                                                due).size
+                                                            ∨ (⟨288⟩ : UInt256) ≥
+                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                         else UInt256.ofNat
+                                                          (fromByteArrayBigEndian
+                                                            ((barkVowFessDueMem
+                                                              (barkVatGrabPostCallMem σ'' σ' I
+                                                                mem0 outGrab dink dart)
+                                                              due).readWithPadding
+                                                                (⟨288⟩ : UInt256).toNat 32))) =
+                                                          milkChop := by
+                                                      exact barkVowFessDueMem_mload288
+                                                        hmemGrabSize hmload288Grab
+                                                    have hmload288Fess :
+                                                        (if (⟨288⟩ : UInt256).toNat ≥
+                                                              (barkVowFessPostCallMem
+                                                                (barkVatGrabPostCallMem σ'' σ' I
+                                                                  mem0 outGrab dink dart)
+                                                                outFess due).size
+                                                            ∨ (⟨288⟩ : UInt256) ≥
+                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                         else UInt256.ofNat
+                                                          (fromByteArrayBigEndian
+                                                            ((barkVowFessPostCallMem
+                                                              (barkVatGrabPostCallMem σ'' σ' I
+                                                                mem0 outGrab dink dart)
+                                                              outFess due).readWithPadding
+                                                                (⟨288⟩ : UInt256).toNat 32))) =
+                                                          milkChop :=
+                                                      barkVowFessPostCallMem_mload288
+                                                        hmload288FessDue
+                                                    let afterTabBase : List Stmt :=
+                                                      [ .letDecl "tab" (some uint256)
+                                                          (.binary .div (.var "tabBase")
+                                                            (.intLit WAD)) ] ++
+                                                      checkedAddUintInto "DirtNew"
+                                                        (.storage DirtRef) (.var "tab") ++
+                                                      [ .assign .storage DirtRef
+                                                          (.var "DirtNew") ] ++
+                                                      checkedAddUintInto "ilkDirtNew"
+                                                        (.var "milkDirt") (.var "tab") ++
+                                                      [ .assign .storage
+                                                          (ilksF (.var "ilk") "dirt")
+                                                          (.var "ilkDirtNew") ] ++
+                                                      checkedExternalCallStmts (.var "milkClip")
+                                                        "kick" (.intLit 0)
+                                                        [.var "tab", .var "dink", .var "urn",
+                                                          .var "kpr"]
+                                                        "id" ++
+                                                      [ .return [.var "id"] ]
+                                                    by_cases hfitTabBase :
+                                                        due.toNat * milkChop.toNat <
+                                                          UInt256.size
+                                                    · obtain ⟨_, _, rd4200⟩ :=
+                                                        RD.dogBarkTabBaseCheckedMulOk
+                                                          hpatch hfitTabBase hmload288Fess
+                                                          rd4176 (by simp)
+                                                      have htabBaseOk :=
+                                                        dogBarkTabBaseCheckedMulOkSource
+                                                          (v := v) evmFessSolm hdueFess
+                                                          hmilkChopFess hfitTabBase
+                                                      have _hprefixTabBase :=
+                                                        execBlock_append _hprefixFess
+                                                          htabBaseOk
+                                                      have _hprefixTabBaseTail :=
+                                                        execBlock_append _hprefixFessTail
+                                                          htabBaseOk
+                                                      let tabBase :=
+                                                        barkTabBaseWord due milkChop
+                                                      let localsTabBase :=
+                                                        barkLocalsTabBase localsFess tabBase
+                                                      have htabBaseGet :
+                                                          localsTabBase.get? "tabBase" =
+                                                            some (.int
+                                                              (Int.ofNat tabBase.toNat)) := by
+                                                        simpa [localsTabBase, tabBase] using
+                                                          barkLocalsTabBase_get_tabBase
+                                                            localsFess
+                                                            (barkTabBaseWord due milkChop)
+                                                      have hpresTabBase {name : Ident}
+                                                          {value : Value}
+                                                          (htabBaseName :
+                                                            ("tabBase" == name) = false)
+                                                          (hget :
+                                                            localsFess.get? name =
+                                                              some value) :
+                                                          localsTabBase.get? name =
+                                                            some value := by
+                                                        simpa [localsTabBase, tabBase] using
+                                                          barkLocalsTabBase_get_preserved
+                                                            (locals := localsFess)
+                                                            (tabBase :=
+                                                              barkTabBaseWord due milkChop)
+                                                            (name := name) (value := value)
+                                                            htabBaseName hget
+                                                      have hpresTabBaseNone {name : Ident}
+                                                          (htabBaseName :
+                                                            ("tabBase" == name) = false)
+                                                          (hget :
+                                                            localsFess.get? name = none) :
+                                                          localsTabBase.get? name = none := by
+                                                        change (barkLocalsTabBase localsFess
+                                                          (barkTabBaseWord due milkChop)).get?
+                                                          name = none
+                                                        rw [barkLocalsTabBase,
+                                                          store_get_ne _
+                                                            (.int (Int.ofNat
+                                                              (barkTabBaseWord due milkChop).toNat))
+                                                            htabBaseName]
+                                                        exact hget
+                                                      obtain ⟨_, _, rd4211⟩ :=
+                                                        RD.dogBarkTabDivOk hpatch rd4200
+                                                          (by simp)
+                                                      have htabOk :=
+                                                        dogBarkTabLetOk (v := v) evmFessSolm
+                                                          htabBaseGet
+                                                      have _hprefixTab :=
+                                                        execBlock_append _hprefixTabBase htabOk
+                                                      have _hprefixTabTail :=
+                                                        execBlock_append _hprefixTabBaseTail htabOk
+                                                      let tab := barkTabWord tabBase
+                                                      let localsTab :=
+                                                        barkLocalsTab localsTabBase tab
+                                                      have htabGet :
+                                                          localsTab.get? "tab" =
+                                                            some (.int (Int.ofNat tab.toNat)) := by
+                                                        simpa [localsTab, tab] using
+                                                          barkLocalsTab_get_tab localsTabBase
+                                                            (barkTabWord tabBase)
+                                                      have hpresTab {name : Ident}
+                                                          {value : Value}
+                                                          (htabName : ("tab" == name) = false)
+                                                          (hget :
+                                                            localsTabBase.get? name =
+                                                              some value) :
+                                                          localsTab.get? name = some value := by
+                                                        simpa [localsTab, tab] using
+                                                          barkLocalsTab_get_preserved
+                                                            (locals := localsTabBase)
+                                                            (tab := barkTabWord tabBase)
+                                                            (name := name) (value := value)
+                                                            htabName hget
+                                                      have hpresTabNone {name : Ident}
+                                                          (htabName : ("tab" == name) = false)
+                                                          (hget :
+                                                            localsTabBase.get? name = none) :
+                                                          localsTab.get? name = none := by
+                                                        change (barkLocalsTab localsTabBase
+                                                          (barkTabWord tabBase)).get? name = none
+                                                        rw [barkLocalsTab,
+                                                          store_get_ne _
+                                                            (.int (Int.ofNat
+                                                              (barkTabWord tabBase).toNat))
+                                                            htabName]
+                                                        exact hget
+                                                      have hDirtTab :
+                                                          localsTab.get? "Dirt" = none :=
+                                                        hpresTabNone (by decide)
+                                                          (hpresTabBaseNone (by decide)
+                                                            hDirtFess)
+                                                      have hmilkDirtFess :
+                                                          localsFess.get? "milkDirt" =
+                                                            some (.int (Int.ofNat
+                                                              (barkIlksDirtWord σ' I).toNat)) :=
+                                                        hpresFess (by decide) hmilkDirtDue
+                                                      have hmilkDirtTab :
+                                                          localsTab.get? "milkDirt" =
+                                                            some (.int (Int.ofNat
+                                                              (barkIlksDirtWord σ' I).toNat)) :=
+                                                        hpresTab (by decide)
+                                                          (hpresTabBase (by decide)
+                                                            hmilkDirtFess)
+                                                      have hilkFess :
+                                                          localsFess.get? "ilk" =
+                                                            some (.fixedBytes bytes32Width
+                                                              (barkIlkBytes I)) :=
+                                                        hpresFess (by decide) hilkDue
+                                                      have hilkTab :
+                                                          localsTab.get? "ilk" =
+                                                            some (.fixedBytes bytes32Width
+                                                              (barkIlkBytes I)) :=
+                                                        hpresTab (by decide)
+                                                          (hpresTabBase (by decide) hilkFess)
+                                                      have hilksFess :
+                                                          localsFess.get? "ilks" = none :=
+                                                        hpresFessNone (by decide) hilksDue
+                                                      have hilksTab :
+                                                          localsTab.get? "ilks" = none :=
+                                                        hpresTabNone (by decide)
+                                                          (hpresTabBaseNone (by decide)
+                                                            hilksFess)
+                                                      have hDirtSlotFess :
+                                                          dogSlotWord ⟨5⟩
+                                                              evmFessSolm.accountMap
+                                                              evmFessSolm.executionEnv =
+                                                            dogSlotWord ⟨5⟩ σFess I := by
+                                                        have hslot :=
+                                                          dogSlotWord_eq_of_accountMapEquiv
+                                                            hAccountsFess I ⟨5⟩
+                                                        simpa [evmFessSolm, evmGrabSolm,
+                                                          evmIlksPostSolm, evmPostSolm,
+                                                          evmSolm, initState] using hslot.symm
+                                                      let afterTab : List Stmt :=
+                                                        checkedAddUintInto "DirtNew"
+                                                          (.storage DirtRef) (.var "tab") ++
+                                                        [ .assign .storage DirtRef
+                                                            (.var "DirtNew") ] ++
+                                                        checkedAddUintInto "ilkDirtNew"
+                                                          (.var "milkDirt") (.var "tab") ++
+                                                        [ .assign .storage
+                                                            (ilksF (.var "ilk") "dirt")
+                                                            (.var "ilkDirtNew") ] ++
+                                                        checkedExternalCallStmts
+                                                          (.var "milkClip") "kick"
+                                                          (.intLit 0)
+                                                          [.var "tab", .var "dink", .var "urn",
+                                                            .var "kpr"]
+                                                          "id" ++
+                                                        [ .return [.var "id"] ]
+                                                      let afterDirtNew : List Stmt :=
+                                                        [ .assign .storage DirtRef
+                                                            (.var "DirtNew") ] ++
+                                                        checkedAddUintInto "ilkDirtNew"
+                                                          (.var "milkDirt") (.var "tab") ++
+                                                        [ .assign .storage
+                                                            (ilksF (.var "ilk") "dirt")
+                                                            (.var "ilkDirtNew") ] ++
+                                                        checkedExternalCallStmts
+                                                          (.var "milkClip") "kick"
+                                                          (.intLit 0)
+                                                          [.var "tab", .var "dink", .var "urn",
+                                                            .var "kpr"]
+                                                          "id" ++
+                                                        [ .return [.var "id"] ]
+                                                      by_cases hfitDirt :
+                                                          (dogSlotWord ⟨5⟩ σFess I).toNat +
+                                                              tab.toNat <
+                                                            UInt256.size
+                                                      · obtain ⟨_, _, rd4222⟩ :=
+                                                          RD.dogBarkDirtAddOk hpatch hfitDirt
+                                                            rd4211 (by simp)
+                                                        have hfitDirtSolm :
+                                                            (dogSlotWord ⟨5⟩
+                                                                  evmFessSolm.accountMap
+                                                                  evmFessSolm.executionEnv).toNat +
+                                                                tab.toNat <
+                                                              UInt256.size := by
+                                                          simpa [hDirtSlotFess] using hfitDirt
+                                                        have hdirtAddOk :=
+                                                          dogBarkDirtAddOkSource (v := v)
+                                                            evmFessSolm hDirtTab htabGet
+                                                            hfitDirtSolm
+                                                        have _hprefixDirtNew :=
+                                                          execBlock_append _hprefixTab
+                                                            hdirtAddOk
+                                                        have _hprefixDirtNewTail :=
+                                                          execBlock_append _hprefixTabTail
+                                                            hdirtAddOk
+                                                        let dirtNew :=
+                                                          barkDirtNewWord
+                                                            (dogSlotWord ⟨5⟩
+                                                              evmFessSolm.accountMap
+                                                              evmFessSolm.executionEnv) tab
+                                                        let dirtNewEvm :=
+                                                          barkDirtNewWord
+                                                            (dogSlotWord ⟨5⟩ σFess I) tab
+                                                        have hdirtNew_eq :
+                                                            dirtNew = dirtNewEvm := by
+                                                          simp [dirtNew, dirtNewEvm,
+                                                            hDirtSlotFess]
+                                                        let localsDirtNew :=
+                                                          barkLocalsDirtNew localsTab dirtNew
+                                                        have hDirtNewGet :
+                                                            localsDirtNew.get? "DirtNew" =
+                                                              some (.int
+                                                                (Int.ofNat dirtNew.toNat)) := by
+                                                          simpa [localsDirtNew, dirtNew] using
+                                                            barkLocalsDirtNew_get_DirtNew
+                                                              localsTab
+                                                              (barkDirtNewWord
+                                                                (dogSlotWord ⟨5⟩
+                                                                  evmFessSolm.accountMap
+                                                                  evmFessSolm.executionEnv)
+                                                                tab)
+                                                        have hDirtDirtNew :
+                                                            localsDirtNew.get? "Dirt" = none := by
+                                                          change (barkLocalsDirtNew localsTab
+                                                            dirtNew).get? "Dirt" = none
+                                                          rw [barkLocalsDirtNew,
+                                                            store_get_ne _
+                                                              (.int (Int.ofNat dirtNew.toNat))
+                                                              (by decide)]
+                                                          exact hDirtTab
+                                                        obtain ⟨_, _, rd4226⟩ :=
+                                                          RD.dogBarkStoreDirt hpatch _hperm
+                                                            rd4222 (by simp)
+                                                        have hdirtAssignOk :=
+                                                          dogBarkDirtAssignOkSource (v := v)
+                                                            evmFessSolm hDirtDirtNew
+                                                            hDirtNewGet
+                                                        have _hprefixDirtStore :=
+                                                          execBlock_append _hprefixDirtNew
+                                                            hdirtAssignOk
+                                                        have _hprefixDirtStoreTail :=
+                                                          execBlock_append _hprefixDirtNewTail
+                                                            hdirtAssignOk
+                                                        let σDirt :=
+                                                          sstoreAccountMap I.codeOwner σFess
+                                                            ⟨5⟩ dirtNewEvm
+                                                        let evmDirtEvm :=
+                                                          { evmFessEvm with accountMap := σDirt }
+                                                        let evmDirtSolm :=
+                                                          Solm.EVM.storageStore evmFessSolm
+                                                            evmFessSolm.executionEnv.codeOwner
+                                                            ⟨5⟩ dirtNew
+                                                        have hAccountsDirt :
+                                                            accountMapEquiv σDirt
+                                                              evmDirtSolm.accountMap := by
+                                                          simpa [σDirt, evmDirtSolm,
+                                                            hdirtNew_eq,
+                                                            evmFessSolm, evmGrabSolm,
+                                                            evmIlksPostSolm, evmPostSolm,
+                                                            evmSolm, initState,
+                                                            storageStore_accountMap,
+                                                            storageStore_executionEnv] using
+                                                            accountMapEquiv_sstoreAccountMap
+                                                              I.codeOwner ⟨5⟩ dirtNewEvm
+                                                              hAccountsFess
+                                                        have hmilkDirtDirtNew :
+                                                            localsDirtNew.get? "milkDirt" =
+                                                              some (.int (Int.ofNat
+                                                                (barkIlksDirtWord σ' I).toNat)) := by
+                                                          simpa [localsDirtNew, dirtNew] using
+                                                            barkLocalsDirtNew_get_preserved
+                                                              (locals := localsTab)
+                                                              (dirtNew := dirtNew)
+                                                              (name := "milkDirt")
+                                                              (value := .int (Int.ofNat
+                                                                (barkIlksDirtWord σ' I).toNat))
+                                                              (by decide) hmilkDirtTab
+                                                        have htabDirtNew :
+                                                            localsDirtNew.get? "tab" =
+                                                              some (.int
+                                                                (Int.ofNat tab.toNat)) := by
+                                                          simpa [localsDirtNew, dirtNew] using
+                                                            barkLocalsDirtNew_get_preserved
+                                                              (locals := localsTab)
+                                                              (dirtNew := dirtNew)
+                                                              (name := "tab")
+                                                              (value := .int
+                                                                (Int.ofNat tab.toNat))
+                                                              (by decide) htabGet
+                                                        let afterDirtAssign : List Stmt :=
+                                                          checkedAddUintInto "ilkDirtNew"
+                                                            (.var "milkDirt") (.var "tab") ++
+                                                          [ .assign .storage
+                                                              (ilksF (.var "ilk") "dirt")
+                                                              (.var "ilkDirtNew") ] ++
+                                                          checkedExternalCallStmts
+                                                            (.var "milkClip") "kick"
+                                                            (.intLit 0)
+                                                            [.var "tab", .var "dink",
+                                                              .var "urn", .var "kpr"]
+                                                            "id" ++
+                                                          [ .return [.var "id"] ]
+                                                        let afterIlkDirtNew : List Stmt :=
+                                                          [ .assign .storage
+                                                              (ilksF (.var "ilk") "dirt")
+                                                              (.var "ilkDirtNew") ] ++
+                                                          checkedExternalCallStmts
+                                                            (.var "milkClip") "kick"
+                                                            (.intLit 0)
+                                                            [.var "tab", .var "dink",
+                                                              .var "urn", .var "kpr"]
+                                                            "id" ++
+                                                          [ .return [.var "id"] ]
+                                                        have hmload352Grab :
+                                                            (if (⟨352⟩ : UInt256).toNat ≥
+                                                                  (barkVatGrabPostCallMem σ'' σ' I
+                                                                    mem0 outGrab dink dart).size
+                                                                ∨ (⟨352⟩ : UInt256) ≥
+                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                             else UInt256.ofNat
+                                                              (fromByteArrayBigEndian
+                                                                ((barkVatGrabPostCallMem σ'' σ' I
+                                                                  mem0 outGrab dink dart).readWithPadding
+                                                                    (⟨352⟩ : UInt256).toNat 32))) =
+                                                              barkIlksDirtWord σ' I := by
+                                                          exact barkVatGrabPostCallMem_mload352
+                                                            (σ := σ'') (σMem := σ') (I := I)
+                                                            (mem := mem0) (out := outGrab)
+                                                            (dink := dink) (dart := dart)
+                                                            (by simpa [mem0] using hpostMemSize)
+                                                            (by simpa [mem0] using hmload352)
+                                                        have hmload352FessDue :
+                                                            (if (⟨352⟩ : UInt256).toNat ≥
+                                                                  (barkVowFessDueMem
+                                                                    (barkVatGrabPostCallMem σ'' σ' I
+                                                                      mem0 outGrab dink dart)
+                                                                    due).size
+                                                                ∨ (⟨352⟩ : UInt256) ≥
+                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                             else UInt256.ofNat
+                                                              (fromByteArrayBigEndian
+                                                                ((barkVowFessDueMem
+                                                                  (barkVatGrabPostCallMem σ'' σ' I
+                                                                    mem0 outGrab dink dart)
+                                                                  due).readWithPadding
+                                                                    (⟨352⟩ : UInt256).toNat 32))) =
+                                                              barkIlksDirtWord σ' I := by
+                                                          exact barkVowFessDueMem_mload352
+                                                            hmemGrabSize hmload352Grab
+                                                        have hmload352Fess :
+                                                            (if (⟨352⟩ : UInt256).toNat ≥
+                                                                  (barkVowFessPostCallMem
+                                                                    (barkVatGrabPostCallMem σ'' σ' I
+                                                                      mem0 outGrab dink dart)
+                                                                    outFess due).size
+                                                                ∨ (⟨352⟩ : UInt256) ≥
+                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+                                                             else UInt256.ofNat
+                                                              (fromByteArrayBigEndian
+                                                                ((barkVowFessPostCallMem
+                                                                  (barkVatGrabPostCallMem σ'' σ' I
+                                                                    mem0 outGrab dink dart)
+                                                                  outFess due).readWithPadding
+                                                                    (⟨352⟩ : UInt256).toNat 32))) =
+                                                              barkIlksDirtWord σ' I :=
+                                                          barkVowFessPostCallMem_mload352
+                                                            hmload352FessDue
+                                                        by_cases hfitIlkDirt :
+                                                            (barkIlksDirtWord σ' I).toNat +
+                                                                tab.toNat <
+                                                              UInt256.size
+                                                        · obtain ⟨_, _, rd4240⟩ :=
+                                                            RD.dogBarkIlkDirtAddOk
+                                                              hpatch hmload352Fess
+                                                              hfitIlkDirt rd4226 (by simp)
+                                                          have hilkDirtAddOk :=
+                                                            dogBarkIlkDirtAddOkSource
+                                                              (v := v) evmDirtSolm
+                                                              hmilkDirtDirtNew htabDirtNew
+                                                              hfitIlkDirt
+                                                          have _hprefixIlkDirtNew :=
+                                                            execBlock_append
+                                                              _hprefixDirtStore
+                                                              hilkDirtAddOk
+                                                          have _hprefixIlkDirtNewTail :=
+                                                            execBlock_append
+                                                              _hprefixDirtStoreTail
+                                                              hilkDirtAddOk
+                                                          let ilkDirtNew :=
+                                                            barkIlkDirtNewWord
+                                                              (barkIlksDirtWord σ' I) tab
+                                                          let localsIlkDirtNew :=
+                                                            barkLocalsIlkDirtNew
+                                                              localsDirtNew ilkDirtNew
+                                                          have hIlkDirtNewGet :
+                                                              localsIlkDirtNew.get?
+                                                                  "ilkDirtNew" =
+                                                                some (.int (Int.ofNat
+                                                                  ilkDirtNew.toNat)) := by
+                                                            simpa [localsIlkDirtNew,
+                                                              ilkDirtNew] using
+                                                              barkLocalsIlkDirtNew_get_ilkDirtNew
+                                                                localsDirtNew
+                                                                (barkIlkDirtNewWord
+                                                                  (barkIlksDirtWord σ' I) tab)
+                                                          have hpresDirtNew {name : Ident}
+                                                              {value : Value}
+                                                              (hname :
+                                                                ("DirtNew" == name) = false)
+                                                              (hget :
+                                                                localsTab.get? name =
+                                                                  some value) :
+                                                              localsDirtNew.get? name =
+                                                                some value := by
+                                                            simpa [localsDirtNew, dirtNew] using
+                                                              barkLocalsDirtNew_get_preserved
+                                                                (locals := localsTab)
+                                                                (dirtNew := dirtNew)
+                                                                (name := name) (value := value)
+                                                                hname hget
+                                                          have hpresDirtNewNone {name : Ident}
+                                                              (hname :
+                                                                ("DirtNew" == name) = false)
+                                                              (hget :
+                                                                localsTab.get? name = none) :
+                                                              localsDirtNew.get? name = none := by
+                                                            change (barkLocalsDirtNew localsTab
+                                                              dirtNew).get? name = none
+                                                            rw [barkLocalsDirtNew,
+                                                              store_get_ne _
+                                                                (.int (Int.ofNat dirtNew.toNat))
+                                                                hname]
+                                                            exact hget
+                                                          have hpresIlkDirtNew {name : Ident}
+                                                              {value : Value}
+                                                              (hname :
+                                                                ("ilkDirtNew" == name) = false)
+                                                              (hget :
+                                                                localsDirtNew.get? name =
+                                                                  some value) :
+                                                              localsIlkDirtNew.get? name =
+                                                                some value := by
+                                                            simpa [localsIlkDirtNew,
+                                                              ilkDirtNew] using
+                                                              barkLocalsIlkDirtNew_get_preserved
+                                                                (locals := localsDirtNew)
+                                                                (ilkDirtNew := ilkDirtNew)
+                                                                (name := name) (value := value)
+                                                                hname hget
+                                                          have hpresIlkDirtNewNone
+                                                              {name : Ident}
+                                                              (hname :
+                                                                ("ilkDirtNew" == name) = false)
+                                                              (hget :
+                                                                localsDirtNew.get? name =
+                                                                  none) :
+                                                              localsIlkDirtNew.get? name =
+                                                                none := by
+                                                            change (barkLocalsIlkDirtNew
+                                                              localsDirtNew ilkDirtNew).get?
+                                                              name = none
+                                                            rw [barkLocalsIlkDirtNew,
+                                                              store_get_ne _
+                                                                (.int (Int.ofNat
+                                                                  ilkDirtNew.toNat))
+                                                                hname]
+                                                            exact hget
+                                                          have hilksDirtNew :
+                                                              localsDirtNew.get? "ilks" = none :=
+                                                            hpresDirtNewNone (by decide)
+                                                              hilksTab
+                                                          have hilksIlkDirtNew :
+                                                              localsIlkDirtNew.get? "ilks" =
+                                                                none :=
+                                                            hpresIlkDirtNewNone (by decide)
+                                                              hilksDirtNew
+                                                          have hilkDirtNew :
+                                                              localsDirtNew.get? "ilk" =
+                                                                some (.fixedBytes bytes32Width
+                                                                  (barkIlkBytes I)) :=
+                                                            hpresDirtNew (by decide) hilkTab
+                                                          have hilkIlkDirtNew :
+                                                              localsIlkDirtNew.get? "ilk" =
+                                                                some (barkIlkValue I) := by
+                                                            simpa [barkIlkValue] using
+                                                              hpresIlkDirtNew (by decide)
+                                                                hilkDirtNew
+                                                          obtain ⟨_, _, rd4267⟩ :=
+                                                            RD.dogBarkStoreIlkDirt
+                                                              hpatch hsz100 _hperm
+                                                              (barkVowFessPostCallMem_size
+                                                                hmemGrabSize)
+                                                              rd4240
+                                                              (by
+                                                                simp only [List.length_nil]
+                                                                omega)
+                                                          have hilkDirtAssignOk :=
+                                                            dogBarkIlkDirtAssignOkSource
+                                                              (v := v) evmDirtSolm hsz100
+                                                              hilksIlkDirtNew hilkIlkDirtNew
+                                                              hIlkDirtNewGet
+                                                          have _hprefixIlkDirtStore :=
+                                                            execBlock_append
+                                                              _hprefixIlkDirtNew
+                                                              hilkDirtAssignOk
+                                                          have _hprefixIlkDirtStoreTail :=
+                                                            execBlock_append
+                                                              _hprefixIlkDirtNewTail
+                                                              hilkDirtAssignOk
+                                                          let σIlkDirt :=
+                                                            sstoreAccountMap I.codeOwner σDirt
+                                                              (barkIlksDirtSlotFor I)
+                                                              ilkDirtNew
+                                                          let evmIlkDirtEvm :=
+                                                            { evmDirtEvm with
+                                                              accountMap := σIlkDirt }
+                                                          let evmIlkDirtSolm :=
+                                                            Solm.EVM.storageStore evmDirtSolm
+                                                              evmDirtSolm.executionEnv.codeOwner
+                                                              (barkIlksDirtSlotFor I)
+                                                              ilkDirtNew
+                                                          have hDirtCodeOwner :
+                                                              evmDirtSolm.executionEnv.codeOwner =
+                                                                I.codeOwner := by
+                                                            simp [evmDirtSolm, evmFessSolm,
+                                                              evmGrabSolm, evmIlksPostSolm,
+                                                              evmPostSolm, evmSolm, initState,
+                                                              storageStore_executionEnv]
+                                                          have hAccountsIlkDirt :
+                                                              accountMapEquiv σIlkDirt
+                                                                evmIlkDirtSolm.accountMap := by
+                                                            simpa [σIlkDirt, evmIlkDirtSolm,
+                                                              storageStore_accountMap,
+                                                              hDirtCodeOwner] using
+                                                              accountMapEquiv_sstoreAccountMap
+                                                                I.codeOwner
+                                                                (barkIlksDirtSlotFor I)
+                                                                ilkDirtNew hAccountsDirt
+                                                          let memFess :=
+                                                            barkVowFessPostCallMem
+                                                              (barkVatGrabPostCallMem σ'' σ' I
+                                                                mem0 outGrab dink dart)
+                                                              outFess due
+                                                          let memKickPre :=
+                                                            twoWordHashMem (barkIlkWord I) ⟨1⟩
+                                                              memFess
+                                                          have hmemFessSize :
+                                                              memFess.size = 580 := by
+                                                            simpa [memFess] using
+                                                              barkVowFessPostCallMem_size
+                                                                hmemGrabSize
+                                                          have hmemFessRead64 :
+                                                              memFess.readWithPadding 64 32 =
+                                                                UInt256.toByteArray ⟨384⟩ := by
+                                                            simpa [memFess] using
+                                                              barkVowFessPostCallMem_read64
+                                                                hmemGrabSize hmemGrabRead64
+                                                          have hread256Mem0 :
+                                                              mem0.readWithPadding 256 32 =
+                                                                UInt256.toByteArray
+                                                                  (barkIlksClipWord σ' I) := by
+                                                            simpa [mem0] using
+                                                              barkVatIlksPostCallMem_read256_long
+                                                                (σ := σ') (I := I)
+                                                                solcFreePtrMem_size hretLong
+                                                                hosz hretIlksLong hoszIlks
+                                                          have hread256Grab :
+                                                              (barkVatGrabPostCallMem σ'' σ' I
+                                                                  mem0 outGrab dink dart).readWithPadding
+                                                                  256 32 =
+                                                                UInt256.toByteArray
+                                                                  (barkIlksClipWord σ' I) :=
+                                                            barkVatGrabPostCallMem_read256
+                                                              (σ := σ'') (σMem := σ') (I := I)
+                                                              (mem := mem0) (out := outGrab)
+                                                              (dink := dink) (dart := dart)
+                                                              (by simpa [mem0] using
+                                                                hpostMemSize)
+                                                              hread256Mem0
+                                                          have hread256Fess :
+                                                              memFess.readWithPadding 256 32 =
+                                                                UInt256.toByteArray
+                                                                  (barkIlksClipWord σ' I) := by
+                                                            simpa [memFess] using
+                                                              barkVowFessPostCallMem_read256
+                                                                hmemGrabSize hread256Grab
+                                                          have hmemKickPreSize :
+                                                              memKickPre.size = 580 := by
+                                                            simpa [memKickPre] using
+                                                              twoWordHashMem_size_580
+                                                                (barkIlkWord I) ⟨1⟩
+                                                                hmemFessSize
+                                                          have hmemKickPreRead64 :
+                                                              memKickPre.readWithPadding 64 32 =
+                                                                UInt256.toByteArray ⟨384⟩ := by
+                                                            simpa [memKickPre] using
+                                                              twoWordHashMem_read64_580
+                                                                (barkIlkWord I) ⟨1⟩
+                                                                hmemFessSize hmemFessRead64
+                                                          have hmload256KickPre :
+                                                              (if (⟨256⟩ : UInt256).toNat ≥
+                                                                    memKickPre.size
+                                                                  ∨ (⟨256⟩ : UInt256) ≥
+                                                                    UInt256.ofNat 19 * ⟨32⟩
+                                                               then ⟨0⟩
+                                                               else UInt256.ofNat
+                                                                (fromByteArrayBigEndian
+                                                                  (memKickPre.readWithPadding
+                                                                    (⟨256⟩ : UInt256).toNat 32))) =
+                                                                barkIlksClipWord σ' I := by
+                                                            simpa [memKickPre] using
+                                                              twoWordHashMem_mload256_580
+                                                                (barkIlkWord I) ⟨1⟩
+                                                                (barkIlksClipWord σ' I)
+                                                                hmemFessSize hread256Fess
+                                                          have hread256KickPre :
+                                                              memKickPre.readWithPadding
+                                                                  256 32 =
+                                                                UInt256.toByteArray
+                                                                  (barkIlksClipWord σ' I) := by
+                                                            simpa [memKickPre] using
+                                                              twoWordHashMem_read256_580
+                                                                (barkIlkWord I) ⟨1⟩
+                                                                (barkIlksClipWord σ' I)
+                                                                hmemFessSize hread256Fess
+                                                          let afterKick : List Stmt :=
+                                                            [ .return [.var "id"] ]
+                                                          let afterIlkDirtAssign : List Stmt :=
+                                                            checkedExternalCallStmts
+                                                              (.var "milkClip") "kick"
+                                                              (.intLit 0)
+                                                              [.var "tab", .var "dink",
+                                                                .var "urn", .var "kpr"]
+                                                              "id" ++
+                                                            afterKick
+                                                          have hmilkClipFess :
+                                                              localsFess.get? "milkClip" =
+                                                                some (.address
+                                                                  (AccountAddress.ofNat
+                                                                    (barkIlksClipWord σ' I).toNat)) :=
+                                                            hpresFess (by decide) hmilkClipDue
+                                                          have hdinkFess :
+                                                              localsFess.get? "dink" =
+                                                                some (.int
+                                                                  (Int.ofNat dink.toNat)) :=
+                                                            hpresFess (by decide) hdinkDue
+                                                          have hurnFess :
+                                                              localsFess.get? "urn" =
+                                                                some (.address (barkUrn I)) :=
+                                                            hpresFess (by decide) hurnDue
+                                                          have hkprFess :
+                                                              localsFess.get? "kpr" =
+                                                                some (.address (barkKpr I)) :=
+                                                            hpresFess (by decide) hkprDue
+                                                          have hmilkClipTab :
+                                                              localsTab.get? "milkClip" =
+                                                                some (.address
+                                                                  (AccountAddress.ofNat
+                                                                    (barkIlksClipWord σ' I).toNat)) :=
+                                                            hpresTab (by decide)
+                                                              (hpresTabBase (by decide)
+                                                                hmilkClipFess)
+                                                          have hdinkTab :
+                                                              localsTab.get? "dink" =
+                                                                some (.int
+                                                                  (Int.ofNat dink.toNat)) :=
+                                                            hpresTab (by decide)
+                                                              (hpresTabBase (by decide)
+                                                                hdinkFess)
+                                                          have hurnTab :
+                                                              localsTab.get? "urn" =
+                                                                some (.address (barkUrn I)) :=
+                                                            hpresTab (by decide)
+                                                              (hpresTabBase (by decide)
+                                                                hurnFess)
+                                                          have hkprTab :
+                                                              localsTab.get? "kpr" =
+                                                                some (.address (barkKpr I)) :=
+                                                            hpresTab (by decide)
+                                                              (hpresTabBase (by decide)
+                                                                hkprFess)
+                                                          have hmilkClipIlkDirtNew :
+                                                              localsIlkDirtNew.get? "milkClip" =
+                                                                some (.address
+                                                                  (AccountAddress.ofNat
+                                                                    (barkIlksClipWord σ' I).toNat)) :=
+                                                            hpresIlkDirtNew (by decide)
+                                                              (hpresDirtNew (by decide)
+                                                                hmilkClipTab)
+                                                          have htabIlkDirtNew :
+                                                              localsIlkDirtNew.get? "tab" =
+                                                                some (.int
+                                                                  (Int.ofNat tab.toNat)) :=
+                                                            hpresIlkDirtNew (by decide)
+                                                              (hpresDirtNew (by decide)
+                                                                htabGet)
+                                                          have hdinkIlkDirtNew :
+                                                              localsIlkDirtNew.get? "dink" =
+                                                                some (.int
+                                                                  (Int.ofNat dink.toNat)) :=
+                                                            hpresIlkDirtNew (by decide)
+                                                              (hpresDirtNew (by decide)
+                                                                hdinkTab)
+                                                          have hurnIlkDirtNew :
+                                                              localsIlkDirtNew.get? "urn" =
+                                                                some (.address (barkUrn I)) :=
+                                                            hpresIlkDirtNew (by decide)
+                                                              (hpresDirtNew (by decide)
+                                                                hurnTab)
+                                                          have hkprIlkDirtNew :
+                                                              localsIlkDirtNew.get? "kpr" =
+                                                                some (.address (barkKpr I)) :=
+                                                            hpresIlkDirtNew (by decide)
+                                                              (hpresDirtNew (by decide)
+                                                                hkprTab)
+                                                          have hclipReceiver :
+                                                              evalExpr? (config v)
+                                                                { contract := contract v,
+                                                                  locals := localsIlkDirtNew }
+                                                                evmIlkDirtSolm (.var "milkClip") =
+                                                                .ok (.address
+                                                                  (AccountAddress.ofNat
+                                                                    (barkIlksClipWord σ' I).toNat)) := by
+                                                            rw [evalExpr?]
+                                                            change EvalResult.ofOption
+                                                                EvalError.unboundVariable
+                                                                (localsIlkDirtNew.get?
+                                                                  "milkClip") =
+                                                              .ok (.address
+                                                                (AccountAddress.ofNat
+                                                                  (barkIlksClipWord σ' I).toNat))
+                                                            rw [hmilkClipIlkDirtNew]
+                                                            rfl
+                                                          by_cases hclipCodeZero :
+                                                              Reasoning.Theory.uniswapExtCodeSizeWord
+                                                                σIlkDirt
+                                                                (barkIlksClipWord σ' I) = ⟨0⟩
+                                                          · obtain ⟨_, _, rd4370⟩ :=
+                                                              RD.dogBarkKickExtcodesizeGuard
+                                                                (v := v) (code := code)
+                                                                (g := Sat256.ofUInt256 g)
+                                                                (s0 := evmEvm) (I := I)
+                                                                (ret := ⟨448⟩)
+                                                                (sel := solcSelectorWord I)
+                                                                (R := []) (cA := cAFess)
+                                                                (σ := σIlkDirt) (σMem := σ')
+                                                                hpatch hmemKickPreSize
+                                                                hmemKickPreRead64
+                                                                hmload256KickPre rd4267
+                                                                (by simp)
+                                                            have hclipZeroSolm :
+                                                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                                                  evmIlkDirtSolm.accountMap
+                                                                  (barkIlksClipWord σ' I) = ⟨0⟩ :=
+                                                              dogCodeSize_zero_accountMapEquiv
+                                                                hAccountsIlkDirt hclipCodeZero
+                                                            have hclipNoCode :
+                                                                (UInt256.ofNat
+                                                                  ((evmIlkDirtSolm.lookupAccount
+                                                                    (AccountAddress.ofNat
+                                                                      (barkIlksClipWord σ' I).toNat)).option
+                                                                      0 (fun acc => acc.code.size))).toNat =
+                                                                  0 :=
+                                                              dogCode_zero_of_state_codeSize_zero
+                                                                hclipZeroSolm
+                                                            have hkickGuardFalse :
+                                                                evalExpr? (config v)
+                                                                  { contract := contract v,
+                                                                    locals := localsIlkDirtNew }
+                                                                  evmIlkDirtSolm
+                                                                  (.binary .gt
+                                                                    (.extCodeSize
+                                                                      (.var "milkClip"))
+                                                                    (.intLit 0)) =
+                                                                  .ok (.bool false) :=
+                                                              evalExpr_barkAddressCodeGuard_false
+                                                                hclipReceiver hclipNoCode
+                                                            have hkickRev :=
+                                                              dogBarkKickNoCodeBlock (v := v)
+                                                                (evm := evmIlkDirtSolm)
+                                                                (locals := localsIlkDirtNew)
+                                                                hkickGuardFalse
+                                                            have htailPrefix :=
+                                                              execBlock_append
+                                                                _hprefixIlkDirtStoreTail hkickRev
+                                                            have htailBody :
+                                                                ExecTransitionBody (config v)
+                                                                  (contract v) evmSolm
+                                                                  (barkLocals I)
+                                                                  (barkTransition v).body
+                                                                  .reverted := by
+                                                              apply hbodyRevertOfTail
+                                                              refine dogBarkDartTailFromLeftoverBlock
+                                                                hleftover ?_
+                                                              simpa only [afterIntGuard, afterGrab,
+                                                                afterFess, afterTabBase,
+                                                                afterTab, afterDirtAssign,
+                                                                afterIlkDirtAssign, afterKick,
+                                                                localsDink, localsGrab,
+                                                                localsDue, localsFess,
+                                                                localsTabBase, localsTab,
+                                                                localsDirtNew,
+                                                                localsIlkDirtNew, due, dink,
+                                                                tabBase, tab, dirtNew,
+                                                                ilkDirtNew, List.append_assoc] using
+                                                                execBlock_append_term
+                                                                  (s2 := afterKick)
+                                                                  htailPrefix
+                                                                  (by intro f e h; cases h)
+                                                            have hrev :=
+                                                              RD.dogBarkKickNoCodeRevert
+                                                                hpatch rd4370 hclipCodeZero
+                                                                (by simp)
+                                                            exact hrev.reEquivExecutionRevert
+                                                              hcode hdispatch hdecode htailBody
+                                                          · have hclipNonzeroSolm :
+                                                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                                                  evmIlkDirtSolm.accountMap
+                                                                  (barkIlksClipWord σ' I) ≠ ⟨0⟩ :=
+                                                              dogCodeSize_ne_accountMapEquiv
+                                                                hAccountsIlkDirt hclipCodeZero
+                                                            have hclipCodePosSolm :
+                                                                0 < (UInt256.ofNat
+                                                                  ((evmIlkDirtSolm.lookupAccount
+                                                                    (AccountAddress.ofNat
+                                                                      (barkIlksClipWord σ' I).toNat)).option
+                                                                      0 (fun acc => acc.code.size))).toNat :=
+                                                              dogCode_pos_of_state_codeSize_ne
+                                                                hclipNonzeroSolm
+                                                            have hkickGuardTrue :
+                                                                evalExpr? (config v)
+                                                                  { contract := contract v,
+                                                                    locals := localsIlkDirtNew }
+                                                                  evmIlkDirtSolm
+                                                                  (.binary .gt
+                                                                    (.extCodeSize
+                                                                      (.var "milkClip"))
+                                                                    (.intLit 0)) =
+                                                                  .ok (.bool true) :=
+                                                              evalExpr_barkAddressCodeGuard_true
+                                                                hclipReceiver hclipCodePosSolm
+                                                            have hIlkDirtEvmEnv :
+                                                                evmIlkDirtEvm.executionEnv = I := by
+                                                              simp [evmIlkDirtEvm, evmDirtEvm,
+                                                                evmFessEvm, evmGrabEvm,
+                                                                evmIlksPostEvm, evmPostEvm,
+                                                                evmEvm, initState]
+                                                            have hIlkDirtEvmCreated :
+                                                                evmIlkDirtEvm.createdAccounts =
+                                                                  cAFess := by
+                                                              simp [evmIlkDirtEvm, evmDirtEvm,
+                                                                evmFessEvm, evmGrabEvm]
+                                                            have hIlkDirtEvmMap :
+                                                                evmIlkDirtEvm.accountMap =
+                                                                  σIlkDirt := by
+                                                              simp [evmIlkDirtEvm]
+                                                            have hIlkDirtEvmGenesis :
+                                                                evmIlkDirtEvm.genesisBlockHeader =
+                                                                  evmEvm.genesisBlockHeader := by
+                                                              simp [evmIlkDirtEvm, evmDirtEvm,
+                                                                evmFessEvm, evmGrabEvm,
+                                                                evmIlksPostEvm, evmPostEvm,
+                                                                evmEvm, initState]
+                                                            have hIlkDirtEvmBlocks :
+                                                                evmIlkDirtEvm.blocks =
+                                                                  evmEvm.blocks := by
+                                                              simp [evmIlkDirtEvm, evmDirtEvm,
+                                                                evmFessEvm, evmGrabEvm,
+                                                                evmIlksPostEvm, evmPostEvm,
+                                                                evmEvm, initState]
+                                                            have hIlkDirtEvmOrig :
+                                                                evmIlkDirtEvm.σ₀ = evmEvm.σ₀ := by
+                                                              simp [evmIlkDirtEvm, evmDirtEvm,
+                                                                evmFessEvm, evmGrabEvm,
+                                                                evmIlksPostEvm, evmPostEvm,
+                                                                evmEvm, initState]
+                                                            obtain ⟨cAKick, σKick, zKick,
+                                                                outKick, AKick, _, _, rd4386,
+                                                                hcallKickEvmRaw,
+                                                                houtKickSize⟩ :=
+                                                              RD.dogBarkKickPostCall
+                                                                (v := v) (code := code)
+                                                                (s0 := evmEvm)
+                                                                (evm := evmIlkDirtEvm)
+                                                                (I := I) (ret := ⟨448⟩)
+                                                                (sel := solcSelectorWord I)
+                                                                (R := []) (σMem := σ')
+                                                                hpatch rd4267
+                                                                hmemKickPreSize
+                                                                hmemKickPreRead64
+                                                                hmload256KickPre
+                                                                hclipCodeZero
+                                                                hIlkDirtEvmEnv
+                                                                hIlkDirtEvmCreated
+                                                                hIlkDirtEvmMap
+                                                                hIlkDirtEvmGenesis
+                                                                hIlkDirtEvmBlocks
+                                                                hIlkDirtEvmOrig
+                                                                _hperm hdepthLt (by simp)
+                                                            let evmKickEvm :=
+                                                              { evmIlkDirtEvm with accountMap := σKick, substate := AKick, createdAccounts := cAKick }
+                                                            have hcallKickEvm :
+                                                                typedCallViaEVM (config v)
+                                                                  evmIlkDirtEvm
+                                                                  (EVM.address
+                                                                    (AccountAddress.ofNat
+                                                                      (barkIlksClipWord σ' I).toNat))
+                                                                  "kick" 0
+                                                                  [.int (Int.ofNat tab.toNat),
+                                                                    .int (Int.ofNat dink.toNat),
+                                                                    .address (barkUrn I),
+                                                                    .address (barkKpr I)]
+                                                                  (zKick, evmKickEvm, outKick)
+                                                                  true := by
+                                                              simpa [evmKickEvm] using
+                                                                hcallKickEvmRaw
+                                                            have hIlkDirtSolmEnv :
+                                                                evmIlkDirtSolm.executionEnv = I := by
+                                                              simp [evmIlkDirtSolm, evmDirtSolm,
+                                                                evmFessSolm, evmGrabSolm,
+                                                                evmIlksPostSolm, evmPostSolm,
+                                                                evmSolm, initState,
+                                                                storageStore_executionEnv]
+                                                            have hIlkDirtSolmCreated :
+                                                                evmIlkDirtSolm.createdAccounts =
+                                                                  cAFess := by
+                                                              simp [evmIlkDirtSolm, evmDirtSolm,
+                                                                evmFessSolm, evmGrabSolm,
+                                                                storageStore_createdAccounts]
+                                                            have hIlkDirtSolmGenesis :
+                                                                evmIlkDirtSolm.genesisBlockHeader =
+                                                                  evmEvm.genesisBlockHeader := by
+                                                              calc
+                                                                evmIlkDirtSolm.genesisBlockHeader =
+                                                                    evmDirtSolm.genesisBlockHeader := by
+                                                                  simpa [evmIlkDirtSolm] using
+                                                                    dogStorageStore_genesisBlockHeader
+                                                                      evmDirtSolm
+                                                                      evmDirtSolm.executionEnv.codeOwner
+                                                                      (barkIlksDirtSlotFor I)
+                                                                      ilkDirtNew
+                                                                _ = evmFessSolm.genesisBlockHeader := by
+                                                                  simpa [evmDirtSolm] using
+                                                                    dogStorageStore_genesisBlockHeader
+                                                                      evmFessSolm
+                                                                      evmFessSolm.executionEnv.codeOwner
+                                                                      ⟨5⟩ dirtNew
+                                                                _ = evmEvm.genesisBlockHeader := by
+                                                                  simp [evmFessSolm, evmGrabSolm,
+                                                                    evmIlksPostSolm, evmPostSolm,
+                                                                    evmSolm, evmEvm, initState]
+                                                            have hIlkDirtSolmBlocks :
+                                                                evmIlkDirtSolm.blocks =
+                                                                  evmEvm.blocks := by
+                                                              calc
+                                                                evmIlkDirtSolm.blocks =
+                                                                    evmDirtSolm.blocks := by
+                                                                  simpa [evmIlkDirtSolm] using
+                                                                    dogStorageStore_blocks
+                                                                      evmDirtSolm
+                                                                      evmDirtSolm.executionEnv.codeOwner
+                                                                      (barkIlksDirtSlotFor I)
+                                                                      ilkDirtNew
+                                                                _ = evmFessSolm.blocks := by
+                                                                  simpa [evmDirtSolm] using
+                                                                    dogStorageStore_blocks
+                                                                      evmFessSolm
+                                                                      evmFessSolm.executionEnv.codeOwner
+                                                                      ⟨5⟩ dirtNew
+                                                                _ = evmEvm.blocks := by
+                                                                  simp [evmFessSolm, evmGrabSolm,
+                                                                    evmIlksPostSolm, evmPostSolm,
+                                                                    evmSolm, evmEvm, initState]
+                                                            have hIlkDirtSolmOrig :
+                                                                evmIlkDirtSolm.σ₀ = evmEvm.σ₀ := by
+                                                              calc
+                                                                evmIlkDirtSolm.σ₀ =
+                                                                    evmDirtSolm.σ₀ := by
+                                                                  simpa [evmIlkDirtSolm] using
+                                                                    dogStorageStore_sigma0 evmDirtSolm
+                                                                      evmDirtSolm.executionEnv.codeOwner
+                                                                      (barkIlksDirtSlotFor I)
+                                                                      ilkDirtNew
+                                                                _ = evmFessSolm.σ₀ := by
+                                                                  simpa [evmDirtSolm] using
+                                                                    dogStorageStore_sigma0 evmFessSolm
+                                                                      evmFessSolm.executionEnv.codeOwner
+                                                                      ⟨5⟩ dirtNew
+                                                                _ = evmEvm.σ₀ := by
+                                                                  simp [evmFessSolm, evmGrabSolm,
+                                                                    evmIlksPostSolm, evmPostSolm,
+                                                                    evmSolm, evmEvm, initState]
+                                                            have hIlkDirtOriginalAccounts :
+                                                                evmIlkDirtEvm.σ₀ =
+                                                                  evmIlkDirtSolm.σ₀ := by
+                                                              rw [hIlkDirtEvmOrig,
+                                                                hIlkDirtSolmOrig]
+                                                            have hIlkDirtCreatedEq :
+                                                                evmIlkDirtSolm.createdAccounts =
+                                                                  evmIlkDirtEvm.createdAccounts := by
+                                                              rw [hIlkDirtSolmCreated,
+                                                                hIlkDirtEvmCreated]
+                                                            have hIlkDirtGenesisEq :
+                                                                evmIlkDirtSolm.genesisBlockHeader =
+                                                                  evmIlkDirtEvm.genesisBlockHeader := by
+                                                              rw [hIlkDirtSolmGenesis,
+                                                                hIlkDirtEvmGenesis]
+                                                            have hIlkDirtBlocksEq :
+                                                                evmIlkDirtSolm.blocks =
+                                                                  evmIlkDirtEvm.blocks := by
+                                                              rw [hIlkDirtSolmBlocks,
+                                                                hIlkDirtEvmBlocks]
+                                                            have hIlkDirtEnvEq :
+                                                                evmIlkDirtSolm.executionEnv =
+                                                                  evmIlkDirtEvm.executionEnv := by
+                                                              rw [hIlkDirtSolmEnv, hIlkDirtEvmEnv]
+                                                            obtain ⟨σKickSolm, AKickSolm,
+                                                                hcallKickSolmRaw,
+                                                                hAccountsKickRaw⟩ :=
+                                                              dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                                (evm_solm := evmIlkDirtSolm)
+                                                                hcallKickEvm
+                                                                (by simpa [hIlkDirtEvmMap] using
+                                                                  hAccountsIlkDirt)
+                                                                hIlkDirtOriginalAccounts
+                                                                hIlkDirtCreatedEq
+                                                                hIlkDirtGenesisEq
+                                                                hIlkDirtBlocksEq
+                                                                hIlkDirtEnvEq
+                                                            let evmKickSolm :=
+                                                              { evmIlkDirtSolm with
+                                                                accountMap := σKickSolm,
+                                                                substate := AKickSolm,
+                                                                createdAccounts := cAKick }
+                                                            have hcallKickSolm :
+                                                                typedCallViaEVM (config v)
+                                                                  evmIlkDirtSolm
+                                                                  (EVM.address
+                                                                    (AccountAddress.ofNat
+                                                                      (barkIlksClipWord σ' I).toNat))
+                                                                  "kick" 0
+                                                                  [.int (Int.ofNat tab.toNat),
+                                                                    .int (Int.ofNat dink.toNat),
+                                                                    .address (barkUrn I),
+                                                                    .address (barkKpr I)]
+                                                                  (zKick, evmKickSolm, outKick)
+                                                                  true := by
+                                                              simpa [evmKickEvm, evmKickSolm]
+                                                                using hcallKickSolmRaw
+                                                            have hAccountsKick :
+                                                                accountMapEquiv σKick
+                                                                  evmKickSolm.accountMap := by
+                                                              simpa [evmKickEvm, evmKickSolm]
+                                                                using hAccountsKickRaw
+                                                            cases zKick
+                                                            · simp only [Bool.false_eq_true, if_false] at rd4386 hcallKickEvm hcallKickSolm
+                                                              have hkickRev :=
+                                                                dogBarkKickCallFailureBlock
+                                                                  (v := v)
+                                                                  (evm := evmIlkDirtSolm)
+                                                                  (evm' := evmKickSolm)
+                                                                  (locals := localsIlkDirtNew)
+                                                                  (outKick := outKick)
+                                                                  (milkClip :=
+                                                                    barkIlksClipWord σ' I)
+                                                                  (tab := tab) (dink := dink)
+                                                                  (urn := barkUrn I)
+                                                                  (kpr := barkKpr I)
+                                                                  hkickGuardTrue
+                                                                  hmilkClipIlkDirtNew
+                                                                  htabIlkDirtNew
+                                                                  hdinkIlkDirtNew
+                                                                  hurnIlkDirtNew
+                                                                  hkprIlkDirtNew
+                                                                  hcallKickSolm
+                                                              have htailPrefix :=
+                                                                execBlock_append
+                                                                  _hprefixIlkDirtStoreTail
+                                                                  hkickRev
+                                                              have htailBody :
+                                                                  ExecTransitionBody (config v)
+                                                                    (contract v) evmSolm
+                                                                    (barkLocals I)
+                                                                    (barkTransition v).body
+                                                                    .reverted := by
+                                                                apply hbodyRevertOfTail
+                                                                refine dogBarkDartTailFromLeftoverBlock
+                                                                  hleftover ?_
+                                                                simpa only [afterIntGuard, afterGrab,
+                                                                  afterFess, afterTabBase,
+                                                                  afterTab, afterDirtAssign,
+                                                                  afterIlkDirtAssign, afterKick,
+                                                                  localsDink, localsGrab,
+                                                                  localsDue, localsFess,
+                                                                  localsTabBase, localsTab,
+                                                                  localsDirtNew,
+                                                                  localsIlkDirtNew, due, dink,
+                                                                  tabBase, tab, dirtNew,
+                                                                  ilkDirtNew,
+                                                                  List.append_assoc] using
+                                                                  execBlock_append_term
+                                                                    (s2 := afterKick)
+                                                                    htailPrefix
+                                                                    (by intro f e h; cases h)
+                                                              have hrev :=
+                                                                RD.dogBarkKickCallFailure
+                                                                  hpatch rd4386 houtKickSize
+                                                                  (by simp)
+                                                              exact hrev.reEquivExecutionRevert
+                                                                hcode hdispatch hdecode htailBody
+                                                            · simp only [Bool.true_eq_false, if_true] at rd4386 hcallKickEvm hcallKickSolm
+                                                              obtain ⟨_, _, rd4404⟩ :=
+                                                                RD.dogBarkKickCallSuccessToDecode
+                                                                  hpatch rd4386 (by simp)
+                                                              let memKickPost :=
+                                                                barkKickPostCallMem I memKickPre
+                                                                  outKick tab dink
+                                                              have hminShort
+                                                                  (hshort : outKick.size < 32) :
+                                                                  (min barkKickOutSize
+                                                                    (UInt256.ofNat
+                                                                      outKick.size)).toNat =
+                                                                    outKick.size := by
+                                                                exact umin_ofNat_right_toNat_of_lt
+                                                                  (c := 32) (n := outKick.size)
+                                                                  (by decide) hshort
+                                                                  houtKickSize
+                                                              by_cases hkickRetLong :
+                                                                  32 ≤ outKick.size
+                                                              · let id :=
+                                                                  UInt256.ofNat
+                                                                    (fromByteArrayBigEndian
+                                                                      (outKick.extract 0 32))
+                                                                have hdecKick :
+                                                                    (config v).externalABI.decode?
+                                                                        "kick" outKick =
+                                                                      some [.int
+                                                                        (Int.ofNat id.toNat)] := by
+                                                                  simpa [id] using
+                                                                    barkKickDecode_ok (v := v)
+                                                                      hkickRetLong
+                                                                have hkickOk :=
+                                                                  dogBarkKickCallSuccessBlock
+                                                                    (v := v)
+                                                                    (evm := evmIlkDirtSolm)
+                                                                    (evm' := evmKickSolm)
+                                                                    (locals := localsIlkDirtNew)
+                                                                    (outKick := outKick)
+                                                                    (milkClip :=
+                                                                      barkIlksClipWord σ' I)
+                                                                    (tab := tab) (dink := dink)
+                                                                    (id := id)
+                                                                    (urn := barkUrn I)
+                                                                    (kpr := barkKpr I)
+                                                                    hkickGuardTrue
+                                                                    hmilkClipIlkDirtNew
+                                                                    htabIlkDirtNew
+                                                                    hdinkIlkDirtNew
+                                                                    hurnIlkDirtNew
+                                                                    hkprIlkDirtNew
+                                                                    hcallKickSolm hdecKick
+                                                                have _hprefixKick :=
+                                                                  execBlock_append
+                                                                    _hprefixIlkDirtStore
+                                                                    hkickOk
+                                                                have _hprefixKickTail :=
+                                                                  execBlock_append
+                                                                    _hprefixIlkDirtStoreTail
+                                                                    hkickOk
+                                                                have hmemKickPostSize :
+                                                                    memKickPost.size = 580 := by
+                                                                  simpa [memKickPost] using
+                                                                    barkKickPostCallMem_size_long
+                                                                      hmemKickPreSize
+                                                                      hkickRetLong
+                                                                      houtKickSize
+                                                                have hmemKickPostRead64 :
+                                                                    memKickPost.readWithPadding
+                                                                        64 32 =
+                                                                      UInt256.toByteArray
+                                                                        ⟨384⟩ := by
+                                                                  simpa [memKickPost] using
+                                                                    barkKickPostCallMem_read64_long
+                                                                      hmemKickPreSize
+                                                                      hmemKickPreRead64
+                                                                      hkickRetLong
+                                                                      houtKickSize
+                                                                have hmload64KickPost :
+                                                                    (if (⟨64⟩ : UInt256).toNat ≥
+                                                                          memKickPost.size
+                                                                        ∨ (⟨64⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memKickPost.readWithPadding
+                                                                          (⟨64⟩ : UInt256).toNat
+                                                                          32))) = ⟨384⟩ := by
+                                                                  simpa [memKickPost] using
+                                                                    barkKickPostCallMem_mload64_long
+                                                                      hmemKickPreSize
+                                                                      hmemKickPreRead64
+                                                                      hkickRetLong
+                                                                      houtKickSize
+                                                                have hmload256KickPost :
+                                                                    (if (⟨256⟩ : UInt256).toNat ≥
+                                                                          memKickPost.size
+                                                                        ∨ (⟨256⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memKickPost.readWithPadding
+                                                                          (⟨256⟩ : UInt256).toNat
+                                                                          32))) =
+                                                                      barkIlksClipWord σ' I := by
+                                                                  simpa [memKickPost] using
+                                                                    barkKickPostCallMem_mload256_long
+                                                                      hmemKickPreSize
+                                                                      hread256KickPre
+                                                                      hkickRetLong houtKickSize
+                                                                have hmload384KickPost :
+                                                                    (if (⟨384⟩ : UInt256).toNat ≥
+                                                                          memKickPost.size
+                                                                        ∨ (⟨384⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memKickPost.readWithPadding
+                                                                          (⟨384⟩ : UInt256).toNat
+                                                                          32))) = id := by
+                                                                  simpa [memKickPost, id] using
+                                                                    barkKickPostCallMem_mload384_long
+                                                                      hmemKickPreSize
+                                                                      hkickRetLong houtKickSize
+                                                                obtain ⟨_, _, rd4427⟩ :=
+                                                                  RD.dogBarkKickReturnDecodeOk
+                                                                    hpatch rd4404 hkickRetLong
+                                                                    houtKickSize
+                                                                    hmload64KickPost
+                                                                    hmload384KickPost (by simp)
+                                                                obtain ⟨_, _, rd448⟩ :=
+                                                                  RD.dogBarkKickDecodedToPublicReturn
+                                                                    (v := v) (code := code)
+                                                                    (σMem := σ') hpatch rd4427
+                                                                    (dogPatchedJumpDest hpatch
+                                                                      (by native_decide))
+                                                                    _hperm hmemKickPostSize
+                                                                    hmemKickPostRead64
+                                                                    hmload256KickPost
+                                                                let memLog :=
+                                                                  barkBarkLogMem memKickPost
+                                                                    dink dart due
+                                                                    (barkIlksClipWord σ' I)
+                                                                have hmemLogSize :
+                                                                    memLog.size = 580 := by
+                                                                  simpa [memLog] using
+                                                                    barkBarkLogMem_size
+                                                                      hmemKickPostSize
+                                                                have hmemLogRead64 :
+                                                                    memLog.readWithPadding 64 32 =
+                                                                      UInt256.toByteArray
+                                                                        ⟨384⟩ := by
+                                                                  simpa [memLog] using
+                                                                    barkBarkLogMem_read64
+                                                                      hmemKickPostSize
+                                                                      hmemKickPostRead64
+                                                                have hmload64Log :
+                                                                    (if (⟨64⟩ : UInt256).toNat ≥
+                                                                          memLog.size
+                                                                        ∨ (⟨64⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memLog.readWithPadding
+                                                                          (⟨64⟩ : UInt256).toNat
+                                                                          32))) = ⟨384⟩ := by
+                                                                  simpa [memLog] using
+                                                                    barkBarkLogMem_mload64
+                                                                      hmemKickPostSize
+                                                                      hmemKickPostRead64
+                                                                let memReturn := barkReturnIdMem memLog id
+                                                                have hmload64Return :
+                                                                    (if (⟨64⟩ : UInt256).toNat ≥
+                                                                          memReturn.size
+                                                                        ∨ (⟨64⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memReturn.readWithPadding
+                                                                          (⟨64⟩ : UInt256).toNat
+                                                                          32))) = ⟨384⟩ := by
+                                                                  simpa [memReturn] using
+                                                                    barkReturnIdMem_mload64
+                                                                      hmemLogSize hmemLogRead64
+                                                                have hread384Return :
+                                                                    memReturn.readWithPadding
+                                                                        384 32 =
+                                                                      UInt256.toByteArray id := by
+                                                                  simpa [memReturn] using
+                                                                    barkReturnIdMem_read384
+                                                                      hmemLogSize
+                                                                have hret :=
+                                                                  RD.dogBarkPublicReturnId
+                                                                    hpatch rd448 hmload64Log
+                                                                    (by
+                                                                      simp [memReturn, memLog,
+                                                                        memKickPost, memKickPre,
+                                                                        memFess, dink,
+                                                                        barkReturnIdMem])
+                                                                    hmload64Return
+                                                                    hread384Return
+                                                                let localsId :=
+                                                                  barkLocalsId
+                                                                    localsIlkDirtNew id
+                                                                have hidGet :
+                                                                    localsId.get? "id" =
+                                                                      some (.int
+                                                                        (Int.ofNat id.toNat)) := by
+                                                                  simpa [localsId] using
+                                                                    barkLocalsId_get_id
+                                                                      localsIlkDirtNew id
+                                                                have hreturn :=
+                                                                  dogBarkReturnIdBlock (v := v)
+                                                                    (evm := evmKickSolm)
+                                                                    (locals := localsId) hidGet
+                                                                have htailReturn :=
+                                                                  execBlock_append _hprefixKickTail
+                                                                    hreturn
+                                                                have htailBody :
+                                                                    ExecTransitionBody (config v)
+                                                                      (contract v) evmSolm
+                                                                      (barkLocals I)
+                                                                      (barkTransition v).body
+                                                                      (.returned
+                                                                        { contract := contract v,
+                                                                          locals := localsId }
+                                                                        evmKickSolm
+                                                                        (some [.int
+                                                                  (Int.ofNat
+                                                                            id.toNat)])) := by
+                                                                  apply hbodyReturnOfTail
+                                                                  refine
+                                                                    dogBarkDartTailFromLeftoverBlock
+                                                                      hleftover ?_
+                                                                  simpa only [afterIntGuard,
+                                                                    afterGrab, afterFess,
+                                                                    afterTabBase, afterTab,
+                                                                    afterDirtAssign,
+                                                                    afterIlkDirtAssign,
+                                                                    afterKick, localsDink,
+                                                                    localsGrab, localsDue,
+                                                                    localsFess,
+                                                                    localsTabBase, localsTab,
+                                                                    localsDirtNew,
+                                                                    localsIlkDirtNew, localsId,
+                                                                    due, dink, tabBase, tab,
+                                                                    dirtNew, ilkDirtNew,
+                                                                    List.append_assoc] using
+                                                                    htailReturn
+                                                                have hcreated :
+                                                                    (cAKick, σKick).1 =
+                                                                      evmKickSolm.createdAccounts := by
+                                                                  simp [evmKickSolm]
+                                                                have haccounts :
+                                                                    accountMapEquiv
+                                                                      (cAKick, σKick).2
+                                                                      evmKickSolm.accountMap := by
+                                                                  simpa [evmKickEvm,
+                                                                    evmKickSolm] using
+                                                                    hAccountsKick
+                                                                have henc :
+                                                                    returnEquiv
+                                                                      (UInt256.toByteArray id)
+                                                                      (some [.int
+                                                                        (Int.ofNat id.toNat)])
+                                                                      (barkTransition v).returnType := by
+                                                                  exact returnEquiv_of_encode
+                                                                    (by
+                                                                      simpa [uint256] using
+                                                                        uint256ReturnEncoding id)
+                                                                exact
+                                                                  hret.reEquivExecutionGenAccountMapEquiv
+                                                                    hcode hdispatch hdecode
+                                                                    htailBody hcreated
+                                                                    haccounts henc
+                                                              · have hshort :
+                                                                    outKick.size < 32 := by
+                                                                  omega
+                                                                have hdecKick :
+                                                                    (config v).externalABI.decode?
+                                                                        "kick" outKick = none :=
+                                                                  barkKickDecode_none_short
+                                                                    (v := v) hshort
+                                                                have hkickRev :=
+                                                                  dogBarkKickDecodeRevertBlock
+                                                                    (v := v)
+                                                                    (evm := evmIlkDirtSolm)
+                                                                    (evm' := evmKickSolm)
+                                                                    (locals := localsIlkDirtNew)
+                                                                    (outKick := outKick)
+                                                                    (milkClip :=
+                                                                      barkIlksClipWord σ' I)
+                                                                    (tab := tab) (dink := dink)
+                                                                    (urn := barkUrn I)
+                                                                    (kpr := barkKpr I)
+                                                                    hkickGuardTrue
+                                                                    hmilkClipIlkDirtNew
+                                                                    htabIlkDirtNew
+                                                                    hdinkIlkDirtNew
+                                                                    hurnIlkDirtNew
+                                                                    hkprIlkDirtNew
+                                                                    hcallKickSolm hdecKick
+                                                                have htailPrefix :=
+                                                                  execBlock_append
+                                                                    _hprefixIlkDirtStoreTail
+                                                                    hkickRev
+                                                                have htailBody :
+                                                                    ExecTransitionBody (config v)
+                                                                      (contract v) evmSolm
+                                                                      (barkLocals I)
+                                                                      (barkTransition v).body
+                                                                      .reverted := by
+                                                                  apply hbodyRevertOfTail
+                                                                  refine dogBarkDartTailFromLeftoverBlock
+                                                                    hleftover ?_
+                                                                  simpa only [afterIntGuard,
+                                                                    afterGrab, afterFess,
+                                                                    afterTabBase, afterTab,
+                                                                    afterDirtAssign,
+                                                                    afterIlkDirtAssign,
+                                                                    afterKick, localsDink,
+                                                                    localsGrab, localsDue,
+                                                                    localsFess,
+                                                                    localsTabBase, localsTab,
+                                                                    localsDirtNew,
+                                                                    localsIlkDirtNew, due, dink,
+                                                                    tabBase, tab, dirtNew,
+                                                                    ilkDirtNew,
+                                                                    List.append_assoc] using
+                                                                    execBlock_append_term
+                                                                      (s2 := afterKick)
+                                                                      htailPrefix
+                                                                      (by intro f e h; cases h)
+                                                                have hmin :
+                                                                    (min barkKickOutSize
+                                                                      (UInt256.ofNat
+                                                                        outKick.size)).toNat =
+                                                                      outKick.size :=
+                                                                  hminShort hshort
+                                                                have hmload64KickPost :
+                                                                    (if (⟨64⟩ : UInt256).toNat ≥
+                                                                          memKickPost.size
+                                                                        ∨ (⟨64⟩ : UInt256) ≥
+                                                                          UInt256.ofNat 19 *
+                                                                            ⟨32⟩ then ⟨0⟩
+                                                                     else UInt256.ofNat
+                                                                      (fromByteArrayBigEndian
+                                                                        (memKickPost.readWithPadding
+                                                                          (⟨64⟩ : UInt256).toNat
+                                                                          32))) = ⟨384⟩ := by
+                                                                  simpa [memKickPost,
+                                                                    barkKickPostCallMem, hmin] using
+                                                                    barkKickPostCallWrite_mload64
+                                                                      (I := I) (tab := tab)
+                                                                      (dink := dink)
+                                                                      (mem := memKickPre)
+                                                                      (out := outKick)
+                                                                      (L := outKick.size)
+                                                                      hmemKickPreSize
+                                                                      hmemKickPreRead64
+                                                                      (by omega)
+                                                                      (le_rfl)
+                                                                have hrev :=
+                                                                  RD.dogBarkKickReturnDecodeShortReverts
+                                                                    hpatch rd4404 hshort
+                                                                    houtKickSize
+                                                                    hmload64KickPost
+                                                                    (by simp)
+                                                                exact hrev.reEquivExecutionRevert
+                                                                  hcode hdispatch hdecode
+                                                                  htailBody
+                                                        · have hoverIlkDirt :
+                                                              UInt256.size ≤
+                                                                (barkIlksDirtWord σ' I).toNat +
+                                                                  tab.toNat :=
+                                                            Nat.le_of_not_gt hfitIlkDirt
+                                                          have hilkDirtRev :=
+                                                            dogBarkIlkDirtAddOverflowSource
+                                                              (v := v) evmDirtSolm
+                                                              hmilkDirtDirtNew htabDirtNew
+                                                              hoverIlkDirt
+                                                          have htailPrefix :=
+                                                            execBlock_append
+                                                              _hprefixDirtStoreTail hilkDirtRev
+                                                          have htailBody :
+                                                              ExecTransitionBody (config v)
+                                                                (contract v) evmSolm
+                                                                (barkLocals I)
+                                                                (barkTransition v).body
+                                                                .reverted := by
+                                                            apply hbodyRevertOfTail
+                                                            refine dogBarkDartTailFromLeftoverBlock
+                                                              hleftover ?_
+                                                            simpa only [afterIntGuard, afterGrab,
+                                                              afterFess, afterTabBase,
+                                                              afterTab, afterDirtAssign,
+                                                              afterIlkDirtNew,
+                                                              localsDink, localsGrab,
+                                                              localsDue, localsFess,
+                                                              localsTabBase, localsTab,
+                                                              localsDirtNew, due, dink,
+                                                              tabBase, tab, dirtNew,
+                                                              List.append_assoc] using
+                                                              execBlock_append_term
+                                                                (s2 := afterIlkDirtNew)
+                                                                htailPrefix
+                                                                (by intro f e h; cases h)
+                                                          have hrev :=
+                                                            RD.dogBarkIlkDirtAddOverflowReverts
+                                                              hpatch hmload352Fess
+                                                              hoverIlkDirt rd4226 (by simp)
+                                                          exact hrev.reEquivExecutionRevert
+                                                            hcode hdispatch hdecode htailBody
+                                                      · have hoverDirt :
+                                                            UInt256.size ≤
+                                                              (dogSlotWord ⟨5⟩ σFess I).toNat +
+                                                                tab.toNat :=
+                                                          Nat.le_of_not_gt hfitDirt
+                                                        have hoverDirtSolm :
+                                                            UInt256.size ≤
+                                                              (dogSlotWord ⟨5⟩
+                                                                    evmFessSolm.accountMap
+                                                                    evmFessSolm.executionEnv).toNat +
+                                                                  tab.toNat := by
+                                                          simpa [hDirtSlotFess] using hoverDirt
+                                                        have hdirtRev :=
+                                                          dogBarkDirtAddOverflowSource
+                                                            (v := v) evmFessSolm hDirtTab
+                                                            htabGet hoverDirtSolm
+                                                        have htailPrefix :=
+                                                          execBlock_append _hprefixTabTail
+                                                            hdirtRev
+                                                        have htailBody :
+                                                            ExecTransitionBody (config v)
+                                                              (contract v) evmSolm
+                                                              (barkLocals I)
+                                                              (barkTransition v).body
+                                                              .reverted := by
+                                                          apply hbodyRevertOfTail
+                                                          refine dogBarkDartTailFromLeftoverBlock
+                                                            hleftover ?_
+                                                          simpa only [afterIntGuard, afterGrab,
+                                                            afterFess, afterTabBase, afterTab,
+                                                            afterDirtNew,
+                                                            localsDink, localsGrab, localsDue,
+                                                            localsFess, localsTabBase, localsTab,
+                                                            due, dink, tabBase, tab,
+                                                            List.append_assoc] using
+                                                            execBlock_append_term
+                                                              (s2 := afterDirtNew) htailPrefix
+                                                              (by intro f e h; cases h)
+                                                        have hrev :=
+                                                          RD.dogBarkDirtAddOverflowReverts
+                                                            hpatch hoverDirt rd4211 (by simp)
+                                                        exact hrev.reEquivExecutionRevert hcode
+                                                          hdispatch hdecode htailBody
+                                                    · have hoverTabBase :
+                                                          UInt256.size ≤
+                                                            due.toNat * milkChop.toNat :=
+                                                        Nat.le_of_not_gt hfitTabBase
+                                                      have htabRev :=
+                                                        dogBarkTabBaseCheckedMulOverflowSource
+                                                          (v := v) evmFessSolm hdueFess
+                                                          hmilkChopFess hoverTabBase
+                                                      have htailPrefix :=
+                                                        execBlock_append _hprefixFessTail htabRev
+                                                      have htailBody :
+                                                          ExecTransitionBody (config v)
+                                                            (contract v) evmSolm (barkLocals I)
+                                                            (barkTransition v).body
+                                                            .reverted := by
+                                                        apply hbodyRevertOfTail
+                                                        refine dogBarkDartTailFromLeftoverBlock
+                                                          hleftover ?_
+                                                        simpa only [afterIntGuard, afterGrab,
+                                                          afterFess, afterTabBase,
+                                                          localsDink, localsGrab, localsDue,
+                                                          localsFess, due, dink,
+                                                          List.append_assoc] using
+                                                          execBlock_append_term
+                                                            (s2 := afterTabBase)
+                                                            htailPrefix
+                                                            (by intro f e h; cases h)
+                                                      have hrev :=
+                                                        RD.dogBarkTabBaseCheckedMulOverflowReverts
+                                                          hpatch hoverTabBase hmload288Fess
+                                                          rd4176 (by simp)
+                                                      exact hrev.reEquivExecutionRevert hcode
+                                                        hdispatch hdecode htailBody
+                                          · have hdinkOverflow :
+                                                dogInt256LimitWord.toNat < dink.toNat :=
+                                              Nat.lt_of_not_ge hdinkBound
+                                            have hprefixGuard :=
+                                              dogBarkPostLeftoverDinkGuardOkSource (v := v)
+                                                evmIlksPostSolm hink hdart hart hfitInkDart
+                                                hartNe (by simpa [dink] using hdinkPos)
+                                            have hintRev :=
+                                              dogBarkInt256GuardDinkOverflowSource (v := v)
+                                                evmIlksPostSolm hdartDinkGet hdinkGet hdartBound
+                                                (by simpa [dink] using hdinkOverflow)
+                                            have htailPrefix :
+                                                ExecBlock (config v)
+                                                  { contract := contract v, locals := localsAfter }
+                                                  evmIlksPostSolm
+                                                  (checkedMulUintInto "inkDart" (.var "ink")
+                                                      (.var "dart") ++
+                                                    [ .letDecl "dink" (some uint256)
+                                                        (.binary .div (.var "inkDart")
+                                                          (.var "art")),
+                                                      .require
+                                                        (.binary .gt (.var "dink")
+                                                          (.intLit 0)),
+                                                      .require
+                                                        (.binary .and
+                                                          (.binary .le (.var "dart")
+                                                            (.intLit int256Limit))
+                                                          (.binary .le (.var "dink")
+                                                            (.intLit int256Limit))) ])
+                                                  .reverted := by
+                                              simpa [List.append_assoc, localsDink, dink] using
+                                                execBlock_append hprefixGuard hintRev
+                                            have htailBody :
+                                                ExecTransitionBody (config v) (contract v)
+                                                  evmSolm (barkLocals I)
+                                                  (barkTransition v).body .reverted := by
+                                              apply hbodyRevertOfTail
+                                              refine dogBarkDartTailFromLeftoverBlock hleftover ?_
+                                              simpa only [afterIntGuard, List.append_assoc] using
+                                                execBlock_append_term (s2 := afterIntGuard)
+                                                  htailPrefix (by intro f e h; cases h)
+                                            have hrev :=
+                                              RD.dogBarkInt256GuardDinkOverflowReverts
+                                                (v := v) (code := code) (ret := ⟨448⟩)
+                                                (sel := solcSelectorWord I) (R := [])
+                                                hpatch hdartBound
+                                                (by simpa [dink] using hdinkOverflow)
+                                                (by simpa [mem0] using hpostMemSize)
+                                                (by simpa [mem0] using hpostMemRead64)
+                                                rd3797 (by simp)
+                                            exact hrev.reEquivExecutionRevert hcode hdispatch
+                                              hdecode htailBody
+                                        · have hdartOverflow :
+                                              dogInt256LimitWord.toNat < dart.toNat :=
+                                            Nat.lt_of_not_ge hdartBound
+                                          have hprefixGuard :=
+                                            dogBarkPostLeftoverDinkGuardOkSource (v := v)
+                                              evmIlksPostSolm hink hdart hart hfitInkDart
+                                              hartNe (by simpa [dink] using hdinkPos)
+                                          have hintRev :=
+                                            dogBarkInt256GuardDartOverflowSource (v := v)
+                                              evmIlksPostSolm hdartDinkGet hdinkGet
+                                              hdartOverflow
+                                          have htailPrefix :
+                                              ExecBlock (config v)
+                                                { contract := contract v, locals := localsAfter }
+                                                evmIlksPostSolm
+                                                (checkedMulUintInto "inkDart" (.var "ink")
+                                                    (.var "dart") ++
+                                                  [ .letDecl "dink" (some uint256)
+                                                      (.binary .div (.var "inkDart")
+                                                        (.var "art")),
+                                                    .require
+                                                      (.binary .gt (.var "dink") (.intLit 0)),
+                                                    .require
+                                                      (.binary .and
+                                                        (.binary .le (.var "dart")
+                                                          (.intLit int256Limit))
+                                                        (.binary .le (.var "dink")
+                                                          (.intLit int256Limit))) ])
+                                                .reverted := by
+                                            simpa [List.append_assoc, localsDink, dink] using
+                                              execBlock_append hprefixGuard hintRev
+                                          have htailBody :
+                                              ExecTransitionBody (config v) (contract v)
+                                                evmSolm (barkLocals I)
+                                                (barkTransition v).body .reverted := by
+                                            apply hbodyRevertOfTail
+                                            refine dogBarkDartTailFromLeftoverBlock hleftover ?_
+                                            simpa only [afterIntGuard, List.append_assoc] using
+                                              execBlock_append_term (s2 := afterIntGuard)
+                                                htailPrefix (by intro f e h; cases h)
+                                          have hrev :=
+                                            RD.dogBarkInt256GuardDartOverflowReverts
+                                              (v := v) (code := code) (ret := ⟨448⟩)
+                                              (sel := solcSelectorWord I) (R := [])
+                                              hpatch hdartOverflow
+                                              (by simpa [mem0] using hpostMemSize)
+                                              (by simpa [mem0] using hpostMemRead64) rd3797
+                                              (by simp)
+                                          exact hrev.reEquivExecutionRevert hcode hdispatch
+                                            hdecode htailBody
+                                      · have hprefixDink :=
+                                          dogBarkPostLeftoverDinkLetOkSource (v := v)
+                                            evmIlksPostSolm hink hdart hart hfitInkDart hartNe
+                                        have hguardRev :=
+                                          dogBarkDinkGuardRevertSource (v := v)
+                                            evmIlksPostSolm hdinkGet
+                                            (by simpa [dink] using hdinkPos)
+                                        have htailPrefix :
+                                            ExecBlock (config v)
+                                              { contract := contract v, locals := localsAfter }
+                                              evmIlksPostSolm
+                                              (checkedMulUintInto "inkDart" (.var "ink")
+                                                  (.var "dart") ++
+                                                [ .letDecl "dink" (some uint256)
+                                                    (.binary .div (.var "inkDart")
+                                                      (.var "art")),
+                                                  .require
+                                                    (.binary .gt (.var "dink") (.intLit 0)) ])
+                                              .reverted := by
+                                          simpa [List.append_assoc, localsDink, dink] using
+                                            execBlock_append hprefixDink hguardRev
+                                        have htailBody :
+                                            ExecTransitionBody (config v) (contract v)
+                                              evmSolm (barkLocals I) (barkTransition v).body
+                                              .reverted := by
+                                          apply hbodyRevertOfTail
+                                          refine dogBarkDartTailFromLeftoverBlock hleftover ?_
+                                          simpa only [afterDinkGuard, afterIntGuard,
+                                            List.append_assoc] using
+                                            execBlock_append_term (s2 := afterDinkGuard)
+                                              htailPrefix (by intro f e h; cases h)
+                                        have hrev :=
+                                          RD.dogBarkDinkGuardReverts
+                                            (v := v) (code := code) (ret := ⟨448⟩)
+                                            (sel := solcSelectorWord I) (R := []) hpatch
+                                            (by simpa [dink] using hdinkPos)
+                                            (by simpa [mem0] using hpostMemSize)
+                                            (by simpa [mem0] using hpostMemRead64) rd3726
+                                            (by simp)
+                                        exact hrev.reEquivExecutionRevert hcode hdispatch
+                                          hdecode htailBody
+                                    · have hoverInkDart : UInt256.size ≤ ink.toNat * dart.toNat :=
+                                        not_lt.mp hfitInkDart
+                                      have htailPrefix :=
+                                        dogBarkInkDartCheckedMulOverflow (v := v)
+                                          evmIlksPostSolm hink hdart hoverInkDart
+                                      have htailBody :
+                                          ExecTransitionBody (config v) (contract v)
+                                            evmSolm (barkLocals I) (barkTransition v).body
+                                            .reverted := by
+                                        apply hbodyRevertOfTail
+                                        refine dogBarkDartTailFromLeftoverBlock hleftover ?_
+                                        simpa only [afterInkDart, afterIntGuard,
+                                          List.append_assoc] using
+                                          execBlock_append_term (s2 := afterInkDart)
+                                            htailPrefix (by intro f e h; cases h)
+                                      have hrev :=
+                                        RD.dogBarkInkDartOverflowReverts
+                                          (v := v) (code := code) (ret := ⟨448⟩)
+                                          (sel := solcSelectorWord I) (R := []) hpatch
+                                          hoverInkDart rd3700 (by simp)
+                                      exact hrev.reEquivExecutionRevert hcode hdispatch hdecode
+                                        htailBody
+                                  have hrateDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "rate" =
+                                        some (.int (Int.ofNat rate.toNat)) := by
+                                    simpa [rate] using
+                                      barkLocalsDart_get_rate evmPostSolm evmIlksPostSolm I
+                                        out outIlks
+                                  have hmilkClipDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "milkClip" =
+                                        some (.address (AccountAddress.ofNat
+                                          (barkIlksClipWord σ' I).toNat)) := by
+                                    simpa [hmilkClip] using
+                                      barkLocalsDart_get_milkClip evmPostSolm evmIlksPostSolm I
+                                        out outIlks
+                                  have hmilkChopDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "milkChop" =
+                                        some (.int (Int.ofNat milkChop.toNat)) := by
+                                    simpa [milkChop, hmilkChop] using
+                                      barkLocalsDart_get_milkChop evmPostSolm evmIlksPostSolm I
+                                        out outIlks
+                                  have hmilkDirtDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "milkDirt" =
+                                        some (.int (Int.ofNat
+                                          (barkIlksDirtWord σ' I).toNat)) := by
+                                    simpa [hmilkDirt] using
+                                      barkLocalsDart_get_milkDirt evmPostSolm evmIlksPostSolm I
+                                        out outIlks
+                                  have hilkDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "ilk" =
+                                        some (.fixedBytes bytes32Width (barkIlkBytes I)) :=
+                                    barkLocalsDart_get_ilk evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hurnDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "urn" =
+                                        some (.address (barkUrn I)) :=
+                                    barkLocalsDart_get_urn evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hkprDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "kpr" =
+                                        some (.address (barkKpr I)) :=
+                                    barkLocalsDart_get_kpr evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hvowDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "vow" = none :=
+                                    barkLocalsDart_get_vow evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hDirtDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "Dirt" = none :=
+                                    barkLocalsDart_get_Dirt evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hilksDartBase :
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? "ilks" = none :=
+                                    barkLocalsDart_get_ilks evmPostSolm evmIlksPostSolm I out
+                                      outIlks
+                                  have hpresDusty {name : Ident} {value : Value}
+                                      (hname : ("dart" == name) = false)
+                                      (hleftoverDueName : ("leftoverDue" == name) = false)
+                                      (hleftoverArtName : ("leftoverArt" == name) = false)
+                                      (hget :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? name = some value) :
+                                      (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? name = some value := by
+                                    exact
+                                      barkLocalsDustyDart_get_preserved
+                                        (evmUrns := evmPostSolm)
+                                        (evmIlks := evmIlksPostSolm) (I := I)
+                                        (out := out) (outIlks := outIlks)
+                                        (name := name) (value := value) hname
+                                        (barkLocalsLeftoverDue_get_preserved
+                                          hleftoverDueName
+                                          (barkLocalsLeftoverArt_get_preserved
+                                            hleftoverArtName hget))
+                                  have hpresDustyNone {name : Ident}
+                                      (hname : ("dart" == name) = false)
+                                      (hleftoverDueName : ("leftoverDue" == name) = false)
+                                      (hleftoverArtName : ("leftoverArt" == name) = false)
+                                      (hget :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? name = none) :
+                                      (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? name = none := by
+                                    rw [barkLocalsDustyDart, store_get_ne _ _ hname,
+                                      barkLocalsLeftoverDue, store_get_ne _ _ hleftoverDueName,
+                                      barkLocalsLeftoverArt, store_get_ne _ _ hleftoverArtName]
+                                    exact hget
+                                  have hpresPartial {name : Ident} {value : Value}
+                                      (hname : ("partialDue" == name) = false)
+                                      (hleftoverDueName : ("leftoverDue" == name) = false)
+                                      (hleftoverArtName : ("leftoverArt" == name) = false)
+                                      (hget :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? name = some value) :
+                                      (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? name = some value := by
+                                    exact
+                                      barkLocalsPartialDue_get_preserved
+                                        (evmUrns := evmPostSolm)
+                                        (evmIlks := evmIlksPostSolm) (I := I)
+                                        (out := out) (outIlks := outIlks)
+                                        (name := name) (value := value) hname
+                                        (barkLocalsLeftoverDue_get_preserved
+                                          hleftoverDueName
+                                          (barkLocalsLeftoverArt_get_preserved
+                                            hleftoverArtName hget))
+                                  have hpresPartialNone {name : Ident}
+                                      (hname : ("partialDue" == name) = false)
+                                      (hleftoverDueName : ("leftoverDue" == name) = false)
+                                      (hleftoverArtName : ("leftoverArt" == name) = false)
+                                      (hget :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? name = none) :
+                                      (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I out
+                                          outIlks).get? name = none := by
+                                    rw [barkLocalsPartialDue, store_get_ne _ _ hname,
+                                      barkLocalsLeftoverDue, store_get_ne _ _ hleftoverDueName,
+                                      barkLocalsLeftoverArt, store_get_ne _ _ hleftoverArtName]
+                                    exact hget
+                                  by_cases hnoLeftover : art.toNat ≤ dart0.toNat
+                                  · obtain ⟨_, _, rd3700⟩ :=
+                                      RD.dogBarkNoLeftoverToDinkEntry
+                                        (v := v) (code := code) (ret := ⟨448⟩)
+                                        (sel := solcSelectorWord I) (R := [])
+                                        (room := room) (spot := spot) (dust := dust)
+                                        (rate := rate) (dart := dart0) (art := art)
+                                        (ink := ink) hpatch hnoLeftover rd3594Local
+                                        (by simp)
+                                    have hleftoverBlock :=
+                                      dogBarkNoLeftoverIteOk (v := v) evmPostSolm
+                                        evmIlksPostSolm I out outIlks
+                                        (by simpa [art, dart0, hdartSourceLocal] using
+                                          hnoLeftover)
+                                    have hinkAfter :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? "ink" =
+                                          some (.int (Int.ofNat ink.toNat)) := by
+                                      simpa [ink] using
+                                        barkLocalsDart_get_ink evmPostSolm evmIlksPostSolm I
+                                          out outIlks
+                                    have hdartAfter :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? "dart" =
+                                          some (.int (Int.ofNat dart0.toNat)) := by
+                                      simpa [dart0, hdartSourceLocal] using
+                                        barkLocalsDart_get_dart evmPostSolm evmIlksPostSolm I
+                                          out outIlks
+                                    have hartAfter :
+                                        (barkLocalsDart evmPostSolm evmIlksPostSolm I out
+                                            outIlks).get? "art" =
+                                          some (.int (Int.ofNat art.toNat)) := by
+                                      simpa [art] using
+                                        barkLocalsDart_get_art evmPostSolm evmIlksPostSolm I
+                                          out outIlks
+                                    have hdartLeArt :
+                                        dart0.toNat ≤ art.toNat := by
+                                      simpa [dart0, art, rate, milkChop] using
+                                        barkDartWord_toNat_le_art σ'' σ' I art rate milkChop
+                                    exact finishFromDartEntry dart0
+                                      (barkLocalsDart evmPostSolm evmIlksPostSolm I out outIlks)
+                                      hleftoverBlock hinkAfter hdartAfter hartAfter
+                                      hrateDartBase hmilkClipDartBase hmilkChopDartBase
+                                      hmilkDirtDartBase hilkDartBase hurnDartBase
+                                      hkprDartBase hvowDartBase hDirtDartBase hilksDartBase
+                                      hdartLeArt rd3700
+                                  · have hleftover : dart0.toNat < art.toNat := by
+                                      omega
+                                    have hfitLeftoverDue :
+                                        (barkLeftoverArtWord art dart0).toNat * rate.toNat <
+                                          UInt256.size :=
+                                      barkLeftoverDue_fit_of_art_fit
+                                        (by simpa using le_of_lt hleftover)
+                                        (by simpa [art, rate] using hfitArt)
+                                    by_cases hdusty :
+                                        (barkLeftoverDueWord art dart0 rate).toNat <
+                                          dust.toNat
+                                    · obtain ⟨_, _, rd3700⟩ :=
+                                        RD.dogBarkDustyLeftoverToDinkEntry
+                                          (v := v) (code := code) (ret := ⟨448⟩)
+                                          (sel := solcSelectorWord I) (R := [])
+                                          (room := room) (spot := spot) (dust := dust)
+                                          (rate := rate) (dart := dart0) (art := art)
+                                          (ink := ink) hpatch hleftover hfitLeftoverDue
+                                          hdusty rd3594Local (by simp)
+                                      have hleftoverBlock :=
+                                        dogBarkDustyLeftoverIteOk (v := v) evmPostSolm
+                                          evmIlksPostSolm I out outIlks
+                                          (by simpa [art, dart0, hdartSourceLocal] using
+                                            hleftover)
+                                          (by simpa [art, dart0, rate, hdartSourceLocal] using
+                                            hfitLeftoverDue)
+                                          (by simpa [art, dart0, rate, dust,
+                                            hdartSourceLocal] using hdusty)
+                                      have hinkAfter :
+                                          (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I
+                                              out outIlks).get? "ink" =
+                                            some (.int (Int.ofNat ink.toNat)) := by
+                                        simpa [ink] using
+                                          barkLocalsDustyDart_get_preserved
+                                            (evmUrns := evmPostSolm)
+                                            (evmIlks := evmIlksPostSolm) (I := I)
+                                            (out := out) (outIlks := outIlks)
+                                            (name := "ink")
+                                            (value := .int (Int.ofNat ink.toNat))
+                                            (by decide)
+                                            (barkLocalsLeftoverDue_get_preserved
+                                              (by decide)
+                                              (barkLocalsLeftoverArt_get_preserved
+                                                (by decide)
+                                                (by
+                                                  simpa [ink] using
+                                                    (barkLocalsDart_get_ink evmPostSolm
+                                                      evmIlksPostSolm I out outIlks))))
+                                      have hdartAfter :
+                                          (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I
+                                              out outIlks).get? "dart" =
+                                            some (.int (Int.ofNat art.toNat)) := by
+                                        simpa [art] using
+                                          barkLocalsDustyDart_get_dart evmPostSolm
+                                            evmIlksPostSolm I out outIlks
+                                      have hartAfter :
+                                          (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I
+                                              out outIlks).get? "art" =
+                                            some (.int (Int.ofNat art.toNat)) := by
+                                        simpa [art] using
+                                          barkLocalsDustyDart_get_preserved
+                                            (evmUrns := evmPostSolm)
+                                            (evmIlks := evmIlksPostSolm) (I := I)
+                                            (out := out) (outIlks := outIlks)
+                                            (name := "art")
+                                            (value := .int (Int.ofNat art.toNat))
+                                            (by decide)
+                                            (barkLocalsLeftoverDue_get_preserved
+                                              (by decide)
+                                              (barkLocalsLeftoverArt_get_preserved
+                                                (by decide)
+                                                (by
+                                                  simpa [art] using
+                                                    (barkLocalsDart_get_art evmPostSolm
+                                                      evmIlksPostSolm I out outIlks))))
+                                      exact finishFromDartEntry art
+                                        (barkLocalsDustyDart evmPostSolm evmIlksPostSolm I
+                                          out outIlks)
+                                        hleftoverBlock hinkAfter hdartAfter hartAfter
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hrateDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hmilkClipDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hmilkChopDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hmilkDirtDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hilkDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hurnDartBase)
+                                        (hpresDusty (by decide) (by decide) (by decide)
+                                          hkprDartBase)
+                                        (hpresDustyNone (by decide) (by decide) (by decide)
+                                          hvowDartBase)
+                                        (hpresDustyNone (by decide) (by decide) (by decide)
+                                          hDirtDartBase)
+                                        (hpresDustyNone (by decide) (by decide) (by decide)
+                                          hilksDartBase)
+                                        (Nat.le_refl _) rd3700
+                                    · have hnotDusty :
+                                          dust.toNat ≤
+                                            (barkLeftoverDueWord art dart0 rate).toNat :=
+                                        Nat.le_of_not_gt hdusty
+                                      have hfitPartialDue :
+                                          dart0.toNat * rate.toNat < UInt256.size :=
+                                        barkPartialDue_fit_of_dart_le_art
+                                          (by simpa using le_of_lt hleftover)
+                                          (by simpa [art, rate] using hfitArt)
+                                      by_cases hpartialDueOk :
+                                          dust.toNat ≤
+                                            (barkPartialDueWord dart0 rate).toNat
+                                      · obtain ⟨_, _, rd3700⟩ :=
+                                          RD.dogBarkPartialLeftoverToDinkEntry
+                                            (v := v) (code := code) (ret := ⟨448⟩)
+                                            (sel := solcSelectorWord I) (R := [])
+                                            (room := room) (spot := spot) (dust := dust)
+                                            (rate := rate) (dart := dart0) (art := art)
+                                            (ink := ink) hpatch hleftover hfitLeftoverDue
+                                            hnotDusty hfitPartialDue hpartialDueOk
+                                            rd3594Local (by simp)
+                                        have hleftoverBlock :=
+                                          dogBarkPartialLeftoverIteOk (v := v) evmPostSolm
+                                            evmIlksPostSolm I out outIlks
+                                            (by simpa [art, dart0, hdartSourceLocal] using
+                                              hleftover)
+                                            (by simpa [art, dart0, rate, hdartSourceLocal] using
+                                              hfitLeftoverDue)
+                                            (by simpa [art, dart0, rate, dust,
+                                              hdartSourceLocal] using hnotDusty)
+                                            (by simpa [dart0, rate, hdartSourceLocal] using
+                                              hfitPartialDue)
+                                            (by simpa [dart0, rate, dust, hdartSourceLocal] using
+                                              hpartialDueOk)
+                                        have hinkAfter :
+                                            (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I
+                                                out outIlks).get? "ink" =
+                                              some (.int (Int.ofNat ink.toNat)) := by
+                                          simpa [ink] using
+                                            barkLocalsPartialDue_get_preserved
+                                              (evmUrns := evmPostSolm)
+                                              (evmIlks := evmIlksPostSolm) (I := I)
+                                              (out := out) (outIlks := outIlks)
+                                              (name := "ink")
+                                              (value := .int (Int.ofNat ink.toNat))
+                                              (by decide)
+                                              (barkLocalsLeftoverDue_get_preserved
+                                                (by decide)
+                                                (barkLocalsLeftoverArt_get_preserved
+                                                  (by decide)
+                                                  (by
+                                                    simpa [ink] using
+                                                      (barkLocalsDart_get_ink evmPostSolm
+                                                        evmIlksPostSolm I out outIlks))))
+                                        have hdartAfter :
+                                            (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I
+                                                out outIlks).get? "dart" =
+                                              some (.int (Int.ofNat dart0.toNat)) := by
+                                          simpa [dart0, hdartSourceLocal] using
+                                            barkLocalsPartialDue_get_preserved
+                                              (evmUrns := evmPostSolm)
+                                              (evmIlks := evmIlksPostSolm) (I := I)
+                                              (out := out) (outIlks := outIlks)
+                                              (name := "dart")
+                                              (value := .int (Int.ofNat dart0.toNat))
+                                              (by decide)
+                                              (barkLocalsLeftoverDue_get_preserved
+                                                (by decide)
+                                                (barkLocalsLeftoverArt_get_preserved
+                                                  (by decide)
+                                                  (by
+                                                    simpa [dart0, hdartSourceLocal] using
+                                                      (barkLocalsDart_get_dart evmPostSolm
+                                                        evmIlksPostSolm I out outIlks))))
+                                        have hartAfter :
+                                            (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I
+                                                out outIlks).get? "art" =
+                                              some (.int (Int.ofNat art.toNat)) := by
+                                          simpa [art] using
+                                            barkLocalsPartialDue_get_preserved
+                                              (evmUrns := evmPostSolm)
+                                              (evmIlks := evmIlksPostSolm) (I := I)
+                                              (out := out) (outIlks := outIlks)
+                                              (name := "art")
+                                              (value := .int (Int.ofNat art.toNat))
+                                              (by decide)
+                                              (barkLocalsLeftoverDue_get_preserved
+                                                (by decide)
+                                                (barkLocalsLeftoverArt_get_preserved
+                                                  (by decide)
+                                                  (by
+                                                    simpa [art] using
+                                                      (barkLocalsDart_get_art evmPostSolm
+                                                        evmIlksPostSolm I out outIlks))))
+                                        have hdartLeArt :
+                                            dart0.toNat ≤ art.toNat := by
+                                          simpa [dart0, art, rate, milkChop] using
+                                            barkDartWord_toNat_le_art σ'' σ' I art rate
+                                              milkChop
+                                        exact finishFromDartEntry dart0
+                                          (barkLocalsPartialDue evmPostSolm evmIlksPostSolm I
+                                            out outIlks)
+                                          hleftoverBlock hinkAfter hdartAfter hartAfter
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hrateDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hmilkClipDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hmilkChopDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hmilkDirtDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hilkDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hurnDartBase)
+                                          (hpresPartial (by decide) (by decide) (by decide)
+                                            hkprDartBase)
+                                          (hpresPartialNone (by decide) (by decide) (by decide)
+                                            hvowDartBase)
+                                          (hpresPartialNone (by decide) (by decide) (by decide)
+                                            hDirtDartBase)
+                                          (hpresPartialNone (by decide) (by decide) (by decide)
+                                            hilksDartBase)
+                                          hdartLeArt rd3700
+                                      · have hpartialDueBad :
+                                            (barkPartialDueWord dart0 rate).toNat < dust.toNat :=
+                                          Nat.lt_of_not_ge hpartialDueOk
+                                        have hleftoverBlock :=
+                                          dogBarkPartialLeftoverIteRevert (v := v) evmPostSolm
+                                            evmIlksPostSolm I out outIlks
+                                            (by simpa [art, dart0, hdartSourceLocal] using
+                                              hleftover)
+                                            (by simpa [art, dart0, rate, hdartSourceLocal] using
+                                              hfitLeftoverDue)
+                                            (by simpa [art, dart0, rate, dust,
+                                              hdartSourceLocal] using hnotDusty)
+                                            (by simpa [dart0, rate, hdartSourceLocal] using
+                                              hfitPartialDue)
+                                            (by simpa [dart0, rate, dust, hdartSourceLocal] using
+                                              hpartialDueBad)
+                                        have htailBody :
+                                            ExecTransitionBody (config v) (contract v)
+                                              evmSolm (barkLocals I)
+                                              (barkTransition v).body .reverted := by
+                                          let afterLeftover : List Stmt :=
+                                            checkedMulUintInto "inkDart" (.var "ink")
+                                              (.var "dart") ++
+                                            [ .letDecl "dink" (some uint256)
+                                                (.binary .div (.var "inkDart")
+                                                  (.var "art")),
+                                              .require (.binary .gt (.var "dink")
+                                                (.intLit 0)),
+                                              .require
+                                                (.binary .and
+                                                  (.binary .le (.var "dart")
+                                                    (.intLit int256Limit))
+                                                  (.binary .le (.var "dink")
+                                                    (.intLit int256Limit))) ] ++
+                                            checkedExternalCallStmts (vatExpr v) "grab"
+                                              (.intLit 0)
+                                              [ .var "ilk", .var "urn", .var "milkClip",
+                                                vowAddr,
+                                                .unary .neg (asInt256 (.var "dink")),
+                                                .unary .neg (asInt256 (.var "dart")) ]
+                                              "_grabRet" ++
+                                            checkedMulUintInto "due" (.var "dart")
+                                              (.var "rate") ++
+                                            checkedExternalCallStmts vowAddr "fess"
+                                              (.intLit 0) [.var "due"] "_fessRet" ++
+                                            checkedMulUintInto "tabBase" (.var "due")
+                                              (.var "milkChop") ++
+                                            [ .letDecl "tab" (some uint256)
+                                                (.binary .div (.var "tabBase")
+                                                  (.intLit WAD)) ] ++
+                                            checkedAddUintInto "DirtNew" (.storage DirtRef)
+                                              (.var "tab") ++
+                                            [ .assign .storage DirtRef (.var "DirtNew") ] ++
+                                            checkedAddUintInto "ilkDirtNew" (.var "milkDirt")
+                                              (.var "tab") ++
+                                            [ .assign .storage
+                                                (ilksF (.var "ilk") "dirt")
+                                                (.var "ilkDirtNew") ] ++
+                                            checkedExternalCallStmts (.var "milkClip") "kick"
+                                              (.intLit 0)
+                                              [.var "tab", .var "dink", .var "urn", .var "kpr"]
+                                              "id" ++
+                                            [ .return [.var "id"] ]
+                                          apply hbodyRevertOfTail
+                                          simpa only [afterLeftover, List.append_assoc] using
+                                            execBlock_append_term (s2 := afterLeftover)
+                                              hleftoverBlock (by intro f e h; cases h)
+                                        have hrev :=
+                                          RD.dogBarkPartialLeftoverDustyReverts
+                                            (v := v) (code := code) (ret := ⟨448⟩)
+                                            (sel := solcSelectorWord I) (R := [])
+                                            (room := room) (spot := spot) (dust := dust)
+                                            (rate := rate) (dart := dart0) (art := art)
+                                            (ink := ink) hpatch hleftover hfitLeftoverDue
+                                            hnotDusty hfitPartialDue hpartialDueBad
+                                            (by simpa [mem0] using hpostMemSize)
+                                            (by simpa [mem0] using hpostMemRead64)
+                                            rd3594Local (by simp)
+                                        exact hrev.reEquivExecutionRevert hcode hdispatch
+                                          hdecode htailBody
+                                · have hslot5 :
+                                      dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv =
+                                        dogSlotWord ⟨5⟩ σ'' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                    simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                      using h.symm
+                                  have hslot4 :
+                                      dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv =
+                                        dogSlotWord ⟨4⟩ σ'' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                    simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                      using h.symm
+                                  have hAccountsUrns :
+                                      accountMapEquiv σ' evmPostSolm.accountMap := by
+                                    simpa [evmPostEvm] using hStateCall.accountMap
+                                  have hmilkDirt :
+                                      dogSlotWord (barkIlksDirtSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksDirtWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksDirtSlotFor I)
+                                    rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hmilkHole :
+                                      dogSlotWord (barkIlksHoleSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksHoleWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksHoleSlotFor I)
+                                    rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hmilkChop :
+                                      dogSlotWord (barkIlksChopSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        barkIlksChopWord σ' I := by
+                                    have h :=
+                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                        (barkIlksChopSlotFor I)
+                                    rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
+                                      hsz100]
+                                    simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                  have hlimitSource :
+                                      (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv).toNat <
+                                        (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                          evmIlksPostSolm.executionEnv).toNat ∧
+                                      (dogSlotWord (barkIlksDirtSlotFor I)
+                                          evmPostSolm.accountMap
+                                          evmPostSolm.executionEnv).toNat <
+                                        (dogSlotWord (barkIlksHoleSlotFor I)
+                                          evmPostSolm.accountMap
+                                          evmPostSolm.executionEnv).toNat := by
+                                    exact
+                                      ⟨by simpa [hslot5, hslot4] using hlimit.1,
+                                        by simpa [hmilkDirt, hmilkHole] using hlimit.2⟩
+                                  have hglobalRoom :
+                                      barkSourceGlobalRoomWord evmIlksPostSolm =
+                                        barkGlobalRoomWord σ'' I := by
+                                    simp [barkSourceGlobalRoomWord, barkGlobalRoomWord, hslot4,
+                                      hslot5]
+                                  have hilkRoom :
+                                      barkSourceIlkRoomWord evmPostSolm I =
+                                        barkIlkRoomWord σ' I := by
+                                    simp [barkSourceIlkRoomWord, barkIlkRoomWord, hmilkHole,
+                                      hmilkDirt]
+                                  have hroom :
+                                      barkSourceRoomWord evmPostSolm evmIlksPostSolm I =
+                                        barkRoomWord σ'' σ' I := by
+                                    simp [barkSourceRoomWord, barkRoomWord, hglobalRoom, hilkRoom]
+                                  have hfitRoomSource :
+                                      (barkSourceRoomWord evmPostSolm evmIlksPostSolm I).toNat *
+                                          dogWadWord.toNat <
+                                        UInt256.size := by
+                                    simpa [hroom] using hfitRoom
+                                  have hchopZeroRuntime : barkIlksChopWord σ' I = ⟨0⟩ := by
+                                    by_contra hne
+                                    exact hchopNe hne
+                                  have hchopZeroSource :
+                                      dogSlotWord (barkIlksChopSlotFor I)
+                                          evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                        ⟨0⟩ := by
+                                    rw [hmilkChop, hchopZeroRuntime]
+                                  have hbody :
+                                      ExecTransitionBody (config v) (contract v) evmSolm
+                                        (barkLocals I) (barkTransition v).body .reverted := by
+                                    simpa [evmSolm] using
+                                      (dogBarkVatIlksMilkChopZeroSourceBody (v := v)
+                                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                        (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                                        (evmUrns := evmPostSolm)
+                                        (evmIlks := evmIlksPostSolm) (out := out)
+                                        (outIlks := outIlks) hwv hliveSolm hvatCode
+                                        hcallSolm hdecUrns hvatIlksCode hcallIlksSolm
+                                        hdecIlks hfitInk hfitArt hspotPos hsafeLt
+                                        hlimitSource hfitRoomSource hrateNe hchopZeroSource
+                                        hsz100)
+                                  have hinvalid :=
+                                    RD.dogBarkDartCandidateDivZeroInvalid
+                                      (v := v) (code := code) (ret := ⟨448⟩)
+                                      (sel := solcSelectorWord I) (R := []) (σ := σ'')
+                                      (σMem := σ') hpatch hfitRoom hrateNe
+                                      hchopZeroRuntime hmload288 rd3543 (by simp)
+                                  rcases hinvalid with hoog | hinvalid
+                                  · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by
+                                      rw [← hcode] at hoog
+                                      simpa [initState, Sat256.ofUInt256] using hoog))
+                                  · have hxi :
+                                        Ξ cA gh bl σ_evm σ₀ g A I =
+                                          .error .InvalidInstruction :=
+                                      Xi_error_of_X (g := g) (by
+                                        rw [← hcode] at hinvalid
+                                        simpa [initState, Sat256.ofUInt256] using hinvalid)
+                                    exact reEquiv_execution hdispatch hdecode hbody
+                                      (execResultsEquiv.invalidHalt hxi rfl)
+                              · have hslot5 :
+                                    dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                        evmIlksPostSolm.executionEnv =
+                                      dogSlotWord ⟨5⟩ σ'' I := by
+                                  have h :=
+                                    dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                  simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                    using h.symm
+                                have hslot4 :
+                                    dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                        evmIlksPostSolm.executionEnv =
+                                      dogSlotWord ⟨4⟩ σ'' I := by
+                                  have h :=
+                                    dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                  simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
+                                    using h.symm
+                                have hAccountsUrns :
+                                    accountMapEquiv σ' evmPostSolm.accountMap := by
+                                  simpa [evmPostEvm] using hStateCall.accountMap
+                                have hmilkDirt :
+                                    dogSlotWord (barkIlksDirtSlotFor I)
+                                        evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                      barkIlksDirtWord σ' I := by
+                                  have h :=
+                                    dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                      (barkIlksDirtSlotFor I)
+                                  rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
+                                    hsz100]
+                                  simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                have hmilkHole :
+                                    dogSlotWord (barkIlksHoleSlotFor I)
+                                        evmPostSolm.accountMap evmPostSolm.executionEnv =
+                                      barkIlksHoleWord σ' I := by
+                                  have h :=
+                                    dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
+                                      (barkIlksHoleSlotFor I)
+                                  rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
+                                    hsz100]
+                                  simpa [evmPostSolm, evmSolm, initState] using h.symm
+                                have hlimitSource :
+                                    (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                        evmIlksPostSolm.executionEnv).toNat <
+                                      (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                        evmIlksPostSolm.executionEnv).toNat ∧
+                                    (dogSlotWord (barkIlksDirtSlotFor I)
+                                        evmPostSolm.accountMap
+                                        evmPostSolm.executionEnv).toNat <
+                                      (dogSlotWord (barkIlksHoleSlotFor I)
+                                        evmPostSolm.accountMap
+                                        evmPostSolm.executionEnv).toNat := by
+                                  exact
+                                    ⟨by simpa [hslot5, hslot4] using hlimit.1,
+                                      by simpa [hmilkDirt, hmilkHole] using hlimit.2⟩
+                                have hglobalRoom :
+                                    barkSourceGlobalRoomWord evmIlksPostSolm =
+                                      barkGlobalRoomWord σ'' I := by
+                                  simp [barkSourceGlobalRoomWord, barkGlobalRoomWord, hslot4,
+                                    hslot5]
+                                have hilkRoom :
+                                    barkSourceIlkRoomWord evmPostSolm I =
+                                      barkIlkRoomWord σ' I := by
+                                  simp [barkSourceIlkRoomWord, barkIlkRoomWord, hmilkHole,
+                                    hmilkDirt]
+                                have hroom :
+                                    barkSourceRoomWord evmPostSolm evmIlksPostSolm I =
+                                      barkRoomWord σ'' σ' I := by
+                                  simp [barkSourceRoomWord, barkRoomWord, hglobalRoom, hilkRoom]
+                                have hoverRoomSource :
+                                    UInt256.size ≤
+                                      (barkSourceRoomWord evmPostSolm evmIlksPostSolm I).toNat *
+                                        dogWadWord.toNat := by
+                                  simpa [hroom] using (not_lt.mp hfitRoom)
+                                have hbody :
+                                    ExecTransitionBody (config v) (contract v) evmSolm
+                                      (barkLocals I) (barkTransition v).body .reverted := by
+                                  simpa [evmSolm] using
+                                    (dogBarkVatIlksRoomWadOverflowSourceBody (v := v)
+                                      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                      (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                                      (evmUrns := evmPostSolm) (evmIlks := evmIlksPostSolm)
+                                      (out := out) (outIlks := outIlks) hwv hliveSolm
+                                      hvatCode hcallSolm hdecUrns hvatIlksCode hcallIlksSolm
+                                      hdecIlks hfitInk hfitArt hspotPos hsafeLt hlimitSource
+                                      hoverRoomSource hsz100)
+                                have hoverRoomEvm :
+                                    UInt256.size ≤
+                                      (barkRoomWord σ'' σ' I).toNat * dogWadWord.toNat :=
+                                  not_lt.mp hfitRoom
+                                have hrev := RD.dogBarkRoomWadOverflowReverts
+                                  (v := v) (code := code) (ret := ⟨448⟩)
+                                  (sel := solcSelectorWord I) (R := []) (σ := σ'')
+                                  (σMem := σ') hpatch hoverRoomEvm hmload288 rd3543 (by simp)
+                                exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                             · have hspotPos :
                                   0 < (barkVatIlksSpotWord outIlks).toNat := by
                                 have hnatNe :
