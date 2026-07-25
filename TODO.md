@@ -1,3 +1,22 @@
+# Release TODOs
+
+- [X] EquiVM/EVM
+- [ ] Solm
+- [ ] ABI
+- [ ] Reasoning
+- [ ] Examples
+  + [ ] Concrete syntax
+- [ ] Benchmarks
+  + [ ] Concrete syntax
+- [ ] Proofs
+- [ ] Misc
+- [ ] Docs
+      + [ ] README
+      + [ ] GUIDE
+- [ ] CI/CD
+
+
+
 # Solm Semantics
 - [X] Constructor calls
   + currently we don't have
