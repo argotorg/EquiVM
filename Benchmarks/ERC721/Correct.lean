@@ -14,7 +14,7 @@ import Mathlib.Tactic.IntervalCases
 /-!
 # ERC721 — top-level correctness **scaffold**
 
-Routing skeleton for `erc721Correct : runtimeEquivalence!?! …`, mirroring
+Routing skeleton for `erc721Correct : runtimeEquivalence …`, mirroring
 `Examples/ERC20/Correct.lean` / `Examples/Ballot/Correct.lean`: `by_cases` on `callvalue = 0`,
 `size ≥ 4`, then each of the seven selectors, dispatching to that function's body obligation, with
 the shared revert paths.
@@ -162,7 +162,7 @@ theorem erc721NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 /-! ## Top-level theorem — drive the dispatcher, route each body to its correctness -/
 
 /-- The deployed ERC721 runtime bytecode refines the Solm specification, for every initial state. -/
-theorem erc721Correct : runtimeEquivalence!?! erc721Config erc721Bytecode erc721Contract := by
+theorem erc721Correct : runtimeEquivalence erc721Config erc721Bytecode erc721Contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

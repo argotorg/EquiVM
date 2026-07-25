@@ -115,8 +115,8 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
   · simpa [catSelBytes, selIs] using hwards
 
 theorem catCorrect :
-    runtimeEquivalence!?! config catBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config catBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩

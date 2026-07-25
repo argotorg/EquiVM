@@ -129,7 +129,7 @@ selector). Once the base defects are fixed, both become `decide`-provable and ca
 
 # `Pow.powCorrect` (the `pow2(uint256 n)` contract)
 
-`powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract` is **fully proved —
+`powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract` is **fully proved —
 no `sorry`**. `#print axioms Pow.powCorrect` ⇒
 `[propext, Classical.choice, Quot.sound, ByteArray_zeroes_size, byteArray_zeroes_toList,
 powSelectorBytes, powValidJumps]`.

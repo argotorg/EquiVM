@@ -353,7 +353,7 @@ theorem erc20NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     `callvalue ≠ 0` / short calldata / no-match revert; otherwise the dispatcher machinery
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
-theorem erc20Correct : runtimeEquivalence!?! erc20Config erc20Bytecode erc20Contract := by
+theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

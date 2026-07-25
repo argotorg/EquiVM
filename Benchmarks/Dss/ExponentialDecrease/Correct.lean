@@ -20,8 +20,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Dss.ExponentialDecrease
 
 theorem exponentialDecreaseCorrect :
-    runtimeEquivalence!?! config exponentialDecreaseBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config exponentialDecreaseBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)

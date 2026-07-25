@@ -1130,7 +1130,7 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         exact cNoDispatch hcode hsize hperm hwv hnm
 
 /-- **Correctness of `C`.** -/
-theorem cCorrect : runtimeEquivalence!?! cConfig cBytecode Reuse.cContract := by
+theorem cCorrect : runtimeEquivalence cConfig cBytecode Reuse.cContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact cReEquiv_callvalueZero hcode hsize hperm hwv hσ

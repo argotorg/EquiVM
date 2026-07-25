@@ -16,7 +16,7 @@ namespace Benchmarks.CompoundIII.Comet
 
 theorem cometCorrect (v : CometImmutables) {code : ByteArray}
     (hcode : patchRuntime cometBytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
+    runtimeEquivalence (config v) code (contract v) := by
   sorry
 
 theorem cometContractCorrect (v : CometImmutables) {code : ByteArray}

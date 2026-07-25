@@ -110,7 +110,7 @@ Severity check: this is not load-bearing for the hard parts of the benchmarks �
 
 Parameterized statement (the principled one). Add a trusted patchRuntime : ByteArray → List (Nat × EVM.Word) → ByteArray and the offset table — solc emits exactly this as immutableReferences in its standard-JSON output, so the table is a compiler artifact, not something you reverse-engineer. Then:
 
-Runtime: ∀ vals, runtimeEquivalence!?! cfg (patchRuntime template (offsets vals)) (poolSpec vals) — one proof, universally quantified over instantiations. The proof works exactly like today's, except symbolic PUSH32 operands where the template had zeros.
+Runtime: ∀ vals, runtimeEquivalence cfg (patchRuntime template (offsets vals)) (poolSpec vals) — one proof, universally quantified over instantiations. The proof works exactly like today's, except symbolic PUSH32 operands where the template had zeros.
 Constructor: generalize ctorResultEquiv's o = runtimeCode to o = patchRuntime template (offsets (valsOf env solmState)), where the expected values are derived from the same things the spec constructor computed (the parameters() return, env .this). This is a change to the equivalence-statement layer only — Solm syntax and semantics don't move.
 
 

@@ -23,8 +23,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.StairstepExponentialDecrease
 
 theorem stairstepExponentialDecreaseCorrect :
-    runtimeEquivalence!?! config stairstepExponentialDecreaseBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config stairstepExponentialDecreaseBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)

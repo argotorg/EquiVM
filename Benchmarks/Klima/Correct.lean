@@ -15,7 +15,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Klima
 
 theorem klimaCorrect :
-    runtimeEquivalence!?! config klimaBytecode contract := by
+    runtimeEquivalence config klimaBytecode contract := by
   sorry
 
 theorem klimaContractCorrect :

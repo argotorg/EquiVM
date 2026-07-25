@@ -15,7 +15,7 @@ namespace Benchmarks.Dss.Dog
 
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hcode : patchRuntime dogBytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
+    runtimeEquivalence (config v) code (contract v) := by
   sorry
 
 theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}

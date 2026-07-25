@@ -20,8 +20,8 @@ namespace Benchmarks.EAS.Attester
 
 theorem attesterCorrect (v : AttesterImmutables) {code : ByteArray}
     (hcode : patchRuntime attesterBytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence (config v) code (contract v) := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hIcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4

@@ -24,7 +24,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.R
 namespace Benchmarks.CompoundIII.CometRewards
 
 theorem cometRewardsCorrect :
-    runtimeEquivalence!?! config cometRewardsBytecode contract := by
+    runtimeEquivalence config cometRewardsBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

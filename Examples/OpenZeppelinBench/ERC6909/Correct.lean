@@ -223,7 +223,7 @@ theorem erc6909NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 /-- The deployed ERC6909 benchmark runtime bytecode refines the Solm specification. -/
 theorem erc6909Correct :
-    runtimeEquivalence!?! config erc6909BenchBytecode contract := by
+    runtimeEquivalence config erc6909BenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

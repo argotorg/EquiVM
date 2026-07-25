@@ -16,12 +16,12 @@ structure Config where
   storage : StorageLayout
   externalABI : ExternalCallABI
   abiDecodeMode : ABI.DecodeMode := ABI.DecodeMode.modern
-  /- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a
-     `new` of the named contract. -/
+  /-- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a
+      `new` of the named contract. -/
   creationCode : Ident -> List Value -> Option EVM.Bytes := fun _ _ => none
 
-  /- Scheme for initialisation code (creation bytecode ++ ABI-encoded constructor args) for
-     deployment of the contract's constructor -/
+  /-- Scheme for initialisation code (creation bytecode ++ ABI-encoded constructor args) for
+      deployment of the contract's constructor -/
   selfDeployment : EVM.Bytes → List Value → Option EVM.Bytes
 
 structure Frame where

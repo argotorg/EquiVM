@@ -360,7 +360,7 @@ theorem daiNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (daiDispatch_none_short hshort)
 
 theorem daiCorrect :
-    runtimeEquivalence!?! config daiBytecode contract := by
+    runtimeEquivalence config daiBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

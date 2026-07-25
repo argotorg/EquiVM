@@ -49,7 +49,7 @@ theorem tinyNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 theorem tinyImmutableCorrect (v : TinyImmutables) {code : ByteArray}
     (hcode : patchRuntime tinyImmutableBytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
+    runtimeEquivalence (config v) code (contract v) := by
   have hcode' := code_eq_patchedRuntime_of_patch (v := v) hcode
   subst code
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hIcode hsize _hperm hAccounts => ?_⟩

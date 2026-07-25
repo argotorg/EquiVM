@@ -14,7 +14,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Safe
 
 theorem safeCorrect :
-    runtimeEquivalence!?! config safeBytecode contract := by
+    runtimeEquivalence config safeBytecode contract := by
   sorry
 
 theorem safeContractCorrect :

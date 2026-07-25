@@ -9,9 +9,9 @@ namespace Solm
 open ABI
 
 inductive ExecResult where
-  /- The returned-value component is `Option (List Value)`: `none` means the body fell through
-     without executing `return`; `some vs` is an explicit `return` of the listed values (`some []`
-     is an explicit void return). -/
+  /-- The returned-value component is `Option (List Value)`: `none` means the body fell through
+      without executing `return`; `some vs` is an explicit `return` of the listed values (`some []`
+      is an explicit void return). -/
   | returned : Frame -> EVM.State -> Option (List Value) -> ExecResult
   | ok : Frame -> EVM.State -> ExecResult
   | break : Frame -> EVM.State -> ExecResult
@@ -57,7 +57,7 @@ def lookupCallable? (contract : ContractDecl) (name : Ident) : Option CallableDe
   | some decl => some decl
   | none => lookupTransition? contract.transitions name
 
--- CREATE2 salt: a `bytes32` value → its 32 salt bytes; anything else is invalid.
+/-- CREATE2 salt: a `bytes32` value → its 32 salt bytes; anything else is invalid. -/
 def saltBytes? : Value → Option ByteArray
   | .fixedBytes n bs => if n.val = 31 ∧ bs.length = 32 then some (ByteArray.mk bs.toArray) else none
   | _ => none
@@ -157,7 +157,7 @@ def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : Storag
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
   clearStorage? cfg evm er ty
 
--- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2.
+/-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2. -/
 def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Option Expr → EvalResult (Option ByteArray)
   | none => .ok none
@@ -185,8 +185,8 @@ inductive ExecStmt (cfg : Config) :
   | letStorageRevert :
       resolveStorageRef? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.letStorage name ref) .reverted
-  -- `gasleft()`: Solm tracks no gas, so any word `w` is a legal result.  A proof picks the `w`
-  -- matching the EVM's actual gas at the corresponding `GAS` opcode.
+  /-- `gasleft()`: Solm tracks no gas, so any word `w` is a legal result.  A proof picks the `w`
+      matching the EVM's actual gas at the corresponding `GAS` opcode. -/
   | letGas (w : EVM.Word) :
       ExecStmt cfg solm evm (.letGas name)
         (.ok { solm with locals := solm.locals.insert name (.int (Int.ofNat w.toNat)) } evm)
@@ -267,7 +267,7 @@ inductive ExecStmt (cfg : Config) :
       ExecBlock cfg solm evm body (.continue solm' evm') ->
       ExecStmt cfg solm' evm' (.while condExpr body) result ->
       ExecStmt cfg solm evm (.while condExpr body) result
-  -- `for (init; cond; post) { body }`: run `init` once, then loop via `ExecForLoop`.
+  /-- `for (init; cond; post) { body }`: run `init` once, then loop via `ExecForLoop`. -/
   | for :
       ExecBlock cfg solm evm init (.ok solm1 evm1) ->
       ExecForLoop cfg solm1 evm1 condExpr post body result ->
@@ -555,7 +555,8 @@ inductive ExecFuncBody (cfg : Config) :
   | execBlockRevert :
       ExecBlock cfg solm evm body .reverted ->
       ExecFuncBody cfg solm evm body .reverted
-  -- A `break`/`continue` that occurs outside a loop is malformed. We have to handle it so that ExecFuncBody is never stuck.
+  /-- A `break`/`continue` that occurs outside a loop is malformed. We have to handle it so that
+      `ExecFuncBody` is never stuck. -/
   | execBlockBreak :
       ExecBlock cfg solm evm body (.break solm' evm') ->
       ExecFuncBody cfg solm evm body (.returned solm' evm' none)
@@ -569,7 +570,7 @@ def ExecTransitionBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State
     (locals : Store) (body : Body) (result : ExecResult) : Prop :=
   ExecFuncBody cfg { contract := contract, locals := locals } evm body result
 
--- Solm transaction dispatch and execution.
+/-- Solm transaction dispatch and execution. -/
 inductive solmExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
@@ -643,7 +644,7 @@ inductive solmExec
     ExecTransitionBody conf contract evmState ∅ transition.body solmRes →
     solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes (.abi [])
 
--- Solm constructor execution.
+/-- Solm constructor execution. -/
 inductive solmCtorExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/

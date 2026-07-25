@@ -3,7 +3,7 @@ import Examples.StringStoreLite.SetLong
 /-!
 # StringStoreLite — top-level runtime assembly
 
-This file assembles the proved per-branch facts into a `runtimeEquivalence!?!` entry point.
+This file assembles the proved per-branch facts into a `runtimeEquivalence` entry point.
 Dispatch, revert, getter, malformed calldata/header, zero-header empty-string, valid empty
 old-long, and short non-empty old-short execution branches are proved in imported modules.
 -/
@@ -277,8 +277,8 @@ theorem stringStoreLiteClearCurrentRuntime
 
 set_option maxHeartbeats 1200000 in
 theorem stringStoreLiteCorrect :
-    runtimeEquivalence!?! stringStoreLiteConfig stringStoreLiteBytecode stringStoreLiteContract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence stringStoreLiteConfig stringStoreLiteBytecode stringStoreLiteContract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

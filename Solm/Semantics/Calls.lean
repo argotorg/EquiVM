@@ -133,13 +133,8 @@ def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
   ∃ calldata, cfg.externalABI.encode? name args = some calldata
             ∧ callViaEVM evm target value calldata result perm
 
--- Contract creation (`new`) via the EVM `Λ` (Lambda) function. The result triple is
--- `(addr, evm', success)`: the created contract's address, the resulting EVM state,
--- and whether creation succeeded. Mirrors `callViaEVM`, but `Λ` runs the
--- initialisation code instead of a message call and returns the new address.
-
--- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
--- mirroring the guards the opcode checks before calling `Lambda`.
+/-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
+    mirroring the guards the opcode checks before calling `Lambda`. -/
 def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :=
   let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
   EVM.wordOfInt value ≤ creator.balance        -- creator can afford the endowment
@@ -147,6 +142,10 @@ def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :
     ∧ creator.nonce.toNat < 2 ^ 64 - 1         -- creator nonce below the cap (EIP-2681)
     ∧ initCode.size ≤ 49152                     -- init code within the limit (EIP-3860)
 
+/-- Contract creation (`new`) via the EVM `Λ` (Lambda) function. The result triple is
+    `(addr, evm', success)`: the created contract's address, the resulting EVM state,
+    and whether creation succeeded. Mirrors `callViaEVM`, but `Λ` runs the
+    initialisation code instead of a message call and returns the new address. -/
 inductive newViaEVM (cfg : Config) (evm : EVM.State)
     (name : Ident) (value : ℤ) (args : List Value) (salt : Option ByteArray) :
     (EVM.Address × EVM.State × Bool) → Prop where

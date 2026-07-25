@@ -14,7 +14,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace OpenZeppelinBench.VestingWallet
 
 theorem vestingWalletBenchCorrect :
-    runtimeEquivalence!?! config vestingWalletBenchBytecode contract := by
+    runtimeEquivalence config vestingWalletBenchBytecode contract := by
   sorry
 
 theorem vestingWalletBenchContractCorrect :

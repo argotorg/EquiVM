@@ -78,13 +78,13 @@ def storageValueResultToEval : StorageReadResult Value -> EvalResult Value
   | .revert => .revert
   | .error => .error .storageError
 
-/- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
-   `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
-   fields, tuple/fixed-array elements, dynamic-array length + all data) is driven by `t`, so a
-   nested dynamic array is cleared in full (its inner length is read and every inner element
-   recursively cleared).  Mappings are skipped — their keys aren't enumerable, and solc's `delete`
-   on a mapping is likewise a no-op. -/
 mutual
+/-- Recursively zero **every** storage slot occupied by a value of declared type `t` located at
+    `er` — solc's `delete`.  Leaves are cleared through the opaque `layout`; the *structure* (struct
+    fields, tuple/fixed-array elements, dynamic-array length + all data) is driven by `t`, so a
+    nested dynamic array is cleared in full (its inner length is read and every inner element
+    recursively cleared).  Mappings are skipped — their keys aren't enumerable, and solc's `delete`
+    on a mapping is likewise a no-op. -/
 def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> EvalResult EVM.State
   | .elem _ | .contract _ =>
@@ -143,12 +143,12 @@ def clearArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t
   termination_by c => (sizeOf t', c)
 end
 
-/- Recursively write a structured `Value` into the storage of declared type `t` at `er` — the dual
-   of `clearStorage?`.  Leaves go through the opaque `layout` + `storageLocStore`; structure (struct
-   fields, tuple/array elements) is driven by `t`, and a `dynamicArray` target also writes its
-   length.  A type/value mismatch (or a mapping/`bytes` target) is an `.error`, never a partial
-   write. -/
 mutual
+/-- Recursively write a structured `Value` into the storage of declared type `t` at `er` — the dual
+    of `clearStorage?`.  Leaves go through the opaque `layout` + `storageLocStore`; structure (struct
+    fields, tuple/array elements) is driven by `t`, and a `dynamicArray` target also writes its
+    length.  A type/value mismatch (or a mapping/`bytes` target) is an `.error`, never a partial
+    write. -/
 def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> Value -> EvalResult EVM.State
   | .elem _, v
@@ -213,12 +213,12 @@ def writeArrayElems? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) (t
   termination_by vs => (sizeOf t', sizeOf vs)
 end
 
-/- Recursively read a value of declared type `t` out of storage at `er` into a `Value` — the read
-   dual of `writeStorage?`/`clearStorage?`.  Leaves come from the opaque `layout` + `storageLocLoad`;
-   structure (struct fields, tuple/fixed-array elements, dynamic-array length + all data) is driven
-   by `t`, so a nested dynamic array is read in full.  A mapping has no enumerable contents, so a
-   whole-mapping read is an `.error`. -/
 mutual
+/-- Recursively read a value of declared type `t` out of storage at `er` into a `Value` — the read
+    dual of `writeStorage?`/`clearStorage?`.  Leaves come from the opaque `layout` + `storageLocLoad`;
+    structure (struct fields, tuple/fixed-array elements, dynamic-array length + all data) is driven
+    by `t`, so a nested dynamic array is read in full.  A mapping has no enumerable contents, so a
+    whole-mapping read is an `.error`. -/
 def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> EvalResult Value
   | .elem _

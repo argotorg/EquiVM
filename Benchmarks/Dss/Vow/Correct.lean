@@ -174,8 +174,8 @@ theorem vowCorrectWith
         selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ →
         accountMapEquiv σ_evm σ_solm →
         runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I) :
-    runtimeEquivalence!?! config vowBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config vowBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hAsh : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩
@@ -279,7 +279,7 @@ theorem vowCorrectWith
   · exact vowNonPayable hcode hwv
 
 theorem vowCorrect :
-    runtimeEquivalence!?! config vowBytecode contract := by
+    runtimeEquivalence config vowBytecode contract := by
   exact vowCorrectWith vowCageBody vowFlapBody vowFlopBody
 
 theorem vowContractCorrect :

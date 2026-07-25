@@ -11,7 +11,7 @@ set_option maxRecDepth 2000000
 namespace OpenZeppelinBench.Ownable2Step
 
 /-- The deployed Ownable2Step benchmark runtime bytecode refines the Solm specification. -/
-theorem ownable2StepCorrect : runtimeEquivalence!?! config ownable2StepBenchBytecode contract := by
+theorem ownable2StepCorrect : runtimeEquivalence config ownable2StepBenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

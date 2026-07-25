@@ -921,7 +921,7 @@ theorem powXiSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   (powX_success hcode hwv hsz36 hsz255 hmatch hn).xiResult hcode
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
-theorem powCorrect : runtimeEquivalence!?! powConfig powBytecode Pow.powContract := by
+theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize _hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize hσ

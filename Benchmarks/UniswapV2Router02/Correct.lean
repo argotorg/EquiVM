@@ -16,7 +16,7 @@ namespace Benchmarks.UniswapV2Router02
 
 theorem uniswapV2Router02Correct (v : RouterImmutables) {code : ByteArray}
     (hcode : patchRuntime uniswapV2Router02Bytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
+    runtimeEquivalence (config v) code (contract v) := by
   sorry
 
 theorem uniswapV2Router02ContractCorrect (v : RouterImmutables) {code : ByteArray}

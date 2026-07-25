@@ -17,7 +17,7 @@ namespace Benchmarks.UniswapV3Pool
 
 theorem uniswapV3PoolCorrect (v : PoolImmutables) {code : ByteArray}
     (hcode : patchRuntime uniswapV3PoolBytecode (patches v) = some code) :
-    runtimeEquivalence!?! (config v) code (contract v) := by
+    runtimeEquivalence (config v) code (contract v) := by
   constructor
   intro cA gh bl σ_evm σ_solm σ₀ g A I hIcode hsize hperm haccounts
   by_cases hwv : I.weiValue = ⟨0⟩

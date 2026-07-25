@@ -13,7 +13,7 @@ runtime targets.
 open Solm ABI Ethereum Ethereum.EVM
 
 theorem auctionCorrect :
-    runtimeEquivalence!?! auctionConfig auctionBytecode Auction.auctionContract := by
+    runtimeEquivalence auctionConfig auctionBytecode Auction.auctionContract := by
   sorry
 
 theorem auctionContractCorrect :

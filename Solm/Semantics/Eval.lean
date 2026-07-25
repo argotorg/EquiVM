@@ -7,9 +7,9 @@ namespace Solm
 
 open ABI
 
--- Defining a measure for termination of the next mutual block,
--- that evaluates expressions and related types
 mutual
+  /-- Termination measure for the expression-evaluating mutual block below
+      (`evalExpr?` and related helpers). -/
   def exprEvalSize : Expr → Nat
     | .intLit _ => 1
     | .boolLit _ => 1

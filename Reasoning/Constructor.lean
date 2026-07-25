@@ -143,7 +143,7 @@ theorem emptyContractCorrect_of_RDret
       I.code = initcode →
       RDret initcode g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
         (createdAccounts, σ) runtimeCode)
-    (hruntime : runtimeEquivalence!?! cfg runtimeCode contract) :
+    (hruntime : runtimeEquivalence cfg runtimeCode contract) :
     contractEquivalence cfg initcode runtimeCode contract :=
   contractEquivalence.intro
     (emptyConstructorCorrect_of_RDret hself hparams hbody hrun)

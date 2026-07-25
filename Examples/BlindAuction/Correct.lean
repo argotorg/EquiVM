@@ -16,7 +16,7 @@ import Reasoning.Refinement
 # BlindAuction — top-level correctness proof
 
 This file is the Phase 0 dispatcher assembly for
-`blindAuctionCorrect : runtimeEquivalence!?! …`.  It follows the optimizer-on binary-search
+`blindAuctionCorrect : runtimeEquivalence …`.  It follows the optimizer-on binary-search
 dispatcher shape shared with Ballot/SimpleAuction, but with BlindAuction's payable top-level
 dispatcher: calldata size and selector routing happen before any callvalue check, and non-payable
 guards are proved inside the individual body files.
@@ -31,7 +31,7 @@ namespace BlindAuction
 
 /-- The deployed BlindAuction runtime bytecode refines the Solm specification. -/
 theorem blindAuctionCorrect :
-    runtimeEquivalence!?! blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
+    runtimeEquivalence blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size

@@ -46,7 +46,7 @@ set_option maxRecDepth 2000000
 namespace OpenZeppelinBench.TimelockController
 
 theorem timelockControllerBenchCorrect :
-    runtimeEquivalence!?! config timelockControllerBenchBytecode contract := by
+    runtimeEquivalence config timelockControllerBenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (tlcSelBytes 0)

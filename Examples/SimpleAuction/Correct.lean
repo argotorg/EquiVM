@@ -48,7 +48,7 @@ theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
 
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
-    runtimeEquivalence!?! simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
+    runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size

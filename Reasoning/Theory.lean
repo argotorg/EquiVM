@@ -6,7 +6,7 @@ import Ethereum.Theory.OpcodeLemmas
 # Theory — reusable, compositional lemmas for runtime-equivalence proofs
 
 General, **contract-agnostic** infrastructure for proving
-`runtimeEquivalence!?! cfg bytecode contract`.
+`runtimeEquivalence cfg bytecode contract`.
 
 Lemmas here are about `runtimeEquivalenceFor`, `actExec`, `execResultsEquiv`,
 `returnEquiv`, and the EVM driver `Ethereum.EVM.Ξ` / `X` / `Xstep` — never about a
