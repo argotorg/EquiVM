@@ -2,7 +2,7 @@ import EVM.Types
 import EVM.Lemmas
 import Solm.Value
 
--- TODO: I'd like to get rid of these maybe
+-- TODO: get rid of these maybe
 import Ethereum.Semantics
 import Ethereum.UInt256
 import Ethereum.Wheels
@@ -13,10 +13,18 @@ open ABI
 
 namespace EVM
 
+/-
+ - Storage access definitions and helpers.
+ -
+ - This file defines **raw storage slot access functions**,
+ - **packed load/store** of values at a given storage location,
+ - and a **storage layout** abstraction for higher-level storage access.
+ -/
+
 -- The two following functions implement storage access
 -- However their semantics are not equivalent to actual evm semantics,
 -- as they do not affect substate.
--- This is because the number of storage reads of a slot in the bytecode 
+-- This is because the number of storage reads of a slot in the bytecode
 -- may not equal the number of times said slot appears in expressions
 -- This fact may also make equivalence proofs a bit trickier
 
@@ -28,7 +36,7 @@ def storageStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : E
   self.lookupAccount a |>.option self λ acc ↦
     self.setAccount a (Ethereum.Account.updateStorage acc key value)
 
-end EVM 
+end EVM
 
 
 
@@ -77,7 +85,7 @@ def storageLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
     apply Or.inl (by apply Nat.le_of_lt_succ; simp)
   have hresSize : Ethereum.fromBytes' bytes < Ethereum.UInt256.size := by
     apply lt_of_lt_of_le (b := 2^(8 * bytes.length))
-    · exact EVM.fromBytes'_le 
+    · exact EVM.fromBytes'_le
     · simp [Ethereum.UInt256.size]
       apply le_trans (b := 2^(8 * 32))
       · apply Nat.pow_le_pow_right
@@ -125,7 +133,7 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
     have hprevEndLen : previousEnd.length = 32 - endByte := by
       simp [previousEnd]; rw [hprevStorageRefSize]
     rw [hprevStartLen, hprevEndLen]
-    rw [Nat.min_eq_left] 
+    rw [Nat.min_eq_left]
     · simp [startByte, endByte];
       rw [← Nat.add_assoc, ← Nat.add_sub_assoc]
       simp
@@ -134,7 +142,7 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
     · rw [hvalueSize]; omega
   have hresSize : Ethereum.fromBytes' resList < Ethereum.UInt256.size := by
     apply lt_of_lt_of_le (b := 2^(8 * resList.length))
-    · exact EVM.fromBytes'_le 
+    · exact EVM.fromBytes'_le
     · simp [Ethereum.UInt256.size]
       apply le_trans (b := 2^(8 * 32))
       · apply Nat.pow_le_pow_right
@@ -168,27 +176,6 @@ structure StorageLayout where
   -- we want have a type system on top of these semantics,
   -- e.g. access within array bounds returns `.some v`
 
-
--- TODO: move
-def keyValueToWord : KeyValue -> EVM.Word
-  | .int i => EVM.wordOfInt i
-  | .bool b => b.toUInt256
-  | .address a =>
-    { val := (@Fin.castLE Ethereum.AccountAddress.size
-                          Ethereum.UInt256.size
-                            (by unfold Ethereum.AccountAddress.size Ethereum.UInt256.size; simp) a : Fin Ethereum.UInt256.size) }
-  | .fixedBytes n bs =>
-      -- `bytesN` keys are LEFT-aligned in the hashed word: `value * 2^(8·(31-n))` (solc 0.6.12 &
-      -- 0.8.35 mask the key to its high bytes before `keccak256`).  `bytes32` (`n=31`) is `×1`.
-      if bs.length = n.val + 1 then
-        EVM.Word.ofNat (Ethereum.fromBytesBigEndian bs * 2 ^ (8 * (31 - n.val)))
-      else
-        -- Unreachable on the eval path (`valueToKey?` rejects length-mismatched keys); total fallback.
-        ⟨0⟩
-#guard keyValueToWord (.fixedBytes ⟨3, by decide⟩ [0xDE, 0xAD, 0xBE, 0xEF])
-  = EVM.Word.ofNat (0xDEADBEEF * 2 ^ 224)
-#guard keyValueToWord (.fixedBytes ⟨31, by decide⟩ (List.replicate 31 0 ++ [0x2A]))
-  = EVM.Word.ofNat 0x2A
 
 def intTypeSize (t : IntType) : Fin 33 :=
   match t with

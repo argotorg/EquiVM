@@ -20,6 +20,26 @@ def valueToWord : Value -> Option EVM.Word
         none
   | .storageRef _ _ => .none
 
+def keyValueToWord : KeyValue -> EVM.Word
+  | .int i => EVM.wordOfInt i
+  | .bool b => b.toUInt256
+  | .address a =>
+    { val := (@Fin.castLE Ethereum.AccountAddress.size
+                          Ethereum.UInt256.size
+                            (by unfold Ethereum.AccountAddress.size Ethereum.UInt256.size; simp) a : Fin Ethereum.UInt256.size) }
+  | .fixedBytes n bs =>
+      -- `bytesN` keys are LEFT-aligned in the hashed word: `value * 2^(8·(31-n))` (solc 0.6.12 &
+      -- 0.8.35 mask the key to its high bytes before `keccak256`).  `bytes32` (`n=31`) is `×1`.
+      if bs.length = n.val + 1 then
+        EVM.Word.ofNat (Ethereum.fromBytesBigEndian bs * 2 ^ (8 * (31 - n.val)))
+      else
+        -- Unreachable on the eval path (`valueToKey?` rejects length-mismatched keys); total fallback.
+        ⟨0⟩
+#guard keyValueToWord (.fixedBytes ⟨3, by decide⟩ [0xDE, 0xAD, 0xBE, 0xEF])
+  = EVM.Word.ofNat (0xDEADBEEF * 2 ^ 224)
+#guard keyValueToWord (.fixedBytes ⟨31, by decide⟩ (List.replicate 31 0 ++ [0x2A]))
+  = EVM.Word.ofNat 0x2A
+
 def wordToElem (t : ABI.ElemType) (w : EVM.Word) : Value :=
   match t with
   | .int (.uint _) => .int (w.toNat)
