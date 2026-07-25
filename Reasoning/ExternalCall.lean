@@ -9,7 +9,7 @@ import Ethereum.Theory.StorageExtensionality
 
 The Solm↔EVM boundary for a contract's **external call**, the peer of `Reasoning/Dispatch.lean`
 (which couples the transaction entry / dispatcher).  An EVM `CALL` (exposed by `RD.call` as a
-`Θ`-link) and the Solm `externalCall` (the `externalCallViaEVM` relation) invoke the *identical* `Θ`
+`Θ`-link) and the Solm `externalCall` (the `typedCallViaEVM` relation) invoke the *identical* `Θ`
 with the same arguments, so the opaque result `(z, σ', o)` coincides on both sides **by
 construction** — no assumption about the callee's code.
 
@@ -58,7 +58,7 @@ private theorem accountMapEquiv_of_accountMapExtensionalEq {σ τ : AccountMap}
 /-- **Coincidence (call made).**  Given the EVM-side `Θ`-link produced by `RD.call` (with witnesses
     `A_in`, `callGas`) and the trace couplings — the Solm target `tgt` is the cleaned stack address
     (`htgt`), and the ABI encoding of `name args` is exactly the calldata the bytecode placed in
-    memory (`hcd`) — the Solm `externalCallViaEVM` holds for the *same* opaque `(z, σ', o)`.
+    memory (`hcd`) — the Solm `typedCallViaEVM` holds for the *same* opaque `(z, σ', o)`.
     Instantiate the Solm existentials with the EVM witnesses; `Θ`'s determinism does the rest.
     Generic over the config / callee name / arguments (value `0`). -/
 theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : List Value}
@@ -744,7 +744,7 @@ theorem delegateCallViaEVM_initState_EVMStateEquiv
   exact ⟨σ'_solm, A'_solm, hcall_solm, hEnv, rfl, hσ'⟩
 
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
-    returns `0` *without* invoking `Θ`; the Solm `externalCallViaEVM` takes the matching
+    returns `0` *without* invoking `Θ`; the Solm `typedCallViaEVM` takes the matching
     `callNotMade` branch — `(false, evm[substate], ∅)` — independent of value/balance.  Generic over
     config / callee name / arguments (value `0`). -/
 theorem callNotMade_depthLimit {cfg : Config} {evm : EVM.State} {tgt : EVM.Address}
