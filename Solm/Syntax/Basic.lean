@@ -16,18 +16,17 @@ inductive KeyValue where
   | fixedBytes : Fin 32 -> List UInt8 -> KeyValue
   deriving Repr, Inhabited
 
+/- Storage deref step. -/
 inductive EvaledStorageRefStep where
   | field : Ident -> EvaledStorageRefStep
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
-  /- Marker for "the length of the array reached so far". A distinct ref the layout
-     resolves to wherever it stores that array's length — the semantics commits to no
-     particular slot convention (solc puts it at the array's base slot; another layout
-     may put it elsewhere). Only the array's length query produces this step. -/
+  /- Accessor for the slot that holds the length of an array. -/
   | length : EvaledStorageRefStep
   deriving Repr, Inhabited
 
+/- The evaluated path to a storage reference. -/
 structure EvaledStorageRef where
   base : Ident
   steps : List EvaledStorageRefStep := []
@@ -96,8 +95,8 @@ inductive BinaryOp where
   | exp
   deriving Repr, Inhabited
 
-/-- Whether a variable path is rooted in a memory **local** or **storage**. Resolved statically
-    by the spec author / frontend, exactly as solc resolves the name. -/
+/-- Whether a variable path is rooted in a memory **local** or **storage**.
+    Resolved statically, similar to solc. -/
 inductive VarOrigin where
   | localVar
   | storage
@@ -105,8 +104,11 @@ inductive VarOrigin where
 
 mutual
 
-/- Expressions are intentionally lightweight for now. We are aiming for a meaningful
-   subset of Solidity. -/
+/-
+ - Expressions.
+ - In Solm, expressions are pure and side-effect free (similar to Clight).
+ - All stateful operations are statements.
+ -/
 inductive Expr where
   | intLit : Int -> Expr
   | boolLit : Bool -> Expr
@@ -132,7 +134,9 @@ inductive Expr where
   | env : EnvVar -> Expr
   /- for struct fields -/
   | field : Expr -> Ident -> Expr
+  /- Storage reference -/
   | storage : StorageRef -> Expr
+  /- Predicate asserting that an integer expression is within the range of the specified type. -/
   | inRange : IntType -> Expr -> Expr
   | cast : Expr -> StorageType -> Expr /- TODO do we really need casting?-/
   | addrOf : Expr -> Expr
@@ -144,8 +148,7 @@ inductive Expr where
      storage array length; local paths read the in-memory value and return its array/byte count. -/
   | arrayLength : VarOrigin -> StorageRef -> Expr
   /- `keccak256(b)`: the Keccak-256 hash of the dynamic bytes `b`, as a `bytes32` value.  The hash
-     primitive is the same `ffi.KEC` the EVM's `KECCAK256` opcode uses, so equivalence reduces to
-     equality of the hashed bytes. -/
+     primitive is the same `ffi.KEC` the EVM's `KECCAK256` opcode uses. -/
   | keccak256 : Expr -> Expr
   /- `abi.encodePacked(e₁, …)`: the non-padded ("packed") ABI encoding of the listed values, as a
      dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed
@@ -180,13 +183,19 @@ inductive StorageRefStep where
   | mindex : Expr -> StorageRefStep
   | aindex : Expr -> StorageRefStep
 
-structure StorageRef where /- TODO better name, since it can be a reference to locals or storage -/
+/- A reference to storage. The base variable is either a storage variable or a local variable alias. -/
+structure StorageRef where
   base : Ident
   steps : List StorageRefStep := []
 
-/- Zoe: Shall we use StorageRef at the Expr level too instead of having field? -/
-
 end
+
+namespace StorageRef
+
+def var (name : Ident) : StorageRef :=
+  { base := name }
+
+end StorageRef
 
 instance : Repr ByteArray where
   reprPrec b _ := repr b.data
@@ -198,13 +207,6 @@ deriving instance Inhabited for StorageRefStep
 deriving instance Repr for StorageRef
 deriving instance Inhabited for StorageRef
 
-namespace StorageRef
-
-def var (name : Ident) : StorageRef :=
-  { base := name }
-
-end StorageRef
-
 inductive AssignRhs where
   | expr : Expr -> AssignRhs
   -- Do we want non-determinism?
@@ -212,9 +214,9 @@ inductive AssignRhs where
   deriving Repr, Inhabited
 
 inductive Stmt where
-  /- local variable -/
+  /- local variable declaration (values are in-memory copies)-/
   | letDecl : Ident -> Option ABIType -> Expr -> Stmt
-  /- local storage alias: `T storage x = ref`; stores an evaluated storage pointer in locals -/
+  /- local storage alias (values are evaluated storage references) -/
   | letStorage : Ident -> StorageRef -> Stmt
   /- `uint256 x = gasleft()`: bind `x` to a nondeterministic gas value (Solm tracks no gas). -/
   | letGas : Ident -> Stmt
@@ -228,7 +230,7 @@ inductive Stmt where
   | for : List Stmt /- init -/ -> Expr /- cond -/ -> List Stmt /- post -/ -> List Stmt /- body -/ -> Stmt
   /- conditional: `if cond { thenBranch } else { elseBranch }`; a no-`else` `if` is `elseBranch = []` -/
   | ite : Expr -> List Stmt -> List Stmt -> Stmt
-  /- constructor call; `salt = none` ⇒ CREATE, `some e` (bytes32) ⇒ CREATE2. -/
+  /- constructor call: `salt = none` ⇒ CREATE, `some e` (bytes32) ⇒ CREATE2. -/
   | new : Ident -> Expr /- ETH to send -/ -> List Expr -> Ident /- return value binder -/ ->
       (salt : Option Expr := none) -> Stmt
   /- internal and external call results are explicitly let-bound -/
@@ -258,7 +260,7 @@ inductive Stmt where
   | break : Stmt
   | continue : Stmt
   /- `arr.push(v?)`: grow a dynamic storage array by one.  `some v` appends scalar `v`; `none` is a
-     grow-only push (structured elements — the new slots are zero, fields set by later writes). -/
+     grow-only push (the new slots are zero). -/
   | push : StorageRef -> Option Expr -> Stmt
   /- `arr.pop()`: remove the last element of a dynamic storage array (reverts if empty),
      clearing the slot and shrinking its length by one -/
@@ -268,6 +270,7 @@ inductive Stmt where
   deriving Repr, Inhabited
 
 
+/-- Body of a function, constructor, or transition is a sequence of statements. -/
 abbrev Body := List Stmt
 
 structure Param where
@@ -293,10 +296,12 @@ structure StructDecl where
   fields : List StorageDecl
   deriving Repr, Inhabited
 
+/- For now, internal function interface only accept ABI types.
+ - In the future, we may extend this with non-ABI types as well (e.g., mappings). -/
 structure FunctionDecl where
   name : Ident
   params : List Param
-  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  /-- ABI return types (potentially, multi-element; `[]` = void) -/
   returnType : List ABIType := []
   body : List Stmt
   deriving Repr, Inhabited
@@ -304,11 +309,12 @@ structure FunctionDecl where
 structure TransitionDecl where
   name : Ident
   params : List Param
-  /-- ABI return types, in order. `[]` = void; multi-element lists encode flat, as solc does. -/
+  /-- ABI return types (potentially, multi-element; `[]` = void) -/
   returnType : List ABIType := []
   body : List Stmt
   deriving Repr, Inhabited
 
+/- A top-level contract declaration. -/
 structure ContractDecl where
   name : Ident
   storage : List StorageDecl
