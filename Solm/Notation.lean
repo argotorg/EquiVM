@@ -4,7 +4,7 @@ import Solm.Syntax
 # Solm — a macro-generated surface syntax
 
 A lightweight, Lean-embedded DSL that desugars to the `Solm` AST (`Expr`, `Stmt`,
-`StorageRef`, the `*Decl` structures).  The goal is to let a spec author write something that
+`StorageRef`, and top-level`*Decl` structures).  The goal is to let a spec author write something that
 *reads* like the Solidity it models, instead of hand-constructing constructor trees.
 
 Everything here is pure `syntax` + `macro_rules` sugar: each surface form expands to the exact

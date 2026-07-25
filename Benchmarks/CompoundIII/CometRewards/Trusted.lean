@@ -1,5 +1,5 @@
 import Benchmarks.CompoundIII.CometRewards.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 open Solm Ethereum Ethereum.EVM
 

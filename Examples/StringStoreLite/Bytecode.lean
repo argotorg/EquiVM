@@ -1,5 +1,5 @@
 import Examples.StringStoreLite.Spec
-import Solm.Dispatch
+import Solm.Semantics
 import Ethereum.Semantics
 import Reasoning.Initcode
 import Reasoning.JumpDest

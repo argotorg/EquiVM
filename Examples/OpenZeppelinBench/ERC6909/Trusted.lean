@@ -1,5 +1,5 @@
 import Examples.OpenZeppelinBench.ERC6909.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 /-!
 # ERC6909 benchmark trusted selector facts

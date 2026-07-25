@@ -205,6 +205,26 @@ theorem reEquiv_outOfGas {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I}
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
   .outOfGas h
 
+/-- When a contract has no `receive`/`fallback`, a successful `dispatchMsg` is a successful
+    selector dispatch: the receive and fallback arms of `dispatchMsg` are `none`.  Shared by the
+    `decodingFailed`/`execution` coverage helpers below. -/
+theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
+    {contract : ContractDecl} {calldata : ByteArray} {transition : TransitionDecl}
+    (hreceive : contract.receive = none)
+    (hfallback : contract.fallback = none)
+    (h : dispatchMsg contract calldata = some transition) :
+    selectorDispatchMsg contract calldata = some transition := by
+  unfold dispatchMsg at h
+  cases hsel : selectorDispatchMsg contract calldata with
+  | none =>
+      have hreceiveDispatch : receiveDispatchMsg contract calldata = none := by
+        simp [receiveDispatchMsg, hreceive]
+      rw [hsel, hreceiveDispatch, hfallback] at h
+      simp at h
+  | some selected =>
+      rw [hsel] at h
+      simpa using h
+
 /-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case.  The Solm-side maps are
     unconstrained — this path never runs `solmExec`. -/
 theorem reEquiv_noDispatch {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I} {g' o}

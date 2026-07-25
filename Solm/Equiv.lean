@@ -1,6 +1,6 @@
 import ABI.Encode
 import ABI.Decode
-import Solm.Dispatch
+import Solm.Semantics
 
 open Solm
 open ABI

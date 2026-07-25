@@ -1,5 +1,5 @@
 import Benchmarks.UniswapV3Pool.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 /-!
 # UniswapV3Pool trusted selector facts

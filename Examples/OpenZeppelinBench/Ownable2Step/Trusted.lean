@@ -1,5 +1,5 @@
 import Examples.OpenZeppelinBench.Ownable2Step.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 open Solm Ethereum Ethereum.EVM
 

@@ -1,4 +1,4 @@
-import Solm.Dispatch
+import Solm.Semantics
 import Reasoning.Reach
 import Reasoning.Storage
 

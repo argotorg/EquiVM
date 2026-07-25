@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cure.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 import Reasoning.Solc
 
 /-!

@@ -1,5 +1,5 @@
 import Benchmarks.ERC721.Spec
-import Solm.Dispatch
+import Solm.Semantics
 import Reasoning.JumpDest
 
 open Solm Ethereum Ethereum.EVM
