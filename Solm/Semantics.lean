@@ -6,6 +6,8 @@ import ABI.Decode
 
 namespace Solm
 
+/- Solm Semantics -/
+
 open ABI
 
 def transitionSignature (transition : TransitionDecl) : Signature :=
@@ -75,20 +77,6 @@ structure Config where
      deployment of the contract's constructor -/
   selfDeployment : EVM.Bytes → List Value → Option EVM.Bytes
 
-structure ContractInstance where
-  contract : Ident
-  contractCode : ContractDecl
-  storage : Store
-  balance : Int
-
-abbrev World := Std.HashMap EVM.Address ContractInstance
-
-structure CallEnv where
-  caller : EVM.Address
-  origin : EVM.Address
-  callvalue : Int
-  this : EVM.Address
-
 structure Frame where
   contract : ContractDecl
   locals : Store
@@ -109,11 +97,6 @@ structure CallableDecl where
   body : Body
   deriving Repr, Inhabited
 
-
-def lookupStorageDecl? (decls : List StorageDecl) (name : Ident) : Option StorageDecl :=
-  match decls with
-  | [] => none
-  | d :: ds => if d.name = name then some d else lookupStorageDecl? ds name
 
 def envValue (evm : EVM.State) : EnvVar -> Value
   | .caller => .address evm.executionEnv.source
@@ -136,27 +119,6 @@ def envValue (evm : EVM.State) : EnvVar -> Value
       let b := evm.executionEnv.calldata.toList.take 4
       .fixedBytes ⟨3, by decide⟩ (b ++ List.replicate (4 - b.length) 0)
   | .msgData => .bytes evm.executionEnv.calldata
-
-def abiValueToWord? (ty : ABIType) (value : Value) : Option EVM.Word :=
-  match ty, value with
-  | .elem .bool, .bool b => some (b.toUInt256)
-  | .elem .address, .address a => some (EVM.word a)
-  | .elem (.int (.uint _)), .int i =>
-      if i < 0 then none else some (EVM.wordOfInt i)
-  | .elem (.int (.sint _)), .int i => some (EVM.wordOfInt i)
-  | _, _ => none
-
-def slotValueToWord? (ty : StorageType) (value : Value) : Option EVM.Word :=
-  match ty with
-  | .elem primTy => abiValueToWord? (.elem primTy) value
-  | .contract _ =>
-      match value with
-      | .address a => some (EVM.word a)
-      | _ => none
-  | _ => none
-
-def slotPushStep (slot : StorageRef) (step : StorageRefStep) : StorageRef :=
-  { slot with steps := slot.steps ++ [step] }
 
 def valueToKey? (v : Value) : Option KeyValue :=
   match v with
@@ -181,21 +143,6 @@ def updateAssoc [DecidableEq α] (entries : List (α × β)) (key : α) (value :
         (key, value) :: rest
       else
         (k, v) :: updateAssoc rest key value
-
-def lookupValueAssoc (entries : List (Value × β)) (key : Value) : Option β :=
-  match entries with
-  | [] => none
-  | (k, v) :: rest => if k = key then some v else lookupValueAssoc rest key
-
-def updateValueAssoc (entries : List (Value × β)) (key : Value) (value : β) :
-    List (Value × β) :=
-  match entries with
-  | [] => [(key, value)]
-  | (k, v) :: rest =>
-      if k == key then
-        (key, value) :: rest
-      else
-        (k, v) :: updateValueAssoc rest key value
 
 def updateNth? (xs : List α) (index : Nat) (value : α) : Option (List α) :=
   match xs, index with
@@ -677,20 +624,6 @@ mutual
     all_goals simp_wf
     all_goals decreasing_tactic
 end
-
-lemma stepSize_lt_stepsSize : ∀ (slot : StorageRef) step,
-  step ∈ slot.steps →
-  slotStepEvalSize step < slotStepsEvalSize slot.steps := by
-    intros slot step
-    induction slot.steps with
-    | nil => intro hin; cases hin
-    | cons head tail tail_ih =>
-      intro hin
-      cases hin
-      · simp [slotStepsEvalSize]; omega
-      · rename_i hin
-        simp [slotStepsEvalSize]
-        apply lt_trans (b:= slotStepsEvalSize tail) (tail_ih hin); omega
 
 /-- The declared `StorageType` reached by following one evaled step from a value of type `t`. -/
 def storageTypeStep? : StorageType -> EvaledStorageRefStep -> Option StorageType
