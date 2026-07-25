@@ -226,15 +226,18 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
       (eitherExpr (.binary .eq y (.intLit 0))
         (.binary .eq (.binary .div (.var name) y) x)) ]
 
+def wordWrap256 (e : Expr) : Expr :=
+  .binary .mod e (.intLit (Int.ofNat EVM.wordModulus))
+
 def checkedAddSignedInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (u256 (.binary .add x y)),
+  [ .letDecl name (some uint256) (wordWrap256 (.binary .add x y)),
     .require
       (eitherExpr (.binary .ge y (.intLit 0)) (.binary .le (.var name) x)),
     .require
       (eitherExpr (.binary .le y (.intLit 0)) (.binary .ge (.var name) x)) ]
 
 def checkedSubSignedInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (u256 (.binary .sub x y)),
+  [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
     .require
       (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
     .require
@@ -499,12 +502,16 @@ def frobTransition : TransitionDecl :=
           (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
             (.binary .ge (.var "tab") (.var "ilkDust"))) ] ++
       checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v"))) (.var "dink") ++
+      [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
       checkedAddSignedInto "daiNew" (.storage (daiRef (.var "w"))) (.var "dtab") ++
-      [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew"),
-        .assign .storage (daiRef (.var "w")) (.var "daiNew"),
+      [ .assign .storage (daiRef (.var "w")) (.var "daiNew"),
         .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew"),
         .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew"),
-        .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew") ] }
+        .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew"),
+        .assign .storage (ilksF (.var "i") "rate") (.var "ilkRate"),
+        .assign .storage (ilksF (.var "i") "spot") (.var "ilkSpot"),
+        .assign .storage (ilksF (.var "i") "line") (.var "ilkLine"),
+        .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ] }
 
 def forkTransition : TransitionDecl :=
   { name := "fork"
@@ -523,17 +530,21 @@ def forkTransition : TransitionDecl :=
       [ .assign .storage (urnsF (.var "ilk") (.var "dst") "ink") (.var "dstInkNew") ] ++
       checkedAddSignedInto "dstArtNew" (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
       [ .assign .storage (urnsF (.var "ilk") (.var "dst") "art") (.var "dstArtNew") ] ++
+      [ .letDecl "srcArtFinal" (some uint256) (.storage (urnsF (.var "ilk") (.var "src") "art")),
+        .letDecl "dstArtFinal" (some uint256) (.storage (urnsF (.var "ilk") (.var "dst") "art")),
+        .letDecl "srcInkFinal" (some uint256) (.storage (urnsF (.var "ilk") (.var "src") "ink")),
+        .letDecl "dstInkFinal" (some uint256) (.storage (urnsF (.var "ilk") (.var "dst") "ink")) ] ++
       checkedMulUintInto "utab"
-        (.storage (urnsF (.var "ilk") (.var "src") "art"))
+        (.var "srcArtFinal")
         (.storage (ilksF (.var "ilk") "rate")) ++
       checkedMulUintInto "vtab"
-        (.storage (urnsF (.var "ilk") (.var "dst") "art"))
+        (.var "dstArtFinal")
         (.storage (ilksF (.var "ilk") "rate")) ++
       checkedMulUintInto "srcInkSpot"
-        (.storage (urnsF (.var "ilk") (.var "src") "ink"))
+        (.var "srcInkFinal")
         (.storage (ilksF (.var "ilk") "spot")) ++
       checkedMulUintInto "dstInkSpot"
-        (.storage (urnsF (.var "ilk") (.var "dst") "ink"))
+        (.var "dstInkFinal")
         (.storage (ilksF (.var "ilk") "spot")) ++
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
@@ -541,11 +552,11 @@ def forkTransition : TransitionDecl :=
         .require
           (eitherExpr
             (.binary .ge (.var "utab") (.storage (ilksF (.var "ilk") "dust")))
-            (.binary .eq (.storage (urnsF (.var "ilk") (.var "src") "art")) (.intLit 0))),
+            (.binary .eq (.var "srcArtFinal") (.intLit 0))),
         .require
           (eitherExpr
             (.binary .ge (.var "vtab") (.storage (ilksF (.var "ilk") "dust")))
-            (.binary .eq (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.intLit 0))) ] }
+            (.binary .eq (.var "dstArtFinal") (.intLit 0))) ] }
 
 def grabTransition : TransitionDecl :=
   { name := "grab"
@@ -557,18 +568,18 @@ def grabTransition : TransitionDecl :=
     body :=
       nonpayable ++ auth ++
       checkedAddSignedInto "urnInkNew" (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink") ++
+      [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ] ++
       checkedAddSignedInto "urnArtNew" (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart") ++
+      [ .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew") ] ++
       checkedAddSignedInto "ilkArtNew" (.storage (ilksF (.var "i") "Art")) (.var "dart") ++
+      [ .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew") ] ++
       checkedMulSignedInto "dtab" (.storage (ilksF (.var "i") "rate")) (.var "dart") ++
       checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v"))) (.var "dink") ++
+      [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
       checkedSubSignedInto "sinNew" (.storage (sinRef (.var "w"))) (.var "dtab") ++
+      [ .assign .storage (sinRef (.var "w")) (.var "sinNew") ] ++
       checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
-      [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew"),
-        .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew"),
-        .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew"),
-        .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew"),
-        .assign .storage (sinRef (.var "w")) (.var "sinNew"),
-        .assign .storage viceRef (.var "viceNew") ] }
+      [ .assign .storage viceRef (.var "viceNew") ] }
 
 def healTransition : TransitionDecl :=
   { name := "heal"
@@ -577,13 +588,13 @@ def healTransition : TransitionDecl :=
     body :=
       nonpayable ++
       checkedSubUintInto "sinNew" (.storage (sinRef sender)) (.var "rad") ++
+      [ .assign .storage (sinRef sender) (.var "sinNew") ] ++
       checkedSubUintInto "daiNew" (.storage (daiRef sender)) (.var "rad") ++
+      [ .assign .storage (daiRef sender) (.var "daiNew") ] ++
       checkedSubUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
       checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad") ++
-      [ .assign .storage (sinRef sender) (.var "sinNew"),
-        .assign .storage (daiRef sender) (.var "daiNew"),
-        .assign .storage viceRef (.var "viceNew"),
-        .assign .storage debtRef (.var "debtNew") ] }
+      [ .assign .storage debtRef (.var "debtNew") ] }
 
 def suckTransition : TransitionDecl :=
   { name := "suck"
@@ -594,13 +605,13 @@ def suckTransition : TransitionDecl :=
     body :=
       nonpayable ++ auth ++
       checkedAddUintInto "sinNew" (.storage (sinRef (.var "u"))) (.var "rad") ++
+      [ .assign .storage (sinRef (.var "u")) (.var "sinNew") ] ++
       checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad") ++
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
       checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
       checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
-      [ .assign .storage (sinRef (.var "u")) (.var "sinNew"),
-        .assign .storage (daiRef (.var "v")) (.var "daiNew"),
-        .assign .storage viceRef (.var "viceNew"),
-        .assign .storage debtRef (.var "debtNew") ] }
+      [ .assign .storage debtRef (.var "debtNew") ] }
 
 def foldTransition : TransitionDecl :=
   { name := "fold"
@@ -614,9 +625,9 @@ def foldTransition : TransitionDecl :=
       [ .assign .storage (ilksF (.var "i") "rate") (.var "rateNew") ] ++
       checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate") ++
       checkedAddSignedInto "daiNew" (.storage (daiRef (.var "u"))) (.var "rad") ++
+      [ .assign .storage (daiRef (.var "u")) (.var "daiNew") ] ++
       checkedAddSignedInto "debtNew" (.storage debtRef) (.var "rad") ++
-      [ .assign .storage (daiRef (.var "u")) (.var "daiNew"),
-        .assign .storage debtRef (.var "debtNew") ] }
+      [ .assign .storage debtRef (.var "debtNew") ] }
 
 def transitions : List TransitionDecl :=
   [ LineTransition,

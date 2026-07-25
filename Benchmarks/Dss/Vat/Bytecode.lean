@@ -504,6 +504,17 @@ def vatBytecode : ByteArray :=
   vatRuntimeChunk35 ++
   vatRuntimeChunk36
 
+theorem vatBytecode_size : vatBytecode.size = 6965 := by
+  native_decide
+
+theorem vatBytecode_notAuthorized_extract :
+    vatBytecode.extract 6921 (6921 + 32) =
+      ⟨#[
+        86, 97, 116, 47, 110, 111, 116, 45, 97, 117, 116, 104, 111, 114, 105, 122,
+        101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ]⟩ := by
+  native_decide
+
 
 /-- The `JUMPDEST` set of `vatBytecode`, computed from bytecode. -/
 @[valid_jumps] theorem validJumps :
