@@ -267,7 +267,7 @@ theorem ballotArgLen_toNat (argBytes : ByteArray)
 theorem ballotInnerMem_eq (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size) :
     (ballotInitcode ++ argBytes).write 2368 solcFreePtrMem 128 (ballotArgLen argBytes).toNat
-      = (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ argBytes := by
+      = (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ argBytes := by
   rw [ballotArgLen_toNat argBytes hsz]
   have hcodeS : (ballotInitcode ++ argBytes).size = 2368 + argBytes.size := by
     rw [ByteArray.size_append, ballotInitcode_size]
@@ -282,14 +282,14 @@ theorem ballotInnerMem_eq (argBytes : ByteArray)
   simp only [ByteArray.data_copySlice, ByteArray.data_append, e1, solcFreePtrMem_size,
     show (128 : ℕ) - 96 = 32 from by norm_num,
     show min 96 (128 + argBytes.size) - (128 + argBytes.size) = 0 from by omega]
-  rw [show (ffi.ByteArray.zeroes { toBitVec := ↑(0:ℕ) }).data = (#[] : Array UInt8) from by
-        rw [zeroes_zero (n := { toBitVec := ↑(0:ℕ) }) (by rfl)]; rfl]
-  have hz32 : (ffi.ByteArray.zeroes { toBitVec := ↑(32:ℕ) }).data.size = 32 := by
-    show (ffi.ByteArray.zeroes (USize.ofNat 32)).size = 32
+  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+        rw [zeroes_zero (n := 0) (by rfl)]; rfl]
+  have hz32 : (ffi.ByteArray.zeroes 32).data.size = 32 := by
+    show (ffi.ByteArray.zeroes 32).size = 32
     exact zeroes_ofNat_size 32 (by norm_num)
   simp only [Array.append_empty, Nat.add_zero]
-  have ext1 : (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes { toBitVec := ↑(32:ℕ) }).data).extract 0 128
-      = solcFreePtrMem.data ++ (ffi.ByteArray.zeroes { toBitVec := ↑(32:ℕ) }).data :=
+  have ext1 : (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data).extract 0 128
+      = solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data :=
     Array.extract_eq_self_of_le (by rw [Array.size_append, hsfpD, hz32])
   have ext2 : (ballotInitcode.data ++ argBytes.data).extract 2368 (2368 + argBytes.size)
       = argBytes.data := by
@@ -298,7 +298,6 @@ theorem ballotInnerMem_eq (argBytes : ByteArray)
   rw [ext1, ext2,
     Array.extract_empty_of_size_le_start (by rw [Array.size_append, hsfpD, hz32]; omega),
     Array.append_empty]
-  rfl
 
 /-- A 32-byte read from the decoder's working memory at `0x80 + k` returns the `k`-th window of the
     ABI argument bytes — the decoder reads the offset (`k=0`), the length (`k=0x20`), and each element
@@ -307,11 +306,11 @@ theorem ballotDecoderMem_read (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size)
     (k : ℕ) (hk : k + 32 ≤ argBytes.size) :
     (ballotDecoderMem argBytes).readWithPadding (128 + k) 32 = argBytes.readWithPadding k 32 := by
-  have hbase : (solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)).size = 128 := by
+  have hbase : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   unfold ballotDecoderMem
   rw [ballotInnerMem_eq argBytes hsz hpos,
-      write32_read_above _ _ 64 (128 + k) (by simp [toByteArray_size])
+      write32_read_above _ _ 64 (128 + k) (by simp)
         (by rw [ByteArray.size_append, hbase]; omega) (by omega)
         (by rw [ByteArray.size_append, hbase]; omega),
       readWithPadding_eq_extract _ _ (by rw [ByteArray.size_append, hbase]; omega),
@@ -416,7 +415,7 @@ theorem ballotDecoderMem_lengthVal (a b : ℕ) (rest : List UInt8)
 theorem ballotDecoderMem_size (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size) :
     (ballotDecoderMem argBytes).size = 128 + argBytes.size := by
-  have hbase : ((solcFreePtrMem ++ ffi.ByteArray.zeroes (USize.ofNat 32)) ++ argBytes).size
+  have hbase : ((solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ argBytes).size
       = 128 + argBytes.size := by
     rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
       zeroes_ofNat_size 32 (by norm_num)]
@@ -507,7 +506,7 @@ theorem ballotDecoderFreeptrRead (argBytes : ByteArray)
   rw [write32_read_back _ _ 64 (by rw [toByteArray_size]) (by rw [hinner]; omega)]
   apply ByteArray.ext
   rw [ByteArray.data_extract]
-  simp [toByteArray_size, Array.extract_eq_self_of_le]
+  simp [Array.extract_eq_self_of_le]
 
 /-- A 32-byte read at offset `≤ 0x80` lies entirely inside the decoder's already-active memory, so it
     does not grow the active-words count.  Keeps the `MLOAD`/`MSTORE` gas trivial across the decoder. -/
