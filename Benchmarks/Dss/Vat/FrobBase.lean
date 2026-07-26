@@ -1677,10 +1677,6 @@ theorem writeWordMem_size_at_end {mem : ByteArray} {off : Nat} {word : UInt256}
   rw [toByteArray_write_eq _ _ _ (by omega) hgap,
     ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
     toByteArray_size]
-  have hzero : (USize.ofNat (off - mem.size)).toNat = 0 := by
-    rw [hend, Nat.sub_self]
-    native_decide
-  rw [hzero]
   omega
 
 theorem writeWordMem_read64_below {mem : ByteArray} {off : Nat} {word : UInt256}
