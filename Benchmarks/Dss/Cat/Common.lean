@@ -29,9 +29,10 @@ namespace Benchmarks.Dss.Cat
 
 /-! ## Static-call code-preservation lift
 
-`Reasoning.StaticCode` provides the `EXTCODESIZE`-relevant static-call preservation theorem used
-below; the local facts here only translate that account-address relation to the Uniswap code-size
-word helper used by the solc reach rules. -/
+The EVMLean static-storage/code projections exposed through `Reasoning.ExternalCall` provide the
+`EXTCODESIZE`-relevant static-call preservation theorem used below; the local facts here only
+translate that account-address relation to the Uniswap code-size word helper used by the solc reach
+rules. -/
 
 /-- `uniswapExtCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
     function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/

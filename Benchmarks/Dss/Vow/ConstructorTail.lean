@@ -156,8 +156,7 @@ theorem vowCtorHopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 224
     (by omega) hgap]
   have hprefix :
       (mem ++ ffi.ByteArray.zeroes (224 - mem.size)).size = 224 := by
-    rw [ByteArray.size_append, ByteArray_zeroes_size,
-      hmem]
+    rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 224 228 (by rw [hprefix]), hprefix,
     show 224 - 224 = 0 from rfl, show 228 - 224 = 4 from rfl,
     toByteArray_eq_toBytesBE]

@@ -266,7 +266,7 @@ theorem zeroes_zero {n : Nat} (hn : n = 0) : ffi.ByteArray.zeroes n = ByteArray.
   rw [byteArray_zeroes_toList, hn]; rfl
 
 theorem zero_toByteArray_eq_zeroes32 :
-    UInt256.toByteArray (⟨0⟩ : UInt256) = ffi.ByteArray.zeroes 32:= by
+    UInt256.toByteArray (⟨0⟩ : UInt256) = ffi.ByteArray.zeroes 32 := by
   native_decide
 
 /-- Reading zero bytes with padding returns the empty bytearray. -/
@@ -275,9 +275,9 @@ theorem byteArray_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
   by_cases h : addr ≥ mem.size
   · simp [h]
-    exact zeroes_zero (n := (OfNat.ofNat 0 )) (by rfl)
+    exact zeroes_zero (n := 0) (by rfl)
   · simp [h]
-    exact zeroes_zero (n := (OfNat.ofNat 0 )) (by rfl)
+    exact zeroes_zero (n := 0) (by rfl)
 
 theorem empty_readWithPadding_word_zero :
     uInt256OfByteArray (ByteArray.empty.readWithPadding 0 32) = (⟨0⟩ : UInt256) := by
@@ -635,12 +635,10 @@ theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
     rw [ByteArray.size_extract]
     omega
   rw [ByteArray.data_append]
-  rw [show (ffi.ByteArray.zeroes
-        (len - ((src.write 0 base 0 len).extract 0 len).size)).data
+  rw [show (ffi.ByteArray.zeroes (len - ((src.write 0 base 0 len).extract 0 len).size)).data
       = (#[] : Array UInt8) from by
-    rw [show len - ((src.write 0 base 0 len).extract 0 len).size = 0 by
-      rw [hextract_size]; omega]
-    rw [zeroes_zero (n := 0) (by rfl)]
+    rw [zeroes_zero (n := len - ((src.write 0 base 0 len).extract 0 len).size)
+      (by rw [hextract_size]; omega)]
     rfl]
   simp only [ByteArray.data_extract, Array.append_empty]
   rw [hdata]
@@ -674,12 +672,10 @@ theorem write0_read_back_from_gen (src base : ByteArray) (srcAddr len : ℕ)
     rw [ByteArray.size_extract]
     omega
   rw [ByteArray.data_append]
-  rw [show (ffi.ByteArray.zeroes
-        (len - ((src.write srcAddr base 0 len).extract 0 len).size)).data
+  rw [show (ffi.ByteArray.zeroes (len - ((src.write srcAddr base 0 len).extract 0 len).size)).data
       = (#[] : Array UInt8) from by
-    rw [show len - ((src.write srcAddr base 0 len).extract 0 len).size = 0 by
-      rw [hextract_size]; omega]
-    rw [zeroes_zero (n := 0) (by rfl)]
+    rw [zeroes_zero (n := len - ((src.write srcAddr base 0 len).extract 0 len).size)
+      (by rw [hextract_size]; omega)]
     rfl]
   simp only [ByteArray.data_extract, Array.append_empty]
   rw [hdata]
@@ -1252,16 +1248,6 @@ theorem fromBytesBigEndian_append_div (l1 l2 : List UInt8) :
   have hlt : fromBytes' l2.reverse < 2 ^ (8 * l2.length) := by
     have := fromBytes'_le (bs := l2.reverse); rwa [List.length_reverse] at this
   rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hlt, zero_add]
-
-/-- The `ffi.zeroes` right-pad size of `readBytes _ _ 32` (`32 - read.size`), as a `Nat`. -/
-theorem pad_toNat (m : ℕ) (hm : m ≤ 32) : (⟨↑32 - ↑m⟩ : USize).toNat = 32 - m := by
-  have hb : m < 2 ^ 32 := lt_of_le_of_lt hm (by norm_num)
-  show ((USize.ofNat 32) - (USize.ofNat m)).toNat = 32 - m
-  rw [USize.toNat_sub_of_le,
-      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=32) (lt_usize 32 (by norm_num)) le_rfl,
-      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=m) (lt_usize 32 (by norm_num)) hm]
-  rw [USize.le_iff_toNat_le, USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=32) (lt_usize 32 (by norm_num)) le_rfl,
-      USize.toNat_ofNat_of_le_of_lt (n:=32) (i:=m) (lt_usize 32 (by norm_num)) hm]; exact hm
 
 theorem copySlice32_toList (cd : ByteArray) :
     (cd.copySlice 0 ByteArray.empty 0 32).data.toList = cd.data.toList.take 32 := by

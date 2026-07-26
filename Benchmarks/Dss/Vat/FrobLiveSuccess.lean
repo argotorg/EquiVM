@@ -713,7 +713,9 @@ theorem frobConstructedLocalsBaseFacts {I : ExecutionEnv}
       simpa [localsLoaded, frobStoreIlkDust] using
         frobStoreIlkLine_ilks I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine)⟩
 
-set_option maxHeartbeats 0 in
+/- This wrapper stalls under the current dependency set. The source-body proof below calls
+   `execFrobFinalStoreTailOk` directly, as the earlier note in this file intended. -/
+/- set_option maxHeartbeats 0 in
 theorem execFrobFinalStoreTailFromConstructedLocalsSplit {evmDebt : EVM.State}
     {I : ExecutionEnv}
     (hsz196 : 196 ≤ I.calldata.size)
@@ -965,6 +967,7 @@ theorem execFrobFinalStoreTailFromConstructedLocalsSplit {evmDebt : EVM.State}
   have h := Reasoning.Refinement.execBlock_append hgemDai hstores
   simpa [localsGem, localsDai, evmGem, evmDai, evmInk, evmArt, evmIlk, evmRate,
     evmSpot, evmLine, evmDust, List.append_assoc] using h
+-/
 
 set_option maxHeartbeats 0 in
 theorem vatFrobSourceBodySuccessFromDustBlock
@@ -1232,24 +1235,74 @@ theorem vatFrobSourceBodySuccessFromDustBlock
               (localsSafe.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).insert
                 "daiNew" (.int (Int.ofNat daiNew.toNat)) }
           evmDust) := by
-    simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
-      tab, debtOld, dtabWord, debtNew, localsDebt, ceilingDebt, inkSpot,
-      localsSafe, evmGem] using
-      execFrobFinalStoreTailFromConstructedLocalsSplit
-        (evmDebt := evmDebt) (I := I) hsz196 urnInk urnArt ilkArt ilkRate ilkSpot
-        ilkLine ilkDust dtab debtOld gemOld gemNew daiOld daiNew dtabWord
-        hdtabRange hdtabMod hloadGem hloadDai
-        (by
-          change frobGemNew σ I =
-            UInt256.sub (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I))
-              (frobDinkWord I)
-          rfl)
-        (by
-          change frobDaiNew σ I =
-            UInt256.mul (frobDartWord I) ilkRate +
-              solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)
-          rfl)
-        hGemPosS hGemNegS hDaiNegS hDaiPosS
+    intro evmGem evmDai evmInk evmArt evmIlk evmRate evmSpot evmLine evmDust
+    have hparam :
+        localsSafe.get? "i" = some (frobIValue I) ∧
+        localsSafe.get? "u" = some (frobUValue I) ∧
+        localsSafe.get? "v" = some (frobVValue I) ∧
+        localsSafe.get? "w" = some (frobWValue I) ∧
+        localsSafe.get? "dink" = some (frobDinkValue I) := by
+      simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
+        localsDtab, tab, debtNew, localsDebt, ceilingDebt, inkSpot, localsSafe]
+        using frobConstructedLocalsParamFacts (I := I) urnInk urnArt ilkArt
+          ilkRate ilkSpot ilkLine ilkDust dtab debtOld dtabWord
+    have hcomputed :
+        localsSafe.get? "dtab" = some (.int dtab) ∧
+        localsSafe.get? "urnInkNew" = some (.int (Int.ofNat urnInkNew.toNat)) ∧
+        localsSafe.get? "urnArtNew" = some (.int (Int.ofNat urnArtNew.toNat)) ∧
+        localsSafe.get? "ilkArtNew" = some (.int (Int.ofNat ilkArtNew.toNat)) := by
+      simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
+        localsDtab, tab, debtNew, localsDebt, ceilingDebt, inkSpot, localsSafe]
+        using frobConstructedLocalsComputedFacts (I := I) urnInk urnArt ilkArt
+          ilkRate ilkSpot ilkLine ilkDust dtab debtOld dtabWord
+    have hilks :
+        localsSafe.get? "ilkRate" = some (.int (Int.ofNat ilkRate.toNat)) ∧
+        localsSafe.get? "ilkSpot" = some (.int (Int.ofNat ilkSpot.toNat)) ∧
+        localsSafe.get? "ilkLine" = some (.int (Int.ofNat ilkLine.toNat)) ∧
+        localsSafe.get? "ilkDust" = some (.int (Int.ofNat ilkDust.toNat)) := by
+      simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
+        localsDtab, tab, debtNew, localsDebt, ceilingDebt, inkSpot, localsSafe]
+        using frobConstructedLocalsIlkFacts (I := I) urnInk urnArt ilkArt
+          ilkRate ilkSpot ilkLine ilkDust dtab debtOld dtabWord
+    have hbase :
+        localsSafe.get? "gem" = none ∧
+        localsSafe.get? "dai" = none ∧
+        localsSafe.get? "urns" = none ∧
+        localsSafe.get? "ilks" = none := by
+      simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
+        localsDtab, tab, debtNew, localsDebt, ceilingDebt, inkSpot, localsSafe]
+        using frobConstructedLocalsBaseFacts (I := I) urnInk urnArt ilkArt
+          ilkRate ilkSpot ilkLine ilkDust dtab debtOld dtabWord
+    rcases hparam with ⟨hsafeI, hsafeU, hsafeV, hsafeW, hsafeDink⟩
+    rcases hcomputed with
+      ⟨hsafeDtab, hsafeUrnInkNew, hsafeUrnArtNew, hsafeIlkArtNew⟩
+    rcases hilks with
+      ⟨hsafeIlkRate, hsafeIlkSpot, hsafeIlkLine, hsafeIlkDust⟩
+    rcases hbase with
+      ⟨hsafeBaseGem, hsafeBaseDai, hsafeBaseUrns, hsafeBaseIlks⟩
+    exact execFrobFinalStoreTailOk (evm := evmDebt) (I := I) localsSafe
+      gemOld gemNew daiOld daiNew dtabWord dtab urnInkNew urnArtNew ilkArtNew
+      ilkRate ilkSpot ilkLine ilkDust hsz196
+      hsafeI hsafeU hsafeV hsafeW hsafeDink hsafeDtab hsafeUrnInkNew
+      hsafeUrnArtNew hsafeIlkArtNew hsafeIlkRate hsafeIlkSpot hsafeIlkLine
+      hsafeIlkDust hsafeBaseGem hsafeBaseDai hsafeBaseUrns hsafeBaseIlks
+      hloadGem
+      hloadDai
+      (by
+        change frobGemNew σ I =
+          UInt256.sub (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I))
+            (frobDinkWord I)
+        rfl)
+      (by
+        change frobDaiNew σ I =
+          UInt256.mul (frobDartWord I) ilkRate +
+            solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)
+        rfl)
+      hdtabMod
+      (frobDinkSubGuardNegCond hGemPosS)
+      (frobDinkSubGuardPosCond hGemNegS)
+      (signedAddGuardNegCond_of_word hdtabRange.1 hdtabRange.2 hdtabMod hDaiNegS)
+      (signedAddGuardPosCond_of_word hdtabRange.1 hdtabRange.2 hdtabMod hDaiPosS)
   have hfull := Reasoning.Refinement.execBlock_append
     (s2 :=
       checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))

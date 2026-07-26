@@ -1,6 +1,5 @@
 import Reasoning.SolmBody
 import Reasoning.Storage
-import Reasoning.StaticCode
 
 import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
@@ -162,10 +161,10 @@ theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
   have henv : evm'.executionEnv = evm.executionEnv :=
     typedCallViaEVM_executionEnv_eq hcall
   have hstaticSlot :=
-    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
+    accountStorageStateEq_storage_findD hStaticAccounts
       evm.executionEnv.codeOwner slot default
   have hpreSlot := accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot default
-  rw [henv, hstaticSlot]
+  rw [henv, ← hstaticSlot]
   exact hpreSlot.symm
 
 /-- `Θ` respects observationally equivalent account maps.
