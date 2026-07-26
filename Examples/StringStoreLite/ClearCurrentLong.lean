@@ -275,7 +275,7 @@ theorem currentLengthCopyMem_size_at_end {mem : ByteArray} {ptr word : UInt256}
     toByteArray_write_eq word mem ptr.toNat (by rw [hptr]) (by rw [hgap]; native_decide),
     hgap]
   rw [ByteArray.size_append, ByteArray.size_append,
-    zeroes_zero (n := USize.ofNat 0) (by native_decide), ByteArray.size_empty,
+    zeroes_zero (n := 0) (by native_decide), ByteArray.size_empty,
     toByteArray_size]
 
 theorem currentLengthCopyMem_size_ge_mem {mem : ByteArray} {ptr word : UInt256}
