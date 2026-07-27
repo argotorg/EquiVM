@@ -1,8 +1,13 @@
 # Solm/ structure
 
-Sol⁻ is the high-level specification language of EquiVM. Is structure,
+Sol⁻ is the high-level specification language of EquiVM. Its structure
 mirrors a subset of Solidity. Solidity's structs like inheritance, 
-modifiers are assumed to be desugared away. 
+modifiers are assumed to be desugared away.
+
+Note that there are semantics differences between Solidity and Sol⁻, 
+for example in Sol⁻, in-memory integers have unbounded range.
+This facilitates reasoning using unbounded mathematical integers, and only 
+converts to bounded integers at the storage boundary.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```

@@ -2,6 +2,8 @@ import EVM.Types
 import ABI.Types
 import Solm.Value
 
+/-! ABI encoding of Solm values -/
+
 namespace ABI
 
 def natBytes (n : Nat) : List UInt8 :=

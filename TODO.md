@@ -10,8 +10,11 @@
   + [ ] Concrete syntax
 - [ ] Proofs
 - [ ] Misc
+  + [ ] Proof template
 - [ ] Docs
       + [ ] README
+        * [ ] External call section
+        * [ ] Top-level theorem section
       + [ ] GUIDE
 - [ ] CI/CD
 
