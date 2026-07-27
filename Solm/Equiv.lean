@@ -20,7 +20,8 @@ The `*With` family at the bottom of the file generalizes the constructor relatio
 immutable-dependent runtime code (`runtimeCodeOf : Store → Option ByteArray`).
 -/
 
-open Solm
+namespace Solm
+
 open ABI
 
 /-- Default (zero-initialized) value for an ABI return type. Used when a function
@@ -533,3 +534,5 @@ inductive contractEquivalenceWithWF (wf : StorageWF) (cfg : Config) (initcode : 
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
     runtimeEquivalenceWithWF wf cfg runtimeCode contract →
     contractEquivalenceWithWF wf cfg initcode runtimeCode contract runtimeCodeOf
+
+end Solm

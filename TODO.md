@@ -1,7 +1,7 @@
 # Release TODOs
 
 - [X] EquiVM/EVM
-- [ ] Solm
+- [X] Solm
 - [ ] ABI
 - [ ] Reasoning
 - [ ] Examples
