@@ -364,15 +364,8 @@ def fileIlkClipTransition : TransitionDecl :=
               .assign .storage (ilksF (.var "ilk") "clip") (.var "clip") ])
           [ .require (.boolLit false) ] ] }
 
-def barkTransition (v : DogImmutables) : TransitionDecl :=
-  { name := "bark"
-    params :=
-      [ { name := "ilk", ty := bytes32 }, { name := "urn", ty := addr },
-        { name := "kpr", ty := addr } ]
-    returnType := [uint256]
-    body :=
-      nonpayable ++
-      [ .require (.binary .eq (.storage liveRef) (.intLit 1)) ] ++
+def barkBodyRest (v : DogImmutables) : List Stmt :=
+  [ .require (.binary .eq (.storage liveRef) (.intLit 1)) ] ++
       checkedExternalCallStmts (vatExpr v) "urns" (.intLit 0)
         [.var "ilk", .var "urn"] "vatUrn" (perm := false) ++
       [ .letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0),
@@ -435,7 +428,15 @@ def barkTransition (v : DogImmutables) : TransitionDecl :=
       [ .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ] ++
       checkedExternalCallStmts (.var "milkClip") "kick" (.intLit 0)
         [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
-      [ .return [.var "id"] ] }
+      [ .return [.var "id"] ]
+
+def barkTransition (v : DogImmutables) : TransitionDecl :=
+  { name := "bark"
+    params :=
+      [ { name := "ilk", ty := bytes32 }, { name := "urn", ty := addr },
+        { name := "kpr", ty := addr } ]
+    returnType := [uint256]
+    body := nonpayable ++ barkBodyRest v }
 
 def digsTransition : TransitionDecl :=
   { name := "digs"

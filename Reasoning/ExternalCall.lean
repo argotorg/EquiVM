@@ -124,6 +124,28 @@ theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : 
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountStorageStateEq hraw
 
+theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
+    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    accountCodeStateEq evm.accountMap evm'.accountMap := by
+  cases hcall with
+  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+      rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
+      subst hevm'
+      exact Theta_static_accountCodeStateEq hΘ.symm
+  | callNotMade _hsubstate hevm' _hvalue =>
+      subst hevm'
+      exact accountCodeStateEq_refl evm.accountMap
+
+theorem typedCallViaEVM_static_accountCode_eq {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    accountCodeStateEq evm.accountMap evm'.accountMap := by
+  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  exact callViaEVM_static_accountCodeStateEq hraw
+
 theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
     {σ : AccountMap} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
@@ -139,10 +161,10 @@ theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
   have henv : evm'.executionEnv = evm.executionEnv :=
     typedCallViaEVM_executionEnv_eq hcall
   have hstaticSlot :=
-    accountStorageStateEq_storage_findD (accountStorageStateEq_symm hStaticAccounts)
+    accountStorageStateEq_storage_findD hStaticAccounts
       evm.executionEnv.codeOwner slot default
   have hpreSlot := accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot default
-  rw [henv, hstaticSlot]
+  rw [henv, ← hstaticSlot]
   exact hpreSlot.symm
 
 /-- `Θ` respects observationally equivalent account maps.

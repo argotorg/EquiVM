@@ -91,7 +91,8 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
       base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data ++
         (src.extract srcAddr (srcAddr + len)).data
   rw [hcopy, htail]
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ffi.ByteArray.zeroes 0).data =
+      (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]

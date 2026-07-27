@@ -331,8 +331,7 @@ theorem fileAddressNopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size =
     (by rw [hmem]; omega) hgap]
   have hprefix :
       (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
-    rw [ByteArray.size_append, ByteArray_zeroes_size,
-      hmem]
+    rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     toByteArray_eq_toBytesBE]
