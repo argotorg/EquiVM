@@ -6,6 +6,8 @@
 _mcp_snippet_*.lean
 .mcp/uv-cache/
 .mcp/uv-tools/
+.uv-cache/
+.uv-tools/
 
 CLAUDE.md
 .claude
