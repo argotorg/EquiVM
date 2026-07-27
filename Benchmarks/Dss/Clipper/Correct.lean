@@ -16,13 +16,13 @@ import Benchmarks.Dss.Clipper.Ilk
 import Benchmarks.Dss.Clipper.Kick
 import Benchmarks.Dss.Clipper.Kicks
 import Benchmarks.Dss.Clipper.List
-import Benchmarks.Dss.Clipper.Redo
+import Benchmarks.Dss.Clipper.RedoBody
 import Benchmarks.Dss.Clipper.Rely
 import Benchmarks.Dss.Clipper.Sales
 import Benchmarks.Dss.Clipper.Spotter
 import Benchmarks.Dss.Clipper.Stopped
 import Benchmarks.Dss.Clipper.Tail
-import Benchmarks.Dss.Clipper.Take
+import Benchmarks.Dss.Clipper.TakeBody
 import Benchmarks.Dss.Clipper.Tip
 import Benchmarks.Dss.Clipper.Upchost
 import Benchmarks.Dss.Clipper.Vat
@@ -111,7 +111,7 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                                   hperm hwv htail hAccounts
                                               · by_cases htake : selIs I (clipperSelBytes 22)
                                                 · exact clipperTakeBody v hcode hIcode hsize
-                                                    hperm hwv htake hAccounts
+                                                    hperm hwv htake hAccounts hStorageWF
                                                 · by_cases htip : selIs I (clipperSelBytes 23)
                                                   · exact clipperTipBody v hcode hIcode hsize
                                                       hperm hwv htip hAccounts

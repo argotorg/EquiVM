@@ -56,14 +56,20 @@ theorem returnCost_of_stack {s : State} {aw off len : UInt256} {t : List UInt256
   rw [h0, h1, haw]
   exact hcost
 
-/-- Clipper storage states in which the public `list()` getter's byte-level memory arithmetic for
-the `active` array cannot overflow the EVM word size.
+/-- Clipper states in which the public `list()` getter's byte-level memory arithmetic for
+the `active` array cannot overflow, and dynamic ABI calldata decoding stays in the modeled
+legacy-solc signed-size domain.
 
 The constant covers the largest pointer/length expression used by the generated getter and ABI
 return code: a 128-byte base, 32-byte array length word, 64-byte ABI prefix, and two `32 * len`
-byte spans. -/
+byte spans. The second conjunct is model-specific: `ByteArray.readWithPadding` handles return
+reads only below `2^64`, so the returned ABI byte length is bounded separately. The calldata
+bound rules out dynamic-ABI inputs that Solm rejects via its signed-size guard while this legacy
+wrapper bytecode checks only the ordinary unsigned head and v1 dynamic-offset/length bounds. -/
 def clipperStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
-  224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size
+  224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size ∧
+    64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 ∧
+      I.calldata.size < 2 ^ 255
 
 theorem clipperStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) :
@@ -76,6 +82,70 @@ theorem clipperStorageWF_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionE
     (hAccounts : accountMapEquiv σ τ) (hwf : clipperStorageWF σ I) :
     clipperStorageWF τ I :=
   (clipperStorageWF_accountMapEquiv hAccounts).mp hwf
+
+theorem clipperStorageWF_calldata_lt_sign {σ : AccountMap} {I : ExecutionEnv}
+    (hwf : clipperStorageWF σ I) :
+    I.calldata.size < 2 ^ 255 := by
+  simpa [clipperStorageWF] using hwf.2.2
+
+-- LIBRARY CANDIDATE: zero-code-size counterpart to extcode-size lookup positivity lemmas.
+theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
+    {addr : AccountAddress}
+    (haddr : addr = AccountAddress.ofUInt256 target)
+    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+  subst addr
+  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  | none =>
+      simpa [hacc, Option.option] using
+        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+  | some acc =>
+      have hword := congrArg UInt256.toNat hzero
+      simpa [hacc] using hword
+
+-- LIBRARY CANDIDATE: account-map transport for zero-code-size lookup facts.
+theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
+    {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
+    (hAccounts : accountMapEquiv σ τ)
+    (haddr : addr = AccountAddress.ofUInt256 target)
+    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+  have hzeroτ : Reasoning.Theory.uniswapExtCodeSizeWord τ target = ⟨0⟩ := by
+    rwa [← Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts target]
+  exact clipperExtCodeSizeWord_zero_lookup_code_zero haddr hzeroτ
+
+-- LIBRARY CANDIDATE: account-map transport for nonzero-code-size lookup facts.
+theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+    {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
+    (hAccounts : accountMapEquiv σ τ)
+    (haddr : addr = AccountAddress.ofUInt256 target)
+    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    0 < (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+  subst addr
+  have hneτ : Reasoning.Theory.uniswapExtCodeSizeWord τ target ≠ ⟨0⟩ := by
+    intro hzero
+    exact hne (by
+      rw [Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts target]
+      exact hzero)
+  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hneτ
+  cases hacc : τ.find? (AccountAddress.ofUInt256 target) with
+  | none =>
+      exfalso
+      exact hneτ (by simp [hacc, Option.option])
+  | some acc =>
+      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
+        intro hzero
+        exact hneτ (by simpa [hacc] using hzero)
+      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
+        intro hzeroNat
+        apply hwordNe
+        cases hword : UInt256.ofNat acc.code.size with
+        | mk val =>
+            cases val using Fin.cases
+            · rfl
+            · simp [UInt256.toNat, hword] at hzeroNat
+      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
 
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/
 abbrev clipperSelWord (I : ExecutionEnv) : UInt256 :=
