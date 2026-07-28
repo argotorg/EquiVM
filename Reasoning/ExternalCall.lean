@@ -138,7 +138,7 @@ theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
       subst hevm'
       exact accountCodeStateEq_refl evm.accountMap
 
-theorem typedCallViaEVM_static_accountCode_eq {cfg : Config} {evm evm' : EVM.State}
+theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray}
     (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
@@ -172,8 +172,8 @@ theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
 If a typed external call is possible from an EVM state, and a Solm-side state differs only by
 `accountMapEquiv`-equivalent current/original account maps, then the same success flag and return
 data are possible on the Solm side, with a post-call account map equivalent to the EVM post-call
-map.  This is the narrow interface needed by examples; it should be replaced by the direct proof
-about `Ethereum.EVM.Θ` once that proof lands. -/
+map.  This is the narrow interface needed by examples; the proof routes through the
+Θ-extensionality result `accountMap_extensionality_of_Theta_and_Lambda`. -/
 theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
     {out : ByteArray} {callPerm : Bool}

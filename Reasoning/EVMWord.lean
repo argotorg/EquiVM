@@ -395,10 +395,6 @@ theorem testBit_shiftLeft (m k i : Nat) :
           · have hnk : ¬ i < k := by omega
             simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
 
-theorem nat_testBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) :=
-  testBit_shiftLeft m k i
-
 /-- Bit access after dropping the low `k` bits by division. -/
 theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     (n / 2 ^ k).testBit (i - k) = n.testBit i := by
@@ -408,10 +404,6 @@ theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     rw [← Nat.pow_add]
     congr
     omega]
-
-theorem nat_div_pow_testBit (n k i : Nat) (hk : k ≤ i) :
-    (n / 2 ^ k).testBit (i - k) = n.testBit i :=
-  divPow_testBit n k i hk
 
 theorem nat_land_mask_eq_mod (n k : Nat) :
     Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
@@ -746,21 +738,6 @@ theorem slt_ofNat_lit_one_low {n m : ℕ}
   apply slt_lit_one_low hm
   rw [ulit_toNat' n (lt_size_of_lt_sign (lt_trans hlo hm))]
   exact hlo
-
-/-! ## Small arithmetic tactic
-
-`evm_arith` is deliberately modest: it handles closed literal goals immediately, and can close many
-side conditions after a parametric word lemma has reduced them to natural arithmetic.  It is not
-intended to replace the named lemmas above.
--/
-
-macro "evm_arith" : tactic =>
-  `(tactic|
-    first
-    | decide
-    | omega
-    | norm_num [UInt256.size]
-    | (simp only [UInt256.size] <;> omega))
 
 /-! ## Word equality (`UInt256.eq`) and low-bit masking -/
 

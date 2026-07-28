@@ -43,9 +43,9 @@ abbrev calldataWord (cd : ByteArray) (off : Nat) : UInt256 :=
 ABI types whose top-level calldata representation is a single scalar word and whose decoder path
 runs through `decodeABIWord?`.
 
-This intentionally excludes fixed bytes/function for now: they are also one word on the wire, but
-their decoder validates padding bytes rather than only the decoded word. Arrays, tuples, strings,
-and dynamic bytes are a later structural tier.
+This intentionally excludes fixed bytes/function: they are also one word on the wire, but their
+decoder validates padding bytes rather than only the decoded word. Arrays, tuples, strings, and
+dynamic bytes are structural types with their own decode lemmas below.
 -/
 def isABIScalarWordType : ABIType → Bool
   | .elem (.bytes _) => false
@@ -1260,7 +1260,6 @@ theorem readNat_drop4_zero_eq_calldataWord {cd : ByteArray}
   rfl
 
 theorem readNat_drop4_dynamic_eq_calldataWord {cd : ByteArray}
-    (_hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
     (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size) :
     readNat? (cd.toList.drop 4) (calldataWord cd 4).toNat =
       some (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat := by
@@ -1393,7 +1392,7 @@ theorem decodeCalldata_string_none_length_huge {cd : ByteArray} {x : Solm.Ident}
       · rw [if_pos htotal]
       · rw [if_neg htotal]
         have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
           abiTupleHeadSize?, solcMaxLen, hreadOff, hoffMax, hreadLen, hlenHuge]
 
@@ -1423,7 +1422,7 @@ theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Iden
       · rw [if_pos htotal]
       · rw [if_neg htotal]
         have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
         have hpayloadRead :
             readBytes? (cd.toList.drop 4) ((calldataWord cd 4).toNat + 32)
               (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat = none := by
@@ -2292,8 +2291,6 @@ theorem decodeCalldata_addr_bool_none_huge {cd : ByteArray} {x y : Solm.Ident}
   rw [if_pos]
   · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
-
-/-! ## Address-argument calldata decoding (single + two address) -/
 
 /-! ## Single-address calldata decoding -/
 

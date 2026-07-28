@@ -7,13 +7,22 @@ import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
 
 /-!
-# Storage — ordered-map (`Batteries.RBMap`) facts for EVM storage maps
+# Storage — EVM storage maps, Solidity storage layout, and account-map equivalences
 
-Generic lookup/update facts for the red-black-tree maps that back EVM storage (`Storage`) and the
-account map (`AccountMap`), independent of any contract or keccak layout: a write at one slot
-preserves lookup at a different slot.  The `RBNode`/`RBMap` `find?_erase_ne` machinery fills the gap
-left by `Batteries` (which ships `find?_insert_of_ne` but no erase analogue).  The `UInt256`
-`compare` instances these rely on live in `Reasoning.EVMWord`.
+Contract-agnostic layers, bottom up:
+
+- **Ordered-map (`Batteries.RBMap`) facts** for the red-black-tree maps that back EVM storage
+  (`Storage`) and the account map (`AccountMap`): a write at one slot preserves lookup at a
+  different slot.  The `RBNode`/`RBMap` `find?_erase_ne` machinery fills the gap left by
+  `Batteries` (which ships `find?_insert_of_ne` but no erase analogue).
+- **`StorageLoc` load/store facts** for the Solidity value encodings: full-slot uint256/bytes32,
+  packed unsigned integers, addresses at byte offsets 0/1, packed bools.
+- **The Solidity bytes/string storage layout**: writing, reading, deleting, and clearing the
+  length slot and the keccak-addressed data words.
+- **`accountMapEquiv` / `EVMStateEquiv`**: account-map equivalence up to storage representation,
+  with preservation lemmas for `SLOAD`/`SSTORE` and code-size reads used by the refinement proofs.
+
+The `UInt256` `compare` instances these rely on live in `Reasoning.EVMWord`.
 -/
 
 open Ethereum Ethereum.EVM Solm
@@ -1375,10 +1384,10 @@ theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
     simp [hσ, hτ, Option.option] at hστ ⊢
   exact congrArg (fun code => EVM.Word.ofNat code.size) hστ.2.2.1
 
-theorem uniswapExtCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
+theorem extCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
     (hστ : accountMapEquiv σ τ) (target : UInt256) :
-    uniswapExtCodeSizeWord σ target = uniswapExtCodeSizeWord τ target := by
-  simpa [uniswapExtCodeSizeWord] using
+    extCodeSizeWord σ target = extCodeSizeWord τ target := by
+  simpa [extCodeSizeWord] using
     accountMapEquiv_code_size_word hστ (AccountAddress.ofUInt256 target)
 
 theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}

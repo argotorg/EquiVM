@@ -6,13 +6,20 @@ import Reasoning.Reach
 /-!
 # Solc — reusable boilerplate shared by every solc-compiled contract
 
-Solidity's compiler emits the same prologue for every external function: a free-memory-pointer
-store, a non-payable guard, a `calldatasize` check, and a **4-byte selector dispatch**.  The
-selector dispatch is identical across contracts apart from the four selector bytes, so it is proved
-here once, generically, and instantiated per contract (`truthEvmSelector`, `powEvmSelector`).
+Solidity's compiler emits the same code shapes in every contract; this file proves them once,
+generically, so per-contract proofs only instantiate them.  Contents:
 
-Everything in this file is contract-agnostic; the only inputs are the four selector bytes and the
-matching `UInt256` constant.
+- the **4-byte selector dispatch** (selector word, big-endian decode, the generic dispatch lemma,
+  the dispatcher scaffold and one-level binary dispatch);
+- ABI decoder length checks for calldata and returndata tuples;
+- the recurring memory shapes: free-memory-pointer store, `Error(string)` revert memory, mapping
+  scratch memory, dynamic bytes/string return and calldata-copy memory;
+- the 160-bit **address-cleanup mask** and its canonicality facts;
+- getter thunks, mapping getter/store routines, reentrancy-lock prefixes, checked-arithmetic
+  success tails, boolean-success continuations, event-log suffixes, one-word return wrappers;
+- high-level external-call combinators (EXTCODESIZE guard, call-success guard, STATICCALL).
+
+Everything in this file is contract-agnostic.
 -/
 
 namespace Reasoning.Theory
@@ -896,9 +903,6 @@ noncomputable def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
 noncomputable def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcBytesReturnAllocMem len) 128 32
 
-def solcBytesReturnPayloadWord (header : UInt256) : UInt256 :=
-  (header / ⟨256⟩) * ⟨256⟩
-
 noncomputable def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
   payloadWord.toByteArray.write 0 (solcBytesReturnLengthMem len) 160 32
 
@@ -1385,7 +1389,7 @@ theorem memExpRevert0 (s : State) {t : List UInt256}
     show (⟨0⟩ : UInt256).toNat = 0 from rfl, MachineState.M, hof, Nat.sub_self]
 
 /-- `REVERT` (or `RETURN`) memory-expansion cost when the **offset is zero** and the length `len` is
-    arbitrary (e.g. the post-call `RETURNDATACOPY`+`REVERT` failure tail copies/​reverts the whole
+    arbitrary (e.g. the post-call `RETURNDATACOPY`+`REVERT` failure tail copies/reverts the whole
     return buffer at offset 0).  Unlike `memExpRevert0` the cost is *not* zero, so it is returned
     symbolically in terms of the carried active-words. -/
 theorem memExpRevertZeroOff (s : State) {len : UInt256} {t : List UInt256}
@@ -1437,10 +1441,11 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArr
 
 /-! ## solc address cleanup (the 160-bit mask)
 
-Every solc-compiled function masks `address` values with `0xff…ff` (20 bytes, `PUSH20`) to clean the
-high 96 bits.  These facts couple that mask to address canonicality (`< 2^160`). -/
+Every solc-compiled function masks `address` values with the 160-bit mask `0xff…ff` (built by the
+optimizer as `PUSH1 1; PUSH1 160; SHL; SUB`) to clean the high 96 bits.  These facts couple that
+mask to address canonicality (`< 2^160`). -/
 
-/-- The address-cleanup mask literal `0xff…ff` (`PUSH20`), shared by every solc contract. -/
+/-- The address-cleanup mask literal `2^160 - 1`, shared by every solc contract. -/
 def solcAddrMask : UInt256 := ⟨1461501637330902918203684832716283019655932542975⟩
 
 /-- The canonical EVM word for `CALLER`/`msg.sender`. -/
@@ -1555,9 +1560,9 @@ theorem fromBytes'_take20_wordLE_solcAddrMask (w : UInt256) :
   simpa [solcAddrMask] using
     fromBytes'_take_wordLE_land_mask w 20 (by decide)
 
--- Reading an arbitrary little-endian byte window of an EVM word is the corresponding
--- divide-and-mask operation.
 set_option maxHeartbeats 1000000 in
+/-- Reading an arbitrary little-endian byte window of an EVM word is the corresponding
+    divide-and-mask operation. -/
 theorem fromBytes'_drop_take_wordLE_land_div_mask (w : UInt256) (off size : Nat)
     (hoff : 8 * off < 256) (hsize : 8 * size ≤ 256) :
     fromBytes' (((EVM.Word.toBytesLEWithSizeProof w).1.drop off).take size) =
@@ -1859,75 +1864,6 @@ theorem RD.solcOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
     hd13 hd14 hd17 hdecoded hlt
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcOneAddressExternalMaskAndJump {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
-    (hd0 : decode code decoded = some (.JUMPDEST, .none))
-    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
-    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
-    (hd3 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd5 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd7 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨160⟩, 1)))
-    (hd9 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2) =
-        some (.SHL, .none))
-    (hd10 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩) =
-        some (.SUB, .none))
-    (hd11 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.AND, .none))
-    (hd12 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH2, some (routine, 2)))
-    (hd15 :
-      decode code
-          ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
-        some (.JUMP, .none))
-    (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
-    (hroutine : (D_J code 0).contains routine = true)
-    (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
-      mem aw rdata acc k' C' := by
-  have hmask :
-      UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (calldataWord ee.calldata 4) =
-        calldataWord ee.calldata 4 := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact solcAddrMask_clean_left hcanon
-  have rd1 := h.jumpdest hd0 (by evm_ov)
-  have rd2 := rd1.pop hd1 (by evm_ov)
-  have rd3 := rd2.calldataload hd2 (by evm_ov)
-  have rd5 := rd3.push1 ⟨1⟩ hd3 (by evm_ov)
-  have rd7 := rd5.push1 ⟨1⟩ hd5 (by evm_ov)
-  have rd9 := rd7.push1 ⟨160⟩ hd7 (by evm_ov)
-  have rd10 := rd9.shl hd9 (by evm_ov)
-  have rd11 := rd10.sub hd10 (by evm_ov)
-  have rd12 := rd11.and hd11 (by evm_ov)
-  have rd15 := rd12.push2 routine hd12 (by evm_ov)
-  exact ⟨_, _, by
-    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hmask]
-      using rd15.jump hd15 hroutine (by evm_ov)⟩
-
-set_option maxHeartbeats 1000000 in
 theorem RD.solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -1988,6 +1924,63 @@ theorem RD.solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide, solcAddrMask]
       using rd15.jump hd15 hroutine (by evm_ov)⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.solcOneAddressExternalMaskAndJump {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (hd0 : decode code decoded = some (.JUMPDEST, .none))
+    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
+    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
+    (hd3 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd5 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd7 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨160⟩, 1)))
+    (hd9 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2) =
+        some (.SHL, .none))
+    (hd10 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩) =
+        some (.SUB, .none))
+    (hd11 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.AND, .none))
+    (hd12 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH2, some (routine, 2)))
+    (hd15 :
+      decode code
+          ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMP, .none))
+    (hcanon : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
+    (hroutine : (D_J code 0).contains routine = true)
+    (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 routine (calldataWord ee.calldata 4 :: ret :: R)
+      mem aw rdata acc k' C' := by
+  obtain ⟨k', C', h'⟩ :=
+    RD.solcOneAddressExternalMaskAndJumpMasked h hd0 hd1 hd2 hd3 hd5 hd7 hd9 hd10 hd11
+      hd12 hd15 hroutine hov
+  have hmask :
+      UInt256.land solcAddrMask (calldataWord ee.calldata 4) =
+        calldataWord ee.calldata 4 :=
+    solcAddrMask_clean_left hcanon
+  exact ⟨k', C', by simpa [hmask] using h'⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcTwoAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2137,143 +2130,6 @@ theorem RD.solcExternalStaticArgsShortReverts {cA gh bl σ σ₀ A I} {g : Sat25
   exact rd21.rev 0 hd21 mem_cost (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcTwoAddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
-    {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
-    (hd0 : decode code decoded = some (.JUMPDEST, .none))
-    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
-    (hd2 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd4 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd6 :
-      decode code (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨160⟩, 1)))
-    (hd8 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2) =
-        some (.SHL, .none))
-    (hd9 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩) =
-        some (.SUB, .none))
-    (hd10 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.DUP2, .none))
-    (hd11 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.CALLDATALOAD, .none))
-    (hd12 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.DUP2, .none))
-    (hd13 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.AND, .none))
-    (hd14 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.SWAP2, .none))
-    (hd15 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨32⟩, 1)))
-    (hd17 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2) =
-        some (.ADD, .none))
-    (hd18 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩) =
-        some (.CALLDATALOAD, .none))
-    (hd19 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.AND, .none))
-    (hd20 :
-      decode code
-          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH2, some (routine, 2)))
-    (hd23 :
-      decode code
-          ((decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
-        some (.JUMP, .none))
-    (hcanon0 : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
-    (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
-    (hroutine : (D_J code 0).contains routine = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
-      (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
-      mem aw rdata acc k' C' := by
-  have hmask0 :
-      UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (calldataWord ee.calldata 4) =
-        calldataWord ee.calldata 4 := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact solcAddrMask_clean_left hcanon0
-  have hmask1 :
-      UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (calldataWord ee.calldata 36) =
-        calldataWord ee.calldata 36 := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact solcAddrMask_clean_left hcanon1
-  have hmask1Right :
-      UInt256.land (calldataWord ee.calldata 36)
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
-        calldataWord ee.calldata 36 := by
-    rw [u256_land_comm]
-    exact hmask1
-  have rd1 := h.jumpdest hd0 (by evm_ov)
-  have rd2 := rd1.pop hd1 (by evm_ov)
-  have rd4 := rd2.push1 ⟨1⟩ hd2 (by evm_ov)
-  have rd6 := rd4.push1 ⟨1⟩ hd4 (by evm_ov)
-  have rd8 := rd6.push1 ⟨160⟩ hd6 (by evm_ov)
-  have rd9 := rd8.shl hd8 (by evm_ov)
-  have rd10 := rd9.sub hd9 (by evm_ov)
-  have rd11 := rd10.dup2 hd10 (by evm_ov)
-  have rd12 := rd11.calldataload hd11 (by evm_ov)
-  have rd13 := rd12.dup2 hd12 (by evm_ov)
-  have rd14 := rd13.and hd13 (by evm_ov)
-  have rd15 := rd14.swap2 hd14 (by evm_ov)
-  have rd17 := rd15.push1 ⟨32⟩ hd15 (by evm_ov)
-  have rd18 := rd17.add hd17 (by evm_ov)
-  have rd19 := rd18.calldataload hd18 (by evm_ov)
-  have rd20 := rd19.and hd19 (by evm_ov)
-  have rd23 := rd20.push2 routine hd20 (by evm_ov)
-  exact ⟨_, _, by
-    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
-      show ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 from by decide,
-      hmask0, hmask1, hmask1Right]
-      using rd23.jump hd23 hroutine (by evm_ov)⟩
-
-set_option maxHeartbeats 1000000 in
 theorem RD.solcTwoAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -2389,6 +2245,113 @@ theorem RD.solcTwoAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat25
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide, u256_land_comm]
       using rd23.jump hd23 hroutine (by evm_ov)⟩
+
+set_option maxHeartbeats 1000000 in
+theorem RD.solcTwoAddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
+    (hd0 : decode code decoded = some (.JUMPDEST, .none))
+    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
+    (hd2 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd4 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd6 :
+      decode code (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨160⟩, 1)))
+    (hd8 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2) =
+        some (.SHL, .none))
+    (hd9 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩) =
+        some (.SUB, .none))
+    (hd10 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.DUP2, .none))
+    (hd11 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.CALLDATALOAD, .none))
+    (hd12 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.DUP2, .none))
+    (hd13 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.AND, .none))
+    (hd14 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.SWAP2, .none))
+    (hd15 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨32⟩, 1)))
+    (hd17 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2) =
+        some (.ADD, .none))
+    (hd18 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩) =
+        some (.CALLDATALOAD, .none))
+    (hd19 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.AND, .none))
+    (hd20 :
+      decode code
+          (decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+            UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH2, some (routine, 2)))
+    (hd23 :
+      decode code
+          ((decoded + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
+              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
+              UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMP, .none))
+    (hcanon0 : (calldataWord ee.calldata 4).toNat < EVM.addressModulus)
+    (hcanon1 : (calldataWord ee.calldata 36).toNat < EVM.addressModulus)
+    (hroutine : (D_J code 0).contains routine = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 routine
+      (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: R)
+      mem aw rdata acc k' C' := by
+  obtain ⟨k', C', h'⟩ :=
+    RD.solcTwoAddressExternalMaskAndJumpMasked h hd0 hd1 hd2 hd4 hd6 hd8 hd9 hd10 hd11
+      hd12 hd13 hd14 hd15 hd17 hd18 hd19 hd20 hd23 hroutine hov
+  have hmask0 :
+      UInt256.land solcAddrMask (calldataWord ee.calldata 4) =
+        calldataWord ee.calldata 4 :=
+    solcAddrMask_clean_left hcanon0
+  have hmask1 :
+      UInt256.land solcAddrMask (calldataWord ee.calldata 36) =
+        calldataWord ee.calldata 36 :=
+    solcAddrMask_clean_left hcanon1
+  exact ⟨k', C', by simpa [hmask0, hmask1] using h'⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcAddressUint256ExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
@@ -6266,7 +6229,7 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 /-- Legacy solc `revert(0,0)` terminal emitted as `PUSH1 0; DUP1; REVERT`. -/
-theorem RD.uniswapPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -6280,8 +6243,8 @@ theorem RD.uniswapPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : S
     |>.dup1 hd1 (by omega)
     |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
--- Generic solc high-level-call uint256 return decoder after a successful CALL-like opcode.
 set_option maxHeartbeats 2000000 in
+/-- Generic solc high-level-call uint256 return decoder after a successful CALL-like opcode. -/
 theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem o : ByteArray}
     {aw : UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -6500,19 +6463,19 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk hJumpi hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
+  exact RD.solcPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
     (by simp only [List.length_cons]; omega)
 
 /-! ## Legacy solc high-level-call combinators -/
 
--- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has
--- deployed code.
-theorem RD.uniswapExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has
+    deployed code. -/
+theorem RD.solcExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc okPc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {target : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
     (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
@@ -6529,7 +6492,7 @@ theorem RD.uniswapExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g :
     ∃ k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩) (target :: R) mem aw rdata
       (cA, σ) k' C' := by
   obtain ⟨_, _, rdExt⟩ :=
-    RD.uniswapExtcodesize h hExt
+    RD.extcodesize h hExt
       (by simp only [List.length_cons]; omega)
   have rdIszero0 := RD.iszero rdExt hIszero0
     (by simp only [List.length_cons]; omega)
@@ -6541,7 +6504,7 @@ theorem RD.uniswapExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g :
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.isZero
-          (Reasoning.Theory.uniswapExtCodeSizeWord σ target)) ≠ ⟨0⟩ := by
+          (Reasoning.Theory.extCodeSizeWord σ target)) ≠ ⟨0⟩ := by
     rw [Reasoning.Theory.isZero_eq_zero_of_ne hcodeSize]
     decide
   have rdJumpi := RD.jumpiT rdPush hJumpi hcond hjd
@@ -6552,15 +6515,15 @@ theorem RD.uniswapExtcodesizeGuardOk {code : ByteArray} {ee : ExecutionEnv} {g :
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rdPop⟩
 
--- Generic solc high-level-call `EXTCODESIZE` guard plus `GAS`, stopping at the call opcode with
--- existential gas.
-theorem RD.uniswapExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
+/-- Generic solc high-level-call `EXTCODESIZE` guard plus `GAS`, stopping at the call opcode with
+    existential gas. -/
+theorem RD.solcExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
     (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
@@ -6578,21 +6541,21 @@ theorem RD.uniswapExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
     ∃ gasWord k' C', RD code ee g s0 (okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
       (gasWord :: target :: R) mem aw rdata (cA, σ) k' C' := by
   obtain ⟨_, _, rdReady⟩ :=
-    RD.uniswapExtcodesizeGuardOk h hcodeSize hExt hIszero0 hDup1 hIszero1 hPush hJumpi
+    RD.solcExtcodesizeGuardOk h hcodeSize hExt hIszero0 hDup1 hIszero1 hPush hJumpi
       hjd hJumpdest hPop hov
   obtain ⟨gasWord, rdGas⟩ :=
     RD.gas rdReady hGas (by simp only [List.length_cons]; omega)
   exact ⟨gasWord, _, _, rdGas⟩
 
--- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has no
--- deployed code.
-theorem RD.uniswapExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
+/-- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has no
+    deployed code. -/
+theorem RD.solcExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (target :: target :: R) mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hExt : decode code pc = some (.EXTCODESIZE, .none))
     (hIszero0 : decode code (pc + ⟨1⟩) = some (.ISZERO, .none))
     (hDup1 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
@@ -6618,7 +6581,7 @@ theorem RD.uniswapExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
   obtain ⟨_, _, rdExt⟩ :=
-    RD.uniswapExtcodesize h hExt
+    RD.extcodesize h hExt
       (by simp only [List.length_cons]; omega)
   have rdIszero0 := RD.iszero rdExt hIszero0
     (by simp only [List.length_cons]; omega)
@@ -6630,17 +6593,17 @@ theorem RD.uniswapExtcodesizeGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.isZero
-          (Reasoning.Theory.uniswapExtCodeSizeWord σ target)) = ⟨0⟩ := by
+          (Reasoning.Theory.extCodeSizeWord σ target)) = ⟨0⟩ := by
     rw [hcodeSize]
     decide
   have rdFallthrough := RD.jumpiNT rdPush hJumpi hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
+  exact RD.solcPush1Dup1Revert0 rdFallthrough hPush0 hDupZero hRevert
     (by simp only [List.length_cons]; omega)
 
--- Generic solc high-level-call success guard for the branch where a CALL-like status word is
--- nonzero.
-theorem RD.uniswapCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
+/-- Generic solc high-level-call success guard for the branch where a CALL-like status word is
+    nonzero. -/
+theorem RD.solcCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -6678,9 +6641,9 @@ theorem RD.uniswapCallSuccessGuardOk {code : ByteArray} {ee : ExecutionEnv}
     (by omega)
   exact ⟨_, _, rdPop⟩
 
--- Generic solc high-level-call success guard for the branch where a CALL-like status word is zero
--- and the revert-data bubbling tail is executed.
-theorem RD.uniswapCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
+/-- Generic solc high-level-call success guard for the branch where a CALL-like status word is zero
+    and the revert-data bubbling tail is executed. -/
+theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -6772,9 +6735,9 @@ theorem RD.uniswapCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
       simpa [awout, len, haw] using memExpRevertZeroOff s hstk)
     (by simp only [List.length_cons]; omega)
 
--- Same opaque `Θ` reach proof shape as `RD.call`, specialized to `STATICCALL`.
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Same opaque `Θ` reach proof shape as `RD.call`, specialized to `STATICCALL`. -/
+theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -6943,8 +6906,8 @@ theorem RD.uniswapStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           (s.executionEnv.depth + 1) s.executionEnv.header false
           (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
 
--- Generic `STATICCALL` depth-limit `RD` combinator.
-theorem RD.uniswapStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Generic `STATICCALL` depth-limit `RD` combinator. -/
+theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}

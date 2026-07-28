@@ -3,16 +3,19 @@ import Reasoning.Reach
 import Reasoning.Storage
 
 /-!
-# Dispatch — generic Solm `dispatchMsg` facts for a single-transition contract
+# Dispatch — generic Solm `dispatchMsg` facts
 
-For a contract with exactly one transition (`contract.transitions = [transition]`) whose 4-byte
-keccak selector is `selBytes`, `dispatchMsg` reduces to a 4-byte calldata-prefix compare.  These
-four lemmas are contract-agnostic; each example instantiates them with its `transitions = [t]`
-proof (`rfl`) and its selector axiom.  `RDrev.reEquivNonPayable` (below) packages the whole
-`callvalue ≠ 0` Solm-coupling on top of them.
+`dispatchMsg` (the trusted Solm dispatcher) maps each transition to its 4-byte keccak selector and
+returns the first whose selector matches the calldata prefix.  Everything here is contract-agnostic:
+
+- **Multi-selector dispatch**: `dispatchList`, the pure list-recursive form of `dispatchMsg`, plus
+  the bridge and list-walking lemmas that handle a contract with any number of functions;
+- **Single-transition instances** (`contract.transitions = [transition]`): `dispatchMsg` reduces
+  to a 4-byte calldata-prefix compare, instantiated per contract with its `transitions = [t]`
+  proof (`rfl`) and its selector axiom, bundled in `SingleSelectorDispatch`;
+- **`Reasoning.Reach` bridges** (`RDret`/`RDrev.reEquiv*`): package the runtime-equivalence
+  coupling, e.g. `RDrev.reEquivNonPayable` for the whole `callvalue ≠ 0` branch.
 -/
-
-/- TODO generalize for an arbitrary number of transitions -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 
@@ -256,7 +259,7 @@ namespace Reasoning.Reach
     non-payable guard's revert (`h : RDrev …`) and the contract body's revert under non-zero call
     value (`hbody`), produce the `runtimeEquivalenceFor` case: the OOG alternative folds via
     `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
-    `execution`-with-revert.  Both examples' `callvalue ≠ 0` branch is a single call to this. -/
+    `execution`-with-revert.  Each example's `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)

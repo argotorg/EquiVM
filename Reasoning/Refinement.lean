@@ -51,14 +51,6 @@ end StateRel
     mention the local store. -/
 abbrev StoreRel := Cursor → Store → State → Prop
 
-namespace StoreRel
-
-/-- Lift a locals-only relation to the frame-shaped relation expected by top-level statement rules. -/
-def toStateRel (R : StoreRel) : StateRel :=
-  fun cur frame evm => R cur frame.locals evm
-
-end StoreRel
-
 /-- A postcondition over a Solm block result.  The postcondition is where each client decides what
     `.ok`, `.returned`, `.break`, `.continue`, and `.reverted` mean on the EVM side. -/
 abbrev StmtPost := ExecResult → Prop
@@ -130,15 +122,6 @@ def CoupledState.stepRD {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
       (StateRel.stepFrom R st.cur st.frame st.evm
         (cursorOfRD pc' stack' mem' aw' rdata' world') frame' evm') pc' :=
   CoupledState.ofRD frame' evm' hRD hworld (StateRel.stepFrom_here st.hrel)
-
-/-- Compatibility wrapper for older proof scripts; prefer `CoupledState.reached` at the new state. -/
-def CoupledState.next {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {R R' : StateRel} {pc pc' : UInt256} (_st : CoupledState code ee g s0 R pc)
-    (cur' : Cursor) (k' C' : ℕ) (frame' : Frame) (evm' : State)
-    (hpc' : cur'.pc = pc') (hRD' : RDc code ee g s0 cur' k' C')
-    (hworld' : cur'.world = worldOf evm') (hrel' : R' cur' frame' evm') :
-    CoupledState code ee g s0 R' pc' :=
-  CoupledState.reached cur' k' C' frame' evm' hpc' hRD' hworld' hrel'
 
 /-- Convert the cursor-indexed reachability proof stored in a coupled state into the positional
     `RD` form expected by `evm_run`, after exposing the cursor fields used by the local relation. -/

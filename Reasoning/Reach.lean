@@ -20,7 +20,7 @@ ordinary function application (`r.jumpdest …  |>.swap1 …`), the out-of-gas c
 threads itself inside the `Prop`, and `RD.conclude` repackages the indices back into
 the `∃ k' C'` form the segment lemmas state.
 
-Design notes live in `Reasoning/REACH_PLAN.md`.  Built on `Reasoning.Theory`
+Built on `Reasoning.Theory`
 (`stepContinue`/`stepOOG`, `toNat_sub_ofNat`) and `Reasoning.Stepping` (the
 `st_op` successors + `<op>_xstep` lemmas).  Straight-line only; control flow stays
 ordinary Lean and composes by `RD` transitivity at the call site.
@@ -1578,7 +1578,7 @@ theorem Theta_returnData_size_lt_2pow138_of_eq
   rw [← hΘ] at htheta
   simpa using htheta
 
-/-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters, like `RD.loop`): from a
+/-- **SSTORE** as an `RD → RD` combinator (existential step/gas counters): from a
     cursor at the `SSTORE` pc with `[slot, val, …t]` and carried accounts `(cA, σ)`, write `val` to
     `slot` of the caller account (`ee.codeOwner`), advancing the carried `accountMap` to
     `sstoreAccountMap ee.codeOwner σ slot val` (`createdAccounts` and memory untouched).  The cost
@@ -1651,7 +1651,7 @@ theorem RD.caller {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
 
 /-- **ADDRESS**: push the current contract address (`ee.codeOwner`) onto the stack
     (cost `Gbase = 2`, pc += 1). -/
-theorem RD.uniswapAddress {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+theorem RD.address {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1662,60 +1662,60 @@ theorem RD.uniswapAddress {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have st := uniswapAddress_xstep hcode hpc hdec hstk hov
+  · have st := address_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 2
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨uniswapStAddress s,
+    · refine Or.inr ⟨stAddress s,
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
           by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [uniswapStAddress]; exact hcode
-      · simp only [uniswapStAddress]; rw [hpc]
-      · simp only [uniswapStAddress]; rw [hstk, hee]
-      · simp only [uniswapStAddress]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [uniswapStAddress]; exact hmem
-      · simp only [uniswapStAddress]; exact haw
-      · simp only [uniswapStAddress]; exact hrdata
-      · simp only [uniswapStAddress]; exact hacc
+      · simp only [stAddress]; exact hcode
+      · simp only [stAddress]; rw [hpc]
+      · simp only [stAddress]; rw [hstk, hee]
+      · simp only [stAddress]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stAddress]; exact hmem
+      · simp only [stAddress]; exact haw
+      · simp only [stAddress]; exact hrdata
+      · simp only [stAddress]; exact hacc
       · exact hee
       · exact hworld
 
 /-- **EXTCODESIZE**: push the target account code size onto the stack, existentializing the
     warm/cold `Caccess` gas cost like `RD.sload` does for `Csload`. -/
-theorem RD.uniswapExtcodesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+theorem RD.extcodesize {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
     {target : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc (target :: t) mem aw rdata (cA, σ) k C)
     (hdec : decode code pc = some (.EXTCODESIZE, .none)) (hov : t.length + 1 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
-      (uniswapExtCodeSizeWord σ target :: t) mem aw rdata (cA, σ) k' C' := by
+      (extCodeSizeWord σ target :: t) mem aw rdata (cA, σ) k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hworld⟩
   · exact ⟨k, C, Or.inl hoog⟩
-  · have st := uniswapExtcodesize_xstep hcode hpc hdec hstk hov
+  · have st := extcodesize_xstep hcode hpc hdec hstk hov
     have hσ : s.accountMap = σ := congrArg Prod.snd hacc
     have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
     by_cases gg : g.toNat < C + Caccess (AccountAddress.ofUInt256 target) s.substate
     · exact ⟨k, C, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
     · refine ⟨k + 1, C + Caccess (AccountAddress.ofUInt256 target) s.substate,
-        Or.inr ⟨uniswapStExtcodesize s target t,
+        Or.inr ⟨stExtcodesize s target t,
           hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
           by
             have hpos : 1 ≤ Caccess (AccountAddress.ofUInt256 target) s.substate := by
               unfold Caccess; split <;> decide
             omega,
           by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
-      · simp only [uniswapStExtcodesize]; exact hcode
-      · simp only [uniswapStExtcodesize]; rw [hpc]
-      · simp only [uniswapStExtcodesize, uniswapExtCodeSizeWord, hσ]
-      · simp only [uniswapStExtcodesize]
+      · simp only [stExtcodesize]; exact hcode
+      · simp only [stExtcodesize]; rw [hpc]
+      · simp only [stExtcodesize, extCodeSizeWord, hσ]
+      · simp only [stExtcodesize]
         rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [uniswapStExtcodesize]; exact hmem
-      · simp only [uniswapStExtcodesize]; exact haw
-      · simp only [uniswapStExtcodesize]; exact hrdata
-      · simp only [uniswapStExtcodesize]; rw [hcA, hσ]
-      · simp only [uniswapStExtcodesize]; exact hee
+      · simp only [stExtcodesize]; exact hmem
+      · simp only [stExtcodesize]; exact haw
+      · simp only [stExtcodesize]; exact hrdata
+      · simp only [stExtcodesize]; rw [hcA, hσ]
+      · simp only [stExtcodesize]; exact hee
       · exact hworld
 
 /-- **SWAP4**: exchange the stack top with the 5th element (cost `Gverylow = 3`, pc += 1). -/
@@ -3722,8 +3722,7 @@ theorem RDret.reEquivElim
 /-! ## Callable interface — exposing a segment's raw `Ξ` result
 
 `xiResult` turns an `RDret`/`RDrev` over `initState` into the `Ξ`-level disjunction (out-of-gas or
-the concrete halt).  (Originally built for callee-correctness reuse; the external-call proof instead
-treats the sub-call result as opaque, so this is currently unused — kept pending cleanup.) -/
+the concrete halt). -/
 
 /-- A success segment's **raw `Ξ` result**: either the run OOGs, or `Ξ` halts with success returning
     `o`, the accounts projected back to the carried `(cA, σ)`. -/
@@ -3750,35 +3749,6 @@ theorem RDrev.xiResult {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArray}
   rcases h with hoog | ⟨g', o, hX⟩
   · exact Or.inl (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact Or.inr ⟨g', o, Xi_revert_of_X_sat (by rw [← hcode] at hX; exact hX)⟩
-
-/-! ## Spike acceptance: a 2-step fold closes a fixed-pc / fixed-stack conclusion -/
-
-/-- JUMPDEST then SWAP1, fully abstract over the bytecode (decode facts supplied as
-    hypotheses).  Confirms `conclude` produces the fixed `pc`/`stack` and the carried
-    `memory`/`activeWords`/accounts preservation with no leftover goals. -/
-example {code : ByteArray} {g : Sat256} {s0 s : State} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = ⟨10⟩)
-    (hstk : s.machineState.stack = a :: b :: t)
-    (hd0 : decode code ⟨10⟩ = some (.JUMPDEST, .none))
-    (hd1 : decode code (⟨10⟩ + ⟨1⟩) = some (.SWAP1, .none))
-    (hov : t.length + 2 ≤ 1024)
-    (hgas : s.machineState.gasAvailable = g.subNat  C) (hk : k ≤ C) (hC : C ≤ g.toNat)
-    (hX : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s)
-    (hworld : RDWorld s0 s) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
-    ∨ ∃ (k' C' : ℕ) (s' : State),
-        X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k') (D_J code 0) s'
-      ∧ s'.executionEnv.code = code ∧ s'.machineState.pc = ⟨10⟩ + ⟨1⟩ + ⟨1⟩
-      ∧ s'.machineState.stack = b :: a :: t
-      ∧ s'.machineState.gasAvailable = g.subNat  C' ∧ k' ≤ C' ∧ C' ≤ g.toNat
-      ∧ s'.machineState.memory = s.machineState.memory
-      ∧ s'.machineState.activeWords = s.machineState.activeWords
-      ∧ s'.machineState.returnData = s.machineState.returnData
-      ∧ (s'.createdAccounts, s'.accountMap) = (s.createdAccounts, s.accountMap) :=
-  (RD.start hcode hpc hstk hgas hk hC hX hworld
-    |>.jumpdest hd0 (by simp only [List.length_cons]; omega)
-    |>.swap1 hd1 (by omega)).conclude
 
 /-! ## `evm_run` — a boilerplate-eliding chain builder
 

@@ -255,10 +255,6 @@ theorem byteArray_write_len_zero (src base : ByteArray) (srcOff dstOff : ℕ) :
   unfold ByteArray.write
   simp
 
-/-- `(A ++ B).size = A.size + B.size` for `ByteArray`. -/
-theorem byteArray_size_append (A B : ByteArray) : (A ++ B).size = A.size + B.size :=
-  ByteArray.size_append
-
 /-- `ffi.ByteArray.zeroes` of a `toNat`-zero size is the empty array. -/
 theorem zeroes_zero {n : Nat} (hn : n = 0) : ffi.ByteArray.zeroes n = ByteArray.empty := by
   apply ByteArray.ext
@@ -1570,17 +1566,6 @@ theorem mappingSlot_single (key baseSlot : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)))
       = uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)) :=
-  keccakSlot_eq _
-
-/-- **Nested-mapping slot.**  For `mapping[k₁][k₂]` at base `baseSlot`: the inner slot is the
-    single-mapping slot for `k₁`, and the outer `KECCAK256` over `k₂ ‖ innerSlot` yields the Solm
-    layout slot — matching `uInt256OfByteArray (KEC (k₂ ‖ KEC(k₁ ‖ baseSlot)))`. -/
-theorem mappingSlot_nested (k₁ k₂ baseSlot : UInt256) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (k₂.toByteArray
-          ++ (uInt256OfByteArray (ffi.KEC (k₁.toByteArray ++ baseSlot.toByteArray))).toByteArray)))
-      = uInt256OfByteArray (ffi.KEC (k₂.toByteArray
-          ++ (uInt256OfByteArray (ffi.KEC (k₁.toByteArray ++ baseSlot.toByteArray))).toByteArray)) :=
   keccakSlot_eq _
 
 /-- **Load coupling.**  The word `RD.sload` pushes (storage of `codeOwner` at `slot`, read from the

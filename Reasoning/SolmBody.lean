@@ -3,11 +3,15 @@ import Reasoning.Theory
 /-!
 # SolmBody — compositional lemmas for the Solm contract body
 
-The Solm-side analogue of the EVM trace: facts about `ExecTransitionBody` / `ExecStmt`.  The piece
-shared across every solc contract is the **non-payable guard** `require(callvalue == 0)` that opens
-each transition body — its evaluation (both directions) and the body-revert it produces under
-non-zero call value.  Statement-level combinators for the success path / loops can be added here as
-more contracts need them.
+The Solm-side analogue of the EVM trace: facts about `ExecTransitionBody` / `ExecStmt`, all
+contract-agnostic:
+
+- the **non-payable guard** `require(callvalue == 0)` that opens each transition body — its
+  evaluation (both directions) and the body-revert it produces under non-zero call value;
+- internal-call unfolding, and wrappers for external / checked / low-level / delegate calls;
+- Hoare-style while/for loop rules;
+- the `ABlock` forward block builder;
+- `Solm.Store` (locals) lookup and storage-access collapse lemmas.
 -/
 
 open Solm ABI Ethereum
