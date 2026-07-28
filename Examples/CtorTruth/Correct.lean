@@ -2,7 +2,6 @@ import Examples.CtorTruth.Bytecode
 import Examples.Truth.Correct
 import Reasoning.Memory
 import Reasoning.Solc
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Reach

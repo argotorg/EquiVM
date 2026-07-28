@@ -26,6 +26,11 @@ Built on `Reasoning.Theory`
 ordinary Lean and composes by `RD` transitivity at the call site.
 -/
 
+
+/-
+
+TODO: remove redundant arguments from `RD` and pack remaining as `cursor`.
+-/
 open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Reach
@@ -3573,6 +3578,99 @@ theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     by_cases gg : g.toNat < C + mcost
     · exact Or.inl (RD.terminalOOG hgas st hk hC gg hX)
     · exact Or.inr ⟨_, _, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
+
+end Reasoning.Reach
+
+namespace Reasoning.Theory
+
+/-! ## Coverage helpers — build a `runtimeEquivalenceFor` case from a `Ξ` outcome -/
+
+/-- `Ξ` runs out of gas ⇒ the `outOfGas` case. -/
+theorem reEquiv_outOfGas {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I}
+    (h : Ξ cA gh bl σ_evm σ₀ g A I = .error .OutOfGass) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .outOfGas h
+
+/-- When a contract has no `receive`/`fallback`, a successful `dispatchMsg` is a successful
+    selector dispatch: the receive and fallback arms of `dispatchMsg` are `none`.  Shared by the
+    `decodingFailed`/`execution` coverage helpers below. -/
+theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
+    {contract : ContractDecl} {calldata : ByteArray} {transition : TransitionDecl}
+    (hreceive : contract.receive = none)
+    (hfallback : contract.fallback = none)
+    (h : dispatchMsg contract calldata = some transition) :
+    selectorDispatchMsg contract calldata = some transition := by
+  unfold dispatchMsg at h
+  cases hsel : selectorDispatchMsg contract calldata with
+  | none =>
+      have hreceiveDispatch : receiveDispatchMsg contract calldata = none := by
+        simp [receiveDispatchMsg, hreceive]
+      rw [hsel, hreceiveDispatch, hfallback] at h
+      simp at h
+  | some selected =>
+      rw [hsel] at h
+      simpa using h
+
+/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case.  The Solm-side maps are
+    unconstrained — this path never runs `solmExec`. -/
+theorem reEquiv_noDispatch {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I} {g' o}
+    (hd : dispatchMsg contract I.calldata = none)
+    (h : Ξ cA gh bl σ_evm σ₀ g A I = .ok (.revert g' o)) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .noDispatch hd h
+
+/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. Solm-side maps
+    unconstrained. -/
+theorem reEquiv_decodingFailed
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ g A I} {t g' o}
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = none)
+    (h : Ξ cA gh bl σ_evm σ₀ g A I = .ok (.revert g' o))
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .decodingFailed (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
+    rfl hdec h
+
+/-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
+    The EVM runs from `σ_evm`, the Solm body from `σ_solm` (genuinely distinct maps); `hequiv`
+    carries the up-to-`accountMapEquiv` coupling of their results. -/
+theorem reEquiv_execution
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t callargs actRes}
+    {g : UInt256}
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+              (transitionSignature t).paramTypes I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi t.returnType))
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .execution rfl
+    (.intro (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
+      rfl hdec rfl hbody)
+    hequiv
+
+/-- The receive transition executes without selector ABI decoding and `Ξ`'s result matches. -/
+theorem reEquiv_receiveExecution
+    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t actRes}
+    {g : UInt256}
+    (hreceive : receiveDispatchMsg contract I.calldata = some t)
+    (hparams : t.params = [])
+    (hreturn : t.returnType = [])
+    (hbody : ExecTransitionBody cfg contract
+              (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) ∅ t.body actRes)
+    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes (.abi [])) :
+    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
+  .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
+
+end Reasoning.Theory
+
+namespace Reasoning.Reach
+
+open Reasoning.Theory
 
 /-! ## From RD terminals to Solm runtime-equivalence
 

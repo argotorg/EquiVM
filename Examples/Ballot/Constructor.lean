@@ -7,7 +7,7 @@ import Reasoning.Reach
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.SolmBody
-import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.JumpDest
 
 /-!

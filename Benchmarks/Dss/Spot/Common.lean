@@ -1,6 +1,5 @@
 import Benchmarks.Dss.Spot.Bytecode
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

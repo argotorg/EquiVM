@@ -9,7 +9,6 @@ import Examples.Ballot.WinningProposal
 import Examples.Ballot.WinnerName
 import Examples.Ballot.DelegateComplete
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

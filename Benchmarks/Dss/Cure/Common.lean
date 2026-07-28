@@ -1,6 +1,5 @@
 import Benchmarks.Dss.Cure.Trusted
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

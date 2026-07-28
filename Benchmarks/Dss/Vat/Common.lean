@@ -6,7 +6,6 @@ import Reasoning.SolmBody
 import Reasoning.Solc
 import Reasoning.Stepping
 import Reasoning.Storage
-import Reasoning.Theory
 import Mathlib.Tactic.IntervalCases
 
 /-!

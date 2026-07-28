@@ -7,7 +7,6 @@ import Examples.ERC20.Approve
 import Examples.ERC20.Transfer
 import Examples.ERC20.TransferFrom
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

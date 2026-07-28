@@ -1,4 +1,4 @@
-import Reasoning.Theory
+import Ethereum.Semantics
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
@@ -18,6 +18,12 @@ open Ethereum Ethereum.EVM
 namespace Reasoning.Theory
 
 /-! ## Word reconstruction and no-wrap arithmetic -/
+
+/-- A `UInt256` with `toNat = 0` is `⟨0⟩`.  (Used to discharge `callvalue = 0` tests.) -/
+theorem uint256_toNat_eq_zero {a : UInt256} (h : a.toNat = 0) : a = ⟨0⟩ := by
+  obtain ⟨⟨v, hlt⟩⟩ := a
+  simp only [UInt256.toNat] at h
+  subst h; rfl
 
 /-- `AccountAddress.ofUInt256` is the same address as taking the word's natural value. -/
 theorem accountAddress_ofUInt256_eq_ofNat_toNat (w : UInt256) :

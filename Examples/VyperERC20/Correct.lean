@@ -8,7 +8,7 @@ import Examples.VyperERC20.Transfer
 import Examples.VyperERC20.TransferFromRuntime
 import Solm.Equiv
 import Reasoning.ABI
-import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

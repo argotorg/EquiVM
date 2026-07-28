@@ -13,4 +13,3 @@ import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Storage
-import Reasoning.Theory

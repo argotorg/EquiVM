@@ -2,7 +2,6 @@ import Examples.Caller.Bytecode
 import Examples.Caller.Spec
 import Reasoning.ABI
 import Reasoning.EVMWord
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Stepping

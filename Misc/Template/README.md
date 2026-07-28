@@ -8,7 +8,7 @@ The division of labor is deliberate: **the user provides the compiled artifacts
 and the surface specification (`SpecSyntax.lean`) — the boilerplate and the
 proof are the job of the LLM agent**, driven by the prompt in `Misc/prompt.md`.
 
-Proven end-to-end exemplars: `Benchmarks/Dss/Pot` (this template's source),
+Proven end-to-end examples: `Benchmarks/Dss/Pot` (this template's source),
 `Benchmarks/Dss/Jug`, `Benchmarks/Dss/Cat`, `Benchmarks/WETH9`, `Examples/Ballot`.
 
 ## Directory layout
@@ -60,21 +60,6 @@ that is `SpecSyntax.lean` — `Spec.lean` only references it.
    the constructor in their own files, and closes the top-level theorems —
    `sorry`-free and axiom-clean up to the accepted trusted base (selector and
    jump-dest facts, plus the tolerated `Reasoning/` axioms).
-4. **Acceptance** (user). `lake build <Module>.Correct` succeeds, no
-   `sorry`/`admit` in the directory, and `#print axioms` on the capstone shows
-   only the accepted set (see the finish checklist in `Misc/prompt.md`).
-
-## Conventions
-
-- Namespaces `Examples.<C>` / `Benchmarks.[<Family>.]<C>`; the surface file
-  uses `<Ns>.Syntax` with `contractSyntax`.
-- Transitions in selector (dispatch) order everywhere: surface file, derived
-  handles, selector table.
-- Solidity names that are Lean keywords are guillemet-escaped in the surface
-  syntax: «from», «to», «end», …
-- The non-payable guard is implicit in the surface syntax; `payable` marks the
-  entry points whose compiled body has no callvalue check.
-- Parameterized contracts thread the immutable valuation `v` through
-  `contractSyntax`, `contract`, and the theorems. If a large parameterized
-  `rfl` ever times out, `simp only [<helper defs>, List.cons_append,
-  List.nil_append]; rfl` closes it (cf. `Benchmarks/Dss/Dog/SpecSyntax.lean`).
+4. **Acceptance**. `lake build <Module>.Correct` succeeds, no `sorry`/`admit` in
+   the directory, and `#print axioms` on the capstone shows only the accepted
+   set (see the finish checklist in `Misc/prompt.md`).

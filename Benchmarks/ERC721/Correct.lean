@@ -2,7 +2,6 @@ import Benchmarks.ERC721.Bytecode
 import Benchmarks.ERC721.Constructor
 import Benchmarks.ERC721.Spec
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc

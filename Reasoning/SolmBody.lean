@@ -1,4 +1,5 @@
-import Reasoning.Theory
+import Solm.Equiv
+import Reasoning.EVMWord
 
 /-!
 # SolmBody — compositional lemmas for the Solm contract body

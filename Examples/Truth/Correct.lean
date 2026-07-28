@@ -2,7 +2,6 @@ import Examples.Truth.Bytecode
 import Examples.Truth.Spec
 import Examples.CtorTruth.Bytecode
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Stepping
