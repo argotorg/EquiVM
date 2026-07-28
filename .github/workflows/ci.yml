@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installs the toolchain from lean-toolchain, fetches the mathlib
+      # olean cache, caches .lake in the GitHub cache, and builds the
+      # library targets.
+      - name: Build libraries
+        uses: leanprover/lean-action@v1
+        with:
+          build-args: EquiVM EVM ABI Solm Reasoning Proofs
+          use-github-cache: true
+
+      # Mirrors the imports of Examples.lean. Remove lines to prune.
+      - name: Build examples
+        run: |
+          lake build \
+            Examples.Pow.Correct \
+            Examples.Truth.Correct \
+            Examples.Caller.Correct \
+            Examples.ERC20.Correct \
+            Examples.CtorTruth.Correct \
+            Examples.CtorStore.Correct \
+            Examples.TinyImmutable.Correct \
+            Examples.Ballot.Correct \
+            Examples.SimpleAuction.Correct \
+            Examples.StringStoreLite.Correct \
+            Examples.BlindAuction.Correct \
+            Examples.OpenZeppelinBench.Ownable2Step.Correct \
+            Examples.OpenZeppelinBench.AccessControl.Correct \
+            Examples.OpenZeppelinBench.Pausable.Correct \
+            Examples.OpenZeppelinBench.ERC6909.Correct \
+            Examples.UniswapV2Pair.Correct
+
+      # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
+      - name: Build benchmarks
+        run: |
+          lake build \
+            Benchmarks.WETH9.Correct \
+            Benchmarks.Safe.Correct \
+            Benchmarks.UniswapV3Pool.Correct \
+            Benchmarks.UniswapV2Router02.Correct \
+            Benchmarks.Dss.Dai.Correct \
+            Benchmarks.Dss.Jug.Correct \
+            Benchmarks.Dss.Vat.Correct \
+            Benchmarks.Dss.Pot.Correct \
+            Benchmarks.Dss.Spot.Correct \
+            Benchmarks.Dss.Vow.Correct \
+            Benchmarks.Dss.LinearDecrease.Correct \
+            Benchmarks.Dss.StairstepExponentialDecrease.Correct \
+            Benchmarks.Dss.ExponentialDecrease.Correct \
+            Benchmarks.Dss.Cat.Correct \
+            Benchmarks.Dss.Clipper.Correct \
+            Benchmarks.Dss.Cure.Correct \
+            Benchmarks.Dss.Dog.Correct \
+            Benchmarks.Dss.End.Correct \
+            Benchmarks.Dss.Flapper.Correct \
+            Benchmarks.Dss.Flipper.Correct \
+            Benchmarks.Dss.Flopper.Correct \
+            Benchmarks.Dss.GemJoin.Correct \
+            Benchmarks.Dss.DaiJoin.Correct \
+            Benchmarks.CompoundIII.CometRewards.Correct \
+            Benchmarks.CompoundIII.Comet.Correct \
+            Benchmarks.EAS.Attester.Correct \
+            Benchmarks.ERC721.Correct \
+            Benchmarks.Auction.Correct \
+            Benchmarks.OpenZeppelinBench.VestingWallet.Correct \
+            Benchmarks.OpenZeppelinBench.TimelockController.Correct \
+            Benchmarks.Klima.Correct
