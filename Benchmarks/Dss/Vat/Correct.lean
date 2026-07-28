@@ -27,7 +27,6 @@ import Benchmarks.Dss.Vat.Suck
 import Benchmarks.Dss.Vat.Urns
 import Benchmarks.Dss.Vat.Vice
 import Benchmarks.Dss.Vat.Wards
-import Reasoning.Refinement
 import Solm.Equiv
 
 /-!
@@ -38,7 +37,7 @@ are present. The runtime-equivalence proof is intentionally left as the benchmar
 also exposes the whole-contract wrapper that combines the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

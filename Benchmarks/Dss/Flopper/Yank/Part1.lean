@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Flopper.AuctionCommon
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -989,7 +989,7 @@ theorem flopperYankBodyReverts_suckCallFailure
             .storage (bidsF (.var "id") "bid")] "_suckRet" ++
           [.delete (bidRef (.var "id"))])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   .execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1071,7 +1071,7 @@ theorem flopperYankBodyReturns_suckCallSuccess
           [.delete (bidRef (.var "id"))])
         (.ok { contract := contract, locals := yankSuckLocals I }
           (yankDeletePostState evm' I)) :=
-    Reasoning.Refinement.execBlock_append hchecked hdelete
+   .execBlock_append hchecked hdelete
   refine ExecFuncBody.execBlockOK ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using

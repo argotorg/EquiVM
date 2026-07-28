@@ -5,12 +5,11 @@ import Examples.SimpleAuction.Beneficiary
 import Examples.SimpleAuction.AuctionEndTime
 import Examples.SimpleAuction.HighestBidder
 import Examples.SimpleAuction.HighestBid
-import Reasoning.Refinement
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

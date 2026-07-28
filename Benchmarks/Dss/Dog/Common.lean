@@ -8,7 +8,6 @@ import Reasoning.Memory
 import Reasoning.Storage
 import Reasoning.Dispatch
 import Reasoning.Initcode
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
@@ -18,7 +17,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide selector notation and constants for the optimized Dog runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxRecDepth 2000000

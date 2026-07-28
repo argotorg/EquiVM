@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Flipper.Yank
 import Benchmarks.Dss.Flipper.BidDelete
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 

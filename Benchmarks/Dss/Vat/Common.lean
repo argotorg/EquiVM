@@ -2,7 +2,6 @@ import Benchmarks.Dss.Vat.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.Solc
 import Reasoning.Stepping
@@ -16,7 +15,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide selector notation and proof-shape abbreviations for the optimized Vat runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 

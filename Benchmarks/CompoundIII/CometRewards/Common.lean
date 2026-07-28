@@ -4,7 +4,6 @@ import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory
 import Reasoning.Reach
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
@@ -17,7 +16,7 @@ the via-IR dispatcher.  The prefix is not the standard `solcDispatchReachBody` p
 `cometRewardsReach...` lemmas are local proof obligations rather than uses of the generic driver.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

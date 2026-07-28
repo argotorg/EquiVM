@@ -26,7 +26,7 @@ adds the shared revert paths (non-payable guard, no-dispatch), and packages the 
 the runtime target into the whole-contract equivalence.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

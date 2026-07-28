@@ -3,7 +3,6 @@ import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.ExternalCall
 import Reasoning.Memory
-import Reasoning.Refinement
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Storage
@@ -21,7 +20,7 @@ to the other DSS contracts: a root split (pc 32), a high split (pc 43) and a low
 under which sit four arm groups of four selectors each.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

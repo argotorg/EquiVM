@@ -19,7 +19,7 @@ This file assembles the CometRewards runtime dispatcher.  Function-body correctn
 live in their own files; shared via-IR dispatcher reach obligations live in `Common.lean`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.CometRewards
 

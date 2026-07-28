@@ -7,7 +7,7 @@ import Solm.Equiv
 # MakerDAO/Sky DSS ExponentialDecrease constructor correctness
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.ExponentialDecrease
 

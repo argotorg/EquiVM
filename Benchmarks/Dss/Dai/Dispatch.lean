@@ -7,7 +7,7 @@ The optimized Dai runtime uses a three-split selector tree.  These facts stop at
 entry points and are intended to feed the per-function body proofs.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

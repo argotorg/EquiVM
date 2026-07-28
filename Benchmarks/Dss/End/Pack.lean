@@ -1,7 +1,7 @@
 import Benchmarks.Dss.End.Dispatch
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -1977,7 +1977,7 @@ theorem endPackBodyReverts_moveNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
             .assign .storage (bagRef sender) (.var "bagNew") ])
         .reverted := by
-    exact Reasoning.Refinement.execBlock_append_term
+    exact.execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
           .assign .storage (bagRef sender) (.var "bagNew") ])
@@ -2127,7 +2127,7 @@ theorem endPackBodyReverts_moveCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
             .assign .storage (bagRef sender) (.var "bagNew") ])
         .reverted := by
-    exact Reasoning.Refinement.execBlock_append_term
+    exact.execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
           .assign .storage (bagRef sender) (.var "bagNew") ])
@@ -2333,7 +2333,7 @@ theorem endPackBodyReverts_bagAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endPackStore I } evm0
         packTransition.body .reverted := by
-    have happ := Reasoning.Refinement.execBlock_append
+    have happ :=.execBlock_append
       (s2 :=
         [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
           .assign .storage (bagRef sender) (.var "bagNew") ])
@@ -2394,7 +2394,7 @@ theorem endPackBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
         packTransition.body
         (.ok { contract := contract, locals := endPackStoreBagNew I bagNew }
           (endPackPostState evmMove I bagNew)) := by
-    have happ := Reasoning.Refinement.execBlock_append
+    have happ :=.execBlock_append
       (s2 :=
         [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
           .assign .storage (bagRef sender) (.var "bagNew") ])

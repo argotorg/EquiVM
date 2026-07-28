@@ -1,9 +1,8 @@
 import Examples.SimpleAuction.Storage
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

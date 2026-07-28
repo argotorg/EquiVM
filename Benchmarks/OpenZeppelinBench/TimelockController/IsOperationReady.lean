@@ -19,7 +19,7 @@ JUMPDEST @1882, so the post-helper `EQ` tests `state == 2`; (c) the Solm side is
 mapping keccak), the four helper leaves, and the bool-return encoder @509 are imported unchanged.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

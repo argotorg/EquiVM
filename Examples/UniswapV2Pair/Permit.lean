@@ -2,9 +2,8 @@ import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.PermitDecode
 import Examples.UniswapV2Pair.PermitRuntime
 import Reasoning.ExternalCall
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000

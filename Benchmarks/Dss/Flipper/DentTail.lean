@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flipper.DentDecreaseGuard
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.TendRefund
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 

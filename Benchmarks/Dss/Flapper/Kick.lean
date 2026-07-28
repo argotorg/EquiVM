@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Flapper.Tick
 import Benchmarks.Dss.Flopper.Kick.Part1
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -1528,7 +1528,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   .execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1642,7 +1642,7 @@ theorem flapperKickBodyReverts_moveCallFailure
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   .execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1773,7 +1773,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
           [.return [.var "id"]])
         (.returned { contract := contract, locals := kickMoveLocals evm I }
           evm' (some [.int (Int.ofNat (kickIdWord evm).toNat)])) :=
-    Reasoning.Refinement.execBlock_append hchecked hreturn
+   .execBlock_append hchecked hreturn
   refine ExecFuncBody.execBlockRet ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using

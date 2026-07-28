@@ -9,7 +9,7 @@ import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroInitialFactoryCases
 import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroRevertCases
 import Examples.UniswapV2Pair.MintProportionalProductOverflow
 import Examples.UniswapV2Pair.MintProportionalSecondMintFactoryCases
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 set_option maxHeartbeats 3000000 in

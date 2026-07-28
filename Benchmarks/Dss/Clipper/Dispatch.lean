@@ -6,7 +6,7 @@ import Benchmarks.Dss.Clipper.Trusted
 Shared selector-disjointness facts used by the top-level runtime dispatcher scaffold.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
 set_option maxRecDepth 2000000

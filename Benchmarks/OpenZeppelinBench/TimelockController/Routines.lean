@@ -16,7 +16,7 @@ The guard-peel lemmas are the per-function analogues of the library's `solcGuard
 Adapted from the fully-proved sibling `Benchmarks/WETH9/Routines.lean` (same payable-dispatch shape).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

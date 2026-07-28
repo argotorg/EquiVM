@@ -7,7 +7,7 @@ This file is the local home for Solm dispatch routing facts and shared dispatche
 infrastructure. The first scaffold pass keeps the hard EVM reachability leaves as body stubs.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

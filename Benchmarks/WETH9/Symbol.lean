@@ -9,7 +9,7 @@ stored at slot 1.  The EVM return encoder is proved in `StringReturnSymbol.lean`
 `.return [.storage symbolRef]` body via `returnEquiv`, a direct mirror of `Name.lean` for slot 1.
 Shared header/word/slot-parametric encode machinery lives in `StringEncode.lean`. -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000

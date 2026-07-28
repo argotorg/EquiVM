@@ -21,7 +21,7 @@ EVM `SSTORE` of `land word (lnot 0xff)` via `storageLocStore_bool_false_offset0`
 a no-op matching the EVM jump-around at `@4089`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

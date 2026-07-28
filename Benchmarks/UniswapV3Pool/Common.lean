@@ -5,7 +5,6 @@ import Reasoning.Initcode
 import Reasoning.JumpDest
 import Reasoning.Memory
 import Reasoning.Reach
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
@@ -17,7 +16,7 @@ Contract-wide selector, dispatch, and revert facts used by the top-level runtime
 per-function body proofs.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.UniswapV3Pool.Immutables
 
 set_option maxRecDepth 2000000

@@ -3,7 +3,7 @@ import Benchmarks.Dss.Vat.Signed
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 /-! ## Shared definitions for `fold(bytes32,address,int256)` -/
 
@@ -1354,10 +1354,10 @@ theorem vatFoldSourceRevertAfterDaiBlock (evm evmRate : EVM.State) (I : Executio
     · exact evalCallvalueEq_true hwv
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauth) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hlive) ExecBlock.nil
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hrateOk
-  have h02 := Reasoning.Refinement.execBlock_append h01 hradOk
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdaiRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 :=.execBlock_append hprefix hrateOk
+  have h02 :=.execBlock_append h01 hradOk
+  have h03 :=.execBlock_append h02 hdaiRevert
+  have hblock :=.execBlock_append_term
     (s2 :=
       [ .assign .storage (daiRef (.var "u")) (.var "daiNew") ] ++
       checkedAddSignedInto "debtNew" (.storage debtRef) (.var "rad") ++
@@ -1411,12 +1411,12 @@ theorem vatFoldSourceRevertAfterDebtBlock
     · exact evalCallvalueEq_true hwv
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauth) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hlive) ExecBlock.nil
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hrateOk
-  have h02 := Reasoning.Refinement.execBlock_append h01 hradOk
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdaiOk
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdaiAssign
-  have h05 := Reasoning.Refinement.execBlock_append h04 hdebtRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 :=.execBlock_append hprefix hrateOk
+  have h02 :=.execBlock_append h01 hradOk
+  have h03 :=.execBlock_append h02 hdaiOk
+  have h04 :=.execBlock_append h03 hdaiAssign
+  have h05 :=.execBlock_append h04 hdebtRevert
+  have hblock :=.execBlock_append_term
     (s2 := [ .assign .storage debtRef (.var "debtNew") ])
     h05 (by intro f e h; cases h)
   simpa [ExecTransitionBody, foldTransition, nonpayable, auth, requireLive,

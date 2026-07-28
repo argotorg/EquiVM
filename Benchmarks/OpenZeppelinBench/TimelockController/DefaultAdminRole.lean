@@ -11,7 +11,7 @@ group G147 arm 1, body pc 1132).  It returns `bytes32(0)`, which the optimized r
 `PUSH0` (not `PUSH32`).  Copied from the `PROPOSER_ROLE` template.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

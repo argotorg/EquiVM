@@ -6,7 +6,7 @@ import Benchmarks.Dss.Jug.Trusted
 Solm dispatch routing facts and the shared non-payable body result.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

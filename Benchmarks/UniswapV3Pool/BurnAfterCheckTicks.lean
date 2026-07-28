@@ -2,7 +2,7 @@ import Benchmarks.UniswapV3Pool.BurnCheckTicks
 import Benchmarks.UniswapV3Pool.InitializeGetTickLogCombine
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.UniswapV3Pool.Immutables
-open Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.UniswapV3Pool
 

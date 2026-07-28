@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.FlapSubBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -331,12 +331,12 @@ theorem vowFlapKickNoCodeBodyCore
   have htail :
       ExecBlock config { contract := contract, locals := locals4 } evmDai flapTailStmts
         .reverted := by
-    have hcat := Reasoning.Refinement.execBlock_append hpost hkick
+    have hcat :=.execBlock_append hpost hkick
     simpa [flapTailStmts] using hcat
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat := Reasoning.Refinement.execBlock_append hprefix htail
+    have hcat :=.execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable, checkedExternalCallStmts,
       locals, evm0] using hcat
@@ -450,12 +450,12 @@ theorem flapSourceKickRevert
   have htail :
       ExecBlock config { contract := contract, locals := locals4 } evmDai flapTailStmts
         .reverted := by
-    have hcat := Reasoning.Refinement.execBlock_append hpost hkick'
+    have hcat :=.execBlock_append hpost hkick'
     simpa [flapTailStmts] using hcat
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat := Reasoning.Refinement.execBlock_append hprefix htail
+    have hcat :=.execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable, checkedExternalCallStmts,
       locals, evm0] using hcat

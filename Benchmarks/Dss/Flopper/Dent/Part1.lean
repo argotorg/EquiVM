@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flopper.AuctionCommon
 import Benchmarks.Dss.Flopper.Tick
 import Benchmarks.Dss.Flopper.Yank
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
@@ -1523,7 +1523,7 @@ theorem flopperDentBodyAfterAshSuccessKissNoCode
     simpa [checkedExternalCallStmts] using
       checkedExternalCallNoCode hguard
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   .execBlock_append hmin hkiss
 
 theorem flopperDentBodyAfterAshSuccessKissCallFailure
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
@@ -1582,7 +1582,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
     simpa [checkedExternalCallStmts] using
       checkedExternalCallFailure hguard htarget hargs hcall
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   .execBlock_append hmin hkiss
 
 theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
@@ -1642,7 +1642,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     simpa [checkedExternalCallStmts, dentKissRetLocals] using
       checkedExternalCallSuccess hguard htarget hargs hcall (dentKissDecode_ok outKiss)
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   .execBlock_append hmin hkiss
 
 theorem evalExpr_dent_live_one_true (evm : EVM.State) (I : ExecutionEnv)
     (hlive : dentLiveWord evm = ⟨1⟩) :

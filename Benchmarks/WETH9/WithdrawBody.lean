@@ -10,7 +10,7 @@ with `require(success)`).  This file carries the EVM trace and the Solm body-exe
 top-level refinement `weth9WithdrawBodyCore` lives in `Withdraw.lean`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

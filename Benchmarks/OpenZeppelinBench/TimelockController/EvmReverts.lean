@@ -11,7 +11,7 @@ bytes-offset > 2^64 / bytes length-or-payload OOB) and the Solm `decodeCalldata`
 (the `tlcDecodeHashOperation_none_*` lemmas), routed through `tlcReEquivDecodeFailed`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

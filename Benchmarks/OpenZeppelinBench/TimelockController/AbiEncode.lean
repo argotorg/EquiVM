@@ -11,7 +11,7 @@ LIBRARY CANDIDATEs: the `tlcAbiEnc…` lemmas below generalize to any solc tuple
 dynamic `bytes` member and a `0xa0` head offset.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

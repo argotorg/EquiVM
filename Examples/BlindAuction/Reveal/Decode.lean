@@ -5,10 +5,9 @@ import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.RevealEnd
 import Examples.SimpleAuction.Withdraw
 import Reasoning.ExternalCall
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000

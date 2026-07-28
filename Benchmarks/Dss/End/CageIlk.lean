@@ -2,7 +2,7 @@ import Benchmarks.Dss.End.Dispatch
 import Benchmarks.Dss.End.Cage
 import Benchmarks.Dss.End.Flow
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -4925,7 +4925,7 @@ theorem endCageIlkBodyReverts_vatIlksTerminated {cA gh bl σ σ₀ A I} {g : UIn
     · exact evalCallvalueEq_true (by simp only [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardTag) ?_
-    exact Reasoning.Refinement.execBlock_append_term
+    exact.execBlock_append_term
       (s1 := checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk")
       (s2 :=
@@ -5041,7 +5041,7 @@ theorem endCageIlkTailFromVatReverts_spotTerminated (evmVat : EVM.State)
           "spotIlk" (perm := false)) .reverted := by
     simpa [evmArt] using hspot
   refine ExecBlock.consNormal (endCageIlkStmtArt evmVat I vatOut hsz36) ?_
-  exact Reasoning.Refinement.execBlock_append_term
+  exact.execBlock_append_term
     (s1 := checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
       "spotIlk" (perm := false))
     (s2 :=
@@ -5170,7 +5170,7 @@ theorem endCageIlkTailAfterSpotReverts_parTerminated {evmSpot : EVM.State}
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       .reverted := by
-  exact Reasoning.Refinement.execBlock_append_term
+  exact.execBlock_append_term
     (s1 := checkedExternalCallStmts (.storage spotRef) "par" (.intLit 0) [] "parV"
       (perm := false))
     (s2 :=
@@ -5258,7 +5258,7 @@ theorem endCageIlkTailAfterParReverts_readTerminated {evmPar : EVM.State}
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       .reverted := by
-  exact Reasoning.Refinement.execBlock_append_term
+  exact.execBlock_append_term
     (s1 := checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead"
       (perm := false))
     (s2 :=
@@ -5349,7 +5349,7 @@ theorem endCageIlkTailAfterParReadOk {evmPar evmRead : EVM.State}
       (evm := evmPar) (evm' := evmRead) (I := I) (vatOut := vatOut)
       (spotOut := spotOut) (parOut := parOut) (readOut := readOut)
       hcodeSize hcall hlo
-  exact Reasoning.Refinement.execBlock_append hread htail
+  exact.execBlock_append hread htail
 
 theorem endCageIlkTailAfterSpotParOk {evmSpot evmPar : EVM.State}
     {I : ExecutionEnv} {vatOut spotOut parOut : ByteArray}
@@ -5385,7 +5385,7 @@ theorem endCageIlkTailAfterSpotParOk {evmSpot evmPar : EVM.State}
     endCageIlkCheckedParSuccess
       (evm := evmSpot) (evm' := evmPar) (I := I) (vatOut := vatOut)
       (spotOut := spotOut) (parOut := parOut) hcodeSize hcall hlo
-  have happ := Reasoning.Refinement.execBlock_append
+  have happ :=.execBlock_append
     (s2 :=
       checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead"
         (perm := false) ++
@@ -5461,7 +5461,7 @@ theorem endCageIlkTailFromVatSpotOk {evmVat evmSpot : EVM.State}
           "spotIlk" (perm := false) ++
         [ .letDecl "pip" (some addr) (.tupleGet (.var "spotIlk") 0) ])
         (.ok { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evmSpot) := by
-    exact Reasoning.Refinement.execBlock_append hspot hpip
+    exact.execBlock_append hspot hpip
   have hrest :
       ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
         evmArt
@@ -5475,7 +5475,7 @@ theorem endCageIlkTailFromVatSpotOk {evmVat evmSpot : EVM.State}
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
         res := by
-    have happ := Reasoning.Refinement.execBlock_append
+    have happ :=.execBlock_append
       (s2 :=
         checkedExternalCallStmts (.storage spotRef) "par" (.intLit 0) [] "parV"
           (perm := false) ++
@@ -5588,7 +5588,7 @@ theorem endCageIlkBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I}
   have hblock :
       ExecBlock config { contract := contract, locals := endCageIlkStore I } evm0
         cageIlkTransition.body .reverted := by
-    have happ := Reasoning.Refinement.execBlock_append
+    have happ :=.execBlock_append
       (s2 :=
         [ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
         checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
@@ -5650,7 +5650,7 @@ theorem endCageIlkBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I}
   have hblock :
       ExecBlock config { contract := contract, locals := endCageIlkStore I } evm0
         cageIlkTransition.body (.ok fPost evmPost) := by
-    have happ := Reasoning.Refinement.execBlock_append
+    have happ :=.execBlock_append
       (s2 :=
         [ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
         checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]

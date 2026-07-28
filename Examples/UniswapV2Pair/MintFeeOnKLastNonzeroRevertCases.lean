@@ -1,7 +1,7 @@
 import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroInitialOverflowCases
 import Examples.UniswapV2Pair.MintInternalMintReverts
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -340,7 +340,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
   refine ExecFuncBody.execBlockRevert ?_
   simpa [mintFeeFunction, mintFeeRootComparisonStmt, mintFeePositiveRootBranchStmts,
     List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   .execBlock_append hchecked htail
 
 theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
     (reserveEvm callEvm evmFee : EVM.State) (I : ExecutionEnv)
@@ -452,7 +452,7 @@ theorem uniswapMintAfterMintFeeReverts_of_call
     simpa [evmL, List.append_assoc] using execBlock_append hprefix hfeeBlock
   simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc] using
-    (Reasoning.Refinement.execBlock_append_term
+    (Reasoning.Theory.execBlock_append_term
       (s2 :=
         [ .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
           mintLiquidityBranchStmt ] ++ mintAfterLiquidityTailStmts)

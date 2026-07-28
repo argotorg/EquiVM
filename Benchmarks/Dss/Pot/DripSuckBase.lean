@@ -8,7 +8,7 @@ The `suck` call encodes selector `0xf24e23eb` + `[address vow, address this, uin
 (100-byte calldata) built at the free pointer `0x80` on top of the initial `solcFreePtrMem`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

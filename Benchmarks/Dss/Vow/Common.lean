@@ -2,7 +2,6 @@ import Benchmarks.Dss.Vow.Trusted
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory
-import Reasoning.Refinement
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Storage
@@ -16,7 +15,7 @@ This file contains contract-wide selector, dispatch-failure, and global revert f
 top-level runtime proof and the per-function body proofs.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

@@ -39,7 +39,7 @@ calldata < 4 routes to the payable `receive` (empty calldata) or reverts (1–3 
 shared callvalue guard — each non-payable function guards its own callvalue.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

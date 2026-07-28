@@ -5,9 +5,8 @@ import Examples.OpenZeppelinBench.AccessControl.HasRole
 import Examples.OpenZeppelinBench.AccessControl.RenounceRole
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

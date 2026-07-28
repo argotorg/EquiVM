@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.CageTailRuntime
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -118,11 +118,11 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append
-        (Reasoning.Refinement.execBlock_append
-          (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond) hsin)
+  have hprefix :=.execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append
+        (Reasoning.Theory.execBlock_append
+          (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin)
     htail
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
@@ -258,11 +258,11 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append
-        (Reasoning.Refinement.execBlock_append
-          (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond) hsin)
+  have hprefix :=.execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append
+        (Reasoning.Theory.execBlock_append
+          (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin)
     htail
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0

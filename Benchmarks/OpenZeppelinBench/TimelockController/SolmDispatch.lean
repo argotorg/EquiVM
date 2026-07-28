@@ -9,7 +9,7 @@ consumed by the per-function refinement bridges in `Routines.lean` (TimelockCont
 `selectorDispatchMsg` directly).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace OpenZeppelinBench.TimelockController
 

@@ -2,7 +2,7 @@ import Benchmarks.OpenZeppelinBench.TimelockController.SolmDispatch
 import Benchmarks.OpenZeppelinBench.TimelockController.Dispatch
 import Benchmarks.OpenZeppelinBench.TimelockController.Routines
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

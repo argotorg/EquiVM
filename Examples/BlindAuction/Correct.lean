@@ -10,7 +10,6 @@ import Examples.BlindAuction.RevealEnd
 import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.HighestBid
 import Reasoning.Initcode
-import Reasoning.Refinement
 
 /-!
 # BlindAuction — top-level correctness proof
@@ -22,7 +21,7 @@ dispatcher: calldata size and selector routing happen before any callvalue check
 guards are proved inside the individual body files.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000

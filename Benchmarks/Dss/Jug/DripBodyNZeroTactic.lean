@@ -4,7 +4,7 @@ import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
 open Lean Elab Tactic
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 

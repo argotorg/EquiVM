@@ -10,9 +10,8 @@ import Examples.UniswapV2Pair.Sync
 import Examples.UniswapV2Pair.SyncRuntime
 import Examples.UniswapV2Pair.UpdateRoutines
 import Reasoning.ExternalCall
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

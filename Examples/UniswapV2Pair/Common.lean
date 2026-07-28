@@ -1,7 +1,6 @@
 import Examples.UniswapV2Pair.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Storage
@@ -1102,7 +1101,7 @@ theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using.execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     (evm : EVM.State) (locals : Store)
@@ -1117,7 +1116,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     exact uniswapCheckedExternalBalanceOfThisNoCode
       (evm := evm) (locals := locals) (ref := token0Ref) (retVar := "balance0") hguard0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using.execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
@@ -1141,7 +1140,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using.execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
@@ -1166,7 +1165,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0 hdec0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using.execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
@@ -1201,7 +1200,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
       (evm := evm0) (locals := locals.insert "balance0" balance0)
       (ref := token1Ref) (retVar := "balance1") hguard1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using.execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1244,7 +1243,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using.execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1288,7 +1287,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using.execBlock_append htoken0 htoken1
 
 theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -1903,8 +1902,6 @@ theorem RD.uniswapUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} 
 end Reasoning.Reach
 
 namespace UniswapV2Pair
-
-open Reasoning.Refinement
 
 theorem uniswapAddressGetterBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

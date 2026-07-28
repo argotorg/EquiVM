@@ -12,7 +12,7 @@ so each non-payable function guards its own callvalue at its entry.
 This file threads `initState` to each function's body-entry pc with the selector word on the stack.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unnecessarySeqFocus false

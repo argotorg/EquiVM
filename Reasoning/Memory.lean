@@ -70,12 +70,6 @@ theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := by
     simp [UInt8.size]
     exact Nat.mod_add_div _ _
 
-/-- Big-endian round-trip: decoding the big-endian bytes of `x` gives back `x`. -/
-theorem fromBytesBigEndian_toBytesBigEndian (x : ℕ) :
-    fromBytesBigEndian (toBytesBigEndian x) = x := by
-  simp only [fromBytesBigEndian, toBytesBigEndian, Function.comp, List.reverse_reverse]
-  exact fromBytes'_toBytes' x
-
 /-- Nonnegative integers are embedded as their natural-value EVM word. -/
 theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
     EVM.wordOfInt i = EVM.word i.toNat := by
@@ -136,10 +130,6 @@ theorem fromBytes'_drop_wordLE (w : UInt256) (n : Nat) :
     (bs.map (fun b : UInt8 => b.toNat)) hlt
   rw [fromBytes'_eq_ofDigits (bs.drop n), List.map_drop]
   rw [← hdrop, hfull]
-
-theorem fromBytes'_drop1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop 1) = w.toNat / 256 := by
-  simpa using fromBytes'_drop_wordLE w 1
 
 theorem fromBytes'_take_wordLE_land_mask (w : UInt256) (n : Nat) (hbits : 8 * n ≤ 256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take n) =
@@ -1403,14 +1393,6 @@ theorem fromBytes'_inj_of_length {xs ys : List UInt8}
           congr
           exact ih hlen htail
 
-theorem toBytesLEWithSizeProof_fromBytes'_pad32 (bs : List UInt8)
-    (hlen : bs.length = 32) {hfit : fromBytes' bs < UInt256.size} :
-    (EVM.Word.toBytesLEWithSizeProof ({ val := ⟨fromBytes' bs, hfit⟩ } : UInt256)).1 = bs := by
-  apply fromBytes'_inj_of_length
-  · rw [(EVM.Word.toBytesLEWithSizeProof ({ val := ⟨fromBytes' bs, hfit⟩ } : UInt256)).2, hlen]
-  · rw [fromBytes'_toBytesLEWithSizeProof]
-    rfl
-
 theorem fromBytesBigEndian_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)
     (h : fromBytesBigEndian xs = fromBytesBigEndian ys) : xs = ys := by
@@ -1566,15 +1548,6 @@ theorem mappingSlot_single (key baseSlot : UInt256) :
         (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)))
       = uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)) :=
   keccakSlot_eq _
-
-/-- **Load coupling.**  The word `RD.sload` pushes (storage of `codeOwner` at `slot`, read from the
-    carried `accountMap`) is exactly the Solm-level `storageLoad` of the same account/slot — so a
-    mapping `SLOAD` at the keccak slot reads the same word the Solm spec's `storageLocLoad` decodes. -/
-theorem sloadVal_eq_storageLoad (self : EVM.State) (slot : UInt256) :
-    (self.accountMap.find? self.executionEnv.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD slot ⟨0⟩))
-      = Solm.EVM.storageLoad self self.executionEnv.codeOwner slot :=
-  rfl
 
 
 end Reasoning.Theory

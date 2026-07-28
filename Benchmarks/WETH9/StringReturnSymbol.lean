@@ -22,7 +22,7 @@ the reversed operands with `u256_land_comm` right after the `AND`, after which e
 definition (`weth9StringMask`/`Len`/`WC`/`NewFp`, `weth9RoutineMem`, …) matches `name`'s.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000

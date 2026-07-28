@@ -4,7 +4,7 @@ import Benchmarks.UniswapV3Pool.InitializeGetTickLog
 import Benchmarks.UniswapV3Pool.SetFeeProtocolOwnerCall
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.UniswapV3Pool.Immutables
-open Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.UniswapV3Pool
 

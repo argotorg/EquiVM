@@ -1,10 +1,9 @@
 import Examples.Ballot.Common
 import Examples.Ballot.Proposals
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Data.Nat.Bitwise
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

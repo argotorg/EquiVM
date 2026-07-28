@@ -1,7 +1,7 @@
 import Examples.VyperERC20.TransferFromAllowanceStoreOuterPrefix
 import Examples.VyperERC20.TransferFromAllowanceStoreOuterFinish
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 20000000

@@ -32,7 +32,7 @@ Leaf arm groups (arm order = bytecode order):
 * G397 @398 : schedule@445, supportsInterface@478, EXECUTOR_ROLE@530
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

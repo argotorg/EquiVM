@@ -118,13 +118,6 @@ theorem X_peel {vj : Array UInt256} {s s' : State} {P : Prop} [Decidable P] {f :
   · simp only [hg, if_false] at h ⊢
     exact Xstep_X_X_continue f s s' vj (X f vj s') h rfl
 
-/-- Continue step: when one `Xstep` does not halt, `X (f+1)` drops to `X f` on the
-    successor.  (The non-branching specialisation of `X_peel`.) -/
-theorem X_continue {vj : Array UInt256} {s s' : State} {f : ℕ}
-    (h : Xstep vj s = .ok (s', .none)) :
-    X (f + 1) vj s = X f vj s' :=
-  Xstep_X_X_continue f s s' vj (X f vj s') h rfl
-
 /-- Collapse the two-stage gas guard of a memory opcode (charge `c1` for memory
     expansion, then `c2` for the base cost) into a single guard `gas < c1 + c2`. -/
 theorem collapse_two_stage {α : Type _} {gas : Sat256} {c1 c2 : ℕ} {X Y : α} :
@@ -282,44 +275,6 @@ theorem reEquiv_receiveExecution
     runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
   .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
 
-/-- The fallback transition executes without selector ABI decoding and `Ξ`'s result matches. -/
-theorem reEquiv_fallbackExecution
-    {cfg contract cA gh bl σ_evm σ_solm σ₀ A I} {t actRes returnConvention}
-    {g : UInt256}
-    (hd : selectorDispatchMsg contract I.calldata = none)
-    (hreceive : receiveDispatchMsg contract I.calldata = none)
-    (hfallback : contract.fallback = some t)
-    (hargs : fallbackCallargs I.calldata t.params = some callargs)
-    (hreturn : fallbackReturnConvention t = some returnConvention)
-    (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
-    (hequiv : execResultsEquiv (Ξ cA gh bl σ_evm σ₀ g A I) actRes returnConvention) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g A I :=
-  .execution rfl (.fallback hd hreceive hfallback hargs hreturn rfl hbody) hequiv
-
 /-! ## 4. Fuel monotonicity -/
-
-/-- **More fuel never changes a terminating run.**  Once `X` reaches a genuine terminal
-    result (`.ok _`, or an error other than `.OutOfFuel`) with fuel `n`, any larger fuel
-    `m` yields the same result.  This lets a universally-quantified fuel `g.toNat + 1` be
-    replaced by a concrete bound once the trace is known to terminate. -/
-theorem X_mono {vj : Array UInt256} {s : State} :
-    ∀ {n : ℕ} {r}, X n vj s = r → r ≠ .error .OutOfFuel →
-      ∀ {m : ℕ}, n ≤ m → X m vj s = r := by
-  intro n
-  induction n generalizing s with
-  | zero => intro r hr hne _ _; rw [X] at hr; exact absurd hr.symm hne
-  | succ n ih =>
-    intro r hr hne m hm
-    obtain ⟨m, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
-    rw [X] at hr ⊢
-    cases hstep : Xstep vj s with
-    | error e => simp only [hstep, bind, Except.bind] at hr ⊢; exact hr
-    | ok p =>
-      obtain ⟨s', ctrl⟩ := p
-      simp only [hstep, bind, Except.bind] at hr ⊢
-      cases ctrl with
-      | none => exact ih hr hne (by omega)
-      | some bo => obtain ⟨b, o⟩ := bo; cases b <;> simpa using hr
 
 end Reasoning.Theory

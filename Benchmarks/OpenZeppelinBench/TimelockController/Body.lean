@@ -15,7 +15,7 @@ through `config.externalABI.encode? = timelockExternalABI.encode?
 and that encode is exactly `tlcAbiEncHashOperation` (green, in `AbiEncode.lean`).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1600000

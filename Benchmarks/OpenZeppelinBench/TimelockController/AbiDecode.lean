@@ -13,7 +13,7 @@ Reusable `tlcAbiDec…` lemmas: the finite `decodeABIValues?` unfold for a head-
 single dynamic `bytes` member, with the offset/maxEnd bookkeeping done explicitly.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1600000

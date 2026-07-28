@@ -7,7 +7,7 @@ Header/word/slot-parametric machinery connecting the Solm total-decode string va
 EVM encoder's `weth9{Empty,Short}StringAbi` / the long tail-mask.  `Name.lean`/`Symbol.lean` specialise
 these to slot 0 / slot 1. -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000

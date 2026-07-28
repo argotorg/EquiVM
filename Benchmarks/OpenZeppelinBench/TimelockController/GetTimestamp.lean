@@ -11,7 +11,7 @@ The runtime peels its own non-payable guard, runs the modern word-argument decod
 it, and returns the 32-byte word.  Template for arg-taking `uint256` mapping getters.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

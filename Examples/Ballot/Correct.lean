@@ -14,7 +14,6 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
@@ -49,7 +48,7 @@ Body entry PCs (dispatch targets), read off the bytecode disassembly:
 | `0xe2ba53f0` | `winnerName()`               | `417` (`0x1a1`) |
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

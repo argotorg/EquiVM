@@ -3,7 +3,7 @@ import Benchmarks.CompoundIII.CometRewards.Governor
 import Benchmarks.CompoundIII.CometRewards.TransferGovernor
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

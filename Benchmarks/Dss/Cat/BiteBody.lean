@@ -11,7 +11,7 @@ import Benchmarks.Dss.Cat.BiteEVM
 import Benchmarks.Dss.Cat.FileAddress
 import Benchmarks.Dss.Cat.BiteBodyAw
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

@@ -6,7 +6,7 @@ import Benchmarks.Dss.Dog.Trusted
 Solm dispatch routing facts and the shared runtime revert paths.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxRecDepth 2000000

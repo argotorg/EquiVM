@@ -1,9 +1,8 @@
 import Examples.VyperERC20.TotalSupply
 import Examples.VyperERC20.Storage
 import Examples.ERC20.Common
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false

@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flapper.Kick
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -2099,7 +2099,7 @@ theorem flapperTendPaySuccessTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hpayChecked hbidAssign
+   .execBlock_append hpayChecked hbidAssign
   have hticExpr :
       evalExpr? config { contract := contract, locals := tendTicLocals baseLocals evmPay I }
           (tendAfterBidStore evmPay I) (.var "tic_") =
@@ -2128,7 +2128,7 @@ theorem flapperTendPaySuccessTail
               (tendTicLocals_get_id evmPay I hid)
               (tendTicLocals_get_bids evmPay I hbids) haddFit))
           ExecBlock.nil)
-  exact Reasoning.Refinement.execBlock_append hpayBidTail htick
+  exact.execBlock_append hpayBidTail htick
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReturns_success_callerEq
@@ -2203,7 +2203,7 @@ theorem flapperTendBodyReturns_success_callerEq
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendBegBidLocals evm I) evmPay I }
           (tendPostState evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+   .execBlock_append hskipRefund hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using
@@ -2305,7 +2305,7 @@ theorem flapperTendRefundSuccessPrefix
           [.assign .storage (bidsF (.var "id") "guy") sender])
         (.ok { contract := contract, locals := tendRefundRetLocals evm I }
           (tendAfterGuyStore evmRefund I)) :=
-    Reasoning.Refinement.execBlock_append hrefundChecked hassign
+   .execBlock_append hrefundChecked hassign
   exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
 
 set_option maxHeartbeats 1000000 in
@@ -2399,7 +2399,7 @@ theorem flapperTendBodyReturns_success_callerNe
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendRefundRetLocals evm I) evmPay I }
           (tendPostState evmPay I)) := by
-    simpa [evmGuy] using Reasoning.Refinement.execBlock_append hrefundPrefix hpayTail
+    simpa [evmGuy] using.execBlock_append hrefundPrefix hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using
@@ -2481,7 +2481,7 @@ theorem flapperTendRefundNoCodeTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   .execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2492,7 +2492,7 @@ theorem flapperTendRefundNoCodeTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact Reasoning.Refinement.execBlock_append_term hite (by intro f e h; cases h)
+  exact.execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendRefundCallFailureTail
     (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
@@ -2557,7 +2557,7 @@ theorem flapperTendRefundCallFailureTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   .execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2568,7 +2568,7 @@ theorem flapperTendRefundCallFailureTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact Reasoning.Refinement.execBlock_append_term hite (by intro f e h; cases h)
+  exact.execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendPayNoCodeTail
     (evm : EVM.State) (I : ExecutionEnv) (baseLocals : Store)
@@ -2616,8 +2616,8 @@ theorem flapperTendPayNoCodeTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append_term hpayBidTail
+   .execBlock_append_term hchecked (by intro f e h; cases h)
+  exact.execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2679,8 +2679,8 @@ theorem flapperTendPayCallFailureTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append_term hpayBidTail
+   .execBlock_append_term hchecked (by intro f e h; cases h)
+  exact.execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2774,7 +2774,7 @@ theorem flapperTendPayAddOverflowTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hpayChecked hbidAssign
+   .execBlock_append hpayChecked hbidAssign
   have htickChecked :
       ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)
@@ -2794,8 +2794,8 @@ theorem flapperTendPayAddOverflowTail
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term htickChecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append hpayBidTail htickTail
+   .execBlock_append_term htickChecked (by intro f e h; cases h)
+  exact.execBlock_append hpayBidTail htickTail
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReverts_afterIncrease
@@ -7878,7 +7878,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
             .reverted := by
         simpa [List.append_assoc] using
-          Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+         .execBlock_append hskipRefund hpayTail
       have hbody :
           ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
             .reverted := by
@@ -7954,7 +7954,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
               .reverted := by
           simpa [List.append_assoc] using
-            Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+           .execBlock_append hskipRefund hpayTail
         have hbody :
             ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
               .reverted := by
@@ -8086,7 +8086,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [List.append_assoc] using
-                Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+               .execBlock_append hskipRefund hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8142,7 +8142,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                       [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                 .reverted := by
             simpa [List.append_assoc] using
-              Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+             .execBlock_append hskipRefund hpayTail
           have hbody :
               ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                 .reverted := by
@@ -8373,7 +8373,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [evmGuySolm] using
-                Reasoning.Refinement.execBlock_append hprefix hpayTail
+               .execBlock_append hprefix hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8562,7 +8562,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                       .reverted := by
                   simpa [evmGuySolm] using
-                    Reasoning.Refinement.execBlock_append hprefix hpayTail
+                   .execBlock_append hprefix hpayTail
                 have hbody :
                     ExecTransitionBody config contract evmSolm (tendLocals I)
                       tendTransition.body .reverted := by
@@ -8613,7 +8613,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                     .reverted := by
                 simpa [evmGuySolm] using
-                  Reasoning.Refinement.execBlock_append hprefix hpayTail
+                 .execBlock_append hprefix hpayTail
               have hbody :
                   ExecTransitionBody config contract evmSolm (tendLocals I)
                     tendTransition.body .reverted := by

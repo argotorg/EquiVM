@@ -9,7 +9,7 @@ import Benchmarks.WETH9.Routines
 DappHub/Dai `approve` (caller-keyed outer hash, masked-argument inner hash) over slot 4.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

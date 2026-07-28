@@ -19,7 +19,7 @@ The front half (guard peel, decoder, mapping keccak), the four helper leaves, an
 bool-return encoder @509 (`tlcIsOperationReturnBool`) are imported unchanged.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

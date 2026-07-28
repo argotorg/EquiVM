@@ -4,7 +4,7 @@ import Benchmarks.Dss.Pot.DripCommon
 # Pot `drip()` — EVM-side internal-arithmetic traces (`@1894`–`@2005`)
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

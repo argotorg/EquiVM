@@ -4,7 +4,7 @@ import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.Dispatch
 import Reasoning.MemCascade
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0

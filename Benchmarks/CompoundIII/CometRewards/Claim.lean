@@ -2,7 +2,7 @@ import Benchmarks.CompoundIII.CometRewards.Common
 import Benchmarks.CompoundIII.CometRewards.GetRewardOwed
 import Benchmarks.CompoundIII.CometRewards.WithdrawToken
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

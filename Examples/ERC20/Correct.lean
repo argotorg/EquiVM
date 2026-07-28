@@ -12,7 +12,6 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.Initcode
 import Reasoning.Memory
@@ -28,7 +27,7 @@ machinery driver (one `RD.dispatchTo`); the per-function body proofs and the sel
 / revert facts are named obligations discharged in ERC20-local helper files.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

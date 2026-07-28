@@ -17,9 +17,9 @@ Notes:
 
 open Solm Solm.Notation
 
-namespace ERC20Sugar
+namespace ERC20.Syntax
 
-def erc20ContractGen : ContractDecl := solidity% contract ERC20 {
+def contractSyntax : ContractDecl := solidity% contract ERC20 {
   mapping(address => uint256) balanceOf;
   mapping(address => mapping(address => uint256)) allowance;
   uint256 totalSupply;
@@ -71,6 +71,6 @@ def erc20ContractGen : ContractDecl := solidity% contract ERC20 {
 }
 
 /-- The macro-generated contract is *definitionally* the hand-written one. -/
-theorem erc20ContractGen_eq : erc20ContractGen = ERC20.erc20Contract := by rfl
+theorem contractSyntax_eq : contractSyntax = ERC20.erc20Contract := by rfl
 
-end ERC20Sugar
+end ERC20.Syntax

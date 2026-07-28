@@ -7,7 +7,7 @@ Mirrors Jug's `Benchmarks/Dss/Jug/DripEVMFold.lean`. Entry `@1960` after the `ch
 stores, exit either at the string/empty revert (`RDrev`) or the `return tmp` epilogue (`RDret`).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

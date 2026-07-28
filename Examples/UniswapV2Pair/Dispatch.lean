@@ -8,7 +8,7 @@ Small, bytecode-local dispatcher facts for the optimized binary selector tree.  
 function body entries and are meant to feed the per-function `...BodyCore` lemmas from `Correct.lean`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

@@ -2,7 +2,7 @@ import Benchmarks.Dss.Vow.Arithmetic
 import Benchmarks.Dss.Vow.Cage
 import Benchmarks.Dss.Vow.FlopAsh
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

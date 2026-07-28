@@ -14,7 +14,7 @@ word.  Template for arg-taking struct-field `bytes32` mapping getters (cf. `GetT
 base-slot-`1` `uint256` analogue).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

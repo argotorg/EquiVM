@@ -15,7 +15,6 @@ import Benchmarks.Dss.Cat.Rely
 import Benchmarks.Dss.Cat.Vat
 import Benchmarks.Dss.Cat.Vow
 import Benchmarks.Dss.Cat.Wards
-import Reasoning.Refinement
 import Solm.Equiv
 
 /-!
@@ -26,7 +25,7 @@ refinement lemma, and handles the shared revert paths (non-payable guard, short 
 selector). The whole-contract wrapper combines the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

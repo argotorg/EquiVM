@@ -7,7 +7,6 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
@@ -45,7 +44,7 @@ Dispatch structure (read off the bytecode):
 | `0xe985e9c5` | `isApprovedForAll(address,address)`    | `356` (0x164) | high |
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

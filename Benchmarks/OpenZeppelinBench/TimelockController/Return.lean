@@ -10,7 +10,7 @@ getter.  (The library's single-block `RD.solcReturnWordFromMem` does not match t
 LIBRARY CANDIDATE: `Reasoning.Solc` — split-encoder analogue of `RD.solcReturnWordFromMem`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

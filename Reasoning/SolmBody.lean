@@ -368,25 +368,6 @@ theorem checkedExternalCallNoCode {cfg : Config} {C : ContractDecl} {evm : EVM.S
       .reverted := by
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
 
-/-- A one-statement typed external call through an address-valued local reverts when the raw call
-returns `success = false`. -/
-theorem externalCallVarFailure {cfg : Config} {C : ContractDecl}
-    {evm evm' : EVM.State} {locals : Store}
-    {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
-    (hreceiver : locals.get? receiver = some (.address target))
-    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
-    (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
-        (false, evm', out) perm) :
-    ExecBlock cfg { contract := C, locals := locals } evm
-      [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      .reverted := by
-  exact externalCallFailure
-    (receiver := .var receiver)
-    (by rw [evalExpr?, hreceiver]; rfl)
-    hargs hcall
-
 /-- A one-statement typed external call through an address-valued local succeeds and stores the
 decoded return value. -/
 theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
@@ -403,26 +384,6 @@ theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
       (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
   exact externalCallSuccess
-    (receiver := .var receiver)
-    (by rw [evalExpr?, hreceiver]; rfl)
-    hargs hcall hdec
-
-/-- If a typed external call succeeds but its return bytes fail ABI decoding, the source statement
-reverts. -/
-theorem externalCallVarDecodeRevert {cfg : Config} {C : ContractDecl}
-    {evm evm' : EVM.State} {locals : Store}
-    {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool}
-    (hreceiver : locals.get? receiver = some (.address target))
-    (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
-    (hcall :
-      typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
-        (true, evm', out) perm)
-    (hdec : cfg.externalABI.decode? name out = none) :
-    ExecBlock cfg { contract := C, locals := locals } evm
-      [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      .reverted := by
-  exact externalCallDecodeRevert
     (receiver := .var receiver)
     (by rw [evalExpr?, hreceiver]; rfl)
     hargs hcall hdec
@@ -571,61 +532,6 @@ theorem lowLevelCallFailureThenRequireFalse {cfg : Config} {C : ContractDecl}
   · exact ExecStmt.lowLevelCallFailure hreceiver heth hdata hcall
   · exact ExecBlock.consRevert (ExecStmt.requireFalse hrequire)
 
-/-- A delegatecall followed by `require cond` succeeds when the call returns `success = true` and
-the post-call condition evaluates to `true` in the frame containing `(okVar, dataVar)`. -/
-theorem delegateCallSuccessThenRequireTrue {cfg : Config} {C : ContractDecl}
-    {evm evm' : EVM.State} {locals : Store}
-    {receiver cdata requireCond : Expr} {okVar dataVar : Ident}
-    {target : AccountAddress} {calldata out : ByteArray}
-    (hreceiver : evalExpr? cfg { contract := C, locals := locals } evm receiver =
-      .ok (.address target))
-    (hdata : evalExpr? cfg { contract := C, locals := locals } evm cdata =
-      .ok (.bytes calldata))
-    (hcall : delegateCallViaEVM evm (EVM.address target) calldata (true, evm', out))
-    (hrequire :
-      evalExpr? cfg
-        { contract := C, locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) }
-        evm' requireCond = .ok (.bool true)) :
-    ExecBlock cfg { contract := C, locals := locals } evm
-      [ .delegateCall receiver cdata okVar dataVar,
-        .require requireCond ]
-      (.ok
-        { contract := C,
-          locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) } evm') := by
-  refine ExecBlock.consNormal
-    (solm' :=
-      { contract := C,
-        locals := (locals.insert okVar (.bool true)).insert dataVar (.bytes out) })
-    (evm' := evm') ?_ ?_
-  · exact ExecStmt.delegateCallSuccess hreceiver hdata hcall
-  · exact ExecBlock.consNormal (ExecStmt.requireTrue hrequire) ExecBlock.nil
-
-/-- A delegatecall followed by `require cond` reverts when the call returns `success = false` and
-the post-call condition evaluates to `false` in the frame containing `(okVar, dataVar)`. -/
-theorem delegateCallFailureThenRequireFalse {cfg : Config} {C : ContractDecl}
-    {evm evm' : EVM.State} {locals : Store}
-    {receiver cdata requireCond : Expr} {okVar dataVar : Ident}
-    {target : AccountAddress} {calldata out : ByteArray}
-    (hreceiver : evalExpr? cfg { contract := C, locals := locals } evm receiver =
-      .ok (.address target))
-    (hdata : evalExpr? cfg { contract := C, locals := locals } evm cdata =
-      .ok (.bytes calldata))
-    (hcall : delegateCallViaEVM evm (EVM.address target) calldata (false, evm', out))
-    (hrequire :
-      evalExpr? cfg
-        { contract := C, locals := (locals.insert okVar (.bool false)).insert dataVar (.bytes out) }
-        evm' requireCond = .ok (.bool false)) :
-    ExecBlock cfg { contract := C, locals := locals } evm
-      [ .delegateCall receiver cdata okVar dataVar,
-        .require requireCond ]
-      .reverted := by
-  refine ExecBlock.consNormal
-    (solm' :=
-      { contract := C, locals := (locals.insert okVar (.bool false)).insert dataVar (.bytes out) })
-    (evm' := evm') ?_ ?_
-  · exact ExecStmt.delegateCallFailure hreceiver hdata hcall
-  · exact ExecBlock.consRevert (ExecStmt.requireFalse hrequire)
-
 /-- **Hoare while-rule for the Solm semantics** — the loop analog of the EVM `RD.loop`.
 
     A variant-indexed invariant `P : ℕ → Store → Prop` (`P v L` = "invariant holds with `v`
@@ -722,6 +628,37 @@ theorem execFor_var_state_continue {cfg : Config} {C : ContractDecl}
       rcases hbody with hbody | hbody
       · exact ⟨L', evm', ExecForLoop.iterate (htrue v L evm hP) hbody hpost hloop, hP'⟩
       · exact ⟨L', evm', ExecForLoop.continueIter (htrue v L evm hP) hbody hpost hloop, hP'⟩
+
+/-! ## Block sequencing -/
+
+/-- Append helper: if `s1` falls through to `(f1, e1)`, running `s2` from there is running `s1 ++ s2`. -/
+theorem execBlock_append {cfg : Config} {s2 : List Stmt} :
+    ∀ {s1 : List Stmt} {f e f1 e1 r}, ExecBlock cfg f e s1 (.ok f1 e1) → ExecBlock cfg f1 e1 s2 r →
+      ExecBlock cfg f e (s1 ++ s2) r := by
+  intro s1
+  induction s1 with
+  | nil => intro f e f1 e1 r h1 h2; cases h1; exact h2
+  | cons stmt rest ih =>
+      intro f e f1 e1 r h1 h2
+      cases h1 with
+      | consNormal hstmt hrest => exact ExecBlock.consNormal hstmt (ih hrest h2)
+
+/-- Append helper: if `s1` *terminates* (any non-`.ok` result), `s1 ++ s2` terminates the same way —
+    `s2` never runs. -/
+theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
+    ∀ {s1 : List Stmt} {f e r}, ExecBlock cfg f e s1 r → (∀ f' e', r ≠ .ok f' e') →
+      ExecBlock cfg f e (s1 ++ s2) r := by
+  intro s1
+  induction s1 with
+  | nil => intro f e r h1 hterm; cases h1; exact absurd rfl (hterm _ _)
+  | cons stmt rest ih =>
+      intro f e r h1 hterm
+      cases h1 with
+      | consNormal hstmt hrest => exact ExecBlock.consNormal hstmt (ih hrest hterm)
+      | consReturn hstmt => exact ExecBlock.consReturn hstmt
+      | consRevert hstmt => exact ExecBlock.consRevert hstmt
+      | consBreak hstmt => exact ExecBlock.consBreak hstmt
+      | consContinue hstmt => exact ExecBlock.consContinue hstmt
 
 /-! ## Forward block builder
 

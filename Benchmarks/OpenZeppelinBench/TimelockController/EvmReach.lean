@@ -8,7 +8,7 @@ Reach the `hashOperation` body (pc 988, G194 arm 0) and set up the external 5-ar
 (pc 4600).  Shared by the execute-path (`EvmExec`) and revert-path (`EvmReverts`) proofs.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

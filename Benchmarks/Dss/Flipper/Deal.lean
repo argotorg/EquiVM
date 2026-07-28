@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flipper.ExternalCallTransport
 import Benchmarks.Dss.Flipper.DealTicEVM
 import Benchmarks.Dss.Flipper.Dispatch
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
 

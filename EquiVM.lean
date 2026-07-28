@@ -9,7 +9,6 @@ import Reasoning.JumpDest
 import Reasoning.MemCascade
 import Reasoning.Memory
 import Reasoning.Reach
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Stepping

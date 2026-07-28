@@ -20,7 +20,7 @@ non-matching selector (and calldata < 4) fall through to the payable fallback (`
 There is no shared callvalue guard — each non-payable function guards its own callvalue.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

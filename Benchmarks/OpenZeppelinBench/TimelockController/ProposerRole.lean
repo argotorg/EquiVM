@@ -9,7 +9,7 @@ G194 arm 2, body pc 1050).  It returns `keccak256("PROPOSER_ROLE")`.  Template f
 role-constant getters.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

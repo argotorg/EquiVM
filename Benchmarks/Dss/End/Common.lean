@@ -7,7 +7,6 @@ import Reasoning.Solc
 import Reasoning.Memory
 import Reasoning.Storage
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
 import Mathlib.Tactic.IntervalCases
@@ -18,7 +17,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide helpers for the optimized runtime and creation bytecode.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

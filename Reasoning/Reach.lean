@@ -60,6 +60,11 @@ def RD (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     ∧ s.executionEnv = ee
     ∧ RDWorld s0 s
 
+/-- The persistent **world** carried by an EVM state: its created accounts and storage map.  This is
+    the only part of the state the two executions are required to agree on (between external calls). -/
+def worldOf (s : State) : Batteries.RBSet AccountAddress compare × AccountMap :=
+  (s.createdAccounts, s.accountMap)
+
 /-- The EVM **reach-cursor**: the six fields `RD` pins on the underlying `State` at a program point —
     the transient machine state `pc`/`stack`/`mem`/`aw`/`rdata`, plus the persistent `world`
     (`createdAccounts × accountMap`, where contract storage lives).  `RDc` below is `RD` indexed by a
