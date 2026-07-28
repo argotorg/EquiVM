@@ -14,11 +14,11 @@ The framework has been designed with this goal in mind.
 **Status.** EquiVM is experimental work under active development: the Sol⁻
 language, the reasoning library, and the proof interfaces are still evolving,
 and the example and benchmark proof developments are at varying stages of
-completion. We have used the
-framework to prove refinement for several real-world contracts, including
-MakerDAO's Dss, WETH9, and several OpenZeppelin contracts. Our case studies
-exercise various versions and options of the `solc` compiler, including the
-optimizer, and we have proof-of-concept proofs for the Vyper compiler as well.
+completion. We have used the framework to prove refinement for several
+real-world contracts, including MakerDAO's Dss, WETH9, and several OpenZeppelin
+contracts. Our case studies exercise various versions and options of the `solc`
+compiler, including optimizations, and we have proof-of-concept proofs for the
+Vyper compiler as well.
 
 ## Sol⁻
 Sol⁻ is a small imperative language, inspired by Solidity and designed to be

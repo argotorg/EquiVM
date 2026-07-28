@@ -33,20 +33,16 @@ theorem permitDecodeABIValue_uint8_legacy_ok_core {bytes : List UInt8} {start : 
       some (.int (Int.ofNat
           ((ABI.bytesToWord ((bytes.drop start).take 32)).toNat % EVM.twoPow 8)),
         start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := uint8) (bytes := bytes) (start := start) (by decide)]
-  simp only [uint8, uint8Int, decodeScalarWordWithMode?, readWord?, readBytes?,
-    decodeABIWord?, bind, Option.bind]
+  simp only [uint8, uint8Int, decodeABIValue?, readWord?, readBytes?, decodeABIWord?, bind,
+    Option.bind]
   rw [if_pos hlen]
-  simp only
-  rw [if_neg (show ¬ ((8 : Nat) = 0) from by decide)]
   rfl
 
 theorem permitDecodeABIValue_bytes32_ok_core {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
     decodeABIValue? bytes32 bytes start DecodeMode.legacySolc05 =
       some (.fixedBytes bytes32Width ((bytes.drop start).take 32), start + 32) := by
-  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, bind,
+  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, zeroPadding?, bind,
     Option.bind]
   rw [if_pos hlen]
   simp

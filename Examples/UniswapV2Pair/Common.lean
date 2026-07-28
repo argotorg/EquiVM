@@ -1101,7 +1101,7 @@ theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     (evm : EVM.State) (locals : Store)
@@ -1116,7 +1116,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     exact uniswapCheckedExternalBalanceOfThisNoCode
       (evm := evm) (locals := locals) (ref := token0Ref) (retVar := "balance0") hguard0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
@@ -1140,7 +1140,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
@@ -1165,7 +1165,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0 hdec0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
@@ -1200,7 +1200,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
       (evm := evm0) (locals := locals.insert "balance0" balance0)
       (ref := token1Ref) (retVar := "balance1") hguard1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1243,7 +1243,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1287,7 +1287,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}

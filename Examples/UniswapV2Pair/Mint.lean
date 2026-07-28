@@ -1033,10 +1033,7 @@ theorem uniswapMintBody
                                               hbound0Source hbound1Source helapsedSource)
                                         exact
                                           uniswapMintFinishProportionalFeeOffCumulative
-                                            (reserve0 := reserve0) (reserve1 := reserve1)
-                                            hcode hdispatch hsz36
-                                            (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
-                                            rd3701
+                                            hcode hdispatch hsz36 hbody rd3701
                                             hPostAccountsFee henvFeeI hcreatedFee rfl
                                             htotalNonzero hclean0 hclean1 hmulFit0 hmulFit1
                                             hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
@@ -1567,10 +1564,28 @@ theorem uniswapMintBody
                                                 simpa [hmask] using hbound1
                                               norm_num [maxUint112]
                                               exact_mod_cast hnat
-                                            -- TODO: Reconnect this source return after the post-main API
-                                            -- drift; elaborating the old body proof currently hits maxRecDepth.
-                                            exact by
-                                              sorry
+                                            have hbody :=
+                                              ExecFuncBody.execBlockRet
+                                                (uniswapMintProportionalFeeOnCumulativeReturn_kLastZero
+                                                  evmS evm0S evm1S evmFeeS I feeTo
+                                                  (by simp only [evmS, initState]; exact hwv)
+                                                  hunlockedSolm hguard0 hguard1 hcall0 hdec0
+                                                  hcall1 hdec1 hle0Source hle1Source hfeeGuard
+                                                  hfeeCall hfeeDec hfeeToAddr hkLastSource
+                                                  htotalSourceNonzero hfitSource0 hfitSource1
+                                                  hreserve0Source hreserve1Source hliquiditySource
+                                                  hliqNonzero hfitSupplySource hbalanceFitSource
+                                                  hbound0Source hbound1Source
+                                                  helapsedSource hfitKLastSource)
+                                            exact
+                                              uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
+                                                hcode hdispatch hsz36 hbody rd3701
+                                                hPostAccountsFee henvFeeI hcreatedFee rfl
+                                                htotalNonzero hclean0 hclean1 hmulFit0 hmulFit1
+                                                hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
+                                                hperm htotalFit hbalanceFit hfitSupplySource
+                                                hbalanceFitSource hbound0 hbound1 helapsedNe
+                                                hfitKLastRuntime hmem hmem64
                                           · let σCleared :=
                                             sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩
                                             let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -2123,12 +2138,7 @@ theorem uniswapMintBody
                                                       hbound1Source helapsedSource)
                                                 exact
                                                   uniswapMintFinishProportionalFeeOffCumulative
-                                                    (reserve0 := reserve0) (reserve1 := reserve1)
-                                                    (liquidity := liquidityCleared)
-                                                    (totalSupply := totalSupplyCleared)
-                                                    hcode hdispatch hsz36
-                                                    (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
-                                                    rd3701
+                                                    hcode hdispatch hsz36 hbody rd3701
                                                     hPostCleared henvCleared hcreatedCleared rfl
                                                     htotalNonzero hclean0 hclean1 hmulFit0 hmulFit1
                                                     hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
@@ -2596,22 +2606,41 @@ theorem uniswapMintBody
                                                                             UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
-                                                                            · exact by
-                                                                                sorry
-                                                                            · exact by
-                                                                                sorry
-                                                                          · exact by
-                                                                              sorry
+                                                                            · exact False.elim (hfeeOnKLastNonzeroInitial (by
+                                                                                unfold mintFeeOnKLastNonzeroInitialOverflowFromFactoryCasesData
+                                                                                  mintFeeOnKLastNonzeroInitialFromFactoryCasesData
+                                                                                  mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialZeroFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryCaseData
+                                                                                  mintFeeOnKLastNonzeroNoFeeLiquidityFromFactoryCaseData
+                                                                                unfold mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData at hrootArithmetic
+                                                                                unfold mintProportionalProductOverflowCase at hproductOverflow
+                                                                                unfold mintProportionalSecondMintOverflowCase at hsecondMintOverflow
+                                                                                simp [hfeeToNonzeroFinal,
+                                                                                  hkLastNonzeroFinal, htotalEq]))
+                                                                            · exfalso
+                                                                              contradiction
+                                                                          · exfalso
+                                                                            contradiction
                                                                         · by_cases hfeeToNonzeroFinal :
                                                                             UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
-                                                                            · exact by
-                                                                                sorry
-                                                                            · exact by
-                                                                                sorry
-                                                                          · exact by
-                                                                              sorry
+                                                                            · exact False.elim (hfeeOnKLastNonzeroSuccess (by
+                                                                                unfold mintFeeOnKLastNonzeroSuccessFromFactoryCasesData
+                                                                                  mintFeeOnKLastNonzeroNoMintFromFactoryCaseData
+                                                                                unfold mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData at hrootArithmetic
+                                                                                unfold mintProportionalProductOverflowCase at hproductOverflow
+                                                                                unfold mintProportionalSecondMintOverflowCase at hsecondMintOverflow
+                                                                                simp_all))
+                                                                            · exfalso
+                                                                              contradiction
+                                                                          · exfalso
+                                                                            contradiction
         · rw [not_lt] at hdepth
           have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
           let evmL := uniswapLockEnteredState evmS
